@@ -11,11 +11,34 @@
   width: 100%;
   height: 90vh;
   display: flex;
+  flex-direction: column;
   align-items: center;
   justify-content: center;
   margin-top: -2.5rem;
   overflow: hidden;
   padding: 1rem;
+}
+
+.sectionTitle {
+  text-align: center;
+  margin-bottom: 2.5rem;
+  position: relative;
+  z-index: 2;
+}
+
+.sectionTitle h2 {
+  font-size: 2.8rem;
+  font-weight: 700;
+  margin-top: -3.5rem;
+  background: linear-gradient(
+    135deg,
+    var(--title-color),
+    var(--ifm-color-primary)
+  );
+  background-clip: text;
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  letter-spacing: -0.02em;
 }
 
 .gridContainer {
@@ -27,76 +50,8 @@
   display: grid;
   grid-template-columns: repeat(2, 1fr);
   grid-template-rows: repeat(2, 1fr);
-  gap: 6rem 8rem;
-  padding: 2rem;
-}
-
-.centerCircle {
-  position: absolute;
-  top: 50%;
-  left: 50%;
-  transform: translate(-50%, -50%);
-  width: 120px;
-  height: 120px;
-  background: var(--ifm-color-primary);
-  border-radius: 50%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  color: #ffffff;
-  font-weight: 600;
-  font-size: 1rem;
-  text-align: center;
-  padding: 1rem;
-  box-shadow: 0 0 30px rgba(var(--ifm-color-primary-rgb), 0.3);
-  z-index: 10;
-}
-
-.centerCircle::before {
-  content: "";
-  position: absolute;
-  inset: -10px;
-  border-radius: 50%;
-  background: var(--ifm-color-primary);
-  opacity: 0.2;
-}
-
-/* Dynamic connection lines */
-.centerCircle::after {
-  content: "";
-  position: absolute;
-  inset: -20px;
-  border-radius: 50%;
-  border: 2px dashed var(--ifm-color-primary);
-  opacity: 0.2;
-  animation: rotate 20s linear infinite;
-}
-
-/* Animated connection paths */
-.connectionPath {
-  position: absolute;
-  top: 50%;
-  left: 50%;
-  width: 0;
-  height: 0;
-  z-index: 5;
-}
-
-/* Position-specific connection paths */
-.top-left .connectionPath::before {
-  animation-delay: 0s;
-}
-
-.top-right .connectionPath::before {
-  animation-delay: 0.75s;
-}
-
-.bottom-left .connectionPath::before {
-  animation-delay: 1.5s;
-}
-
-.bottom-right .connectionPath::before {
-  animation-delay: 2.25s;
+  gap: 3rem;
+  padding: 1rem 0;
 }
 
 @keyframes rotate {
@@ -118,7 +73,7 @@
   box-shadow: rgba(3, 102, 214, 0.3) 0px 0px 0px 3px;
   transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
   overflow: visible; /* Changed from hidden to show animations */
-  max-width: 450px;
+  max-width: 540px;
   margin: 0 auto;
   width: 100%;
 }
@@ -205,7 +160,7 @@
 .svgWrapper {
   width: 100px;
   height: 100px;
-  margin: 0 auto 0.5rem;
+  margin: 1.6rem auto 0.5rem;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -219,11 +174,6 @@
   height: 100px;
   transition: all 0.3s ease;
 }
-
-/* .featureCard:hover .svgWrapper {
-  transform: scale(1.1);
-  background: rgba(var(--ifm-color-primary-rgb), 0.1);
-} */
 
 .textContent {
   text-align: center;
@@ -239,16 +189,9 @@
 
 .textContent p {
   color: var(--ifm-color-emphasis-700);
-  font-size: 0.9rem;
+  font-size: 1rem;
   line-height: 1.5;
   margin: 0;
-}
-
-.connectors {
-  position: absolute;
-  inset: 0;
-  pointer-events: none;
-  z-index: 1;
 }
 
 .connectorHorizontal,
@@ -359,49 +302,6 @@
   transform: translateX(-50%) translateY(-50%) rotate(90deg);
 }
 
-/* Diagonal connection lines */
-.connectionLine {
-  position: absolute;
-  top: 50%;
-  left: 50%;
-  width: 250px;
-  height: 3px;
-  background: linear-gradient(
-    90deg,
-    rgba(var(--ifm-color-primary-rgb), 0.6),
-    rgba(var(--ifm-color-primary-rgb), 0.2)
-  );
-  transform-origin: left center;
-  z-index: 1;
-  transition: all 0.3s ease;
-}
-
-.top-left .connectionLine {
-  transform: rotate(-45deg) translateX(-60px);
-}
-
-.top-right .connectionLine {
-  transform: rotate(45deg) translateX(-60px);
-}
-
-.bottom-left .connectionLine {
-  transform: rotate(-135deg) translateX(-60px);
-}
-
-.bottom-right .connectionLine {
-  transform: rotate(135deg) translateX(-60px);
-}
-
-/* Enhance connection lines on hover */
-.featureCard:hover .connectionLine {
-  background: linear-gradient(
-    90deg,
-    rgba(var(--ifm-color-primary-rgb), 1),
-    rgba(var(--ifm-color-primary-rgb), 0.4)
-  );
-  box-shadow: 0 0 10px rgba(var(--ifm-color-primary-rgb), 0.3);
-}
-
 @media (max-width: 996px) {
   .featureCard {
     min-width: 100%;
@@ -420,10 +320,6 @@
     width: 100%;
   }
 
-  .centerCircle {
-    display: none;
-  }
-
   .featureCard {
     grid-area: auto !important;
   }
@@ -434,7 +330,6 @@
 
   .centerCircle::before,
   .centerCircle::after,
-  .connectionPath,
   .featureCard::before {
     left: 0;
     top: 0;
@@ -444,5 +339,28 @@
   .gridContainer::after,
   .connectionLine {
     display: none;
+  }
+
+  .sectionTitle {
+    margin-bottom: 3rem;
+  }
+
+  .sectionTitle h2 {
+    font-size: 2.5rem;
+    margin-top: 0;
+  }
+
+  .sectionTitle p {
+    font-size: 1.125rem;
+  }
+}
+
+@media (max-width: 480px) {
+  .sectionTitle h2 {
+    font-size: 2rem;
+  }
+
+  .sectionTitle p {
+    font-size: 1rem;
   }
 }

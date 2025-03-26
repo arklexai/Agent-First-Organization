@@ -52,31 +52,30 @@ const FeatureList = [
 function Feature({ Svg, title, description, position }) {
   return (
     <div className={clsx(styles.featureCard, styles[position])}>
-      <div className={styles.cardInner}>
-        <div className={styles.svgWrapper}>
-          <Svg className={styles.featureSvg} role="img" />
-        </div>
-        <div className={styles.textContent}>
-          <Heading as="h3">{title}</Heading>
-          <p>{description}</p>
-        </div>
+      <div className={styles.svgWrapper}>
+        <Svg className={styles.featureSvg} role="img" />
       </div>
-      <div className={styles.connectionPath} />
+      <div className={styles.textContent}>
+        <Heading as="h3">{title}</Heading>
+        <p>{description}</p>
+      </div>
     </div>
   );
 }
 
 export default function HomepageFeatures() {
   return (
-    <section className={styles.features}>
-      <div className={styles.gridContainer}>
-        <div className={styles.centerCircle}>
-          <span>Agent-First Organization</span>
-        </div>
-        {FeatureList.map((props, idx) => (
-          <Feature key={idx} {...props} />
-        ))}
+    <div>
+      <div className={styles.sectionTitle}>
+        <h2>Core Features</h2>
       </div>
-    </section>
+      <section className={styles.features}>
+        <div className={styles.gridContainer}>
+          {FeatureList.map((props, idx) => (
+            <Feature key={idx} {...props} />
+          ))}
+        </div>
+      </section>
+    </div>
   );
 }
