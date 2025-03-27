@@ -217,6 +217,7 @@
   z-index: 1;
   aspect-ratio: 16/9;
   object-fit: contain;
+  border-radius: 20px;
   transform: scale(1.01);
 }
 
@@ -396,6 +397,10 @@
 }
 
 @media screen and (max-width: 996px) {
+  .heroTitle {
+    font-size: 3rem;
+  }
+
   .contentSection {
     padding: 4rem 1.5rem;
   }
