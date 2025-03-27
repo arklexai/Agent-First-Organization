@@ -1,9 +1,7 @@
-import clsx from "clsx";
 import Link from "@docusaurus/Link";
 import useDocusaurusContext from "@docusaurus/useDocusaurusContext";
 import Layout from "@theme/Layout";
 import HomepageFeatures from "@site/src/components/HomepageFeatures";
-// import arklexDiagram from "@site/static/img/AgentOrg-main.png";
 import ArklexDiagram from "@site/static/img/AgentOrg-Main.svg";
 
 import Heading from "@theme/Heading";
