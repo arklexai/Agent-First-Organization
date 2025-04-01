@@ -1,1 +1,1 @@
-AUTH_ERROR = "error: Google Calendar authentication failed"
+AUTH_ERROR = "Google Calendar authentication failed"

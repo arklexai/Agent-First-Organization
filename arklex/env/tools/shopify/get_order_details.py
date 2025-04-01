@@ -6,33 +6,30 @@ import shopify
 from arklex.env.tools.tools import register_tool
 from arklex.env.tools.shopify.utils import authorify_admin
 from arklex.env.tools.shopify.utils_slots import ShopifyGetOrderDetailsSlots, ShopifyOutputs
+from arklex.exceptions import ToolExecutionError
 
 description = "Get the status and details of an order."
 slots = ShopifyGetOrderDetailsSlots.get_all_slots()
 outputs = [
     ShopifyOutputs.ORDERS_DETAILS
 ]
-ORDERS_NOT_FOUND = "error: order not found"
-errors = [
-    ORDERS_NOT_FOUND
-]
+ORDERS_NOT_FOUND_PROMPT = "There is a problem with the order. Please try again later or refresh the chat window."
 
-@register_tool(description, slots, outputs, lambda x: x not in errors)
+
+@register_tool(description, slots, outputs)
 def get_order_details(order_ids: list, order_names: list, user_id: str, limit=10, **kwargs) -> str:
     limit = int(limit) if limit else 10
     auth = authorify_admin(kwargs)
-    if auth["error"]:
-        return auth["error"]
     
     try:
         order_ids = ' OR '.join(f'id:{oid.split("/")[-1]}' for oid in order_ids)
-        order_names = ' OR '.join(f'name:{name}' for name in order_ids)
+        order_names = ' OR '.join(f'name:{name}' for name in order_names)
         query = f"customer_id:{user_id.split('/')[-1]}"
         if order_ids:
             query += f" AND ({order_ids})"
         if order_names:
             query += f" AND ({order_names})"
-        with shopify.Session.temp(**auth["value"]):
+        with shopify.Session.temp(**auth):
             response = shopify.GraphQL().execute(f"""
             {{
                 orders (first: {limit}, query:"{query}") {{
@@ -75,6 +72,8 @@ def get_order_details(order_ids: list, order_names: list, user_id: str, limit=10
             }}
             """)
             result = json.loads(response)["data"]["orders"]["nodes"]
+            if len(result) == 0:
+                return "You have no orders placed."
             response_text = ""
             for order in result:
                 response_text += f"Order ID: {order.get('id', 'None')}\n"
@@ -93,4 +92,4 @@ def get_order_details(order_ids: list, order_names: list, user_id: str, limit=10
                 response_text += "\n"
         return response_text
     except Exception as e:
-        return ORDERS_NOT_FOUND
+        raise ToolExecutionError(f"get_order_details failed: {e}", ORDERS_NOT_FOUND_PROMPT)

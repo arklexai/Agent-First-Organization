@@ -8,7 +8,7 @@ Alongside [Workers](./Workers), **Tools** are a fundamental building block of th
 Tools could be thought of as a Worker-wrapped method that has the framework translate values to and from MessageStates.
 :::
 
-Unlike Workers, there are no BaseWorker equivalent for Tools as it is designed to be unstructured. Instead, Tools could be easily created from any method through `@register-tool` decorator. To turn a method into a tool, just add a `@register-tool` decorator on the method declaration with 4 parameters: **description**, **slots**, **outputs**, **isComplete**.
+Unlike Workers, there are no BaseWorker equivalent for Tools as it is designed to be unstructured. Instead, Tools could be easily created from any method through `@register-tool` decorator. To turn a method into a tool, just add a `@register-tool` decorator on the method declaration with 4 parameters: **description**, **slots**, **outputs**.
 
 ## Parameters
 ### Description
@@ -79,9 +79,6 @@ Outputs describes the expected return value of the method and aids the framework
 >    "description": "The user id of the user. such as '13573257450893'.",
 > }]
 > ```
-
-### isComplete
-isComplete is a boolean method that takes in all the possible return values from the tool and returns True if the tool is "completed" or False if the tool failed to complete and will have to return this step. This method allows developers to customize the tool to acknowledge error messages and success conditions. This is often a lambda function for succinctness.
 
 **Always Complete**
 ```py

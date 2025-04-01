@@ -7,6 +7,8 @@ from arklex.env.tools.shopify.utils_slots import ShopifyGetUserDetailsAdminSlots
 from arklex.env.tools.shopify.utils_nav import *
 from arklex.env.tools.shopify.utils import authorify_admin
 
+from arklex.exceptions import ToolExecutionError
+
 # Admin API
 import shopify
 
@@ -17,21 +19,18 @@ outputs = [
     *PAGEINFO_OUTPUTS
 ]
 
-USER_NOT_FOUND_ERROR = "error: user not found"
-errors = [USER_NOT_FOUND_ERROR]
+USER_NOT_FOUND_PROMPT = "Could not find the user. Please try again later or refresh the chat window."
 
 
-@register_tool(description, slots, outputs, lambda x: x not in errors)
+@register_tool(description, slots, outputs)
 def get_user_details_admin(user_id: str, **kwargs) -> str:
     nav = cursorify(kwargs)
     if not nav[1]:
         return nav[0]
     auth = authorify_admin(kwargs)
-    if auth["error"]:
-        return auth["error"]
     
     try:
-        with shopify.Session.temp(**auth["value"]):
+        with shopify.Session.temp(**auth):
             response = shopify.GraphQL().execute(f"""
                 {{
                     customer(id: "{user_id}")  {{ 
@@ -63,7 +62,10 @@ def get_user_details_admin(user_id: str, **kwargs) -> str:
                 }}
             """)
             data = json.loads(response)['data']['customer']
-            return json.dumps(data)
+            if data:
+                return json.dumps(data)
+            else:
+                raise ToolExecutionError(f"get_user_details_admin failed", USER_NOT_FOUND_PROMPT)
 
-    except Exception:
-        return USER_NOT_FOUND_ERROR
+    except Exception as e:
+        raise ToolExecutionError(f"get_user_details_admin failed: {e}", USER_NOT_FOUND_PROMPT)

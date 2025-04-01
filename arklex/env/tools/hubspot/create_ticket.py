@@ -7,7 +7,8 @@ from hubspot.crm.associations.v4 import AssociationSpec
 from hubspot.crm.tickets.models import SimplePublicObjectInputForCreate
 
 from arklex.env.tools.tools import register_tool, logger
-from arklex.env.tools.hubspot.utils import HUBSPOT_AUTH_ERROR
+from arklex.env.tools.hubspot.utils import authenticate_hubspot
+from arklex.exceptions import ToolExecutionError
 
 
 description = "Create a ticket for the existing customer when the customer has some problem about the specific product."
@@ -37,19 +38,12 @@ outputs = [
     }
 ]
 
-USER_NOT_FOUND_ERROR = "error: user not found (not an existing customer)"
-TICKET_CREATION_ERROR = "error: ticket creation failed"
-errors = [
-    HUBSPOT_AUTH_ERROR,
-    TICKET_CREATION_ERROR
-]
+TICKET_CREATION_ERROR_PROMPT = "Ticket creation failed, please try again later."
 
 
-@register_tool(description, slots, outputs, lambda x: x not in errors)
+@register_tool(description, slots, outputs)
 def create_ticket(cus_cid: str, issue: str, **kwargs) -> str:
-    access_token = kwargs.get('access_token')
-    if not access_token:
-        return HUBSPOT_AUTH_ERROR
+    access_token = authenticate_hubspot(kwargs)
 
     api_client = hubspot.Client.create(access_token=access_token)
 
@@ -82,10 +76,10 @@ def create_ticket(cus_cid: str, issue: str, **kwargs) -> str:
             return ticket_id
         except ApiException as e:
             logger.info("Exception when calling AssociationV4: %s\n" % e)
-            return TICKET_CREATION_ERROR
+            raise ToolExecutionError(f"HubSpot create_ticket failed: {e}", TICKET_CREATION_ERROR_PROMPT)
     except ApiException as e:
         logger.info("Exception when calling Crm.tickets.create: %s\n" % e)
-        return TICKET_CREATION_ERROR
+        raise ToolExecutionError(f"HubSpot create_ticket failed: {e}", TICKET_CREATION_ERROR_PROMPT)
 
 
 

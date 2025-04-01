@@ -4,7 +4,10 @@ import hubspot
 from hubspot.crm.objects.emails import ApiException
 
 from arklex.env.tools.tools import register_tool, logger
-from arklex.env.tools.hubspot.utils import HUBSPOT_AUTH_ERROR
+from arklex.env.tools.hubspot.utils import authenticate_hubspot
+from arklex.exceptions import ToolExecutionError
+
+
 description = "Find the owner id in the contact. If owner id is found, the next step is using the extracted owner id to find the information of the owner. "
 
 
@@ -26,16 +29,12 @@ outputs = [
     }
 ]
 
-OWNER_UNFOUND_ERROR = 'error: owner not found (not an existing customer)'
-errors = [
-    HUBSPOT_AUTH_ERROR
-]
+OWNER_UNFOUND_PROMPT = 'Owner not found (not an existing customer)'
 
-@register_tool(description, slots, outputs, lambda x: x not in errors)
+
+@register_tool(description, slots, outputs)
 def find_owner_id_by_contact_id(cus_cid, **kwargs) -> str:
-    access_token = kwargs.get('access_token')
-    if not access_token:
-        return HUBSPOT_AUTH_ERROR
+    access_token = authenticate_hubspot(kwargs)
 
 
     api_client = hubspot.Client.create(access_token=access_token)
@@ -61,4 +60,4 @@ def find_owner_id_by_contact_id(cus_cid, **kwargs) -> str:
         return owner_id
     except ApiException as e:
         logger.info("Exception when extracting owner_id of one contact: %s\n" % e)
-        return OWNER_UNFOUND_ERROR
+        raise ToolExecutionError(f"HubSpot find_owner_id_by_contact_id failed: {e}", OWNER_UNFOUND_PROMPT)

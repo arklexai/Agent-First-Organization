@@ -1,50 +1,35 @@
 import requests
 from arklex.env.tools.shopify.auth_utils import get_access_token
+from arklex.exceptions import AuthenticationError
 
-SHOPIFY_ADMIN_AUTH_ERROR = "error: missing some or all required shopify admin authentication parameters: shop_url, api_version, admin_token. Please set up 'fixed_args' in the config file. For example, {'name': <unique name of the tool>, 'fixed_args': {'admin_token': <shopify_access_token>, 'shop_url': <shopify_shop_url>, 'api_version': <Shopify API version>}}"
-SHOPIFY_STOREFRONT_AUTH_ERROR = "error: missing some or all required shopify storefront authentication parameters: shop_url, api_version, storefront_token. Please set up 'fixed_args' in the config file. For example, {'name': <unique name of the tool>, 'fixed_args': {'storefront_token': <shopify_access_token>, 'shop_url': <shopify_shop_url>, 'api_version': <Shopify API version>}}"
+SHOPIFY_ADMIN_AUTH_ERROR_MSG = "Missing some or all required Shopify admin authentication parameters: shop_url, api_version, admin_token. Please set up 'fixed_args' in the config file. For example, {'name': <unique name of the tool>, 'fixed_args': {'admin_token': <shopify_access_token>, 'shop_url': <shopify_shop_url>, 'api_version': <Shopify API version>}}"
+SHOPIFY_STOREFRONT_AUTH_ERROR_MSG = "Missing some or all required Shopify storefront authentication parameters: shop_url, api_version, storefront_token. Please set up 'fixed_args' in the config file. For example, {'name': <unique name of the tool>, 'fixed_args': {'storefront_token': <shopify_access_token>, 'shop_url': <shopify_shop_url>, 'api_version': <Shopify API version>}}"
 
 def authorify_admin(kwargs):
     auth = {
-        "value": {
-            "domain": None,
-            "version": None,
-            "token": None
-        },
-        "error": None
+        "domain": kwargs.get("shop_url"),
+        "version": kwargs.get("api_version"),
+        "token": kwargs.get("admin_token")
     }
-    auth["value"]["domain"] = kwargs.get("shop_url")
-    auth["value"]["version"] = kwargs.get("api_version")
-    auth["value"]["token"] = kwargs.get("admin_token")
-    
-    if not auth["value"]["domain"] or not auth["value"]["version"] or not auth["value"]["token"]:
-        auth["error"] = SHOPIFY_ADMIN_AUTH_ERROR
-        return auth
-    
+
+    if not all(auth.values()):
+        raise AuthenticationError(f"Shopify admin authentication failed: {SHOPIFY_ADMIN_AUTH_ERROR_MSG}")
     return auth
 
 
 def authorify_storefront(kwargs):
-    auth = {
-        "value": {
-            "domain": None,
-            "version": None,
-            "token": None
-        },
-        "error": None,
-        "storefront_token": None,
-        "storefront_url": None
+    auth_dict = {
+        "domain": kwargs.get("shop_url"),
+        "version": kwargs.get("api_version"),
+        "token": kwargs.get("storefront_token")
     }
-    auth["value"]["domain"] = kwargs.get("shop_url")
-    auth["value"]["version"] = kwargs.get("api_version")
-    auth["value"]["token"] = kwargs.get("storefront_token")
     
-    if not auth["value"]["domain"] or not auth["value"]["version"] or not auth["value"]["token"]:
-        auth["error"] = SHOPIFY_STOREFRONT_AUTH_ERROR
-        return auth
-    
-    auth["storefront_token"] = auth["value"]["token"]
-    auth["storefront_url"] = f"{auth['value']['domain']}/api/{auth['value']['version']}/graphql.json"
+    if not all(auth_dict.values()):
+        raise AuthenticationError(f"Shopify storefront authentication failed: {SHOPIFY_STOREFRONT_AUTH_ERROR_MSG}")
+    auth = {
+        "storefront_token": auth_dict["token"],
+        "storefront_url": f"{auth_dict['domain']}/api/{auth_dict['version']}/graphql.json"
+    }
     return auth
 
 

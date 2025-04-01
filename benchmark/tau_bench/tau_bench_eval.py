@@ -68,9 +68,8 @@ class TauBenchResourceInitializer(DefaulResourceInitializer):
                 slot["required"] = param_name in params["required"]
                 tool_slots.append(slot)
             tool_output = []
-            isComplete = lambda x: True
             
-            tool = tool_lambda(Tool(tool_func, tool_key, tool_desc, tool_slots, tool_output, isComplete))
+            tool = tool_lambda(Tool(tool_func, tool_key, tool_desc, tool_slots, tool_output))
 
             tool_registry[tool_id] = {
                 "name": tool_name,

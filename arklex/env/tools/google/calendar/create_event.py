@@ -6,6 +6,7 @@ from google.oauth2 import service_account
 
 from arklex.env.tools.tools import register_tool
 from arklex.env.tools.google.calendar.utils import AUTH_ERROR
+from arklex.exceptions import AuthenticationError, ToolExecutionError
 
 # Scopes required for accessing Google Calendar
 SCOPES = ['https://www.googleapis.com/auth/calendar']
@@ -44,18 +45,13 @@ slots = [
 ]
 outputs = []
 
-DATETIME_ERROR = "error: the start time is not in the correct format"
-EVENT_CREATION_ERROR = "error: the event could not be created because {error}"
+DATETIME_ERROR_PROMPT = "Datetime error, please check the start time format."
+EVENT_CREATION_ERROR_PROMPT = "Event creation error (the event could not be created because {error}), please try again later."
 
-errors = [
-    AUTH_ERROR,
-    DATETIME_ERROR,
-    EVENT_CREATION_ERROR
-]
 
 SUCCESS = "The event has been created successfully at {start_time}. The meeting invitation has been sent to {email}."
 
-@register_tool(description, slots, outputs, lambda x: x not in errors)
+@register_tool(description, slots, outputs)
 def create_event(email:str, event: str, start_time: str, timezone: str, duration=30, **kwargs) -> str:
 
     # Authenticate using the service account
@@ -68,7 +64,7 @@ def create_event(email:str, event: str, start_time: str, timezone: str, duration
         # Build the Google Calendar API service
         service = build('calendar', 'v3', credentials=credentials)
     except Exception as e:
-        return AUTH_ERROR
+        raise AuthenticationError(AUTH_ERROR)
 
     # Specify the calendar ID (use 'primary' or the specific calendar's ID)
     calendar_id = 'primary'
@@ -88,7 +84,7 @@ def create_event(email:str, event: str, start_time: str, timezone: str, duration
         end_time = end_time_obj.isoformat()
 
     except Exception as e:
-        return DATETIME_ERROR
+        raise ToolExecutionError("create_event failed", DATETIME_ERROR_PROMPT)
     
     try:
 
@@ -113,7 +109,7 @@ def create_event(email:str, event: str, start_time: str, timezone: str, duration
         print('Event created: %s' % (event.get('htmlLink')))
 
     except Exception as e:
-        return EVENT_CREATION_ERROR.format(error=e)
+        raise ToolExecutionError("create_event failed", EVENT_CREATION_ERROR_PROMPT.format(error=e))
 
     # return SUCCESS.format(start_time=start_time, email=email)
     return json.dumps(event)

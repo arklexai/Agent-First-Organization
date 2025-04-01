@@ -11,7 +11,7 @@ from arklex.env.tools.shopify.utils import authorify_admin
 # ADMIN
 from arklex.env.tools.shopify.utils_slots import ShopifyGetProductsSlots, ShopifyOutputs
 from arklex.env.tools.tools import register_tool
-
+from arklex.exceptions import ToolExecutionError
 logger = logging.getLogger(__name__)
 
 description = "Get the inventory information and description details of multiple products."
@@ -20,21 +20,19 @@ outputs = [
     ShopifyOutputs.PRODUCTS_DETAILS,
     *PAGEINFO_OUTPUTS
 ]
-PRODUCTS_NOT_FOUND = "error: product not found"
-errors = [PRODUCTS_NOT_FOUND]
+PRODUCTS_NOT_FOUND_PROMPT = "Could not find any product information. Please try again later or refresh the chat window."
 
-@register_tool(description, slots, outputs, lambda x: x not in errors)
+
+@register_tool(description, slots, outputs)
 def get_products(product_ids: list, **kwargs) -> str:
     nav = cursorify(kwargs)
     if not nav[1]:
         return nav[0]
     auth = authorify_admin(kwargs)
-    if auth["error"]:
-        return auth["error"]
 
     try:
         ids = ' OR '.join(f'id:{pid.split("/")[-1]}' for pid in product_ids)
-        with shopify.Session.temp(**auth["value"]):
+        with shopify.Session.temp(**auth):
             response = shopify.GraphQL().execute(f"""
                 {{
                     products ({nav[0]}, query:"{ids}") {{
@@ -71,6 +69,8 @@ def get_products(product_ids: list, **kwargs) -> str:
             """)
             result = json.loads(response)['data']['products']
             response = result["nodes"]
+            if len(response) == 0:
+                raise ToolExecutionError(f"get_products failed", PRODUCTS_NOT_FOUND_PROMPT)
             response_text = ""
             for product in response:
                 response_text += f"Product ID: {product.get('id', 'None')}\n"
@@ -84,4 +84,4 @@ def get_products(product_ids: list, **kwargs) -> str:
                 response_text += "\n"
             return response_text
     except Exception as e:
-        return PRODUCTS_NOT_FOUND
+        raise ToolExecutionError(f"get_products failed: {e}", PRODUCTS_NOT_FOUND_PROMPT)

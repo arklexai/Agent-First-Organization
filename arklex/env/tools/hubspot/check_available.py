@@ -5,8 +5,8 @@ import parsedatetime
 from hubspot.crm.objects.meetings import ApiException
 
 from arklex.env.tools.tools import register_tool, logger
-from arklex.env.tools.hubspot.utils import HUBSPOT_AUTH_ERROR
-
+from arklex.env.tools.hubspot.utils import authenticate_hubspot
+from arklex.exceptions import ToolExecutionError
 
 description = "Give the customer that the unavailable time of the specific representative and the representative's related meeting link information."
 
@@ -42,20 +42,12 @@ outputs = [
     }
 ]
 
-MEETING_LINK_UNFOUND_ERROR = "error: the representative does not have a meeting link."
-
-errors = [
-    HUBSPOT_AUTH_ERROR,
-    MEETING_LINK_UNFOUND_ERROR
-]
+MEETING_LINK_UNFOUND_PROMPT = "The representative does not have a meeting link."
 
 
-@register_tool(description, slots, outputs, lambda x: x not in errors)
+@register_tool(description, slots, outputs)
 def check_available(owner_id: str, time_zone: str, meeting_date: str, **kwargs) -> str:
-    access_token = kwargs.get('access_token')
-
-    if not access_token:
-        return HUBSPOT_AUTH_ERROR
+    access_token = authenticate_hubspot(kwargs)
     api_client = hubspot.Client.create(access_token=access_token)
     meeting_info = {
         'busy_time_slots': [],
@@ -77,7 +69,7 @@ def check_available(owner_id: str, time_zone: str, meeting_date: str, **kwargs) 
         meeting_link_response = meeting_link_response.json()
 
         if meeting_link_response.get('total') == 0:
-            return MEETING_LINK_UNFOUND_ERROR
+            raise ToolExecutionError("HubSpot check_available failed", MEETING_LINK_UNFOUND_PROMPT)
         else:
             meeting_links = meeting_link_response['results'][0]
         meeting_slug = meeting_links['slug']
@@ -116,10 +108,10 @@ def check_available(owner_id: str, time_zone: str, meeting_date: str, **kwargs) 
             return str(meeting_info)
         except ApiException as e:
             logger.info("Exception when extracting booking information of someone: %s\n" % e)
-            return MEETING_LINK_UNFOUND_ERROR
+            raise ToolExecutionError(f"HubSpot check_available failed: {e}", MEETING_LINK_UNFOUND_PROMPT)
     except ApiException as e:
         logger.info("Exception when extracting meeting scheduler links: %s\n" % e)
-        return MEETING_LINK_UNFOUND_ERROR
+        raise ToolExecutionError(f"HubSpot check_available failed: {e}", MEETING_LINK_UNFOUND_PROMPT)
 
 
 

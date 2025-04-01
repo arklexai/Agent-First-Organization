@@ -8,12 +8,12 @@ import inspect
 from arklex.utils.graph_state import MessageState, StatusEnum, Slot
 from arklex.orchestrator.NLU.nlu import SlotFilling
 from arklex.utils.utils import format_chat_history
-
+from arklex.exceptions import ToolExecutionError, AuthenticationError
 
 logger = logging.getLogger(__name__)
 
     
-def register_tool(desc, slots=[], outputs=[], isComplete=lambda x: True, isResponse=False):
+def register_tool(desc, slots=[], outputs=[], isResponse=False):
     current_file_dir = os.path.dirname(__file__)
     def inner(func):
         file_path = inspect.getfile(func)
@@ -22,12 +22,12 @@ def register_tool(desc, slots=[], outputs=[], isComplete=lambda x: True, isRespo
         # different file paths format in Windows and linux systems
         relative_path = relative_path.replace("/", "-").replace("\\", "-").replace(".py", "")
         key = f"{relative_path}-{func.__name__}"
-        tool = lambda : Tool(func, key, desc, slots, outputs, isComplete, isResponse)
+        tool = lambda : Tool(func, key, desc, slots, outputs, isResponse)
         return tool
     return inner
 
 class Tool:
-    def __init__(self, func, name, description, slots, outputs, isComplete, isResponse):
+    def __init__(self, func, name, description, slots, outputs, isResponse):
         self.func = func
         self.name = name
         self.description = description
@@ -35,7 +35,6 @@ class Tool:
         self.slotfillapi: SlotFilling = None
         self.info = self.get_info(slots)
         self.slots = self._format_slots(slots)
-        self.isComplete = isComplete
         self.isResponse = isResponse
 
     def _format_slots(self, slots):
@@ -109,28 +108,6 @@ class Tool:
             "content": json.dumps(response)
         })
         logger.info(f'Slots after initialization are: {self.slots}')
-
-    def _skip_tool(self, state: MessageState):
-        default_slots = state["slots"].get("default_slots", [])
-        assigned_slot = False
-        for default_slot in default_slots:
-            for output in self.output:
-                if output["name"] == default_slot.name and default_slot.value:
-                    output["value"] = default_slot.value
-                    assigned_slot = True
-        if not assigned_slot:
-            return False
-        if all([output.get("value") for output in self.output if output.get("required", False)]):
-            state["status"] = StatusEnum.COMPLETE.value
-            call_id = str(uuid.uuid4())
-            state["trajectory"].append({
-                "role": "tool",
-                "tool_call_id": call_id,
-                "name": self.name,
-                "content": json.dumps(self.output)
-            })
-            return True
-        return False
         
     def _execute(self, state: MessageState, **fixed_args):
         # if this tool has been called before, then load the previous slots status
@@ -140,89 +117,87 @@ class Tool:
             state["slots"][self.name] = self.slots
         # init slot values saved in default slots
         self._init_slots(state)
-        response = "error"
-        # skip the tool if output slot is filled
-        if self._skip_tool(state):
-            logger.info("Tool is skipped because output slot is already filled")
-            response = json.dumps(self.output)
-            if self.isResponse:
-                logger.info("Tool output is stored in response instead of message flow")
-                state["response"] = response
-            else:
-                state["message_flow"] = state["message_flow"] + f"Context from {self.name}: {response}\n\n"
-            return state
-        max_tries = 3
-        while max_tries > 0 and "error" in response:
-            chat_history_str = format_chat_history(state["trajectory"])
-            slots : list[Slot] = self.slotfillapi.execute(self.slots, chat_history_str)
-            logger.info(f'{slots=}')
-            if not all([slot.value and slot.verified for slot in slots if slot.required]):
-                for slot in slots:
-                    # if there is extracted slots values but haven't been verified
-                    if slot.value and not slot.verified:
-                        # check whether it verified or not
-                        verification_needed, thought = self.slotfillapi.verify_needed(slot, chat_history_str)
-                        if verification_needed:
-                            response = slot.prompt + "The reason is: " + thought
-                            break
-                        else:
-                            slot.verified = True
-                    # if there is no extracted slots values, then should prompt the user to fill the slot
-                    if not slot.value:
-                        response = slot.prompt
+        # do slotfilling
+        chat_history_str = format_chat_history(state["trajectory"])
+        slots : list[Slot] = self.slotfillapi.execute(self.slots, chat_history_str)
+        logger.info(f'{slots=}')
+        if not all([slot.value and slot.verified for slot in slots if slot.required]):
+            for slot in slots:
+                # if there is extracted slots values but haven't been verified
+                if slot.value and not slot.verified:
+                    # check whether it verified or not
+                    verification_needed, thought = self.slotfillapi.verify_needed(slot, chat_history_str)
+                    if verification_needed:
+                        response = slot.prompt + "The reason is: " + thought
                         break
+                    else:
+                        slot.verified = True
+                # if there is no extracted slots values, then should prompt the user to fill the slot
+                if not slot.value:
+                    response = slot.prompt
+                    break
+            
+            state["status"] = StatusEnum.INCOMPLETE.value
                 
-                state["status"] = StatusEnum.INCOMPLETE.value
-                
-            # if slot.value is not empty for all slots, and all the slots has been verified, then execute the function
-            if all([slot.value and slot.verified for slot in slots if slot.required]):
-                logger.info("all slots filled")
-                for slot in slots:
-                    if slot.type in ["list", "dict", "array"]:
-                        if not isinstance(slot.value, list):
+        # if slot.value is not empty for all slots, and all the slots has been verified, then execute the function
+        tool_success = False
+        if all([slot.value and slot.verified for slot in slots if slot.required]):
+            logger.info("all slots filled")
+            for slot in slots:
+                if slot.type in ["list", "dict", "array"]:
+                    if not isinstance(slot.value, list):
+                        try:
+                            # Try to parse as JSON first
+                            slot.value = json.loads(slot.value)
+                        except json.JSONDecodeError:
+                            # If JSON decoding fails, fallback to evaluating Python-like literals
                             try:
-                                # Try to parse as JSON first
-                                slot.value = json.loads(slot.value)
-                            except json.JSONDecodeError:
-                                # If JSON decoding fails, fallback to evaluating Python-like literals
-                                try:
-                                    slot.value = ast.literal_eval(slot.value)
-                                except (ValueError, SyntaxError):
-                                    raise ValueError(f"Unable to parse slot value: {slot.value}")
-                kwargs = {slot.name: slot.value for slot in slots}
-                combined_kwargs = {**kwargs, **fixed_args}
+                                slot.value = ast.literal_eval(slot.value)
+                            except (ValueError, SyntaxError):
+                                raise ValueError(f"Unable to parse slot value: {slot.value}")
+            kwargs = {slot.name: slot.value for slot in slots}
+            combined_kwargs = {**kwargs, **fixed_args}
+            try:
                 response = self.func(**combined_kwargs)
-                logger.info(f"Tool {self.name} response: {response}")
-                call_id = str(uuid.uuid4())
-                state["trajectory"].append({
-                    'content': None, 
-                    'role': 'assistant', 
-                    'tool_calls': [
-                        {
-                            'function': {
-                                'arguments': json.dumps(kwargs), 
-                                'name': self.name
-                            }, 
-                            'id': call_id, 
-                            'type': 'function'
-                        }
-                    ], 
-                    'function_call': None
-                })
-                state["trajectory"].append({
-                    "role": "tool",
-                    "tool_call_id": call_id,
-                    "name": self.name,
-                    "content": response
-                })
-                if "error" in response:
-                    max_tries -= 1
-                    continue
-                state["status"] = StatusEnum.COMPLETE.value if self.isComplete(response) else StatusEnum.INCOMPLETE.value
+                tool_success = True
+            except ToolExecutionError as tee:
+                logger.error(f"{tee}: {tee.extra_message}")
+                response = tee.extra_message
+            except AuthenticationError as ae:
+                logger.error(ae)
+                response = str(ae)
+            except Exception as e:
+                logger.error(e)
+                response = str(e)
+            logger.info(f"Tool {self.name} response: {response}")
+            call_id = str(uuid.uuid4())
+            state["trajectory"].append({
+                'content': None, 
+                'role': 'assistant', 
+                'tool_calls': [
+                    {
+                        'function': {
+                            'arguments': json.dumps(kwargs), 
+                            'name': self.name
+                        }, 
+                        'id': call_id, 
+                        'type': 'function'
+                    }
+                ], 
+                'function_call': None
+            })
+            state["trajectory"].append({
+                "role": "tool",
+                "tool_call_id": call_id,
+                "name": self.name,
+                "content": response
+            })
+            state["status"] = StatusEnum.COMPLETE.value if tool_success else StatusEnum.INCOMPLETE.value
 
-        if self.isResponse:
+        if self.isResponse and tool_success:
             logger.info("Tool output is stored in response instead of message flow")
             state["response"] = response
+        # TODO: with memory section, the message flow could be deleted
         else:
             state["message_flow"] = state["message_flow"] + f"Context from {self.name}: {response}\n\n"
         state["slots"][self.name] = slots
