@@ -75,10 +75,7 @@ class AgentOrg:
         chat_history_copy = copy.deepcopy(chat_history)
         chat_history_copy.append({"role": self.user_prefix, "content": text})
         chat_history_str = format_chat_history(chat_history_copy)
-        if params["taskgraph"]["dialog_states"]:
-            params["taskgraph"]["dialog_states"] = {tool: [Slot(**slot_data) for slot_data in slots]
-                                                    for tool, slots in params["taskgraph"]["dialog_states"].items()}
-        else:
+        if not params["taskgraph"]["dialog_states"]:
             params["taskgraph"]["dialog_states"] = {}
         params["metadata"]["turn_id"] += 1
         params["metadata"]["tool_response"] = {}
@@ -125,12 +122,7 @@ class AgentOrg:
             return_response = {
                 "answer": node_attribute["value"],
                 "parameters": params
-            }
-            # Change the dialog_states from Class object to dict
-            if params["taskgraph"].get("dialog_states"):
-                params["taskgraph"]["dialog_states"] = {
-                    tool: [s.model_dump() for s in slots] for tool, slots in params["dialog_states"].items()}
-                
+            }   
             if node_attribute.get("type", "") == "multiple-choice" and node_attribute.get("choice_list", []):
                 return_response["choice_list"] = node_attribute["choice_list"]
             return True, return_response, params
@@ -236,12 +228,6 @@ class AgentOrg:
             params["memory"]["tool_response"] = {}
         
         response = response_state.get("response", "")
-        if params["taskgraph"].get("dialog_states"):
-                params["taskgraph"]["dialog_states"] = {
-                    tool: [s.model_dump() for s in slots]
-                    for tool, slots in params["taskgraph"]["dialog_states"].items()
-                }
-        
         return {
             "answer": response,
             "parameters": params,

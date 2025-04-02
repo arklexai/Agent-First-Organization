@@ -3,8 +3,7 @@ import logging
 from dotenv import load_dotenv
 
 from arklex.utils.model_config import MODEL
-from arklex.utils.trace import TraceRunName
-from arklex.utils.graph_state import Slots, Slot
+from arklex.utils.slot import Slot
 from arklex.orchestrator.NLU.api import nlu_api, slotfilling_api
 
 load_dotenv()
@@ -76,7 +75,7 @@ class SlotFilling:
         if not slots: return []
         
         data = {
-            "slots": [slot.model_dump() for slot in slots],
+            "slots": slots,
             "chat_history_str": chat_history_str
         }
         if self.url:
@@ -84,14 +83,12 @@ class SlotFilling:
             response = requests.post(self.url + "/predict", json=data)
             if response.status_code == 200:
                 pred_slots = response.json()
-                pred_slots = [Slot(**pred_slot) for pred_slot in pred_slots]
                 logger.info(f"pred_slots is {pred_slots}")
             else:
                 pred_slots = slots
                 logger.error('Remote Server Error when predicting Slot Filling')
         else:
             logger.info(f"Using Slot Filling function to predict the slots")
-            pred_slots = slotfilling_api.predict(**data).slots
-            # pred_slots = [Slot(**pred_slot) for pred_slot in pred_slots]
+            pred_slots = slotfilling_api.predict(**data)
             logger.info(f"pred_slots is {pred_slots}")
         return pred_slots

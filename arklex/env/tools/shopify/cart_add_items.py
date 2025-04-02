@@ -15,8 +15,6 @@ CART_ADD_ITEM_ERROR_PROMPT = "Products could not be added to cart, please try ag
 @register_tool(description, slots, outputs)
 def cart_add_items(cart_id: str, add_line_items: list, **kwargs):
     auth = authorify_storefront(kwargs)
-    if auth["error"]:
-        return auth["error"]
     
     variable = {
         "cartId": cart_id,

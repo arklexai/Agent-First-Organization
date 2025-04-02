@@ -1,4 +1,5 @@
-from typing import TypedDict, Any, Annotated, Optional, Union, List
+from typing import TypedDict, Any, Annotated, Optional
+from arklex.utils.slot import Slot
 import janus
 from pydantic import BaseModel
 from enum import Enum
@@ -21,32 +22,6 @@ class ConvoMessage(BaseModel):
 class OrchestratorMessage(BaseModel):
     message: str
     attribute: dict
-
-
-### Slot-related classes
-
-class Slot(BaseModel):
-    name: str
-    type: Union[str, int, float, bool, None]
-    value: Union[str, int, float, bool, List[str], None]
-    enum: Optional[list[Union[str, int, float, bool, None]]]
-    description: str
-    prompt: str
-    required: bool
-    verified: bool
-
-
-class Slots(BaseModel):
-    slots: list[Slot]
-
-# May not be needed
-class SlotDetail(Slot):
-    verified_value: str
-    confirmed: bool
-
-class Verification(BaseModel):
-    thought: str
-    verification_needed: bool
 
 
 ### Task status-related classes

@@ -2,8 +2,7 @@ class ShopifySlots:
     def to_list(baseSlot: dict):
         slot = baseSlot.copy()
         slot["name"] += 's'
-        slot["items"] = {"type": baseSlot["type"]}
-        slot["type"] = "array"
+        slot["type"] = "list"
         slot["description"] = f"List of {slot['name']}. {slot['description']}"
         return slot
     
@@ -13,7 +12,7 @@ class ShopifySlots:
 
     USER_ID = {
         "name": "user_id",
-        "type": "string",
+        "type": "str",
         "description": "The user id, such as 'gid://shopify/Customer/13573257450893'.",
         "prompt": "In order to proceed, please login to Shopify.",
         "verified": True
@@ -21,7 +20,7 @@ class ShopifySlots:
     
     PRODUCT_ID = {
         "name": "product_id",
-        "type": "string",
+        "type": "str",
         "description": "The product id, such as 'gid://shopify/Product/2938501948327'.", # If there is only 1 product, return in list with single item. If there are multiple product ids, please return all of them in a list.",
         "prompt": "In order to proceed, please choose a specific product.",
         "verified": True
@@ -33,14 +32,6 @@ class ShopifySlots:
         "type": "str",
         "description": "The cart id, such as 'gid://shopify/Cart/2938501948327'.",
         "prompt": "In order to proceed, please create a shopping cart.",
-        "verified": True
-    }
-
-    QUERY_LIMIT = {
-        "name": "limit",
-        "type": "string",
-        "description": "Maximum number of products to show.",
-        "prompt": "",
         "verified": True
     }
     
@@ -75,7 +66,7 @@ class ShopifySlots:
 class ShopifyCancelOrderSlots(ShopifySlots):
     CANCEL_ORDER_ID = {
         "name": "cancel_order_id",
-        "type": "string",
+        "type": "str",
         "description": "The order id to cancel, such as gid://shopify/Order/1289503851427.",
         "prompt": "Please provide the order id that you would like to cancel.",
         "required": True,
@@ -96,7 +87,7 @@ class ShopifyCartAddItemsSlots(ShopifySlots):
 class ShopifyFindUserByEmailSlots(ShopifySlots):
     USER_EMAIL = {
         "name": "user_email",
-        "type": "string",
+        "type": "str",
         "description": "The email of the user, such as 'something@example.com'.",
         "prompt": "In order to proceed, please provide the email for identity verification.",
         "required": True,
@@ -111,7 +102,7 @@ class ShopifyGetOrderDetailsSlots(ShopifySlots):
     ORDER_IDS = ShopifySlots.to_list(
         {
             "name": "order_id",
-            "type": "string",
+            "type": "str",
             "description": "The order id, such as gid://shopify/Order/1289503851427.",
             "prompt": "Please provide the order id to get the details of the order.",
             "required": False,
@@ -121,7 +112,7 @@ class ShopifyGetOrderDetailsSlots(ShopifySlots):
     ORDER_NAMES = ShopifySlots.to_list(
         {
             "name": "order_name",
-            "type": "string",
+            "type": "str",
             "description": "The order name, such as '#1001'.",
             "prompt": "Please provide the order name to get the details of the order.",
             "required": False,
@@ -142,7 +133,7 @@ class ShopifyGetUserDetailsAdminSlots(ShopifySlots):
 class ShopifyGetWebProductSlots(ShopifySlots):
     WEB_PRODUCT_ID = {
         "name": "web_product_id",
-        "type": "string",
+        "type": "str",
         "description": "The product id that the user is currently seeing, such as 'gid://shopify/Product/2938501948327'.", # If there is only 1 product, return in list with single item. If there are multiple product ids, please return all of them in a list.",
         "prompt": "In order to proceed, please choose a specific product.",
         "required": True,
@@ -152,7 +143,7 @@ class ShopifyGetWebProductSlots(ShopifySlots):
 class ShopifyReturnProductsSlots(ShopifySlots):
     RETURN_ORDER_ID = {
         "name": "return_order_id",
-        "type": "string",
+        "type": "str",
         "description": "The order id to return products, such as gid://shopify/Order/1289503851427.",
         "prompt": "Please provide the order id that you would like to return products.",
         "required": True,
@@ -162,7 +153,7 @@ class ShopifyReturnProductsSlots(ShopifySlots):
 class ShopifySearchProductsSlots(ShopifySlots):
     SEARCH_PRODUCT_QUERY = {
         "name": "product_query",
-        "type": "string",
+        "type": "str",
         "description": "The string query to search products, such as 'Hats'. If query is empty string, it returns all products.",
         "prompt": "In order to proceed, please provide a query for the products search.",
         "required": False,

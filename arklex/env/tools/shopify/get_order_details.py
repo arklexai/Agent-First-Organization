@@ -22,12 +22,12 @@ def get_order_details(order_ids: list, order_names: list, user_id: str, limit=10
     auth = authorify_admin(kwargs)
     
     try:
-        order_ids = ' OR '.join(f'id:{oid.split("/")[-1]}' for oid in order_ids)
-        order_names = ' OR '.join(f'name:{name}' for name in order_names)
         query = f"customer_id:{user_id.split('/')[-1]}"
         if order_ids:
+            order_ids = ' OR '.join(f'id:{oid.split("/")[-1]}' for oid in order_ids)
             query += f" AND ({order_ids})"
         if order_names:
+            order_names = ' OR '.join(f'name:{name}' for name in order_names)
             query += f" AND ({order_names})"
         with shopify.Session.temp(**auth):
             response = shopify.GraphQL().execute(f"""
@@ -88,7 +88,7 @@ def get_order_details(order_ids: list, order_names: list, user_id: str, limit=10
                 for item in order.get('lineItems', {}).get('edges', []):
                     response_text += f"    Title: {item.get('node', {}).get('title', 'None')}\n"
                     response_text += f"    Quantity: {item.get('node', {}).get('quantity', 'None')}\n"
-                    response_text += f"    Variant ID: {item.get('node', {}).get('variant', {}).get('id', 'None')}\n"
+                    response_text += f"    Variant: {item.get('node', {}).get('variant', {})}\n"
                 response_text += "\n"
         return response_text
     except Exception as e:

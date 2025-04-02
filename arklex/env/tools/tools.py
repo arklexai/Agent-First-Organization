@@ -5,7 +5,8 @@ import uuid
 import ast
 import inspect
 
-from arklex.utils.graph_state import MessageState, StatusEnum, Slot
+from arklex.utils.graph_state import MessageState, StatusEnum
+from arklex.utils.slot import Slot
 from arklex.orchestrator.NLU.nlu import SlotFilling
 from arklex.utils.utils import format_chat_history
 from arklex.exceptions import ToolExecutionError, AuthenticationError
@@ -34,33 +35,17 @@ class Tool:
         self.output = outputs
         self.slotfillapi: SlotFilling = None
         self.info = self.get_info(slots)
-        self.slots = self._format_slots(slots)
+        self.slots = slots
         self.isResponse = isResponse
 
-    def _format_slots(self, slots):
-        format_slots = []
-        for slot in slots:
-            format_slots.append(Slot(
-                name=slot["name"], 
-                type=slot["type"], 
-                value="", 
-                enum=slot.get("enum", []),
-                description=slot["description"], 
-                prompt=slot["prompt"], 
-                required=slot.get("required", False),
-                verified=slot.get("verified", False)
-            ))
-        return format_slots
-    
     @staticmethod
     def format_slots(slots):
         format_slots = []
         for slot in slots:
             format_slots.append({
                 "name": slot["name"],
+                "type": slot.get("type", "str"),
                 "value": slot["value"],
-                "type": slot.get("type", "string"),
-                "enum": slot.get("enum", []),
                 "description": slot.get("description", ""),
                 "prompt": slot.get("prompt", ""),
                 "required": slot.get("required", False),
@@ -96,11 +81,11 @@ class Tool:
             return
         response = {}
         for default_slot in default_slots:
-            response[default_slot.name] = default_slot.value
+            response[default_slot["name"]] = default_slot["value"]
             for slot in self.slots:
-                if slot.name == default_slot.name and default_slot.value:
-                    slot.value = default_slot.value
-                    slot.verified = True
+                if slot["name"] == default_slot["name"] and default_slot["value"]:
+                    slot["value"] = default_slot["value"]
+                    slot["verified"] = True
         state["trajectory"].append({
             "role": "tool",
             "tool_call_id": str(uuid.uuid4()),
@@ -144,7 +129,7 @@ class Tool:
         if all([slot.value and slot.verified for slot in slots if slot.required]):
             logger.info("all slots filled")
             for slot in slots:
-                if slot.type in ["list", "dict", "array"]:
+                if slot.type in [list]:
                     if not isinstance(slot.value, list):
                         try:
                             # Try to parse as JSON first
@@ -162,7 +147,8 @@ class Tool:
                 tool_success = True
             except ToolExecutionError as tee:
                 logger.error(f"{tee}: {tee.extra_message}")
-                response = tee.extra_message
+                # response = tee.extra_message
+                response = str(tee)
             except AuthenticationError as ae:
                 logger.error(ae)
                 response = str(ae)
@@ -200,7 +186,7 @@ class Tool:
         # TODO: with memory section, the message flow could be deleted
         else:
             state["message_flow"] = state["message_flow"] + f"Context from {self.name}: {response}\n\n"
-        state["slots"][self.name] = slots
+        state["slots"][self.name] = [slot.model_dump() for slot in slots]
         return state
 
     def execute(self, state: MessageState, **fixed_args):
