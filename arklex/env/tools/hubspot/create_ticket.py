@@ -17,14 +17,14 @@ description = "Create a ticket for the existing customer when the customer has s
 slots = [
     {
         "name": "cus_cid",
-        "type": "string",
+        "type": "str",
         "description": "The id of the customer contact.",
         "prompt": "",
         "required": True,
     },
     {
         "name": "issue",
-        "type": "string",
+        "type": "str",
         "description": "The question that the customer has for the specific product",
         "prompt": "",
         "required": True,
@@ -33,7 +33,7 @@ slots = [
 outputs = [
     {
         "name": "ticket_id",
-        "type": "string",
+        "type": "str",
         "description": "The id of the ticket for the existing customer and the specific issue",
     }
 ]

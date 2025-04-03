@@ -13,14 +13,14 @@ description = "Give the customer that the unavailable time of the specific repre
 slots = [
     {
         "name": "owner_id",
-        "type": "string",
+        "type": "str",
         "description": "The owner id of the owner.'",
         "prompt": "",
         "required": True,
     },
     {
         "name": "time_zone",
-        "type": "string",
+        "type": "str",
         "enum": ["America/New_York", "America/Los_Angeles", "Asia/Tokyo", "Europe/London"],
         "description": "The timezone of the user. For example, 'America/New_York'. If you are not sure, just ask the user to confirm.",
         "prompt": "Could you please provide your timezone or where are you now?",
@@ -28,7 +28,7 @@ slots = [
     },
     {
         "name": "meeting_date",
-        "type": "string",
+        "type": "str",
         "description": "The exact date the customer want to take meeting with the representative. e.g. today, Next Monday, May 1st.",
         "prompt": "Could you please give me the date of the meeting?",
         "required": True,

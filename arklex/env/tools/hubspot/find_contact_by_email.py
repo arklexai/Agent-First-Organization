@@ -15,14 +15,14 @@ description = "Find the contacts record by email. If the record is found, the la
 slots = [
     {
         "name": "email",
-        "type": "string",
+        "type": "str",
         "description": "The email of the user, such as 'something@example.com'.",
         "prompt": "Thanks for your interest in our products! Could you please provide your email or phone number?",
         "required": True,
     },
     {
         "name": "chat",
-        "type": "string",
+        "type": "str",
         "description": "This occurs when user communicates with the chatbot",
         "prompt": "",
         "required": True,
@@ -31,7 +31,7 @@ slots = [
 outputs = [
     {
         "name": "contact_information",
-        "type": "string",
+        "type": "str",
         "description": "The basic contact information for the existing customer (e.g. id, first_name, last_name, etc.)",
     }
 ]

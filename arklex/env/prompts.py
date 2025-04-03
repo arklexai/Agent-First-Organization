@@ -43,7 +43,7 @@ If you provide specific details in the response, it should be based on the conve
 Conversation:
 {formatted_chat}
 ----------------
-In addition to replying to the user, also embed the following message if it is not None and doesn't conflict with the original response: 
+In addition to replying to the user, also embed the following message if it is not None and doesn't conflict with the original response, the response should be natural and human-like: 
 {message}
 ----------------
 assistant: 
@@ -62,7 +62,7 @@ Conversation:
 Context:
 {context}
 ----------------
-In addition to replying to the user, also embed the following message if it is not None and doesn't conflict with the original response: 
+In addition to replying to the user, also embed the following message if it is not None and doesn't conflict with the original response, the response should be natural and human-like: 
 {message}
 ----------------
 assistant:
@@ -156,7 +156,7 @@ Your response should only be the reformulated value or None.
 对话：
 {formatted_chat}
 ----------------
-除了回复用户外，如果以下消息与原始回复不冲突，请加入以下消息：
+除了回复用户外，如果以下消息与原始回复不冲突，请加入以下消息，回复应该自然一些：
 {message}
 ----------------
 助手：
@@ -175,7 +175,7 @@ Your response should only be the reformulated value or None.
 上下文：
 {context}
 ----------------
-除了回复用户外，如果以下消息与原始回复不冲突，请加入以下消息：
+除了回复用户外，如果以下消息与原始回复不冲突，请加入以下消息，回复应该自然一些：
 {message}
 ----------------
 助手：

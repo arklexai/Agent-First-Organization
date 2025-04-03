@@ -1,7 +1,7 @@
 import json
 from typing import Any, Dict
 import logging
-
+import inspect
 import shopify
 
 # general GraphQL navigation utilities
@@ -12,6 +12,7 @@ from arklex.env.tools.shopify.utils import authorify_admin
 from arklex.env.tools.shopify.utils_slots import ShopifyGetProductsSlots, ShopifyOutputs
 from arklex.env.tools.tools import register_tool
 from arklex.exceptions import ToolExecutionError
+from arklex.env.tools.shopify._exception_prompt import ExceptionPrompt
 logger = logging.getLogger(__name__)
 
 description = "Get the inventory information and description details of multiple products."
@@ -20,11 +21,11 @@ outputs = [
     ShopifyOutputs.PRODUCTS_DETAILS,
     *PAGEINFO_OUTPUTS
 ]
-PRODUCTS_NOT_FOUND_PROMPT = "Could not find any product information. Please try again later or refresh the chat window."
 
 
 @register_tool(description, slots, outputs)
 def get_products(product_ids: list, **kwargs) -> str:
+    func_name = inspect.currentframe().f_code.co_name
     nav = cursorify(kwargs)
     if not nav[1]:
         return nav[0]
@@ -70,7 +71,7 @@ def get_products(product_ids: list, **kwargs) -> str:
             result = json.loads(response)['data']['products']
             response = result["nodes"]
             if len(response) == 0:
-                raise ToolExecutionError(f"get_products failed", PRODUCTS_NOT_FOUND_PROMPT)
+                raise ToolExecutionError(func_name, ExceptionPrompt.PRODUCTS_NOT_FOUND_PROMPT)
             response_text = ""
             for product in response:
                 response_text += f"Product ID: {product.get('id', 'None')}\n"
@@ -84,4 +85,4 @@ def get_products(product_ids: list, **kwargs) -> str:
                 response_text += "\n"
             return response_text
     except Exception as e:
-        raise ToolExecutionError(f"get_products failed: {e}", PRODUCTS_NOT_FOUND_PROMPT)
+        raise ToolExecutionError(func_name, ExceptionPrompt.PRODUCTS_NOT_FOUND_PROMPT)

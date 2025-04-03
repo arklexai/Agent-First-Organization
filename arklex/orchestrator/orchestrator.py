@@ -128,7 +128,7 @@ class AgentOrg:
             return True, return_response, params
         return False, None, params
     
-    def perform_node(self, node_info: NodeInfo, params: Params, text: str, chat_history_str: str, stream_type: StreamType, message_queue: janus.SyncQueue):
+    def perform_node(self, node_info: NodeInfo, params: Params, text: str, message_flow: str, chat_history_str: str, stream_type: StreamType, message_queue: janus.SyncQueue):
         # Tool/Worker
         user_message = ConvoMessage(history=chat_history_str, message=text)
         orchestrator_message = OrchestratorMessage(message=node_info["attributes"]["value"], attribute=node_info["attributes"])
@@ -149,7 +149,7 @@ class AgentOrg:
             user_message=user_message, 
             orchestrator_message=orchestrator_message, 
             trajectory=params["memory"]["history"], 
-            message_flow=params.get("worker_response", {}).get("message_flow", ""), 
+            message_flow=message_flow, 
             slots=params["taskgraph"]["dialog_states"],
             metadata=params["metadata"],
             is_stream=True if stream_type is not None else False,
@@ -172,8 +172,11 @@ class AgentOrg:
 
         
         counter_message_worker = 0
-        counter_planner = 0 # TODO: when planner is re-implemented, remove this.
+        counter_ragmsg_worker = 0
+        counter_planner = 0 # TODO: when planner is re-implemented, execute/break the loop based on whether the planner should be used (bot config) .
         
+        message_flow = "" # Store the message flow between different nodes
+
         n_node_performed = 0
         max_n_node_performed = 5
         while n_node_performed < max_n_node_performed:
@@ -192,6 +195,8 @@ class AgentOrg:
                 counter_planner += 1
             elif node_info["resource_id"] == self.env.name2id["MessageWorker"]:
                 counter_message_worker += 1
+            elif node_info["resource_id"] == self.env.name2id["RagMsgWorker"]:
+                counter_ragmsg_worker += 1
             # handle direct node
             is_direct_node, direct_response, params = self.handl_direct_node(node_info, params)
             if is_direct_node:
@@ -201,10 +206,12 @@ class AgentOrg:
             response_state, params = self.perform_node(node_info,
                                                        params,
                                                        text,
+                                                       message_flow,
                                                        chat_history_str,
                                                        stream_type,
                                                        message_queue)
             params = self.post_process_node(node_info, params)
+            message_flow = response_state.get("message_flow", "")
             n_node_performed += 1
 
             # If the current node is not complete, then no need to continue to the next node
@@ -213,8 +220,8 @@ class AgentOrg:
             status = node_status.get(cur_node_id, StatusEnum.COMPLETE.value)
             if status == StatusEnum.INCOMPLETE.value:
                 break
-            # If the counter of message worker or counter of default worker == 1, break the loop
-            if counter_message_worker == 1 or counter_planner == 1:
+            # If the counter of message worker or counter of default worker or counter of ragmsg worker == 1, break the loop
+            if counter_message_worker == 1 or counter_planner == 1 or counter_ragmsg_worker == 1:
                 break
             if node_info["is_leaf"] is True:
                 break

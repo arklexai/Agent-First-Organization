@@ -14,7 +14,7 @@ description = "Find the owner id in the contact. If owner id is found, the next 
 slots = [
     {
         "name": "cus_cid",
-        "type": "string",
+        "type": "str",
         "description": "The id of the customer contact.",
         "prompt": "",
         "required": True,
@@ -24,7 +24,7 @@ slots = [
 outputs = [
     {
         "name": "owner_id",
-        "type": "string",
+        "type": "str",
         "description": "The id of the owner of the contact.",
     }
 ]

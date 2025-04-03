@@ -2,7 +2,7 @@ import json
 from typing import Any, Dict
 import shopify
 import logging
-
+import inspect
 # general GraphQL navigation utilities
 from arklex.env.tools.shopify.utils_slots import ShopifySearchProductsSlots, ShopifyOutputs
 from arklex.env.tools.shopify.utils_nav import *
@@ -15,7 +15,7 @@ from arklex.utils.model_provider_config import PROVIDER_MAP
 from arklex.utils.model_config import MODEL
 from arklex.exceptions import ToolExecutionError
 from langchain_openai import ChatOpenAI
-
+from arklex.env.tools.shopify._exception_prompt import ExceptionPrompt
 
 logger = logging.getLogger(__name__)
 
@@ -27,11 +27,10 @@ outputs = [
     *PAGEINFO_OUTPUTS
 ]
 
-PRODUCT_SEARCH_ERROR_PROMPT = "Could not find any products matching the query. Please try again with a different query or refresh the chat window."
-
 
 @register_tool(description, slots, outputs)
 def search_products(product_query: str, **kwargs) -> str:
+    func_name = inspect.currentframe().f_code.co_name
     nav = cursorify(kwargs)
     if not nav[1]:
         return nav[0]
@@ -96,7 +95,7 @@ def search_products(product_query: str, **kwargs) -> str:
                     "card_list": card_list
                 })
             else:
-                raise ToolExecutionError("search_products failed", PRODUCT_SEARCH_ERROR_PROMPT)
+                raise ToolExecutionError(func_name, ExceptionPrompt.PRODUCT_SEARCH_ERROR_PROMPT)
     
     except Exception as e:
-        raise ToolExecutionError(f"search_products failed: {e}", PRODUCT_SEARCH_ERROR_PROMPT)
+        raise ToolExecutionError(func_name, ExceptionPrompt.PRODUCT_SEARCH_ERROR_PROMPT)

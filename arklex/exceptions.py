@@ -28,5 +28,5 @@ class ToolExecutionError(UserFacingError):
     Exception raised when a tool execution fails.
     """
     def __init__(self, message: str, extra_message: str):
-        self.message = f"Tool execution failed: {message}"
+        self.message = f"Tool {message} execution failed"
         super().__init__(self.message, extra_message)

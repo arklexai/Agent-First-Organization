@@ -15,7 +15,8 @@ from arklex.utils.model_provider_config import PROVIDER_MAP
 from arklex.utils.model_config import MODEL
 from langchain_openai import ChatOpenAI
 from arklex.exceptions import ToolExecutionError
-
+from arklex.env.tools.shopify._exception_prompt import ExceptionPrompt
+import inspect
 logger = logging.getLogger(__name__)
 
 description = "Get the product image url of a product."
@@ -24,11 +25,11 @@ outputs = [
     ShopifyOutputs.PRODUCTS_DETAILS,
     *PAGEINFO_OUTPUTS
 ]
-PRODUCTS_NOT_FOUND_PROMPT = "Product not found, please try again later or refresh the chat window."
 
 
 @register_tool(description, slots, outputs)
 def get_product_images(product_ids: list, **kwargs) -> str:
+    func_name = inspect.currentframe().f_code.co_name
     nav = cursorify(kwargs)
     if not nav[1]:
         return nav[0]
@@ -90,6 +91,6 @@ def get_product_images(product_ids: list, **kwargs) -> str:
                     "card_list": card_list
                 })
             else:
-                raise ToolExecutionError(f"get_product_images failed", PRODUCTS_NOT_FOUND_PROMPT)
+                raise ToolExecutionError(func_name, ExceptionPrompt.PRODUCTS_NOT_FOUND_PROMPT)
     except Exception as e:
-        raise ToolExecutionError(f"get_product_images failed: {e}", PRODUCTS_NOT_FOUND_PROMPT)
+        raise ToolExecutionError(func_name, ExceptionPrompt.PRODUCTS_NOT_FOUND_PROMPT)

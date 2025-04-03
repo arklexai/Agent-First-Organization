@@ -4,9 +4,10 @@ import json
 import uuid
 import ast
 import inspect
+import traceback
 
 from arklex.utils.graph_state import MessageState, StatusEnum
-from arklex.utils.slot import Slot
+from arklex.utils.slot import Slot, TypeMapping
 from arklex.orchestrator.NLU.nlu import SlotFilling
 from arklex.utils.utils import format_chat_history
 from arklex.exceptions import ToolExecutionError, AuthenticationError
@@ -37,21 +38,6 @@ class Tool:
         self.info = self.get_info(slots)
         self.slots = slots
         self.isResponse = isResponse
-
-    @staticmethod
-    def format_slots(slots):
-        format_slots = []
-        for slot in slots:
-            format_slots.append({
-                "name": slot["name"],
-                "type": slot.get("type", "str"),
-                "value": slot["value"],
-                "description": slot.get("description", ""),
-                "prompt": slot.get("prompt", ""),
-                "required": slot.get("required", False),
-                "verified": slot.get("verified", False)
-            })
-        return format_slots
 
     def get_info(self, slots):
         self.properties = {}
@@ -129,8 +115,8 @@ class Tool:
         if all([slot.value and slot.verified for slot in slots if slot.required]):
             logger.info("all slots filled")
             for slot in slots:
-                if slot.type in [list]:
-                    if not isinstance(slot.value, list):
+                if TypeMapping.string_to_type(slot.type) in [list, dict]:
+                    if slot.value and not isinstance(slot.value, list):
                         try:
                             # Try to parse as JSON first
                             slot.value = json.loads(slot.value)
@@ -146,14 +132,13 @@ class Tool:
                 response = self.func(**combined_kwargs)
                 tool_success = True
             except ToolExecutionError as tee:
-                logger.error(f"{tee}: {tee.extra_message}")
-                # response = tee.extra_message
-                response = str(tee)
+                logger.error(traceback.format_exc())
+                response = tee.extra_message
             except AuthenticationError as ae:
-                logger.error(ae)
+                logger.error(traceback.format_exc())
                 response = str(ae)
             except Exception as e:
-                logger.error(e)
+                logger.error(traceback.format_exc())
                 response = str(e)
             logger.info(f"Tool {self.name} response: {response}")
             call_id = str(uuid.uuid4())
@@ -183,9 +168,8 @@ class Tool:
         if self.isResponse and tool_success:
             logger.info("Tool output is stored in response instead of message flow")
             state["response"] = response
-        # TODO: with memory section, the message flow could be deleted
         else:
-            state["message_flow"] = state["message_flow"] + f"Context from {self.name}: {response}\n\n"
+            state["message_flow"] = f"Context from tool {self.name} execution:\n{response}\n"
         state["slots"][self.name] = [slot.model_dump() for slot in slots]
         return state
 

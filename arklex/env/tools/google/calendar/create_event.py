@@ -15,28 +15,28 @@ description = "Create the event in the Google Calendar."
 slots = [
     {
         "name": "email",
-        "type": "string",
+        "type": "str",
         "description": "The email of the user, such as 'something@example.com'.",
         "prompt": "In order to proceed, please provide the email for setting up the meeting",
         "required": True,
     },
     {
         "name": "event",
-        "type": "string",
+        "type": "str",
         "description": "The purpose of the meeting. Or the summary of the conversation",
         "prompt": "",
         "required": True
     },
     {
         "name": "start_time",
-        "type": "string",
+        "type": "str",
         "description": "The start time that the meeting will take place. The meeting's start time includes the hour, as the date alone is not sufficient. The format should be 'YYYY-MM-DDTHH:MM:SS'. Today is {today}.".format(today=datetime.now().isoformat()),
         "prompt": "Could you please provide the time when will you be available for the meeting?",
         "required": True
     },
     {
         "name": "timezone",
-        "type": "string",
+        "type": "str",
         "enum": ["America/New_York", "America/Los_Angeles", "Asia/Tokyo", "Europe/London"],
         "description": "The timezone of the user. For example, 'America/New_York'.",
         "prompt": "Could you please provide your timezone or where are you now?",

@@ -3,17 +3,19 @@ from arklex.env.tools.shopify.utils_cart import *
 from arklex.env.tools.shopify.utils_nav import *
 from arklex.exceptions import ToolExecutionError
 from arklex.env.tools.tools import register_tool
+from arklex.env.tools.shopify._exception_prompt import ExceptionPrompt
+import inspect
 
 description = "Add items to user's shopping cart."
 slots = ShopifyCartAddItemsSlots.get_all_slots()
 outputs = [
     ShopifyOutputs.CART_ADD_ITEMS_DETAILS
 ]
-CART_ADD_ITEM_ERROR_PROMPT = "Products could not be added to cart, please try again later or refresh the chat window."
 
 
 @register_tool(description, slots, outputs)
 def cart_add_items(cart_id: str, add_line_items: list, **kwargs):
+    func_name = inspect.currentframe().f_code.co_name
     auth = authorify_storefront(kwargs)
     
     variable = {
@@ -40,8 +42,8 @@ def cart_add_items(cart_id: str, add_line_items: list, **kwargs):
     if response.status_code == 200:
         cart_data = response.json()
         if "errors" in cart_data:
-            raise ToolExecutionError(f"cart_add_items failed", CART_ADD_ITEM_ERROR_PROMPT)
+            raise ToolExecutionError(func_name, ExceptionPrompt.CART_ADD_ITEMS_ERROR_PROMPT)
         else:
             return "Items are successfully added to the shopping cart. " + json.dumps(cart_data["data"]["cartLinesAdd"]["cart"])
     else:
-        raise ToolExecutionError(f"cart_add_items failed: {response.text}", CART_ADD_ITEM_ERROR_PROMPT)
+        raise ToolExecutionError(func_name, ExceptionPrompt.CART_ADD_ITEMS_ERROR_PROMPT)

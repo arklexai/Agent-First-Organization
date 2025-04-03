@@ -13,6 +13,8 @@ from arklex.env.tools.shopify.utils_slots import ShopifyGetWebProductSlots, Shop
 from arklex.env.tools.tools import register_tool
 
 from arklex.exceptions import ToolExecutionError
+from arklex.env.tools.shopify._exception_prompt import ExceptionPrompt
+import inspect
 
 logger = logging.getLogger(__name__)
 
@@ -22,11 +24,11 @@ outputs = [
     ShopifyOutputs.PRODUCTS_DETAILS,
     *PAGEINFO_OUTPUTS
 ]
-PRODUCT_NOT_FOUND_PROMPT = "Could not find the product. Please try another product."
 
 
 @register_tool(description, slots, outputs)
 def get_web_product(web_product_id: str, **kwargs) -> str:
+    func_name = inspect.currentframe().f_code.co_name
     nav = cursorify(kwargs)
     if not nav[1]:
         return nav[0]
@@ -71,7 +73,7 @@ def get_web_product(web_product_id: str, **kwargs) -> str:
             result = json.loads(response)['data']['products']
             response = result["nodes"]
             if len(response) == 0:
-                raise ToolExecutionError(f"get_web_product failed", PRODUCT_NOT_FOUND_PROMPT)
+                raise ToolExecutionError(func_name, ExceptionPrompt.PRODUCT_NOT_FOUND_PROMPT)
             product = response[0]
             response_text = ""
             response_text += f"Product ID: {product.get('id', 'None')}\n"
@@ -87,4 +89,4 @@ def get_web_product(web_product_id: str, **kwargs) -> str:
 
             return response_text
     except Exception as e:
-        raise ToolExecutionError(f"get_web_product failed: {e}", PRODUCT_NOT_FOUND_PROMPT)
+        raise ToolExecutionError(func_name, ExceptionPrompt.PRODUCT_NOT_FOUND_PROMPT)

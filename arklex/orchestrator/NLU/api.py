@@ -7,7 +7,7 @@ import string
 
 from fastapi import FastAPI, Response
 
-from arklex.utils.slot import Verification, SlotInputList, SlotOutputList, SlotOutputListGemini, format_slotfilling_input, format_slotfilling_output
+from arklex.utils.slot import Verification, SlotInputList, SlotOutputList, SlotOutputListGemini, format_slots, format_slotfilling_input, format_slotfilling_output
 from dotenv import load_dotenv
 load_dotenv()
 
@@ -26,7 +26,8 @@ class NLUModelAPI ():
         self.user_prefix = "user"
         self.assistant_prefix = "assistant"
 
-    def get_response(self, sys_prompt, model, response_format="text"):
+    def get_response(self, sys_prompt, model, response_format="text", note="intent detection"):
+        logger.info(f"Prompt for {note}: {sys_prompt}")
         dialog_history = [{"role": "system", "content": sys_prompt}]
         kwargs = {'model': MODEL["model_type_or_path"], 'temperature': 0.7}
         
@@ -87,7 +88,20 @@ class NLUModelAPI ():
                     intents_choice += f"{multiple_choice_index[count]}) {intent_name}\n"
 
                     count += 1
-        system_prompt_nlu = """According to the conversation, decide what is the user's intent in the last turn? \nHere are the definitions for each intent:\n{definition}\nHere are some sample utterances from user that indicate each intent:\n{exemplars}\nConversation:\n{formatted_chat}\n\nOnly choose from the following options.\n{intents_choice}\n\nAnswer:"""
+        # Base prompt without conditional sections
+        system_prompt_nlu = """According to the conversation, decide what is the user's intent in the last turn? \n"""
+        
+        # Conditionally add definitions if available
+        if definition_str.strip():
+            system_prompt_nlu += """Here are the definitions for each intent:\n{definition}\n"""
+            
+        # Conditionally add exemplars if available
+        if exemplars_str.strip():
+            system_prompt_nlu += """Here are some sample utterances from user that indicate each intent:\n{exemplars}\n"""
+            
+        # Add the rest of the prompt
+        system_prompt_nlu += """Conversation:\n{formatted_chat}\n\nOnly choose from the following options.\n{intents_choice}\n\nAnswer:"""
+        
         system_prompt = system_prompt_nlu.format(
             definition=definition_str,
             exemplars=exemplars_str,
@@ -108,7 +122,7 @@ class NLUModelAPI ():
             intents, chat_history_str
         )
         response = self.get_response(
-            system_prompt, model
+            system_prompt, model, note="intent detection"
         )
         logger.info(f"postprocessed intent response: {response}")
         try:
@@ -132,7 +146,8 @@ class SlotFillModelAPI():
         return system_prompt
 
     # get response from model
-    def get_response(self, sys_prompt, format=SlotOutputList):
+    def get_response(self, sys_prompt, format=SlotOutputList, note="slot filling"):
+        logger.info(f"Prompt for {note}: {sys_prompt}")
         dialog_history = [{"role": "system", "content": sys_prompt}]
         kwargs = {'model': MODEL["model_type_or_path"], 'temperature': 0.7}
         # set number of chat completions to generate, isn't supported by Anthropic
@@ -167,13 +182,15 @@ class SlotFillModelAPI():
         slots,
         chat_history_str,
     ):
-        input_slots = format_slotfilling_input(slots)
+        formatted_slots = format_slots(slots)
+        input_slots = format_slotfilling_input(formatted_slots)
         system_prompt = self.format_input(input_slots, chat_history_str)
-        response = self.get_response(system_prompt)
-        filled_slots = format_slotfilling_output(slots, response)
+        response = self.get_response(system_prompt, note="slot filling")
+        filled_slots = format_slotfilling_output(formatted_slots, response)
         logger.info(f"Updated dialogue states: {filled_slots}")
         return filled_slots
     
+    # endpoint for slot verification
     def verify(
         self,
         slot: dict,
@@ -182,7 +199,7 @@ class SlotFillModelAPI():
         reformat_slot = {key: value for key, value in slot.items() if key in ["name", "type", "value", "enum", "description", "required"]}
         system_prompt = f"Given the conversation, definition and extracted value of each dialog state, decide whether the following dialog states values need further verification from the user. Verification is needed for expressions which may cause confusion. If it is an accurate information extracted, no verification is needed. If there is a list of enum value, which means the value has to be chosen from the enum list. Only Return boolean value: True or False. \nDialogue Statues:\n{reformat_slot}\nConversation:\n{chat_history_str}\n\n"
         response = self.get_response(
-            system_prompt,debug_text="verify slots", format=Verification
+            system_prompt, format=Verification, note="slot verification"
         )
         if not response: # no need to verification, we want to make sure it is really confident that we need to ask the question again
             logger.info(f"Failed to verify dialogue states")
