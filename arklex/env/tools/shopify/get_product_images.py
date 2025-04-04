@@ -27,7 +27,7 @@ outputs = [
 ]
 
 
-@register_tool(description, slots, outputs)
+@register_tool(description, slots, outputs, isResponse=True)
 def get_product_images(product_ids: list, **kwargs) -> str:
     func_name = inspect.currentframe().f_code.co_name
     nav = cursorify(kwargs)

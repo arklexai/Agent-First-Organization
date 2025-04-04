@@ -28,7 +28,7 @@ outputs = [
 ]
 
 
-@register_tool(description, slots, outputs)
+@register_tool(description, slots, outputs, isResponse=True)
 def search_products(product_query: str, **kwargs) -> str:
     func_name = inspect.currentframe().f_code.co_name
     nav = cursorify(kwargs)
