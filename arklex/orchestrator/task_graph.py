@@ -1,3 +1,4 @@
+import os
 import copy
 import logging
 import collections
@@ -14,7 +15,12 @@ from arklex.utils.graph_state import NodeInfo, Params, StatusEnum
 from arklex.orchestrator.NLU.nlu import NLU, SlotFilling
 from arklex.utils.model_config import MODEL
 
+import agentops
+
 logger = logging.getLogger(__name__)
+
+# Initialize AgentOps
+agentops.init(api_key=os.getenv("AGENTOPS_API_KEY"), tags=['task_graph.py'])
 
 class TaskGraphBase:
     def __init__(self, name, product_kwargs):
@@ -23,6 +29,7 @@ class TaskGraphBase:
         self.create_graph()
         self.intents = self.get_pred_intents() # global intents
         self.start_node = self.get_start_node()
+        agentops.logging.logger.info(f"TaskGraphBase Initialized. name: {name}")
 
     def create_graph(self):
         raise NotImplementedError
@@ -65,6 +72,8 @@ class TaskGraph(TaskGraphBase):
         self.nluapi = NLU(self.product_kwargs.get("nluapi"))
         self.slotfillapi = SlotFilling(self.product_kwargs.get("slotfillapi"))
 
+        agentops.logging.logger.info(f"TaskGraph Initialized. name: {name}")
+
     def create_graph(self):
         nodes = self.product_kwargs["nodes"]
         edges = self.product_kwargs["edges"]
@@ -73,6 +82,8 @@ class TaskGraph(TaskGraphBase):
             edge[2]['intent'] = edge[2]['intent'].lower()
         self.graph.add_nodes_from(nodes)
         self.graph.add_edges_from(edges)
+
+        agentops.logging.logger.info(f"Graph Created. nodes: {len(nodes)}, edges: {len(edges)}")
 
     def get_initial_flow(self):
         services_nodes = self.product_kwargs.get("services_nodes", None)
@@ -88,6 +99,7 @@ class TaskGraph(TaskGraphBase):
         Jump to a node based on the intent
         """
         logger.info(f"pred_intent in jump_to_node is {pred_intent}")
+
         try:
             candidates_nodes = [self.intents[pred_intent][intent_idx]]
             candidates_nodes_weights = [node["attribute"]["weight"] for node in candidates_nodes]
@@ -97,10 +109,15 @@ class TaskGraph(TaskGraphBase):
             else:  # This is for protection, logically shouldn't enter this branch
                 next_node = curr_node
                 next_intent = list(self.graph.in_edges(curr_node, data="intent"))[0][2]
+
         except Exception as e:
             logger.error(f"Error in jump_to_node: {e}")
+            agentops.record(agentops.ErrorEvent(str(e)))
+            agentops.logging.logger.info(f"Jump to Node Error. error: {str(e)}")
+
             next_node = curr_node
             next_intent = list(self.graph.in_edges(curr_node, data="intent"))[0][2]
+
         return next_node, next_intent
     
     def _get_node(self, sample_node, params: Params, intent=None) -> Tuple[NodeInfo, Params]:
@@ -149,16 +166,38 @@ class TaskGraph(TaskGraphBase):
                 break
         return found_pred_in_avil, real_intent, idx
 
+<<<<<<< Updated upstream
     def get_current_node(self, params: Params):
         """
         Get current node
         If current node is unknown, use start node
         """
         curr_node = params.taskgraph.curr_node
+=======
+        prompt = f"The assistant is currently working on the task: {curr_pred_intent}\nOther available tasks are: {other_pred_intents}\nAccording to the conversation, decide whether the user wants to stop the current task and switch to another one.\nConversation:\n{self.chat_history_str}\nThe response should only be yes or no."
+        response = self.model.invoke(prompt)        
+        if "no" in response.content.lower():
+            return False
+        return True
+            
+    def get_node(self, inputs):
+        session = agentops.start_session(tags=['task_graph.py'])
+        agentops.track_agent("Session Started", metadata={"task": "Node Processing"})
+        agentops.logging.logger.info("task_graph.py")
+
+        self.text = inputs["text"]
+        self.chat_history_str = inputs["chat_history_str"]
+        params = inputs["parameters"]
+        nlu_records = []        
+
+        # get the current node
+        curr_node = params.get("curr_node", None)
+>>>>>>> Stashed changes
         if not curr_node or curr_node not in self.graph.nodes:
             curr_node = self.start_node
         else:
             curr_node = str(curr_node)
+<<<<<<< Updated upstream
         params.taskgraph.curr_node = curr_node
         return curr_node, params
     
@@ -186,6 +225,11 @@ class TaskGraph(TaskGraphBase):
                 node_limit[node[0]] = limit
         params.taskgraph.node_limit = node_limit
         return params
+=======
+        
+        agentops.logging.logger.info(f"Node Selected. node_id: {curr_node}")
+        logger.info(f"Intial curr_node: {curr_node}")
+>>>>>>> Stashed changes
 
     def get_local_intent(self, curr_node, params: Params):
         """
@@ -385,11 +429,25 @@ class TaskGraph(TaskGraphBase):
         # available global intents
         available_global_intents = self.get_available_global_intents(params)
         
+<<<<<<< Updated upstream
         # update limit
         params = self.update_node_limit(params)
 
         # Get local intents of the curr_node
         curr_local_intents = self.get_local_intent(curr_node, params)
+=======
+        agentops.logging.logger.info(f"Node Processed. node_id: {node_info['id']}, node_name: {node_info['name']}")
+
+        return node_info, params
+
+    def postprocess_node(self, node):
+        session = agentops.start_session()
+        agentops.track_agent("Session Started", metadata={"task": "Postprocessing Node"})
+        agentops.logging.logger.info("task_graph.py")
+
+        node_info = node[0]
+        params = node[1]
+>>>>>>> Stashed changes
 
         if not curr_local_intents and allow_global_intent_switch:  # no local intent under the current node
             logger.info(f"no local intent under the current node")
@@ -455,5 +513,8 @@ class TaskGraph(TaskGraphBase):
                 format_chat_history(params.memory.function_calling_trajectory)
             )
         params.taskgraph.dialog_states = dialog_states
+
+        agentops.logging.logger.info(f"Node Processed. node_id: {node_info['id']}, node_name: {node_info['name']}")
+        agentops.end_session("Success")
 
         return node_info, params

@@ -22,12 +22,18 @@ from arklex.utils.graph_state import (ConvoMessage, NodeInfo, OrchestratorMessag
                                       OrchestratorResp)
 from arklex.utils.utils import format_chat_history
 
+import agentops
+from agentops.sdk.decorators import agent, session, operation
+
+import agentops
+from agentops.sdk.decorators import agent, session, operation
 
 load_dotenv()
 logger = logging.getLogger(__name__)
 
 INFO_WORKERS = ["planner", "MessageWorker", "RagMsgWorker", "HITLWorkerChatFlag"]
 
+@agent(name="AgentOrg")
 class AgentOrg:
     def __init__(self, config, env: Env, **kwargs):
         if isinstance(config, dict):

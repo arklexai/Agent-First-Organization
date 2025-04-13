@@ -8,7 +8,11 @@
                     "name": "MessageWorker"
                 },
                 "attribute": {
+<<<<<<< Updated upstream
                     "value": "Hello! I'm here to assist you with any customer service inquiries you may have. Whether you need information about our products, services, or policies, or if you need help with any issues or transactions, feel free to ask. How can I assist you today?",
+=======
+                    "value": "Hello! I'm your Customer Service Assistant. How may I assist you with your inquiries today? Whether you need information about our products, services, or policies, or require help in resolving an issue, I'm here to help!",
+>>>>>>> Stashed changes
                     "task": "start message",
                     "directed": false
                 },
@@ -24,8 +28,13 @@
                     "name": "MessageWorker"
                 },
                 "attribute": {
+<<<<<<< Updated upstream
                     "value": "Can you tell me about your specific needs or requirements for robotics solutions?",
                     "task": "Initiate the conversation by asking the user about their specific needs or requirements regarding robotics solutions.",
+=======
+                    "value": "Hello! Could you please tell me which robot or feature you are interested in?",
+                    "task": "Use MessageWorker to greet the user and inquire about the specific robot or feature they are interested in.",
+>>>>>>> Stashed changes
                     "directed": false
                 },
                 "limit": 1
@@ -40,7 +49,11 @@
                 },
                 "attribute": {
                     "value": "",
+<<<<<<< Updated upstream
                     "task": "Use FaissRAGWorker to retrieve detailed information from the company's internal documentation about Richtech Robotics' products relevant to the user's needs.",
+=======
+                    "task": "Use FaissRAGWorker to retrieve detailed information about the specified robot or feature from the company's internal documentation.",
+>>>>>>> Stashed changes
                     "directed": false
                 },
                 "limit": 1
@@ -54,8 +67,13 @@
                     "name": "MessageWorker"
                 },
                 "attribute": {
+<<<<<<< Updated upstream
                     "value": "Here are some of the key features and benefits of the products that match your needs.",
                     "task": "Present the retrieved product information to the user using MessageWorker, highlighting key features and benefits.",
+=======
+                    "value": "Here are the detailed specifications and features of the robot you are interested in.",
+                    "task": "Use MessageWorker to present the detailed specifications and features to the user.",
+>>>>>>> Stashed changes
                     "directed": false
                 },
                 "limit": 1
@@ -69,8 +87,13 @@
                     "name": "MessageWorker"
                 },
                 "attribute": {
+<<<<<<< Updated upstream
                     "value": "Do you have any additional preferences or specific requirements?",
                     "task": "Ask the user if they have any additional preferences or specific requirements to further refine the recommendations.",
+=======
+                    "value": "Would you like more information or do you have any other questions about different robots or features?",
+                    "task": "Use MessageWorker to ask if the user needs more information or has any additional questions about other robots or features.",
+>>>>>>> Stashed changes
                     "directed": false
                 },
                 "limit": 1
@@ -85,7 +108,11 @@
                 },
                 "attribute": {
                     "value": "",
+<<<<<<< Updated upstream
                     "task": "Based on user feedback, use FaissRAGWorker again if necessary to gather more targeted product information or recommendations.",
+=======
+                    "task": "Use FaissRAGWorker to provide further details if the user asks for more information, and repeat the process as necessary.",
+>>>>>>> Stashed changes
                     "directed": false
                 },
                 "limit": 1
@@ -99,8 +126,13 @@
                     "name": "MessageWorker"
                 },
                 "attribute": {
+<<<<<<< Updated upstream
                     "value": "Based on your requirements, here is a list of recommended robots that best match your needs.",
                     "task": "Provide the user with a list of recommended robots that best match their needs, using MessageWorker to communicate these suggestions.",
+=======
+                    "value": "The delivery timeline for our standard robot model is 5-7 business days, while the advanced model takes 10-14 business days. Would you like more details on a specific model?",
+                    "task": "Inform users about delivery timelines for different robot models",
+>>>>>>> Stashed changes
                     "directed": false
                 },
                 "limit": 1
@@ -114,8 +146,13 @@
                     "name": "MessageWorker"
                 },
                 "attribute": {
+<<<<<<< Updated upstream
                     "value": "Are you satisfied with the recommendations, or do you need further assistance?",
                     "task": "Confirm whether the user needs further assistance or if they are satisfied with the recommendations provided.",
+=======
+                    "value": "Hello! Please let us know if you have any specific preferences or requirements for the rental options you're looking for.",
+                    "task": "Use the MessageWorker to greet the user and ask for any specific preferences or requirements they have regarding rental options.",
+>>>>>>> Stashed changes
                     "directed": false
                 },
                 "limit": 1
@@ -129,8 +166,13 @@
                     "name": "MessageWorker"
                 },
                 "attribute": {
+<<<<<<< Updated upstream
                     "value": "Hello! Are you interested in placing an order or renting a robot today?",
                     "task": "Use MessageWorker to greet the user and inquire about their interest in either placing an order or renting a robot.",
+=======
+                    "value": "",
+                    "task": "Utilize the FaissRAGWorker to retrieve information from the company's internal documentation about available rental options and pricing based on the user's preferences.",
+>>>>>>> Stashed changes
                     "directed": false
                 },
                 "limit": 1
@@ -144,8 +186,13 @@
                     "name": "FaissRAGWorker"
                 },
                 "attribute": {
+<<<<<<< Updated upstream
                     "value": "",
                     "task": "If the user is interested in renting, use FaissRAGWorker to provide information about rental terms, pricing, and availability based on internal documentation.",
+=======
+                    "value": "Here are the available rental options along with their pricing based on your preferences.",
+                    "task": "Use the MessageWorker to present the user with the available rental options and their respective pricing.",
+>>>>>>> Stashed changes
                     "directed": false
                 },
                 "limit": 1
@@ -159,8 +206,13 @@
                     "name": "FaissRAGWorker"
                 },
                 "attribute": {
+<<<<<<< Updated upstream
                     "value": "",
                     "task": "If the user is interested in purchasing, use FaissRAGWorker to provide relevant product information, including pricing and availability.",
+=======
+                    "value": "Do you need further details about any specific rental option, or do you have any additional questions?",
+                    "task": "Ask the user if they need further details about any specific rental option or if they have additional questions.",
+>>>>>>> Stashed changes
                     "directed": false
                 },
                 "limit": 1
@@ -170,12 +222,21 @@
             "11",
             {
                 "resource": {
+<<<<<<< Updated upstream
                     "id": "26bb6634-3bee-417d-ad75-23269ac17bc3",
                     "name": "MessageWorker"
                 },
                 "attribute": {
                     "value": "Do you have any additional questions or need further clarification on the information I've provided?",
                     "task": "Use MessageWorker to ask the user if they have any additional questions or need further clarification on the information provided.",
+=======
+                    "id": "9aa47724-0b77-4752-9528-cf4b06a46915",
+                    "name": "FaissRAGWorker or SearchWorker"
+                },
+                "attribute": {
+                    "value": "Let me fetch more detailed information for you. Please hold on for a moment.",
+                    "task": "If the user requests more information, utilize the FaissRAGWorker to provide detailed information from the documentation, or use the SearchWorker for real-time data if necessary. Otherwise, confirm if the user is ready to proceed with a transaction or needs further assistance.",
+>>>>>>> Stashed changes
                     "directed": false
                 },
                 "limit": 1
@@ -189,8 +250,13 @@
                     "name": "MessageWorker"
                 },
                 "attribute": {
+<<<<<<< Updated upstream
                     "value": "Let me guide you through the process of placing an order or renting a robot. Can you please confirm your selections so we can proceed to the next steps?",
                     "task": "Use MessageWorker to guide the user through the process of placing an order or renting a robot, confirming their selections, and providing next steps for transaction completion.",
+=======
+                    "value": "Could you please describe the problem you are experiencing with the robot?",
+                    "task": "Identify the user's issue by asking them to describe the problem they are facing with the robot.",
+>>>>>>> Stashed changes
                     "directed": false
                 },
                 "limit": 1
@@ -204,8 +270,13 @@
                     "name": "MessageWorker"
                 },
                 "attribute": {
+<<<<<<< Updated upstream
                     "value": "Could you please describe the specific issue or technical support you need with your robot?",
                     "task": "Inquire about the specific robot-related issue or technical support needed from the user.",
+=======
+                    "value": "",
+                    "task": "Use the FaissRAGWorker to search the company's internal documentation for relevant troubleshooting steps or solutions related to the described issue.",
+>>>>>>> Stashed changes
                     "directed": false
                 },
                 "limit": 1
@@ -219,8 +290,13 @@
                     "name": "FaissRAGWorker"
                 },
                 "attribute": {
+<<<<<<< Updated upstream
                     "value": "",
                     "task": "Use FaissRAGWorker to search the company's internal documentation for troubleshooting steps and solutions related to the issue described by the user.",
+=======
+                    "value": "Here are the troubleshooting steps that I found. Let's go through them together.",
+                    "task": "Deliver the retrieved troubleshooting steps or solutions to the user using the MessageWorker, and guide them through the process.",
+>>>>>>> Stashed changes
                     "directed": false
                 },
                 "limit": 1
@@ -234,8 +310,13 @@
                     "name": "MessageWorker"
                 },
                 "attribute": {
+<<<<<<< Updated upstream
                     "value": "Here are the troubleshooting steps that might help resolve your issue.",
                     "task": "Deliver the troubleshooting steps or solution to the user using MessageWorker.",
+=======
+                    "value": "Did the solution resolve the issue, or do you need further assistance?",
+                    "task": "Ask the user if the provided solution resolved the issue or if they need further assistance.",
+>>>>>>> Stashed changes
                     "directed": false
                 },
                 "limit": 1
@@ -245,12 +326,17 @@
             "16",
             {
                 "resource": {
-                    "id": "26bb6634-3bee-417d-ad75-23269ac17bc3",
-                    "name": "MessageWorker"
+                    "id": "9c15af81-04b3-443e-be04-a3522124b905",
+                    "name": "SearchWorker"
                 },
                 "attribute": {
+<<<<<<< Updated upstream
                     "value": "Did the solution provided help resolve your issue, or do you need further assistance?",
                     "task": "Ask the user if the provided solution resolved their issue or if they need further assistance.",
+=======
+                    "value": "",
+                    "task": "If the issue persists, escalate the problem by utilizing the SearchWorker to find any additional information or updates from real-time online sources, and provide this information to the user.",
+>>>>>>> Stashed changes
                     "directed": false
                 },
                 "limit": 1
@@ -264,8 +350,13 @@
                     "name": "FaissRAGWorker"
                 },
                 "attribute": {
+<<<<<<< Updated upstream
                     "value": "We're sorry to hear that the issue persists. Let me find more information or escalate the problem to ensure it gets resolved.",
                     "task": "If the issue persists, offer to escalate the problem or provide additional troubleshooting steps, using FaissRAGWorker for further information if necessary.",
+=======
+                    "value": "Is there anything else you need help with, or any other issues you would like to address?",
+                    "task": "Confirm with the user if they need any additional support or if there are other issues they would like to address.",
+>>>>>>> Stashed changes
                     "directed": false
                 },
                 "limit": 1
@@ -279,8 +370,13 @@
                     "name": "MessageWorker"
                 },
                 "attribute": {
+<<<<<<< Updated upstream
                     "value": "Could you please provide your order number or any relevant details to identify your delivery or installation appointment?",
                     "task": "Ask the user for their order number or relevant details to identify the delivery or installation appointment.",
+=======
+                    "value": "Hello! Do you need assistance with purchasing a robot today?",
+                    "task": "Greet the user and ask if they need assistance with purchasing a robot.",
+>>>>>>> Stashed changes
                     "directed": false
                 },
                 "limit": 1
@@ -294,8 +390,13 @@
                     "name": "FaissRAGWorker"
                 },
                 "attribute": {
+<<<<<<< Updated upstream
                     "value": "I will check our delivery schedules and installation policies for you. One moment, please.",
                     "task": "Utilize FaissRAGWorker to retrieve relevant company documentation on delivery schedules and installation policies to answer initial questions.",
+=======
+                    "value": "",
+                    "task": "Use FaissRAGWorker to provide information about the available robots, including features, pricing, and specifications.",
+>>>>>>> Stashed changes
                     "directed": false
                 },
                 "limit": 1
@@ -309,8 +410,13 @@
                     "name": "MessageWorker"
                 },
                 "attribute": {
+<<<<<<< Updated upstream
                     "value": "Your current delivery is scheduled for [date and time]. Let me know if there are any updates or changes.",
                     "task": "Confirm the user's current delivery or installation schedule using this information, and provide any updates or changes if applicable.",
+=======
+                    "value": "Do you have any specific preferences or requirements for the robots you are interested in?",
+                    "task": "Ask the user if they have any specific preferences or requirements regarding the robots.",
+>>>>>>> Stashed changes
                     "directed": false
                 },
                 "limit": 1
@@ -320,12 +426,17 @@
             "21",
             {
                 "resource": {
-                    "id": "26bb6634-3bee-417d-ad75-23269ac17bc3",
-                    "name": "MessageWorker"
+                    "id": "9aa47724-0b77-4752-9528-cf4b06a46915",
+                    "name": "FaissRAGWorker"
                 },
                 "attribute": {
+<<<<<<< Updated upstream
                     "value": "Would you like to reschedule or do you have any specific requirements for your delivery or installation?",
                     "task": "Ask the user if they need to reschedule or have any specific requirements for delivery or installation.",
+=======
+                    "value": "",
+                    "task": "If the user has specific questions or needs more information, use FaissRAGWorker to answer their questions based on the company's internal documentation.",
+>>>>>>> Stashed changes
                     "directed": false
                 },
                 "limit": 1
@@ -339,8 +450,13 @@
                     "name": "MessageWorker"
                 },
                 "attribute": {
+<<<<<<< Updated upstream
                     "value": "Here are some available dates and times for rescheduling your delivery: [list of dates and times].",
                     "task": "If the user wants to reschedule, provide them with available dates and times for rescheduling.",
+=======
+                    "value": "Are you ready to proceed with the purchase, or would you like to see more options?",
+                    "task": "Once the user has enough information, ask if they are ready to proceed with the purchase or need more options.",
+>>>>>>> Stashed changes
                     "directed": false
                 },
                 "limit": 1
@@ -354,8 +470,13 @@
                     "name": "MessageWorker"
                 },
                 "attribute": {
+<<<<<<< Updated upstream
                     "value": "Your delivery has been rescheduled to [new date and time]. Please let me know if you have any questions about the next steps.",
                     "task": "Confirm the new schedule or any changes with the user, and ensure they understand the next steps.",
+=======
+                    "value": "Great! Here are the instructions to complete your purchase. You can choose your payment method and delivery options.",
+                    "task": "If the user is ready to purchase, provide instructions on how to complete the transaction, including payment and delivery options.",
+>>>>>>> Stashed changes
                     "directed": false
                 },
                 "limit": 1
@@ -369,8 +490,13 @@
                     "name": "MessageWorker"
                 },
                 "attribute": {
+<<<<<<< Updated upstream
                     "value": "Is there anything else you need help with regarding your delivery or installation?",
                     "task": "Ask if there is anything else the user needs help with regarding their delivery or installation.",
+=======
+                    "value": "Thank you for your purchase! Let me confirm the transaction details for you.",
+                    "task": "Confirm the transaction details with the user and thank them for their purchase.",
+>>>>>>> Stashed changes
                     "directed": false
                 },
                 "limit": 1
@@ -380,12 +506,17 @@
             "25",
             {
                 "resource": {
-                    "id": "26bb6634-3bee-417d-ad75-23269ac17bc3",
-                    "name": "MessageWorker"
+                    "id": "9aa47724-0b77-4752-9528-cf4b06a46915",
+                    "name": "FaissRAGWorker"
                 },
                 "attribute": {
+<<<<<<< Updated upstream
                     "value": "Hello! How can I assist you with ClouTea today?",
                     "task": "Use the MessageWorker to greet the user and inquire about their specific question or information they need regarding ClouTea.",
+=======
+                    "value": "",
+                    "task": "Use the FaissRAGWorker to retrieve relevant information from the company's internal documentations about policies, warranties, and partnerships.",
+>>>>>>> Stashed changes
                     "directed": false
                 },
                 "limit": 1
@@ -399,8 +530,13 @@
                     "name": "FaissRAGWorker"
                 },
                 "attribute": {
+<<<<<<< Updated upstream
                     "value": "",
                     "task": "Utilize the FaissRAGWorker to search the company's internal documents for information related to the user's query about ClouTea menu offerings or store information.",
+=======
+                    "value": "Here is the information you requested about our policies and partnerships.",
+                    "task": "Utilize the MessageWorker to deliver the retrieved information to the user, ensuring clarity and comprehensiveness.",
+>>>>>>> Stashed changes
                     "directed": false
                 },
                 "limit": 1
@@ -414,8 +550,13 @@
                     "name": "MessageWorker"
                 },
                 "attribute": {
+<<<<<<< Updated upstream
                     "value": "Here are the details you requested about ClouTea.",
                     "task": "If the information is found, use the MessageWorker to deliver the details to the user.",
+=======
+                    "value": "Do you need further clarification or have any additional questions regarding the information provided?",
+                    "task": "Ask the user if they need further clarification or have any additional questions regarding the provided information.",
+>>>>>>> Stashed changes
                     "directed": false
                 },
                 "limit": 1
@@ -425,12 +566,17 @@
             "28",
             {
                 "resource": {
-                    "id": "26bb6634-3bee-417d-ad75-23269ac17bc3",
-                    "name": "MessageWorker"
+                    "id": "9aa47724-0b77-4752-9528-cf4b06a46915",
+                    "name": "FaissRAGWorker"
                 },
                 "attribute": {
+<<<<<<< Updated upstream
                     "value": "Is there anything else you need to know about ClouTea?",
                     "task": "If the user's query is not fully addressed, clarify with the user using the MessageWorker to ensure all their questions are covered.",
+=======
+                    "value": "",
+                    "task": "If the user has more questions or needs clarification, use the FaissRAGWorker again to gather more detailed information and deliver it via the MessageWorker.",
+>>>>>>> Stashed changes
                     "directed": false
                 },
                 "limit": 1
@@ -459,6 +605,7 @@
                     "name": "MessageWorker"
                 },
                 "attribute": {
+<<<<<<< Updated upstream
                     "value": "Is there anything else you'd like to ask or need help with today?",
                     "task": "Conclude the interaction by asking if there is anything else the user would like to know or need help with, using the MessageWorker.",
                     "directed": false
@@ -626,6 +773,10 @@
                 "attribute": {
                     "value": "Our company offers a 1-year warranty on all products and a 30-day return policy. Would you like more details on our service agreements?",
                     "task": "Provide information on company policies, product warranties, and service agreements.",
+=======
+                    "value": "Are you satisfied with the information provided, or do you need assistance with another issue?",
+                    "task": "Confirm if the user is satisfied with the information provided or if they need assistance with another issue.",
+>>>>>>> Stashed changes
                     "directed": false
                 },
                 "limit": 1
@@ -637,7 +788,11 @@
             "0",
             "1",
             {
+<<<<<<< Updated upstream
                 "intent": "User seeks product information and recommendations",
+=======
+                "intent": "User inquires about robot product specifications",
+>>>>>>> Stashed changes
                 "attribute": {
                     "weight": 1,
                     "pred": true,
@@ -702,6 +857,7 @@
             "5",
             "6",
             {
+<<<<<<< Updated upstream
                 "intent": "None",
                 "attribute": {
                     "weight": 1,
@@ -729,6 +885,9 @@
             "8",
             {
                 "intent": "User has inquiries about ordering or renting robots",
+=======
+                "intent": "User wants to know delivery timelines",
+>>>>>>> Stashed changes
                 "attribute": {
                     "weight": 1,
                     "pred": true,
@@ -738,6 +897,35 @@
             }
         ],
         [
+<<<<<<< Updated upstream
+=======
+            "0",
+            "7",
+            {
+                "intent": "User is interested in robot rental options",
+                "attribute": {
+                    "weight": 1,
+                    "pred": true,
+                    "definition": "",
+                    "sample_utterances": []
+                }
+            }
+        ],
+        [
+            "7",
+            "8",
+            {
+                "intent": "None",
+                "attribute": {
+                    "weight": 1,
+                    "pred": false,
+                    "definition": "",
+                    "sample_utterances": []
+                }
+            }
+        ],
+        [
+>>>>>>> Stashed changes
             "8",
             "9",
             {
@@ -767,6 +955,35 @@
             "10",
             "11",
             {
+<<<<<<< Updated upstream
+=======
+                "intent": "None",
+                "attribute": {
+                    "weight": 1,
+                    "pred": false,
+                    "definition": "",
+                    "sample_utterances": []
+                }
+            }
+        ],
+        [
+            "0",
+            "12",
+            {
+                "intent": "User requires support for troubleshooting",
+                "attribute": {
+                    "weight": 1,
+                    "pred": true,
+                    "definition": "",
+                    "sample_utterances": []
+                }
+            }
+        ],
+        [
+            "12",
+            "13",
+            {
+>>>>>>> Stashed changes
                 "intent": "None",
                 "attribute": {
                     "weight": 1,
@@ -858,7 +1075,11 @@
             "0",
             "18",
             {
+<<<<<<< Updated upstream
                 "intent": "User wants to schedule delivery and installation",
+=======
+                "intent": "User wants to make a purchase",
+>>>>>>> Stashed changes
                 "attribute": {
                     "weight": 1,
                     "pred": true,
@@ -949,7 +1170,11 @@
             "0",
             "25",
             {
+<<<<<<< Updated upstream
                 "intent": "User has inquiries related to ClouTea",
+=======
+                "intent": "User asks about company policies or partnerships",
+>>>>>>> Stashed changes
                 "attribute": {
                     "weight": 1,
                     "pred": true,
