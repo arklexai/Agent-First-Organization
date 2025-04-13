@@ -89,6 +89,7 @@ class AgentOrg:
         )
         return text, chat_history_str, params, message_state
 
+    @operation(name="Check Skip Node")
     def check_skip_node(self, node_info: NodeInfo, params: Params):
         # NOTE: Do not check the node limit to decide whether the node can be skipped because skipping a node when should not is unwanted.
         return False
@@ -100,6 +101,7 @@ class AgentOrg:
                 return True
         return False
 
+    @operation(name="Post Process Node")
     def post_process_node(self, node_info: NodeInfo, params: Params, update_info:dict={}):
         '''
         update_info is a dict of
@@ -120,6 +122,7 @@ class AgentOrg:
             params.taskgraph.node_limit[curr_node] -= 1
         return params
     
+    @operation(name="Handle Direct Node")
     def handl_direct_node(self, node_info: NodeInfo, params: Params):
         # Direct response
         node_attribute = node_info.attributes
@@ -135,6 +138,7 @@ class AgentOrg:
             return True, return_response, params
         return False, None, params
     
+    @operation(name="Perform Node")
     def perform_node(self, message_state: MessageState, node_info: NodeInfo, params: Params, text: str, chat_history_str: str, same_turn: bool, stream_type: StreamType, message_queue: janus.SyncQueue):
         # Tool/Worker
         user_message = ConvoMessage(history=chat_history_str, message=text)
@@ -172,6 +176,8 @@ class AgentOrg:
         params.memory.trajectory = message_state.trajectory
         return message_state, params
     
+    @session(name="Agent Response Session")
+    @operation(name="Get Agent Response (Internal)")
     def _get_response(self, 
                      inputs: dict, 
                      stream_type: StreamType = None, 
@@ -249,6 +255,7 @@ class AgentOrg:
             human_in_the_loop=params.metadata.hitl,
         )
     
+    @operation(name="Get Agent Response (Public)")
     def get_response(self, 
                      inputs: dict, 
                      stream_type: StreamType = None, 

@@ -22,40 +22,14 @@ def pprint_with_color(data, color_code="\033[34m"):  # Default to blue
     pprint(data)
     print("\033[0m", end="")  
 
-@operation(name="get_api_bot_response")
+@session(name="Api Bot Response")
+@operation(name="Fetch AgentOrg Response")
 def get_api_bot_response(args, history, user_text, parameters, env):
-    session = agentops.start_session()
-    agentops.track_agent("run.py Session Started", metadata={"task": "Chat Processing"})
-    agentops.logging.logger.info(f"User Input Received. Text: {user_text}")
-
     data = {"text": user_text, 'chat_history': history, 'parameters': parameters}
     orchestrator = AgentOrg(config=os.path.join(args.input_dir, "taskgraph.json"), env=env)
     result = orchestrator.get_response(data)
 
-    return result['answer'], result['parameters'], result['human-in-the-loop']
-
-
-def start_apis():
-    """Start the FastAPI subprocess and update task graph API URLs."""
-    global process
-    command = [
-        "uvicorn",
-        "arklex.orchestrator.NLU.api:app",  # Replace with proper import path
-        "--port", API_PORT,
-        "--host", "0.0.0.0",
-        "--log-level", "info"
-    ]
-
-    # Redirect FastAPI logs to a file
-    with open("./logs/api.log", "w") as log_file:
-        process = subprocess.Popen(
-            command,
-            stdout=log_file,  # Redirect stdout to a log file
-            stderr=subprocess.STDOUT,  # Redirect stderr to the same file
-            start_new_session=True  # Run in a separate process group
-        )
-    logger.info(f"Started FastAPI process with PID: {process.pid}")
-
+    return result['answer'], result['parameters'], result['human_in_the_loop']
 
 
 if __name__ == "__main__":
