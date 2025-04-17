@@ -1,0 +1,36 @@
+[
+    {
+        "description": "Simulate the user asking about available products with multiple choice function.",
+        "criteria": "The second assistant message should exactly be 'We have the following products, which one do you want to know more about?' and the third assistant message should be 'Product 1 is good'.",
+        "user_utterance": [
+            "What products do you have?",
+            "Product 1"
+        ],
+        "expected_taskgraph_path": [
+            "1",
+            "2"
+        ],
+        "expected_conversation": [
+            {
+                "role": "assistant",
+                "content": "Hello! How can I help you today?"
+            },
+            {
+                "role": "user",
+                "content": "What products do you have?"
+            },
+            {
+                "role": "assistant",
+                "content": "We have the following products, which one do you want to know more about?"
+            },
+            {
+                "role": "user",
+                "content": "Product 1"
+            },
+            {
+                "role": "assistant",
+                "content": "Product 1 is good"
+            }
+        ]
+    }
+]

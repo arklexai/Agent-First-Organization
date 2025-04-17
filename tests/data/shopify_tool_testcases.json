@@ -1,0 +1,230 @@
+[
+    {
+        "description": "Get account info based on user id",
+        "criteria": "The assistant should get the account info based on the user id",
+        "user_utterance": [
+            "My user id is gid://shopify/Customer/9058324939073, when did I sign up?"
+        ],
+        "expected_taskgraph_path": [
+            "1"
+        ],
+        "expected_node_status": {
+            "1": "complete"
+        },
+        "expected_conversation": [
+            {
+                "role": "assistant",
+                "content": "Hello, welcome to Shopify store!"
+            },
+            {
+                "role": "user",
+                "content": "My user id is gid://shopify/Customer/9058324939073, when did I sign up?"
+            },
+            {
+                "role": "assistant",
+                "content": "You signed up on 2024-01-01"
+            }
+        ]   
+    },
+    {
+        "description": "Ask for recommendation for hats",
+        "criteria": "The return result is in JSON format: {'answer': '<assistant_response>', 'card_list': ['<product_1>', '<product_2>', '<product_3>']}",
+        "user_utterance": [
+            "Do you have recommendation for hats?"
+        ],
+        "expected_taskgraph_path": [
+            "2"
+        ],
+        "expected_node_status": {
+            "2": "complete"
+        },
+        "expected_conversation": [
+            {
+                "role": "assistant",
+                "content": "Hello, welcome to Shopify store!"
+            },
+            {
+                "role": "user",
+                "content": "Do you have recommendation for hats?"
+            },
+            {
+                "role": "assistant",
+                "content": "{\"answer\": \"We have the following products, which one do you want to know more about?\", \"card_list\": [\"Product 1\", \"Product 2\", \"Product 3\"]}"
+            }
+        ]
+    },
+    {
+        "description": "Get past orders information based on user information.",
+        "criteria": "The assistant should get the past orders based on the user id. For the test user, he/she has not placed any orders.",
+        "user_utterance": [
+            "My user id is gid://shopify/Customer/9058324939073, what did I order?"
+        ],
+        "expected_taskgraph_path": [
+            "3"
+        ],
+        "expected_node_status": {
+            "3": "complete"
+        },
+        "expected_conversation": [
+            {
+                "role": "assistant",
+                "content": "Hello, welcome to Shopify store!"
+            },
+            {
+                "role": "user",
+                "content": "My user id is gid://shopify/Customer/9058324939073, what did I order?"
+            },
+            {
+                "role": "assistant",
+                "content": "You have not placed any orders."
+            }
+        ]
+    },
+    {
+        "description": "User would like to return an order",
+        "criteria": "The assistant should get past orders of the user and ask for the order to be returned. For the test user, he/she has not placed any orders. Therefore, the order cannot be returned.",
+        "user_utterance": [
+            "My user id is gid://shopify/Customer/9058324939073, I want to return an order.",
+            "I want to return order gid://shopify/Order/6452837876033."
+        ],
+        "expected_taskgraph_path": [
+            "4",
+            "5",
+            "6"
+        ],
+        "expected_node_status": {
+            "4": "complete",
+            "5": "complete",
+            "6": "incomplete"
+        },
+        "expected_conversation": [
+            {
+                "role": "assistant",
+                "content": "Hello, welcome to Shopify store!"
+            },
+            {
+                "role": "user",
+                "content": "My user id is gid://shopify/Customer/9058324939073, I want to return an order."
+            },
+            {
+                "role": "assistant",
+                "content": "You have not placed any orders."
+            },
+            {
+                "role": "user",
+                "content": "I want to return order gid://shopify/Order/6452837876033."
+            },
+            {
+                "role": "assistant",
+                "content": "The order cannot be returned."
+            }
+        ]
+    },
+    {
+        "description": "User would like to cancel an order",
+        "criteria": "The assistant should get past orders of the user and ask for the order to be cancelled. For the test user, he/she has not placed any orders. Therefore, the order cannot be cancelled.",
+        "user_utterance": [
+            "My user id is gid://shopify/Customer/9058324939073, I want to cancel an order.",
+            "I want to cancel order gid://shopify/Order/6452837876033."
+        ],
+        "expected_taskgraph_path": [
+            "4",
+            "5",
+            "7"
+        ],
+        "expected_node_status": {
+            "4": "complete",
+            "5": "complete",
+            "7": "incomplete"
+        },
+        "expected_conversation": [
+            {
+                "role": "assistant",
+                "content": "Hello, welcome to Shopify store!"
+            },
+            {
+                "role": "user",
+                "content": "My user id is gid://shopify/Customer/9058324939073, I want to cancel an order."
+            },
+            {
+                "role": "assistant",
+                "content": "You have not placed any orders."
+            },
+            {
+                "role": "user",
+                "content": "I want to cancel order gid://shopify/Order/6452837876033."
+            },
+            {
+                "role": "assistant",
+                "content": "The order cannot be cancelled."
+            }
+        ]
+    },
+    {
+        "description": "Ask about items in the shopping cart",
+        "criteria": "The assistant should get the items in the shopping cart. For the test user, he/she has not created a shopping cart.",
+        "user_utterance": [
+            "What is in my shopping cart? My cart id is gid://shopify/Cart/2938501948327."
+        ],
+        "expected_taskgraph_path": [
+            "8"
+        ],
+        "expected_node_status": {
+            "8": "incomplete"
+        },
+        "expected_conversation": [
+            {
+                "role": "assistant",
+                "content": "Hello, welcome to Shopify store!"
+            },
+            {
+                "role": "user",
+                "content": "What is in my shopping cart? My cart id is gid://shopify/Cart/2938501948327."
+            },
+            {
+                "role": "assistant",
+                "content": "Sorry, you have not created a shopping cart yet."
+            }
+        ]
+    },
+    {
+        "description": "User would like to add items to the shopping cart",
+        "criteria": "The assistant should add items to the shopping cart. For the test user, he/she has not created a shopping cart.",
+        "user_utterance": [
+            "Add product gid://shopify/Product/9898305618241 to my shopping cart.",
+            "My cart id is gid://shopify/Cart/2938501948327. Add the blue one to my cart."
+        ],
+        "expected_taskgraph_path": [
+            "9",
+            "10",
+            "11"
+        ],
+        "expected_node_status": {
+            "9": "complete",
+            "10": "complete",
+            "11": "incomplete"
+        },
+        "expected_conversation": [
+            {
+                "role": "assistant",
+                "content": "Hello, welcome to Shopify store!"
+            },
+            {
+                "role": "user",
+                "content": "Add product gid://shopify/Product/9898305618241 to my shopping cart."
+            },
+            {
+                "role": "assistant",
+                "content": "Sure, could you please specify the color of the product?    "
+            },
+            {
+                "role": "user",
+                "content": "My cart id is gid://shopify/Cart/2938501948327. Add the blue one to my cart."
+            },
+            {
+                "role": "assistant",
+                "content": "Sorry, you have not created a shopping cart yet."
+            }
+        ]
+    }
+]

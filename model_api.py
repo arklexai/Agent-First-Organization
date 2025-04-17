@@ -13,6 +13,7 @@ from arklex.utils.utils import init_logger
 from arklex.env.env import Env
 from arklex.orchestrator.orchestrator import AgentOrg
 from arklex.utils.model_config import MODEL
+from arklex.utils.model_provider_config import LLM_PROVIDERS
 
 
 logger = logging.getLogger(__name__)
@@ -48,12 +49,14 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Start FastAPI with custom config.")
     parser.add_argument('--input-dir', type=str, default="./examples/test")
     parser.add_argument('--model', type=str, default=MODEL["model_type_or_path"])
+    parser.add_argument( '--llm-provider',type=str,default=MODEL["llm_provider"],choices=LLM_PROVIDERS)
     parser.add_argument('--port', type=int, default=8000, help="Port to run the FastAPI app")
     parser.add_argument('--log-level', type=str, default="WARNING", choices=["DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"])
     
     args = parser.parse_args()
     os.environ["DATA_DIR"] = args.input_dir
     MODEL["model_type_or_path"] = args.model
+    MODEL["llm_provider"] = args.llm_provider
 
     log_level = getattr(logging, args.log_level.upper(), logging.WARNING)
     logger = init_logger(log_level=log_level, filename=os.path.join(os.path.dirname(__file__), "logs", "arklex.log"))

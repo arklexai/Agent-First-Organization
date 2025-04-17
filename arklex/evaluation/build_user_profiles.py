@@ -57,7 +57,7 @@ def build_profile(synthetic_data_params, config) -> tuple[list[str], list[str], 
                     random_index = random.choice(range(len(user_profiles[key])))
                     user_profile[key] = user_profiles[key][random_index]
             # based on the user's profile, select the attribute
-            attribute = pick_attribute(user_profile, predefined_attributes)
+            attribute = pick_attribute(user_profile, predefined_attributes, config['client'])
             # get the proposed tool from the goal and the corresponding input as label
             label, valid = get_label(attribute, config)
             
@@ -70,7 +70,7 @@ def build_profile(synthetic_data_params, config) -> tuple[list[str], list[str], 
     return profiles, goals, attributes_list, system_inputs, labels_list
 
 
-def pick_attribute(user_profile, predefined_attributes):
+def pick_attribute(user_profile, predefined_attributes, client):
     """
     Pick the attribute from the predefined attributes based on the user's profile to avoid the attribute confliction
     """
@@ -81,7 +81,7 @@ def pick_attribute(user_profile, predefined_attributes):
         {category}: {choices}
         Attribute value:
         """
-        response = chatgpt_chatbot([{'role': 'system', 'content': PICK_ATTRIBUTE_PROMPT.format(user_profile=user_profile, category=key, choices="\n".join(value))}])
+        response = chatgpt_chatbot([{'role': 'system', 'content': PICK_ATTRIBUTE_PROMPT.format(user_profile=user_profile, category=key, choices="\n".join(value))}], client)
         attributes[key] = response
         
     return attributes
@@ -170,7 +170,8 @@ def get_label(attribute, config):
     while attempt < 3:
         try:
             response = chatgpt_chatbot(
-                [{'role': 'system', 'content': GET_TOOL_PROMPT.format(tools="\n".join(f"tool_id: {tool['tool_id']}\ntool_description: {tool['tool_description']}\ntool_input: {tool['tool_input']}\ntool_output: {tool['tool_output']}" for tool in tool_list), goal=attribute["goal"])}]
+                [{'role': 'system', 'content': GET_TOOL_PROMPT.format(tools="\n".join(f"tool_id: {tool['tool_id']}\ntool_description: {tool['tool_description']}\ntool_input: {tool['tool_input']}\ntool_output: {tool['tool_output']}" for tool in tool_list), goal=attribute["goal"])}],
+                config['client']
             )
             pred_tool_id = response
             if pred_tool_id == "0":
@@ -248,7 +249,7 @@ def adapt_goals(attributes_list, config, documents):
     return attributes_list_with_goals
 
 def adapt_goal(goal, config, documents):
-    new_goal = chatgpt_chatbot([{'role': 'user', 'content': ADAPT_GOAL.format(goal=goal, company_summary=config['intro'], company_doc=random.choice(documents))}])
+    new_goal = chatgpt_chatbot([{'role': 'user', 'content': ADAPT_GOAL.format(goal=goal, company_summary=config['intro'], company_doc=random.choice(documents))}], config['client'])
     return new_goal
 
 def generate_attributes(attributes, config, documents):
@@ -263,7 +264,7 @@ def generate_attributes(attributes, config, documents):
         if not attributes[category]['generate_values']:
             new_attrs[category] = attributes[category]['values']
         else:
-            attrs = chatgpt_chatbot([{'role': 'user', 'content': ADD_ATTRIBUTES.format(user_profile=text_attribute, category=category, company_summary=config['intro'], company_doc=random.choice(documents))}])
+            attrs = chatgpt_chatbot([{'role': 'user', 'content': ADD_ATTRIBUTES.format(user_profile=text_attribute, category=category, company_summary=config['intro'], company_doc=random.choice(documents))}], config['client'])
             new_attrs[category] = attrs.split(', ')
     return new_attrs
 
@@ -289,7 +290,7 @@ def convert_attributes_to_profiles(attributes_list, system_attributes, config, m
 
     text_attributes = attributes_to_text(attributes_list)
     for i, attribute in enumerate(text_attributes):
-        profile = chatgpt_chatbot([{'role': 'user', 'content': ATTR_TO_PROFILE.format(company_summary=config['intro'], user_attr=attribute)}])
+        profile = chatgpt_chatbot([{'role': 'user', 'content': ATTR_TO_PROFILE.format(company_summary=config['intro'], user_attr=attribute)}], config['client'])
         profile_list.append({"profile": profile, "goal": attributes_list[i]["goal"]})
     
     profiles = [item['profile'] for item in profile_list]
@@ -372,7 +373,8 @@ The goal should within 15 words.
 
 User's goal:"""
         goal = chatgpt_chatbot(
-            [{'role': 'system', 'content': goal_generation_prompt}]
+            [{'role': 'system', 'content': goal_generation_prompt}],
+            config['client']
         )
         attributes_list_with_goals.append({"goal": goal, **pred_slots_dict})
         print("+++++++++++++++++++++++++++")

@@ -169,7 +169,7 @@ For a task-oriented dialogue system, you could use the evaluation script to auto
     --model_api http://127.0.0.1:8000/eval/chat \
     --config ./examples/customer_service_config.json \
     --documents_dir ./examples/customer_service \
-    --output-dir ./examples/customer_service
+    --output_dir ./examples/customer_service
     ```
 
 ## Evaluation Results

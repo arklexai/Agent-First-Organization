@@ -3,28 +3,45 @@ import random
 import json
 import requests
 from openai import OpenAI
+import anthropic
 from dotenv import load_dotenv
 
 from arklex.utils.model_config import MODEL
 load_dotenv()
 
-try:
-    org_key = os.environ["OPENAI_ORG_ID"]
-except:
-    org_key = None
 
-client = OpenAI(
-    api_key=os.environ["OPENAI_API_KEY"],
-    organization=org_key
-)
+def create_client():
+    try:
+        org_key = os.environ["OPENAI_ORG_ID"]
+    except:
+        org_key = None
+    if MODEL['llm_provider'] == 'openai' or MODEL['llm_provider']== 'gemini':
+        client = OpenAI(
+            api_key=os.environ[f"{MODEL['llm_provider'].upper()}_API_KEY"],
+            base_url="https://generativelanguage.googleapis.com/v1beta/openai/" if MODEL['llm_provider'] == 'gemini' else None,
+            organization=org_key
+        )
+    elif MODEL['llm_provider'] == 'anthropic':
+        client = anthropic.Anthropic()
+    return client
+    
 
-def chatgpt_chatbot(messages, model=MODEL["model_type_or_path"]):
-    completion = client.chat.completions.create(
-        model=model,
-        messages=messages,
-        temperature=0.1,
-    )
-    answer = completion.choices[0].message.content.strip()
+def chatgpt_chatbot(messages, client, model=MODEL["model_type_or_path"]):
+   
+    if MODEL['llm_provider'] != 'anthropic':
+        answer = client.chat.completions.create(
+            model=MODEL['model_type_or_path'], messages=messages, temperature=0.1
+        ).choices[0].message.content.strip()
+    else:
+        kwargs = {
+            "model": MODEL["model_type_or_path"],
+            "messages": messages if messages[0]['role'] != 'system' else [messages[1]],
+            "temperature": 0.1,
+            "max_tokens": 1024,
+            **({"system": messages[0]['content']} if messages[0]['role'] == 'system' else {})
+        }
+        answer = client.messages.create(**kwargs).content[0].text.strip()
+   
     return answer
 
 # flip roles in convo history, only keep role and content
@@ -101,21 +118,22 @@ def adjust_goal(doc_content, goal):
 
     return chatgpt_chatbot([{'role': 'user', 'content': message}], model=MODEL["model_type_or_path"])
 
-def generate_goal(doc_content):
+def generate_goal(doc_content, client):
     message = f"Pretend you have just read the following website:\n{doc_content}\nThis website also has a chatbot. What is some information you want to get from this chatbot or a goal you might have when chatting with this chatbot based on the website content? Answer the question in the first person. Only give the answer to the question in your response."
     
-    return chatgpt_chatbot([{'role': 'user', 'content': message}], model=MODEL["model_type_or_path"])
+    return chatgpt_chatbot([{'role': 'user', 'content': message}], client, model=MODEL["model_type_or_path"])
 
-def generate_goals(documents, params):
+def generate_goals(documents, params,client):
     goals = []
     for i in range(params['num_goals']):
         doc = random.choice(documents)
-        goals.append(generate_goal(doc['content']))
+        goals.append(generate_goal(doc['content']), client)
     return goals
 
 if __name__ == '__main__':
     from get_documents import get_all_documents, filter_documents
     documents = get_all_documents()
     documents = filter_documents(documents)
+    client = create_client()
     params = {'num_goals': 1}
-    print(generate_goals(documents, params))
+    print(generate_goals(documents, params, client))

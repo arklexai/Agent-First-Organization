@@ -1,0 +1,68 @@
+{
+    "nodes": [
+        [
+            "0",
+            {
+                "resource": {
+                    "id": "message_worker",
+                    "name": "MessageWorker"
+                },
+                "attribute": {
+                    "value": "Hello! How can I help you today?",
+                    "task": "start message",
+                    "directed": false
+                },
+                "limit": 1,
+                "type": "start"
+            }
+        ],
+        [
+            "1",
+            {
+                "resource": {
+                    "id": "message_worker",
+                    "name": "MessageWorker"
+                },
+                "attribute": {
+                    "value": "We have products A, B, and C. Which one do you want to know more about?",
+                    "task": "",
+                    "direct": false
+                },
+                "limit": 1
+            }
+        ]
+    ],
+    "edges": [
+        [
+            "0",
+            "1",
+            {
+                "intent": "Questions about available products",
+                "attribute": {
+                    "weight": 1,
+                    "pred": true,
+                    "definition": "",
+                    "sample_utterances": []
+                }
+            }
+        ]
+    ],
+    "role": "customer service assistant",
+    "user_objective": "The customer service assistant helps users with customer service inquiries. It can provide information about products, services, and policies, as well as help users resolve issues and complete transactions.",
+    "builder_objective": "The customer service assistant helps to request customer's contact information.",
+    "domain": "online shopping",
+    "intro": "The company is a online shopping company.",
+    "task_docs": [],
+    "rag_docs": [],
+    "tasks": [],
+    "tools": [],
+    "workers": [
+        {
+            "id": "message_worker",
+            "name": "MessageWorker",
+            "path": "message_worker.py"
+        }
+    ],
+    "nluapi": "",
+    "slotfillapi": ""
+}

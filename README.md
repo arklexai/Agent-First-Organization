@@ -104,7 +104,11 @@ python run.py --input-dir ./examples/customer_service
 
     * Fields:
       * `--input-dir`: The directory that contains the generated files
-      * `--model`: The openai model type used to generate bot response. Default is `gpt-4o`. You could change it to other models like `gpt-4o-mini`.
+       * `--llm_provider`: The LLM provider you wish to use. 
+          - Options: `openai` (default), `gemini`, `anthropic`
+      * `--model`: The model type used to generate bot response. The default is `gpt-4o`. 
+        - You can change this to other models like:
+          - `gpt-4o-mini`,  `gemini-2.0-flash` , `claude-3-5-haiku-20241022`
       * `--port`: The port number to start the api. Default is 8000.
 
   * Then, start the evaluation process: 
@@ -123,6 +127,10 @@ python run.py --input-dir ./examples/customer_service
       * `--num_convos`: Number of synthetic conversations to simulate. Default is 5.
       * `--num_goals`: Number of goals/tasks to simulate. Default is 5.
       * `--max_turns`: Maximum number of turns per conversation. Default is 5.
-      * `--model`: The openai model type used to synthesize user's utterance. Default is `gpt-4o`. You could change it to other models like `gpt-4o-mini`.
+       * `--llm_provider`: The LLM provider you wish to use. 
+          - Options: `openai` (default), `gemini`, `anthropic`
+      * `--model`: The model type used to generate bot response. The default is `gpt-4o`. 
+        - You can change this to other models like:
+          - `gpt-4o-mini`,  `gemini-2.0-flash` , `claude-3-5-haiku-20241022`
   
     📄 For more details, check out the [Evaluation README](https://github.com/arklexai/Agent-First-Organization/blob/main/arklex/evaluation/README.md).

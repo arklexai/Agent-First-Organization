@@ -1,0 +1,26 @@
+[
+    {
+        "description": "Simulate the user asking about available products with message worker.",
+        "criteria": "The response message is non-empty.",
+        "user_utterance": [
+            "What products do you have?"
+        ],
+        "expected_taskgraph_path": [
+            "1"
+        ],
+        "expected_conversation": [
+            {
+                "role": "assistant",
+                "content": "Hello! How can I help you today?"
+            },
+            {
+                "role": "user",
+                "content": "What products do you have?"
+            },
+            {
+                "role": "assistant",
+                "content": "We have products A, B, and C. Which one do you want to know more about?"
+            }
+        ]
+    }
+]

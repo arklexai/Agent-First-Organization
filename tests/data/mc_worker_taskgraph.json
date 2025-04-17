@@ -1,0 +1,129 @@
+{
+    "nodes": [
+        [
+            "0",
+            {
+                "resource": {
+                    "id": "message_worker",
+                    "name": "MessageWorker"
+                },
+                "attribute": {
+                    "value": "Hello! How can I help you today?",
+                    "task": "start message",
+                    "directed": false
+                },
+                "limit": 1,
+                "type": "start"
+            }
+        ],
+        [
+            "1",
+            {
+                "resource": {
+                    "id": "multiple_choice_worker",
+                    "name": "MultipleChoiceWorker"
+                },
+                "attribute": {
+                    "value": "We have the following products, which one do you want to know more about?",
+                    "task": "Multiple Choice Function",
+                    "choice_list": [
+                        "Product 1",
+                        "Product 2"
+                    ],
+                    "direct": true
+                },
+                "limit": 1,
+                "type": "multiple_choice"
+            }
+        ],
+        [
+            "2",
+            {
+                "resource": {
+                    "id": "message_worker",
+                    "name": "MessageWorker"
+                },
+                "attribute": {
+                    "value": "Product 1 is good",
+                    "task": "",
+                    "direct": true
+                },
+                "limit": 1
+            }
+        ],
+        [
+            "3",
+            {
+                "resource": {
+                    "id": "message_worker",
+                    "name": "MessageWorker"
+                },
+                "attribute": {
+                    "value": "Product 2 is good",
+                    "task": "",
+                    "direct": true
+                },
+                "limit": 1
+            }
+        ]
+    ],
+    "edges": [
+        [
+            "0",
+            "1",
+            {
+                "intent": "Questions about available products",
+                "attribute": {
+                    "weight": 1,
+                    "pred": true,
+                    "definition": "",
+                    "sample_utterances": []
+                }
+            }
+        ],
+        [
+            "1",
+            "2",
+            {
+                "intent": "Product 1",
+                "attribute": {
+                    "weight": 1,
+                    "pred": true,
+                    "definition": "",
+                    "sample_utterances": []
+                }
+            }
+        ],
+        [
+            "1",
+            "3",
+            {
+                "intent": "Product 2",
+                "attribute": {
+                    "weight": 1,
+                    "pred": true,
+                    "definition": "",
+                    "sample_utterances": []
+                }
+            }
+        ]
+    ],
+    "role": "customer service assistant",
+    "user_objective": "The customer service assistant helps users with customer service inquiries. It can provide information about products, services, and policies, as well as help users resolve issues and complete transactions.",
+    "builder_objective": "The customer service assistant helps to request customer's contact information.",
+    "domain": "online shopping",
+    "intro": "The company is a online shopping company.",
+    "task_docs": [],
+    "rag_docs": [],
+    "tasks": [],
+    "tools": [],
+    "workers": [
+        {
+            "id": "message_worker",
+            "name": "MessageWorker",
+            "path": "message_worker.py"
+        }
+    ],
+    "nluapi": "",
+    "slotfillapi": ""
+}

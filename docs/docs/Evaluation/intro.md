@@ -9,7 +9,11 @@ Here is an example for the customer service assistant chatbot.
     ```
     * Fields:
       * `--input-dir`: The directory that contains the needed files for the orchestrator and documents for the workers.
-      * `--model`: The openai model type used to generate bot response. Default is `gpt-4o`. You could change it to other models like `gpt-4o-mini`.
+       * `--llm_provider`: The LLM provider you wish to use. 
+          - Options: `openai` (default), `gemini`, `anthropic`
+      * `--model`: The model type used to generate bot response. The default is `gpt-4o`. 
+        - You can change this to other models like:
+          - `gpt-4o-mini`,  `gemini-2.0-flash` , `claude-3-5-haiku-20241022`
       * `--port`: The port number to start the API. Default is 8000.
 
 2. Then, start the evaluation process:
@@ -28,7 +32,11 @@ Here is an example for the customer service assistant chatbot.
       * `--num_convos`: Number of synthetic conversations to simulate. Default is 5.
       * `--num_goals`: Number of goals/tasks to simulate. Default is 5.
       * `--max_turns`: Maximum number of turns per conversation. Default is 5.
-      * `--model`: The openai model type used to generate bot response. Default is `gpt-4o`. You could change it to other models like `gpt-4o-mini`.
+       * `--llm_provider`: The LLM provider you wish to use. 
+          - Options: `openai` (default), `gemini`, `anthropic`
+      * `--model`: The model type used to generate bot response. The default is `gpt-4o`. 
+        - You can change this to other models like:
+          - `gpt-4o-mini`,  `gemini-2.0-flash` , `claude-3-5-haiku-20241022`
 
 ## Results
 The evaluation will generate the following outputs in the specified output directory:

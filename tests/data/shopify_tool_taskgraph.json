@@ -1,0 +1,429 @@
+{
+    "nodes": [
+        [
+            "0",
+            {
+                "resource": {
+                    "id": "message_worker",
+                    "name": "MessageWorker"
+                },
+                "attribute": {
+                    "value": "Hello, welcome to Shopify store!",
+                    "task": "Hello",
+                    "directed": false
+                },
+                "limit": 1,
+                "type": "start"
+            }
+        ],
+        [
+            "1",
+            {
+                "resource": {
+                    "id": "shopify/get_user_details_admin",
+                    "name": "get_user_details_admin"
+                },
+                "attribute": {
+                    "value": "",
+                    "task": "Find user details by id",
+                    "directed": false
+                },
+                "limit": 10
+            }
+        ],
+        [
+            "2",
+            {
+                "resource": {
+                    "id": "shopify/search_products",
+                    "name": "search_products"
+                },
+                "attribute": {
+                    "value": "",
+                    "task": "Get information of products based on query",
+                    "directed": false
+                },
+                "limit": 10
+            }
+        ],
+        [
+            "3",
+            {
+                "resource": {
+                    "id": "shopify/get_order_details",
+                    "name": "get_order_details"
+                },
+                "attribute": {
+                    "value": "",
+                    "task": "Get the info for each order",
+                    "directed": false
+                },
+                "limit": 10
+            }
+        ],
+        [
+            "4",
+            {
+                "resource": {
+                    "id": "shopify/get_order_details",
+                    "name": "get_order_details"
+                },
+                "attribute": {
+                    "value": "",
+                    "task": "Get the info for each order",
+                    "directed": false
+                },
+                "limit": 10
+            }
+        ],
+        [
+            "5",
+            {
+                "resource": {
+                    "id": "message_worker",
+                    "name": "MessageWorker"
+                },
+                "attribute": {
+                    "value": "Please confirm that you want to return or cancel the order with the order information",
+                    "task": "Ask user to confirm the order to be returned or canceled",
+                    "directed": false
+                },
+                "limit": 10
+            }
+        ],
+        [
+            "6",
+            {
+                "resource": {
+                    "id": "shopify/return_products",
+                    "name": "return_products"
+                },
+                "attribute": {
+                    "value": "",
+                    "task": "Submit the return request after user confirms the product to be returned",
+                    "directed": false
+                },
+                "limit": 10
+            }
+        ],
+        [
+            "7",
+            {
+                "resource": {
+                    "id": "shopify/cancel_order",
+                    "name": "cancel_order"
+                },
+                "attribute": {
+                    "value": "",
+                    "task": "Cancel the order after user confirms the order to be canceled",
+                    "directed": false
+                },
+                "limit": 10
+            }
+        ],
+        [
+            "8",
+            {
+                "resource": {
+                    "id": "shopify/get_cart",
+                    "name": "get_cart"
+                },
+                "attribute": {
+                    "value": "",
+                    "task": "Get items and checkout url in the user's shopping cart",
+                    "directed": false
+                },
+                "limit": 10
+            }
+        ],
+        [
+            "9",
+            {
+                "resource": {
+                    "id": "shopify/get_products",
+                    "name": "get_products"
+                },
+                "attribute": {
+                    "value": "",
+                    "task": "Get products info based on ids",
+                    "directed": false
+                },
+                "limit": 10
+            }
+        ],
+        [
+            "10",
+            {
+                "resource": {
+                    "id": "message_worker",
+                    "name": "MessageWorker"
+                },
+                "attribute": {
+                    "value": "Please confirm the information of the product (like color, size, and etc.) which you would like to add to your shopping cart.",
+                    "task": "Confirm the product variant that the user wants to add to the shopping cart",
+                    "directed": false
+                },
+                "limit": 10
+            }
+        ],
+        [
+            "11",
+            {
+                "resource": {
+                    "id": "shopify/cart_add_items",
+                    "name": "cart_add_items"
+                },
+                "attribute": {
+                    "value": "",
+                    "task": "Add items to the user's shopping cart after user confirms the item to be added.",
+                    "directed": false
+                },
+                "limit": 10
+            }
+        ]
+    ],
+    "edges": [
+        [
+            "0",
+            "1",
+            {
+                "intent": "Question about account information (shipping address/user details)",
+                "attribute": {
+                    "pred": true,
+                    "weight": 1,
+                    "definition": "",
+                    "sample_utterances": []
+                }
+            }
+        ],
+        [
+            "0",
+            "2",
+            {
+                "intent": "Search for products or ask for recommendation",
+                "attribute": {
+                    "pred": true,
+                    "weight": 1,
+                    "definition": "",
+                    "sample_utterances": []
+                }
+            }
+        ],
+        [
+            "0",
+            "3",
+            {
+                "intent": "Ask about past orders",
+                "attribute": {
+                    "pred": true,
+                    "weight": 1,
+                    "definition": "",
+                    "sample_utterances": []
+                }
+            }
+        ],
+        [
+            "0",
+            "4",
+            {
+                "intent": "Return or cancel order",
+                "attribute": {
+                    "pred": true,
+                    "weight": 1,
+                    "definition": "",
+                    "sample_utterances": []
+                }
+            }
+        ],
+        [
+            "4",
+            "5",
+            {
+                "intent": "None",
+                "attribute": {
+                    "pred": false,
+                    "weight": 1,
+                    "definition": "",
+                    "sample_utterances": []
+                }
+            }
+        ],
+        [
+            "5",
+            "6",
+            {
+                "intent": "choose the order to be returned",
+                "attribute": {
+                    "pred": false,
+                    "weight": 1,
+                    "definition": "",
+                    "sample_utterances": []
+                }
+            }
+        ],
+        [
+            "5",
+            "7",
+            {
+                "intent": "choose the order to be cancelled",
+                "attribute": {
+                    "pred": false,
+                    "weight": 1,
+                    "definition": "",
+                    "sample_utterances": []
+                }
+            }
+        ],
+        [
+            "0",
+            "8",
+            {
+                "intent": "Ask for items in the shopping cart or checkout url",
+                "attribute": {
+                    "pred": true,
+                    "weight": 1,
+                    "definition": "",
+                    "sample_utterances": []
+                }
+            }
+        ],
+        [
+            "0",
+            "9",
+            {
+                "intent": "Add items to the shopping cart",
+                "attribute": {
+                    "pred": true,
+                    "weight": 1,
+                    "definition": "",
+                    "sample_utterances": []
+                }
+            }
+        ],
+        [
+            "9",
+            "10",
+            {
+                "intent": "None",
+                "attribute": {
+                    "pred": false,
+                    "weight": 1,
+                    "definition": "",
+                    "sample_utterances": []
+                }
+            }
+        ],
+        [
+            "10",
+            "11",
+            {
+                "intent": "choose the product to be added to the shopping cart",
+                "attribute": {
+                    "pred": false,
+                    "weight": 1,
+                    "definition": "",
+                    "sample_utterances": []
+                }
+            }
+        ]
+    ],
+    "tools": [
+        {
+            "id": "shopify/get_user_details_admin",
+            "name": "get_user_details_admin",
+            "path": "shopify/get_user_details_admin.py",
+            "fixed_args": {
+                "admin_token": "<shopify_admin_token>",
+                "shop_url": "<your-shopify-shop-url>",
+                "api_version": "<api-version>"
+            }
+        },
+        {
+            "id": "shopify/search_products",
+            "name": "search_products",
+            "path": "shopify/search_products.py",
+            "fixed_args": {
+                "admin_token": "<shopify_admin_token>",
+                "shop_url": "<your-shopify-shop-url>",
+                "api_version": "<api-version>"
+            }
+        },
+        {
+            "id": "shopify/get_order_details",
+            "name": "get_order_details",
+            "path": "shopify/get_order_details.py",
+            "fixed_args": {
+                "admin_token": "<shopify_admin_token>",
+                "shop_url": "<your-shopify-shop-url>",
+                "api_version": "<api-version>"
+            }
+        },
+        {
+            "id": "shopify/get_products",
+            "name": "get_products",
+            "path": "shopify/get_products.py",
+            "fixed_args": {
+                "admin_token": "<shopify_admin_token>",
+                "shop_url": "<your-shopify-shop-url>",
+                "api_version": "<api-version>"
+            }
+        },
+        {
+            "id": "shopify/return_products",
+            "name": "return_products",
+            "path": "shopify/return_products.py",
+            "fixed_args": {
+                "admin_token": "<shopify_admin_token>",
+                "shop_url": "<your-shopify-shop-url>",
+                "api_version": "<api-version>"
+            }
+        },
+        {
+            "id": "shopify/cancel_order",
+            "name": "cancel_order",
+            "path": "shopify/cancel_order.py",
+            "fixed_args": {
+                "admin_token": "<shopify_admin_token>",
+                "shop_url": "<your-shopify-shop-url>",
+                "api_version": "<api-version>"
+            }
+        },
+        {
+            "id": "shopify/get_cart",
+            "name": "get_cart",
+            "path": "shopify/get_cart.py",
+            "fixed_args": {
+                "storefront_token": "<shopify_storefront_token>",
+                "shop_url": "<your-shopify-shop-url>",
+                "api_version": "<api-version>"
+            }
+        },
+        {
+            "id": "shopify/cart_add_items",
+            "name": "cart_add_items",
+            "path": "shopify/cart_add_items.py",
+            "fixed_args": {
+                "storefront_token": "<shopify_storefront_token>",
+                "shop_url": "<your-shopify-shop-url>",
+                "api_version": "<api-version>"
+            }
+        }
+    ],
+    "workers": [
+        {
+            "id": "message_worker",
+            "name": "MessageWorker",
+            "path": "message_worker.py"
+        }
+    ],
+    "role": "customer service assistant",
+    "user_objective": "The customer service assistant helps users with customer service inquiries. It can provide information about products, services, and policies, as well as help users resolve issues and complete transactions.",
+    "builder_objective": "The customer service assistant helps to request customer's contact information.",
+    "domain": "Shopify sellers",
+    "intro": "The store is a Shopify store that sells products to customers.",
+    "task_docs": [],
+    "rag_docs": [],
+    "tasks": [],
+    "nluapi": "",
+    "slotfillapi": ""
+}

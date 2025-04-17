@@ -22,10 +22,10 @@ def build_intent_graph(data):
         G.add_edge(key[0], key[1], weight = edge_counts[key])
     return G
 
-def check_bot_goal(convo, bot_goal):
+def check_bot_goal(convo, bot_goal, client):
     convo_str = format_chat_history_str(flip_hist_content_only(convo))
     prompt = f"Here is a conversation between a user and a customer service chatbot assistant:\n{convo_str}\n\nThe chatbot's goal is the following: {bot_goal}\nOutput True if the bot was able to achieve its goal. Output False otherwise. Only output True or False and nothing else."
-    output = chatgpt_chatbot([{'role': 'user', 'content': prompt}])
+    output = chatgpt_chatbot([{'role': 'user', 'content': prompt}], client)
     return output == "True"
 
 def num_user_turns(convo):
@@ -35,7 +35,7 @@ def num_user_turns(convo):
             user_turns += 1
     return user_turns
 
-def extract_task_completion_metrics(data, bot_goal=None):
+def extract_task_completion_metrics(data, client, bot_goal=None):
     num_convos = len(data)
     if num_convos == 0:
         return "Error while extracting task completion metrics"
@@ -47,7 +47,7 @@ def extract_task_completion_metrics(data, bot_goal=None):
         completion_efficiency += num_user_turns(convo_history)
         if convo["goal_completion"]:
             goal_completetions += 1
-        if bot_goal is not None and check_bot_goal(convo_history, bot_goal):
+        if bot_goal is not None and check_bot_goal(convo_history, bot_goal, client):
             bot_goal_completions += 1
     metrics = {'user_task_completion': goal_completetions/num_convos,
                'user_task_completion_efficiency': completion_efficiency/num_convos}
