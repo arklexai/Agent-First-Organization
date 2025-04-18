@@ -6,7 +6,6 @@ from typing import Dict, Any, Tuple
 import copy
 import janus
 from dotenv import load_dotenv
-
 from langchain_core.runnables import RunnableLambda
 
 from arklex.env.nested_graph.nested_graph import NESTED_GRAPH_ID, NestedGraph
@@ -19,7 +18,7 @@ from arklex.utils.graph_state import (ConvoMessage, NodeInfo, OrchestratorMessag
                                       BotConfig, Params, ResourceRecord,
                                       OrchestratorResp, NodeTypeEnum)
 from arklex.utils.utils import format_chat_history
-
+from arklex.memory import ShortTermMemory
 
 load_dotenv()
 logger = logging.getLogger(__name__)
@@ -148,7 +147,8 @@ class AgentOrg:
                 "name": node_info.resource_name,
                 "attribute": node_info.attributes,
                 "node_id": params.taskgraph.curr_node
-            }
+            },
+            intent=params.taskgraph.curr_global_intent
         )
         
         # Add resource record to current turn's list
@@ -206,6 +206,12 @@ class AgentOrg:
             "parameters": params,
             "allow_global_intent_switch": True,
         }
+        stm = ShortTermMemory(message_state)
+        relevant_stm_records = stm.retrieve_records(text)
+        relevant_intent = stm.retrieve_intent(text)
+    
+        if relevant_stm_records != "not in context" or relevant_intent != "not in context":
+            taskgraph_inputs["allow_global_intent_switch"] = False
         taskgraph_chain = RunnableLambda(self.task_graph.get_node) | RunnableLambda(self.task_graph.postprocess_node)
 
         # TODO: when planner is re-implemented, execute/break the loop based on whether the planner should be used (bot config).
