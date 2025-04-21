@@ -45,6 +45,7 @@ dependencies = [
   "litellm>=1.59.0,<2.0.0",
   "janus>=1.0.0,<2.0.0",
   "pydantic_ai>=0.0.46,<1.0.0",
+  "markdown>=3.8",
   "pytest>=8.3.5,<9.0.0"
 ]
 license = "MIT"

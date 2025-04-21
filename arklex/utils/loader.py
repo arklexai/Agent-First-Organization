@@ -6,6 +6,7 @@ import requests
 import pickle
 import uuid
 import argparse
+from enum import Enum
 import os
 
 from webdriver_manager.chrome import ChromeDriverManager
@@ -15,7 +16,11 @@ from urllib.parse import urljoin
 import networkx as nx
 from langchain.text_splitter import RecursiveCharacterTextSplitter
 from langchain_core.documents import Document
-
+from mistralai import Mistral
+import filetype
+from langchain_community.document_loaders import PyPDFLoader, TextLoader, UnstructuredWordDocumentLoader, UnstructuredExcelLoader, UnstructuredMarkdownLoader, TextLoader
+import base64
+from pathlib import Path
 
 # Configure logging
 logging.basicConfig(
@@ -26,42 +31,85 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 
 CHROME_DRIVER_VERSION = "125.0.6422.7"
+MISTRAL_API_KEY = os.getenv("MISTRAL_API_KEY")
 
-class URLObject:
-    def __init__(self, id: str, url: str):
+def encode_image(image_path):
+    """Encode the image to base64."""
+    try:
+        with open(image_path, "rb") as image_file:
+            return base64.b64encode(image_file.read()).decode('utf-8')
+    except FileNotFoundError:
+        logger.error(f"Error: The file {image_path} was not found.")
+        return None
+    except Exception as e:  # Added general exception handling
+        logger.error(f"Error: {e}")
+        return None
+
+class SourceType(Enum):
+    WEB = 1
+    LOCAL = 2
+
+class DocObject:
+    def __init__(self, id: str, source: str):
         self.id = id
-        self.url = url
+        self.source = source
 
-
-class CrawledURLObject(URLObject):
+class CrawledObject(DocObject):
     def __init__(
         self,
         id: str,
-        url: str,
+        source: str,
         content: str,
         metadata={},
         is_chunk=False,
         is_error=False,
         error_message=None,
+        source_type=SourceType.WEB
     ):
-        super().__init__(id, url)
+        super().__init__(id, source)
         self.content = content
         self.metadata = metadata
         self.is_chunk = is_chunk
         self.is_error = is_error
         self.error_message = error_message
+        self.source_type = source_type
 
-
+    def to_dict(self):
+        return {
+            "id": self.id,
+            "source": self.source,
+            "content": self.content,
+            "metadata": self.metadata,
+            "is_chunk": self.is_chunk,
+            "is_error": self.is_error,
+            "error_message": self.error_message,
+            "source_type": self.source_type
+        }
+    
+    @classmethod
+    def from_dict(cls, data: dict):
+        return cls(
+            id=data["id"],
+            source=data["source"],
+            content=data["content"],
+            metadata=data["metadata"],
+            is_chunk=data["is_chunk"],
+            is_error=data["is_error"],
+            error_message=data["error_message"],
+            source_type=data["source_type"]
+        )
+        
+        
 class Loader:
     def __init__(self):
         pass
 
-    def to_crawled_obj(self, url_list: List[str]):    
-        url_objs = [URLObject(str(uuid.uuid4()), url) for url in url_list]
+    def to_crawled_url_objs(self, url_list: List[str]) -> List[CrawledObject]:    
+        url_objs = [DocObject(str(uuid.uuid4()), url) for url in url_list]
         crawled_url_objs = self.crawl_urls(url_objs)
         return crawled_url_objs
 
-    def crawl_urls(self, url_objects: list[URLObject]) -> List[CrawledURLObject]:
+    def crawl_urls(self, url_objects: list[DocObject]) -> List[CrawledObject]:
         logger.info(f"Start crawling {len(url_objects)} urls")
         options = webdriver.ChromeOptions()
         options.add_argument("--no-sandbox")
@@ -76,11 +124,11 @@ class Loader:
         logger.info(f"chrome binary location: {options.binary_location}")
         driver = webdriver.Chrome(options=options)
 
-        docs: List[CrawledURLObject] = []
+        docs: List[CrawledObject] = []
         for url_obj in url_objects:
             try:
-                logger.info(f"loading url: {url_obj.url}")
-                driver.get(url_obj.url)
+                logger.info(f"loading url: {url_obj.source}")
+                driver.get(url_obj.source)
                 time.sleep(2)
                 html = driver.page_source
                 soup = BeautifulSoup(html, "html.parser")
@@ -88,25 +136,26 @@ class Loader:
                 text_list = []
                 for string in soup.strings:        
                     if string.find_parent("a"):
-                        href = urljoin(url_obj.url, string.find_parent("a").get("href"))
-                        if href.startswith(url_obj.url):
+                        href = urljoin(url_obj.source, string.find_parent("a").get("href"))
+                        if href.startswith(url_obj.source):
                             text = f"{string} {href}"
                             text_list.append(text)
                     elif string.strip():
                         text_list.append(string)
                 text_output = "\n".join(text_list)
                 
-                title = url_obj.url
+                title = url_obj.source
                 for title in soup.find_all("title"):
                     title = title.get_text()
                     break
 
                 docs.append(
-                    CrawledURLObject(
+                    CrawledObject(
                         id=url_obj.id,
-                        url=url_obj.url,
+                        source=url_obj.source,
                         content=text_output,
-                        metadata={"title": title, "source": url_obj.url},
+                        metadata={"title": title, "source": url_obj.source},
+                        source_type=SourceType.WEB
                     )
                 )
 
@@ -114,13 +163,14 @@ class Loader:
                 logger.info(f"error crawling {url_obj}")
                 logger.error(err)
                 docs.append(
-                    CrawledURLObject(
+                    CrawledObject(
                         id=url_obj.id,
-                        url=url_obj.url,
+                        source=url_obj.source,
                         content=None,
-                        metadata={"title": url_obj.url, "source": url_obj.url},
+                        metadata={"title": url_obj.source, "source": url_obj.source},
                         is_error=True,
                         error_message=str(err),
+                        source_type=SourceType.WEB
                     )
                 )
         driver.quit()
@@ -174,8 +224,8 @@ class Loader:
             return True
         return False
 
-    def get_candidates_websites(self, urls: List[CrawledURLObject], top_k: int) -> List[str]:
-        """Based on the pagerank algorithm of the crawled websites, return the top 10 websites. 
+    def get_candidates_websites(self, urls: List[CrawledObject], top_k: int) -> List[CrawledObject]:
+        """Based on the pagerank algorithm of the crawled websites, return the top k websites. 
         The reason why we can do that is because we have the hreqs of the including <a> tags in the content of the website.
         So we can use that to construct the edges and then use the tool from networkx to get the pagerank of the websites.
         """
@@ -184,7 +234,7 @@ class Loader:
         edges = []
         url_to_id_mapping = {}
         for url in urls:
-            url_to_id_mapping[url.url] = url.id
+            url_to_id_mapping[url.source] = url.id
 
         for url in urls:
             if url.is_error:
@@ -194,7 +244,7 @@ class Loader:
                     edge = [url.id, url_to_id_mapping[url_key]]
                     edges.append(edge)
 
-            node = [url.id, {"url": url.url, "content": url.content, "metadata": url.metadata}]
+            node = [url.id, url.to_dict()]
             nodes.append(node)
         
         self.graph = nx.DiGraph(name="website graph")
@@ -207,37 +257,163 @@ class Loader:
         # get the top websites
         top_k_websites = sorted_pr[:top_k]
         urls_candidates = [self.graph.nodes[url_id] for url_id, _ in top_k_websites]
-        urls_cleaned = [doc for doc in urls_candidates if doc]
+        urls_cleaned = [CrawledObject.from_dict(doc) for doc in urls_candidates if doc]
         return urls_cleaned
     
+    def to_crawled_local_objs(self, file_list: List[str]) -> List[CrawledObject]:
+        '''Crawls a list of locally present files.'''    
+        local_objs = [DocObject(str(uuid.uuid4()), file) for file in file_list]
+        crawled_local_objs = [self.crawl_file(local_obj) for local_obj in local_objs]
+        return crawled_local_objs
+    
+    def crawl_file(self, local_obj: DocObject) -> CrawledObject:
+        '''This function crawls a file that is present locally and returns the crawled object.'''
+        file_path = Path(local_obj.source)
+        file_type = file_path.suffix.lstrip('.')
+        file_name = file_path.name
+        
+        try:
+            if not file_type:
+                err_msg = f"No file type detected for file: {str(file_path)}"
+                raise FileNotFoundError(err_msg)
+            
+            if file_type in ["pdf", "png", "jpg", "jpeg"] and (MISTRAL_API_KEY is not None and MISTRAL_API_KEY != '<your-mistral-api-key>'):
+                # Call the Mistral API to extract data.
+                client = Mistral(api_key=MISTRAL_API_KEY)
+                if file_type == "pdf":
+                    # For pdf's
+                    uploaded_pdf = client.files.upload(
+                        file={
+                            "file_name": file_name,
+                            "content": open(file_path, "rb"),
+                        },
+                        purpose="ocr"
+                    ) 
+                    signed_url = client.files.get_signed_url(file_id=uploaded_pdf.id)
+                    ocr_response = client.ocr.process(
+                        model="mistral-ocr-latest",
+                        document={
+                            "type": "document_url",
+                            "document_url": signed_url.url,
+                        }
+                    )
+                else:
+                    # For image files
+                    base64_image = encode_image(file_path)
+                    ocr_response = client.ocr.process(
+                        model="mistral-ocr-latest",
+                        document={
+                            "type": "image_url",
+                            "image_url": f"data:image/{file_type};base64,{base64_image}" 
+                        }
+                    )
+                doc_text = ""
+                for page in ocr_response.pages:
+                    doc_text += page.markdown
+                
+                logger.info('Mistral PDF extractor worked as expected.')
+                return CrawledObject(
+                    id=local_obj.id,
+                    source=local_obj.source,
+                    content=doc_text,
+                    metadata={"title": file_name, "source": local_obj.source},
+                    source_type=SourceType.LOCAL
+                )
+            elif file_type == "html":
+                # TODO : Consider replacing this logic with the Unstructured HTML Loader.
+                # Would need to be done in crawl_urls too.
+                html = open(file_path, "r", encoding="utf-8").read()
+                soup = BeautifulSoup(html, "html.parser")
+
+                text_list = []
+                for string in soup.strings:        
+                    if string.find_parent("a"):
+                        href = string.find_parent("a").get("href")
+                        text = f"{string} {href}"
+                        text_list.append(text)
+                    elif string.strip():
+                        text_list.append(string)
+                doc_text = "\n".join(text_list)
+                
+                title = file_name
+                for title in soup.find_all("title"):
+                    title = title.get_text()
+                    break
+
+                return CrawledObject(
+                        id=local_obj.id,
+                        source=local_obj.source,
+                        content=doc_text,
+                        metadata={"title": title, "source": local_obj.source},
+                        source_type=SourceType.LOCAL
+                    )
+            elif file_type == "pdf":
+                # Since Mistral API key is absent, we default to basic pdf parser
+                logger.info("MISTRAL_API_KEY env variable not set, hence defaulting to static parsing.")
+                loader = PyPDFLoader(file_path)
+            elif file_type == "doc" or file_type == "docx":
+                loader = UnstructuredWordDocumentLoader(file_path, mode="single")
+            elif file_type == "xlsx" or file_type == "xls":
+                loader = UnstructuredExcelLoader(file_path, mode="single")
+            elif file_type == "txt":
+                loader = TextLoader(file_path)
+            elif file_type == "md":
+                loader = UnstructuredMarkdownLoader(file_path)
+            else:
+                err_msg = "Unsupported file type. If you are trying to upload a pdf, make sure it is less than 50MB. Images are only supported with the advanced parser."
+                raise NotImplementedError(err_msg)
+                
+            document = loader.load()[0]
+            doc_text = document.to_json()["kwargs"]["page_content"]
+            return CrawledObject(
+                id=local_obj.id,
+                source=local_obj.source,
+                content=doc_text,
+                metadata={"title": file_name, "source": local_obj.source},
+                source_type=SourceType.LOCAL,   
+            )
+
+        except Exception as err_msg:
+            logger.info(f"error processing file: {err_msg}")
+            return CrawledObject(
+                id=local_obj.id,
+                source=local_obj.source,
+                content=None,
+                metadata={"title": file_name},
+                source_type=SourceType.LOCAL,
+                is_error=True,
+                error_message=str(err_msg)
+            )
+    
     @staticmethod
-    def save(file_path: str, docs: List[CrawledURLObject]):
+    def save(file_path: str, docs: List[CrawledObject]):
         with open(file_path, "wb") as f:
             pickle.dump(docs, f)
     
     @classmethod
-    def chunk(cls, url_objs: List[CrawledURLObject]) -> List[CrawledURLObject]:
+    def chunk(cls, doc_objs: List[CrawledObject]) -> List[CrawledObject]:
         text_splitter = RecursiveCharacterTextSplitter.from_tiktoken_encoder(encoding_name="cl100k_base", chunk_size=200, chunk_overlap=40)
         docs = []
         langchain_docs = []
-        for url_obj in url_objs:
-            if url_obj.is_error or url_obj.content is None:
-                logger.info(f"Skip url: {url_obj.url} because of error or no content")
+        for doc_obj in doc_objs:
+            if doc_obj.is_error or doc_obj.content is None:
+                logger.error(f"Skip source: {doc_obj.source} because of error or no content")
                 continue
-            elif url_obj.is_chunk:
-                logger.info(f"Skip url: {url_obj.url} because it has been chunked")
-                docs.append(url_obj)
+            elif doc_obj.is_chunk:
+                logger.error(f"Skip source: {doc_obj.source} because it has been chunked")
+                docs.append(doc_obj)
                 continue
-            splitted_text = text_splitter.split_text(url_obj.content)
+            splitted_text = text_splitter.split_text(doc_obj.content)
             for i, txt in enumerate(splitted_text):
-                doc = CrawledURLObject(
-                    id=url_obj.id+"_"+str(i),
-                    url=url_obj.url,
+                doc = CrawledObject(
+                    id=doc_obj.id+"_"+str(i),
+                    source=doc_obj.source,
                     content=txt,
-                    metadata=url_obj.metadata,
+                    metadata=doc_obj.metadata,
                     is_chunk=True,
+                    source_type=doc_obj.source_type
                 )
                 docs.append(doc)
-                langchain_docs.append(Document(page_content=txt, metadata={"source": url_obj.url}))
+                langchain_docs.append(Document(page_content=txt, metadata={"source": doc_obj.source}))
         return langchain_docs
 

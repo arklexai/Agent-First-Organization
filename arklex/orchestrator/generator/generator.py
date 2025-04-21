@@ -10,6 +10,7 @@ from pathlib import Path
 import inspect
 import importlib
 from typing import Optional
+from collections import deque
 
 from langchain.prompts import PromptTemplate
 from langchain_openai.chat_models import ChatOpenAI
@@ -23,11 +24,14 @@ from textual.widgets.tree import TreeNode
 
 from arklex.utils.utils import postprocess_json
 from arklex.orchestrator.generator.prompts import *
-from arklex.utils.loader import Loader
+from arklex.utils.loader import Loader, SourceType
+import sys
 from arklex.env.env import BaseResourceInitializer, DefaulResourceInitializer
+from arklex.env.nested_graph.nested_graph import NESTED_GRAPH_ID
 
 
 logger = logging.getLogger(__name__)
+
 
 class InputModal(Screen):
     """A simple input modal for editing or adding tasks/steps."""
@@ -184,6 +188,76 @@ class Generator:
         self.output_dir = output_dir
     
     
+    def _generate_reusable_tasks(self):
+        """
+            Generate reusable task graphs and pair each step with available resources.
+
+            Steps:
+            1. Prompt the LLM for tasks as nested graphs.
+            2. Build a resource map from workers and tools.
+            3. Refine each task graph to embed only valid resources.
+        """
+        prompt = PromptTemplate.from_template(generate_reusable_tasks_sys_prompt)
+        input_prompt = prompt.invoke({
+            "role": self.role,
+            "u_objective": self.u_objective,
+            "intro": self.intro,
+            "tasks": self.tasks,
+            "docs": self.documents
+            })
+        final_chain = self.model | StrOutputParser()
+        answer = final_chain.invoke(input_prompt)
+        results = postprocess_json(answer)
+        reusable_tasks = {}
+        for task in results:
+            task_name = task["name"].replace(" ", "_").lower()
+            reusable_tasks[task_name] = {
+                "nestedgraph_task": task["description"],
+                "subgraph": task["steps"]
+            }
+
+        resources = {}
+        for _, worker_info in self.workers.items():
+            worker_name = worker_info["name"]
+            worker_desc = worker_info["description"]
+            resources[worker_name] = worker_desc
+
+        for _, tool_info in self.tools.items():
+            tool_name = tool_info["name"]
+            tool_desc = tool_info["description"]
+            resources[tool_name] = tool_desc
+
+        # TODO: do I want to allow subgraph in subgraph?
+        # for task_name, task_info in reusable_tasks.items():
+        #     resources[task_name] = task_info["nestedgraph_task"]
+
+        reusable_task_finetune_prompt = PromptTemplate.from_template(embed_reusable_task_resources_sys_prompt)
+        for task_name in reusable_tasks:
+            n_trials = 0
+            max_trials = 3
+            while n_trials < max_trials:
+                input_prompt = reusable_task_finetune_prompt.invoke({"best_practice": reusable_tasks[task_name]["subgraph"], "resources": resources})
+                final_chain = self.model | StrOutputParser()
+                answer = final_chain.invoke(input_prompt)
+                task_subgraph = postprocess_json(answer)
+                
+                tasks = [task_subgraph]
+                has_all_resource = True
+                while tasks:
+                    task = tasks.pop()
+                    if task.get("resource") not in resources:
+                        has_all_resource = False
+                        break
+                    for next_task in task.get("next", []):
+                        tasks.append(next_task)
+                if has_all_resource:
+                    break
+                n_trials += 1
+
+            reusable_tasks[task_name]["subgraph"] = task_subgraph
+
+        self.reusable_tasks = reusable_tasks
+
     def _generate_tasks(self):
         # based on the type and documents
         prompt = PromptTemplate.from_template(generate_tasks_sys_prompt)
@@ -206,7 +280,7 @@ class Generator:
     def _generate_best_practice(self, task):
         # Best practice detection
         resources = {}
-        for worker_id, worker_info in self.workers.items():
+        for _, worker_info in self.workers.items():
             worker_name = worker_info["name"]
             worker_desc = worker_info["description"]
             worker_func = worker_info["execute"]
@@ -220,6 +294,14 @@ class Generator:
             logger.debug(f"Code skeleton of the worker: {worker_resource}")
             
             resources[worker_name] = worker_resource
+        for _, tool_info in self.tools.items():
+            tool_name = tool_info["name"]
+            tool_desc = tool_info["description"]
+            resources[tool_name] = tool_desc
+
+        for task_name, task_info in self.reusable_tasks.items():
+            resources[task_name] = task_info["nestedgraph_task"]
+            
         resources_str = "\n".join([f"{name}\n: {desc}" for name, desc in resources.items()])
         prompt = PromptTemplate.from_template(check_best_practice_sys_prompt)
         input_prompt = prompt.invoke({"task": task["task"], "level": "1", "resources": resources_str})
@@ -267,6 +349,10 @@ class Generator:
             tool_desc = tool_info["description"]
             resources[tool_name] = tool_desc
             resource_id_map[tool_name] = tool_id
+        
+        for task_name, task_info in self.reusable_tasks.items():
+            resources[task_name] = task_info["nestedgraph_task"]
+            resource_id_map[task_name] = NESTED_GRAPH_ID
             
         input_prompt = prompt.invoke({"best_practice": best_practice, "resources": resources})
         final_chain = self.model | StrOutputParser()
@@ -294,23 +380,39 @@ class Generator:
         nodes = []
         edges = []
         task_ids = {}
+        nested_graph_nodes = []
+
+        resource_id_map = {}
+        for worker_id, worker_info in self.workers.items():
+            worker_name = worker_info["name"]
+            resource_id_map[worker_name] = worker_id
+        for tool_id, tool_info in self.tools.items():
+            tool_name = tool_info["name"]
+            resource_id_map[tool_name] = tool_id
+        for task_name, _ in self.reusable_tasks.items():
+            resource_id_map[task_name] = NESTED_GRAPH_ID
+
         for best_practice, task in zip(finetuned_best_practices, self.tasks):
             task_ids[node_id] = task
             for idx, step in enumerate(best_practice):
+                resource_name = step.get('resource') if step.get('resource') in resource_id_map else "MessageWorker"
+                resource_id = resource_id_map[resource_name]
                 node = []
                 node.append(str(node_id))
                 node.append({
                     "resource": {
-                        "id": step["resource_id"],
-                        "name": step['resource'],
+                        "id": resource_id,
+                        "name": resource_name,
                     },
                     "attribute": {
-                        "value": step['example_response'],
-                        "task": step['task'],
+                        "value": step.get('example_response', ""),
+                        "task": step.get('task', ""),
                         "directed": False
-                    },
-                    "limit": 1
+                    }
                 })
+                if step["resource_id"] == NESTED_GRAPH_ID:
+                    # store the index of the nested graph == len(nodes) (not the id of the node)
+                    nested_graph_nodes.append(len(nodes))
                 nodes.append(node)
 
                 if idx == 0:
@@ -318,7 +420,7 @@ class Generator:
                     edge.append("0")
                     edge.append(str(node_id))
                     edge.append({
-                        "intent": task['intent'],
+                        "intent": task.get('intent'),
                         "attribute": {
                             "weight": 1,
                             "pred": True,
@@ -341,6 +443,54 @@ class Generator:
                     })
                 edges.append(edge)
                 node_id += 1
+
+        # Nested Graph Format Task Graph
+        nested_graph_map = {}
+        for node_idx in nested_graph_nodes:
+            task_name = nodes[node_idx][1]["resource"]["name"]
+            if task_name in nested_graph_map: continue
+            # store node_id which is the value of the nested graph resource node id
+            nested_graph_map[task_name] = node_id
+            next_tasks = deque()
+            next_tasks.append((self.reusable_tasks[task_name]["subgraph"], None))
+            while next_tasks:
+                cur_task, prev_node_id = next_tasks.popleft()
+                resource_name = cur_task.get('resource') if cur_task.get('resource') in resource_id_map else "MessageWorker"
+                resource_id = resource_id_map[resource_name]
+                node = []
+                node.append(str(node_id))
+                node.append({
+                    "resource": {
+                        "id": resource_id,
+                        "name": resource_name,
+                    },
+                    "attribute": {
+                        "value": cur_task.get('example_response', ""),
+                        "task": cur_task.get('task', ""),
+                        "directed": False
+                    }
+                })
+                nodes.append(node)
+                if prev_node_id is not None:
+                    edge = []
+                    edge.append(str(prev_node_id))
+                    edge.append(str(node_id))
+                    edge.append({
+                        "intent": "None",
+                        "attribute": {
+                            "weight": 1,
+                            "pred": False,
+                            "definition": "",
+                            "sample_utterances": []
+                        }
+                    })
+                    edges.append(edge)
+                for next_task in cur_task.get("next", []):
+                    next_tasks.append((next_task, node_id))
+                node_id += 1
+
+        for node_idx in nested_graph_nodes:
+            nodes[node_idx][1]["attribute"]["value"] = str(nested_graph_map[nodes[node_idx][1]["resource"]["name"]])
         
         # Add the start node
         start_node = []
@@ -351,18 +501,14 @@ class Generator:
         final_chain = self.model | StrOutputParser()
         answer = final_chain.invoke(input_prompt)
         start_msg = postprocess_json(answer)
-        message_worker_id = None
-        for worker_id, worker_info in self.workers.items():
-            if worker_info["name"] == "MessageWorker":
-                message_worker_id = worker_id
-                break
+        
         start_node.append({
             "resource": {
-                "id": message_worker_id,
+                "id": resource_id_map.get("MessageWorker"),
                 "name": "MessageWorker",
             },
             "attribute": {
-                "value": start_msg['message'],
+                "value": start_msg.get('message', ""),
                 "task": "start message",
                 "directed": False
             },
@@ -387,23 +533,37 @@ class Generator:
             loader = Loader()
             if Path(filepath).exists():
                 logger.warning(f"Loading existing documents from {os.path.join(self.output_dir, 'task_documents.pkl')}! If you want to recrawl, please delete the file or specify a new --output-dir when initiate Generator.")
-                crawled_urls_full = pickle.load(open(os.path.join(self.output_dir, "task_documents.pkl"), "rb"))
+                docs = pickle.load(open(os.path.join(self.output_dir, "task_documents.pkl"), "rb"))
             else:
-                crawled_urls_full = []
+                docs = []
                 for doc in self.task_docs:
                     source = doc.get("source")
-                    num_docs = doc.get("num") if doc.get("num") else 1
-                    urls = loader.get_all_urls(source, num_docs)
-                    crawled_urls = loader.to_crawled_obj(urls)
-                    crawled_urls_full.extend(crawled_urls)
-                Loader.save(filepath, crawled_urls_full)
+                    
+                    if doc.get('type') != 'local':
+                        num_docs = doc.get("num") if doc.get("num") else 1
+                        urls = loader.get_all_urls(source, num_docs)
+                        crawled_urls = loader.to_crawled_url_objs(urls)
+                        docs.extend(crawled_urls)
+                        
+                    elif doc.get('type') == 'local':
+                        file_list = [os.path.join(source, f) for f in os.listdir(source)]
+                        docs.extend(loader.to_crawled_local_objs(file_list))
+                    
+                Loader.save(filepath, docs)
+                
             if total_num_docs > 50:
                 limit = total_num_docs // 5
             else:
                 limit = 10
-            crawled_docs = loader.get_candidates_websites(crawled_urls_full, limit)
+              
+            crawled_docs = []
+            web_docs = list(filter(lambda x: x.source_type == SourceType.WEB, docs))
+            local_docs = list(filter(lambda x: x.source_type == SourceType.LOCAL, docs))
+            crawled_docs.extend(loader.get_candidates_websites(web_docs, limit))
+            crawled_docs.extend(local_docs)
+            
             logger.debug(f"Loaded {len(crawled_docs)} documents")
-            self.documents = "\n\n".join([f"{doc['url']}\n{doc['content']}" for doc in crawled_docs])
+            self.documents = "\n\n".join([f"{doc.source}\n{doc.content}" for doc in crawled_docs])
         else:
             self.documents = ""
 
@@ -420,6 +580,8 @@ class Generator:
         else:
             self._format_tasks()
             logger.info(f"Formatted tasks: {self.tasks}")
+
+        self._generate_reusable_tasks()
 
         # Step 2: Generate the task planning
         best_practices = []

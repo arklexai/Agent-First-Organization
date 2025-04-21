@@ -21,10 +21,6 @@ from arklex.utils.model_provider_config import LLM_PROVIDERS, PROVIDER_MAP
 logger = init_logger(log_level=logging.INFO, filename=os.path.join(os.path.dirname(__file__), "logs", "arklex.log"))
 load_dotenv()
 
-# API_PORT = "55135"
-# NLUAPI_ADDR = f"http://localhost:{API_PORT}/nlu"
-# SLOTFILLAPI_ADDR = f"http://localhost:{API_PORT}/slotfill"
-
 def generate_taskgraph(args):
     model = PROVIDER_MAP.get(MODEL['llm_provider'], ChatOpenAI)(model=MODEL["model_type_or_path"],timeout=30000)
     generator = Generator(args, args.config, model, args.output_dir)
@@ -44,21 +40,7 @@ def init_worker(args):
     worker_names = set([worker["name"] for worker in workers])
     if "FaissRAGWorker" in worker_names:
         logger.info("Initializing FaissRAGWorker...")
-        # if url: uncomment the following line
         build_rag(args.output_dir, config["rag_docs"])
-        # if shopify: uncomment the following lines
-        # import shopify
-        # from arklex.utils.loaders.shopify import ShopifyLoader
-        # session = shopify.Session(os.environ["SHOPIFY_SHOP_URL"], os.environ["SHOPIFY_API_VERSION"], os.environ["SHOPIFY_ACCESS_TOKEN"])
-        # shopify.ShopifyResource.activate_session(session)
-        # loader = ShopifyLoader()
-        # docs = loader.load()
-        # filepath = os.path.join(args.output_dir, "documents.pkl")
-        # ShopifyLoader.save(filepath, docs)
-        # chunked_docs = loader.chunk(docs)
-        # filepath_chunk = os.path.join(args.output_dir, "chunked_documents.pkl")
-        # ShopifyLoader.save(filepath_chunk, chunked_docs)
-        
 
     elif any(node in worker_names for node in ("DataBaseWorker", "search_show", "book_show", "check_booking", "cancel_booking")):
         logger.info("Initializing DataBaseWorker...")

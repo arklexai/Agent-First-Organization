@@ -10,6 +10,7 @@ langchain-google-genai>=2.0.9,<3.0.0
 langchain-huggingface>=0.1.2,<1.0.0
 langgraph>=0.2.39,<1.0.0
 linkify-it-py>=2.0.3,<3.0.0
+markdown>=3.8
 mdit-py-plugins>=0.4.2,<1.0.0
 networkx>=3.4.2,<4.0.0
 phonenumbers>=8.13.48,<9.0.0

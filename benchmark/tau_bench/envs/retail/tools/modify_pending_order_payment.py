@@ -16,25 +16,25 @@ class ModifyPendingOrderPayment(Tool):
 
         # Check if the order exists and is pending
         if order_id not in orders:
-            return "Error: order not found"
+            raise Exception("Error: order not found")
         order = orders[order_id]
         if order["status"] != "pending":
-            return "Error: non-pending order cannot be modified"
+            raise Exception("Error: non-pending order cannot be modified")
 
         # Check if the payment method exists
         if payment_method_id not in data["users"][order["user_id"]]["payment_methods"]:
-            return "Error: payment method not found"
+            raise Exception("Error: payment method not found")
 
         # Check that the payment history should only have one payment
         if (
             len(order["payment_history"]) > 1
             or order["payment_history"][0]["transaction_type"] != "payment"
         ):
-            return "Error: there should be exactly one payment for a pending order"
+            raise Exception("Error: there should be exactly one payment for a pending order")
 
         # Check that the payment method is different
         if order["payment_history"][0]["payment_method_id"] == payment_method_id:
-            return (
+            raise Exception(
                 "Error: the new payment method should be different from the current one"
             )
 
@@ -48,7 +48,7 @@ class ModifyPendingOrderPayment(Tool):
             payment_method["source"] == "gift_card"
             and payment_method["balance"] < amount
         ):
-            return "Error: insufficient gift card balance to pay for the order"
+            raise Exception("Error: insufficient gift card balance to pay for the order")
 
         # Modify the payment method
         order["payment_history"].extend(

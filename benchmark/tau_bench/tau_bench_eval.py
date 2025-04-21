@@ -191,10 +191,10 @@ if __name__ == "__main__":
     log_level = getattr(logging, args.log_level.upper(), logging.INFO)
     logger = init_logger(log_level=log_level, filename=os.path.join(root_dir, "logs", "tau_bench_eval.log"))
     
-    # generate_tau_bench_config(temp_output_dir)
-    # config_file = os.path.join(temp_output_dir, 'config.json')
-    # generate_taskgraph(config_file, temp_output_dir)
-
+    generate_tau_bench_config(temp_output_dir)
+    config_file = os.path.join(temp_output_dir, 'config.json')
+    generate_taskgraph(config_file, temp_output_dir)
+    print("taskgraph done")
     run_tau_bench_eval(
         taskgraph_dir=temp_output_dir,
         output_dir=eval_output_dir,

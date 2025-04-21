@@ -11,7 +11,7 @@ class GetProductDetails(Tool):
         products = data["products"]
         if product_id in products:
             return json.dumps(products[product_id])
-        return "Error: product not found"
+        raise Exception("Error: product not found")
 
     @staticmethod
     def get_info() -> Dict[str, Any]:

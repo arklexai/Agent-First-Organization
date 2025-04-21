@@ -18,20 +18,20 @@ class ModifyPendingOrderItems(Tool):
 
         # Check if the order exists and is pending
         if order_id not in orders:
-            return "Error: order not found"
+            raise Exception("Error: order not found")
         order = orders[order_id]
         if order["status"] != "pending":
-            return "Error: non-pending order cannot be modified"
+            raise Exception("Error: non-pending order cannot be modified")
 
         # Check if the items to be modified exist
         all_item_ids = [item["item_id"] for item in order["items"]]
         for item_id in item_ids:
             if item_ids.count(item_id) > all_item_ids.count(item_id):
-                return f"Error: {item_id} not found"
+                raise Exception(f"Error: {item_id} not found")
 
         # Check new items exist, match old items, and are available
         if len(item_ids) != len(new_item_ids):
-            return "Error: the number of items to be exchanged should match"
+            raise Exception("Error: the number of items to be exchanged should match")
 
         diff_price = 0
         for item_id, new_item_id in zip(item_ids, new_item_ids):
@@ -41,7 +41,7 @@ class ModifyPendingOrderItems(Tool):
                 new_item_id in products[product_id]["variants"]
                 and products[product_id]["variants"][new_item_id]["available"]
             ):
-                return f"Error: new item {new_item_id} not found or available"
+                raise Exception(f"Error: new item {new_item_id} not found or available")
 
             old_price = item["price"]
             new_price = products[product_id]["variants"][new_item_id]["price"]
@@ -49,7 +49,7 @@ class ModifyPendingOrderItems(Tool):
 
         # Check if the payment method exists
         if payment_method_id not in users[order["user_id"]]["payment_methods"]:
-            return "Error: payment method not found"
+            raise Exception("Error: payment method not found")
 
         # If the new item is more expensive, check if the gift card has enough balance
         payment_method = users[order["user_id"]]["payment_methods"][payment_method_id]
@@ -57,7 +57,7 @@ class ModifyPendingOrderItems(Tool):
             payment_method["source"] == "gift_card"
             and payment_method["balance"] < diff_price
         ):
-            return "Error: insufficient gift card balance to pay for the new item"
+            raise Exception("Error: insufficient gift card balance to pay for the new item")
 
         # Handle the payment or refund
         order["payment_history"].append(

@@ -19,20 +19,20 @@ class ExchangeDeliveredOrderItems(Tool):
 
         # check order exists and is delivered
         if order_id not in orders:
-            return "Error: order not found"
+            raise Exception("Error: order not found")
         order = orders[order_id]
         if order["status"] != "delivered":
-            return "Error: non-delivered order cannot be exchanged"
+            raise Exception("Error: non-delivered order cannot be exchanged")
 
         # check the items to be exchanged exist
         all_item_ids = [item["item_id"] for item in order["items"]]
         for item_id in item_ids:
             if item_ids.count(item_id) > all_item_ids.count(item_id):
-                return f"Error: {item_id} not found"
+                raise Exception(f"Error: {item_id} not found")
 
         # check new items exist and match old items and are available
         if len(item_ids) != len(new_item_ids):
-            return "Error: the number of items to be exchanged should match"
+            raise Exception("Error: the number of items to be exchanged should match")
 
         diff_price = 0
         for item_id, new_item_id in zip(item_ids, new_item_ids):
@@ -42,7 +42,7 @@ class ExchangeDeliveredOrderItems(Tool):
                 new_item_id in products[product_id]["variants"]
                 and products[product_id]["variants"][new_item_id]["available"]
             ):
-                return f"Error: new item {new_item_id} not found or available"
+                raise Exception(f"Error: new item {new_item_id} not found or available")
 
             old_price = item["price"]
             new_price = products[product_id]["variants"][new_item_id]["price"]
@@ -52,14 +52,14 @@ class ExchangeDeliveredOrderItems(Tool):
 
         # check payment method exists and can cover the price difference if gift card
         if payment_method_id not in users[order["user_id"]]["payment_methods"]:
-            return "Error: payment method not found"
+            raise Exception("Error: payment method not found")
 
         payment_method = users[order["user_id"]]["payment_methods"][payment_method_id]
         if (
             payment_method["source"] == "gift_card"
             and payment_method["balance"] < diff_price
         ):
-            return (
+            raise Exception(
                 "Error: insufficient gift card balance to pay for the price difference"
             )
 

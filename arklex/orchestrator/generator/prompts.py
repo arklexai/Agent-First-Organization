@@ -118,6 +118,80 @@ Builder's documentations:
 Reasoning Process:
 """
 
+generate_reusable_tasks_sys_prompt = """
+The builder wants to create a chatbot with the following information:
+Role of the Chatbot: {role}
+User’s Objective: {u_objective}
+Builder’s Introductory Information: {intro}
+Builder’s Tasks: {tasks}
+Builder’s Documentation (if any): {docs}
+Instruction:
+Identify Shared Subtasks: Based on the chatbot’s role, any introductory information, available documentation, and the overall task set, identify and define subtasks that: Are essential to multiple tasks, Are granular, independent, and reusable, Can be logically grouped as recurring procedures.
+Analyze Each Task: Break down each task into its smallest meaningful steps.
+Exclude Simple or Overly Specific Procedures: Only include subtasks that represent more complex or significant actions and are relevant across multiple tasks. Exclude those that are overly simplistic or too task-specific.
+Name Each Subtask Clearly: Use descriptive names for the subtasks.
+Describe the Subtask’s Purpose and Steps: Provide a clear and detailed definition for each subtask, along with a detailed outline of the steps it involves.
+Maintain Independence: Subtasks should be self-contained, modular, and applicable in different contexts.
+Return the Response in JSON Format
+The JSON structure should include a clear name, description, and a steps (or next) hierarchy that outlines the logical flow.
+The description should be detailed, so that one can understand clearly what the task does.
+For each node in the hierarchy:
+- Include a "task" field describing its function.
+- Include a "next" array of child nodes. If a node is a leaf, set "next" to an empty array ([]).
+Expected Answer Format (Example):
+```json
+[
+    {{
+        "name": "User Authentication",
+        "description": "There are two types of user identity verification: via email or using name and ZIP code. This function first prompts the user to choose a verification method, then calls the corresponding authentication function accordingly.",
+        "steps": {{
+            "task": "Ask user for credentials; can authenticate via email or name + zip code.",
+            "next": [
+                {{
+                    "task": "Locate user ID in the system using email.",
+                    "next": []
+                }},
+                {{
+                    "task": "Locate user ID in the system using name + zip code.",
+                    "next": []
+                }}
+            ]
+        }}
+    }},
+    {{
+        "name": "Order Status Validation",
+        "description": "This task is used to check the status of an order. It prompts the user for the order ID and retrieves the order details to determine the status. Finally, based on the allowed states for the requested action, it either proceeds or informs the user that they do not have permission.",
+        "steps": [
+            {{
+                "task": "Ask user for order id.",
+                "next": [
+                    {{
+                        "task": "Retrieve the order details.",
+                        "next": [
+                            {{
+                                "task": "Verify if the order is in an allowed state for the requested action.",
+                                "next": [
+                                    {{
+                                        "task": "If yes, continue with the requested action.",
+                                        "next": []
+                                    }},
+                                    {{
+                                        "task": "If not, inform the user and deny the request.",
+                                        "next": []
+                                    }}
+                                ]
+                            }}
+                        ]
+                    }}
+                ]
+            }}
+        ]
+    }}
+]
+```
+Use this structure as a reference when defining and returning your own set of reusable subtasks in JSON.
+"""
+
 
 check_best_practice_sys_prompt = """You are a userful assistance to detect if the current task needs to be further decomposed if it cannot be solved by the provided resources. Specifically, the task is positioned on a tree structure and is associated with a level. Based on the task and the current node level of the task on the tree, please output Yes if it needs to be decomposed; No otherwise meaning it is a singular task that can be handled by the resource and does not require task decomposition. Please also provide explanations for your choice. 
 
@@ -269,7 +343,7 @@ Answer:
 """
 
 
-embed_resources_sys_prompt = """The builder plans to create an assistant designed to provide services to users. Given the best practices for addressing a specific task, and the available resources, your task is to map the steps with the resources. The response should include the resources used for each step and example responses, if applicable. Return the answer in JSON format. Do not add any comment on the answer.
+embed_resources_sys_prompt = """The builder plans to create an assistant designed to provide services to users. Given the best practices for addressing a specific task, and the available resources, your task is to map the steps with the resources. The response should include only the most suitable resource used for each step and example responses, if applicable. Return the answer in JSON format. Do not add any comment on the answer.
 
 For example:
 Best Practice: 
@@ -338,6 +412,66 @@ Answer:
 ]
 ```
 
+Best Practice: {best_practice}
+Resources: {resources}
+Answer:
+"""
+
+embed_reusable_task_resources_sys_prompt = """The builder plans to create an assistant designed to provide services to users. Given the best practices for addressing a specific task, and the available resources, your task is to map the steps with the resources. The response should include only the most suitable resource used for each step and example responses, if applicable. Return the answer in JSON format. Do not add any comment on the answer.
+For example:
+Best Practice: 
+{{
+    "task": "Retrieve the information about the customer from CRM and Inquire about specific preferences or requirements (e.g., brand, features, price range).",
+    "next": [
+        "task": "Provide a curated list of products that match the user's criteria.",
+        "next": [
+            "task": "Ask if the user would like to see more options or has any specific preferences.",
+            "next": [
+                "task": "Confirm if the user is ready to proceed with a purchase or needs more help.",
+                "next": [
+                    "task": "Persuade the user to sign up for the Prime membership.",
+                    next: []
+                ]
+            ]
+        ]
+    ]
+}}
+Resources:
+{{
+    "MessageWorker": "The worker responsible for interacting with the user with predefined responses",
+    "RAGWorker": "Answer the user's questions based on the company's internal documentations, such as the policies, FAQs, and product information",
+    "ProductWorker": "Access the company's database to retrieve information about products, such as availability, pricing, and specifications",
+    "UserProfileWorker": "Access the company's database to retrieve information about the user's preferences and history"
+}}
+Answer:
+```json
+{{
+    "task": "Retrieve the information about the customer from CRM and Inquire about specific preferences or requirements (e.g., brand, features, price range).",
+    "resource": "UserProfileWorker",
+    "example_response": "Do you have some specific preferences or requirements for the product you are looking for?",
+    "next": [
+        "task": "Provide a curated list of products that match the user's criteria.",
+        "resource": "ProductWorker",
+        "example_response": "",
+        "next": [
+            "task": "Ask if the user would like to see more options or has any specific preferences.",
+            "resource": "MessageWorker",
+            "example_response": "Would you like to see more options or do you have any specific preferences?",
+            "next": [
+                "task": "Confirm if the user is ready to proceed with a purchase or needs more help.",
+                "resource": "MessageWorker",
+                "example_response": "Are you ready to proceed with the purchase or do you need more help?",
+                "next": [
+                    "task": "Persuade the user to sign up for the Prime membership.",
+                    "resource": "MessageWorker",
+                    "example_response": "I noticed that you are a frequent shopper. Have you considered signing up for our Prime membership to enjoy exclusive benefits and discounts?",
+                    next: []
+                ]
+            ]
+        ]
+    ]
+}}
+```
 Best Practice: {best_practice}
 Resources: {resources}
 Answer:

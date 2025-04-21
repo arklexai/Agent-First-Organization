@@ -11,7 +11,7 @@ class FindUserIdByEmail(Tool):
         for user_id, profile in users.items():
             if profile["email"].lower() == email.lower():
                 return user_id
-        return "Error: user not found"
+        raise Exception("Error: user not found")
 
     @staticmethod
     def get_info() -> Dict[str, Any]:

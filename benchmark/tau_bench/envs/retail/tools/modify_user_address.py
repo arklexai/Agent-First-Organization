@@ -19,7 +19,7 @@ class ModifyUserAddress(Tool):
     ) -> str:
         users = data["users"]
         if user_id not in users:
-            return "Error: user not found"
+            raise Exception("Error: user not found")
         user = users[user_id]
         user["address"] = {
             "address1": address1,

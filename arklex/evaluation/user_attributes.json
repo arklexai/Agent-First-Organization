@@ -1,9 +1,9 @@
 {
+    "goal": {
+        "values": ["order tracking", "asking for refund", "report order missing", "report product issue", "asking replacement", "request repair", "interested in product information", "product purchase", "product rental"],
+        "generate_values": false
+    },
     "generic": {
-        "goal": {
-            "values": ["order tracking", "asking for refund", "report order missing", "report product issue", "asking replacement", "request repair", "interested in product information", "product purchase", "product rental"],
-            "generate_values": false
-        },
         "product_experience_level": {
             "values": ["new to this product", "used competitor product"],
             "generate_values": false
@@ -88,19 +88,18 @@
         },
         "web_product_id": {
             "api": "http://127.0.0.1:8001/products",
-            "bind_to": "user_profiles.current_webpage"
+            "bind_to": "user_profiles.current_webpage_content"
         },
-        "cart_id": [{"input": "<your_cart_id>", "attribute": ""}]
+        "cart_id": [{"input": "<your_cart_id>"}]
     },
     "user_profiles": {
         "user_info": {
             "api": "http://127.0.0.1:8001/users",
             "bind_to": "system_attributes.user_id"
         },
-        "current_webpage": {
+        "current_webpage_content": {
             "api": "http://127.0.0.1:8001/products_profiles",
             "bind_to": "system_attributes.web_product_id"
-        },
-        "cart_id": [{"input": "<your_cart_id>", "attribute": ""}]
+        }
     }
 }

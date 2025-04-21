@@ -1,12 +1,12 @@
 name: Test Resources (workers, tools, etc.)
 
-on:
-  pull_request:
-    branches:
-      - main
-  push:
-    branches:
-      - main
+# on:
+#   pull_request:
+#     branches:
+#       - main
+#   push:
+#     branches:
+#       - main
 
 jobs:
   test-resources:

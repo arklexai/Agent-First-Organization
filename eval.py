@@ -3,10 +3,8 @@ import json
 import argparse
 
 from arklex.evaluation.simulate_first_pass_convos import simulate_conversations
-# from arklex.evaluation.simulate_action_convos import simulate_action_conversations
 from arklex.evaluation.extract_conversation_info import extract_task_completion_metrics
 from arklex.evaluation.simulate_second_pass_convos import get_labeled_convos
-# from arklex.evaluation.analyze import analyze_action_accuracy_metrics
 from arklex.utils.model_config import MODEL
 from arklex.utils.model_provider_config import LLM_PROVIDERS
 from arklex.evaluation.chatgpt_utils import create_client
@@ -24,12 +22,7 @@ def evaluate(config):
         first_pass_data, goals = simulate_conversations(model_api, model_params, synthetic_data_params, config)
         goal_metrics = extract_task_completion_metrics(first_pass_data, config['client'], bot_goal)
         data = first_pass_data
-    elif task == 'action_pass':
-        # action pass
-        action_pass_data, goals, labels_list = simulate_action_conversations(model_api, model_params, synthetic_data_params, config)
-        goal_metrics = extract_task_completion_metrics(action_pass_data, config['client'], bot_goal)
-        goal_metrics['action_pass'] = analyze_action_accuracy_metrics(action_pass_data, labels_list)
-        data = action_pass_data
+    
     # second pass
     if task == 'all':
         labeled_convos = get_labeled_convos(first_pass_data, model_api, synthetic_data_params, model_params, config)
@@ -52,7 +45,7 @@ if __name__ == "__main__":
     parser.add_argument('--model', type=str, default=MODEL["model_type_or_path"])
     parser.add_argument( '--llm-provider',type=str,default=MODEL["llm_provider"],choices=LLM_PROVIDERS)
     parser.add_argument('--customer_type', type=str, default=None, choices=['b2b', 'b2c'])
-    parser.add_argument('--task', type=str, default='first_pass', choices=['first_pass', "action_pass", 'all'])
+    parser.add_argument('--task', type=str, default='first_pass', choices=['first_pass', 'all'])
     parser.add_argument('--user_attributes', type=str, default='arklex/evaluation/user_attributes.json')
     parser.add_argument('--custom_profile', action='store_true')
     parser.add_argument('--system_inputs', action='store_true')
@@ -65,7 +58,6 @@ if __name__ == "__main__":
 
     assert args.model_api is not None, "Model api must be provided"
     assert args.config is not None, "Config file must be provided"
-    assert args.documents_dir is not None, "Documents directory must be provided"
     assert args.user_attributes is not None, "User attribute file must be provided"
     if not args.output_dir:
         args.output_dir = os.path.join(args.documents_dir, 'eval')

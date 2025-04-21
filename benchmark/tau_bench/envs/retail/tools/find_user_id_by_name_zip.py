@@ -15,7 +15,7 @@ class FindUserIdByNameZip(Tool):
                 and profile["address"]["zip"] == zip
             ):
                 return user_id
-        return "Error: user not found"
+        raise Exception("Error: user not found")
 
     @staticmethod
     def get_info() -> Dict[str, Any]:

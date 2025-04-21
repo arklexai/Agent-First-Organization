@@ -20,10 +20,10 @@ class ModifyPendingOrderAddress(Tool):
         # Check if the order exists and is pending
         orders = data["orders"]
         if order_id not in orders:
-            return "Error: order not found"
+            raise Exception("Error: order not found")
         order = orders[order_id]
         if order["status"] != "pending":
-            return "Error: non-pending order cannot be modified"
+            raise Exception("Error: non-pending order cannot be modified")
 
         # Modify the address
         order["address"] = {

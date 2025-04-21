@@ -14,25 +14,25 @@ class ReturnDeliveredOrderItems(Tool):
 
         # Check if the order exists and is delivered
         if order_id not in orders:
-            return "Error: order not found"
+            raise Exception("Error: order not found")
         order = orders[order_id]
         if order["status"] != "delivered":
-            return "Error: non-delivered order cannot be returned"
+            raise Exception("Error: non-delivered order cannot be returned")
 
         # Check if the payment method exists and is either the original payment method or a gift card
         if payment_method_id not in data["users"][order["user_id"]]["payment_methods"]:
-            return "Error: payment method not found"
+            raise Exception("Error: payment method not found")
         if (
             "gift_card" not in payment_method_id
             and payment_method_id != order["payment_history"][0]["payment_method_id"]
         ):
-            return "Error: payment method should be either the original payment method or a gift card"
+            raise Exception("Error: payment method should be either the original payment method or a gift card")
 
         # Check if the items to be returned exist (there could be duplicate items in either list)
         all_item_ids = [item["item_id"] for item in order["items"]]
         for item_id in item_ids:
             if item_ids.count(item_id) > all_item_ids.count(item_id):
-                return "Error: some item not found"
+                raise Exception("Error: some item not found")
 
         # Update the order status
         order["status"] = "return requested"

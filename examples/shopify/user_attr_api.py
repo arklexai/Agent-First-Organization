@@ -8,6 +8,7 @@ import shopify
 from fastapi import FastAPI, Response
 
 from arklex.env.tools.shopify.utils import authorify_admin
+from arklex.exceptions import AuthenticationError
 
 USER_NOT_FOUND_ERROR = "error: No user found"
 PRODUCTS_NOT_FOUND = "error: No products found"
@@ -15,12 +16,14 @@ PRODUCTS_NOT_FOUND = "error: No products found"
 app = FastAPI()
 
 def get_users(kwargs: Dict[str, Any]) -> str:
-    auth = authorify_admin(kwargs)
-    if auth["error"]:
-        return auth["error"]
-    
     try:
-        with shopify.Session.temp(**auth["value"]):
+        auth = authorify_admin(kwargs)
+    except AuthenticationError as e:
+        print("Authentication error: ", e)
+        raise AuthenticationError(e)
+        
+    try:
+        with shopify.Session.temp(**auth):
             response = shopify.GraphQL().execute(r"""
                 {
                     customers(first: 50) {
@@ -36,7 +39,39 @@ def get_users(kwargs: Dict[str, Any]) -> str:
                         orders(first: 5) {
                             edges {
                                 node {
-                                id
+                                    id
+                                    name
+                                    createdAt
+                                    cancelledAt
+                                    returnStatus
+                                    statusPageUrl
+                                    totalPriceSet {
+                                        presentmentMoney {
+                                            amount
+                                        }
+                                    }
+                                    fulfillments {
+                                        displayStatus
+                                        trackingInfo {
+                                            number
+                                            url
+                                        }
+                                    }
+                                    lineItems(first: 10) {
+                                        edges {
+                                            node {
+                                                id
+                                                title
+                                                quantity
+                                                variant {
+                                                    id
+                                                    product {
+                                                        id
+                                                    }
+                                                }
+                                            }
+                                        }
+                                    }
                                 }
                             }
                         }
@@ -77,12 +112,13 @@ def get_users(kwargs: Dict[str, Any]) -> str:
 
 
 def get_products(kwargs) -> str:
-    auth = authorify_admin(kwargs)
-    if auth["error"]:
-        return auth["error"]
+    try:
+        auth = authorify_admin(kwargs)
+    except Exception as e:
+        return {"error": str(e)}
 
     try:
-        with shopify.Session.temp(**auth["value"]):
+        with shopify.Session.temp(**auth):
             response = shopify.GraphQL().execute(f"""
                 {{
                     products (first: 20) {{
@@ -137,7 +173,12 @@ def get_products(kwargs) -> str:
 @app.get("/users")
 def get_users_route():
     users = []
-    response = get_users(kwargs)
+    try:
+        response = get_users(kwargs)
+    except AuthenticationError as e:
+        return {"error": "Missing some or all required Shopify admin authentication parameters: shop_url, api_version, admin_token."}, 401
+    except Exception as e:
+        return {"error": str(e)}, 500
 
     for user in response:
         # attribute = f"Your name is {user['firstName']} {user['lastName']} and your email is {user['email']}. Your phone number is {user['phone']}. You registered at {user['createdAt']}. The last time you entered our store was {user['updatedAt']}. You have {user['numberOfOrders']} orders. You have spent {user['amountSpent']['amount']} {user['amountSpent']['currencyCode']} at our store."
@@ -155,6 +196,9 @@ def get_products_route():
         print(product)
         # attribute = f"The product is {product['title']}. The description is {product['description']}. The product is in the {product['category']} category."
         single_product = {"input": product["id"], "attribute": product["attribute"]}
+        products.append(single_product)
+        # add 50% products as home page, no product id
+        single_product = {"input": None, "attribute": "home page"}
         products.append(single_product)
     return products
 

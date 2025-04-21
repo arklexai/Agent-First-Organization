@@ -11,7 +11,7 @@ class GetOrderDetails(Tool):
         orders = data["orders"]
         if order_id in orders:
             return json.dumps(orders[order_id])
-        return "Error: order not found"
+        raise Exception("Error: order not found")
 
     @staticmethod
     def get_info() -> Dict[str, Any]:
