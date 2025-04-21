@@ -206,11 +206,10 @@ class AgentOrg:
             "parameters": params,
             "allow_global_intent_switch": True,
         }
-        stm = ShortTermMemory(message_state)
-        relevant_stm_records = stm.retrieve_records(text)
-        relevant_intent = stm.retrieve_intent(text)
-    
-        if relevant_stm_records != "not in context" or relevant_intent != "not in context":
+        stm = ShortTermMemory(trajectory=message_state.trajectory)
+        found_records, relevant_records = stm.retrieve_records(text)
+        found_intent, relevant_intent = stm.retrieve_intent(text)
+        if found_records or found_intent:
             taskgraph_inputs["allow_global_intent_switch"] = False
         taskgraph_chain = RunnableLambda(self.task_graph.get_node) | RunnableLambda(self.task_graph.postprocess_node)
 
