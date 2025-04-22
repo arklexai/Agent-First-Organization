@@ -11,9 +11,9 @@ Module Name: cart_remove_itmes
 
 This file contains the code for removing items in a shopping cart.
 """
-from arklex.env.tools.shopify.utils_slots import ShopifySlots, ShopifyOutputs
-from arklex.env.tools.shopify.utils_cart import *
-from arklex.env.tools.shopify.utils_nav import *
+from arklex.env.shopify.tools.utils_slots import ShopifySlots, ShopifyOutputs
+from arklex.env.shopify.tools.utils_cart import *
+from arklex.env.shopify.tools.utils_nav import *
 
 from arklex.env.tools.tools import register_tool
 

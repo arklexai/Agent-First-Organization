@@ -1,9 +1,9 @@
-from arklex.env.tools.shopify.utils_slots import ShopifyGetCartSlots, ShopifyOutputs
-from arklex.env.tools.shopify.utils_cart import *
-from arklex.env.tools.shopify.utils_nav import *
+from arklex.env.shopify.tools.utils_slots import ShopifyGetCartSlots, ShopifyOutputs
+from arklex.env.shopify.tools.utils_cart import *
+from arklex.env.shopify.tools.utils_nav import *
 from arklex.env.tools.tools import register_tool
 from arklex.exceptions import ToolExecutionError
-from arklex.env.tools.shopify._exception_prompt import ShopifyExceptionPrompt
+from arklex.env.shopify.tools._exception_prompt import ShopifyExceptionPrompt
 import inspect
 import logging
 

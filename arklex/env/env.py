@@ -34,7 +34,8 @@ class DefaulResourceInitializer(BaseResourceInitializer):
             name = tool["name"]
             path = tool["path"]
             try: # try to import the tool to check its existance
-                filepath = os.path.join("arklex.env.tools", path)
+                package, tool_name = path.split("/")[0], path.split("/")[1]
+                filepath = os.path.join(f"arklex.env.{package}.tools", tool_name)
                 module_name = filepath.replace(os.sep, ".").rstrip(".py")
                 module = importlib.import_module(module_name)
                 func = getattr(module, name)

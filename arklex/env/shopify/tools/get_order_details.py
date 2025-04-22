@@ -4,10 +4,10 @@ from typing import Any, Dict
 import shopify
 
 from arklex.env.tools.tools import register_tool
-from arklex.env.tools.shopify.utils import authorify_admin
-from arklex.env.tools.shopify.utils_slots import ShopifyGetOrderDetailsSlots, ShopifyOutputs
+from arklex.env.shopify.tools.utils import authorify_admin
+from arklex.env.shopify.tools.utils_slots import ShopifyGetOrderDetailsSlots, ShopifyOutputs
 from arklex.exceptions import ToolExecutionError
-from arklex.env.tools.shopify._exception_prompt import ShopifyExceptionPrompt
+from arklex.env.shopify.tools._exception_prompt import ShopifyExceptionPrompt
 import inspect
 
 description = "Get the status and details of an order."

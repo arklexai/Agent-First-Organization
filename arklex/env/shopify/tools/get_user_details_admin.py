@@ -3,10 +3,10 @@ import json
 
 from arklex.env.tools.tools import register_tool
 
-from arklex.env.tools.shopify.utils_slots import ShopifyGetUserDetailsAdminSlots, ShopifyOutputs
-from arklex.env.tools.shopify.utils_nav import *
-from arklex.env.tools.shopify.utils import authorify_admin
-from arklex.env.tools.shopify._exception_prompt import ShopifyExceptionPrompt
+from arklex.env.shopify.tools.utils_slots import ShopifyGetUserDetailsAdminSlots, ShopifyOutputs
+from arklex.env.shopify.tools.utils_nav import *
+from arklex.env.shopify.tools.utils import authorify_admin
+from arklex.env.shopify.tools._exception_prompt import ShopifyExceptionPrompt
 from arklex.exceptions import ToolExecutionError
 
 import inspect

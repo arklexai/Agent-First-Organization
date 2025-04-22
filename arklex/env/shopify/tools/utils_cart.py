@@ -16,7 +16,7 @@ import os
 
 import requests 
 
-from arklex.env.tools.shopify.utils import *
+from arklex.env.shopify.tools.utils import *
 
 from dotenv import load_dotenv
 load_dotenv()

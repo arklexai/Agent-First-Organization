@@ -3,9 +3,9 @@ import shopify
 import logging
 import inspect
 # general GraphQL navigation utilities
-from arklex.env.tools.shopify.utils_slots import ShopifySearchProductsSlots, ShopifyOutputs
-from arklex.env.tools.shopify.utils_nav import *
-from arklex.env.tools.shopify.utils import authorify_admin
+from arklex.env.shopify.tools.utils_slots import ShopifySearchProductsSlots, ShopifyOutputs
+from arklex.env.shopify.tools.utils_nav import *
+from arklex.env.shopify.tools.utils import authorify_admin
 
 # Admin API
 from arklex.env.tools.tools import register_tool
@@ -14,7 +14,7 @@ from arklex.utils.model_provider_config import PROVIDER_MAP
 from arklex.utils.model_config import MODEL
 from arklex.exceptions import ToolExecutionError
 from langchain_openai import ChatOpenAI
-from arklex.env.tools.shopify._exception_prompt import ShopifyExceptionPrompt
+from arklex.env.shopify.tools._exception_prompt import ShopifyExceptionPrompt
 
 logger = logging.getLogger(__name__)
 
