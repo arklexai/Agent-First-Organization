@@ -9,14 +9,31 @@ import numpy as np
 
 class ShortTermMemory:
     def __init__(self, trajectory: List[List[ResourceRecord]]):
-        """Initialize ShortTermMemory using the trajectory (list of lists of ResourceRecord)."""
+        """
+
+        Args:
+            trajectory (List[List[ResourceRecord]]): Memory structure for the conversation where 
+                                                    each list of ResourceRecord objects encompasses 
+                                                    the information of a single conversation turn
+        """          
         self.trajectory = trajectory[-5:]  # Use the last 5 turns from the trajectory
         self.embedding_model_name = PROVIDER_EMBEDDING_MODELS[MODEL['llm_provider']]
         self.embedding_model = PROVIDER_EMBEDDINGS.get(MODEL['llm_provider'])(
             **{'model': self.embedding_model_name} if MODEL['llm_provider'] != 'anthropic' else {'model_name': self.embedding_model_name}
         )
     def retrieve_records(self, query: str, top_k: int = 3, threshold: float = 0.7) -> Tuple[bool, List[ResourceRecord]]:
-        """Retrieve the most relevant records based on query."""
+        """
+
+        Args:
+            query (str):  The query string to retrieve relevant records for.
+            top_k (int, optional): The number of top records to return. Defaults to 3.
+            threshold (float, optional): The similarity score threshold for filtering relevant records. Defaults to 0.7.
+
+        Returns:
+            Tuple[bool, List[ResourceRecord]]: A tuple where the first element is a boolean indicating 
+                                           whether relevant records were found, and the second element is a 
+                                           list of the top-k relevant `ResourceRecord` objects based on the query.
+        """
         if not self.trajectory:
             return False, []
 
@@ -69,7 +86,18 @@ class ShortTermMemory:
         return True, [r["record"] for r in relevant_records[:top_k]]
 
     def retrieve_intent(self, query: str, threshold: float = 0.7) -> Tuple[bool, Optional[str]]:
-        """Retrieve the most relevant intent based on query."""
+        """
+
+        Args:
+            query (str): The query string to retrieve the most relevant intent for.
+            threshold (float, optional): The similarity score threshold for filtering relevant intents. Defaults to 0.7.
+
+        Returns:
+            Tuple[bool, Optional[str]]: A tuple where the first element is a boolean indicating 
+                                     whether a relevant intent was found, and the second element is the 
+                                     most relevant intent (if found), or None if no relevant intent meets 
+                                     the threshold.
+        """        
         if not self.trajectory:
             return False, None
 
