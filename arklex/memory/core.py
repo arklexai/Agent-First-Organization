@@ -8,8 +8,12 @@ import numpy as np
 
 
 class ShortTermMemory:
-    def __init__(self, trajectory: List[List[ResourceRecord]]):
-        """
+    def __init__(self, trajectory: List[List[ResourceRecord]]):    
+        """_summary_
+        Represents the short-term memory of a conversation, storing a trajectory of 
+        ResourceRecords across multiple turns. This memory enables retrieval of past 
+        context, intents, tasks, and outputs for use in dynamic and contextual reasoning.
+
 
         Args:
             trajectory (List[List[ResourceRecord]]): Memory structure for the conversation where 
