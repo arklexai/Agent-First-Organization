@@ -7,7 +7,7 @@ from langchain_openai import ChatOpenAI
 from arklex.env.workers.worker import BaseWorker, register_worker
 from arklex.utils.graph_state import MessageState
 from arklex.env.tools.utils import ToolGenerator
-from arklex.env.tools.RAG.search import SearchEngine
+from arklex.env.RAG.tools.search import SearchEngine
 from arklex.utils.model_config import MODEL
 from arklex.utils.model_provider_config import PROVIDER_MAP
 

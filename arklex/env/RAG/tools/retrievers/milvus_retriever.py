@@ -15,7 +15,7 @@ from arklex.env.prompts import load_prompts
 from arklex.utils.mysql import mysql_pool
 from arklex.utils.model_config import MODEL
 from arklex.utils.graph_state import MessageState
-from arklex.env.tools.RAG.retrievers.retriever_document import RetrieverDocument, RetrieverDocumentType, RetrieverResult, embed, embed_retriever_document
+from arklex.env.RAG.tools.retrievers.retriever_document import RetrieverDocument, RetrieverDocumentType, RetrieverResult, embed, embed_retriever_document
 from arklex.env.tools.utils import trace
 
 EMBED_DIMENSION = 1536

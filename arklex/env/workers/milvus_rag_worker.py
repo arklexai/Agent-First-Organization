@@ -7,7 +7,7 @@ from langchain_openai import ChatOpenAI
 from arklex.env.workers.worker import BaseWorker, register_worker
 from arklex.utils.graph_state import MessageState
 from arklex.env.tools.utils import ToolGenerator
-from arklex.env.tools.RAG.retrievers.milvus_retriever import RetrieveEngine
+from arklex.env.RAG.tools.retrievers.milvus_retriever import RetrieveEngine
 from arklex.utils.model_config import MODEL
 
 

@@ -7,7 +7,7 @@ from langchain.prompts import PromptTemplate
 from langchain_core.output_parsers import StrOutputParser
 
 from arklex.env.workers.worker import BaseWorker, register_worker
-from arklex.env.tools.RAG.retrievers.milvus_retriever import RetrieveEngine
+from arklex.env.RAG.tools.retrievers.milvus_retriever import RetrieveEngine
 from arklex.env.prompts import load_prompts
 from arklex.env.workers.message_worker import MessageWorker
 from arklex.env.workers.milvus_rag_worker import MilvusRAGWorker

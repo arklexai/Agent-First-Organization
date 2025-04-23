@@ -8,7 +8,7 @@ from langchain_openai import ChatOpenAI
 from arklex.env.workers.worker import BaseWorker, register_worker
 from arklex.utils.graph_state import MessageState
 from arklex.env.tools.utils import ToolGenerator
-from arklex.env.tools.RAG.retrievers.faiss_retriever import RetrieveEngine
+from arklex.env.RAG.tools.retrievers.faiss_retriever import RetrieveEngine
 from arklex.utils.model_config import MODEL
 from arklex.utils.model_provider_config import PROVIDER_MAP
 
