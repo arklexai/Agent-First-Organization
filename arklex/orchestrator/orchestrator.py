@@ -148,7 +148,7 @@ class AgentOrg:
                 "attribute": node_info.attributes,
                 "node_id": params.taskgraph.curr_node
             },
-            intent=params.taskgraph.curr_global_intent
+            intent=params.taskgraph.intent
         )
         
         # Add resource record to current turn's list
