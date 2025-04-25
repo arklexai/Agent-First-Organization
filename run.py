@@ -3,6 +3,7 @@ import json
 import argparse
 import time
 import logging
+import importlib
 from dotenv import load_dotenv
 from pprint import pprint
 
@@ -28,6 +29,17 @@ def get_api_bot_response(args, history, user_text, parameters, env):
     return result['answer'], result['parameters'], result['human_in_the_loop']
 
 
+def load_tools(platform, fixed_arguments):
+    if platform is None or fixed_arguments is None:
+        return []
+
+    try:
+        resources = getattr(importlib.import_module(f"arklex.env.{platform}.resources"), "RESOURCES", [])
+        return [{**tool.to_dict(), 'fixed_args': fixed_arguments} for tool in resources]
+    except (ImportError, AttributeError) as e:
+        print(f"Error loading tools for '{platform}': {e}")
+        return []
+
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument('--input-dir', type=str, default="./examples/test")
@@ -44,11 +56,11 @@ if __name__ == "__main__":
     # Initialize env
     config = json.load(open(os.path.join(args.input_dir, "taskgraph.json")))
     env = Env(
-        tools = config.get("tools", []),
+        tools = load_tools(config.get("platform"), config.get("fixed_args")),
         workers = config.get("workers", []),
         slotsfillapi = config["slotfillapi"]
     )
-        
+
     history = []
     params = {}
     user_prefix = "user"
