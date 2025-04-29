@@ -418,19 +418,6 @@
             "shop_url": "<your-shopify-shop-url>",
             "api_version": "2024-10"
     },
-    
-    "workers": [
-        {
-            "id": "FaissRAGWorker",
-            "name": "FaissRAGWorker",
-            "path": "faiss_rag_worker.py"
-        },
-        {
-            "id": "MessageWorker",
-            "name": "MessageWorker",
-            "path": "message_worker.py"
-        }
-    ],
     "role": "customer service assistant",
     "user_objective": "The customer service assistant helps users with customer service inquiries. It can provide information about products, services, and policies, as well as help users resolve issues and complete transactions.",
     "builder_objective": "The customer service assistant helps to request customer's contact information.",
