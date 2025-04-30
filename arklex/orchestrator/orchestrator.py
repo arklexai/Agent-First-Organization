@@ -15,10 +15,11 @@ from arklex.orchestrator.task_graph import TaskGraph
 from arklex.env.tools.utils import ToolGenerator
 from arklex.types import StreamType
 from arklex.utils.graph_state import (ConvoMessage, NodeInfo, OrchestratorMessage,
-                                      MessageState, PathNode,StatusEnum,
+                                      MessageState, PathNode,StatusEnum, LLMConfig,
                                       BotConfig, Params, ResourceRecord,
                                       OrchestratorResp, NodeTypeEnum)
 from arklex.utils.utils import format_chat_history
+from arklex.utils.model_config import MODEL
 
 
 load_dotenv()
@@ -28,15 +29,16 @@ INFO_WORKERS = ["planner", "MessageWorker", "RagMsgWorker", "HITLWorkerChatFlag"
 
 class AgentOrg:
     def __init__(self, config, env: Env, **kwargs):
-        if isinstance(config, dict):
-            self.product_kwargs = config
-        else:
-            self.product_kwargs = json.load(open(config))
         self.user_prefix = "user"
         self.worker_prefix = "assistant"
         self.environment_prefix = "tool"
         self.__eos_token = "\n"
-        self.task_graph = TaskGraph("taskgraph", self.product_kwargs)
+        if isinstance(config, dict):
+            self.product_kwargs = config
+        else:
+            self.product_kwargs = json.load(open(config))
+        self.llm_config = LLMConfig(**self.product_kwargs.get("model", MODEL))
+        self.task_graph = TaskGraph("taskgraph", self.product_kwargs, self.llm_config)
         self.env = env
 
     
@@ -77,6 +79,7 @@ class AgentOrg:
             version=self.product_kwargs.get("version", "default"),
             language=self.product_kwargs.get("language", "EN"),
             bot_type=self.product_kwargs.get("bot_type", "presalebot"),
+            llm_config=self.llm_config
         )
         message_state = MessageState(
             sys_instruct=sys_instruct,
@@ -264,8 +267,6 @@ class AgentOrg:
             else:
                 message_state = ToolGenerator.stream_context_generate(message_state)
         
-        # TODO: Need to reformat the RAG response from trajectory
-        # params["memory"]["tool_response"] = {}
         return OrchestratorResp(
             answer=message_state.response,
             parameters=params.model_dump(),

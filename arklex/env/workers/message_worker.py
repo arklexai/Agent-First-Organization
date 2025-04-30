@@ -1,5 +1,4 @@
 import logging
-from typing import Any, Iterator, Union
 
 from langgraph.graph import StateGraph, START
 from langchain.prompts import PromptTemplate
@@ -10,9 +9,7 @@ from arklex.env.workers.worker import BaseWorker, register_worker
 from arklex.env.prompts import load_prompts
 from arklex.env.tools.utils import trace
 from arklex.types import EventType
-from arklex.utils.utils import chunk_string
 from arklex.utils.graph_state import MessageState
-from arklex.utils.model_config import MODEL
 from arklex.utils.model_provider_config import PROVIDER_MAP
 
 
@@ -26,9 +23,6 @@ class MessageWorker(BaseWorker):
 
     def __init__(self):
         super().__init__()
-        self.llm = PROVIDER_MAP.get(MODEL['llm_provider'], ChatOpenAI)(
-            model=MODEL["model_type_or_path"], timeout=30000
-        )
         self.action_graph = self._create_action_graph()
 
     def generator(self, state: MessageState) -> MessageState:
@@ -54,9 +48,8 @@ class MessageWorker(BaseWorker):
             prompt = PromptTemplate.from_template(prompts["message_generator_prompt"])
             input_prompt = prompt.invoke({"sys_instruct": state.sys_instruct, "message": orch_msg_content, "formatted_chat": user_message.history})
         logger.info(f"Prompt: {input_prompt.text}")
-        chunked_prompt = chunk_string(input_prompt.text, tokenizer=MODEL["tokenizer"], max_length=MODEL["context"])
         final_chain = self.llm | StrOutputParser()
-        answer = final_chain.invoke(chunked_prompt)
+        answer = final_chain.invoke(input_prompt.text)
 
         state.message_flow = ""
         state.response = answer
@@ -91,10 +84,9 @@ class MessageWorker(BaseWorker):
             prompt = PromptTemplate.from_template(prompts["message_generator_prompt"])
             input_prompt = prompt.invoke({"sys_instruct": state.sys_instruct, "message": orch_msg_content, "formatted_chat": user_message.history})
         logger.info(f"Prompt: {input_prompt.text}")
-        chunked_prompt = chunk_string(input_prompt.text, tokenizer=MODEL["tokenizer"], max_length=MODEL["context"])
         final_chain = self.llm | StrOutputParser()
         answer = ""
-        for chunk in final_chain.stream(chunked_prompt):
+        for chunk in final_chain.stream(input_prompt.text):
             answer += chunk
             state.message_queue.put({"event": EventType.CHUNK.value, "message_chunk": chunk})
 
@@ -113,6 +105,9 @@ class MessageWorker(BaseWorker):
         return workflow
 
     def _execute(self, msg_state: MessageState):
+        self.llm = PROVIDER_MAP.get(msg_state.bot_config.llm_config.llm_provider, ChatOpenAI)(
+            model=msg_state.bot_config.llm_config.model_type_or_path
+        )
         graph = self.action_graph.compile()
         result = graph.invoke(msg_state)
         return result

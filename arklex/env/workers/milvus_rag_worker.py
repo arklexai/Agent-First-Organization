@@ -1,8 +1,6 @@
 import logging
-import os
 
 from langgraph.graph import StateGraph, START
-from langchain_openai import ChatOpenAI
 
 from arklex.env.workers.worker import BaseWorker, register_worker
 from arklex.utils.graph_state import MessageState
@@ -25,7 +23,6 @@ class MilvusRAGWorker(BaseWorker):
                  stream_response: bool = True):
         super().__init__()
         self.action_graph = self._create_action_graph()
-        self.llm = ChatOpenAI(model=MODEL["model_type_or_path"], timeout=30000)
         self.stream_response = stream_response
 
     def choose_tool_generator(self, state: MessageState):
@@ -38,7 +35,8 @@ class MilvusRAGWorker(BaseWorker):
         # Add nodes for each worker
         workflow.add_node("retriever", RetrieveEngine.milvus_retrieve)
         workflow.add_node("tool_generator", ToolGenerator.context_generate)
-        workflow.add_node("stream_tool_generator", ToolGenerator.stream_context_generate)
+        workflow.add_node("stream_tool_generator",
+                          ToolGenerator.stream_context_generate)
         # Add edges
         workflow.add_edge(START, "retriever")
         workflow.add_conditional_edges(

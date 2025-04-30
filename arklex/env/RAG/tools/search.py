@@ -1,10 +1,8 @@
 import logging
 
-from arklex.utils.model_config import MODEL
 from arklex.utils.model_provider_config import PROVIDER_MAP
 from arklex.env.prompts import load_prompts
-from arklex.utils.graph_state import MessageState
-
+from arklex.utils.graph_state import MessageState, LLMConfig
 from langchain.prompts import PromptTemplate
 from langchain_openai import ChatOpenAI
 from langchain_core.output_parsers import StrOutputParser
@@ -15,16 +13,29 @@ logger = logging.getLogger(__name__)
 
 
 class SearchEngine():
-    def __init__(self):
-        self.llm = PROVIDER_MAP.get(MODEL['llm_provider'], ChatOpenAI)(
-            model=MODEL["model_type_or_path"], timeout=30000
+    @staticmethod
+    def search(state: MessageState):
+        tavily_search_executor = TavilySearchExecutor()
+        text_results = tavily_search_executor.search(state)
+        state.message_flow = text_results
+        return state
+
+
+class TavilySearchExecutor():
+    def __init__(
+            self,
+            llm_config: LLMConfig,
+            **kwargs,
+        ):
+        self.llm = PROVIDER_MAP.get(llm_config.llm_provider, ChatOpenAI)(
+            model=llm_config.model_type_or_path
         )
         self.search_tool = TavilySearchResults(
-            max_results=5,
-            search_depth="advanced",
-            include_answer=True,
-            include_raw_content=True,
-            include_images=False,
+            max_results=kwargs.get("max_results", 5),
+            search_depth=kwargs.get("search_depth", "advanced"),
+            include_answer=kwargs.get("include_answer", True),
+            include_raw_content=kwargs.get("include_raw_content", True),
+            include_images=kwargs.get("include_images", False),
         )
 
     def process_search_result(self, search_results):
@@ -43,5 +54,8 @@ class SearchEngine():
         ret_input = ret_input_chain.invoke({"chat_history": state.user_message.history})
         logger.info(f"Reformulated input for search engine: {ret_input}")
         search_results = self.search_tool.invoke({"query": ret_input})
-        state.message_flow = self.process_search_result(search_results)
-        return state
+        text_results = self.process_search_result(search_results)
+        return text_results
+    
+    def load_search_tool(self, llm_config: LLMConfig, **kwargs):
+        return TavilySearchExecutor(llm_config, **kwargs)

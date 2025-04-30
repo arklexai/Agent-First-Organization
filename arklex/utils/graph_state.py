@@ -5,12 +5,16 @@ import uuid
 from arklex.utils.slot import Slot
 
 ### Bot-related classes
+class LLMConfig(BaseModel):
+    model_type_or_path: str
+    llm_provider: str
+
 class BotConfig(BaseModel):
     bot_id: str
     version: str
     language: str
     bot_type: str
-
+    llm_config: LLMConfig
 ### Message-related classes
 
 class ConvoMessage(BaseModel):

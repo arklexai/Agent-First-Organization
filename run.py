@@ -23,10 +23,9 @@ def pprint_with_color(data, color_code="\033[34m"):  # Default to blue
     print("\033[0m", end="")
 
 
-def get_api_bot_response(args, history, user_text, parameters, env):
+def get_api_bot_response(config, history, user_text, parameters, env):
     data = {"text": user_text, 'chat_history': history, 'parameters': parameters}
-    orchestrator = AgentOrg(config=os.path.join(
-        args.input_dir, "taskgraph.json"), env=env)
+    orchestrator = AgentOrg(config=config, env=env)
     result = orchestrator.get_response(data)
 
     return result['answer'], result['parameters'], result['human_in_the_loop']
@@ -72,14 +71,17 @@ if __name__ == "__main__":
                         choices=["DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"])
     args = parser.parse_args()
     os.environ["DATA_DIR"] = args.input_dir
-    MODEL["model_type_or_path"] = args.model
-    MODEL["llm_provider"] = args.llm_provider
+    model = {
+        "model_type_or_path": args.model,
+        "llm_provider": args.llm_provider
+    }
     log_level = getattr(logging, args.log_level.upper(), logging.WARNING)
     logger = init_logger(log_level=log_level, filename=os.path.join(
         os.path.dirname(__file__), "logs", "arklex.log"))
 
     # Initialize env
     config = json.load(open(os.path.join(args.input_dir, "taskgraph.json")))
+    config["model"] = model
     env = Env(
         tools=load_tools(config.get("platform"), config.get("fixed_args")),
         workers=load_workers(config.get("platform")),
@@ -103,7 +105,7 @@ if __name__ == "__main__":
             break
         start_time = time.time()
         output, params, hitl = get_api_bot_response(
-            args, history, user_text, params, env)
+            config, history, user_text, params, env)
         history.append({"role": user_prefix, "content": user_text})
         history.append({"role": worker_prefix, "content": output})
         print(f"getAPIBotResponse Time: {time.time() - start_time}")

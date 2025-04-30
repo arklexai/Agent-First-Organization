@@ -1,13 +1,10 @@
 import os
 import logging
 from typing import Dict
-import json
-from http import HTTPStatus
 import argparse
 import uvicorn
 
-from openai import OpenAI
-from fastapi import FastAPI, Response
+from fastapi import FastAPI
 
 from arklex.utils.utils import init_logger
 from arklex.env.env import Env

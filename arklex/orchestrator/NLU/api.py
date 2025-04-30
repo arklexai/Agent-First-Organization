@@ -11,7 +11,6 @@ from arklex.utils.slot import Verification, SlotInputList, structured_input_outp
 from dotenv import load_dotenv
 load_dotenv()
 
-from arklex.utils.model_config import MODEL
 from arklex.utils.model_provider_config import PROVIDER_MAP
 from langchain_openai import ChatOpenAI
 from pydantic_ai import Agent
@@ -28,12 +27,12 @@ class NLUModelAPI ():
     def get_response(self, sys_prompt, model, response_format="text", note="intent detection"):
         logger.info(f"Prompt for {note}: {sys_prompt}")
         dialog_history = [{"role": "system", "content": sys_prompt}]
-        kwargs = {'model': MODEL["model_type_or_path"], 'temperature': 0.7}
+        kwargs = {'model': model["model_type_or_path"], 'temperature': 0.1}
         
-        if MODEL['llm_provider'] != 'anthropic': kwargs['n'] = 1
-        llm = PROVIDER_MAP.get(MODEL['llm_provider'], ChatOpenAI)(**kwargs)
+        if model['llm_provider'] != 'anthropic': kwargs['n'] = 1
+        llm = PROVIDER_MAP.get(model['llm_provider'], ChatOpenAI)(**kwargs)
 
-        if MODEL['llm_provider'] == 'openai':
+        if model['llm_provider'] == 'openai':
             llm = llm.bind(response_format={"type": "json_object"} if response_format == "json" else {"type": "text"})
             res = llm.invoke(dialog_history)
         else:
@@ -148,27 +147,27 @@ class SlotFillModelAPI():
         return system_prompt
 
     # get response from model
-    def get_response(self, sys_prompt, format, note="slot filling"):
+    def get_response(self, sys_prompt, format, model, note="slot filling"):
         logger.info(f"Prompt for {note}: {sys_prompt}")
         dialog_history = [{"role": "system", "content": sys_prompt}]
-        kwargs = {'model': MODEL["model_type_or_path"], 'temperature': 0.7}
+        kwargs = {'model': model["model_type_or_path"], 'temperature': 0.7}
         # set number of chat completions to generate, isn't supported by Anthropic
-        if MODEL['llm_provider'] != 'anthropic': kwargs['n'] = 1
-        llm = PROVIDER_MAP.get(MODEL['llm_provider'], ChatOpenAI)(**kwargs)
+        if model['llm_provider'] != 'anthropic': kwargs['n'] = 1
+        llm = PROVIDER_MAP.get(model['llm_provider'], ChatOpenAI)(**kwargs)
         
-        if MODEL['llm_provider'] == 'openai':
+        if model['llm_provider'] == 'openai':
             llm = llm.with_structured_output(schema=format)
             response = llm.invoke(dialog_history)
     
         # TODO: fix slotfilling for huggingface
-        elif MODEL['llm_provider']=='huggingface':
+        elif model['llm_provider']=='huggingface':
             # llm = llm.bind_tools([format])
             # chain =  llm | JsonOutputToolsParser()
             # response = chain.invoke(dialog_history)
             raise NotImplementedError("Slotfilling for Huggingface is not implemented")
 
-        elif MODEL['llm_provider'] == 'gemini':
-            agent = Agent(f"google-gla:{MODEL['model_type_or_path']}", result_type=format)
+        elif model['llm_provider'] == 'gemini':
+            agent = Agent(f"google-gla:{model['model_type_or_path']}", result_type=format)
             result = agent.run_sync(dialog_history[0]['content'])
             response = result.data
 
@@ -185,11 +184,12 @@ class SlotFillModelAPI():
         self,
         slots: list[Slot],
         input: str,
+        model: dict,
         type: str = "chat"
     ):
         input_slots, output_slots = structured_input_output(slots)
         system_prompt = self.format_input(input_slots, input, type)
-        response = self.get_response(system_prompt, output_slots, note="slot filling")
+        response = self.get_response(system_prompt, output_slots, model, note="slot filling")
         filled_slots = format_slotfilling_output(slots, response)
         logger.info(f"Updated dialogue states: {filled_slots}")
         return filled_slots
@@ -199,11 +199,12 @@ class SlotFillModelAPI():
         self,
         slot: dict,
         chat_history_str,
+        model: dict,
     ) -> Verification:
         reformat_slot = {key: value for key, value in slot.items() if key in ["name", "type", "value", "enum", "description", "required"]}
         system_prompt = f"Given the conversation, definition and extracted value of each dialog state, decide whether the following dialog states values need further verification from the user. Verification is needed for expressions which may cause confusion. If it is an accurate information extracted, no verification is needed. If there is a list of enum value, which means the value has to be chosen from the enum list. Only Return boolean value: True or False. \nDialogue Statues:\n{reformat_slot}\nConversation:\n{chat_history_str}\n\n"
         response = self.get_response(
-            system_prompt, format=Verification, note="slot verification"
+            system_prompt, format=Verification, model=model, note="slot verification"
         )
         if not response: # no need to verification, we want to make sure it is really confident that we need to ask the question again
             logger.info(f"Failed to verify dialogue states")

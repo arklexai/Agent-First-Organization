@@ -12,7 +12,6 @@ from litellm import completion
 import litellm
 
 from arklex.utils.graph_state import MessageState
-from arklex.utils.model_config import MODEL
 from arklex.utils.model_provider_config import PROVIDER_MAP
 from arklex.orchestrator.prompts import RESPOND_ACTION_NAME
 
@@ -63,24 +62,25 @@ class FunctionCallingPlanner:
             {"role": "system", "content": state.sys_instruct + "Your current task is: " + task},
         ]
         messages.extend(msg_history)
+        llm_config = state.bot_config.llm_config
+        llm = PROVIDER_MAP.get(llm_config.llm_provider, ChatOpenAI)(
+            model=llm_config.model_type_or_path,
+            temperature = 0.0
+        )
 
         for _ in range(max_num_steps):
             logger.info(f"messages in function calling: {json.dumps(messages)}")
             logger.info(f"tools_info in function calling: {self.tools_info}")
             litellm.modify_params = True
             if not self.tools_info:
-                llm = PROVIDER_MAP.get(MODEL['llm_provider'], ChatOpenAI)(
-                    model=MODEL["model_type_or_path"],
-                    temperature = 0.0
-                )
                 res = llm.invoke(messages)
                 next_message = aimessage_to_dict(res)             
             else:
                 res = completion(
                     messages=messages,
-                    model=MODEL["model_type_or_path"],
-                    custom_llm_provider=MODEL["llm_provider"],
-                    tools= convert_to_gemini_tools(self.tools_info) if MODEL['llm_provider'] == 'gemini' else self.tools_info,
+                    model=llm_config.model_type_or_path,
+                    custom_llm_provider=llm_config.llm_provider,
+                    tools= convert_to_gemini_tools(self.tools_info) if llm_config.llm_provider == 'gemini' else self.tools_info,
                     temperature=0.0
                 )
                 next_message = res.choices[0].message.model_dump()

@@ -11,7 +11,6 @@ from arklex.env.shopify.tools.utils import authorify_admin
 from arklex.env.tools.tools import register_tool
 
 from arklex.utils.model_provider_config import PROVIDER_MAP
-from arklex.utils.model_config import MODEL
 from arklex.exceptions import ToolExecutionError
 from langchain_openai import ChatOpenAI
 from arklex.env.shopify.tools._exception_prompt import ShopifyExceptionPrompt
@@ -85,7 +84,7 @@ def search_products(product_query: str, **kwargs) -> str:
                 }
                 card_list.append(product_dict)
             if card_list:
-                llm = PROVIDER_MAP.get(MODEL['llm_provider'], ChatOpenAI)(model=MODEL["model_type_or_path"], timeout=30000)
+                llm = PROVIDER_MAP.get(kwargs['llm_provider'], ChatOpenAI)(model=kwargs['model_type_or_path'], temperature=0.7)
                 message = [
                     {"role": "user", "content": f"You are helping a customer search products based on the query and get results below and those results will be presented using product card format.\n\n{json.dumps(card_list)}\n\nGenerate a response to continue the conversation without explicitly mentioning contents of the search result. Include one or two questions about those products to know the user's preference. Keep the response within 50 words.\nDIRECTLY GIVE THE RESPONSE."},
                 ]

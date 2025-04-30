@@ -2,7 +2,6 @@ import requests
 import logging
 from dotenv import load_dotenv
 
-from arklex.utils.model_config import MODEL
 from arklex.utils.slot import Slot
 from arklex.orchestrator.NLU.api import nlu_api, slotfilling_api
 
@@ -14,13 +13,13 @@ class NLU:
     def __init__(self, url):
         self.url = url
 
-    def execute(self, text:str, intents:dict, chat_history_str:str) -> str:
+    def execute(self, text:str, intents:dict, chat_history_str:str, llm_config:dict) -> str:
         logger.info(f"candidates intents of NLU: {intents}")
         data = {
             "text": text,
             "intents": intents,
             "chat_history_str": chat_history_str,
-            "model":MODEL
+            "model": llm_config
         }
         if self.url:
             logger.info(f"Using NLU API to predict the intent")
@@ -44,11 +43,12 @@ class SlotFilling:
     def __init__(self, url):
         self.url = url
 
-    def verify_needed(self, slot: Slot, chat_history_str:str) -> Slot:
+    def verify_needed(self, slot: Slot, chat_history_str:str, llm_config:dict) -> Slot:
         logger.info(f"verify slot: {slot}")
         data = {
             "slot": slot.model_dump(),
-            "chat_history_str": chat_history_str
+            "chat_history_str": chat_history_str,
+            "model": llm_config
         }
         if self.url:
             logger.info(f"Using Slot Filling API to verify the slot")
@@ -70,14 +70,15 @@ class SlotFilling:
 
         return verification_needed, thought
 
-    def execute(self, slots:list[Slot], context:str, type: str = "chat") -> list[Slot]:
+    def execute(self, slots:list[Slot], context:str, llm_config:dict, type: str = "chat") -> list[Slot]:
         logger.info(f"extracted slots: {slots}")
         if not slots: return []
         
         data = {
             "slots": slots,
             "input": context,
-            "type": type
+            "type": type,
+            "model": llm_config
         }
         if self.url:
             logger.info(f"Using Slot Filling API to predict the slots")

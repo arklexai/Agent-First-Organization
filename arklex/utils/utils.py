@@ -3,7 +3,6 @@ import sys
 import json
 import logging
 from logging.handlers import RotatingFileHandler
-from arklex.utils.model_config import MODEL
 
 import tiktoken
 import Levenshtein
