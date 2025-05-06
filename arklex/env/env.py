@@ -8,7 +8,7 @@ from functools import partial
 from arklex.env.tools.tools import Tool
 from arklex.env.workers.worker import BaseWorker
 from arklex.env.planner.function_calling import FunctionCallingPlanner
-from arklex.utils.graph_state import Params, MessageState
+from arklex.utils.graph_state import Params, MessageState, NodeInfo
 from arklex.orchestrator.NLU.nlu import SlotFilling
 
 
@@ -91,7 +91,8 @@ class Env():
     def step(self, 
              id: str, 
              message_state: MessageState, 
-             params: Params):
+             params: Params,
+             node_info: NodeInfo):
         if id in self.tools:
             logger.info(f"{self.tools[id]['name']} tool selected")
             tool: Tool = self.tools[id]["execute"]()
@@ -109,7 +110,7 @@ class Env():
             # If the worker need to do the slotfilling, then it should have this method
             if hasattr(worker, "init_slotfilling"):
                 worker.init_slotfilling(self.slotfillapi)
-            response_state = worker.execute(message_state)
+            response_state = worker.execute(message_state, **node_info.additional_args)
             call_id = str(uuid.uuid4())
             params.memory.function_calling_trajectory.append({
                 'content': None, 

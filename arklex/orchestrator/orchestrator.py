@@ -167,7 +167,7 @@ class AgentOrg:
         message_state.is_stream = True if stream_type is not None else False
         message_state.message_queue = message_queue
         
-        response_state, params = self.env.step(node_info.resource_id, message_state, params)
+        response_state, params = self.env.step(node_info.resource_id, message_state, params, node_info)
         params.memory.trajectory = response_state.trajectory
         return node_info, response_state, params
     

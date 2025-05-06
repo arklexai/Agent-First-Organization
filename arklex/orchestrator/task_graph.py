@@ -125,7 +125,8 @@ class TaskGraph(TaskGraphBase):
             can_skipped=True,
             is_leaf=len(list(self.graph.successors(sample_node))) == 0,
             attributes=node_info["attribute"],
-            add_flow_stack=False
+            add_flow_stack=False,
+            additional_args={"tags": node_info["attribute"].get("tags", {})}
         )
         
         return node_info, params
@@ -228,7 +229,8 @@ class TaskGraph(TaskGraphBase):
                 resource_name = resource_name,
                 can_skipped=False,
                 is_leaf=len(list(self.graph.successors(curr_node))) == 0,
-                attributes=node_info["attribute"]
+                attributes=node_info["attribute"],
+                additional_args={"tags": node_info["attribute"].get("tags", {})}
             )
             return True, node_info, params
         return False, NodeInfo(), params
@@ -349,7 +351,8 @@ class TaskGraph(TaskGraphBase):
             resource_name = "planner",
             can_skipped=False,
             is_leaf=len(list(self.graph.successors(curr_node))) == 0,
-            attributes = {"value": "", "direct": False}
+            attributes = {"value": "", "direct": False},
+            additional_args = {"tags": {}}
         )
         return node_info, params
         

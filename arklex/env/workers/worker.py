@@ -22,12 +22,12 @@ class BaseWorker(ABC):
         return f"{self.__class__.__name__}"
     
     @abstractmethod
-    def _execute(self, msg_state: MessageState):
+    def _execute(self, msg_state: MessageState, **kwargs):
         pass
 
-    def execute(self, msg_state: MessageState):
+    def execute(self, msg_state: MessageState, **kwargs):
         try:
-            response_return = self._execute(msg_state)
+            response_return = self._execute(msg_state, **kwargs)
             response_state = MessageState.model_validate(response_return)
             response_state.trajectory[-1][-1].output = response_state.response if response_state.response else response_state.message_flow
             if response_state.status == StatusEnum.INCOMPLETE:
