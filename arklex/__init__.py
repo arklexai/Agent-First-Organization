@@ -1,3 +1,3 @@
 """Arklex framework, highly adaptable AI Agent across different applications"""
 
-__version__ = "0.0.12-rc.1"
+__version__ = "0.0.12"
