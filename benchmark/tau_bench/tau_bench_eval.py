@@ -111,7 +111,7 @@ def generate_taskgraph(config_file, output_dir):
     model = ChatOpenAI(model=MODEL["model_type_or_path"], timeout=30000)
     resource_initializer = TauBenchResourceInitializer()
     config = json.load(open(config_file))
-    generator = Generator(config, model, output_dir, resource_initializer)
+    generator = Generator(config, output_dir, model, resource_initializer, interactable_with_user=True)
     taskgraph = generator.generate()
     taskgraph_filepath = generator.save_task_graph(taskgraph)
     # Update the task graph with the API URLs

@@ -1,23 +1,19 @@
 import os
 import json
-import argparse
 import logging
 from datetime import datetime
 from tqdm import tqdm as progress_bar
-import subprocess
 import pickle
 from pathlib import Path
 import inspect
-import importlib
 from typing import Optional
 from collections import deque
 
 from langchain.prompts import PromptTemplate
 from langchain_openai.chat_models import ChatOpenAI
-from langchain_core.runnables import RunnableLambda
 from langchain_core.output_parsers import StrOutputParser
 from textual.app import App, ComposeResult
-from textual.widgets import Tree, Label, Input, Button, Static, Log
+from textual.widgets import Tree, Label, Input, Button, Static
 from textual.containers import Vertical, Horizontal
 from textual.screen import Screen
 from textual.widgets.tree import TreeNode
@@ -28,6 +24,8 @@ from arklex.utils.loader import Loader, SourceType
 import sys
 from arklex.env.env import BaseResourceInitializer, DefaulResourceInitializer
 from arklex.env.nested_graph.nested_graph import NESTED_GRAPH_ID
+from arklex.utils.model_config import MODEL
+from arklex.utils.model_provider_config import PROVIDER_MAP
 
 
 logger = logging.getLogger(__name__)
@@ -169,7 +167,9 @@ class TaskEditorApp(App):
 
 
 class Generator:
-    def __init__(self, config: dict, model, output_dir: str, resource_inizializer: Optional[BaseResourceInitializer]  = None, interactable_with_user=True):
+    def __init__(self, config: dict, output_dir: str="", model=None, resource_inizializer: Optional[BaseResourceInitializer]=None, interactable_with_user=False):
+        if model is None:
+            model = PROVIDER_MAP.get(MODEL['llm_provider'], ChatOpenAI)(model=MODEL["model_type_or_path"],timeout=30000)
         if resource_inizializer is None:
             resource_inizializer = DefaulResourceInitializer()
         self.product_kwargs = config
@@ -177,11 +177,9 @@ class Generator:
         self.u_objective = self.product_kwargs.get("user_objective")
         self.b_objective = self.product_kwargs.get("builder_objective")
         self.intro = self.product_kwargs.get("intro")
-        self.instructions = self.product_kwargs.get("instructions") 
         self.task_docs = self.product_kwargs.get("task_docs") 
-        self.rag_docs = self.product_kwargs.get("rag_docs") 
+        # self.rag_docs = self.product_kwargs.get("rag_docs") // Not used for now
         self.tasks = self.product_kwargs.get("tasks")
-        self.example_conversations = self.product_kwargs.get("example_conversations") 
         self.workers = resource_inizializer.init_workers(self.product_kwargs.get("workers"))
         self.tools = resource_inizializer.init_tools(self.product_kwargs.get("tools"))
         self.interactable_with_user = interactable_with_user

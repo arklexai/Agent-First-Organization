@@ -1,17 +1,12 @@
 import os
 import json
 import argparse
-import time
 import logging
-import subprocess
-import signal
-import atexit
 from dotenv import load_dotenv
 
 from langchain_openai import ChatOpenAI
 
 from arklex.utils.utils import init_logger
-from arklex.orchestrator.orchestrator import AgentOrg
 from arklex.orchestrator.generator.generator import Generator
 from arklex.env.tools.RAG.build_rag import build_rag
 from arklex.env.tools.database.build_database import build_database
@@ -24,7 +19,7 @@ load_dotenv()
 def generate_taskgraph(args):
     model = PROVIDER_MAP.get(MODEL['llm_provider'], ChatOpenAI)(model=MODEL["model_type_or_path"],timeout=30000)
     config = json.load(open(args.config))
-    generator = Generator(config, model, args.output_dir)
+    generator = Generator(config, args.output_dir, model, interactable_with_user=True)
     taskgraph = generator.generate()
     taskgraph_filepath = generator.save_task_graph(taskgraph)
     # Update the task graph with the API URLs
