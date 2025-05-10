@@ -119,6 +119,7 @@ class NodeInfo(BaseModel):
     is_leaf: bool = Field(default=False)
     attributes: Dict[str, Any] = Field(default_factory=dict)
     add_flow_stack: Optional[bool] = Field(default=False)
+    additional_args: Optional[dict] = Field(default={})
 
 class OrchestratorResp(BaseModel):
     answer: str = Field(default="")

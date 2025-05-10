@@ -1,5 +1,5 @@
 import logging
-
+from functools import partial
 from langgraph.graph import StateGraph, START
 from langchain_openai import ChatOpenAI
 from langchain.prompts import PromptTemplate
@@ -23,7 +23,6 @@ class RagMsgWorker(BaseWorker):
 
     def __init__(self):
         super().__init__()
-        self.action_graph = self._create_action_graph()
 
     def _choose_retriever(self, state: MessageState):
         prompts = load_prompts(state.bot_config)
@@ -37,11 +36,13 @@ class RagMsgWorker(BaseWorker):
             return "retriever"
         return "message_worker"
      
-    def _create_action_graph(self):
+    def _create_action_graph(self, tags: dict):
         workflow = StateGraph(MessageState)
+        # Create a partial function with the extra argument bound
+        retriever_with_args = partial(RetrieveEngine.milvus_retrieve, tags=tags)
         # Add nodes for each worker
         msg_wkr = MessageWorker()
-        workflow.add_node("retriever", RetrieveEngine.milvus_retrieve)
+        workflow.add_node("retriever", retriever_with_args)
         workflow.add_node("message_worker", msg_wkr.execute)
         # Add edges
         workflow.add_conditional_edges(
@@ -49,10 +50,12 @@ class RagMsgWorker(BaseWorker):
         workflow.add_edge("retriever", "message_worker")
         return workflow
 
-    def _execute(self, msg_state: MessageState):
+    def _execute(self, msg_state: MessageState, **kwargs):
         self.llm = PROVIDER_MAP.get(msg_state.bot_config.llm_config.llm_provider, ChatOpenAI)(
             model=msg_state.bot_config.llm_config.model_type_or_path
         )
+        self.tags = kwargs.get("tags", {})
+        self.action_graph = self._create_action_graph(self.tags)
         graph = self.action_graph.compile()
         result = graph.invoke(msg_state)
         return result

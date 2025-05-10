@@ -28,13 +28,13 @@ logger.setLevel(logging.INFO)
 
 class RetrieveEngine():
     @staticmethod
-    def milvus_retrieve(state: MessageState):
+    def milvus_retrieve(state: MessageState, tags: dict = {}):
         # get the input message
         user_message = state.user_message
 
         # Search for the relevant documents
         milvus_retriever = MilvusRetrieverExecutor(state.bot_config)
-        retrieved_text, retriever_params = milvus_retriever.retrieve(user_message.history)
+        retrieved_text, retriever_params = milvus_retriever.retrieve(user_message.history, tags)
 
         state.message_flow = retrieved_text
         state = trace(input=retriever_params, state=state)
@@ -132,6 +132,64 @@ class MilvusRetriever:
                 raise e
         return res
     
+    def update_tag_by_qa_doc_id(self, collection_name: str, qa_doc_id: str, tags: dict):
+        """
+        Updates tags for all vector entries associated with a specific qa_doc_id.
+
+        Args:
+            collection_name: The name of the Milvus collection.
+            qa_doc_id: The qa_doc_id to identify the vectors.
+            tags: The new tags dictionary to apply.
+        """
+        logger.info(
+            f"Updating metadata for qa_doc_id {qa_doc_id} in collection {collection_name}")
+
+        # Query all vectors matching the qa_doc_id
+        res = self.client.query(
+            collection_name=collection_name,
+            filter=f"qa_doc_id == '{qa_doc_id}'",
+            output_fields=[
+                "id", 
+                "qa_doc_id", 
+                "bot_uid", 
+                "chunk_id", 
+                "qa_doc_type",
+                "metadata", 
+                "text", 
+                "embedding", 
+                "timestamp"
+            ],
+        )
+
+        if len(res) == 0:
+            logger.error(
+                f"No vectors found for qa_doc_id {qa_doc_id} in collection {collection_name}. No update performed.")
+            raise ValueError(f"No vectors found for qa_doc_id {qa_doc_id} in collection {collection_name}. No update performed.")
+
+        logger.info(
+            f"Found {len(res)} vectors for qa_doc_id {qa_doc_id}. Preparing update.")
+
+        updated_vectors = []
+        for vector_data in res:
+            updated_vector = vector_data
+            if updated_vector.get("metadata", {}):
+                updated_vector["metadata"]["tags"] = tags
+            else:
+                updated_vector["metadata"] = {"tags": tags}
+            updated_vectors.append(updated_vector)
+
+        # Upsert the updated vectors
+        try:
+            res = self.client.upsert(
+                collection_name=collection_name, data=updated_vectors)
+            logger.info(
+                f"Successfully upserted {len(updated_vectors)} vectors with new tags {tags} for qa_doc_id {qa_doc_id}. Upsert result: {res}")
+            return res
+        except Exception as e:
+            logger.error(
+                f"Failed to upsert updated vectors for qa_doc_id {qa_doc_id}: {e}")
+            raise ValueError(f"Failed to upsert updated vectors with new tags {tags} for qa_doc_id {qa_doc_id}: {e}")
+    
     def add_documents_parallel(
         self, collection_name: str, bot_id: str, version: str, documents: List[RetrieverDocument], process_pool: Pool, upsert: bool = False
     ):
@@ -203,18 +261,24 @@ class MilvusRetriever:
                 raise e
         return res
 
-    def search(self, collection_name: str, bot_id: str, version: str, query: str, top_k: int = 4) -> List[RetrieverResult]:
+    def search(self, collection_name: str, bot_id: str, version: str, query: str, tags: dict = {}, top_k: int = 4) -> List[RetrieverResult]:
         logger.info(
             f"Retreiver search for query: {query} on collection {collection_name} for bot_id: {bot_id} version: {version}"
         )
         
         partition_key = self.get_bot_uid(bot_id, version)
         query_embedding = embed(query)
+        filter = f'bot_uid == "{partition_key}"'
+        if tags:
+            # NOTE: Only support one tag for now
+            for key, value in tags.items():
+                filter += f' and metadata["tags"]["{key}"] == "{value}"'
+                break
         res = self.client.search(
             collection_name=collection_name,
             data=[query_embedding],
             limit=top_k,
-            filter=f"bot_uid == '{partition_key}'",
+            filter=filter,
             output_fields=["qa_doc_id", "chunk_id", "qa_doc_type", "metadata", "text"],
         )
 
@@ -609,7 +673,7 @@ class MilvusRetrieverExecutor:
             retriever_returns.append(item)
         return {"retriever": retriever_returns}
 
-    def retrieve(self, chat_history_str):
+    def retrieve(self, chat_history_str, tags: dict = {}):
         """Given a chat history, retrieve relevant information from the database."""
         st = time.time()
         prompts = load_prompts(self.bot_config)
@@ -624,7 +688,7 @@ class MilvusRetrieverExecutor:
         st = time.time()
         milvus_db = mysql_pool.fetchone("SELECT collection_name FROM qa_bot WHERE id=%s AND version=%s", (self.bot_config.bot_id, self.bot_config.version))
         with MilvusRetriever() as retriever:
-            ret_results = retriever.search(milvus_db["collection_name"], self.bot_config.bot_id, self.bot_config.version, ret_input)
+            ret_results = retriever.search(milvus_db["collection_name"], self.bot_config.bot_id, self.bot_config.version, ret_input, tags)
         rt = time.time() - st
         logger.info(f"MilvusRetriever search took {rt} seconds")
         retriever_params = self.postprocess(ret_results)

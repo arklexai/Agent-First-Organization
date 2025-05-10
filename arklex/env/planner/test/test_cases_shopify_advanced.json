@@ -1,0 +1,78 @@
+[
+    {
+        "test_id": 0,
+        "user_utterance": [
+            "Can you tell me the total amount I've spent?",
+            "no-orders-test@example.com"
+        ],
+        "description": "Question about total amount spent",
+        "criteria": "Prompt user for email, then provide total amount spent ($0.00)",
+        "final_state": "Answer user query",
+        "taskgraph": "./shopify_empty_1/taskgraph.json",
+        "expected_output": {
+            "contains": {
+                "any": [
+                    "$0",
+                    "$0.0",
+                    "0 dollars",
+                    "0.0 dollars",
+                    "no orders"
+                ]
+            }
+        },
+        "expected_tool_calls": {
+            "find_user_id_by_email": 1,
+            "get_user_details_admin": 1
+        }
+    },
+    {
+        "test_id": 1,
+        "user_utterance": [
+            "Can you please tell me the order IDs for my most recent orders?",
+            "two-orders-test@example.com"
+        ],
+        "description": "Question about recent order IDs",
+        "criteria": "Prompt user for email, then provide order IDs of (two) most recent orders from user details",
+        "final_state": "Answer user query",
+        "taskgraph": "./shopify_empty_1/taskgraph.json",
+        "expected_output": {
+            "contains": {
+                "all": [
+                    "6284127568102",
+                    "6284126519526"
+                ]
+            }
+        },
+        "expected_tool_calls": {
+            "find_user_id_by_email": 1,
+            "get_user_details_admin": 1
+        }
+    },
+    {
+        "test_id": 2,
+        "user_utterance": [
+            "Can you please show me the order details for my latest order?",
+            "single-order-test@example.com"
+        ],
+        "description": "Question about order details from recent order ",
+        "criteria": "Prompt user for email, then provide order details of latest (and only) order from user's order history",
+        "final_state": "Answer user query",
+        "taskgraph": "./shopify_empty_1/taskgraph.json",
+        "expected_output": {
+            "contains": {
+                "all": [
+                    "Pink Unicorn Boys & Girls Baseball Hat with Adjustable Buckle (One Size Fits Most)"
+                ],
+                "any": [
+                    "$19.99",
+                    "19.99 USD"
+                ]
+            }
+        },
+        "expected_tool_calls": {
+            "find_user_id_by_email": 1,
+            "get_user_details_admin": 1,
+            "get_order_details": 1
+        }
+    }
+]

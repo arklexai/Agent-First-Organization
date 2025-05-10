@@ -1,0 +1,143 @@
+{
+    "edges": [
+    ],
+    "nodes": [
+        [
+            "0",
+            {
+                "resource": {
+                    "id": "MessageWorker",
+                    "name": "MessageWorker"
+                },
+                "attribute": {
+                    "value": "Hello! Welcome to our shop! We’re so excited to have you here! Do you need any recommendations?",
+                    "task": "start message",
+                    "directed": false
+                },
+                "limit": 10,
+                "type": "start"
+            }
+        ]
+    ],
+    "tools": [
+        {
+            "id": "ddbe6adc-cd0e-40bc-8a95-91cb69ed807b",
+            "name": "find_user_id_by_email",
+            "path": "shopify/find_user_id_by_email.py",
+            "fixed_args": {
+                "admin_token": "<shopify_admin_token>",
+                "shop_url": "<your-shopify-shop-url>",
+                "api_version": "2024-10"
+            }
+        },
+        {
+            "id": "55011bc1-2a55-4e21-bf39-e9624729c8d8",
+            "name": "get_user_details_admin",
+            "path": "shopify/get_user_details_admin.py",
+            "fixed_args": {
+                "admin_token": "<shopify_admin_token>",
+                "shop_url": "<your-shopify-shop-url>",
+                "api_version": "2024-10"
+            }
+        },
+        {
+            "id": "2b275abc-6226-2013-ba05-t4ab83daalc3",
+            "name": "search_products",
+            "path": "shopify/search_products.py",
+            "fixed_args": {
+                "admin_token": "<shopify_admin_token>",
+                "shop_url": "<your-shopify-shop-url>",
+                "api_version": "2024-10"
+            }
+        },
+        {
+            "id": "2a2750cb-6226-4068-ba05-a4db83da3e16",
+            "name": "get_order_details",
+            "path": "shopify/get_order_details.py",
+            "fixed_args": {
+                "admin_token": "<shopify_admin_token>",
+                "shop_url": "<your-shopify-shop-url>",
+                "api_version": "2024-10"
+            }
+        },
+        {
+            "id": "22fae76f-085c-4098-9011-2ae1e1eb8dc3",
+            "name": "get_products",
+            "path": "shopify/get_products.py",
+            "fixed_args": {
+                "admin_token": "<shopify_admin_token>",
+                "shop_url": "<your-shopify-shop-url>",
+                "api_version": "2024-10"
+            }
+        },
+        {
+            "id": "xl34e76f-025c-4xl2-0s2j-l4e1eal2naak",
+            "name": "get_web_product",
+            "path": "shopify/get_web_product.py",
+            "fixed_args": {
+                "admin_token": "<shopify_admin_token>",
+                "shop_url": "<your-shopify-shop-url>",
+                "api_version": "2024-10"
+            }
+        },
+        {
+            "id": "alfse0ls-lx4f-a01m-1mch-a4dfsl010end",
+            "name": "return_products",
+            "path": "shopify/return_products.py",
+            "fixed_args": {
+                "admin_token": "<shopify_admin_token>",
+                "shop_url": "<your-shopify-shop-url>",
+                "api_version": "2024-10"
+            }
+        },
+        {
+            "id": "alla05l2-3kd1-x9iw-10k3-algk3xenfsl9",
+            "name": "cancel_order",
+            "path": "shopify/cancel_order.py",
+            "fixed_args": {
+                "admin_token": "<shopify_admin_token>",
+                "shop_url": "<your-shopify-shop-url>",
+                "api_version": "2024-10"
+            }
+        },
+        {
+            "id": "alfseal2-al94-2kdq-slci-aldjcjenfead",
+            "name": "get_cart",
+            "path": "shopify/get_cart.py",
+            "fixed_args": {
+                "storefront_token": "<shopify_storefront_token>",
+                "shop_url": "<your-shopify-shop-url>",
+                "api_version": "2024-10"
+            }
+        },
+        {
+            "id": "2alak3db-sl36-4zk9-aa35-a4dlkfm3se16",
+            "name": "cart_add_items",
+            "path": "shopify/cart_add_items.py",
+            "fixed_args": {
+                "storefront_token": "<shopify_storefront_token>",
+                "shop_url": "<your-shopify-shop-url>",
+                "api_version": "2024-10"
+            }
+        }
+    ],
+    "workers": [
+        {
+            "id": "MessageWorker",
+            "name": "MessageWorker",
+            "path": "message_worker.py"
+        }
+    ],
+    "role": "customer service assistant",
+    "user_objective": "The customer service assistant helps users with customer service inquiries. It can provide information about products, services, and policies, as well as help users resolve issues and complete transactions.",
+    "builder_objective": "The customer service assistant helps to request customer's contact information.",
+    "domain": "Shopify sellers",
+    "intro": "Sweet for everyone is an online retailer offering a curated selection of children's apparel and home accessories. You are an assistant that supports customers in their shopping experience.",
+    "task_docs": [
+    ],
+    "rag_docs": [
+    ],
+    "tasks": [],
+    "nluapi": "",
+    "slotfillapi": ""
+}

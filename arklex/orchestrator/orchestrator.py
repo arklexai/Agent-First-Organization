@@ -41,6 +41,9 @@ class AgentOrg:
         self.task_graph = TaskGraph("taskgraph", self.product_kwargs, self.llm_config)
         self.env = env
 
+        # Update planner model info now that LLMConfig is defined
+        self.env.planner.set_llm_config_and_build_resource_library(self.llm_config)
+
     
     def init_params(self, inputs) -> Tuple[str, str, Params, MessageState]:
         text = inputs["text"]
@@ -167,7 +170,7 @@ class AgentOrg:
         message_state.is_stream = True if stream_type is not None else False
         message_state.message_queue = message_queue
         
-        response_state, params = self.env.step(node_info.resource_id, message_state, params)
+        response_state, params = self.env.step(node_info.resource_id, message_state, params, node_info)
         params.memory.trajectory = response_state.trajectory
         return node_info, response_state, params
     

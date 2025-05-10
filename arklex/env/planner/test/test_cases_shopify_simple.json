@@ -1,0 +1,259 @@
+[
+    {
+        "test_id": 0,
+        "user_utterance": [
+            "What is my user ID? My email is no-orders-test@example.com."
+        ],
+        "description": "Question about user ID where user email is provided",
+        "criteria": "Provide Shopify user ID",
+        "final_state": "Answer user query",
+        "taskgraph": "./shopify_empty_1/taskgraph.json",
+        "expected_output": {
+            "contains": {
+                "all": [
+                    "8746985521382"
+                ]
+            }
+        },
+        "expected_tool_calls": {
+            "find_user_id_by_email": 1
+        }
+    },
+    {
+        "test_id": 1,
+        "user_utterance": [
+            "Can you please tell me my user ID?",
+            "no-orders-test@example.com"
+        ],
+        "description": "Question about user ID",
+        "criteria": "Prompt user for email, then provide Shopify user ID",
+        "final_state": "Answer user query",
+        "taskgraph": "./shopify_empty_1/taskgraph.json",
+        "expected_output": {
+            "contains": {
+                "all": [
+                    "8746985521382"
+                ]
+            }
+        },
+        "expected_tool_calls": {
+            "find_user_id_by_email": 1
+        }
+    },
+    {
+        "test_id": 2,
+        "user_utterance": [
+            "Can you tell me the user details associated with my account?",
+            "two-orders-test@example.com"
+        ],
+        "description": "Question about user details",
+        "criteria": "Prompt user for email, then provide user details",
+        "final_state": "Answer user query",
+        "taskgraph": "./shopify_empty_1/taskgraph.json",
+        "expected_output": {
+            "contains": {
+                "all": [
+                    "58.98",
+                    "two-orders",
+                    "test-customer",
+                    "2381 Dongan Pl",
+                    "two-orders-test@example.com"
+                ]
+            }
+        },
+        "expected_tool_calls": {
+            "find_user_id_by_email": 1,
+            "get_user_details_admin": 1
+        }
+    },
+    {
+        "test_id": 3,
+        "user_utterance": [
+            "Can you show me the product information for the product with ID 8970008461542?"
+        ],
+        "description": "Question about product details",
+        "criteria": "Provide product details of product with specified product ID",
+        "final_state": "Answer user query",
+        "taskgraph": "./shopify_empty_1/taskgraph.json",
+        "expected_output": {
+            "contains": {
+                "all": [
+                    "Inyahome",
+                    "Japan Style",
+                    "Rectangle"
+                ],
+                "any": [
+                    "Cushion Cover",
+                    "Pillow Cover"
+                ]
+            }
+        },
+        "expected_tool_calls": {
+            "options": [
+                {
+                    "get_products": 1
+                },
+                {
+                    "get_web_product": 1
+                }
+            ]
+        }
+    },
+    {
+        "test_id": 4,
+        "user_utterance": [
+            "Can you retrieve my cart info? My cart ID is gid://shopify/Cart/Z2NwLXVzLWVhc3QxOjAxSlFTNDgxVlFBOE4yN1g1UkpHNkIyUEVH?key=f21355e2f1f6491ddc8a6d667ad1104f."
+        ],
+        "description": "Question about cart info",
+        "criteria": "Provide cart info (product name and checkout URL) given cart ID",
+        "final_state": "Answer user query",
+        "taskgraph": "./shopify_empty_1/taskgraph.json",
+        "expected_output": {
+            "contains": {
+                "all": [
+                    "Bedding Set Solid Color Luxury Bedding Kit",
+                    "https://arklex-test-store.myshopify.com/cart/c/Z2NwLXVzLWVhc3QxOjAxSlFTNDgxVlFBOE4yN1g1UkpHNkIyUEVH?key=f21355e2f1f6491ddc8a6d667ad1104f"
+                ]
+            }
+        },
+        "expected_tool_calls": {
+            "get_cart": 1
+        }
+    },
+    {
+        "test_id": 5,
+        "user_utterance": [
+            "Can you search for products matching 'Duvet Cover'?"
+        ],
+        "description": "Question about searching products",
+        "criteria": "Provide list of products matching user query",
+        "final_state": "Answer user query",
+        "taskgraph": "./shopify_empty_1/taskgraph.json",
+        "expected_output": {
+            "contains": {
+                "any": [
+                    "Soft Skin-friendly Flannel Duvet Cover",
+                    "Bedding Set Solid Color Luxury Bedding Kit Rayon Satin Duvet Cover Set",
+                    "Nordic Simple Bedding Set Adult Duvet Cover Set",
+                    "Marble Pattern Printed Duvet Cover Set",
+                    "Bedding Comforter Cover Sets with 3D Seaside Print",
+                    "Solstice Home Textile Black Lattice Duvet Cover Pillowcase Bed Sheet"
+                ]
+            }
+        },
+        "expected_tool_calls": {
+            "search_products": 1
+        }
+    },
+    {
+        "test_id": 6,
+        "user_utterance": [
+            "I am looking for a throw pillow, can you show me some relevant products?"
+        ],
+        "description": "Question about searching products",
+        "criteria": "Provide list of products matching user query",
+        "final_state": "Answer user query",
+        "taskgraph": "./shopify_empty_1/taskgraph.json",
+        "expected_output": {
+            "contains": {
+                "any": [
+                    "Flower Plush Throw Pillow",
+                    "Inyahome New Art Velvet Cushion Cover"
+                ]
+            }
+        },
+        "expected_tool_calls": {
+            "search_products": 1
+        }
+    },
+    {
+        "test_id": 7,
+        "user_utterance": [
+            "Can you add the product with variant ID gid://shopify/ProductVariant/45802063429862 to my cart? My cart ID is gid://shopify/Cart/Z2NwLXVzLWVhc3QxOjAxSlFTNDgxVlFBOE4yN1g1UkpHNkIyUEVH?key=f21355e2f1f6491ddc8a6d667ad1104f."
+        ],
+        "description": "Request to add product variant to cart",
+        "criteria": "Add product with specified variant ID to cart with specified cart ID and output checkout URL from updated cart details",
+        "final_state": "Answer user query",
+        "taskgraph": "./shopify_empty_1/taskgraph.json",
+        "expected_output": {
+            "contains": {
+                "any": ["", " "]
+            }
+        },
+        "expected_tool_calls": {
+            "cart_add_items": 1
+        }
+    },
+    {
+        "test_id": 8,
+        "user_utterance": [
+            "Can you please retrieve my user details?",
+            "my-email-address@gmail.com"
+        ],
+        "description": "Request to retrieve user details for invalid email address",
+        "criteria": "Inform user that account with this email was unable to be found",
+        "final_state": "Answer user query",
+        "taskgraph": "./shopify_empty_1/taskgraph.json",
+        "expected_output": {
+            "contains": {
+                "any": [
+                    "multiple users with this email",
+                    "multiple users with the same email",
+                    "multiple user accounts",
+                    "email not found",
+                    "could not find an account for this email",
+                    "could not find account",
+                    "could not find your account",
+                    "couldn't find an account",
+                    "couldnt find an account",
+                    "couldn't find your account",
+                    "couldnt find your account",
+                    "couldn't find the account",
+                    "couldnt find the account",
+                    "invalid email",
+                    "no account",
+                    "failed",
+                    "unable to find a user",
+                    "unable to find user"
+                ]
+            }
+        },
+        "expected_tool_calls": {
+            "find_user_id_by_email": 1
+        }
+    },
+    {
+        "test_id": 9,
+        "user_utterance": [
+            "Can you show me the order details for the order ID xyz4232445312? My user ID is gid://shopify/Customer/13573257450893 and the order name is 'my first order'."
+        ],
+        "description": "Request to retrieve order details for invalid order and user ID",
+        "criteria": "Inform user that order with this ID was not found",
+        "final_state": "Answer user query",
+        "taskgraph": "./shopify_empty_1/taskgraph.json",
+        "expected_output": {
+            "contains": {
+                "any": [
+                    "no orders",
+                    "could not find",
+                    "did not find",
+                    "failed",
+                    "couldn't find any orders",
+                    "couldnt find any orders",
+                    "couldn't find an order",
+                    "couldnt find an order"
+                ]
+            }
+        },
+        "expected_tool_calls": {
+            "options": [
+                {
+                    "get_order_details": 1
+                },
+                {
+                    "get_order_details": 2
+                }
+            ]
+        }
+    }
+]
