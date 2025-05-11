@@ -53,6 +53,7 @@ SUCCESS = "The event has been created successfully at {start_time}. The meeting 
 @register_tool(description, slots, outputs)
 def create_event(email:str, event: str, start_time: str, timezone: str, duration=30, **kwargs) -> str:
     func_name = inspect.currentframe().f_code.co_name
+    breakpoint()
     # Authenticate using the service account
     try:
         service_account_info = kwargs.get("service_account_info")
@@ -104,6 +105,7 @@ def create_event(email:str, event: str, start_time: str, timezone: str, duration
         }
 
         # Insert the event
+        breakpoint()
         event = service.events().insert(calendarId=calendar_id, body=final_event).execute()
         print('Event created: %s' % (event.get('htmlLink')))
 

@@ -23,7 +23,8 @@ class BaseResourceInitializer:
     @staticmethod
     def init_workers(workers):
         raise NotImplementedError
-    
+
+
 class DefaulResourceInitializer(BaseResourceInitializer):
     @staticmethod
     def init_tools(tools):
@@ -33,9 +34,11 @@ class DefaulResourceInitializer(BaseResourceInitializer):
             tool_id = tool["id"]
             name = tool["name"]
             path = tool["path"]
-            try: # try to import the tool to check its existance
-                package, tool_name = path.split("/")[0], path.split("/")[1]
-                filepath = os.path.join(f"arklex.env.{package}.tools", tool_name)
+            try:  # try to import the tool to check its existance
+                package, tool_name = "/".join(path.split("/")
+                                              [:-1]), path.split("/")[-1]
+                filepath = os.path.join(
+                    f"arklex.env.{package}.tools", tool_name)
                 module_name = filepath.replace(os.sep, ".").rstrip(".py")
                 module = importlib.import_module(module_name)
                 func = getattr(module, name)
@@ -49,7 +52,7 @@ class DefaulResourceInitializer(BaseResourceInitializer):
                 "fixed_args": tool.get("fixed_args", {}),
             }
         return tool_registry
-    
+
     @staticmethod
     def init_workers(workers):
         worker_registry = {}
@@ -57,7 +60,7 @@ class DefaulResourceInitializer(BaseResourceInitializer):
             worker_id = worker["id"]
             name = worker["name"]
             path = worker["path"]
-            try: # try to import the worker to check its existance
+            try:  # try to import the worker to check its existance
                 filepath = os.path.join("arklex.env.workers", path)
                 module_name = filepath.replace(os.sep, ".").rstrip(".py")
                 module = importlib.import_module(module_name)
@@ -72,16 +75,19 @@ class DefaulResourceInitializer(BaseResourceInitializer):
             }
         return worker_registry
 
+
 class Env():
-    def __init__(self, tools, workers, slotsfillapi = "", resource_inizializer: Optional[BaseResourceInitializer] = None, planner_enabled: bool = False):
+    def __init__(self, tools, workers, slotsfillapi="", resource_inizializer: Optional[BaseResourceInitializer] = None, planner_enabled: bool = False):
         if resource_inizializer is None:
             resource_inizializer = DefaulResourceInitializer()
         self.tools = resource_inizializer.init_tools(tools)
         self.workers = resource_inizializer.init_workers(workers)
-        self.name2id = {resource["name"]: id for id, resource in {**self.tools, **self.workers}.items()}
-        self.id2name = {id: resource["name"] for id, resource in {**self.tools, **self.workers}.items()}
+        self.name2id = {resource["name"]: id for id, resource in {
+            **self.tools, **self.workers}.items()}
+        self.id2name = {id: resource["name"] for id, resource in {
+            **self.tools, **self.workers}.items()}
         self.slotfillapi = self.initialize_slotfillapi(slotsfillapi)
-        
+
         if planner_enabled:
             self.planner = ReactPlanner(
                 tools_map=self.tools,
@@ -94,13 +100,13 @@ class Env():
                 workers_map=self.workers,
                 name2id=self.name2id
             )
-            
+
     def initialize_slotfillapi(self, slotsfillapi):
         return SlotFilling(slotsfillapi)
 
-    def step(self, 
-             id: str, 
-             message_state: MessageState, 
+    def step(self,
+             id: str,
+             message_state: MessageState,
              params: Params,
              node_info: NodeInfo):
         if id in self.tools:
@@ -108,28 +114,29 @@ class Env():
             tool: Tool = self.tools[id]["execute"]()
             # slotfilling is in the basetoool class
             tool.init_slotfilling(self.slotfillapi)
-            response_state = tool.execute(message_state, **self.tools[id]["fixed_args"])
+            response_state = tool.execute(
+                message_state, **self.tools[id]["fixed_args"])
             params.memory.function_calling_trajectory = response_state.function_calling_trajectory
             params.taskgraph.dialog_states = response_state.slots
             params.taskgraph.node_status[params.taskgraph.curr_node] = response_state.status
 
-                
         elif id in self.workers:
             logger.info(f"{self.workers[id]['name']} worker selected")
             worker: BaseWorker = self.workers[id]["execute"]()
             # If the worker need to do the slotfilling, then it should have this method
             if hasattr(worker, "init_slotfilling"):
                 worker.init_slotfilling(self.slotfillapi)
-            response_state = worker.execute(message_state, **node_info.additional_args)
+            response_state = worker.execute(
+                message_state, **node_info.additional_args)
             call_id = str(uuid.uuid4())
             params.memory.function_calling_trajectory.append({
-                'content': None, 
-                'role': 'assistant', 
-                'tool_calls': [{'function': {'arguments': "{}", 'name': self.id2name[id]}, 'id': call_id, 'type': 'function'}], 
+                'content': None,
+                'role': 'assistant',
+                'tool_calls': [{'function': {'arguments': "{}", 'name': self.id2name[id]}, 'id': call_id, 'type': 'function'}],
                 'function_call': None
             })
             params.memory.function_calling_trajectory.append({
-                        "role": "tool",
+                "role": "tool",
                         "tool_call_id": call_id,
                         "name": self.id2name[id],
                         "content": response_state.response if response_state.response else response_state.message_flow,
@@ -137,8 +144,8 @@ class Env():
             params.taskgraph.node_status[params.taskgraph.curr_node] = response_state.status
         else:
             logger.info("planner selected")
-            action, response_state, msg_history = self.planner.execute(message_state, params.memory.function_calling_trajectory)
-        
-        
+            action, response_state, msg_history = self.planner.execute(
+                message_state, params.memory.function_calling_trajectory)
+
         logger.info(f"Response state from {id}: {response_state}")
         return response_state, params

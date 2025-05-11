@@ -57,13 +57,9 @@
     "rag_docs": [
     ],
     "tasks": [],
-    "tools": [
-        {"id": "ddbe6adc-cd0e-40bc-8a95-91cb69ed807b", "name": "create_event", "path": "google/calendar/create_event.py", "fixed_args": {"service_account_info": "<credential json content from service account app key>", "delegated_user": "<the account creat service account>"}}
-    ],
-    "workers": [
-        {"id": "be303c9a-a902-4de9-bbb2-61343e59e888", "name": "MessageWorker", "path": "message_worker.py"},
-        {"id": "40f05456-525c-4d9d-ac37-54482d6b220b", "name": "FaissRAGWorker", "path": "faiss_rag_worker.py"}
-    ],
+    "platform": "google.calendar",
+    "fixed_args":{"service_account_info": "<credential json content from service account app key>",
+    "delegated_user": "<service account>"},
     "nluapi": "",
     "slotfillapi": ""
 }
