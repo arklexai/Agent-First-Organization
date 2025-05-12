@@ -32,14 +32,11 @@ def get_api_bot_response(config, history, user_text, parameters, env):
 
 
 def _load_resources(platform, resource_type):
-    if platform is None:
-        return []
-
     try:
         resources = getattr(importlib.import_module(
             f"arklex.env.{platform}.resources"), "RESOURCES", [])
         return [
-            resource for resource in resources if resource.type == resource_type
+            r for r in resources if r.type == resource_type
         ]
     except (ImportError, AttributeError) as e:
         print(
@@ -82,9 +79,15 @@ if __name__ == "__main__":
     # Initialize env
     config = json.load(open(os.path.join(args.input_dir, "taskgraph.json")))
     config["model"] = model
+
+    platform = config.get("platform")
+    tools = load_tools(platform, config.get("fixed_args")
+                       ) if platform else config.get("tools", [])
+    workers = load_workers(platform) if platform else config.get("workers", [])
+
     env = Env(
-        tools=load_tools(config.get("platform"), config.get("fixed_args")),
-        workers=load_workers(config.get("platform")),
+        tools=tools,
+        workers=workers,
         slotsfillapi=config["slotfillapi"]
     )
 
