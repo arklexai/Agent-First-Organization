@@ -9,9 +9,9 @@ import parsedatetime
 from hubspot.crm.objects.meetings import ApiException
 
 from arklex.env.tools.tools import register_tool, logger
-from arklex.env.tools.hubspot.utils import authenticate_hubspot
+from arklex.env.hubspot.tools.utils import authenticate_hubspot
 from arklex.exceptions import ToolExecutionError
-from arklex.env.tools.hubspot._exception_prompt import HubspotExceptionPrompt
+from arklex.env.hubspot.tools._exception_prompt import HubspotExceptionPrompt
 
 
 description = "Schedule a meeting for the existing customer with the specific representative. If you are not sure any information, please ask users to confirm in response."
@@ -100,10 +100,11 @@ def create_meeting(cus_fname: str, cus_lname: str, cus_email: str, meeting_date:
     func_name = inspect.currentframe().f_code.co_name
     access_token = authenticate_hubspot(kwargs)
 
-    meeting_date = parse_natural_date(meeting_date, timezone=time_zone, date_input=True)
-    meeting_start_time = parse_natural_date(meeting_start_time, meeting_date, timezone=time_zone)
+    meeting_date = parse_natural_date(
+        meeting_date, timezone=time_zone, date_input=True)
+    meeting_start_time = parse_natural_date(
+        meeting_start_time, meeting_date, timezone=time_zone)
     meeting_start_time = int(meeting_start_time.timestamp() * 1000)
-
 
     duration = int(duration)
     duration = int(timedelta(minutes=duration).total_seconds() * 1000)
@@ -113,9 +114,11 @@ def create_meeting(cus_fname: str, cus_lname: str, cus_email: str, meeting_date:
     bt_slots_ux = json.loads(bt_slots_ux)
     for time_slot in bt_slots_ux:
         if meeting_start_time >= time_slot['start'] and meeting_start_time < time_slot['end']:
-            raise ToolExecutionError(func_name, HubspotExceptionPrompt.MEETING_UNAVAILABLE_PROMPT)
+            raise ToolExecutionError(
+                func_name, HubspotExceptionPrompt.MEETING_UNAVAILABLE_PROMPT)
         elif meeting_end_time >= time_slot['start'] and meeting_end_time <= time_slot['end']:
-            raise ToolExecutionError(func_name, HubspotExceptionPrompt.MEETING_UNAVAILABLE_PROMPT)
+            raise ToolExecutionError(
+                func_name, HubspotExceptionPrompt.MEETING_UNAVAILABLE_PROMPT)
 
     api_client = hubspot.Client.create(access_token=access_token)
 
@@ -144,7 +147,8 @@ def create_meeting(cus_fname: str, cus_lname: str, cus_email: str, meeting_date:
         return json.dumps(create_meeting_response)
     except ApiException as e:
         logger.info("Exception when scheduling a meeting: %s\n" % e)
-        raise ToolExecutionError(func_name, HubspotExceptionPrompt.MEETING_UNAVAILABLE_PROMPT)
+        raise ToolExecutionError(
+            func_name, HubspotExceptionPrompt.MEETING_UNAVAILABLE_PROMPT)
 
 
 def parse_natural_date(date_str, base_date=None, timezone=None, date_input=False):
@@ -163,5 +167,3 @@ def parse_natural_date(date_str, base_date=None, timezone=None, date_input=False
         parsed_dt = local_timezone.localize(parsed_dt)
         parsed_dt = parsed_dt.astimezone(pytz.utc)
     return parsed_dt
-
-

@@ -6,9 +6,9 @@ from hubspot.crm.objects.communications.models import SimplePublicObjectInputFor
 from hubspot.crm.associations.v4 import AssociationSpec
 
 from arklex.env.tools.tools import register_tool, logger
-from arklex.env.tools.hubspot.utils import authenticate_hubspot
+from arklex.env.hubspot.tools.utils import authenticate_hubspot
 from arklex.exceptions import ToolExecutionError
-from arklex.env.tools.hubspot._exception_prompt import HubspotExceptionPrompt
+from arklex.env.hubspot.tools._exception_prompt import HubspotExceptionPrompt
 description = "Find the contacts record by email. If the record is found, the lastmodifieddate of the contact will be updated. If the correspodning record is not found, the function will return an error message."
 
 
@@ -65,7 +65,7 @@ def find_contact_by_email(email: str, chat: str, **kwargs) -> str:
         if contact_search_response['total'] == 1:
             contact_id = contact_search_response['results'][0]['id']
             communication_data = SimplePublicObjectInputForCreate(
-                properties = {
+                properties={
                     "hs_communication_channel_type": "CUSTOM_CHANNEL_CONVERSATION",
                     "hs_communication_body": chat,
                     "hs_communication_logged_from": "CRM",
@@ -79,7 +79,8 @@ def find_contact_by_email(email: str, chat: str, **kwargs) -> str:
                 'contact_last_name': contact_search_response['results'][0]['properties'].get('lastname')
             }
             try:
-                communication_creation_response = api_client.crm.objects.communications.basic_api.create(communication_data)
+                communication_creation_response = api_client.crm.objects.communications.basic_api.create(
+                    communication_data)
                 communication_creation_response = communication_creation_response.to_dict()
                 communication_id = communication_creation_response['id']
                 association_spec = [
@@ -97,15 +98,15 @@ def find_contact_by_email(email: str, chat: str, **kwargs) -> str:
                         association_spec=association_spec
                     )
                 except ApiException as e:
-                    logger.info("Exception when calling AssociationV4: %s\n" % e)
+                    logger.info(
+                        "Exception when calling AssociationV4: %s\n" % e)
             except ApiException as e:
                 logger.info("Exception when calling basic_api: %s\n" % e)
             return str(contact_info_properties)
         else:
-            raise ToolExecutionError(func_name, HubspotExceptionPrompt.USER_NOT_FOUND_PROMPT)
+            raise ToolExecutionError(
+                func_name, HubspotExceptionPrompt.USER_NOT_FOUND_PROMPT)
     except ApiException as e:
         logger.info("Exception when calling search_api: %s\n" % e)
-        raise ToolExecutionError(func_name, HubspotExceptionPrompt.USER_NOT_FOUND_PROMPT)
-
-
-
+        raise ToolExecutionError(
+            func_name, HubspotExceptionPrompt.USER_NOT_FOUND_PROMPT)

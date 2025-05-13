@@ -6,9 +6,9 @@ from hubspot.crm.associations.v4 import AssociationSpec
 from hubspot.crm.tickets.models import SimplePublicObjectInputForCreate
 
 from arklex.env.tools.tools import register_tool, logger
-from arklex.env.tools.hubspot.utils import authenticate_hubspot
+from arklex.env.hubspot.tools.utils import authenticate_hubspot
 from arklex.exceptions import ToolExecutionError
-from arklex.env.tools.hubspot._exception_prompt import HubspotExceptionPrompt
+from arklex.env.hubspot.tools._exception_prompt import HubspotExceptionPrompt
 
 
 description = "Create a ticket for the existing customer when the customer has some problem about the specific product."
@@ -53,9 +53,11 @@ def create_ticket(cus_cid: str, issue: str, **kwargs) -> str:
         'content': issue,
         'subject': subject_name
     }
-    ticket_for_create = SimplePublicObjectInputForCreate(properties=ticket_properties)
+    ticket_for_create = SimplePublicObjectInputForCreate(
+        properties=ticket_properties)
     try:
-        ticket_creation_response = api_client.crm.tickets.basic_api.create(simple_public_object_input_for_create=ticket_for_create)
+        ticket_creation_response = api_client.crm.tickets.basic_api.create(
+            simple_public_object_input_for_create=ticket_for_create)
         ticket_creation_response = ticket_creation_response.to_dict()
         ticket_id = ticket_creation_response['id']
         association_spec = [
@@ -75,12 +77,9 @@ def create_ticket(cus_cid: str, issue: str, **kwargs) -> str:
             return ticket_id
         except ApiException as e:
             logger.info("Exception when calling AssociationV4: %s\n" % e)
-            raise ToolExecutionError(func_name, HubspotExceptionPrompt.TICKET_CREATION_ERROR_PROMPT)
+            raise ToolExecutionError(
+                func_name, HubspotExceptionPrompt.TICKET_CREATION_ERROR_PROMPT)
     except ApiException as e:
         logger.info("Exception when calling Crm.tickets.create: %s\n" % e)
-        raise ToolExecutionError(func_name, HubspotExceptionPrompt.TICKET_CREATION_ERROR_PROMPT)
-
-
-
-
-
+        raise ToolExecutionError(
+            func_name, HubspotExceptionPrompt.TICKET_CREATION_ERROR_PROMPT)

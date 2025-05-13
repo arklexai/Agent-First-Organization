@@ -6,9 +6,9 @@ import parsedatetime
 from hubspot.crm.objects.meetings import ApiException
 
 from arklex.env.tools.tools import register_tool, logger
-from arklex.env.tools.hubspot.utils import authenticate_hubspot
+from arklex.env.hubspot.tools.utils import authenticate_hubspot
 from arklex.exceptions import ToolExecutionError
-from arklex.env.tools.hubspot._exception_prompt import HubspotExceptionPrompt
+from arklex.env.hubspot.tools._exception_prompt import HubspotExceptionPrompt
 
 description = "Give the customer that the unavailable time of the specific representative and the representative's related meeting link information."
 
@@ -70,7 +70,8 @@ def check_available(owner_id: str, time_zone: str, meeting_date: str, **kwargs) 
         meeting_link_response = meeting_link_response.json()
 
         if meeting_link_response.get('total') == 0:
-            raise ToolExecutionError(func_name, HubspotExceptionPrompt.MEETING_LINK_UNFOUND_PROMPT)
+            raise ToolExecutionError(
+                func_name, HubspotExceptionPrompt.MEETING_LINK_UNFOUND_PROMPT)
         else:
             meeting_links = meeting_link_response['results'][0]
         meeting_slug = meeting_links['slug']
@@ -108,12 +109,12 @@ def check_available(owner_id: str, time_zone: str, meeting_date: str, **kwargs) 
                     })
             return str(meeting_info)
         except ApiException as e:
-            logger.info("Exception when extracting booking information of someone: %s\n" % e)
-            raise ToolExecutionError(func_name, HubspotExceptionPrompt.MEETING_LINK_UNFOUND_PROMPT)
+            logger.info(
+                "Exception when extracting booking information of someone: %s\n" % e)
+            raise ToolExecutionError(
+                func_name, HubspotExceptionPrompt.MEETING_LINK_UNFOUND_PROMPT)
     except ApiException as e:
-        logger.info("Exception when extracting meeting scheduler links: %s\n" % e)
-        raise ToolExecutionError(func_name, HubspotExceptionPrompt.MEETING_LINK_UNFOUND_PROMPT)
-
-
-
-
+        logger.info(
+            "Exception when extracting meeting scheduler links: %s\n" % e)
+        raise ToolExecutionError(
+            func_name, HubspotExceptionPrompt.MEETING_LINK_UNFOUND_PROMPT)

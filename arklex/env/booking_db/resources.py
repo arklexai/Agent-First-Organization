@@ -16,14 +16,6 @@ RESOURCES = [
         fixed_args={},
 
     ),
-    Resource(
-        id="DefaultWorker",
-        name="DefaultWorker",
-        path="default_worker.py",
-        type=ResourceType.WORKER,
-        fixed_args={},
-
-    ),
 
     ############## TOOL ##############
     Resource(

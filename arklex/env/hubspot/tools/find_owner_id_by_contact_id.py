@@ -3,9 +3,9 @@ import hubspot
 from hubspot.crm.objects.emails import ApiException
 
 from arklex.env.tools.tools import register_tool, logger
-from arklex.env.tools.hubspot.utils import authenticate_hubspot
+from arklex.env.hubspot.tools.utils import authenticate_hubspot
 from arklex.exceptions import ToolExecutionError
-from arklex.env.tools.hubspot._exception_prompt import HubspotExceptionPrompt
+from arklex.env.hubspot.tools._exception_prompt import HubspotExceptionPrompt
 
 description = "Find the owner id in the contact. If owner id is found, the next step is using the extracted owner id to find the information of the owner. "
 
@@ -56,5 +56,7 @@ def find_owner_id_by_contact_id(cus_cid, **kwargs) -> str:
 
         return owner_id
     except ApiException as e:
-        logger.info("Exception when extracting owner_id of one contact: %s\n" % e)
-        raise ToolExecutionError(func_name, HubspotExceptionPrompt.OWNER_UNFOUND_PROMPT)
+        logger.info(
+            "Exception when extracting owner_id of one contact: %s\n" % e)
+        raise ToolExecutionError(
+            func_name, HubspotExceptionPrompt.OWNER_UNFOUND_PROMPT)

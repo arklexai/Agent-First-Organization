@@ -253,61 +253,8 @@
   "rag_docs": [
   ],
   "tasks": [],
-  "tools": [
-    {
-      "id": "ddbe6adc-cd0e-40bc-8a95-91cb69ed807b",
-      "name": "find_contact_by_email",
-      "path": "hubspot.find_contact_by_email",
-      "fixed_args": { "access_token": "<access_token>" }
-    },
-    {
-      "id": "aa8dd20d-fda7-475b-91ce-8c5fc356a2b7",
-      "name": "create_ticket",
-      "path": "hubspot.create_ticket",
-      "fixed_args": { "access_token": "<access_token>" }
-    },
-    {
-      "id": "8a6784c2-a130-4eb4-9924-4f4c58f4bf9d",
-      "name": "check_available",
-      "path": "hubspot.check_available",
-      "fixed_args": { "access_token": "<access_token>" }
-    },
-    {
-      "id": "e86daf21-41a3-40b2-9695-3ed59be46cc4",
-      "name": "create_meeting",
-      "path": "hubspot.create_meeting",
-      "fixed_args": { "access_token": "<access_token>" }
-    },
-    {
-      "id": "1437160f-6036-4fc9-99db-0e45afabd03c",
-      "name": "find_owner_by_owner_id",
-      "path": "hubspot.find_owner_by_owner_id",
-      "fixed_args": { "access_token": "<access_token>" }
-    },
-    {
-      "id": "11860b97-dfcf-4f1d-9e44-8767c50fd371",
-      "name": "find_owner_id_by_contact_id",
-      "path": "hubspot.find_owner_id_by_contact_id",
-      "fixed_args": { "access_token": "<access_token>" }
-    }
-  ],
-  "workers": [
-    {
-      "id": "be303c9a-a902-4de9-bbb2-61343e59e888",
-      "name": "MessageWorker",
-      "path": "message_worker.py"
-    },
-    {
-      "id": "40f05456-525c-4d9d-ac37-54482d6b220b",
-      "name": "FaissRAGWorker",
-      "path": "faiss_rag_worker.py"
-    },
-    {
-      "id": "b10555ac-0930-42c0-9016-6605f956e411",
-      "name": "DefaultWorker",
-      "path": "default_worker.py"
-    }
-  ],
+  "platform": "hubspot",
+  "fixed_args": {"access_token": "<access_token>"},
   "nluapi": "",
   "slotfillapi": ""
 }

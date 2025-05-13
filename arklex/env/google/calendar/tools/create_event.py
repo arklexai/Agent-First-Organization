@@ -50,10 +50,10 @@ outputs = []
 
 SUCCESS = "The event has been created successfully at {start_time}. The meeting invitation has been sent to {email}."
 
+
 @register_tool(description, slots, outputs)
-def create_event(email:str, event: str, start_time: str, timezone: str, duration=30, **kwargs) -> str:
+def create_event(email: str, event: str, start_time: str, timezone: str, duration=30, **kwargs) -> str:
     func_name = inspect.currentframe().f_code.co_name
-    breakpoint()
     # Authenticate using the service account
     try:
         service_account_info = kwargs.get("service_account_info")
@@ -84,8 +84,9 @@ def create_event(email:str, event: str, start_time: str, timezone: str, duration
         end_time = end_time_obj.isoformat()
 
     except Exception as e:
-        raise ToolExecutionError(func_name, GoogleCalendarExceptionPrompt.DATETIME_ERROR_PROMPT)
-    
+        raise ToolExecutionError(
+            func_name, GoogleCalendarExceptionPrompt.DATETIME_ERROR_PROMPT)
+
     try:
 
         final_event = {
@@ -105,13 +106,12 @@ def create_event(email:str, event: str, start_time: str, timezone: str, duration
         }
 
         # Insert the event
-        breakpoint()
         event = service.events().insert(calendarId=calendar_id, body=final_event).execute()
         print('Event created: %s' % (event.get('htmlLink')))
 
     except Exception as e:
-        raise ToolExecutionError(func_name, GoogleCalendarExceptionPrompt.EVENT_CREATION_ERROR_PROMPT.format(error=e))
+        raise ToolExecutionError(
+            func_name, GoogleCalendarExceptionPrompt.EVENT_CREATION_ERROR_PROMPT.format(error=e))
 
     # return SUCCESS.format(start_time=start_time, email=email)
     return json.dumps(event)
-
