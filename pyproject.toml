@@ -46,7 +46,8 @@ dependencies = [
   "janus>=1.0.0,<2.0.0",
   "pydantic_ai>=0.0.46,<1.0.0",
   "markdown>=3.8",
-  "pytest>=8.3.5,<9.0.0"
+  "pytest>=8.3.5,<9.0.0",
+  "parsedatetime==2.6"
 ]
 license = "MIT"
 

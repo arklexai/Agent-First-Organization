@@ -128,7 +128,7 @@ class HITLWorker(BaseWorker):
         workflow.add_edge(START, "hitl")
         return workflow
         
-    def _execute(self, state: MessageState) -> MessageState:
+    def _execute(self, state: MessageState, **kwargs) -> MessageState:
         if not self.verify(state):
             return self.error(state)
         

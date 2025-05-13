@@ -21,6 +21,7 @@ slots = [
         "description": "The id of the customer contact. It consists of all numbers. e.g. 97530152525",
         "prompt": "",
         "required": True,
+        "verified": True,
     },
     {
         "name": "issue",

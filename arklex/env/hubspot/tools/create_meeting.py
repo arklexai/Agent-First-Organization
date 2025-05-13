@@ -6,6 +6,7 @@ import inspect
 
 import hubspot
 import parsedatetime
+from dateutil.parser import isoparse
 from hubspot.crm.objects.meetings import ApiException
 
 from arklex.env.tools.tools import register_tool, logger
@@ -22,21 +23,20 @@ slots = [
         "name": "cus_fname",
         "type": "str",
         "description": "The first name of the customer contact.",
-        "prompt": "",
         "required": True,
+        "verified": True,
     },
     {
         "name": "cus_lname",
         "type": "str",
         "description": "The last name of the customer contact.",
-        "prompt": "",
         "required": True,
+        "verified": True
     },
     {
         "name": "cus_email",
         "type": "str",
         "description": "The email of the customer contact.",
-        "prompt": "",
         "required": True,
     },
     {
@@ -50,7 +50,7 @@ slots = [
         "name": "meeting_start_time",
         "type": "str",
         "description": "The exact start time the customer want to take meeting with the representative. e.g. 1pm, 1:00 PM. If you are not sure about the input, ask the user to give you confirmation.",
-        "prompt": "Could you please give me the start time of the meeting? Typically, the representative will hold the meeting from 9:00 am to 4:45 pm.",
+        "prompt": "Could you please give me the start time of the meeting?",
         "required": True,
     },
     {
@@ -64,16 +64,9 @@ slots = [
     {
         "name": "slug",
         "type": "str",
-        "description": "The corresponding slug for the meeting link, which is extracted from check_available tool",
-        "prompt": "",
+        "description": "The corresponding slug for the meeting link. Typically, it consists of the organizer's name, like \'lingxiao-chen\'.",
         "required": True,
-    },
-    {
-        "name": "bt_slots_ux",
-        "type": "str",
-        "description": "The busy time slots (unix form) of the representative. This is a list of dict.",
-        "prompt": "",
-        "required": True,
+        "verified": True,
     },
     {
         "name": "time_zone",
@@ -96,29 +89,25 @@ outputs = [
 @register_tool(description, slots, outputs)
 def create_meeting(cus_fname: str, cus_lname: str, cus_email: str, meeting_date: str,
                    meeting_start_time: str, duration: int,
-                   slug: str, bt_slots_ux: str, time_zone: str, **kwargs) -> str:
+                   slug: str, time_zone: str, **kwargs) -> str:
     func_name = inspect.currentframe().f_code.co_name
     access_token = authenticate_hubspot(kwargs)
 
     meeting_date = parse_natural_date(
         meeting_date, timezone=time_zone, date_input=True)
-    meeting_start_time = parse_natural_date(
-        meeting_start_time, meeting_date, timezone=time_zone)
-    meeting_start_time = int(meeting_start_time.timestamp() * 1000)
+    if is_iso8601(meeting_start_time):
+        dt = isoparse(meeting_start_time)
+        if dt.tzinfo is None:
+            dt = pytz.timezone(time_zone).localize(dt)
+        dt_utc = dt.astimezone(pytz.utc)
+        meeting_start_time = int(dt_utc.timestamp() * 1000)
+    else:
+        dt = parse_natural_date(
+            meeting_start_time, meeting_date, timezone=time_zone)
+        meeting_start_time = int(dt.timestamp() * 1000)
 
     duration = int(duration)
     duration = int(timedelta(minutes=duration).total_seconds() * 1000)
-
-    meeting_end_time = meeting_start_time + duration
-
-    bt_slots_ux = json.loads(bt_slots_ux)
-    for time_slot in bt_slots_ux:
-        if meeting_start_time >= time_slot['start'] and meeting_start_time < time_slot['end']:
-            raise ToolExecutionError(
-                func_name, HubspotExceptionPrompt.MEETING_UNAVAILABLE_PROMPT)
-        elif meeting_end_time >= time_slot['start'] and meeting_end_time <= time_slot['end']:
-            raise ToolExecutionError(
-                func_name, HubspotExceptionPrompt.MEETING_UNAVAILABLE_PROMPT)
 
     api_client = hubspot.Client.create(access_token=access_token)
 
@@ -167,3 +156,11 @@ def parse_natural_date(date_str, base_date=None, timezone=None, date_input=False
         parsed_dt = local_timezone.localize(parsed_dt)
         parsed_dt = parsed_dt.astimezone(pytz.utc)
     return parsed_dt
+
+
+def is_iso8601(s):
+    try:
+        isoparse(s)
+        return True
+    except Exception:
+        return False

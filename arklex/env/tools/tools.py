@@ -86,6 +86,8 @@ class Tool:
         logger.info(f'Slots after initialization are: {self.slots}')
 
     def _execute(self, state: MessageState, **fixed_args):
+        slot_verification = False
+        reason = ''
         # if this tool has been called before, then load the previous slots status
         if state.slots.get(self.name):
             self.slots = state.slots[self.name]
@@ -108,6 +110,8 @@ class Tool:
                         slot, chat_history_str, self.llm_config)
                     if verification_needed:
                         response = slot.prompt + "The reason is: " + thought
+                        slot_verification = True
+                        reason = thought
                         break
                     else:
                         slot.verified = True
@@ -164,13 +168,28 @@ class Tool:
         state.trajectory[-1][-1].input = slots
         state.trajectory[-1][-1].output = response
 
-        if self.isResponse and tool_success:
-            logger.info(
-                "Tool output is stored in response instead of message flow")
-            state.response = response
+        if tool_success:
+            # Tool execution success
+            if self.isResponse:
+                logger.info(
+                    "Tool exeuction COMPLETE, and the output is stored in response")
+                state.response = response
+            else:
+                logger.info(
+                    "Tool execution COMPLETE, and the output is stored in message flow")
+                state.message_flow = state.message_flow + \
+                    f"Context from {self.name} tool execution: {response}\n"
         else:
-            state.message_flow = state.message_flow + \
-                f"Context from {self.name} tool execution: {response}\n"
+            # Tool execution failed
+            if slot_verification:
+                logger.info(
+                    "Tool execution INCOMPLETE due to slot verification")
+                state.message_flow = f"Context from {self.name} tool execution: {response}\n Focus on the \'{reason}\' to generate the verification request in response please and make sure the request appear in the response."
+            else:
+                logger.info(
+                    "Tool execution INCOMPLETE due to tool execution failure")
+                state.message_flow = state.message_flow + \
+                    f"Context from {self.name} tool execution: {response}\n"
         state.slots[self.name] = slots
         return state
 

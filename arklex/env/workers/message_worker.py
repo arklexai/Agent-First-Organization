@@ -104,7 +104,7 @@ class MessageWorker(BaseWorker):
         workflow.add_conditional_edges(START, self.choose_generator)
         return workflow
 
-    def _execute(self, msg_state: MessageState):
+    def _execute(self, msg_state: MessageState, **kwargs):
         self.llm = PROVIDER_MAP.get(msg_state.bot_config.llm_config.llm_provider, ChatOpenAI)(
             model=msg_state.bot_config.llm_config.model_type_or_path
         )

@@ -34,7 +34,7 @@ class SearchWorker(BaseWorker):
         workflow.add_edge("search_engine", "tool_generator")
         return workflow
 
-    def _execute(self, msg_state: MessageState):
+    def _execute(self, msg_state: MessageState, **kwargs):
         graph = self.action_graph.compile()
         result = graph.invoke(msg_state)
         return result
