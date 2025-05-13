@@ -6,8 +6,8 @@ from googleapiclient.discovery import build
 from google.oauth2 import service_account
 
 from arklex.env.tools.tools import register_tool
-from arklex.env.tools.google.calendar.utils import AUTH_ERROR
-from arklex.env.tools.google.calendar._exception_prompt import GoogleCalendarExceptionPrompt
+from arklex.env.google.calendar.tools.utils import AUTH_ERROR
+from arklex.env.google.calendar.tools._exception_prompt import GoogleCalendarExceptionPrompt
 from arklex.exceptions import AuthenticationError, ToolExecutionError
 
 # Scopes required for accessing Google Calendar
