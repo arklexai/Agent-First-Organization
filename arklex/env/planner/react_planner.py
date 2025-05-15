@@ -1,8 +1,9 @@
 import logging
 import os
 import json
-from typing import Any, Dict, List, Optional, Literal
-from pydantic import BaseModel
+import typing
+from typing import Any, Dict, List, Optional, Tuple, Set, Union, Annotated, Literal
+from pydantic import BaseModel, Field, create_model
 import traceback
 import uuid
 import shutil
@@ -161,6 +162,9 @@ class ReactPlanner(DefaultPlanner):
         # Track whether or not RAG documents for planner resources have already been created;
         # these will be created in AgentOrg.__init__() once model info is provided
         self.resource_rag_docs_created = False
+
+        # Create Pydantic models for all tools and workers to create corresponding LangChain tool objects
+        self.resource_models = self._create_pydantic_models()
 
     def set_llm_config_and_build_resource_library(self, llm_config: LLMConfig):
         """
@@ -447,6 +451,152 @@ class ReactPlanner(DefaultPlanner):
                 signature_docs.append(doc)
         
         return signature_docs
+    
+    def _create_pydantic_model(self, name: str, description: str, fields: Dict[str, Any]) -> BaseModel:
+        """
+        Dynamically create Pydantic model for tool/worker with given name, description, and input fields.
+
+        Assigns description to created model's __doc__ attribute (important for LangChain tool objects).
+
+        Args:
+            name (str): Name of tool/worker for which pydantic model will be created.
+            description (str): Description of tool/worker functionality.
+            fields (Dict[str, Any]): Dict mapping names of parameters to pydantic-compatible types, e.g., 
+                {"id": Annotated[int, Field(description="integer ID")]}.
+        """
+
+        model = create_model(
+            name,
+            **fields,
+            __base__=BaseModel
+        )
+        model.__doc__ = description
+        return model
+    
+    def _create_pydantic_models(self) -> Dict[str, BaseModel]:
+        """
+        Dynamically create Pydantic models for all tools and workers in self.all_resources_info for
+        passing LangChain-compatible tools.
+
+        Returns:
+            Dict[str, BaseModel]: Mapping from tool/worker names to dynamically-constructed pydantic models
+                representing input types, default values, and annotations (if any).
+        """
+
+        models = {}
+        for resource_name, planner_resource in self.all_resources_info.items():
+            resource_description = planner_resource.description
+            parameter_types = {}
+            parameters = planner_resource.parameters
+            required_parameters = planner_resource.required
+
+            # Convert parameter types from strings to pydantic-compatible types (str, List[str], etc.)
+            for param in parameters:
+                for param_name, param_info in param.items():
+                    type_str = param_info['type']
+                    param_description = param_info['description']
+
+                    pydantic_type = self._parse_str_type_to_pydantic_compatible(type_str)
+
+                    # If parameter is not required, wrap type in Optional and set default value
+                    if param_name not in required_parameters:
+                        field = Field(description=param_description, default=None)
+                        pydantic_type = Optional[pydantic_type]
+                    else:
+                        field = Field(description=param_description)
+
+                    final_type = Annotated[pydantic_type, field]
+                    parameter_types[param_name] = final_type
+
+            # Create pydantic model for this tool/worker
+            model = self._create_pydantic_model(resource_name, resource_description, parameter_types)
+            models[resource_name] = model
+
+        return models
+
+    def _parse_str_type_to_pydantic_compatible(self, type_str: str):
+        """
+        Parse str type (for parameters from tool/worker signatures) to Pydantic-compatible
+        type (Python primitive or composite type) for model creation.
+        """
+
+        formatted_type_str = type_str.strip().lower()
+
+        # Default type to revert to if type_str could not be parsed
+        default_type = Any
+        parsing_error_msg = (
+            "Encountered unsupported or malformed type string when dynamically " +
+            f"creating pydantic models for planner resources: '{type_str}'. Reverting " +
+            f"to default type '{default_type}'."
+        )
+
+        # Base type map
+        base_types = {
+            'str': str,
+            'string': str,
+            'int': int,
+            'float': float,
+            'bool': bool,
+            'any': Any,
+            'bytes': bytes,
+            'none': None
+        }
+
+        # Composite typing constructs
+        composite_types = {
+            'list': List,
+            'dict': Dict,
+            'tuple': Tuple,
+            'set': Set,
+            'optional': Optional,
+            'union': Union
+        }
+        all_types = {**base_types, **composite_types}
+
+        # If type_str represents a base type, do lookup
+        if formatted_type_str in all_types:
+            return all_types[formatted_type_str]
+        
+        # Recursive parsing of e.g., List[str], Dict[str, Any]
+        match = re.fullmatch(r'(\w+)\[(.+)\]', formatted_type_str)
+        if not match:
+            logger.warning(parsing_error_msg)
+            return default_type
+        
+        # Parse composite type
+        outer_type_str, inner_type_str = match.groups()
+        outer_type_str = outer_type_str.strip().lower()
+        inner_type_str = inner_type_str.strip().lower()
+        outer_type = all_types.get(outer_type_str)
+        if outer_type is None:
+            logger.warning(parsing_error_msg)
+            return default_type
+
+        # Handle multiple args (e.g., Dict[str, int], Tuple[int, str])
+        inner_types = []
+        depth = 0
+        current = ''
+        for char in inner_type_str + ',':
+            if char == '[':
+                depth += 1
+            elif char == ']':
+                depth -= 1
+            elif char == ',' and depth == 0:
+                inner_types.append(
+                    self._parse_str_type_to_pydantic_compatible(current.strip())
+                )
+                current = ''
+                continue
+            current += char
+        if current:
+            inner_types.append(self._parse_str_type_to_pydantic_compatible(current.strip()))
+        
+        # If multiple inner types, return as tuple inside outer_type, otherwise return outer_type[inner_type]
+        # (e.g., List[str, str] vs. List[str])
+        if len(inner_types) > 1:
+            return outer_type[tuple(inner_types)]
+        else:
+            return outer_type[inner_types[0]]
 
     def _parse_response_action_to_json(self, response: str) -> Dict[str, Any]:
         """
