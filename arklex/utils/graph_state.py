@@ -35,6 +35,7 @@ class Timing(BaseModel):
 
 class ResourceRecord(BaseModel):
     info: Dict
+    intent: str = Field(default="")
     input: List = Field(default_factory=list)
     output: str = Field(default="")
     steps: List = Field(default_factory=list)
