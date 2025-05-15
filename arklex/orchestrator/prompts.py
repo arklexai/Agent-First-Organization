@@ -29,13 +29,10 @@ Thought:
 
 PLANNER_REACT_INSTRUCTION_ZERO_SHOT = """
 # Instruction
-Please act as an agent that selects the next appropriate action in a sequence of actions in order to satisfy the user's request.
+Please act as an agent that selects the next appropriate action (as a tool call) in a sequence of actions in order to satisfy the user's request.
 
 # User message
 {user_message}
-
-# Available actions
-{available_actions}
 
 Your generation should have exactly the following format:
 Thought:
@@ -109,18 +106,12 @@ Your current task is:
 Thought:
 To retrieve the user's details, I first need to find the user ID using the provided email address.
 
-Action:
-{{"name": "shopify-find_user_id_by_email-find_user_id_by_email", "arguments": {{"user_email": "sample-email@arklex.ai"}}}}
-
 ---
 
-Select the next action based on the current task, conversation record, and available tools.
+Select the next action (as a tool call) based on the user message, current task, and conversation record.
 
 # User message
 {user_message}
-
-# Available actions
-{available_actions}
 
 Your current task is:
 {task}
