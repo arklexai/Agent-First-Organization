@@ -42,7 +42,7 @@ slots: List[Dict[str, Any]] = [
     {
         "name": "meeting_date",
         "type": "str",
-        "description": "The exact date the customer want to take meeting with the representative. e.g. tomorrow, today, Next Monday, May 1st. If you are not sure about the input, ask the user to give you confirmation.",
+        "description": "The exact date (only the month and day) the customer want to take meeting with the representative. e.g. tomorrow, today, Next Monday, May 1st. If you are not sure about the input, ask the user to give you confirmation.",
         "prompt": "Could you please give me the date of the meeting?",
         "required": True,
     },
@@ -77,7 +77,7 @@ slots: List[Dict[str, Any]] = [
             "Asia/Tokyo",
             "Europe/London",
         ],
-        "description": "The timezone of the user. For example, 'America/New_York'.",
+        "description": "The timezone of the user. For example, 'America/New_York'. It allows users to input abbreviation like nyc, NYC. If you are not sure, just ask the user to confirm in response.",
         "prompt": "Could you please provide your timezone or where are you now?",
         "required": True,
     },

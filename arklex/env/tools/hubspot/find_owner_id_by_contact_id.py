@@ -25,7 +25,7 @@ slots: List[Dict[str, Any]] = [
 outputs: List[Dict[str, Any]] = [
     {
         "name": "owner_id",
-        "type": "str",
+        "type": "int",
         "description": "The id of the owner of the contact. It consists of numbers.",
     }
 ]
