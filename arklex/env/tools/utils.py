@@ -16,6 +16,13 @@ logger = logging.getLogger(__name__)
 def get_prompt_template(state: MessageState, prompt_key: str) -> PromptTemplate:
     """Get the prompt template based on the stream type."""
     prompts = load_prompts(state.bot_config)
+    
+    if state.bot_config.language == "CN" and state.is_stream:
+        # is_stream is True and language is Chinese
+        # we do not have separate Chinese prompts for streaming text and audio
+        # so we use the same prompt for both
+        return PromptTemplate.from_template(prompts[prompt_key])
+    
     if state.stream_type == StreamType.TEXT:
         # is_stream is True and stream_type is TEXT
         return PromptTemplate.from_template(prompts[prompt_key])
