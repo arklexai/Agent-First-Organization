@@ -13,22 +13,31 @@ from arklex.utils.model_provider_config import PROVIDER_MAP
 logger = logging.getLogger(__name__)
 
 
+def get_prompt_template(state: MessageState, prompt_key: str) -> PromptTemplate:
+    """Get the prompt template based on the stream type."""
+    prompts = load_prompts(state.bot_config)
+    if state.stream_type == StreamType.TEXT:
+        # is_stream is True and stream_type is TEXT
+        return PromptTemplate.from_template(prompts[prompt_key])
+    elif state.stream_type == StreamType.AUDIO:
+        # is stream is True and stream_type is AUDIO
+        return PromptTemplate.from_template(prompts[prompt_key + "_speech"])
+    else:
+        # is_stream is False and the response is not streamed, therefore defaults to TEXT
+        # because AUDIO is always streamed
+        return PromptTemplate.from_template(prompts[prompt_key])
+
+
 class ToolGenerator:
     @staticmethod
     def generate(state: MessageState):
         llm_config = state.bot_config.llm_config
         user_message = state.user_message
 
-        prompts = load_prompts(state.bot_config)
         llm = PROVIDER_MAP.get(llm_config.llm_provider, ChatOpenAI)(
             model=llm_config.model_type_or_path, temperature=0.1
         )
-        if state.stream_type == StreamType.TEXT:
-            prompt = PromptTemplate.from_template(prompts["generator_prompt"])
-        elif state.stream_type == StreamType.AUDIO:
-            prompt = PromptTemplate.from_template(prompts["generator_prompt_speech"])
-        else:
-            raise ValueError(f"Unsupported stream type: {state.stream_type}")
+        prompt = get_prompt_template(state, "generator_prompt")
         input_prompt = prompt.invoke(
             {"sys_instruct": state.sys_instruct, "formatted_chat": user_message.history}
         )
@@ -78,15 +87,7 @@ class ToolGenerator:
         )
 
         # generate answer based on the retrieved texts
-        prompts = load_prompts(state.bot_config)
-        if state.stream_type == StreamType.TEXT:
-            prompt = PromptTemplate.from_template(prompts["context_generator_prompt"])
-        elif state.stream_type == StreamType.AUDIO:
-            prompt = PromptTemplate.from_template(
-                prompts["context_generator_prompt_speech"]
-            )
-        else:
-            raise ValueError(f"Unsupported stream type: {state.stream_type}")
+        prompt = get_prompt_template(state, "context_generator_prompt")
         input_prompt = prompt.invoke(
             {
                 "sys_instruct": state.sys_instruct,
@@ -174,17 +175,11 @@ class ToolGenerator:
     def stream_generate(state: MessageState):
         user_message = state.user_message
 
-        prompts = load_prompts(state.bot_config)
         llm_config = state.bot_config.llm_config
         llm = PROVIDER_MAP.get(llm_config.llm_provider, ChatOpenAI)(
             model=llm_config.model_type_or_path, temperature=0.1
         )
-        if state.stream_type == StreamType.TEXT:
-            prompt = PromptTemplate.from_template(prompts["generator_prompt"])
-        elif state.stream_type == StreamType.AUDIO:
-            prompt = PromptTemplate.from_template(prompts["generator_prompt_speech"])
-        else:
-            raise ValueError(f"Unsupported stream type: {state.stream_type}")
+        prompt = get_prompt_template(state, "generator_prompt")
         input_prompt = prompt.invoke(
             {"sys_instruct": state.sys_instruct, "formatted_chat": user_message.history}
         )

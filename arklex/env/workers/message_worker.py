@@ -179,9 +179,13 @@ class MessageWorker(BaseWorker):
 
     def choose_generator(self, state: MessageState):
         if state.stream_type == StreamType.TEXT:
+            # is_stream is True and stream_type is TEXT
             return "text_stream_generator"
         elif state.stream_type == StreamType.AUDIO:
+            # is stream is True and stream_type is AUDIO
             return "audio_stream_generator"
+        # is_stream is False and the response is not streamed, therefore defaults to TEXT
+        # because AUDIO is always streamed
         return "generator"
 
     def _create_action_graph(self):
