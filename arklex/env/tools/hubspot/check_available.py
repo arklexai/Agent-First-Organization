@@ -4,15 +4,16 @@ import pytz
 import calendar
 import hubspot
 import parsedatetime
+from typing import Dict, List, Any, Optional
 from hubspot.crm.objects.meetings import ApiException
 from arklex.env.tools.tools import register_tool, logger
 from arklex.env.tools.hubspot.utils import authenticate_hubspot
 from arklex.exceptions import ToolExecutionError
 from arklex.env.tools.hubspot._exception_prompt import HubspotExceptionPrompt
 
-description = "Give the customer that the unavailable time of the specific representative and the representative's related meeting link information."
+description: str = "Give the customer that the unavailable time of the specific representative and the representative's related meeting link information."
 
-slots = [
+slots: List[Dict[str, Any]] = [
     {
         "name": "owner_id",
         "type": "int",
@@ -50,7 +51,7 @@ slots = [
         "required": True,
     },
 ]
-outputs = [
+outputs: List[Dict[str, Any]] = [
     {
         "name": "meeting_info",
         "type": "dict",
@@ -61,10 +62,10 @@ outputs = [
 
 @register_tool(description, slots, outputs)
 def check_available(
-    owner_id: int, time_zone: str, meeting_date: str, duration: int, **kwargs
+    owner_id: int, time_zone: str, meeting_date: str, duration: int, **kwargs: Any
 ) -> str:
-    func_name = inspect.currentframe().f_code.co_name
-    access_token = authenticate_hubspot(kwargs)
+    func_name: str = inspect.currentframe().f_code.co_name
+    access_token: str = authenticate_hubspot(kwargs)
     api_client = hubspot.Client.create(access_token=access_token)
 
     try:
@@ -85,17 +86,17 @@ def check_available(
                 func_name, HubspotExceptionPrompt.MEETING_LINK_UNFOUND_PROMPT
             )
         else:
-            meeting_links = meeting_link_response["results"][0]
+            meeting_links: Dict[str, Any] = meeting_link_response["results"][0]
 
-        meeting_slug = meeting_links["slug"]
+        meeting_slug: str = meeting_links["slug"]
         cal = parsedatetime.Calendar()
         time_struct, _ = cal.parse(meeting_date)
         meeting_date = datetime(*time_struct[:3])
 
-        last_day = calendar.monthrange(meeting_date.year, meeting_date.month)[1]
-        is_last_day = meeting_date.day == last_day
+        last_day: int = calendar.monthrange(meeting_date.year, meeting_date.month)[1]
+        is_last_day: bool = meeting_date.day == last_day
 
-        month_offset = 1 if is_last_day else 0
+        month_offset: int = 1 if is_last_day else 0
 
         try:
             availability_response = api_client.api_request(
@@ -107,28 +108,30 @@ def check_available(
                 }
             )
             availability_response = availability_response.json()
-            duration_ms = str(duration * 60 * 1000)
-            availability = (
+            duration_ms: str = str(duration * 60 * 1000)
+            availability: Dict[str, Any] = (
                 availability_response.get("linkAvailability", {})
                 .get("linkAvailabilityByDuration", {})
                 .get(duration_ms, {})
             )
-            slots = availability.get("availabilities", [])
+            slots: List[Dict[str, int]] = availability.get("availabilities", [])
             time_zone = pytz.timezone(time_zone)
 
-            ab_times = []
+            ab_times: List[Dict[str, int]] = []
 
             for slot in slots:
-                start_ts = slot["startMillisUtc"]
-                end_ts = slot["endMillisUtc"]
+                start_ts: int = slot["startMillisUtc"]
+                end_ts: int = slot["endMillisUtc"]
 
                 ab_times.append({"start": start_ts, "end": end_ts})
-            same_dt_info = {"available_time_slots": []}
+            same_dt_info: Dict[str, List[Dict[str, str]]] = {"available_time_slots": []}
 
-            other_dt_info = {"available_time_slots": []}
+            other_dt_info: Dict[str, List[Dict[str, str]]] = {
+                "available_time_slots": []
+            }
 
             for ab_time in ab_times:
-                start_dt = datetime.fromtimestamp(
+                start_dt: datetime = datetime.fromtimestamp(
                     ab_time["start"] / 1000, tz=pytz.utc
                 ).astimezone(time_zone)
                 if meeting_date.date() == start_dt.date():
@@ -162,7 +165,7 @@ def check_available(
                         }
                     )
 
-            response = ""
+            response: str = ""
             if not len(same_dt_info["available_time_slots"]) == 0:
                 response += f"The slug for your meeting is: {meeting_slug}\n"
                 response += f"The alternative time for you on the same date is {same_dt_info['available_time_slots']}\n"
@@ -191,13 +194,18 @@ def check_available(
         )
 
 
-def parse_natural_date(date_str, base_date=None, timezone=None, date_input=False):
+def parse_natural_date(
+    date_str: str,
+    base_date: Optional[datetime] = None,
+    timezone: Optional[str] = None,
+    date_input: bool = False,
+) -> datetime:
     cal = parsedatetime.Calendar()
     time_struct, _ = cal.parse(date_str, base_date)
     if date_input:
-        parsed_dt = datetime(*time_struct[:3])
+        parsed_dt: datetime = datetime(*time_struct[:3])
     else:
-        parsed_dt = datetime(*time_struct[:6])
+        parsed_dt: datetime = datetime(*time_struct[:6])
 
     if base_date and (parsed_dt.date() != base_date.date()):
         parsed_dt = datetime.combine(base_date.date(), parsed_dt.time())
