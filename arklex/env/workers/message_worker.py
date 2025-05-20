@@ -42,14 +42,9 @@ class MessageWorker(BaseWorker):
 
         prompts = load_prompts(state.bot_config)
         if message_flow and message_flow != "\n":
-            if state.stream_type == StreamType.TEXT:
-                prompt = PromptTemplate.from_template(
-                    prompts["message_flow_generator_prompt"]
-                )
-            elif state.stream_type == StreamType.AUDIO:
-                prompt = PromptTemplate.from_template(
-                    prompts["message_flow_generator_prompt_speech"]
-                )
+            prompt = PromptTemplate.from_template(
+                prompts["message_flow_generator_prompt"]
+            )
             input_prompt = prompt.invoke(
                 {
                     "sys_instruct": state.sys_instruct,
@@ -59,14 +54,7 @@ class MessageWorker(BaseWorker):
                 }
             )
         else:
-            if state.stream_type == StreamType.TEXT:
-                prompt = PromptTemplate.from_template(
-                    prompts["message_generator_prompt"]
-                )
-            elif state.stream_type == StreamType.AUDIO:
-                prompt = PromptTemplate.from_template(
-                    prompts["message_generator_prompt_speech"]
-                )
+            prompt = PromptTemplate.from_template(prompts["message_generator_prompt"])
             input_prompt = prompt.invoke(
                 {
                     "sys_instruct": state.sys_instruct,
@@ -83,12 +71,7 @@ class MessageWorker(BaseWorker):
         state = trace(input=answer, state=state)
         return state
 
-    def choose_generator(self, state: MessageState):
-        if state.is_stream:
-            return "stream_generator"
-        return "generator"
-
-    def stream_generator(self, state: MessageState) -> MessageState:
+    def text_stream_generator(self, state: MessageState) -> MessageState:
         # get the input message
         user_message = state.user_message
         orchestrator_message = state.orchestrator_message
@@ -107,14 +90,9 @@ class MessageWorker(BaseWorker):
 
         prompts = load_prompts(state.bot_config)
         if message_flow and message_flow != "\n":
-            if state.stream_type == StreamType.TEXT:
-                prompt = PromptTemplate.from_template(
-                    prompts["message_flow_generator_prompt"]
-                )
-            elif state.stream_type == StreamType.AUDIO:
-                prompt = PromptTemplate.from_template(
-                    prompts["message_flow_generator_prompt_speech"]
-                )
+            prompt = PromptTemplate.from_template(
+                prompts["message_flow_generator_prompt"]
+            )
             input_prompt = prompt.invoke(
                 {
                     "sys_instruct": state.sys_instruct,
@@ -124,14 +102,7 @@ class MessageWorker(BaseWorker):
                 }
             )
         else:
-            if state.stream_type == StreamType.TEXT:
-                prompt = PromptTemplate.from_template(
-                    prompts["message_generator_prompt"]
-                )
-            elif state.stream_type == StreamType.AUDIO:
-                prompt = PromptTemplate.from_template(
-                    prompts["message_generator_prompt_speech"]
-                )
+            prompt = PromptTemplate.from_template(prompts["message_generator_prompt"])
             input_prompt = prompt.invoke(
                 {
                     "sys_instruct": state.sys_instruct,
@@ -152,11 +123,74 @@ class MessageWorker(BaseWorker):
         state.response = answer
         return state
 
+    def audio_stream_generator(self, state: MessageState) -> MessageState:
+        # get the input message
+        user_message = state.user_message
+        orchestrator_message = state.orchestrator_message
+        message_flow = state.response + "\n" + state.message_flow
+
+        # get the orchestrator message content
+        orch_msg_content = (
+            "None" if not orchestrator_message.message else orchestrator_message.message
+        )
+        orch_msg_attr = orchestrator_message.attribute
+        direct_response = orch_msg_attr.get("direct_response", False)
+        if direct_response:
+            state.message_flow = ""
+            state.response = orch_msg_content
+            return state
+
+        prompts = load_prompts(state.bot_config)
+        if message_flow and message_flow != "\n":
+            prompt = PromptTemplate.from_template(
+                prompts["message_flow_generator_prompt_speech"]
+            )
+            input_prompt = prompt.invoke(
+                {
+                    "sys_instruct": state.sys_instruct,
+                    "message": orch_msg_content,
+                    "formatted_chat": user_message.history,
+                    "context": message_flow,
+                }
+            )
+        else:
+            prompt = PromptTemplate.from_template(
+                prompts["message_generator_prompt_speech"]
+            )
+            input_prompt = prompt.invoke(
+                {
+                    "sys_instruct": state.sys_instruct,
+                    "message": orch_msg_content,
+                    "formatted_chat": user_message.history,
+                }
+            )
+        logger.info(f"Prompt: {input_prompt.text}")
+        final_chain = self.llm | StrOutputParser()
+        answer = ""
+        for chunk in final_chain.stream(input_prompt.text):
+            answer += chunk
+            state.message_queue.put(
+                {"event": EventType.CHUNK.value, "message_chunk": chunk}
+            )
+
+        state.message_flow = ""
+        state.response = answer
+        return state
+
+    def choose_generator(self, state: MessageState):
+        if state.stream_type == StreamType.TEXT:
+            return "text_stream_generator"
+        elif state.stream_type == StreamType.AUDIO:
+            return "audio_stream_generator"
+        return "generator"
+
     def _create_action_graph(self):
         workflow = StateGraph(MessageState)
         # Add nodes for each worker
         workflow.add_node("generator", self.generator)
-        workflow.add_node("stream_generator", self.stream_generator)
+        workflow.add_node("text_stream_generator", self.text_stream_generator)
+        workflow.add_node("audio_stream_generator", self.audio_stream_generator)
+
         # Add edges
         # workflow.add_edge(START, "generator")
         workflow.add_conditional_edges(START, self.choose_generator)
