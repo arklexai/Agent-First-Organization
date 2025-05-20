@@ -195,6 +195,7 @@ class AgentOrg:
         message_state.slots = params.taskgraph.dialog_states
         message_state.metadata = params.metadata
         message_state.is_stream = True if stream_type is not None else False
+        message_state.stream_type = stream_type
         message_state.message_queue = message_queue
 
         response_state, params = self.env.step(
