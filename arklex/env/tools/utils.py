@@ -16,23 +16,16 @@ logger = logging.getLogger(__name__)
 def get_prompt_template(state: MessageState, prompt_key: str) -> PromptTemplate:
     """Get the prompt template based on the stream type."""
     prompts = load_prompts(state.bot_config)
-    
-    if state.bot_config.language == "CN" and state.is_stream:
-        # is_stream is True and language is Chinese
-        # we do not have separate Chinese prompts for streaming text and audio
-        # so we use the same prompt for both
-        return PromptTemplate.from_template(prompts[prompt_key])
-    
-    if state.stream_type == StreamType.TEXT:
-        # is_stream is True and stream_type is TEXT
-        return PromptTemplate.from_template(prompts[prompt_key])
-    elif state.stream_type == StreamType.AUDIO:
-        # is stream is True and stream_type is AUDIO
-        return PromptTemplate.from_template(prompts[prompt_key + "_speech"])
-    else:
-        # is_stream is False and the response is not streamed, therefore defaults to TEXT
-        # because AUDIO is always streamed
-        return PromptTemplate.from_template(prompts[prompt_key])
+
+    if state.stream_type == StreamType.SPEECH:
+        if state.bot_config.language == "CN":
+            # no speech prompts for Chinese yet
+            return PromptTemplate.from_template(prompts[prompt_key])
+        else:
+            # is stream is True and stream_type is AUDIO
+            return PromptTemplate.from_template(prompts[prompt_key + "_speech"])
+
+    return PromptTemplate.from_template(prompts[prompt_key])
 
 
 class ToolGenerator:
@@ -147,15 +140,7 @@ class ToolGenerator:
         )
 
         # generate answer based on the retrieved texts
-        prompts = load_prompts(state.bot_config)
-        if state.stream_type == StreamType.TEXT:
-            prompt = PromptTemplate.from_template(prompts["context_generator_prompt"])
-        elif state.stream_type == StreamType.AUDIO:
-            prompt = PromptTemplate.from_template(
-                prompts["context_generator_prompt_speech"]
-            )
-        else:
-            raise ValueError(f"Unsupported stream type: {state.stream_type}")
+        prompt = get_prompt_template(state, "context_generator_prompt")
 
         input_prompt = prompt.invoke(
             {

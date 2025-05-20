@@ -7,6 +7,8 @@ class StreamType(str, Enum):
     AUDIO = "audio"
     # TEXT is used to denote text streams
     TEXT = "text"
+    # SPEECH is used to denote speech streams
+    SPEECH = "speech"
 
 
 # Enum for event types used when streaming data.

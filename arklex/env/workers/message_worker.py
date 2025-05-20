@@ -179,15 +179,18 @@ class MessageWorker(BaseWorker):
 
     def choose_generator(self, state: MessageState):
 
-        if self.state.bot_config.language == "CN" and state.is_stream:
+        if (
+            self.state.bot_config.language == "CN"
+            and state.stream_type == StreamType.SPEECH
+        ):
             # we do not have seperate audio and text prompts for Chinese yet
             return "text_stream_generator"
         if state.stream_type == StreamType.TEXT:
             # is_stream is True and stream_type is TEXT
             return "text_stream_generator"
-        elif state.stream_type == StreamType.AUDIO:
+        elif state.stream_type == StreamType.SPEECH:
             # is stream is True and stream_type is AUDIO
-            return "audio_stream_generator"
+            return "speech_stream_generator"
         # is_stream is False and the response is not streamed, therefore defaults to TEXT
         # because AUDIO is always streamed
         return "generator"
