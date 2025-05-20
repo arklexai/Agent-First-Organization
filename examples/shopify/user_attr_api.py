@@ -2,9 +2,9 @@ import argparse
 import json
 import shopify
 import uvicorn
+from typing import Any, Dict, List, Union, Tuple
 
 from fastapi import FastAPI
-from typing import Any, Dict
 
 from arklex.env.tools.shopify.utils import authorify_admin
 from arklex.exceptions import AuthenticationError
@@ -15,7 +15,7 @@ PRODUCTS_NOT_FOUND = "error: No products found"
 app = FastAPI()
 
 
-def get_users(kwargs: Dict[str, Any]) -> str:
+def get_users(kwargs: Dict[str, Any]) -> Union[List[Dict[str, Any]], str]:
     try:
         auth = authorify_admin(kwargs)
     except AuthenticationError as e:
@@ -111,7 +111,7 @@ def get_users(kwargs: Dict[str, Any]) -> str:
         return USER_NOT_FOUND_ERROR
 
 
-def get_products(kwargs) -> str:
+def get_products(kwargs: Dict[str, Any]) -> Union[List[Dict[str, Any]], Dict[str, str]]:
     try:
         auth = authorify_admin(kwargs)
     except Exception as e:
@@ -119,42 +119,42 @@ def get_products(kwargs) -> str:
 
     try:
         with shopify.Session.temp(**auth):
-            response = shopify.GraphQL().execute(f"""
-                {{
-                    products (first: 20) {{
-                        nodes {{
+            response = shopify.GraphQL().execute("""
+                {
+                    products (first: 20) {
+                        nodes {
                             id
                             title
                             description
                             totalInventory
                             onlineStoreUrl
-                            options {{
+                            options {
                                 name
                                 values
-                            }}
-                            category {{
+                            }
+                            category {
                                 name
-                            }}
-                            variants (first: 3) {{
-                                nodes {{
+                            }
+                            variants (first: 3) {
+                                nodes {
                                     displayName
                                     id
                                     price
                                     inventoryQuantity
-                                }}
-                            }}
-                        }}
-                        pageInfo {{
+                                }
+                            }
+                        }
+                        pageInfo {
                             endCursor
                             hasNextPage
                             hasPreviousPage
                             startCursor
-                        }}
-                    }}
-                }}
+                        }
+                    }
+                }
             """)
             data = json.loads(response)["data"]["products"]["nodes"]
-            response_list = []
+            response_list: List[Dict[str, Any]] = []
             for product in data:
                 response_text = ""
                 response_text += f"Product ID: {product.get('id', 'None')}\n"
@@ -176,8 +176,8 @@ def get_products(kwargs) -> str:
 
 
 @app.get("/users")
-def get_users_route():
-    users = []
+def get_users_route() -> Union[List[Dict[str, Any]], Tuple[Dict[str, str], int]]:
+    users: List[Dict[str, Any]] = []
     try:
         response = get_users(kwargs)
     except AuthenticationError as e:
@@ -196,8 +196,8 @@ def get_users_route():
 
 
 @app.get("/products")
-def get_products_route():
-    products = []
+def get_products_route() -> List[Dict[str, Any]]:
+    products: List[Dict[str, Any]] = []
     response = get_products(kwargs)
     for product in response:
         print("============product============")
@@ -216,7 +216,7 @@ if __name__ == "__main__":
     parser.add_argument("--port", type=int, default=8001)
     args = parser.parse_args()
 
-    kwargs = {
+    kwargs: Dict[str, str] = {
         "shop_url": "<your_shop_url>",
         "api_version": "2024-10",
         "admin_token": "<your_admin_token>",

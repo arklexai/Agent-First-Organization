@@ -1,7 +1,7 @@
 import abc
 import enum
 import json
-from typing import Any, TypeVar
+from typing import Any, Dict, List, Optional, Tuple, TypeVar, Union
 
 from pydantic import BaseModel
 
@@ -19,12 +19,10 @@ from benchmark.tau_bench.model_utils.model.exception import ModelError
 from benchmark.tau_bench.model_utils.model.general_model import GeneralModel
 from benchmark.tau_bench.model_utils.model.utils import (
     add_md_tag,
-    clean_top_level_keys,
     display_choices,
     json_response_to_obj_or_partial_obj,
     optionalize_type,
     parse_json_or_json_markdown,
-    try_classify_recover,
     type_to_json_schema_string,
 )
 
@@ -40,9 +38,9 @@ class Role(str, enum.Enum):
 class Message(BaseModel):
     role: Role
     content: str
-    obj: dict[str, Any] | None = None
+    obj: Optional[Dict[str, Any]] = None
 
-    def model_dump(self, **kwargs) -> dict[str, Any]:
+    def model_dump(self, **kwargs) -> Dict[str, Any]:
         if self.obj is not None:
             return super().model_dump(**kwargs)
         return {"role": self.role, "content": self.content}
@@ -68,8 +66,8 @@ def force_json_prompt(
 def build_generate_state(
     instruction: str,
     text: str,
-    examples: list[GenerateDatapoint] | None = None,
-) -> list[Message]:
+    examples: Optional[List[GenerateDatapoint]] = None,
+) -> List[Message]:
     messages = []
     if examples is not None:
         for example in examples:
@@ -86,17 +84,17 @@ def build_generate_state(
 
 def build_parse_force_state(
     instruction: str,
-    typ: type[T] | dict[str, Any],
-    text: str | None = None,
-    examples: list[ParseForceDatapoint] | None = None,
+    typ: Union[type[T], Dict[str, Any]],
+    text: Optional[str] = None,
+    examples: Optional[List[ParseForceDatapoint]] = None,
     suffix_strategy: PromptSuffixStrategy = PromptSuffixStrategy.JSON,
-) -> list[Message]:
+) -> List[Message]:
     def display_sample(
         instr: str,
-        ty: type[T] | dict[str, Any],
-        t: str | None = None,
-        response: T | dict[str, Any] | None = None,
-    ) -> Message | list[Message]:
+        ty: Union[type[T], Dict[str, Any]],
+        t: Optional[str] = None,
+        response: Optional[Union[T, Dict[str, Any]]] = None,
+    ) -> Union[Message, List[Message]]:
         if isinstance(ty, dict):
             json_schema_string = json.dumps(ty)
         else:
@@ -145,12 +143,12 @@ def build_score_state(
     text: str,
     min: int,
     max: int,
-    examples: list[ScoreDatapoint] | None = None,
+    examples: Optional[List[ScoreDatapoint]] = None,
     suffix_strategy: PromptSuffixStrategy = PromptSuffixStrategy.JSON,
-) -> list[Message]:
+) -> List[Message]:
     def display_sample(
-        instr: str, t: str, mn: int, mx: int, response: int | None = None
-    ) -> list[Message] | Message:
+        instr: str, t: str, mn: int, mx: int, response: Optional[int] = None
+    ) -> Union[List[Message], Message]:
         if mn > mx:
             raise ValueError(f"Invalid range: [{mn}, {mx}]")
         input_text = force_json_prompt(
@@ -190,15 +188,15 @@ def build_score_state(
 
 def build_parse_state(
     text: str,
-    typ: type[T] | dict[str, Any],
-    examples: list[ParseDatapoint] | None = None,
+    typ: Union[type[T], Dict[str, Any]],
+    examples: Optional[List[ParseDatapoint]] = None,
     suffix_strategy: PromptSuffixStrategy = PromptSuffixStrategy.JSON,
-) -> list[Message]:
+) -> List[Message]:
     def display_sample(
         t: str,
-        ty: type[T] | dict[str, Any],
-        response: T | PartialObj | dict[str, Any] | None = None,
-    ) -> Message | list[Message]:
+        ty: Union[type[T], Dict[str, Any]],
+        response: Optional[Union[T, PartialObj, Dict[str, Any]]] = None,
+    ) -> Union[Message, List[Message]]:
         if isinstance(ty, dict):
             json_schema_string = json.dumps(ty)
         else:
@@ -242,39 +240,38 @@ def build_parse_state(
 def build_classify_state(
     instruction: str,
     text: str,
-    options: list[str],
-    examples: list[ClassifyDatapoint] | None = None,
+    options: List[str],
+    examples: Optional[List[ClassifyDatapoint]] = None,
     suffix_strategy: PromptSuffixStrategy = PromptSuffixStrategy.JSON,
-) -> tuple[list[Message], dict[str, int]]:
+) -> Tuple[List[Message], Dict[str, int]]:
     def display_sample(
-        instr: str, t: str, opts: list[str], response: int | None = None
-    ) -> list[Message] | tuple[Message, dict[str, int]]:
+        instr: str, t: str, opts: List[str], response: Optional[int] = None
+    ) -> Union[List[Message], Message]:
         choices_display, decode_map = display_choices(opts)
         input_text = force_json_prompt(
             f"Instruction:\n{instr}\n\nText:\n{t}\n\nChoices:\n{choices_display}",
             suffix_strategy=suffix_strategy,
         )
         if response is not None:
-            response_label = None
-            for label, idx in decode_map.items():
-                if idx == response:
-                    response_label = label
+            label = None
+            for k, v in decode_map.items():
+                if v == response:
+                    label = k
                     break
-            assert response_label is not None, f"Invalid response: {response}"
+            assert label is not None
             return [
                 Message(role=Role.USER, content=input_text),
                 Message(
-                    role=Role.ASSISTANT,
-                    content=f'{{"classification": "{response_label}"}}',
+                    role=Role.ASSISTANT, content=f'{{"classification": "{label}"}}'
                 ),
             ]
         else:
-            return Message(role=Role.USER, content=input_text), decode_map
+            return Message(role=Role.USER, content=input_text)
 
     messages = [
         Message(
             role=Role.SYSTEM,
-            content='Classify the following text with the provided instruction and choices. To classify, provide the key of the choice:\n{"classification": string}\n\nFor example, if the correct choice is \'Z. description of choice Z\', then provide \'Z\' as the classification as valid JSON:\n{"classification": "Z"}',
+            content='Classify the following text with the provided instruction and choices. To classify, provide the key of the choice:\n{"classification": string}\n\nFor example, if the correct choice is \'Z. description of choice Z\', then provide \'Z\' as the classification as valid JSON:\n```json\n{"classification": "Z"}\n```',
         ),
     ]
     if examples is not None:
@@ -289,8 +286,8 @@ def build_classify_state(
                 isinstance(msg, Message) for msg in example_msgs
             ), example_msgs
             messages.extend(example_msgs)
-    message, decode_map = display_sample(instr=instruction, t=text, opts=options)
-    messages.append(message)
+    prompt, decode_map = display_sample(instr=instruction, t=text, opts=options)
+    messages.append(prompt)
     return messages, decode_map
 
 
@@ -298,125 +295,138 @@ class ChatModel(GeneralModel):
     @abc.abstractmethod
     def generate_message(
         self,
-        messages: list[Message],
+        messages: List[Message],
         force_json: bool,
-        temperature: float | None = None,
+        temperature: Optional[float] = None,
     ) -> Message:
-        raise NotImplementedError
+        pass
 
     def handle_generate_message_response(
-        self, prompt: list[dict[str, str] | Message], content: str, force_json: bool
+        self,
+        prompt: List[Union[Dict[str, str], Message]],
+        content: str,
+        force_json: bool,
     ) -> Message:
         if force_json:
             try:
-                parsed = parse_json_or_json_markdown(content)
-            except (json.JSONDecodeError, ValueError) as e:
-                msgs = []
-                for msg in prompt:
-                    if isinstance(msg, Message):
-                        msgs.append(msg.model_dump())
-                    else:
-                        msgs.append(msg)
+                obj = parse_json_or_json_markdown(content)
+                return Message(role=Role.ASSISTANT, content=content, obj=obj)
+            except Exception as e:
                 raise ModelError(
-                    short_message=f"Failed to parse JSON: {content}",
-                    prompt=msgs,
-                    response=content,
-                ) from e
-            cleaned = clean_top_level_keys(parsed)
-            return Message(role=Role.ASSISTANT, content=content, obj=cleaned)
-        return Message(role=Role.ASSISTANT, content=content, obj=None)
+                    f"Failed to parse response as JSON: {e}\n\nPrompt:\n{prompt}\n\nResponse:\n{content}"
+                )
+        else:
+            return Message(role=Role.ASSISTANT, content=content)
 
     def build_generate_message_state(
-        self, messages: list[Message]
-    ) -> list[dict[str, str]]:
-        msgs: list[dict[str, str]] = []
-        for msg in messages:
-            if msg.obj is not None:
-                content = json.dumps(msg.obj)
-            else:
-                content = msg.content
-            msgs.append({"role": msg.role.value, "content": content})
-        return msgs
+        self, messages: List[Message]
+    ) -> List[Dict[str, str]]:
+        return [msg.model_dump() for msg in messages]
 
     def _handle_classify_response(
-        self, res: Message, decode_map: dict[str, int]
+        self, res: Message, decode_map: Dict[str, int]
     ) -> int:
-        assert res.obj is not None
-        if "classification" not in res.obj:
-            raise ModelError(f"Invalid response from model: {res.content}")
-        choice = res.obj["classification"]
-        if choice not in decode_map:
-            key = try_classify_recover(s=choice, decode_map=decode_map)
-            if key is not None:
-                return decode_map[key]
-            raise ModelError(f"Invalid choice: {choice}")
-        return decode_map[choice]
+        try:
+            obj = res.obj
+            if obj is None:
+                obj = parse_json_or_json_markdown(res.content)
+            return obj["classification"]
+        except KeyError:
+            raise ModelError(
+                f"Response missing 'classification' key: {res}\n\nDecode map: {decode_map}"
+            )
 
     def classify(
         self,
         instruction: str,
         text: str,
-        options: list[str],
-        examples: list[ClassifyDatapoint] | None = None,
-        temperature: float | None = None,
+        options: List[str],
+        examples: Optional[List[ClassifyDatapoint]] = None,
+        temperature: Optional[float] = None,
     ) -> int:
-        messages, decode_map = build_classify_state(
-            instruction, text, options, examples=examples
+        prompt, decode_map = build_classify_state(
+            instruction=instruction,
+            text=text,
+            options=options,
+            examples=examples,
         )
-        res = self.generate_message(messages, force_json=True, temperature=temperature)
-        return self._handle_classify_response(res, decode_map)
+        res = self.generate_message(
+            messages=prompt,
+            force_json=True,
+            temperature=temperature,
+        )
+        return self._handle_classify_response(res=res, decode_map=decode_map)
 
     def parse(
         self,
         text: str,
-        typ: type[T] | dict[str, Any],
-        examples: list[ParseDatapoint] | None = None,
-        temperature: float | None = None,
-    ) -> T | PartialObj | dict[str, Any]:
-        messages = build_parse_state(text, typ, examples=examples)
-        res = self.generate_message(messages, force_json=True, temperature=temperature)
-        assert res.obj is not None
-        return json_response_to_obj_or_partial_obj(response=res.obj, typ=typ)
+        typ: Union[type[T], Dict[str, Any]],
+        examples: Optional[List[ParseDatapoint]] = None,
+        temperature: Optional[float] = None,
+    ) -> Union[T, PartialObj, Dict[str, Any]]:
+        prompt = build_parse_state(text=text, typ=typ, examples=examples)
+        res = self.generate_message(
+            messages=prompt,
+            force_json=True,
+            temperature=temperature,
+        )
+        obj = res.obj
+        if obj is None:
+            obj = parse_json_or_json_markdown(res.content)
+        return json_response_to_obj_or_partial_obj(res=obj, typ=typ)
 
     def generate(
         self,
         instruction: str,
         text: str,
-        examples: list[GenerateDatapoint] | None = None,
-        temperature: float | None = None,
+        examples: Optional[List[GenerateDatapoint]] = None,
+        temperature: Optional[float] = None,
     ) -> str:
-        messages = build_generate_state(
-            instruction=instruction, text=text, examples=examples
+        prompt = build_generate_state(
+            instruction=instruction,
+            text=text,
+            examples=examples,
         )
-        return self.generate_message(
-            messages, force_json=False, temperature=temperature
-        ).content
+        res = self.generate_message(
+            messages=prompt,
+            force_json=False,
+            temperature=temperature,
+        )
+        return res.content
 
     def _handle_parse_force_response(
-        self, res: Message, typ: type[T] | dict[str, Any]
-    ) -> T | dict[str, Any]:
-        assert res.obj is not None
-        obj = json_response_to_obj_or_partial_obj(response=res.obj, typ=typ)
-        if not isinstance(typ, dict) and isinstance(obj, dict):
-            raise ModelError(f"Invalid response from model: {res.content}")
-        return obj
+        self, res: Message, typ: Union[type[T], Dict[str, Any]]
+    ) -> Union[T, Dict[str, Any]]:
+        obj = res.obj
+        if obj is None:
+            obj = parse_json_or_json_markdown(res.content)
+        if isinstance(typ, dict):
+            return obj
+        try:
+            return typ.model_validate(obj)
+        except Exception as e:
+            raise ModelError(f"Failed to validate response as {typ.__name__}: {e}")
 
     def parse_force(
         self,
         instruction: str,
-        typ: type[T] | dict[str, Any],
-        text: str | None = None,
-        examples: list[ParseForceDatapoint] | None = None,
-        temperature: float | None = None,
-    ) -> T | dict[str, Any]:
-        messages = build_parse_force_state(
+        typ: Union[type[T], Dict[str, Any]],
+        text: Optional[str] = None,
+        examples: Optional[List[ParseForceDatapoint]] = None,
+        temperature: Optional[float] = None,
+    ) -> Union[T, Dict[str, Any]]:
+        prompt = build_parse_force_state(
             instruction=instruction,
             typ=typ,
             text=text,
             examples=examples,
         )
-        res = self.generate_message(messages, force_json=True, temperature=temperature)
-        return self._handle_parse_force_response(res, typ)
+        res = self.generate_message(
+            messages=prompt,
+            force_json=True,
+            temperature=temperature,
+        )
+        return self._handle_parse_force_response(res=res, typ=typ)
 
     def _handle_score_response(
         self,
@@ -424,14 +434,18 @@ class ChatModel(GeneralModel):
         min: int,
         max: int,
     ) -> int:
-        if res.obj is None or "score" not in res.obj:
-            raise ModelError(f"Invalid response from model: {res.content}")
-        score = res.obj["score"]
-        if not isinstance(score, int):
-            raise ModelError(f"Invalid score type: {type(score)}")
-        if score < min or score > max:
-            raise ModelError(f"Invalid score value: {score}")
-        return score
+        try:
+            obj = res.obj
+            if obj is None:
+                obj = parse_json_or_json_markdown(res.content)
+            score = obj["score"]
+            if not isinstance(score, int):
+                raise ModelError(f"Score must be an integer, got {type(score)}")
+            if score < min or score > max:
+                raise ModelError(f"Score {score} outside range [{min}, {max}]")
+            return score
+        except KeyError:
+            raise ModelError(f"Response missing 'score' key: {res}")
 
     def score(
         self,
@@ -439,197 +453,178 @@ class ChatModel(GeneralModel):
         text: str,
         min: int,
         max: int,
-        examples: list[ScoreDatapoint] | None = None,
-        temperature: float | None = None,
+        examples: Optional[List[ScoreDatapoint]] = None,
+        temperature: Optional[float] = None,
     ) -> int:
-        messages = build_score_state(instruction, text, min, max, examples=examples)
-        res = self.generate_message(messages, force_json=True, temperature=temperature)
-        return self._handle_score_response(res, min, max)
+        prompt = build_score_state(
+            instruction=instruction,
+            text=text,
+            min=min,
+            max=max,
+            examples=examples,
+        )
+        res = self.generate_message(
+            messages=prompt,
+            force_json=True,
+            temperature=temperature,
+        )
+        return self._handle_score_response(res=res, min=min, max=max)
 
 
 def build_prompts(
-    dps: list[Datapoint], prompt_suffix_strategy: PromptSuffixStrategy | None
-) -> list[str | list[Message]]:
-    if len(dps) == 0:
-        return []
-    typ = type(dps[0])
-    for i, dp in enumerate(dps):
-        if not isinstance(dp, typ):
-            raise ValueError(
-                f"All elements must be of type Datapoint, expected type {typ} at index {i}, got {type(dp)}"
-            )
-    if isinstance(dps[0], ParseDatapoint):
-        build_func = build_parse_prompts
-    elif isinstance(dps[0], BinaryClassifyDatapoint):
-        build_func = build_binary_classify_prompts
-    elif isinstance(dps[0], ClassifyDatapoint):
-        build_func = build_classify_prompts
-    elif isinstance(dps[0], ParseForceDatapoint):
-        build_func = build_parse_force_prompts
-    elif isinstance(dps[0], GenerateDatapoint):
-        build_func = build_generate_prompts
-    elif isinstance(dps[0], ScoreDatapoint):
-        build_func = build_score_prompts
-    else:
-        raise ValueError(f"Unknown datapoint type: {type(dps[0])}")
-    return build_func(dps, suffix_strategy=prompt_suffix_strategy)
+    dps: List[Datapoint], prompt_suffix_strategy: Optional[PromptSuffixStrategy]
+) -> List[Union[str, List[Message]]]:
+    prompts: List[Union[str, List[Message]]] = []
+    for dp in dps:
+        if isinstance(dp, ParseDatapoint):
+            prompts.extend(build_parse_prompts([dp], prompt_suffix_strategy))
+        elif isinstance(dp, BinaryClassifyDatapoint):
+            prompts.extend(build_binary_classify_prompts([dp], prompt_suffix_strategy))
+        elif isinstance(dp, ClassifyDatapoint):
+            prompts.extend(build_classify_prompts([dp], prompt_suffix_strategy))
+        elif isinstance(dp, ParseForceDatapoint):
+            prompts.extend(build_parse_force_prompts([dp], prompt_suffix_strategy))
+        elif isinstance(dp, GenerateDatapoint):
+            prompts.extend(build_generate_prompts([dp]))
+        elif isinstance(dp, ScoreDatapoint):
+            prompts.extend(build_score_prompts([dp], prompt_suffix_strategy))
+        else:
+            raise ValueError(f"Unknown datapoint type: {type(dp)}")
+    return prompts
 
 
 def build_parse_prompts(
-    dps: list[ParseDatapoint],
-    suffix_strategy: PromptSuffixStrategy | None = None,
-) -> list[str | list[Message]]:
-    datapoints = []
+    dps: List[ParseDatapoint],
+    suffix_strategy: Optional[PromptSuffixStrategy] = None,
+) -> List[Union[str, List[Message]]]:
+    prompts: List[Union[str, List[Message]]] = []
     for dp in dps:
-        json_response_object = (
-            dp.response.model_dump_json()
-            if isinstance(dp.response, BaseModel)
-            else json.dumps(dp.response)
-        )
-        prompt_msgs = build_parse_state(
+        prompt = build_parse_state(
             text=dp.text,
             typ=dp.typ,
-            suffix_strategy=(
-                suffix_strategy
-                if suffix_strategy is not None
-                else PromptSuffixStrategy.JSON
-            ),
+            examples=None,
+            suffix_strategy=suffix_strategy,
         )
-        json_response = apply_suffix_strategy(
-            response=json_response_object, suffix_strategy=suffix_strategy
-        )
-        datapoints.append(
-            prompt_msgs + [Message(role=Role.ASSISTANT, content=json_response)]
-        )
-    return datapoints
+        if dp.response is not None:
+            if isinstance(dp.response, dict):
+                response_display = json.dumps(dp.response)
+            else:
+                response_display = dp.response.model_dump_json()
+            prompt.append(Message(role=Role.ASSISTANT, content=response_display))
+        prompts.append(prompt)
+    return prompts
 
 
 def build_binary_classify_prompts(
-    dps: list[BinaryClassifyDatapoint],
-    suffix_strategy: PromptSuffixStrategy | None = None,
-) -> list[str | list[Message]]:
-    return build_classify_prompts(
-        [
-            ClassifyDatapoint(
-                instruction=dp.instruction,
-                text=dp.text,
-                options=["true", "false"],
-                response=0 if dp.response else 1,
+    dps: List[BinaryClassifyDatapoint],
+    suffix_strategy: Optional[PromptSuffixStrategy] = None,
+) -> List[Union[str, List[Message]]]:
+    prompts: List[Union[str, List[Message]]] = []
+    for dp in dps:
+        prompt, decode_map = build_classify_state(
+            instruction=dp.instruction,
+            text=dp.text,
+            options=["Yes", "No"],
+            examples=None,
+            suffix_strategy=suffix_strategy,
+        )
+        if dp.response is not None:
+            label = "Yes" if dp.response else "No"
+            prompt.append(
+                Message(role=Role.ASSISTANT, content=f'{{"classification": "{label}"}}')
             )
-            for dp in dps
-        ],
-        suffix_strategy=suffix_strategy,
-    )
+        prompts.append(prompt)
+    return prompts
 
 
 def build_classify_prompts(
-    dps: list[ClassifyDatapoint],
-    suffix_strategy: PromptSuffixStrategy | None = None,
-) -> list[str | list[Message]]:
-    def label_idx_to_label_json(idx: int, decode_map: dict[str, int]) -> str:
-        label = None
-        for k, v in decode_map.items():
-            if v == idx:
-                label = k
-                break
-        if label is None:
-            raise ValueError(f"Label index {idx} not found in decode map")
-        return f'{{"classification": "{label}"}}'
-
-    datapoints = []
+    dps: List[ClassifyDatapoint],
+    suffix_strategy: Optional[PromptSuffixStrategy] = None,
+) -> List[Union[str, List[Message]]]:
+    prompts: List[Union[str, List[Message]]] = []
     for dp in dps:
-        suffix_strategy = (
-            PromptSuffixStrategy.JSON if suffix_strategy is None else suffix_strategy
-        )
-        prompt_msgs, decode_map = build_classify_state(
+        prompt, decode_map = build_classify_state(
             instruction=dp.instruction,
             text=dp.text,
             options=dp.options,
+            examples=None,
             suffix_strategy=suffix_strategy,
         )
-        json_response_object = label_idx_to_label_json(
-            idx=dp.response, decode_map=decode_map
-        )
-        json_response = apply_suffix_strategy(
-            response=json_response_object, suffix_strategy=suffix_strategy
-        )
-        datapoints.append(
-            prompt_msgs
-            + [
-                Message(
-                    role=Role.ASSISTANT,
-                    content=json_response,
-                )
-            ]
-        )
-    return datapoints
+        if dp.response is not None:
+            prompt.append(label_idx_to_label_json(dp.response, decode_map))
+        prompts.append(prompt)
+    return prompts
+
+
+def label_idx_to_label_json(idx: int, decode_map: Dict[str, int]) -> Message:
+    label = None
+    for k, v in decode_map.items():
+        if v == idx:
+            label = k
+            break
+    assert label is not None
+    return Message(role=Role.ASSISTANT, content=f'{{"classification": "{label}"}}')
 
 
 def build_parse_force_prompts(
-    dps: list[ParseForceDatapoint],
-    suffix_strategy: PromptSuffixStrategy | None = None,
-) -> list[str | list[Message]]:
-    datapoints = []
+    dps: List[ParseForceDatapoint],
+    suffix_strategy: Optional[PromptSuffixStrategy] = None,
+) -> List[Union[str, List[Message]]]:
+    prompts: List[Union[str, List[Message]]] = []
     for dp in dps:
-        json_response_obj = (
-            dp.response.model_dump_json()
-            if isinstance(dp.response, BaseModel)
-            else json.dumps(dp.response)
-        )
-        suffix_strategy = (
-            PromptSuffixStrategy.JSON if suffix_strategy is None else suffix_strategy
-        )
-        prompt_msgs = build_parse_force_state(
+        prompt = build_parse_force_state(
             instruction=dp.instruction,
-            text=dp.text,
             typ=dp.typ,
+            text=dp.text,
+            examples=None,
             suffix_strategy=suffix_strategy,
         )
-        json_response = apply_suffix_strategy(
-            response=json_response_obj, suffix_strategy=suffix_strategy
-        )
-        datapoints.append(
-            prompt_msgs + [Message(role=Role.ASSISTANT, content=json_response)]
-        )
-    return datapoints
+        if dp.response is not None:
+            if isinstance(dp.response, dict):
+                response_display = json.dumps(dp.response)
+            else:
+                response_display = dp.response.model_dump_json()
+            prompt.append(Message(role=Role.ASSISTANT, content=response_display))
+        prompts.append(prompt)
+    return prompts
 
 
-def build_generate_prompts(dps: list[GenerateDatapoint]) -> list[str | list[Message]]:
-    datapoints = []
+def build_generate_prompts(
+    dps: List[GenerateDatapoint],
+) -> List[Union[str, List[Message]]]:
+    prompts: List[Union[str, List[Message]]] = []
     for dp in dps:
-        prompt_msgs = build_generate_state(instruction=dp.instruction, text=dp.text)
-        datapoints.append(
-            prompt_msgs + [Message(role=Role.ASSISTANT, content=dp.response)]
+        prompt = build_generate_state(
+            instruction=dp.instruction,
+            text=dp.text,
+            examples=None,
         )
-    return datapoints
+        if dp.response is not None:
+            prompt.append(Message(role=Role.ASSISTANT, content=dp.response))
+        prompts.append(prompt)
+    return prompts
 
 
 def build_score_prompts(
-    dps: list[ScoreDatapoint],
-    suffix_strategy: PromptSuffixStrategy | None = None,
-) -> list[str | list[Message]]:
-    datapoints = []
+    dps: List[ScoreDatapoint],
+    suffix_strategy: Optional[PromptSuffixStrategy] = None,
+) -> List[Union[str, List[Message]]]:
+    prompts: List[Union[str, List[Message]]] = []
     for dp in dps:
-        json_response_object = f'{{"score": {dp.response}}}'
-        suffix_strategy = (
-            suffix_strategy
-            if suffix_strategy is not None
-            else PromptSuffixStrategy.JSON
-        )
-        prompt_msgs = build_score_state(
+        prompt = build_score_state(
             instruction=dp.instruction,
             text=dp.text,
             min=dp.min,
             max=dp.max,
+            examples=None,
             suffix_strategy=suffix_strategy,
         )
-        json_response = apply_suffix_strategy(
-            response=json_response_object, suffix_strategy=suffix_strategy
-        )
-        datapoints.append(
-            prompt_msgs + [Message(role=Role.ASSISTANT, content=json_response)]
-        )
-    return datapoints
+        if dp.response is not None:
+            prompt.append(
+                Message(role=Role.ASSISTANT, content=f'{{"score": {dp.response}}}')
+            )
+        prompts.append(prompt)
+    return prompts
 
 
 def apply_suffix_strategy(response: str, suffix_strategy: PromptSuffixStrategy) -> str:
@@ -638,4 +633,4 @@ def apply_suffix_strategy(response: str, suffix_strategy: PromptSuffixStrategy) 
     elif suffix_strategy == PromptSuffixStrategy.JSON_MD_BLOCK:
         return add_md_tag(response)
     else:
-        raise ValueError(f"Unknown suffix strategy: {suffix_strategy}")
+        raise ValueError(f"Invalid suffix strategy: {suffix_strategy}")

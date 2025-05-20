@@ -4,26 +4,26 @@ import inspect
 import threading
 from collections import defaultdict
 from multiprocessing import Lock
-from typing import Any, Callable, TypeVar
+from typing import Any, Callable, TypeVar, Dict, Tuple, DefaultDict
 
 from pydantic import BaseModel
 
 T = TypeVar("T")
 
-USE_CACHE = True
-_USE_CACHE_LOCK = Lock()
-cache: dict[str, tuple[T, threading.Event]] = {}
-lock = threading.Lock()
-conditions = defaultdict(threading.Condition)
+USE_CACHE: bool = True
+_USE_CACHE_LOCK: Lock = Lock()  # type: ignore
+cache: Dict[str, Tuple[Any, threading.Event]] = {}
+lock: threading.Lock = threading.Lock()
+conditions: DefaultDict[str, threading.Condition] = defaultdict(threading.Condition)
 
 
-def disable_cache():
+def disable_cache() -> None:
     global USE_CACHE
     with _USE_CACHE_LOCK:
         USE_CACHE = False
 
 
-def enable_cache():
+def enable_cache() -> None:
     global USE_CACHE
     with _USE_CACHE_LOCK:
         USE_CACHE = True
@@ -44,7 +44,7 @@ def hash_item(item: Any) -> int:
 
 
 def hash_func_call(
-    func: Callable[..., Any], args: tuple[Any], kwargs: dict[str, Any]
+    func: Callable[..., Any], args: Tuple[Any, ...], kwargs: Dict[str, Any]
 ) -> str:
     bound_args = inspect.signature(func).bind(*args, **kwargs)
     bound_args.apply_defaults()

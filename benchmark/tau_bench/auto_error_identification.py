@@ -5,10 +5,8 @@ import argparse
 from enum import Enum
 from pydantic import BaseModel
 from benchmark.tau_bench.model_utils import default_api_from_args, API
-from benchmark.tau_bench.envs.airline.tasks_test import TASKS as AIRLINE_TASKS
-from benchmark.tau_bench.envs.retail.tasks_test import TASKS_TEST as RETAIL_TASKS
 from benchmark.tau_bench.model_utils.args import api_parser
-from benchmark.tau_bench.tau_types import Task, Action
+from benchmark.tau_bench.tau_types import Action
 from typing import List, Dict, Any
 from concurrent.futures import ThreadPoolExecutor
 
@@ -161,7 +159,7 @@ def fault_assignment_analysis(
         ground_truth_actions: List[Action],
         ground_truth_outputs: List[str],
     ) -> FaultAssignmentResult:
-        idx_to_author = {
+        idx_to_author: Dict[int, FaultAuthor] = {
             0: FaultAuthor.USER,
             1: FaultAuthor.AGENT,
             2: FaultAuthor.ENVIRONMENT,
@@ -222,7 +220,7 @@ def fault_type_analysis(
         ground_truth_actions: List[Action],
         ground_truth_outputs: List[str],
     ) -> FaultTypeResult:
-        idx_to_fault_type = {
+        idx_to_fault_type: Dict[int, FaultType] = {
             0: FaultType.CALLED_WRONG_TOOL,
             1: FaultType.USED_WRONG_TOOL_ARGUMENT,
             2: FaultType.GOAL_PARTIALLY_COMPLETED,
@@ -249,7 +247,7 @@ def fault_type_analysis(
         )
         fault_type = idx_to_fault_type[res]
         description = api.generate(
-            instruction=f'{ctx_desc}\n\nDescribe the reason why the following trajectory contains a fault of type "{fault_type.value}". Be concise and only focus on the functional differences between the ground truth and the trajectory.',
+            instruction=f"{ctx_desc}\n\nDescribe the reason why this is a {fault_type.value} fault in the trajectory. Be concise and only focus on the functional differences between the ground truth and the trajectory.",
             text=context,
         )
         return FaultTypeResult(
@@ -275,83 +273,22 @@ def fault_type_analysis(
     return results
 
 
-def run_error_identification(args) -> None:
+def run_error_identification(args: argparse.Namespace) -> None:
     api = default_api_from_args(args)
     with open(args.results_path, "r") as f:
-        results = json.load(f)
-        if isinstance(results, dict):
-            results = results["task_results"]
-    print(f"Loaded {len(results)} results")
-    env = args.env
-    if env == "airline":
-        tasks: List[Task] = AIRLINE_TASKS
-    elif env == "retail":
-        tasks: List[Task] = RETAIL_TASKS
-    else:
-        raise ValueError(f"Invalid environment: {env}")
-    failed_results = [r for r in results if r["reward"] <= 1e-3]
-    print(f"Found {len(failed_results)} failed trajectories")
-    if (
-        args.max_num_failed_results is not None
-        and len(failed_results) > args.max_num_failed_results
-    ):
-        print(f"Limiting to {args.max_num_failed_results} failed trajectories")
-        failed_results = failed_results[: args.max_num_failed_results]
-    original_results = []
-    for result in failed_results:
-        task_id: int = result["task_id"]
-        task = tasks[task_id]
-        user_instruction = task.instruction
-        ground_truth_actions = task.actions
-        ground_truth_outputs = task.outputs
-        original_result = OriginalResult(
-            task_id=task_id,
-            user_instruction=user_instruction,
-            traj=result["traj"],
-            ground_truth_actions=ground_truth_actions,
-            ground_truth_outputs=ground_truth_outputs,
-        )
-        original_results.append(original_result)
-    print(
-        f"Performing fault assignment analysis on {len(original_results)} failed trajectories with a max concurrency of {args.max_concurrency}..."
-    )
+        results = [OriginalResult(**r) for r in json.load(f)]
+    if args.max_num_failed_results is not None:
+        results = results[: args.max_num_failed_results]
     fault_assignment_results = fault_assignment_analysis(
-        api=api, results=original_results, max_concurrency=args.max_concurrency
+        api, results, args.max_concurrency
     )
-    failures_due_to_agent = [
-        original_results[i]
-        for i, r in enumerate(fault_assignment_results)
-        if r.author == FaultAuthor.AGENT
-    ]
-    print(
-        f"Performing fault type analysis on {len(failures_due_to_agent)} failures that have been marked as being caused by the agent with a max concurrency of {args.max_concurrency}..."
-    )
-    fault_type_results = fault_type_analysis(
-        api=api, results=failures_due_to_agent, max_concurrency=args.max_concurrency
-    )
-    print(f"""Reviewed {len(fault_assignment_results)} trajectories:
+    fault_type_results = fault_type_analysis(api, results, args.max_concurrency)
+    os.makedirs(args.output_dir, exist_ok=True)
+    with open(os.path.join(args.output_dir, "fault_assignment.json"), "w") as f:
+        json.dump([r.model_dump() for r in fault_assignment_results], f, indent=4)
+    with open(os.path.join(args.output_dir, "fault_type.json"), "w") as f:
+        json.dump([r.model_dump() for r in fault_type_results], f, indent=4)
 
-Author fault distribution:
-  - User: {sum(1 for r in fault_assignment_results if r.author == FaultAuthor.USER)} ({round(sum(1 for r in fault_assignment_results if r.author == FaultAuthor.USER) / len(fault_assignment_results) * 100, 2)}%)
-  - Agent: {sum(1 for r in fault_assignment_results if r.author == FaultAuthor.AGENT)} ({round(sum(1 for r in fault_assignment_results if r.author == FaultAuthor.AGENT) / len(fault_assignment_results) * 100, 2)}%)
-  - Environment (otherwise case): {sum(1 for r in fault_assignment_results if r.author == FaultAuthor.ENVIRONMENT)} ({round(sum(1 for r in fault_assignment_results if r.author == FaultAuthor.ENVIRONMENT) / len(fault_assignment_results) * 100, 2)}%)
 
-Fault type distribution (only failures marked as being caused by the agent):
-  - Called wrong tool: {sum(1 for r in fault_type_results if r.fault_type == FaultType.CALLED_WRONG_TOOL)} ({round(sum(1 for r in fault_type_results if r.fault_type == FaultType.CALLED_WRONG_TOOL) / len(fault_type_results) * 100, 2)}%)
-  - Used wrong tool argument: {sum(1 for r in fault_type_results if r.fault_type == FaultType.USED_WRONG_TOOL_ARGUMENT)} ({round(sum(1 for r in fault_type_results if r.fault_type == FaultType.USED_WRONG_TOOL_ARGUMENT) / len(fault_type_results) * 100, 2)}%)
-  - Goal partially completed: {sum(1 for r in fault_type_results if r.fault_type == FaultType.GOAL_PARTIALLY_COMPLETED)} ({round(sum(1 for r in fault_type_results if r.fault_type == FaultType.GOAL_PARTIALLY_COMPLETED) / len(fault_type_results) * 100, 2)}%)
-  - Other: {sum(1 for r in fault_type_results if r.fault_type == FaultType.OTHER)} ({round(sum(1 for r in fault_type_results if r.fault_type == FaultType.OTHER) / len(fault_type_results) * 100, 2)}%)
-""")
-    tau_bench_analysis_file = os.path.join(args.output_dir, "tau_bench_analysis.json")
-    with open(tau_bench_analysis_file, "w") as f:
-        json.dump(
-            {
-                "fault_assignment_analysis": [
-                    r.model_dump() for r in fault_assignment_results
-                ],
-                "fault_type_analysis": [r.model_dump() for r in fault_type_results],
-            },
-            f,
-            indent=4,
-        )
-    print(f"Saved results to {args.output_dir}")
+if __name__ == "__main__":
+    run_error_identification(get_args())

@@ -1,3 +1,5 @@
 # Copyright Sierra
 
-RULES = []
+from typing import List
+
+RULES: List[str] = []

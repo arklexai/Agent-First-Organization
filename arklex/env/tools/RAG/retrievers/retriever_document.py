@@ -1,6 +1,6 @@
 import json
 from enum import Enum
-from typing import List, Dict
+from typing import List, Dict, Any, Optional, Union
 from openai import OpenAI
 import logging
 
@@ -8,13 +8,13 @@ import tiktoken
 from arklex.utils.mysql import mysql_pool
 from langchain.text_splitter import RecursiveCharacterTextSplitter
 
-DEFAULT_CHUNK_ENCODING = "cl100k_base"
+DEFAULT_CHUNK_ENCODING: str = "cl100k_base"
 
-logger = logging.getLogger(__name__)
+logger: logging.Logger = logging.getLogger(__name__)
 
 
-def embed(text: str):
-    client = OpenAI()
+def embed(text: str) -> List[float]:
+    client: OpenAI = OpenAI()
     try:
         response = client.embeddings.create(input=text, model="text-embedding-ada-002")
     except Exception as e:
@@ -37,21 +37,21 @@ class RetrieverResult:
         qa_doc_id: str,
         qa_doc_type: RetrieverDocumentType,
         distance: float,
-        metadata: dict,
+        metadata: Union[Dict[str, Any], str],
         text: str,
         start_chunk_idx: int,
         end_chunk_idx: int,
-    ):
-        self.qa_doc_id = qa_doc_id
-        self.distance = distance
+    ) -> None:
+        self.qa_doc_id: str = qa_doc_id
+        self.distance: float = distance
         if isinstance(metadata, str):
-            self.metadata = json.loads(metadata)
+            self.metadata: Dict[str, Any] = json.loads(metadata)
         else:
-            self.metadata = metadata
-        self.text = text
-        self.start_chunk_idx = start_chunk_idx
-        self.end_chunk_idx = end_chunk_idx
-        self.qa_doc_type = qa_doc_type
+            self.metadata: Dict[str, Any] = metadata
+        self.text: str = text
+        self.start_chunk_idx: int = start_chunk_idx
+        self.end_chunk_idx: int = end_chunk_idx
+        self.qa_doc_type: RetrieverDocumentType = qa_doc_type
 
 
 class RetrieverDocument:
@@ -62,53 +62,52 @@ class RetrieverDocument:
         chunk_idx: int,
         qa_doc_type: RetrieverDocumentType,
         text: str,
-        metadata: dict,
+        metadata: Union[Dict[str, Any], str],
         is_chunked: bool,
         bot_uid: str,
-        # num_tokens: int = None,
-        embedding=None,
-        timestamp: int = None,
-    ):
-        self.id = id
-        self.qa_doc_id = qa_doc_id
-        self.chunk_idx = int(chunk_idx)
-        self.qa_doc_type = qa_doc_type
-        self.text = text
+        embedding: Optional[List[float]] = None,
+        timestamp: Optional[int] = None,
+    ) -> None:
+        self.id: str = id
+        self.qa_doc_id: str = qa_doc_id
+        self.chunk_idx: int = int(chunk_idx)
+        self.qa_doc_type: RetrieverDocumentType = qa_doc_type
+        self.text: str = text
         if isinstance(metadata, str):
-            self.metadata = json.loads(metadata)
+            self.metadata: Dict[str, Any] = json.loads(metadata)
         else:
-            self.metadata = metadata
-        # self.num_tokens = num_tokens
-        self.embedding = embedding
-        self.is_chunked = is_chunked
-        self.timestamp = int(timestamp)
-        self.bot_uid = bot_uid
+            self.metadata: Dict[str, Any] = metadata
+        self.embedding: Optional[List[float]] = embedding
+        self.is_chunked: bool = is_chunked
+        self.timestamp: int = int(timestamp) if timestamp is not None else None
+        self.bot_uid: str = bot_uid
 
-    def chunk(self, chunk_encoding=DEFAULT_CHUNK_ENCODING) -> List["RetrieverDocument"]:
+    def chunk(
+        self, chunk_encoding: str = DEFAULT_CHUNK_ENCODING
+    ) -> List["RetrieverDocument"]:
         if self.is_chunked:
             raise ValueError("Document is already chunked")
         elif self.qa_doc_type == RetrieverDocumentType.FAQ:
             raise ValueError("Cannot chunk FAQ document")
-        encoding = tiktoken.get_encoding(chunk_encoding)
-        chunked_texts = RecursiveCharacterTextSplitter.from_tiktoken_encoder(
+        encoding: tiktoken.Encoding = tiktoken.get_encoding(chunk_encoding)
+        chunked_texts: List[str] = RecursiveCharacterTextSplitter.from_tiktoken_encoder(
             encoding_name=chunk_encoding, chunk_size=400, chunk_overlap=50
         ).split_text(self.text.strip())
-        chunked_docs = []
-        tokens = encoding.encode(self.text)
+        chunked_docs: List[RetrieverDocument] = []
+        tokens: List[int] = encoding.encode(self.text)
         logger.info(
             f"Original text token length: {len(tokens)}, Chunked to {len(chunked_texts)} chunks"
         )
         for i, chunk in enumerate(chunked_texts):
             chunk = chunk.strip()
             tokens = encoding.encode(chunk)
-            doc = RetrieverDocument(
+            doc: RetrieverDocument = RetrieverDocument(
                 id=str(f"{self.id}__{i}"),
                 qa_doc_id=self.qa_doc_id,
                 chunk_idx=i,
                 qa_doc_type=self.qa_doc_type,
                 text=chunk,
                 metadata=self.metadata,
-                # num_tokens=len(tokens),
                 embedding=None,
                 bot_uid=self.bot_uid,
                 is_chunked=True,
@@ -118,7 +117,7 @@ class RetrieverDocument:
 
         return chunked_docs
 
-    def to_dict(self):
+    def to_dict(self) -> Dict[str, Any]:
         return {
             "id": self.id,
             "qa_doc_id": self.qa_doc_id,
@@ -126,14 +125,13 @@ class RetrieverDocument:
             "qa_doc_type": self.qa_doc_type.value,
             "text": self.text,
             "metadata": self.metadata,
-            # "num_tokens": self.num_tokens,
             "embedding": self.embedding,
             "is_chunked": self.is_chunked,
             "timestamp": self.timestamp,
             "bot_uid": self.bot_uid,
         }
 
-    def to_milvus_schema_dict_and_embed(self) -> Dict:
+    def to_milvus_schema_dict_and_embed(self) -> Dict[str, Any]:
         # check if values exists
         if (
             self.id is None
@@ -141,7 +139,6 @@ class RetrieverDocument:
             or self.chunk_idx is None
             or self.qa_doc_type is None
             or self.text is None
-            # or self.num_tokens is None
             or self.metadata is None
             or self.timestamp is None
             or self.bot_uid is None
@@ -156,13 +153,12 @@ class RetrieverDocument:
             "text": self.text,
             "metadata": self.metadata,
             "timestamp": self.timestamp,
-            # "num_tokens": self.num_tokens,
             "embedding": embed(self.text),
             "bot_uid": self.bot_uid,
         }
 
     @classmethod
-    def from_dict(cls, doc_dict):
+    def from_dict(cls, doc_dict: Dict[str, Any]) -> "RetrieverDocument":
         return cls(
             id=doc_dict["id"],
             qa_doc_id=doc_dict["qa_doc_id"],
@@ -170,7 +166,6 @@ class RetrieverDocument:
             qa_doc_type=RetrieverDocumentType(doc_dict["qa_doc_type"]),
             text=doc_dict["text"],
             metadata=doc_dict["metadata"],
-            # num_tokens=doc_dict["num_tokens"],
             embedding=doc_dict["embedding"],
             is_chunked=doc_dict["is_chunked"],
             timestamp=doc_dict["timestamp"],
@@ -179,15 +174,13 @@ class RetrieverDocument:
 
     @classmethod
     def faq_retreiver_doc(
-        #     cls, id: str, text: str, metadata: dict, bot_uid: str, timestamp: int = None, num_tokens: int = None
-        # ):
         cls,
         id: str,
         text: str,
-        metadata: dict,
+        metadata: Dict[str, Any],
         bot_uid: str,
-        timestamp: int = None,
-    ):
+        timestamp: Optional[int] = None,
+    ) -> "RetrieverDocument":
         return cls(
             id,
             id,
@@ -196,7 +189,6 @@ class RetrieverDocument:
             text,
             metadata,
             is_chunked=False,
-            # num_tokens=num_tokens,
             embedding=None,
             timestamp=timestamp,
             bot_uid=bot_uid,
@@ -208,10 +200,10 @@ class RetrieverDocument:
         id: str,
         qa_doc_type: RetrieverDocumentType,
         text: str,
-        metadata: dict,
+        metadata: Dict[str, Any],
         bot_uid: str,
-        timestamp: int = None,
-    ):
+        timestamp: Optional[int] = None,
+    ) -> "RetrieverDocument":
         return cls(
             id,
             id,
@@ -228,20 +220,20 @@ class RetrieverDocument:
     @classmethod
     def chunked_retriever_docs_from_db_docs(
         cls,
-        db_docs: List[dict],
+        db_docs: List[Dict[str, Any]],
         doc_type: RetrieverDocumentType,
         bot_uid: str,
     ) -> List["RetrieverDocument"]:
         chunked_db_docs: List[RetrieverDocument] = []
         for doc in db_docs:
-            doc_id = doc["id"]
-            metadata = doc["metadata"]
+            doc_id: str = doc["id"]
+            metadata: Dict[str, Any] = doc["metadata"]
             if doc["content"] is None:
                 continue
-            text = doc["content"].strip()
-            timestamp = doc["timestamp"]
+            text: str = doc["content"].strip()
+            timestamp: int = doc["timestamp"]
 
-            ret_doc = cls.unchunked_retreiver_doc(
+            ret_doc: RetrieverDocument = cls.unchunked_retreiver_doc(
                 doc_id, doc_type, text, metadata, bot_uid, timestamp
             )
             chunked_db_docs.extend(ret_doc.chunk())

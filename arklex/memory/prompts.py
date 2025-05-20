@@ -1,9 +1,11 @@
-intro = """
+from typing import Final
+
+intro: Final[str] = """
 You are helping personalize user intents in an agentic taskgraph workflow.
 Your job: 
 Given the tool's final raw output: tool_output, task performed by the tool: task, tool's context generated response: context_generate, basic user intent: user_intent, and current user utterance: user_utterance → output a detailed Chain-of-Thought reasoning followed by a short clean Personalized Intent focused on product + attribute.
 """
-cot_steps = """
+cot_steps: Final[str] = """
 INSTRUCTIONS (Chain-of-Thought):
 Thought 1: From the tool output, identify each product card and its standout feature.
 Thought 2: List bullets of key points for each product (design, material, inventory).
@@ -11,7 +13,7 @@ Thought 3: Formulate a concise conversational summary of all products. Double ch
 Thought 4: Use that summary plus Task, Agent Response, Basic Intent, and User Utterance to derive a personalized intent focusing on the product and attribute. 
 """
 
-examples = """
+examples: Final[str] = """
 EXAMPLE 1 (General list → user picks one):
 
 Output:
@@ -80,7 +82,7 @@ Personalized Intent:
 User is looking for waterproof sneakers.
 """
 
-output_instructions = """
+output_instructions: Final[str] = """
 **Important Cases:**
 1. If user mentions a product, identify the product and also the attribute, IF ANY.
 2. If user mentions only attribute, infer most likely product based on context and based on the given information.

@@ -1,5 +1,7 @@
 import json
 import random
+from typing import Any, Dict, List
+import networkx as nx
 from arklex.evaluation.extract_conversation_info import build_intent_graph
 from arklex.evaluation.chatgpt_utils import (
     chatgpt_chatbot,
@@ -9,7 +11,13 @@ from arklex.evaluation.chatgpt_utils import (
 )
 
 
-def sampling_paths(start_node, graph, path_length, max_turns, intents):
+def sampling_paths(
+    start_node: str,
+    graph: nx.DiGraph,
+    path_length: int,
+    max_turns: int,
+    intents: List[str],
+) -> List[str]:
     children = list(graph.successors(start_node))
     if path_length >= max_turns or len(children) == 0:
         return intents
@@ -21,7 +29,7 @@ def sampling_paths(start_node, graph, path_length, max_turns, intents):
     return sampling_paths(next_node, graph, path_length + 1, max_turns, intents)
 
 
-def get_paths(G, num_paths, max_turns):
+def get_paths(G: nx.DiGraph, num_paths: int, max_turns: int) -> List[List[str]]:
     my_paths = []
     for i in range(num_paths):
         my_path = sampling_paths("start", G, 0, max_turns, ["start"])
@@ -29,8 +37,14 @@ def get_paths(G, num_paths, max_turns):
     return my_paths
 
 
-def interact(intent_path, summary, model_api, model_params, client):
-    history = []
+def interact(
+    intent_path: List[str],
+    summary: str,
+    model_api: str,
+    model_params: Dict[str, Any],
+    client: Any,
+) -> List[Dict[str, Any]]:
+    history: List[Dict[str, Any]] = []
     instructional_prompt = (
         "Replicate the behavior of a human customer. You are interacting with customer service chatbot for the following company: "
         + summary
@@ -63,8 +77,14 @@ def interact(intent_path, summary, model_api, model_params, client):
     return history
 
 
-def generate_labeled_convos(intent_paths, summary, model_api, model_params, client):
-    convos = []
+def generate_labeled_convos(
+    intent_paths: List[List[str]],
+    summary: str,
+    model_api: str,
+    model_params: Dict[str, Any],
+    client: Any,
+) -> List[List[Dict[str, Any]]]:
+    convos: List[List[Dict[str, Any]]] = []
     model_params = {}
     for intent_path in intent_paths:
         convo = interact(intent_path, summary, model_api, model_params, client)
@@ -73,8 +93,12 @@ def generate_labeled_convos(intent_paths, summary, model_api, model_params, clie
 
 
 def get_labeled_convos(
-    first_pass_data, model_api, synthetic_data_params, model_params, config
-):
+    first_pass_data: List[Any],
+    model_api: str,
+    synthetic_data_params: Dict[str, Any],
+    model_params: Dict[str, Any],
+    config: Dict[str, Any],
+) -> List[List[Dict[str, Any]]]:
     intent_graph = build_intent_graph(first_pass_data)
     intent_paths = get_paths(
         intent_graph,

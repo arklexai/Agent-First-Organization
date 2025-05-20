@@ -2,7 +2,7 @@ import json
 import os
 import time
 from concurrent.futures import ThreadPoolExecutor
-from typing import Any, Callable, TypeVar
+from typing import Any, Callable, TypeVar, List, Dict, Optional, Union
 
 from benchmark.tau_bench.model_utils.model.exception import ModelError, Result
 
@@ -20,7 +20,7 @@ def get_report_dir() -> str:
     return _REPORT_DIR
 
 
-def log_report_to_disk(report: dict[str, Any], path: str) -> None:
+def log_report_to_disk(report: Dict[str, Any], path: str) -> None:
     with open(path, "w") as f:
         json.dump(report, f, indent=4)
 
@@ -33,7 +33,7 @@ def generate_report_location() -> str:
 
 class APIError(Exception):
     def __init__(
-        self, short_message: str, report: dict[str, Any] | None = None
+        self, short_message: str, report: Optional[Dict[str, Any]] = None
     ) -> None:
         self.report_path = generate_report_location()
         self.short_message = short_message
@@ -49,9 +49,9 @@ class APIError(Exception):
 
 
 def execute_and_filter_model_errors(
-    funcs: list[Callable[[], T]],
-    max_concurrency: int | None = None,
-) -> list[T] | list[ModelError]:
+    funcs: List[Callable[[], T]],
+    max_concurrency: Optional[int] = None,
+) -> Union[List[T], List[ModelError]]:
     def _invoke_w_o_llm_error(invocable: Callable[[], T]) -> Result:
         try:
             return Result(value=invocable(), error=None)
@@ -61,7 +61,7 @@ def execute_and_filter_model_errors(
     with ThreadPoolExecutor(max_workers=max_concurrency) as executor:
         results = list(executor.map(_invoke_w_o_llm_error, funcs))
 
-    errors: list[ModelError] = []
+    errors: List[ModelError] = []
     values = []
     for res in results:
         if res.error is not None:

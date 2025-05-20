@@ -6,7 +6,7 @@ from tqdm import tqdm as progress_bar
 import pickle
 from pathlib import Path
 import inspect
-from typing import Optional
+from typing import Optional, Dict, List, Any, Callable
 from collections import deque
 
 from langchain.prompts import PromptTemplate
@@ -30,13 +30,19 @@ logger = logging.getLogger(__name__)
 class InputModal(Screen):
     """A simple input modal for editing or adding tasks/steps."""
 
-    def __init__(self, title: str, default: str = "", node=None, callback=None):
+    def __init__(
+        self,
+        title: str,
+        default: str = "",
+        node: Optional[TreeNode] = None,
+        callback: Optional[Callable[[str, Optional[TreeNode]], None]] = None,
+    ) -> None:
         super().__init__()
-        self.title = title
-        self.default = default
-        self.result = default
-        self.node = node
-        self.callback = callback
+        self.title: str = title
+        self.default: str = default
+        self.result: str = default
+        self.node: Optional[TreeNode] = node
+        self.callback: Optional[Callable[[str, Optional[TreeNode]], None]] = callback
 
     def compose(self) -> ComposeResult:
         yield Vertical(
@@ -52,7 +58,6 @@ class InputModal(Screen):
     def on_button_pressed(self, event: Button.Pressed) -> None:
         if event.button.id == "submit":
             self.result = self.query_one("#input-field", Input).value
-            # logger.debug(f"InputModal result: {self.result}")
         if self.callback:
             self.callback(self.result, self.node)
         logger.debug(f"InputModal result: {self.result}")
@@ -62,10 +67,10 @@ class InputModal(Screen):
 class TaskEditorApp(App):
     """A Textual app to edit tasks and steps in a hierarchical structure."""
 
-    def __init__(self, tasks):
+    def __init__(self, tasks: List[Dict[str, Any]]) -> None:
         super().__init__()
-        self.tasks = tasks
-        self.task_tree: Tree[str] = None
+        self.tasks: List[Dict[str, Any]] = tasks
+        self.task_tree: Optional[Tree[str]] = None
 
     def compose(self) -> ComposeResult:
         self.task_tree = Tree("Tasks")
@@ -82,13 +87,13 @@ class TaskEditorApp(App):
             "Click on a task or step to edit it. Press 'a' to add new item, 'd' to delete, 's' to save and exit."
         )
 
-    def on_mount(self):
+    def on_mount(self) -> None:
         self.task_tree.focus()
 
     async def on_tree_node_selected(self, event: Tree.NodeSelected) -> None:
         selected_node = event.node
 
-        def handle_modal_result(result, node):
+        def handle_modal_result(result: str, node: TreeNode) -> None:
             if result is not None:  # Check if the user submitted a valid result
                 node.set_label(result)  # Update the tree node's label
                 self.call_later(
@@ -104,7 +109,7 @@ class TaskEditorApp(App):
             )
         )
 
-    async def on_key(self, event):
+    async def on_key(self, event: Any) -> None:
         selected_node = self.task_tree.cursor_node
         if event.key == "a" and selected_node and selected_node.parent is not None:
             await self.action_add_node(selected_node)
@@ -114,7 +119,7 @@ class TaskEditorApp(App):
         elif event.key == "s":
             self.exit(self.tasks)
 
-    async def action_add_node(self, node: TreeNode):
+    async def action_add_node(self, node: TreeNode) -> None:
         # if the node is a step node
         if node.parent.parent is not None:
             leaf = True
@@ -130,7 +135,7 @@ class TaskEditorApp(App):
                 node = node.parent
                 title = f"Add new task under '{node.label.plain}'"
 
-        def handle_modal_result(result, node):
+        def handle_modal_result(result: str, node: TreeNode) -> None:
             if result is not None:  # Check if the user submitted a valid result
                 if leaf:
                     node.add_leaf(result)
@@ -149,7 +154,7 @@ class TaskEditorApp(App):
         self.push_screen(modal)
         return modal.result
 
-    async def update_tasks(self):
+    async def update_tasks(self) -> None:
         self.tasks = []
         for task_node in self.task_tree.root.children:
             task_name = task_node.label.plain
@@ -163,41 +168,45 @@ class TaskEditorApp(App):
 class Generator:
     def __init__(
         self,
-        config: dict,
-        model,
+        config: Dict[str, Any],
+        model: Any,
         output_dir: Optional[str] = None,
         resource_inizializer: Optional[BaseResourceInitializer] = None,
-        interactable_with_user=True,
-        allow_nested_graph=True,
-    ):
+        interactable_with_user: bool = True,
+        allow_nested_graph: bool = True,
+    ) -> None:
         if resource_inizializer is None:
             resource_inizializer = DefaulResourceInitializer()
-        self.product_kwargs = config
-        self.role = self.product_kwargs.get("role")
-        self.u_objective = self.product_kwargs.get("user_objective")
-        self.b_objective = self.product_kwargs.get("builder_objective")
-        self.intro = self.product_kwargs.get("intro")
-        self.instruction_docs = self.product_kwargs.get("instructions")
-        self.task_docs = self.product_kwargs.get("task_docs")
-        self.rag_docs = self.product_kwargs.get("rag_docs")
-        self.user_tasks = self.product_kwargs.get("tasks")
-        self.example_conversations = self.product_kwargs.get("example_conversations")
-        self.workers = resource_inizializer.init_workers(
+        self.product_kwargs: Dict[str, Any] = config
+        self.role: str = self.product_kwargs.get("role")
+        self.u_objective: str = self.product_kwargs.get("user_objective")
+        self.b_objective: str = self.product_kwargs.get("builder_objective")
+        self.intro: str = self.product_kwargs.get("intro")
+        self.instruction_docs: str = self.product_kwargs.get("instructions")
+        self.task_docs: str = self.product_kwargs.get("task_docs")
+        self.rag_docs: str = self.product_kwargs.get("rag_docs")
+        self.user_tasks: List[Dict[str, Any]] = self.product_kwargs.get("tasks")
+        self.example_conversations: List[Dict[str, Any]] = self.product_kwargs.get(
+            "example_conversations"
+        )
+        self.workers: Dict[str, Dict[str, str]] = resource_inizializer.init_workers(
             self.product_kwargs.get("workers")
         )
-        self.tools = resource_inizializer.init_tools(self.product_kwargs.get("tools"))
-        self.interactable_with_user = interactable_with_user
-        self.allow_nested_graph = allow_nested_graph
-        self.model = model
-        self.timestamp = datetime.now().strftime("%Y%m%d%H%M%S")
-        self.output_dir = output_dir
+        self.tools: Dict[str, Dict[str, str]] = resource_inizializer.init_tools(
+            self.product_kwargs.get("tools")
+        )
+        self.interactable_with_user: bool = interactable_with_user
+        self.allow_nested_graph: bool = allow_nested_graph
+        self.model: Any = model
+        self.timestamp: str = datetime.now().strftime("%Y%m%d%H%M%S")
+        self.output_dir: Optional[str] = output_dir
 
         # variables that will be used
-        self.documents = ""  # task documents
-        self.reusable_tasks = {}  # nested graph tasks
-        self.tasks = []  # tasks
+        self.documents: str = ""  # task documents
+        self.reusable_tasks: Dict[str, Dict[str, Any]] = {}  # nested graph tasks
+        self.tasks: List[Dict[str, Any]] = []  # tasks
 
-    def _generate_reusable_tasks(self):
+    def _generate_reusable_tasks(self) -> None:
         """
         Generate reusable task graphs and pair each step with available resources.
 
@@ -240,10 +249,6 @@ class Generator:
             tool_desc = tool_info["description"]
             resources[tool_name] = tool_desc
 
-        # TODO: do I want to allow subgraph in subgraph?
-        # for task_name, task_info in reusable_tasks.items():
-        #     resources[task_name] = task_info["nestedgraph_task"]
-
         reusable_task_finetune_prompt = PromptTemplate.from_template(
             embed_reusable_task_resources_sys_prompt
         )
@@ -278,7 +283,7 @@ class Generator:
 
         self.reusable_tasks = reusable_tasks
 
-    def _generate_tasks(self):
+    def _generate_tasks(self) -> None:
         # based on the type and documents
         prompt = PromptTemplate.from_template(generate_tasks_sys_prompt)
         input_prompt = prompt.invoke(
@@ -296,7 +301,7 @@ class Generator:
         logger.debug(f"Generated tasks with thought: {answer}")
         self.tasks.extend(postprocess_json(answer))
 
-    def _add_provided_tasks(self):
+    def _add_provided_tasks(self) -> None:
         if not self.user_tasks:
             return
         new_format_tasks = []
@@ -324,7 +329,7 @@ class Generator:
 
         self.tasks.extend(new_format_tasks)
 
-    def _generate_best_practice(self, task):
+    def _generate_best_practice(self, task: Dict[str, Any]) -> List[Dict[str, Any]]:
         # Best practice detection
         resources = {}
         for _, worker_info in self.workers.items():
@@ -390,7 +395,9 @@ class Generator:
         logger.debug(f"Generated best practice with thought: {answer}")
         return postprocess_json(answer)
 
-    def _finetune_best_practice(self, best_practice):
+    def _finetune_best_practice(
+        self, best_practice: List[Dict[str, Any]]
+    ) -> List[Dict[str, Any]]:
         # embed build's objective
         if not self.b_objective:
             prompt = PromptTemplate.from_template(embed_builder_obj_sys_prompt)
@@ -442,7 +449,9 @@ class Generator:
             json_answer[i]["resource_id"] = resource_id
         return json_answer
 
-    def _format_task_graph(self, finetuned_best_practices):
+    def _format_task_graph(
+        self, finetuned_best_practices: List[Dict[str, Any]]
+    ) -> Dict[str, Any]:
         node_id = 1
         nodes = []
         edges = []
@@ -616,7 +625,7 @@ class Generator:
 
         return task_graph
 
-    def _load_docs(self):
+    def _load_docs(self) -> None:
         if self.task_docs:
             filepath = os.path.join(self.output_dir, "task_documents.pkl")
             total_num_docs = sum([doc.get("num", 1) for doc in self.task_docs])
@@ -669,7 +678,7 @@ class Generator:
         else:
             self.documents = ""
 
-    def _load_instructions(self):
+    def _load_instructions(self) -> None:
         instructions = []
         if not self.instruction_docs:
             self.instructions = ""
@@ -708,7 +717,7 @@ class Generator:
         logger.debug(f"Loaded {len(crawled_docs)} instruction documents")
         self.instructions = "\n\n".join([f"{doc.content}" for doc in crawled_docs])
 
-    def generate(self) -> dict:
+    def generate(self) -> Dict[str, Any]:
         # Load the docs for task graph
         self._load_docs()
 
@@ -770,7 +779,7 @@ class Generator:
 
         return task_graph
 
-    def save_task_graph(self, task_graph) -> str:
+    def save_task_graph(self, task_graph: Dict[str, Any]) -> str:
         taskgraph_filepath = os.path.join(self.output_dir, f"taskgraph.json")
         with open(taskgraph_filepath, "w") as f:
             json.dump(task_graph, f, indent=4)

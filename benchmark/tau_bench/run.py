@@ -6,8 +6,7 @@ import random
 import traceback
 from math import comb
 import multiprocessing
-from typing import List, Dict, Any
-from datetime import datetime
+from typing import List, Dict, Any, Tuple
 from concurrent.futures import ThreadPoolExecutor
 
 from benchmark.tau_bench.envs import get_env
@@ -100,7 +99,7 @@ def run(config: RunConfig) -> List[EnvRunResult]:
             )
             print("-----")
             with lock:
-                data = []
+                data: List[Dict[str, Any]] = []
                 with open(ckpt_path, "w") as f:
                     json.dump(data + [result.model_dump()], f, indent=2)
             return result
@@ -114,7 +113,7 @@ def run(config: RunConfig) -> List[EnvRunResult]:
 
     tasks_res = [result.model_dump() for result in results]
     with open(ckpt_path, "w") as f:
-        tau_bench_evaluation = {
+        tau_bench_evaluation: Dict[str, Any] = {
             "average_reward": avg_reward,
             "pass_k": pass_hat_ks,
             "task_results": tasks_res,
@@ -130,7 +129,7 @@ def agent_factory(config: RunConfig) -> Agent:
     return AgentFirstOrg(taskgraph_dir=config.taskgraph_dir)
 
 
-def get_metrics(results: List[EnvRunResult]):
+def get_metrics(results: List[EnvRunResult]) -> Tuple[float, Dict[int, float]]:
     def is_successful(reward: float) -> bool:
         return (1 - 1e-6) <= reward <= (1 + 1e-6)
 
@@ -138,13 +137,13 @@ def get_metrics(results: List[EnvRunResult]):
     rewards = [r.reward for r in results]
     avg_reward = sum(rewards) / len(rewards)
     # c from https://arxiv.org/pdf/2406.12045
-    c_per_task_id: dict[int, int] = {}
+    c_per_task_id: Dict[int, int] = {}
     for result in results:
         if result.task_id not in c_per_task_id:
             c_per_task_id[result.task_id] = 1 if is_successful(result.reward) else 0
         else:
             c_per_task_id[result.task_id] += 1 if is_successful(result.reward) else 0
-    pass_hat_ks: dict[int, float] = {}
+    pass_hat_ks: Dict[int, float] = {}
     for k in range(1, num_trials + 1):
         sum_task_pass_hat_k = 0
         for c in c_per_task_id.values():
@@ -153,7 +152,7 @@ def get_metrics(results: List[EnvRunResult]):
     return avg_reward, pass_hat_ks
 
 
-def display_metrics(avg_reward, pass_hat_ks) -> None:
+def display_metrics(avg_reward: float, pass_hat_ks: Dict[int, float]) -> None:
     print(f"🏆 Average reward: {avg_reward}")
     print("📈 Pass^k")
     for k, pass_hat_k in pass_hat_ks.items():

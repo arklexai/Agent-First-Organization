@@ -3,47 +3,133 @@
 import abc
 import enum
 from litellm import completion
-
-from typing import Optional, List, Dict, Any, Union
+from typing import Optional, List, Dict, Any, Union, ClassVar
 
 
 class BaseUserSimulationEnv(abc.ABC):
-    metadata = {}
+    """
+    Abstract base class for user simulation environments.
+
+    This class defines the interface that all user simulation implementations must follow.
+    """
+
+    metadata: ClassVar[Dict[str, Any]] = {}
 
     @abc.abstractmethod
     def reset(self, instruction: Optional[str] = None) -> str:
+        """
+        Reset the user simulation environment.
+
+        Args:
+            instruction (Optional[str]): Optional instruction for the user.
+
+        Returns:
+            str: The initial user response.
+
+        Raises:
+            NotImplementedError: This method must be implemented by subclasses.
+        """
         raise NotImplementedError
 
     @abc.abstractmethod
     def step(self, content: str) -> str:
+        """
+        Take a step in the user simulation environment.
+
+        Args:
+            content (str): The content to respond to.
+
+        Returns:
+            str: The user's response.
+
+        Raises:
+            NotImplementedError: This method must be implemented by subclasses.
+        """
         raise NotImplementedError
 
     @abc.abstractmethod
     def get_total_cost(self) -> float:
+        """
+        Get the total cost of the simulation.
+
+        Returns:
+            float: The total cost.
+
+        Raises:
+            NotImplementedError: This method must be implemented by subclasses.
+        """
         raise NotImplementedError
 
 
 class HumanUserSimulationEnv(BaseUserSimulationEnv):
+    """
+    User simulation environment that uses human input.
+    """
+
     def reset(self, instruction: str) -> str:
+        """
+        Reset the environment and get initial human input.
+
+        Args:
+            instruction (str): The instruction to display.
+
+        Returns:
+            str: The human's response.
+        """
         return input(f"{instruction}\n")
 
     def step(self, content: str) -> str:
+        """
+        Get human input for the next step.
+
+        Args:
+            content (str): The content to respond to.
+
+        Returns:
+            str: The human's response.
+        """
         return input(f"{content}\n")
 
     def get_total_cost(self) -> float:
+        """
+        Get the total cost (always 0 for human simulation).
+
+        Returns:
+            float: Always returns 0.
+        """
         return 0
 
 
 class LLMUserSimulationEnv(BaseUserSimulationEnv):
+    """
+    User simulation environment that uses a language model.
+    """
+
     def __init__(self, model: str, provider: str) -> None:
+        """
+        Initialize the LLM user simulation environment.
+
+        Args:
+            model (str): The model to use.
+            provider (str): The provider of the model.
+        """
         super().__init__()
         self.messages: List[Dict[str, Any]] = []
-        self.model = model
-        self.provider = provider
-        self.total_cost = 0.0
+        self.model: str = model
+        self.provider: str = provider
+        self.total_cost: float = 0.0
         self.reset()
 
     def generate_next_message(self, messages: List[Dict[str, Any]]) -> str:
+        """
+        Generate the next message using the language model.
+
+        Args:
+            messages (List[Dict[str, Any]]): The conversation history.
+
+        Returns:
+            str: The generated message.
+        """
         res = completion(
             model=self.model, custom_llm_provider=self.provider, messages=messages
         )
@@ -53,6 +139,15 @@ class LLMUserSimulationEnv(BaseUserSimulationEnv):
         return message.content
 
     def build_system_prompt(self, instruction: Optional[str]) -> str:
+        """
+        Build the system prompt for the language model.
+
+        Args:
+            instruction (Optional[str]): Optional instruction for the user.
+
+        Returns:
+            str: The system prompt.
+        """
         instruction_display = (
             ("\n\nInstruction: " + instruction + "\n")
             if instruction is not None
@@ -68,6 +163,15 @@ Rules:
 - Try to make the conversation as natural as possible, and stick to the personalities in the instruction."""
 
     def reset(self, instruction: Optional[str] = None) -> str:
+        """
+        Reset the environment and get initial response.
+
+        Args:
+            instruction (Optional[str]): Optional instruction for the user.
+
+        Returns:
+            str: The initial response.
+        """
         self.messages = [
             {
                 "role": "system",
@@ -78,19 +182,54 @@ Rules:
         return self.generate_next_message(self.messages)
 
     def step(self, content: str) -> str:
+        """
+        Take a step in the environment.
+
+        Args:
+            content (str): The content to respond to.
+
+        Returns:
+            str: The user's response.
+        """
         self.messages.append({"role": "user", "content": content})
         return self.generate_next_message(self.messages)
 
     def get_total_cost(self) -> float:
+        """
+        Get the total cost of the simulation.
+
+        Returns:
+            float: The total cost.
+        """
         return self.total_cost
 
 
 class ReactUserSimulationEnv(LLMUserSimulationEnv):
+    """
+    User simulation environment that uses a language model with ReAct prompting.
+    """
+
     def __init__(self, model: str, provider: str) -> None:
+        """
+        Initialize the ReAct user simulation environment.
+
+        Args:
+            model (str): The model to use.
+            provider (str): The provider of the model.
+        """
         super().__init__(model=model, provider=provider)
         self.reset()
 
     def build_system_prompt(self, instruction: Optional[str]) -> str:
+        """
+        Build the system prompt for the language model.
+
+        Args:
+            instruction (Optional[str]): Optional instruction for the user.
+
+        Returns:
+            str: The system prompt.
+        """
         instruction_display = (
             ("\n\nInstruction: " + instruction + "\n")
             if instruction is not None
@@ -115,6 +254,15 @@ User Response:
 <the user response (this will be parsed and sent to the agent)>"""
 
     def generate_next_message(self, messages: List[Dict[str, Any]]) -> str:
+        """
+        Generate the next message using the language model.
+
+        Args:
+            messages (List[Dict[str, Any]]): The conversation history.
+
+        Returns:
+            str: The generated message.
+        """
         res = completion(
             model=self.model, custom_llm_provider=self.provider, messages=messages
         )
@@ -124,6 +272,15 @@ User Response:
         return self.parse_response(message.content)
 
     def reset(self, instruction: Optional[str] = None) -> str:
+        """
+        Reset the environment and get initial response.
+
+        Args:
+            instruction (Optional[str]): Optional instruction for the user.
+
+        Returns:
+            str: The initial response.
+        """
         self.messages = [
             {
                 "role": "system",
@@ -134,6 +291,18 @@ User Response:
         return self.generate_next_message(self.messages)
 
     def parse_response(self, response: str) -> str:
+        """
+        Parse the response from the language model.
+
+        Args:
+            response (str): The response to parse.
+
+        Returns:
+            str: The parsed response.
+
+        Raises:
+            ValueError: If the response format is invalid.
+        """
         if "###STOP###" in response:
             return "###STOP###"
         elif "Thought:" in response:
@@ -146,22 +315,58 @@ User Response:
             raise ValueError(f"Invalid response format: {response}")
 
     def step(self, content: str) -> str:
+        """
+        Take a step in the environment.
+
+        Args:
+            content (str): The content to respond to.
+
+        Returns:
+            str: The user's response.
+        """
         self.messages.append({"role": "user", "content": content})
         return self.generate_next_message(self.messages)
 
     def get_total_cost(self) -> float:
+        """
+        Get the total cost of the simulation.
+
+        Returns:
+            float: The total cost.
+        """
         return self.total_cost
 
 
 class VerifyUserSimulationEnv(LLMUserSimulationEnv):
+    """
+    User simulation environment that uses a language model with verification.
+    """
+
     def __init__(self, model: str, provider: str, max_attempts: int = 3) -> None:
-        self.model = model
-        self.provider = provider
-        self.max_attempts = max_attempts
+        """
+        Initialize the verify user simulation environment.
+
+        Args:
+            model (str): The model to use.
+            provider (str): The provider of the model.
+            max_attempts (int): Maximum number of verification attempts.
+        """
+        self.model: str = model
+        self.provider: str = provider
+        self.max_attempts: int = max_attempts
         self.reset()
 
     def generate_next_message(self, messages: List[Dict[str, Any]]) -> str:
-        attempts = 0
+        """
+        Generate the next message using the language model with verification.
+
+        Args:
+            messages (List[Dict[str, Any]]): The conversation history.
+
+        Returns:
+            str: The generated message.
+        """
+        attempts: int = 0
         cur_message = None
         while attempts < self.max_attempts:
             res = completion(
@@ -177,6 +382,15 @@ class VerifyUserSimulationEnv(LLMUserSimulationEnv):
         return cur_message.content
 
     def reset(self, instruction: Optional[str] = None) -> str:
+        """
+        Reset the environment and get initial response.
+
+        Args:
+            instruction (Optional[str]): Optional instruction for the user.
+
+        Returns:
+            str: The initial response.
+        """
         self.messages = [
             {
                 "role": "system",
@@ -187,14 +401,38 @@ class VerifyUserSimulationEnv(LLMUserSimulationEnv):
         return self.generate_next_message(self.messages)
 
     def step(self, content: str) -> str:
+        """
+        Take a step in the environment.
+
+        Args:
+            content (str): The content to respond to.
+
+        Returns:
+            str: The user's response.
+        """
         self.messages.append({"role": "user", "content": content})
         return self.generate_next_message(self.messages)
 
     def get_total_cost(self) -> float:
+        """
+        Get the total cost of the simulation.
+
+        Returns:
+            float: The total cost.
+        """
         return self.total_cost
 
 
 def map_role_label(role: str) -> str:
+    """
+    Map a role to a display label.
+
+    Args:
+        role (str): The role to map.
+
+    Returns:
+        str: The display label.
+    """
     if role == "user":
         return "Customer"
     elif role == "assistant":
@@ -206,13 +444,25 @@ def map_role_label(role: str) -> str:
 def verify(
     model: str, provider: str, response: str, messages: List[Dict[str, Any]]
 ) -> bool:
-    transcript = "\n".join(
+    """
+    Verify if a response is satisfactory.
+
+    Args:
+        model (str): The model to use for verification.
+        provider (str): The provider of the model.
+        response (str): The response to verify.
+        messages (List[Dict[str, Any]]): The conversation history.
+
+    Returns:
+        bool: True if the response is satisfactory, False otherwise.
+    """
+    transcript: str = "\n".join(
         [
             f"{map_role_label(message['role'])}: {message['content']}"
             for message in messages
         ]
     )
-    prompt = f"""You are a supervisor of the Agent in the conversation. You are given a Transcript of a conversation between a Customer and an Agent. The Customer has generated a Response, and you need to verify if it is satisfactory (true) or not (false).
+    prompt: str = f"""You are a supervisor of the Agent in the conversation. You are given a Transcript of a conversation between a Customer and an Agent. The Customer has generated a Response, and you need to verify if it is satisfactory (true) or not (false).
 Your answer will be parsed, so do not include any other text than the classification (true or false).
     
 # Transcript:
@@ -235,13 +485,25 @@ Classification:"""
 def reflect(
     model: str, provider: str, response: str, messages: List[Dict[str, Any]]
 ) -> str:
-    transcript = "\n".join(
+    """
+    Generate a reflection on an unsatisfactory response.
+
+    Args:
+        model (str): The model to use for reflection.
+        provider (str): The provider of the model.
+        response (str): The response to reflect on.
+        messages (List[Dict[str, Any]]): The conversation history.
+
+    Returns:
+        str: The reflection.
+    """
+    transcript: str = "\n".join(
         [
             f"{map_role_label(message['role'])}: {message['content']}"
             for message in messages
         ]
     )
-    prompt = f"""You are a supervisor of the Agent in the conversation. You are given a Transcript of a conversation between a (simulated) Customer and an Agent. The Customer generated a Response that was marked as unsatisfactory by you.
+    prompt: str = f"""You are a supervisor of the Agent in the conversation. You are given a Transcript of a conversation between a (simulated) Customer and an Agent. The Customer generated a Response that was marked as unsatisfactory by you.
 You need to generate a Reflection on what went wrong in the conversation, and propose a new Response that should fix the issues.
 Your answer will be parsed, so do not include any other text than the classification (true or false).
     
@@ -251,47 +513,73 @@ Your answer will be parsed, so do not include any other text than the classifica
 # Response:
 {response}
 
-# Format:
+-----
 
-Reflection:
-<the reflection>
-
-Response:
-<the response (this will be parsed and sent to the agent)>"""
+Reflection:"""
     res = completion(
         model=model,
         custom_llm_provider=provider,
         messages=[{"role": "user", "content": prompt}],
     )
-    _, response = res.choices[0].message.content.split("Response:")
-    return response.strip()
+    return res.choices[0].message.content
 
 
 class ReflectionUserSimulationEnv(LLMUserSimulationEnv):
+    """
+    User simulation environment that uses a language model with reflection.
+    """
+
     def __init__(self, model: str, provider: str, max_attempts: int = 2) -> None:
-        self.model = model
-        self.provider = provider
-        self.max_attempts = max_attempts
+        """
+        Initialize the reflection user simulation environment.
+
+        Args:
+            model (str): The model to use.
+            provider (str): The provider of the model.
+            max_attempts (int): Maximum number of reflection attempts.
+        """
+        self.model: str = model
+        self.provider: str = provider
+        self.max_attempts: int = max_attempts
         self.reset()
 
     def generate_next_message(self, messages: List[Dict[str, Any]]) -> str:
-        cur_messages = messages.copy()
-        initial_response = super().generate_next_message(cur_messages)
-        if verify(self.model, self.provider, initial_response, cur_messages):
-            return initial_response
-        attempts = 1
+        """
+        Generate the next message using the language model with reflection.
+
+        Args:
+            messages (List[Dict[str, Any]]): The conversation history.
+
+        Returns:
+            str: The generated message.
+        """
+        attempts: int = 0
+        cur_message = None
         while attempts < self.max_attempts:
-            new_message = reflect(
-                self.model, self.provider, initial_response, cur_messages
+            res = completion(
+                model=self.model, custom_llm_provider=self.provider, messages=messages
             )
-            cur_messages.append({"role": "user", "content": new_message})
-            new_response = super().generate_next_message(cur_messages)
-            if verify(self.model, self.provider, new_response, cur_messages):
-                return new_response
+            cur_message = res.choices[0].message
+            self.total_cost = res._hidden_params["response_cost"]
+            if verify(self.model, self.provider, cur_message, messages):
+                self.messages.append(cur_message.model_dump())
+                return cur_message.content
+            reflection: str = reflect(self.model, self.provider, cur_message, messages)
+            messages.append({"role": "user", "content": reflection})
             attempts += 1
-        return initial_response
+        assert cur_message is not None
+        return cur_message.content
 
     def reset(self, instruction: Optional[str] = None) -> str:
+        """
+        Reset the environment and get initial response.
+
+        Args:
+            instruction (Optional[str]): Optional instruction for the user.
+
+        Returns:
+            str: The initial response.
+        """
         self.messages = [
             {
                 "role": "system",
@@ -302,14 +590,33 @@ class ReflectionUserSimulationEnv(LLMUserSimulationEnv):
         return self.generate_next_message(self.messages)
 
     def step(self, content: str) -> str:
+        """
+        Take a step in the environment.
+
+        Args:
+            content (str): The content to respond to.
+
+        Returns:
+            str: The user's response.
+        """
         self.messages.append({"role": "user", "content": content})
         return self.generate_next_message(self.messages)
 
     def get_total_cost(self) -> float:
+        """
+        Get the total cost of the simulation.
+
+        Returns:
+            float: The total cost.
+        """
         return self.total_cost
 
 
 class UserStrategy(enum.Enum):
+    """
+    Enumeration of available user simulation strategies.
+    """
+
     HUMAN = "human"
     LLM = "llm"
     REACT = "react"
@@ -322,32 +629,28 @@ def load_user(
     model: Optional[str] = "gpt-4o",
     provider: Optional[str] = None,
 ) -> BaseUserSimulationEnv:
+    """
+    Load a user simulation environment.
+
+    Args:
+        user_strategy (Union[str, UserStrategy]): The strategy to use.
+        model (Optional[str]): The model to use.
+        provider (Optional[str]): The provider of the model.
+
+    Returns:
+        BaseUserSimulationEnv: The loaded user simulation environment.
+    """
     if isinstance(user_strategy, str):
         user_strategy = UserStrategy(user_strategy)
     if user_strategy == UserStrategy.HUMAN:
         return HumanUserSimulationEnv()
     elif user_strategy == UserStrategy.LLM:
-        if model is None:
-            raise ValueError("LLM user strategy requires a model")
-        if provider is None:
-            raise ValueError("LLM user strategy requires a model provider")
         return LLMUserSimulationEnv(model=model, provider=provider)
     elif user_strategy == UserStrategy.REACT:
-        if model is None:
-            raise ValueError("React user strategy requires a model")
-        if provider is None:
-            raise ValueError("React user strategy requires a model provider")
         return ReactUserSimulationEnv(model=model, provider=provider)
     elif user_strategy == UserStrategy.VERIFY:
-        if model is None:
-            raise ValueError("Verify user strategy requires a model")
-        if provider is None:
-            raise ValueError("Verify user strategy requires a model provider")
         return VerifyUserSimulationEnv(model=model, provider=provider)
     elif user_strategy == UserStrategy.REFLECTION:
-        if model is None:
-            raise ValueError("Reflection user strategy requires a model")
-        if provider is None:
-            raise ValueError("Reflection user strategy requires a model provider")
         return ReflectionUserSimulationEnv(model=model, provider=provider)
-    raise ValueError(f"Unknown user strategy {user_strategy}")
+    else:
+        raise ValueError(f"Unknown user strategy: {user_strategy}")

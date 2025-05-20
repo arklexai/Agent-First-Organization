@@ -1,7 +1,9 @@
-RESPOND_ACTION_NAME = "respond"
-RESPOND_ACTION_FIELD_NAME = "content"
+from typing import Final
 
-REACT_INSTRUCTION = """
+RESPOND_ACTION_NAME: Final[str] = "respond"
+RESPOND_ACTION_FIELD_NAME: Final[str] = "content"
+
+REACT_INSTRUCTION: Final[str] = """
 # Instruction
 You need to act as an agent that use a set of tools to help the user according to the policy.
 
@@ -27,7 +29,7 @@ Thought:
 
 ### REACT PLANNER PROMPTS
 
-PLANNER_REACT_INSTRUCTION_ZERO_SHOT = """
+PLANNER_REACT_INSTRUCTION_ZERO_SHOT: Final[str] = """
 # Instruction
 Please act as an agent that selects the next appropriate action in a sequence of actions in order to satisfy the user's request.
 
@@ -58,7 +60,7 @@ Select the next action based on the current task, conversation record, and avail
 Thought:
 """
 
-PLANNER_SUMMARIZE_TRAJECTORY_PROMPT = """
+PLANNER_SUMMARIZE_TRAJECTORY_PROMPT: Final[str] = """
 # Instruction
 Please summarize the planning steps required to satisfy the user's request.
 Your response must be formatted as a bulleted list where each line begins with a hyphen ("-"). Do not include any extraneous text.
@@ -75,7 +77,7 @@ Your current task is:
 Answer:
 """
 
-PLANNER_REACT_INSTRUCTION_FEW_SHOT = """
+PLANNER_REACT_INSTRUCTION_FEW_SHOT: Final[str] = """
 # Instruction
 Please act as an agent that selects the next appropriate action in a sequence of actions in order to satisfy the user's request.
 

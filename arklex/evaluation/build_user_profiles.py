@@ -1,6 +1,7 @@
 import random
 import requests
 import copy
+from typing import Any, Dict, List, Tuple, Optional
 from arklex.evaluation.get_documents import load_docs
 from arklex.evaluation.chatgpt_utils import chatgpt_chatbot
 from arklex.env.env import Env
@@ -14,8 +15,8 @@ ADD_ATTRIBUTES_WO_DOC = "Your job is to add attributes to a customer profile. He
 
 
 def build_profile(
-    synthetic_data_params, config: dict
-) -> tuple[list[str], list[str], list[dict], list[dict], list[dict]]:
+    synthetic_data_params: Dict[str, Any], config: Dict[str, Any]
+) -> Tuple[List[str], List[str], List[Dict[str, Any]], List[Dict[str, Any]], List[Any]]:
     labels_list = []
     attributes_list = []
     system_attributes_list = []
@@ -126,7 +127,12 @@ def build_profile(
     return profiles, goals, attributes_list, system_inputs, labels_list
 
 
-def pick_goal(attributes, goals, strategy="react", client=None):
+def pick_goal(
+    attributes: Dict[str, Any],
+    goals: List[str],
+    strategy: str = "react",
+    client: Optional[Any] = None,
+) -> str:
     """
     Pick the goal from the predefined attributes based on the user's profile
     """
@@ -193,7 +199,10 @@ Goal:
 
 
 def find_matched_attribute(
-    goal, user_profile_str, strategy="react", client=None
+    goal: str,
+    user_profile_str: str,
+    strategy: str = "react",
+    client: Optional[Any] = None,
 ) -> str:
     """
     Find the matched attribute for a given goal from the user's profile.
@@ -330,12 +339,16 @@ Full attributes:
 
 
 def pick_attributes(
-    user_profile: dict, attributes: dict, goals: list, strategy="react", client=None
-) -> tuple[dict, str]:
+    user_profile: Dict[str, Any],
+    attributes: Dict[str, Any],
+    goals: List[str],
+    strategy: str = "react",
+    client: Optional[Any] = None,
+) -> Tuple[Dict[str, Any], str]:
     """Pick the attributes from the predefined attributes values to prevent attribute conflict
 
     Args:
-        user_profile (dict): The existing user_profile from user_profiles field in user_attributes.json file if exist. It can be empty.
+        user_profile (dict): The existing user_profile from user_attributes.json file if exist. It can be empty.
         attributes (dict): The predefined user's attributes values
         goals (list): The predefined goal list.
         strategy (enum): The strategy LLM going to use to pick attribute and avoid conflict.
@@ -442,7 +455,9 @@ Attribute:
     return full_attributes, matched_attribute_to_goal
 
 
-def get_custom_profiles(config) -> tuple[dict, dict]:
+def get_custom_profiles(
+    config: Dict[str, Any],
+) -> Tuple[Dict[str, Any], Dict[str, Any]]:
     """Fetch custom user and system profiles from the configuration.
 
     This function retrieves custom profiles for both user and system attributes
@@ -497,7 +512,7 @@ def get_custom_profiles(config) -> tuple[dict, dict]:
     return user_profiles, system_attributes
 
 
-def get_label(attribute, config):
+def get_label(attribute: Dict[str, Any], config: Dict[str, Any]) -> Tuple[Any, bool]:
     """
     Get the appropriate tool used by the Agent to achieve the user's goal
     """
@@ -581,7 +596,7 @@ def get_label(attribute, config):
     return label, valid
 
 
-def filter_attributes(config) -> dict:
+def filter_attributes(config: Dict[str, Any]) -> Dict[str, Any]:
     """Filter out the attributes from the predefinted user_attributes.json based on the customer_type
 
     Args:
@@ -598,7 +613,9 @@ def filter_attributes(config) -> dict:
     return filtered_attributes
 
 
-def select_system_attributes(config, synthetic_data_params) -> list[dict[str, dict]]:
+def select_system_attributes(
+    config: Dict[str, Any], synthetic_data_params: Dict[str, Any]
+) -> List[Dict[str, Dict[str, Any]]]:
     system_attributes = []
     for subkey, subvalue in config["user_attributes"]["system_attributes"].items():
         if isinstance(subvalue, dict):
@@ -617,7 +634,7 @@ def select_system_attributes(config, synthetic_data_params) -> list[dict[str, di
     return system_attributes
 
 
-def adapt_goal(goal: str, config: dict, doc: str, user_profile: str) -> str:
+def adapt_goal(goal: str, config: Dict[str, Any], doc: str, user_profile: str) -> str:
     """Adapt the goal based on the company's summary, documents and user's profile (if any)
 
     Args:
@@ -647,8 +664,8 @@ def adapt_goal(goal: str, config: dict, doc: str, user_profile: str) -> str:
 
 
 def augment_attributes(
-    attributes: dict[str, dict[str, any]], config: dict, documents: list
-) -> dict[str, list]:
+    attributes: Dict[str, Dict[str, Any]], config: Dict[str, Any], documents: List[Any]
+) -> Dict[str, List[Any]]:
     """Augment the attribute that without predefined values based on the company's summary and documents
 
     Args:
@@ -703,7 +720,7 @@ def augment_attributes(
     return new_attrs
 
 
-def attributes_to_text(attribute_list):
+def attributes_to_text(attribute_list: List[Dict[str, Any]]) -> str:
     text_attributes = []
     for item in attribute_list:
         text_attribute = ""
@@ -713,7 +730,11 @@ def attributes_to_text(attribute_list):
     return text_attributes
 
 
-def convert_attributes_to_profiles(attributes_list, system_attributes, config):
+def convert_attributes_to_profiles(
+    attributes_list: List[Dict[str, Any]],
+    system_attributes: List[Dict[str, Any]],
+    config: Dict[str, Any],
+) -> Tuple[List[str], List[str], List[Dict[str, Any]]]:
     """Convert the attributes to profiles
 
     Args:
@@ -753,7 +774,9 @@ def convert_attributes_to_profiles(attributes_list, system_attributes, config):
     return profiles, goals, system_inputs
 
 
-def build_labelled_profile(synthetic_data_params, config):
+def build_labelled_profile(
+    synthetic_data_params: Dict[str, Any], config: Dict[str, Any]
+) -> Tuple[List[str], List[str], List[Dict[str, Any]], List[Dict[str, Any]], List[Any]]:
     env = Env(tools=config["tools"], workers=config["workers"])
 
     user_profiles, system_attributes = get_custom_profiles(

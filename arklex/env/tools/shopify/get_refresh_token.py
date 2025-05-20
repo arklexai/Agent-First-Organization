@@ -11,12 +11,14 @@ Module Name: get_refresh_token
 
 This file contains the code for getting the refresh token of a customer through the Auth process.
 """
+
+from typing import Any, Dict, List
 from arklex.env.tools.tools import register_tool
 from arklex.env.tools.shopify.auth import *
 
-description = "Get refresh token of customer through the Auth process."
-slots = []
-outputs = [
+description: str = "Get refresh token of customer through the Auth process."
+slots: List[Dict[str, Any]] = []
+outputs: List[Dict[str, Any]] = [
     {
         "name": "refresh_token",
         "type": "str",
@@ -24,8 +26,9 @@ outputs = [
     },
 ]
 
-REFRESH_TOKEN_ERROR = "error: refresh token error"
-errors = [REFRESH_TOKEN_ERROR]
+REFRESH_TOKEN_ERROR: str = "error: refresh token error"
+errors: List[str] = [REFRESH_TOKEN_ERROR]
+
 
 @register_tool(description, slots, outputs, lambda x: x not in errors)
 def get_order() -> str:

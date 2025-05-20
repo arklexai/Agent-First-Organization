@@ -1,8 +1,8 @@
 from pydantic import BaseModel, create_model, Field
-from typing import Union, List, Dict, Type, Optional
+from typing import Union, List, Dict, Type, Optional, Any, Tuple
 import logging
 
-logger = logging.getLogger(__name__)
+logger: logging.Logger = logging.getLogger(__name__)
 
 
 class TypeMapping:
@@ -27,7 +27,7 @@ class Slot(BaseModel):
     name: str
     type: str = Field(default="str")
     value: Union[str, int, float, bool, List[str], None] = Field(default=None)
-    enum: Optional[list[Union[str, int, float, bool, None]]] = Field(default=[])
+    enum: Optional[List[Union[str, int, float, bool, None]]] = Field(default=[])
     description: str = Field(default="")
     prompt: str = Field(default="")
     required: bool = Field(default=False)
@@ -37,12 +37,12 @@ class Slot(BaseModel):
 class SlotInput(BaseModel):
     name: str
     value: Union[str, int, float, bool, List[str], None]
-    enum: Optional[list[Union[str, int, float, bool, None]]]
+    enum: Optional[List[Union[str, int, float, bool, None]]]
     description: str
 
 
 class SlotInputList(BaseModel):
-    slot_input_list: list[SlotInput]
+    slot_input_list: List[SlotInput]
 
 
 class Verification(BaseModel):
@@ -51,25 +51,30 @@ class Verification(BaseModel):
 
 
 # format slots for slotfilling input and output
-def structured_input_output(slots: list[Slot]) -> tuple[SlotInputList, Type]:
-    input_slots = [SlotInput(
-        name=slot.name,
-        value=slot.value,
-        enum=slot.enum,
-        description=slot.description
-    ) for slot in slots]
+def structured_input_output(slots: List[Slot]) -> Tuple[SlotInputList, Type[BaseModel]]:
+    input_slots: List[SlotInput] = [
+        SlotInput(
+            name=slot.name,
+            value=slot.value,
+            enum=slot.enum,
+            description=slot.description,
+        )
+        for slot in slots
+    ]
 
-    output_format = create_model(
+    output_format: Type[BaseModel] = create_model(
         "DynamicSlotOutputs",
-        **{slot.name: Optional[TypeMapping.string_to_type(slot.type)] for slot in slots}
+        **{
+            slot.name: Optional[TypeMapping.string_to_type(slot.type)] for slot in slots
+        },
     )
     return SlotInputList(slot_input_list=input_slots), output_format
 
 
 # format slots after slotfilling
-def format_slotfilling_output(slots: list[Slot], response) -> list[Slot]:
+def format_slotfilling_output(slots: List[Slot], response: BaseModel) -> List[Slot]:
     logger.info(f"filled_slots: {response}")
-    filled_slots = response.model_dump()
+    filled_slots: Dict[str, Any] = response.model_dump()
     for slot in slots:
         slot.value = filled_slots[slot.name]
     return slots

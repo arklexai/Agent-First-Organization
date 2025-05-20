@@ -1,7 +1,7 @@
 import enum
 import json
 import re
-from typing import Any, Optional, TypeVar
+from typing import Any, Optional, TypeVar, Dict, List, Set, Tuple, Union
 
 from pydantic import BaseModel, Field
 
@@ -15,9 +15,9 @@ class InputType(enum.Enum):
     COMPLETION = "completion"
 
 
-def display_choices(choices: list[str]) -> tuple[str, dict[str, int]]:
-    choice_displays = []
-    decode_map = {}
+def display_choices(choices: List[str]) -> Tuple[str, Dict[str, int]]:
+    choice_displays: List[str] = []
+    decode_map: Dict[str, int] = {}
     for i, choice in enumerate(choices):
         label = index_to_alpha(i)
         choice_display = f"{label}. {choice}"
@@ -42,7 +42,7 @@ def type_to_json_schema_string(typ: type[T]) -> str:
 def optionalize_type(typ: type[T]) -> type[T]:
     class OptionalModel(typ): ...
 
-    new_fields = {}
+    new_fields: Dict[str, Any] = {}
     for name, field in OptionalModel.model_fields.items():
         new_fields[name] = Field(default=None, annotation=Optional[field.annotation])
     OptionalModel.model_fields = new_fields
@@ -51,8 +51,8 @@ def optionalize_type(typ: type[T]) -> type[T]:
 
 
 def json_response_to_obj_or_partial_obj(
-    response: dict[str, Any], typ: type[T] | dict[str, Any]
-) -> T | PartialObj | dict[str, Any]:
+    response: Dict[str, Any], typ: Union[type[T], Dict[str, Any]]
+) -> Union[T, PartialObj, Dict[str, Any]]:
     if isinstance(typ, dict):
         return response
     else:
@@ -65,15 +65,15 @@ def json_response_to_obj_or_partial_obj(
         return typ.model_validate(response)
 
 
-def clean_top_level_keys(d: dict[str, Any]) -> dict[str, Any]:
-    new_d = {}
+def clean_top_level_keys(d: Dict[str, Any]) -> Dict[str, Any]:
+    new_d: Dict[str, Any] = {}
     for k, v in d.items():
         new_d[k.strip()] = v
     return new_d
 
 
-def parse_json_or_json_markdown(text: str) -> dict[str, Any]:
-    def parse(s: str) -> dict[str, Any] | None:
+def parse_json_or_json_markdown(text: str) -> Dict[str, Any]:
+    def parse(s: str) -> Optional[Dict[str, Any]]:
         try:
             return json.loads(s)
         except json.decoder.JSONDecodeError:
@@ -105,7 +105,7 @@ def parse_json_or_json_markdown(text: str) -> dict[str, Any]:
 
     # pass #4: try to parse arbitrary sections as json
     lines = text.split("\n")
-    seen = set()
+    seen: Set[Tuple[int, int]] = set()
     for i in range(len(lines)):
         for j in range(i + 1, len(lines) + 1):
             if i < j and (i, j) not in seen:
@@ -117,7 +117,7 @@ def parse_json_or_json_markdown(text: str) -> dict[str, Any]:
     raise ValueError("Could not parse JSON or JSON markdown")
 
 
-def longest_valid_string(s: str, options: list[str]) -> str | None:
+def longest_valid_string(s: str, options: List[str]) -> Optional[str]:
     longest = 0
     longest_str = None
     options_set = set(options)
@@ -128,13 +128,14 @@ def longest_valid_string(s: str, options: list[str]) -> str | None:
     return longest_str
 
 
-def try_classify_recover(s: str, decode_map: dict[str, int]) -> str | None:
+def try_classify_recover(s: str, decode_map: Dict[str, int]) -> Optional[str]:
     lvs = longest_valid_string(s, list(decode_map.keys()))
     if lvs is not None and lvs in decode_map:
         return lvs
     for k, v in decode_map.items():
         if s == v:
             return k
+    return None
 
 
 def approx_num_tokens(text: str) -> int:

@@ -1,6 +1,7 @@
 import os
 import argparse
 import json
+from typing import List, Dict, Any
 from tqdm import tqdm
 from openai import OpenAI
 from dotenv import load_dotenv
@@ -43,7 +44,7 @@ client = OpenAI(
 )
 
 
-def chatgpt_chatbot(messages, model):
+def chatgpt_chatbot(messages: List[Dict[str, str]], model: str) -> str:
     completion = client.chat.completions.create(
         model=model,
         messages=messages,
@@ -53,7 +54,7 @@ def chatgpt_chatbot(messages, model):
     return answer
 
 
-def join_messages(messages):
+def join_messages(messages: List[Dict[str, str]]) -> str:
     message_str = ""
     for message in messages:
         if message["role"] == "bot_follow_up":
@@ -62,7 +63,7 @@ def join_messages(messages):
     return message_str[:-1]
 
 
-def rule_based_filtering(convos):
+def rule_based_filtering(convos: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
     bad_msg_order = False
     final_convos = []
     for convo in convos:
@@ -84,7 +85,9 @@ def rule_based_filtering(convos):
     return final_convos
 
 
-def first_pass_model_filtering(convos, model):
+def first_pass_model_filtering(
+    convos: List[Dict[str, Any]], model: str
+) -> List[Dict[str, Any]]:
     final_convos = []
     for convo in tqdm(convos):
         convo_str = join_messages(convo["message"])
@@ -113,7 +116,9 @@ def first_pass_model_filtering(convos, model):
     return final_convos
 
 
-def second_pass_model_filtering(convos, model):
+def second_pass_model_filtering(
+    convos: List[Dict[str, Any]], model: str
+) -> List[Dict[str, Any]]:
     final_convos = []
     for convo in tqdm(convos):
         convo_str = join_messages(convo["message"])
@@ -127,7 +132,7 @@ def second_pass_model_filtering(convos, model):
     return final_convos
 
 
-def extract_customer_profile(customer_profile_output):
+def extract_customer_profile(customer_profile_output: str) -> Dict[str, str]:
     split_profile = customer_profile_output.split("Final Profile:\n")
     profile_text = split_profile[-1]
     profile = {}
@@ -139,7 +144,9 @@ def extract_customer_profile(customer_profile_output):
     return profile
 
 
-def get_all_customer_profiles(final_convos, model):
+def get_all_customer_profiles(
+    final_convos: List[Dict[str, Any]], model: str
+) -> Dict[str, List[Dict[str, Any]]]:
     failed_extractions = 0
     profiles = {}
     for convo in tqdm(final_convos):

@@ -3,6 +3,7 @@ import json
 import os
 import sys
 import unittest
+from typing import Dict, List, Any, Tuple
 
 from arklex.orchestrator.orchestrator import AgentOrg
 from arklex.env.env import Env
@@ -16,16 +17,16 @@ print(sys.path)
 class Logic_Test(unittest.TestCase):
     file_path = "test_cases.json"
     with open(file_path, "r", encoding="UTF-8") as f:
-        TEST_CASES = json.load(f)
+        TEST_CASES: List[Dict[str, Any]] = json.load(f)
 
     @classmethod
-    def setUpClass(cls):
+    def setUpClass(cls) -> None:
         """Method to prepare the test fixture. Run BEFORE the test methods."""
         cls.user_prefix = "user"
         cls.worker_prefix = "assistant"
         file_path = "taskgraph.json"
         with open(file_path, "r", encoding="UTF-8") as f:
-            cls.config = json.load(f)
+            cls.config: Dict[str, Any] = json.load(f)
         cls.env = Env(
             tools=cls.config.get("tools", []),
             workers=cls.config.get("workers", []),
@@ -35,23 +36,25 @@ class Logic_Test(unittest.TestCase):
         os.environ["DATA_DIR"] = cls.config["input_dir"]
 
     @classmethod
-    def tearDownClass(cls):
+    def tearDownClass(cls) -> None:
         """Method to tear down the test fixture. Run AFTER the test methods."""
         pass
 
-    def _get_api_bot_response(self, user_text, history, params):
+    def _get_api_bot_response(
+        self, user_text: str, history: List[Dict[str, str]], params: Dict[str, Any]
+    ) -> Tuple[str, Dict[str, Any]]:
         data = {"text": user_text, "chat_history": history, "parameters": params}
         orchestrator = AgentOrg(config=self.config, env=self.env)
         result = orchestrator.get_response(data)
 
         return result["answer"], result["parameters"]
 
-    def test_Unittest0(self):
+    def test_Unittest0(self) -> None:
         logger.info("\n=============Unit Test 0=============")
         logger.info(f"{self.TEST_CASES[0]['description']}")
-        history = []
-        params = {}
-        nodes = []
+        history: List[Dict[str, str]] = []
+        params: Dict[str, Any] = {}
+        nodes: List[str] = []
         for node in self.config["nodes"]:
             if node[1].get("type", "") == "start":
                 start_message = node[1]["attribute"]["value"]
@@ -69,12 +72,12 @@ class Logic_Test(unittest.TestCase):
         # print(json.dumps(history, indent=4))
         self.assertEqual(nodes, self.TEST_CASES[0]["trajectory"])
 
-    def test_Unittest1(self):
+    def test_Unittest1(self) -> None:
         print("\n=============Unit Test 1=============")
         print(f"{self.TEST_CASES[1]['description']}")
-        history = []
-        params = {}
-        nodes = []
+        history: List[Dict[str, str]] = []
+        params: Dict[str, Any] = {}
+        nodes: List[str] = []
         for node in self.config["nodes"]:
             if node[1].get("type", "") == "start":
                 start_message = node[1]["attribute"]["value"]
@@ -92,12 +95,12 @@ class Logic_Test(unittest.TestCase):
         # print(json.dumps(history, indent=4))
         self.assertEqual(nodes, self.TEST_CASES[1]["trajectory"])
 
-    def test_Unittest2(self):
+    def test_Unittest2(self) -> None:
         print("\n=============Unit Test 2=============")
         print(f"{self.TEST_CASES[2]['description']}")
-        history = []
-        params = {}
-        nodes = []
+        history: List[Dict[str, str]] = []
+        params: Dict[str, Any] = {}
+        nodes: List[str] = []
         for node in self.config["nodes"]:
             if node[1].get("type", "") == "start":
                 start_message = node[1]["attribute"]["value"]

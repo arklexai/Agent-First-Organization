@@ -1,7 +1,7 @@
 import logging
 import time
 import os
-from typing import List
+from typing import List, Dict, Any
 import numpy as np
 from collections import defaultdict
 from multiprocessing.pool import Pool
@@ -24,23 +24,27 @@ from arklex.env.tools.RAG.retrievers.retriever_document import (
 )
 from arklex.env.tools.utils import trace
 
-EMBED_DIMENSION = 1536
-MAX_TEXT_LENGTH = 65535
-CHUNK_NEIGHBOURS = 3
+EMBED_DIMENSION: int = 1536
+MAX_TEXT_LENGTH: int = 65535
+CHUNK_NEIGHBOURS: int = 3
 
 logging.basicConfig()
-logger = logging.getLogger(__name__)
+logger: logging.Logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
 
 
 class RetrieveEngine:
     @staticmethod
-    def milvus_retrieve(state: MessageState, tags: dict = {}):
+    def milvus_retrieve(state: MessageState, tags: Dict[str, Any] = {}) -> MessageState:
         # get the input message
         user_message = state.user_message
 
         # Search for the relevant documents
-        milvus_retriever = MilvusRetrieverExecutor(state.bot_config)
+        milvus_retriever: MilvusRetrieverExecutor = MilvusRetrieverExecutor(
+            state.bot_config
+        )
+        retrieved_text: str
+        retriever_params: Dict[str, Any]
         retrieved_text, retriever_params = milvus_retriever.retrieve(
             user_message.history, tags
         )
@@ -51,19 +55,19 @@ class RetrieveEngine:
 
 
 class MilvusRetriever:
-    def __enter__(self):
-        self.uri = os.getenv("MILVUS_URI", "")
-        self.token = os.getenv("MILVUS_TOKEN", "")
-        self.client = MilvusClient(uri=self.uri, token=self.token)
+    def __enter__(self) -> "MilvusRetriever":
+        self.uri: str = os.getenv("MILVUS_URI", "")
+        self.token: str = os.getenv("MILVUS_TOKEN", "")
+        self.client: MilvusClient = MilvusClient(uri=self.uri, token=self.token)
         return self
 
-    def __exit__(self, exc_type, exc_value, traceback):
+    def __exit__(self, exc_type: Any, exc_value: Any, traceback: Any) -> None:
         self.client.close()
 
-    def get_bot_uid(self, bot_id: str, version: str):
+    def get_bot_uid(self, bot_id: str, version: str) -> str:
         return f"{bot_id}__{version}"
 
-    def create_collection_with_partition_key(self, collection_name: str):
+    def create_collection_with_partition_key(self, collection_name: str) -> None:
         schema = MilvusClient.create_schema(
             auto_id=False,
             enable_dynamic_field=True,
@@ -91,7 +95,6 @@ class MilvusRetriever:
             field_name="embedding", datatype=DataType.FLOAT_VECTOR, dim=EMBED_DIMENSION
         )
         schema.add_field(field_name="timestamp", datatype=DataType.INT64)
-        # schema.add_field(field_name="num_tokens", datatype=DataType.INT64)
         index_params = self.client.prepare_index_params()
         index_params.add_index(field_name="id")
         index_params.add_index(field_name="qa_doc_id")
@@ -104,37 +107,46 @@ class MilvusRetriever:
             collection_name=collection_name, schema=schema, index_params=index_params
         )
 
-    def delete_documents_by_qa_doc_id(self, collection_name: str, qa_doc_id: str):
+    def delete_documents_by_qa_doc_id(
+        self, collection_name: str, qa_doc_id: str
+    ) -> Any:
         logger.info(
             f"Deleting vector db documents by qa_doc_id: {qa_doc_id} from collection: {collection_name}"
         )
-        res = self.client.delete(
+        res: Any = self.client.delete(
             collection_name=collection_name, filter=f"qa_doc_id=='{qa_doc_id}'"
         )
         return res
 
     def add_documents_dicts(
-        self, documents: List[dict], collection_name: str, upsert: bool = False
-    ):
+        self,
+        documents: List[Dict[str, Any]],
+        collection_name: str,
+        upsert: bool = False,
+    ) -> List[Any]:
         logger.info(
             f"Celery sub task for adding {len(documents)} documents to collection: {collection_name}."
         )
-        retriever_documents = [RetrieverDocument.from_dict(doc) for doc in documents]
-        documents_to_insert = []
+        retriever_documents: List[RetrieverDocument] = [
+            RetrieverDocument.from_dict(doc) for doc in documents
+        ]
+        documents_to_insert: List[RetrieverDocument] = []
 
         if not upsert:
             # check if the document already exists in the collection
             for doc in retriever_documents:
-                res = self.client.get(collection_name=collection_name, ids=doc.id)
+                res: List[Dict[str, Any]] = self.client.get(
+                    collection_name=collection_name, ids=doc.id
+                )
                 if len(res) == 0:
                     documents_to_insert.append(doc)
             logger.info(f"Exisiting documents: {len(documents_to_insert)}")
         else:
             documents_to_insert = retriever_documents
 
-        res = []
+        res: List[Any] = []
         for doc in documents_to_insert:
-            data = doc.to_milvus_schema_dict_and_embed()
+            data: Dict[str, Any] = doc.to_milvus_schema_dict_and_embed()
             try:
                 res.append(
                     self.client.upsert(collection_name=collection_name, data=[data])
@@ -144,7 +156,9 @@ class MilvusRetriever:
                 raise e
         return res
 
-    def update_tag_by_qa_doc_id(self, collection_name: str, qa_doc_id: str, tags: dict):
+    def update_tag_by_qa_doc_id(
+        self, collection_name: str, qa_doc_id: str, tags: Dict[str, Any]
+    ) -> Any:
         """
         Updates tags for all vector entries associated with a specific qa_doc_id.
 
@@ -158,7 +172,7 @@ class MilvusRetriever:
         )
 
         # Query all vectors matching the qa_doc_id
-        res = self.client.query(
+        res: List[Dict[str, Any]] = self.client.query(
             collection_name=collection_name,
             filter=f"qa_doc_id == '{qa_doc_id}'",
             output_fields=[
@@ -186,9 +200,9 @@ class MilvusRetriever:
             f"Found {len(res)} vectors for qa_doc_id {qa_doc_id}. Preparing update."
         )
 
-        updated_vectors = []
+        updated_vectors: List[Dict[str, Any]] = []
         for vector_data in res:
-            updated_vector = vector_data
+            updated_vector: Dict[str, Any] = vector_data
             if updated_vector.get("metadata", {}):
                 updated_vector["metadata"]["tags"] = tags
             else:
@@ -197,7 +211,7 @@ class MilvusRetriever:
 
         # Upsert the updated vectors
         try:
-            res = self.client.upsert(
+            res: Any = self.client.upsert(
                 collection_name=collection_name, data=updated_vectors
             )
             logger.info(
@@ -220,7 +234,7 @@ class MilvusRetriever:
         documents: List[RetrieverDocument],
         process_pool: Pool,
         upsert: bool = False,
-    ):
+    ) -> List[Any]:
         logger.info(
             f"Adding {len(documents)} vector db documents to collection '{collection_name}' for bot_id: {bot_id} version: {version}"
         )
@@ -230,24 +244,28 @@ class MilvusRetriever:
             )
             self.create_collection_with_partition_key(collection_name)
 
-        documents_to_insert = []
+        documents_to_insert: List[RetrieverDocument] = []
 
         if not upsert:
             # check if the document already exists in the collection
             for doc in documents:
-                res = self.client.get(collection_name=collection_name, ids=doc.id)
+                res: List[Dict[str, Any]] = self.client.get(
+                    collection_name=collection_name, ids=doc.id
+                )
                 if len(res) == 0:
                     documents_to_insert.append(doc)
             logger.info(f"Exisiting documents: {len(documents_to_insert)}")
         else:
             documents_to_insert = documents
 
-        res = []
+        res: List[Any] = []
         # process 100 documents at a time
-        count = 0
+        count: int = 0
         for i in range(0, len(documents_to_insert), 100):
-            batch_docs = documents_to_insert[i : i + 100]
-            embedded_batch_docs = process_pool.map(embed_retriever_document, batch_docs)
+            batch_docs: List[RetrieverDocument] = documents_to_insert[i : i + 100]
+            embedded_batch_docs: List[RetrieverDocument] = process_pool.map(
+                embed_retriever_document, batch_docs
+            )
 
             res.extend(
                 self.client.upsert(

@@ -1,4 +1,4 @@
-from typing import List
+from typing import List, Dict
 from arklex.memory.core import ShortTermMemory
 from arklex.utils.graph_state import ResourceRecord, LLMConfig, MessageState, BotConfig
 from arklex.utils.model_config import MODEL
@@ -168,13 +168,13 @@ sample_records = [
     record_case4_navy,
 ]
 
+
 # Shopify-style grouped records function
-from typing import List
-
-
 def get_shopify_records() -> List[List[ResourceRecord]]:
-    """
-    Returns sample ResourceRecord groups simulating Shopify ecommerce assistant turns.
+    """Returns sample ResourceRecord groups simulating Shopify ecommerce assistant turns.
+
+    Returns:
+        List[List[ResourceRecord]]: A list of lists containing ResourceRecord objects.
     """
     return [
         record_case1,
@@ -189,7 +189,7 @@ def get_shopify_records() -> List[List[ResourceRecord]]:
 
 
 # Test configuration
-TEST_CONFIG = {
+TEST_CONFIG: Dict[str, str] = {
     "model": MODEL,
     "role": "test_assistant",
     "user_objective": "Test the short term memory functionality",
@@ -202,7 +202,12 @@ TEST_CONFIG = {
 }
 
 
-def init_test_state():
+def init_test_state() -> MessageState:
+    """Initializes the test state with configuration.
+
+    Returns:
+        MessageState: The initialized message state for testing.
+    """
     # Initialize LLMConfig from test config
     llm_config = LLMConfig(**TEST_CONFIG.get("model", MODEL))
 
@@ -228,15 +233,16 @@ def init_test_state():
     return MessageState(sys_instruct=sys_instruct, bot_config=bot_config)
 
 
-def test_shopify_intent():
+def test_shopify_intent() -> None:
+    """Tests the Shopify intent functionality with sample records and chat history."""
     # Initialize test state
     state = init_test_state()
 
     # build trajectory as list-of-lists
-    trajectory = [[r] for r in sample_records]
+    trajectory: List[List[ResourceRecord]] = [[r] for r in sample_records]
 
     # matching user utterances
-    chat_history = [
+    chat_history: List[Dict[str, str]] = [
         {"role": "user", "content": "What products do you have?"},
         {"role": "user", "content": "Show me the denim apron with 5 pockets."},
         {"role": "user", "content": "Do you have any aprons?"},
@@ -249,31 +255,27 @@ def test_shopify_intent():
 
     # Create LLMConfig instance from bot_config
     llm_config = LLMConfig(**TEST_CONFIG.get("model", MODEL))
-    bot_config = BotConfig(
-        bot_id="test_bot",
-        version="1.0",
-        language="EN",
-        bot_type="test",
-        llm_config=llm_config,
+
+    # Create ShortTermMemory instance
+    stm = ShortTermMemory(
+        trajectory=trajectory, chat_history=chat_history, llm_config=llm_config
     )
-    stm = ShortTermMemory(trajectory, chat_history, llm_config=bot_config.llm_config)
+
+    # Test intent retrieval
+    success, intent = stm.retrieve_intent("Do you have any aprons with pockets?")
+    assert success, "Failed to retrieve intent for apron query"
+    assert intent is not None, "Retrieved intent is None"
+
+    # Test record retrieval
+    success, records = stm.retrieve_records("Show me aprons with pockets")
+    assert success, "Failed to retrieve records for apron query"
+    assert len(records) > 0, "No records retrieved for apron query"
+
+    # Test personalized intent generation
     asyncio.run(stm.personalize())
-
-    # Check that personalized_intent is set
-    for turn in stm.trajectory:
+    for turn in trajectory:
         for record in turn:
-            print("Intent:", record.intent)
-            print("Personalized Intent:", record.personalized_intent)
-
-    found, records = stm.retrieve_records("Tell me about the denim apron")
-    print("Found?", found)
-    for rec in records:
-        print("Retrieved Record Output:", rec.output)
-        found_intent, intent = stm.retrieve_intent(
-            "I am looking for the 5-pocket apron"
-        )
-    print("Intent Found?", found_intent)
-    print("Best Matched Intent:", intent)
+            assert record.personalized_intent, "Personalized intent not generated"
 
 
 if __name__ == "__main__":

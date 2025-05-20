@@ -4,6 +4,7 @@ import logging
 import os
 import sys
 import uuid
+from typing import Dict, List, Any, Callable
 
 from dotenv import load_dotenv
 
@@ -27,11 +28,11 @@ load_dotenv()
 NLUAPI_ADDR = ""
 SLOTFILLAPI_ADDR = ""
 
-tool_name_class_map = {}
+tool_name_class_map: Dict[str, Any] = {}
 
 
-def get_tool_name_class_map():
-    tool_map = {}
+def get_tool_name_class_map() -> Dict[str, Any]:
+    tool_map: Dict[str, Any] = {}
     for tool in ALL_TOOLS:
         name = tool.get_info()["function"]["name"]
         tool_map[name] = tool
@@ -40,11 +41,11 @@ def get_tool_name_class_map():
 
 class TauBenchResourceInitializer(DefaulResourceInitializer):
     @staticmethod
-    def init_tools(tools):
+    def init_tools(tools: Dict[str, Any]) -> Dict[str, Any]:
         tool_name_class_map = get_tool_name_class_map()
-        tool_registry = {}
+        tool_registry: Dict[str, Any] = {}
 
-        def tool_lambda(val):
+        def tool_lambda(val: Any) -> Callable[[], Any]:
             return lambda: val
 
         for tool_id, tool_info in tools.items():
@@ -54,10 +55,10 @@ class TauBenchResourceInitializer(DefaulResourceInitializer):
             tool_key = tool_name
             tool_desc = tool_info["description"]
             params = tool_original_class.get_info()["function"]["parameters"]
-            tool_slots = []
+            tool_slots: List[Dict[str, Any]] = []
 
             for param_name, param_info in params["properties"].items():
-                slot = {}
+                slot: Dict[str, Any] = {}
                 slot["name"] = param_name
                 slot["type"] = param_info["type"]
                 slot["items"] = param_info.get("items", {})
@@ -68,7 +69,7 @@ class TauBenchResourceInitializer(DefaulResourceInitializer):
                 )
                 slot["required"] = param_name in params["required"]
                 tool_slots.append(slot)
-            tool_output = []
+            tool_output: List[Any] = []
 
             tool = tool_lambda(
                 Tool(
@@ -90,15 +91,15 @@ class TauBenchResourceInitializer(DefaulResourceInitializer):
         return tool_registry
 
 
-def generate_tau_bench_config(output_dir):
+def generate_tau_bench_config(output_dir: str) -> None:
     retain_tools = ALL_TOOLS
-    tools = {}
+    tools: Dict[str, Dict[str, str]] = {}
     for tool in retain_tools:
         tool_id = str(uuid.uuid1())
         tools[tool_id] = {}
         tools[tool_id]["name"] = tool.get_info()["function"]["name"]
         tools[tool_id]["description"] = tool.get_info()["function"]["description"]
-    retail_config = {
+    retail_config: Dict[str, Any] = {
         "role": "Retail Agent",
         "user_objective": "The core goal of the agent is to assist a single, authenticated user per conversation in managing their retail orders—resolving any questions, cancellations, modifications, exchanges, or returns—while strictly following the rules and confirmation steps set by the retail policy.",
         "builder_objective": "Users want a convenient, reliable way to manage their orders—whether that means updating their shipping address, switching payment methods, or returning/exchanging items they've received. They come to the Retail Agent because they need to quickly resolve questions about their orders, get real-time updates on shipping statuses, and handle any necessary cancellations or modifications with confidence that every action is confirmed and secure.",
@@ -126,7 +127,7 @@ def generate_tau_bench_config(output_dir):
         json.dump(retail_config, f, indent=4)
 
 
-def generate_taskgraph(config_file, output_dir):
+def generate_taskgraph(config_file: str, output_dir: str) -> None:
     model = ChatOpenAI(model=MODEL["model_type_or_path"], timeout=30000)
     resource_initializer = TauBenchResourceInitializer()
     config = json.load(open(config_file))
@@ -142,15 +143,15 @@ def generate_taskgraph(config_file, output_dir):
 
 
 def run_tau_bench_eval(
-    taskgraph_dir,
-    output_dir,
-    num_trials,
-    task_ids,
-    env,
-    task_split="test",
-    user_strategy="llm",
-    max_concurrency=10,
-):
+    taskgraph_dir: str,
+    output_dir: str,
+    num_trials: int,
+    task_ids: List[int],
+    env: str,
+    task_split: str = "test",
+    user_strategy: str = "llm",
+    max_concurrency: int = 10,
+) -> None:
     start_index = 0
     end_index = -1
     seed = 10

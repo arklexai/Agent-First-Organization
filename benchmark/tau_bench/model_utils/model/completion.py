@@ -1,6 +1,6 @@
 import abc
 import json
-from typing import Any, TypeVar
+from typing import Any, Dict, List, Optional, TypeVar, Union
 
 from pydantic import BaseModel
 
@@ -17,13 +17,11 @@ from benchmark.tau_bench.model_utils.api.types import PartialObj
 from benchmark.tau_bench.model_utils.model.exception import ModelError
 from benchmark.tau_bench.model_utils.model.general_model import GeneralModel
 from benchmark.tau_bench.model_utils.model.utils import (
-    add_md_close_tag,
     approx_num_tokens,
     display_choices,
     json_response_to_obj_or_partial_obj,
     optionalize_type,
     parse_json_or_json_markdown,
-    try_classify_recover,
     type_to_json_schema_string,
 )
 
@@ -56,10 +54,10 @@ def build_score_state(
     text: str,
     min: int,
     max: int,
-    examples: list[ScoreDatapoint] | None = None,
+    examples: Optional[List[ScoreDatapoint]] = None,
 ) -> str:
     def display_sample(
-        instr: str, t: str, min: int, max: int, response: int | None = None
+        instr: str, t: str, min: int, max: int, response: Optional[int] = None
     ) -> str:
         p = task_prompt(
             task='Score the following text with the provided instruction and range as an integer value in valid JSON:\n{"score": number}',
@@ -88,15 +86,15 @@ def build_score_state(
 
 def build_parse_force_state(
     instruction: str,
-    typ: type[T] | dict[str, Any],
-    text: str | None = None,
-    examples: list[ParseForceDatapoint] | None = None,
+    typ: Union[type[T], Dict[str, Any]],
+    text: Optional[str] = None,
+    examples: Optional[List[ParseForceDatapoint]] = None,
 ) -> str:
     def display_sample(
         instr: str,
         t: str,
-        ty: type[T] | dict[str, Any],
-        response: T | dict[str, Any] | None = None,
+        ty: Union[type[T], Dict[str, Any]],
+        response: Optional[Union[T, Dict[str, Any]]] = None,
     ) -> str:
         if isinstance(ty, dict):
             json_schema_string = json.dumps(ty)
@@ -141,15 +139,15 @@ def build_parse_force_state(
 
 def build_parse_state(
     text: str,
-    typ: type[T] | dict[str, Any],
-    examples: list[ParseDatapoint] | None = None,
+    typ: Union[type[T], Dict[str, Any]],
+    examples: Optional[List[ParseDatapoint]] = None,
 ) -> str:
     instruction = "Parse the following text with the provided JSON schema."
 
     def display_sample(
         t: str,
-        ty: type[T] | dict[str, Any],
-        response: T | PartialObj | dict[str, Any] | None = None,
+        ty: Union[type[T], Dict[str, Any]],
+        response: Optional[Union[T, PartialObj, Dict[str, Any]]] = None,
     ) -> str:
         if isinstance(ty, dict):
             json_schema_string = json.dumps(ty)
@@ -187,12 +185,12 @@ def build_parse_state(
 def build_classify_state(
     instruction: str,
     text: str,
-    options: list[str],
-    examples: list[ClassifyDatapoint] | None = None,
-) -> tuple[str, dict[str, int]]:
+    options: List[str],
+    examples: Optional[List[ClassifyDatapoint]] = None,
+) -> tuple[str, Dict[str, int]]:
     def display_sample(
-        instr: str, t: str, opts: list[str], response: int | None = None
-    ) -> str | tuple[str, dict[str, int]]:
+        instr: str, t: str, opts: List[str], response: Optional[int] = None
+    ) -> Union[str, tuple[str, Dict[str, int]]]:
         choices_display, decode_map = display_choices(opts)
         input_text = force_json_prompt(
             f"Instruction:\n{instr}\n\nText:\n{t}\n\nChoices:\n{choices_display}",
@@ -232,9 +230,9 @@ def build_classify_state(
 def build_generate_state(
     instruction: str,
     text: str,
-    examples: list[GenerateDatapoint] | None = None,
+    examples: Optional[List[GenerateDatapoint]] = None,
 ) -> str:
-    def display_sample(instr: str, t: str, response: str | None = None) -> str:
+    def display_sample(instr: str, t: str, response: Optional[str] = None) -> str:
         prompt = task_prompt(task=instr, text=t)
         if response is not None:
             return f"{prompt}\n\nText: {response}"
@@ -252,119 +250,131 @@ def build_generate_state(
 class CompletionModel(GeneralModel):
     @abc.abstractmethod
     def generate_from_prompt(
-        self, prompt: str, temperature: float | None = None
+        self, prompt: str, temperature: Optional[float] = None
     ) -> str:
-        raise NotImplementedError
+        pass
 
     @abc.abstractmethod
     def parse_force_from_prompt(
         self,
         prompt: str,
-        typ: BaseModel | dict[str, Any],
-        temperature: float | None = None,
-    ) -> dict[str, Any]:
-        raise NotImplementedError
+        typ: Union[BaseModel, Dict[str, Any]],
+        temperature: Optional[float] = None,
+    ) -> Dict[str, Any]:
+        pass
 
-    def handle_parse_force_response(self, prompt: str, content: str) -> dict[str, Any]:
+    def handle_parse_force_response(self, prompt: str, content: str) -> Dict[str, Any]:
         try:
             return parse_json_or_json_markdown(content)
-        except (json.decoder.JSONDecodeError, ValueError) as e:
+        except Exception as e:
             raise ModelError(
-                short_message=f"Failed to decode JSON: {content}",
-                prompt=prompt,
-                response=content,
-            ) from e
+                f"Failed to parse response as JSON: {e}\n\nPrompt:\n{prompt}\n\nResponse:\n{content}"
+            )
 
     def _handle_classify_response(
-        self, res: dict[str, int], decode_map: dict[str, int]
+        self, res: Dict[str, int], decode_map: Dict[str, int]
     ) -> int:
-        if "classification" not in res:
-            raise ModelError(f"Invalid response from model: {res}")
-        choice = res["classification"]
-        if choice not in decode_map.keys():
-            key = try_classify_recover(s=choice, decode_map=decode_map)
-            if key is not None:
-                return decode_map[key]
-            raise ModelError(f"Invalid choice: {choice}")
-        return decode_map[choice]
+        try:
+            return res["classification"]
+        except KeyError:
+            raise ModelError(
+                f"Response missing 'classification' key: {res}\n\nDecode map: {decode_map}"
+            )
 
     def classify(
         self,
         instruction: str,
         text: str,
-        options: list[str],
-        examples: list[ClassifyDatapoint] | None = None,
-        temperature: float | None = None,
+        options: List[str],
+        examples: Optional[List[ClassifyDatapoint]] = None,
+        temperature: Optional[float] = None,
     ) -> int:
         prompt, decode_map = build_classify_state(
-            instruction, text, options, examples=examples
+            instruction=instruction,
+            text=text,
+            options=options,
+            examples=examples,
         )
         res = self.parse_force_from_prompt(
-            prompt, typ=Classification, temperature=temperature
+            prompt=prompt,
+            typ=Classification,
+            temperature=temperature,
         )
-        return self._handle_classify_response(res, decode_map)
+        return self._handle_classify_response(res=res, decode_map=decode_map)
 
     def parse(
         self,
         text: str,
-        typ: type[T] | dict[str, Any],
-        examples: list[ParseDatapoint] | None = None,
-        temperature: float | None = None,
-    ) -> T | PartialObj | dict[str, Any]:
-        prompt = build_parse_state(text, typ, examples=examples)
+        typ: Union[type[T], Dict[str, Any]],
+        examples: Optional[List[ParseDatapoint]] = None,
+        temperature: Optional[float] = None,
+    ) -> Union[T, PartialObj, Dict[str, Any]]:
+        prompt = build_parse_state(text=text, typ=typ, examples=examples)
         res = self.parse_force_from_prompt(
-            prompt=prompt, typ=typ, temperature=temperature
+            prompt=prompt,
+            typ=typ,
+            temperature=temperature,
         )
-        return json_response_to_obj_or_partial_obj(response=res, typ=typ)
+        return json_response_to_obj_or_partial_obj(res=res, typ=typ)
 
     def generate(
         self,
         instruction: str,
         text: str,
-        examples: list[GenerateDatapoint] | None = None,
-        temperature: float | None = None,
+        examples: Optional[List[GenerateDatapoint]] = None,
+        temperature: Optional[float] = None,
     ) -> str:
         prompt = build_generate_state(
-            instruction=instruction, text=text, examples=examples
+            instruction=instruction,
+            text=text,
+            examples=examples,
         )
         return self.generate_from_prompt(prompt=prompt, temperature=temperature)
 
-    def _handle_parse_force_response(self, res: dict[str, Any], typ: type[T]) -> T:
-        obj = json_response_to_obj_or_partial_obj(response=res, typ=typ)
-        if isinstance(obj, dict):
-            raise ModelError(f"Invalid response from model: {res}")
-        return obj
+    def _handle_parse_force_response(self, res: Dict[str, Any], typ: type[T]) -> T:
+        try:
+            return typ.model_validate(res)
+        except Exception as e:
+            raise ModelError(f"Failed to validate response as {typ.__name__}: {e}")
 
     def parse_force(
         self,
         instruction: str,
-        typ: type[T] | dict[str, Any],
-        text: str | None = None,
-        examples: list[ParseForceDatapoint] | None = None,
-        temperature: float | None = None,
-    ) -> T | dict[str, Any]:
+        typ: Union[type[T], Dict[str, Any]],
+        text: Optional[str] = None,
+        examples: Optional[List[ParseForceDatapoint]] = None,
+        temperature: Optional[float] = None,
+    ) -> Union[T, Dict[str, Any]]:
         prompt = build_parse_force_state(
-            instruction=instruction, text=text, typ=typ, examples=examples
+            instruction=instruction,
+            typ=typ,
+            text=text,
+            examples=examples,
         )
         res = self.parse_force_from_prompt(
-            prompt=prompt, typ=typ, temperature=temperature
+            prompt=prompt,
+            typ=typ,
+            temperature=temperature,
         )
-        return self._handle_parse_force_response(res, typ)
+        if isinstance(typ, dict):
+            return res
+        return self._handle_parse_force_response(res=res, typ=typ)
 
     def _handle_score_response(
         self,
-        res: dict[str, Any],
+        res: Dict[str, Any],
         min: int,
         max: int,
     ) -> int:
-        if res is None or "score" not in res:
-            raise ModelError(f"Invalid response from model: {res}")
-        score = res["score"]
-        if not isinstance(score, int):
-            raise ModelError(f"Invalid score type: {type(score)}")
-        if score < min or score > max:
-            raise ModelError(f"Invalid score value: {score}")
-        return score
+        try:
+            score = res["score"]
+            if not isinstance(score, int):
+                raise ModelError(f"Score must be an integer, got {type(score)}")
+            if score < min or score > max:
+                raise ModelError(f"Score {score} outside range [{min}, {max}]")
+            return score
+        except KeyError:
+            raise ModelError(f"Response missing 'score' key: {res}")
 
     def score(
         self,
@@ -372,205 +382,183 @@ class CompletionModel(GeneralModel):
         text: str,
         min: int,
         max: int,
-        examples: list[ScoreDatapoint] | None = None,
-        temperature: float | None = None,
+        examples: Optional[List[ScoreDatapoint]] = None,
+        temperature: Optional[float] = None,
     ) -> int:
-        prompt = build_score_state(instruction, text, min, max, examples=examples)
-        res = self.parse_force_from_prompt(
-            prompt=prompt, typ=Score, temperature=temperature
+        prompt = build_score_state(
+            instruction=instruction,
+            text=text,
+            min=min,
+            max=max,
+            examples=examples,
         )
-        return self._handle_score_response(res, min, max)
+        res = self.parse_force_from_prompt(
+            prompt=prompt,
+            typ=Score,
+            temperature=temperature,
+        )
+        return self._handle_score_response(res=res, min=min, max=max)
 
 
-def build_prompts(dps: list[Datapoint], include_response: bool = True) -> list[str]:
-    if len(dps) == 0:
-        return []
-    typ = type(dps[0])
-    for i, dp in enumerate(dps):
-        if not isinstance(dp, typ):
-            raise ValueError(
-                f"All elements must be of type Datapoint, expected type {typ} at index {i}, got {type(dp)}"
-            )
-    if isinstance(dps[0], ParseDatapoint):
-        build_func = build_parse_prompts
-    elif isinstance(dps[0], BinaryClassifyDatapoint):
-        build_func = build_binary_classify_prompts
-    elif isinstance(dps[0], ClassifyDatapoint):
-        build_func = build_classify_prompts
-    elif isinstance(dps[0], ParseForceDatapoint):
-        build_func = build_parse_force_prompts
-    elif isinstance(dps[0], GenerateDatapoint):
-        build_func = build_generate_prompts
-    elif isinstance(dps[0], ScoreDatapoint):
-        build_func = build_score_prompts
-    else:
-        raise ValueError(f"Unknown datapoint type: {type(dps[0])}")
-    return build_func(dps, include_response)
+def build_prompts(dps: List[Datapoint], include_response: bool = True) -> List[str]:
+    prompts: List[str] = []
+    for dp in dps:
+        if isinstance(dp, ParseDatapoint):
+            prompts.extend(build_parse_prompts([dp], include_response))
+        elif isinstance(dp, BinaryClassifyDatapoint):
+            prompts.extend(build_binary_classify_prompts([dp], include_response))
+        elif isinstance(dp, ClassifyDatapoint):
+            prompts.extend(build_classify_prompts([dp], include_response))
+        elif isinstance(dp, ParseForceDatapoint):
+            prompts.extend(build_parse_force_prompts([dp], include_response))
+        elif isinstance(dp, GenerateDatapoint):
+            prompts.extend(build_generate_prompts([dp], include_response))
+        elif isinstance(dp, ScoreDatapoint):
+            prompts.extend(build_score_prompts([dp], include_response))
+        else:
+            raise ValueError(f"Unknown datapoint type: {type(dp)}")
+    return prompts
 
 
 def build_parse_prompts(
-    dps: list[ParseDatapoint],
+    dps: List[ParseDatapoint],
     include_response: bool = True,
-) -> list[str]:
-    datapoints = []
+) -> List[str]:
+    prompts: List[str] = []
     for dp in dps:
-        json_response_object = (
-            dp.response.model_dump_json()
-            if isinstance(dp.response, BaseModel)
-            else json.dumps(dp.response)
+        prompt = build_parse_state(
+            text=dp.text,
+            typ=dp.typ,
+            examples=None,
         )
-        prompt = build_parse_state(text=dp.text, typ=dp.typ)
-        if include_response:
-            json_response = add_md_close_tag(json_response_object)
-            datapoints.append(prompt + json_response)
-        else:
-            datapoints.append(prompt)
-    return datapoints
+        if include_response and dp.response is not None:
+            if isinstance(dp.response, dict):
+                response_display = json.dumps(dp.response)
+            else:
+                response_display = dp.response.model_dump_json()
+            prompt += f"\n\n{response_display}"
+        prompts.append(prompt)
+    return prompts
 
 
 def build_binary_classify_prompts(
-    dps: list[BinaryClassifyDatapoint],
+    dps: List[BinaryClassifyDatapoint],
     include_response: bool = True,
-) -> list[str]:
-    return build_classify_prompts(
-        [
-            ClassifyDatapoint(
-                instruction=dp.instruction,
-                text=dp.text,
-                options=["true", "false"],
-                response=0 if dp.response else 1,
-            )
-            for dp in dps
-        ],
-        include_response=include_response,
-    )
+) -> List[str]:
+    prompts: List[str] = []
+    for dp in dps:
+        prompt, decode_map = build_classify_state(
+            instruction=dp.instruction,
+            text=dp.text,
+            options=["Yes", "No"],
+            examples=None,
+        )
+        if include_response and dp.response is not None:
+            label = "Yes" if dp.response else "No"
+            prompt += f'\n\n{{"classification": "{label}"}}'
+        prompts.append(prompt)
+    return prompts
 
 
 def build_classify_prompts(
-    dps: list[ClassifyDatapoint],
+    dps: List[ClassifyDatapoint],
     include_response: bool = True,
-) -> list[str]:
-    def label_idx_to_label_json(idx: int, decode_map: dict[str, int]) -> str:
-        label = None
-        for k, v in decode_map.items():
-            if v == idx:
-                label = k
-                break
-        if label is None:
-            raise ValueError(f"Label index {idx} not found in decode map")
-        return f'{{"classification": "{label}"}}'
-
-    datapoints = []
+) -> List[str]:
+    prompts: List[str] = []
     for dp in dps:
         prompt, decode_map = build_classify_state(
-            instruction=dp.instruction, text=dp.text, options=dp.options
+            instruction=dp.instruction,
+            text=dp.text,
+            options=dp.options,
+            examples=None,
         )
-        if include_response:
-            json_response_object = label_idx_to_label_json(
-                idx=dp.response, decode_map=decode_map
-            )
-            json_response = add_md_close_tag(json_response_object)
-            datapoints.append(prompt + json_response)
-        else:
-            datapoints.append(prompt)
-    return datapoints
+        if include_response and dp.response is not None:
+            prompt += label_idx_to_label_json(dp.response, decode_map)
+        prompts.append(prompt)
+    return prompts
+
+
+def label_idx_to_label_json(idx: int, decode_map: Dict[str, int]) -> str:
+    label = None
+    for k, v in decode_map.items():
+        if v == idx:
+            label = k
+            break
+    assert label is not None
+    return f'\n\n{{"classification": "{label}"}}'
 
 
 def build_parse_force_prompts(
-    dps: list[ParseForceDatapoint],
+    dps: List[ParseForceDatapoint],
     include_response: bool = True,
-) -> list[str]:
-    datapoints = []
+) -> List[str]:
+    prompts: List[str] = []
     for dp in dps:
-        json_response_obj = (
-            dp.response.model_dump_json()
-            if isinstance(dp.response, BaseModel)
-            else json.dumps(dp.response)
-        )
         prompt = build_parse_force_state(
             instruction=dp.instruction,
-            text=dp.text,
             typ=dp.typ,
+            text=dp.text,
+            examples=None,
         )
-        if include_response:
-            json_response = add_md_close_tag(json_response_obj)
-            datapoints.append(prompt + json_response)
-        else:
-            datapoints.append(prompt)
-    return datapoints
+        if include_response and dp.response is not None:
+            if isinstance(dp.response, dict):
+                response_display = json.dumps(dp.response)
+            else:
+                response_display = dp.response.model_dump_json()
+            prompt += f"\n\n{response_display}"
+        prompts.append(prompt)
+    return prompts
 
 
 def build_generate_prompts(
-    dps: list[GenerateDatapoint], include_response: bool = True
-) -> list[str]:
-    datapoints = []
+    dps: List[GenerateDatapoint], include_response: bool = True
+) -> List[str]:
+    prompts: List[str] = []
     for dp in dps:
-        prompt = build_generate_state(instruction=dp.instruction, text=dp.text)
-        if include_response:
-            datapoints.append(prompt + dp.response)
-        else:
-            datapoints.append(prompt)
-    return datapoints
+        prompt = build_generate_state(
+            instruction=dp.instruction,
+            text=dp.text,
+            examples=None,
+        )
+        if include_response and dp.response is not None:
+            prompt += f"\n\n{dp.response}"
+        prompts.append(prompt)
+    return prompts
 
 
 def build_score_prompts(
-    dps: list[ScoreDatapoint],
+    dps: List[ScoreDatapoint],
     include_response: bool = True,
-) -> list[str]:
-    datapoints = []
+) -> List[str]:
+    prompts: List[str] = []
     for dp in dps:
-        json_response_object = f'{{"score": {dp.response}}}'
         prompt = build_score_state(
             instruction=dp.instruction,
             text=dp.text,
             min=dp.min,
             max=dp.max,
+            examples=None,
         )
-        if include_response:
-            json_response = add_md_close_tag(json_response_object)
-            datapoints.append(prompt + json_response)
-        else:
-            datapoints.append(prompt)
-    return datapoints
+        if include_response and dp.response is not None:
+            prompt += f'\n\n{{"score": {dp.response}}}'
+        prompts.append(prompt)
+    return prompts
 
 
-# TODO: handle examples
 def approx_prompt_str(dp: Datapoint, include_response: bool = False) -> str:
-    return build_prompts(dps=[dp], include_response=include_response)[0]
+    return build_prompts([dp], include_response)[0]
 
 
-# TODO: handle examples
 def approx_cost_for_datapoint(
     dp: Datapoint,
     price_per_input_token: float,
 ) -> float:
-    """For now, we approximate the cost of a datapoint as the cost of the input (output tokens are priced as input tokens as well)."""
-    prompt = approx_prompt_str(dp, include_response=True)
-    assert isinstance(prompt, str)
-    return price_per_input_token * approx_num_tokens(prompt)
+    prompt = approx_prompt_str(dp)
+    return approx_num_tokens(prompt) * price_per_input_token
 
 
-# TODO: handle examples
 def approx_latency_for_datapoint(
     dp: Datapoint, latency_ms_per_output_token: float
 ) -> float:
-    if isinstance(dp, BinaryClassifyDatapoint) or isinstance(dp, ClassifyDatapoint):
-        approx_response = '{"classification": 0}'
-    elif isinstance(dp, ParseDatapoint):
-        # this is extremely approximate
-        approx_response = (
-            '{"street": "main st", "city": "san francisco", "state": "CA"}'
-        )
-    elif isinstance(dp, GenerateDatapoint):
-        # this is extremely approximate
-        approx_response = "This is a generated text response."
-    elif isinstance(dp, ParseForceDatapoint):
-        # this is extremely approximate
-        approx_response = (
-            '{"street": "main st", "city": "san francisco", "state": "CA"}'
-        )
-    elif isinstance(dp, ScoreDatapoint):
-        approx_response = '{"score": 0}'
-    else:
-        raise ValueError(f"Unsupported datapoint type: {type(dp)}")
-    return latency_ms_per_output_token * approx_num_tokens(approx_response)
+    prompt = approx_prompt_str(dp)
+    return approx_num_tokens(prompt) * latency_ms_per_output_token

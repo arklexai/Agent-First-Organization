@@ -1,6 +1,6 @@
 import asyncio
 import re
-from typing import List, Tuple, Optional
+from typing import List, Tuple, Optional, Dict, Union
 
 import numpy as np
 from langchain_openai import ChatOpenAI, OpenAIEmbeddings
@@ -19,7 +19,7 @@ class ShortTermMemory:
     def __init__(
         self,
         trajectory: List[List[ResourceRecord]],
-        chat_history: List[dict],
+        chat_history: List[Dict[str, str]],
         llm_config: LLMConfig,
     ):
         """_summary_
@@ -32,9 +32,8 @@ class ShortTermMemory:
             trajectory (List[List[ResourceRecord]]): Memory structure for the conversation where
                                                     each list of ResourceRecord objects encompasses
                                                     the information of a single conversation turn
-            chat_history (List[dict]): List of chat history messages
-            **kwargs: Additional arguments including:
-                - llm_config (LLMConfig, optional): Configuration for LLM and embedding models
+            chat_history (List[Dict[str, str]]): List of chat history messages
+            llm_config (LLMConfig): Configuration for LLM and embedding models
         """
         if trajectory is None:
             trajectory = []
@@ -58,7 +57,7 @@ class ShortTermMemory:
     def retrieve_records(
         self, query: str, top_k: int = 3, threshold: float = 0.7
     ) -> Tuple[bool, List[ResourceRecord]]:
-        """
+        """Retrieves relevant records based on a query string.
 
         Args:
             query (str):  The query string to retrieve relevant records for.
@@ -76,9 +75,9 @@ class ShortTermMemory:
         query_embedding = np.array(self.embedding_model.embed_query(query)).reshape(
             1, -1
         )
-        scored_records = []
+        scored_records: List[Dict[str, Union[ResourceRecord, float]]] = []
 
-        weights = {
+        weights: Dict[str, float] = {
             "task": 0.2,
             "intent": 0.35,  # Increased weight for intent
             "context": 0.2,
@@ -90,7 +89,7 @@ class ShortTermMemory:
         for turn_idx, turn in enumerate(self.trajectory):
             recency_score = (turn_idx + 1) / 5
             for record in turn:
-                score_components = {
+                score_components: Dict[str, float] = {
                     "task": 0.0,
                     "intent": 0.0,
                     "context": 0.0,
@@ -99,56 +98,56 @@ class ShortTermMemory:
                 }
 
                 # Calculate task similarity
-            task = record.info.get("attribute", {}).get("task")
+                task = record.info.get("attribute", {}).get("task")
 
-            if task:
-                task_embedding = np.array(
-                    self.embedding_model.embed_query(task)
-                ).reshape(1, -1)
-                task_similarity = cosine_similarity(query_embedding, task_embedding)[0][
-                    0
-                ]
-                score_components["task"] = task_similarity
-
-            # Calculate intent similarity
-            if record.intent:
-                intent_embedding = np.array(
-                    self.embedding_model.embed_query(record.personalized_intent)
-                ).reshape(1, -1)
-                intent_similarity = cosine_similarity(
-                    query_embedding, intent_embedding
-                )[0][0]
-                score_components["intent"] = intent_similarity
-
-            # Calculate context similarity
-            for step in record.steps or []:
-                if isinstance(step, dict) and "context_generate" in step:
-                    context_embedding = np.array(
-                        self.embedding_model.embed_query(step["context_generate"])
+                if task:
+                    task_embedding = np.array(
+                        self.embedding_model.embed_query(task)
                     ).reshape(1, -1)
-                    context_similarity = cosine_similarity(
-                        query_embedding, context_embedding
+                    task_similarity = cosine_similarity(
+                        query_embedding, task_embedding
                     )[0][0]
-                    score_components["context"] = context_similarity
-                    break
+                    score_components["task"] = task_similarity
 
-            # Calculate output similarity
-            if record.output:
-                output_embedding = np.array(
-                    self.embedding_model.embed_query(record.output)
-                ).reshape(1, -1)
-                output_similarity = cosine_similarity(
-                    query_embedding, output_embedding
-                )[0][0]
-                score_components["output"] = output_similarity
+                # Calculate intent similarity
+                if record.intent:
+                    intent_embedding = np.array(
+                        self.embedding_model.embed_query(record.personalized_intent)
+                    ).reshape(1, -1)
+                    intent_similarity = cosine_similarity(
+                        query_embedding, intent_embedding
+                    )[0][0]
+                    score_components["intent"] = intent_similarity
 
-            # Compute weighted score
-            weighted_score = sum(
-                score_components[key] * weights[key] for key in score_components
-            )
-            # Normalize weighted score (optional)
-            weighted_score /= sum(weights.values())
-            scored_records.append({"record": record, "score": weighted_score})
+                # Calculate context similarity
+                for step in record.steps or []:
+                    if isinstance(step, dict) and "context_generate" in step:
+                        context_embedding = np.array(
+                            self.embedding_model.embed_query(step["context_generate"])
+                        ).reshape(1, -1)
+                        context_similarity = cosine_similarity(
+                            query_embedding, context_embedding
+                        )[0][0]
+                        score_components["context"] = context_similarity
+                        break
+
+                # Calculate output similarity
+                if record.output:
+                    output_embedding = np.array(
+                        self.embedding_model.embed_query(record.output)
+                    ).reshape(1, -1)
+                    output_similarity = cosine_similarity(
+                        query_embedding, output_embedding
+                    )[0][0]
+                    score_components["output"] = output_similarity
+
+                # Compute weighted score
+                weighted_score = sum(
+                    score_components[key] * weights[key] for key in score_components
+                )
+                # Normalize weighted score (optional)
+                weighted_score /= sum(weights.values())
+                scored_records.append({"record": record, "score": weighted_score})
 
         # Filter out the records that have a score below the threshold
         relevant_records = [r for r in scored_records if r["score"] >= threshold]
@@ -162,7 +161,7 @@ class ShortTermMemory:
     def retrieve_intent(
         self, query: str, threshold: float = 0.7
     ) -> Tuple[bool, Optional[str]]:
-        """
+        """Retrieves the most relevant intent based on a query string.
 
         Args:
             query (str): The query string to retrieve the most relevant intent for.
@@ -180,8 +179,8 @@ class ShortTermMemory:
         query_embedding = np.array(self.embedding_model.embed_query(query)).reshape(
             1, -1
         )
-        best_intent = None
-        best_score = -1.0
+        best_intent: Optional[str] = None
+        best_score: float = -1.0
 
         # Loop through the trajectory and score the records
         for turn_idx, turn in enumerate(self.trajectory):
@@ -203,15 +202,14 @@ class ShortTermMemory:
         else:
             return False, None
 
-    async def personalize(self):
-        """
-        Loops through the last 5 records in the trajectory and generates personalized intents
+    async def personalize(self) -> None:
+        """Loops through the last 5 records in the trajectory and generates personalized intents
         only if not already computed, storing them as `personalized_intent`.
         """
         # Loop through the trajectory and score the records
-        tasks = []
+        tasks: List[asyncio.Task] = []
         for turn_idx, turn in enumerate(self.trajectory):
-            user_utterance = ""
+            user_utterance: str = ""
             if (
                 turn_idx < len(self.chat_history)
                 and self.chat_history[turn_idx].get("role") == "user"
@@ -228,7 +226,13 @@ class ShortTermMemory:
 
     async def _set_personalized_intent(
         self, record: ResourceRecord, user_utterance: str
-    ):
+    ) -> None:
+        """Sets the personalized intent for a record.
+
+        Args:
+            record (ResourceRecord): The record to set the personalized intent for.
+            user_utterance (str): The user's utterance to use for personalization.
+        """
         record.personalized_intent = (
             await self.generate_personalized_product_attribute_intent(
                 record, user_utterance
@@ -238,14 +242,14 @@ class ShortTermMemory:
     async def generate_personalized_product_attribute_intent(
         self, record: ResourceRecord, user_utterance: str
     ) -> str:
-        """
+        """Generates a personalized intent based on the record and user utterance.
+
         Args:
-            user_utterance (str): User utterance in chat_history corresponding to the record.
             record (ResourceRecord): Record having the information about agent trajectory.
+            user_utterance (str): User utterance in chat_history corresponding to the record.
 
         Returns:
-            personalized_intent (str):Generate a more personalized intent using task, tool output, context generate, and intent,
-        focusing on product and attribute mentioned or inferred.
+            str: A personalized intent focusing on product and attribute mentioned or inferred.
         """
 
         task = record.info.get("attribute", {}).get("task", "") or ""

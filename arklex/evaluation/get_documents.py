@@ -3,13 +3,14 @@ import sys
 import json
 import pickle
 from pathlib import Path
+from typing import Any, Dict, List, Optional
 from os.path import dirname, abspath
 
 sys.path.insert(0, dirname(dirname(abspath(__file__))))
 from arklex.utils.loader import Loader, CrawledObject, SourceType
 
 
-def get_domain_info(documents):
+def get_domain_info(documents: List[Dict[str, str]]) -> Optional[str]:
     summary = None
     for doc in documents:
         if doc["URL"] == "summary":
@@ -18,7 +19,9 @@ def get_domain_info(documents):
     return summary
 
 
-def load_docs(document_dir, doc_config, limit=10):
+def load_docs(
+    document_dir: Optional[str], doc_config: Dict[str, Any], limit: int = 10
+) -> List[Dict[str, str]]:
     if document_dir is not None:
         try:
             if "rag_docs" not in doc_config:

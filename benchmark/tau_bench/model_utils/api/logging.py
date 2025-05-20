@@ -2,7 +2,7 @@ import functools
 import inspect
 import json
 from multiprocessing import Lock
-from typing import Any
+from typing import Any, Callable, TypeVar
 
 from pydantic import BaseModel
 
@@ -12,7 +12,7 @@ from benchmark.tau_bench.model_utils.model.utils import optionalize_type
 log_files = {}
 
 
-def prep_for_json_serialization(obj: Any, from_parse_method: bool = False):
+def prep_for_json_serialization(obj: Any, from_parse_method: bool = False) -> Any:
     # TODO: refine type annotations
     if isinstance(obj, (str, int, float, bool, type(None))):
         return obj
@@ -40,7 +40,10 @@ def prep_for_json_serialization(obj: Any, from_parse_method: bool = False):
         raise TypeError(f"Object of type {type(obj)} is not JSON serializable")
 
 
-def log_call(func):
+F = TypeVar("F", bound=Callable)
+
+
+def log_call(func: F) -> F:
     @functools.wraps(func)
     def wrapper(self, *args, **kwargs):
         response = func(self, *args, **kwargs)

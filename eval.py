@@ -1,6 +1,7 @@
 import os
 import json
 import argparse
+from typing import Dict, List, Any, Optional, Tuple
 
 from arklex.evaluation.simulate_first_pass_convos import simulate_conversations
 from arklex.evaluation.extract_conversation_info import extract_task_completion_metrics
@@ -10,12 +11,16 @@ from arklex.utils.model_provider_config import LLM_PROVIDERS
 from arklex.evaluation.chatgpt_utils import create_client
 
 
-def evaluate(config):
-    task = config["task"]
-    model_api = config["model_api"]
-    model_params = config["model_params"]
-    synthetic_data_params = config["synthetic_data_params"]
-    bot_goal = config.get("builder_objective", None)
+def evaluate(
+    config: Dict[str, Any],
+) -> Tuple[
+    List[Dict[str, Any]], List[Dict[str, Any]], Dict[str, Any], List[Dict[str, Any]]
+]:
+    task: str = config["task"]
+    model_api: str = config["model_api"]
+    model_params: Dict[str, Any] = config["model_params"]
+    synthetic_data_params: Dict[str, Any] = config["synthetic_data_params"]
+    bot_goal: Optional[str] = config.get("builder_objective", None)
     bot_goal = None if bot_goal == "" else bot_goal
 
     if task == "first_pass":
@@ -79,8 +84,8 @@ if __name__ == "__main__":
     if not os.path.exists(args.output_dir):
         os.makedirs(args.output_dir, exist_ok=True)
 
-    config = json.load(open(args.config))
-    user_attributes = json.load(open(args.user_attributes))
+    config: Dict[str, Any] = json.load(open(args.config))
+    user_attributes: Dict[str, Any] = json.load(open(args.user_attributes))
     # if args.testset:
     #     testset = json.load(open(args.testset))
     # else:

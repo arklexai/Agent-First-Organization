@@ -1,4 +1,4 @@
-MODEL_METHODS = [
+MODEL_METHODS: list[str] = [
     "classify",
     "binary_classify",
     "parse",

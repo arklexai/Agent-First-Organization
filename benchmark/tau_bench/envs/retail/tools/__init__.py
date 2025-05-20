@@ -1,5 +1,8 @@
 # Copyright Sierra
 
+from typing import List, Type
+from benchmark.tau_bench.envs.tool import Tool
+
 from .calculate import Calculate
 from .cancel_pending_order import CancelPendingOrder
 from .exchange_delivered_order_items import ExchangeDeliveredOrderItems
@@ -18,7 +21,7 @@ from .think import Think
 from .transfer_to_human_agents import TransferToHumanAgents
 
 
-ALL_TOOLS = [
+ALL_TOOLS: List[Type[Tool]] = [
     Calculate,
     CancelPendingOrder,
     ExchangeDeliveredOrderItems,

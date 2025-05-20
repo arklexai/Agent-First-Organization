@@ -1,7 +1,10 @@
-def load_prompts(bot_config):
+from typing import Dict, Any
+
+
+def load_prompts(bot_config: Any) -> Dict[str, str]:
     if bot_config.language == "EN":
         ### ================================== Generator Prompts ================================== ###
-        prompts = {
+        prompts: Dict[str, str] = {
             # ===== vanilla prompt ===== #
             "generator_prompt": """{sys_instruct}
 ----------------
@@ -104,7 +107,7 @@ Your response should only be the reformulated value or None.
         }
     elif bot_config.language == "CN":
         ### ================================== Generator Prompts ================================== ###
-        prompts = {
+        prompts: Dict[str, str] = {
             # ===== vanilla prompt ===== #
             "generator_prompt": """{sys_instruct}
 ----------------

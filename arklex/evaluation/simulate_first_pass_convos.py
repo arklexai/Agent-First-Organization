@@ -1,6 +1,8 @@
 import json
 import os
 import random
+from typing import Any, Dict, List, Tuple
+from concurrent.futures import ThreadPoolExecutor, as_completed
 from arklex.evaluation.build_user_profiles import build_profile, ATTR_TO_PROFILE
 from arklex.evaluation.chatgpt_utils import (
     chatgpt_chatbot,
@@ -10,7 +12,6 @@ from arklex.evaluation.chatgpt_utils import (
     format_chat_history_str,
     flip_hist_content_only,
 )
-from concurrent.futures import ThreadPoolExecutor, as_completed
 
 # USER_DATA_KEYS = ['goal', 'product_experience_level', 'deal_stage', 'customer_type', 'decision_making_authority', 'persona', 'discovery_type', 'buying_behavior']
 USER_DATA_KEYS = [
@@ -23,14 +24,14 @@ USER_DATA_KEYS = [
 ]
 
 
-def get_relevant_vals(attr):
+def get_relevant_vals(attr: Dict[str, str]) -> List[str]:
     vals = []
     for key in USER_DATA_KEYS:
         vals.append(attr[key])
     return vals
 
 
-def count_matches(l1, l2):
+def count_matches(l1: List[str], l2: List[str]) -> int:
     num_matches = 0
     for i in range((len(l1))):
         if l1[i] == l2[i]:
@@ -38,7 +39,7 @@ def count_matches(l1, l2):
     return num_matches
 
 
-def join_messages(messages):
+def join_messages(messages: List[Dict[str, str]]) -> str:
     message_str = ""
     for message in messages:
         if message["role"] == "bot_follow_up":
@@ -47,8 +48,10 @@ def join_messages(messages):
     return message_str[:-1]
 
 
-def create_convo_profile(best_match, attr_vals, summary, client):
-    dict_profile = {}
+def create_convo_profile(
+    best_match: List[str], attr_vals: List[str], summary: str, client: Any
+) -> str:
+    dict_profile: Dict[str, str] = {}
     for i in range(len(USER_DATA_KEYS)):
         if best_match[i] == "other":
             continue
@@ -71,7 +74,13 @@ def create_convo_profile(best_match, attr_vals, summary, client):
     return profile
 
 
-def retrieve_convo(attr_vals, all_profiles, user_convos, summary, client):
+def retrieve_convo(
+    attr_vals: List[str],
+    all_profiles: List[str],
+    user_convos: Dict[str, List[Dict[str, Any]]],
+    summary: str,
+    client: Any,
+) -> Tuple[str, str]:
     split_profiles = [p.split(",") for p in all_profiles]
     best_match = None
     max_matches = 0
@@ -88,7 +97,12 @@ def retrieve_convo(attr_vals, all_profiles, user_convos, summary, client):
     return convo_messages, convo_profile
 
 
-def get_example_convo(attr, synthetic_data_params, summary, client):
+def get_example_convo(
+    attr: Dict[str, str],
+    synthetic_data_params: Dict[str, Any],
+    summary: str,
+    client: Any,
+) -> Tuple[str, str]:
     with open(synthetic_data_params["data_file"]) as f:
         user_convos = json.load(f)
 
@@ -100,7 +114,14 @@ def get_example_convo(attr, synthetic_data_params, summary, client):
     return convo, matching_profile
 
 
-def retrieve_prompts(profile, goal, attr, summary, synthetic_data_params, client):
+def retrieve_prompts(
+    profile: str,
+    goal: str,
+    attr: Dict[str, str],
+    summary: str,
+    synthetic_data_params: Dict[str, Any],
+    client: Any,
+) -> Tuple[str, str]:
     if synthetic_data_params["data_file"] is None:
         instructional_prompt = f"Pretend you are a human interacting with a customer service chatbot for the following company: {summary}\nYou have the following goal when interacting with this chatbot:\n{goal}\nHere is a description of the customer you are pretending to be:\n{profile}\nHave a conversation with the chatbot while trying to achieve your goal as this customer. Make sure the conversation is natural. For example, if the chatbot asks you a question you should answer it."
         start_text = "Humans write short questions with occasional typos. Here are some examples of what a human customer would type: [how much is it?, Can you send info to my email, yes I need a job, want to check both proposals to rent and buy, How much does it cost a [PRODUCT_HERE], Im interested in [PRODUCT_HERE], hi i would like to rent out [PRODUCT_HERE] but im wondering which countries are available for rental]. Replicate the writing behavior of a human customer and begin the conversation with a question to achieve your goal."
@@ -113,7 +134,7 @@ def retrieve_prompts(profile, goal, attr, summary, synthetic_data_params, client
     return instructional_prompt, start_text
 
 
-def check_goal_completion(goal, convo, client):
+def check_goal_completion(goal: str, convo: List[Dict[str, Any]], client: Any) -> bool:
     convo_str = format_chat_history_str(flip_hist_content_only(convo[2:]))
     prompt = f"Here is a conversation between a user and a customer service chatbot assistant:\n{convo_str}\n\nThe user's goal is the following: {goal}\nOutput False if the user needs to learn more information regarding their goal. Output True otherwise. Only onput True or False and nothing else."
     output = chatgpt_chatbot([{"role": "user", "content": prompt}], client)
@@ -121,24 +142,24 @@ def check_goal_completion(goal, convo, client):
 
 
 def conversation(
-    model_api,
-    profile,
-    goal,
-    attr,
-    sys_input,
-    summary,
-    model_params,
-    synthetic_data_params,
-    env_config,
-):
+    model_api: str,
+    profile: str,
+    goal: str,
+    attr: Dict[str, str],
+    sys_input: Dict[str, str],
+    summary: str,
+    model_params: Dict[str, Any],
+    synthetic_data_params: Dict[str, Any],
+    env_config: Dict[str, Any],
+) -> Tuple[List[Dict[str, Any]], bool]:
     instructional_prompt, start_text = retrieve_prompts(
         profile, goal, attr, summary, synthetic_data_params, env_config["client"]
     )
-    history = []
+    history: List[Dict[str, Any]] = []
     history.append({"role": "system", "content": instructional_prompt})
     history.append({"role": "user", "content": start_text})
-    chatbot_history = []
-    default_slots = []
+    chatbot_history: List[Dict[str, str]] = []
+    default_slots: List[Dict[str, str]] = []
     for key, value in sys_input.items():
         if key and value:
             default_slots.append({"name": key, "value": value})
@@ -166,28 +187,27 @@ def conversation(
         chatbot_history.append({"role": "user", "content": answer})
         if i > 2 and check_goal_completion(goal, history.copy(), env_config["client"]):
             goal_completetion = True
-            # history.append({'goal_completetion': True})
             break
 
-    # if not history[-1].get('goal_completetion', False):
-    #     history.append({'goal_completetion': False})
     return history, goal_completetion
 
 
 def generate_conversations(
-    model_api,
-    profiles,
-    goals,
-    attributes_list,
-    system_inputs,
-    summary,
-    model_params,
-    synthetic_data_params,
-    env_config,
-):
-    convos = []
+    model_api: str,
+    profiles: List[str],
+    goals: List[str],
+    attributes_list: List[Dict[str, str]],
+    system_inputs: List[Dict[str, str]],
+    summary: str,
+    model_params: Dict[str, Any],
+    synthetic_data_params: Dict[str, Any],
+    env_config: Dict[str, Any],
+) -> List[Dict[str, Any]]:
+    convos: List[Dict[str, Any]] = []
 
-    def worker(profile, goal, attr, sys_input):
+    def worker(
+        profile: str, goal: str, attr: Dict[str, str], sys_input: Dict[str, str]
+    ) -> Dict[str, Any]:
         convo, goal_completion = conversation(
             model_api,
             profile,
@@ -222,7 +242,12 @@ def generate_conversations(
     return convos
 
 
-def simulate_conversations(model_api, model_params, synthetic_data_params, config):
+def simulate_conversations(
+    model_api: str,
+    model_params: Dict[str, Any],
+    synthetic_data_params: Dict[str, Any],
+    config: Dict[str, Any],
+) -> None:
     profiles, goals, attributes_list, system_inputs, labels_list = build_profile(
         synthetic_data_params, config
     )
@@ -249,41 +274,6 @@ def simulate_conversations(model_api, model_params, synthetic_data_params, confi
         os.path.join(config["output_dir"], "simulate_data", "labels_list.json"), "w"
     ) as f:
         json.dump(labels_list, f, indent=4)
-
-    # with open(os.path.join(config['output_dir'], "simulate_data", "profiles.json"), "r") as f:
-    #     profiles = json.load(f)
-    # with open(os.path.join(config['output_dir'], "simulate_data", "goals.json"), "r") as f:
-    #     goals = json.load(f)
-    # with open(os.path.join(config['output_dir'], "simulate_data", "attributes_list.json"), "r") as f:
-    #     attributes_list = json.load(f)
-    # with open(os.path.join(config['output_dir'], "simulate_data", "system_inputs.json"), "r") as f:
-    #     system_inputs = json.load(f)
-    # with open(os.path.join(config['output_dir'], "simulate_data", "labels_list.json"), "r") as f:
-    #     labels_list = json.load(f)
-    summary = config["intro"]
-    env_config = {
-        "workers": config["workers"],
-        "tools": config["tools"],
-        "client": config["client"],
-    }
-
-    # try:
-    conversations = generate_conversations(
-        model_api,
-        profiles,
-        goals,
-        attributes_list,
-        system_inputs,
-        summary,
-        model_params,
-        synthetic_data_params,
-        env_config,
-    )
-    # except Exception as e:
-    #     print("Generate conversations failed")
-    #     print("Error: ", e)
-    #     conversations = []
-    return conversations, goals
 
 
 if __name__ == "__main__":

@@ -90,7 +90,9 @@ DEFAULT_LLM_CONFIG = LLMConfig(
 
 
 class DefaultPlanner:
-    description = "Default planner that returns unaltered MessageState on execute()"
+    description: str = (
+        "Default planner that returns unaltered MessageState on execute()"
+    )
 
     def __init__(
         self,
@@ -98,11 +100,11 @@ class DefaultPlanner:
         workers_map: Dict[str, Any],
         name2id: Dict[str, int],
     ):
-        self.tools_map = tools_map
-        self.workers_map = workers_map
-        self.name2id = name2id
-        self.all_resources_info = {}
-        self.llm_config = DEFAULT_LLM_CONFIG
+        self.tools_map: Dict[str, Any] = tools_map
+        self.workers_map: Dict[str, Any] = workers_map
+        self.name2id: Dict[str, int] = name2id
+        self.all_resources_info: Dict[str, Any] = {}
+        self.llm_config: LLMConfig = DEFAULT_LLM_CONFIG
 
     def set_llm_config_and_build_resource_library(self, llm_config: LLMConfig):
         """
@@ -114,16 +116,19 @@ class DefaultPlanner:
         The DefaultPlanner does nothing and has no need for retrieval steps, so it will not create RAG
         documents.
         """
-        self.llm_config = llm_config
+        self.llm_config: LLMConfig = llm_config
 
     def execute(self, msg_state: MessageState, msg_history):
         # Return empty action alongside unaltered msg_state and msg_history
-        empty_action = {"name": RESPOND_ACTION_NAME, "kwargs": {"content": ""}}
+        empty_action: Dict[str, Any] = {
+            "name": RESPOND_ACTION_NAME,
+            "kwargs": {"content": ""},
+        }
         return empty_action, msg_state, msg_history
 
 
 class ReactPlanner(DefaultPlanner):
-    description = "Choose tools/workers based on task and chat records if there is no specific worker/node for the user's query"
+    description: str = "Choose tools/workers based on task and chat records if there is no specific worker/node for the user's query"
 
     def __init__(
         self,
@@ -132,36 +137,43 @@ class ReactPlanner(DefaultPlanner):
         name2id: Dict[str, int],
     ):
         super().__init__(tools_map, workers_map, name2id)
-        self.tools_map = tools_map
-        self.workers_map = workers_map
-        self.name2id = name2id
+        self.tools_map: Dict[str, Any] = tools_map
+        self.workers_map: Dict[str, Any] = workers_map
+        self.name2id: Dict[str, int] = name2id
 
         # Assume default model and model provider from model_config are used
         # until model and provider info is set explicitly by orchestrator
         # with set_llm_config(llm_config: LLMConfig)
-        self.llm_config = DEFAULT_LLM_CONFIG
+        self.llm_config: LLMConfig = DEFAULT_LLM_CONFIG
 
         # Set initial model and provider info
-        self.llm_provider = self.llm_config.llm_provider
-        self.model_name = self.llm_config.model_type_or_path
-        self.llm = PROVIDER_MAP.get(self.llm_provider, ChatOpenAI)(
+        self.llm_provider: str = self.llm_config.llm_provider
+        self.model_name: str = self.llm_config.model_type_or_path
+        self.llm: Any = PROVIDER_MAP.get(self.llm_provider, ChatOpenAI)(
             model=self.model_name,
             temperature=0.0,
         )
-        self.system_role = "user" if self.llm_provider == "gemini" else "system"
+        self.system_role: str = "user" if self.llm_provider == "gemini" else "system"
 
         # Store worker and tool info in single resources dict with standardized formatting
-        formatted_worker_info = self._format_worker_info(self.workers_map)
-        formatted_tool_info = self._format_tool_info(self.tools_map)
+        formatted_worker_info: Dict[str, PlannerResource] = self._format_worker_info(
+            self.workers_map
+        )
+        formatted_tool_info: Dict[str, PlannerResource] = self._format_tool_info(
+            self.tools_map
+        )
         # all_resources_info is Dict[str, PlannerResource]
-        self.all_resources_info = {**formatted_worker_info, **formatted_tool_info}
+        self.all_resources_info: Dict[str, PlannerResource] = {
+            **formatted_worker_info,
+            **formatted_tool_info,
+        }
 
         # Add RESPOND_ACTION to resource library
         self.all_resources_info[RESPOND_ACTION_NAME] = RESPOND_ACTION_RESOURCE
 
         # Track whether or not RAG documents for planner resources have already been created;
         # these will be created in AgentOrg.__init__() once model info is provided
-        self.resource_rag_docs_created = False
+        self.resource_rag_docs_created: bool = False
 
     def set_llm_config_and_build_resource_library(self, llm_config: LLMConfig):
         """
@@ -171,31 +183,33 @@ class ReactPlanner(DefaultPlanner):
         Note that in most cases, this must be invoked (again) after __init__(), because the LLMConfig info
         may be updated after planner is initialized, which may change the embedding model(s) used.
         """
-        self.llm_config = llm_config
+        self.llm_config: LLMConfig = llm_config
 
         # Update model provider info
-        self.llm_provider = self.llm_config.llm_provider
-        self.model_name = self.llm_config.model_type_or_path
-        self.llm = PROVIDER_MAP.get(self.llm_provider, ChatOpenAI)(
+        self.llm_provider: str = self.llm_config.llm_provider
+        self.model_name: str = self.llm_config.model_type_or_path
+        self.llm: Any = PROVIDER_MAP.get(self.llm_provider, ChatOpenAI)(
             model=self.model_name,
             temperature=0.0,
         )
-        self.system_role = "user" if self.llm_provider == "gemini" else "system"
+        self.system_role: str = "user" if self.llm_provider == "gemini" else "system"
 
         # Create documents containing tool/worker info
-        resource_docs = self._create_resource_rag_docs(self.all_resources_info)
+        resource_docs: List[Document] = self._create_resource_rag_docs(
+            self.all_resources_info
+        )
 
         # Init embedding model and FAISS retriever for RAG resource signature retrieval
-        self.embedding_model_name = PROVIDER_EMBEDDING_MODELS[self.llm_provider]
-        self.embedding_model = PROVIDER_EMBEDDINGS.get(
+        self.embedding_model_name: str = PROVIDER_EMBEDDING_MODELS[self.llm_provider]
+        self.embedding_model: Any = PROVIDER_EMBEDDINGS.get(
             self.llm_provider, OpenAIEmbeddings
         )(
             **{"model": self.embedding_model_name}
             if self.llm_provider != "anthropic"
             else {"model_name": self.embedding_model_name}
         )
-        docsearch = FAISS.from_documents(resource_docs, self.embedding_model)
-        self.retriever = docsearch.as_retriever()
+        docsearch: Any = FAISS.from_documents(resource_docs, self.embedding_model)
+        self.retriever: Any = docsearch.as_retriever()
 
         # Ensure RESPOND_ACTION will always be included in list of retrieved resources if RAG is used for selecting
         # relevant tools/workers during planning (RESPOND_ACTION should always be available as a planner action, independent

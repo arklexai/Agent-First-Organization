@@ -1,4 +1,5 @@
 from arklex.env.tools.tools import register_tool
+from typing import Union
 
 # state in -> state out
 #   no preprocessing
@@ -23,7 +24,7 @@ def echo(state: MessageState):
         "description": "the most recent user message",
     }]
     )
-def shoutEcho(msg):
+def shoutEcho(msg: str) -> str:
     return msg.upper()
 """
 
@@ -51,6 +52,6 @@ def shoutEcho(msg):
         }
     ],
 )
-def calculator(expression):
-    py_expression = expression.replace("^", "**")
+def calculator(expression: str) -> Union[int, float]:
+    py_expression: str = expression.replace("^", "**")
     return eval(py_expression)

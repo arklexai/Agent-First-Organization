@@ -5,13 +5,14 @@ import requests
 from openai import OpenAI
 import anthropic
 from dotenv import load_dotenv
+from typing import Any, Dict, List, Optional
 
 from arklex.utils.model_config import MODEL
 
 load_dotenv()
 
 
-def create_client():
+def create_client() -> Any:
     try:
         org_key = os.environ["OPENAI_ORG_ID"]
     except:
@@ -29,7 +30,11 @@ def create_client():
     return client
 
 
-def chatgpt_chatbot(messages, client, model=MODEL["model_type_or_path"]):
+def chatgpt_chatbot(
+    messages: List[Dict[str, Any]],
+    client: Any,
+    model: Optional[str] = MODEL["model_type_or_path"],
+) -> str:
     if MODEL["llm_provider"] != "anthropic":
         answer = (
             client.chat.completions.create(
@@ -56,8 +61,8 @@ def chatgpt_chatbot(messages, client, model=MODEL["model_type_or_path"]):
 
 
 # flip roles in convo history, only keep role and content
-def flip_hist_content_only(hist):
-    new_hist = []
+def flip_hist_content_only(hist: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+    new_hist: List[Dict[str, Any]] = []
     for turn in hist:
         if turn["role"] == "system":
             continue
@@ -69,8 +74,8 @@ def flip_hist_content_only(hist):
 
 
 # flip roles in convo history, keep all other keys the same
-def flip_hist(hist):
-    new_hist = []
+def flip_hist(hist: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+    new_hist: List[Dict[str, Any]] = []
     for turn in hist.copy():
         if "role" not in turn.keys():
             new_hist.append(turn)
@@ -85,7 +90,12 @@ def flip_hist(hist):
     return new_hist
 
 
-def query_chatbot(model_api, history, params, env_config):
+def query_chatbot(
+    model_api: str,
+    history: List[Dict[str, Any]],
+    params: Dict[str, Any],
+    env_config: Dict[str, Any],
+) -> Dict[str, Any]:
     history = flip_hist_content_only(history)
     data = {
         "history": history,
@@ -100,7 +110,7 @@ def query_chatbot(model_api, history, params, env_config):
     return response.json()
 
 
-def format_chat_history_str(chat_history):
+def format_chat_history_str(chat_history: List[Dict[str, Any]]) -> str:
     formatted_hist = ""
     for turn in chat_history:
         formatted_hist += turn["role"].upper() + ": " + turn["content"] + " "
@@ -108,8 +118,10 @@ def format_chat_history_str(chat_history):
 
 
 # filter prompts out of bot utterances
-def filter_convo(convo, delim="\n", filter_turns=True):
-    filtered_convo = []
+def filter_convo(
+    convo: List[Dict[str, Any]], delim: str = "\n", filter_turns: bool = True
+) -> List[Dict[str, Any]]:
+    filtered_convo: List[Dict[str, Any]] = []
     for i, turn in enumerate(convo):
         if i <= 1:
             continue
@@ -121,7 +133,7 @@ def filter_convo(convo, delim="\n", filter_turns=True):
             filtered_convo.append(turn)
         else:
             idx = turn["content"].find(delim)
-            new_turn = {}
+            new_turn: Dict[str, Any] = {}
             for key in turn.keys():
                 if key == "content":
                     new_turn[key] = turn[key][:idx]
@@ -131,7 +143,7 @@ def filter_convo(convo, delim="\n", filter_turns=True):
     return filtered_convo
 
 
-def adjust_goal(doc_content, goal):
+def adjust_goal(doc_content: str, goal: str) -> str:
     message = f"Pretend you have the following goal in the mind. If the goal including some specific product, such as floss, mug, iphone, etc., then please replace it with the product from the following document content. Otherwise, don't need to change it and just return the original goal. The document content is as follows:\n{doc_content}\n\nThe original goal is as follows:\n{goal}\n\nOnly give the answer to the question in your response."
 
     return chatgpt_chatbot(
@@ -139,7 +151,7 @@ def adjust_goal(doc_content, goal):
     )
 
 
-def generate_goal(doc_content, client):
+def generate_goal(doc_content: str, client: Any) -> str:
     message = f"Pretend you have just read the following website:\n{doc_content}\nThis website also has a chatbot. What is some information you want to get from this chatbot or a goal you might have when chatting with this chatbot based on the website content? Answer the question in the first person. Only give the answer to the question in your response."
 
     return chatgpt_chatbot(
@@ -149,8 +161,10 @@ def generate_goal(doc_content, client):
     )
 
 
-def generate_goals(documents, params, client):
-    goals = []
+def generate_goals(
+    documents: List[Dict[str, Any]], params: Dict[str, Any], client: Any
+) -> List[str]:
+    goals: List[str] = []
     for i in range(params["num_goals"]):
         doc = random.choice(documents)
         goals.append(generate_goal(doc["content"]), client)
