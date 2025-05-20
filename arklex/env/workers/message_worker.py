@@ -1,17 +1,16 @@
 import logging
 
-from langgraph.graph import StateGraph, START
 from langchain.prompts import PromptTemplate
-from langchain_openai import ChatOpenAI
 from langchain_core.output_parsers import StrOutputParser
+from langchain_openai import ChatOpenAI
+from langgraph.graph import START, StateGraph
 
-from arklex.env.workers.worker import BaseWorker, register_worker
 from arklex.env.prompts import load_prompts
 from arklex.env.tools.utils import trace
-from arklex.types import EventType
+from arklex.env.workers.worker import BaseWorker, register_worker
+from arklex.types import EventType, StreamType
 from arklex.utils.graph_state import MessageState
 from arklex.utils.model_provider_config import PROVIDER_MAP
-
 
 logger = logging.getLogger(__name__)
 
@@ -43,9 +42,14 @@ class MessageWorker(BaseWorker):
 
         prompts = load_prompts(state.bot_config)
         if message_flow and message_flow != "\n":
-            prompt = PromptTemplate.from_template(
-                prompts["message_flow_generator_prompt"]
-            )
+            if state.stream_type == StreamType.TEXT:
+                prompt = PromptTemplate.from_template(
+                    prompts["message_flow_generator_prompt"]
+                )
+            elif state.stream_type == StreamType.AUDIO:
+                prompt = PromptTemplate.from_template(
+                    prompts["message_flow_generator_prompt_speech"]
+                )
             input_prompt = prompt.invoke(
                 {
                     "sys_instruct": state.sys_instruct,
@@ -55,7 +59,14 @@ class MessageWorker(BaseWorker):
                 }
             )
         else:
-            prompt = PromptTemplate.from_template(prompts["message_generator_prompt"])
+            if state.stream_type == StreamType.TEXT:
+                prompt = PromptTemplate.from_template(
+                    prompts["message_generator_prompt"]
+                )
+            elif state.stream_type == StreamType.AUDIO:
+                prompt = PromptTemplate.from_template(
+                    prompts["message_generator_prompt_speech"]
+                )
             input_prompt = prompt.invoke(
                 {
                     "sys_instruct": state.sys_instruct,
@@ -96,9 +107,14 @@ class MessageWorker(BaseWorker):
 
         prompts = load_prompts(state.bot_config)
         if message_flow and message_flow != "\n":
-            prompt = PromptTemplate.from_template(
-                prompts["message_flow_generator_prompt"]
-            )
+            if state.stream_type == StreamType.TEXT:
+                prompt = PromptTemplate.from_template(
+                    prompts["message_flow_generator_prompt"]
+                )
+            elif state.stream_type == StreamType.AUDIO:
+                prompt = PromptTemplate.from_template(
+                    prompts["message_flow_generator_prompt_speech"]
+                )
             input_prompt = prompt.invoke(
                 {
                     "sys_instruct": state.sys_instruct,
@@ -108,7 +124,14 @@ class MessageWorker(BaseWorker):
                 }
             )
         else:
-            prompt = PromptTemplate.from_template(prompts["message_generator_prompt"])
+            if state.stream_type == StreamType.TEXT:
+                prompt = PromptTemplate.from_template(
+                    prompts["message_generator_prompt"]
+                )
+            elif state.stream_type == StreamType.AUDIO:
+                prompt = PromptTemplate.from_template(
+                    prompts["message_generator_prompt_speech"]
+                )
             input_prompt = prompt.invoke(
                 {
                     "sys_instruct": state.sys_instruct,

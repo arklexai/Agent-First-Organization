@@ -1,15 +1,14 @@
-import logging
 import inspect
+import logging
 
 from langchain.prompts import PromptTemplate
-from langchain_openai import ChatOpenAI
 from langchain_core.output_parsers import StrOutputParser
+from langchain_openai import ChatOpenAI
 
 from arklex.env.prompts import load_prompts
-from arklex.types import EventType
+from arklex.types import EventType, StreamType
 from arklex.utils.graph_state import MessageState
 from arklex.utils.model_provider_config import PROVIDER_MAP
-
 
 logger = logging.getLogger(__name__)
 
@@ -24,7 +23,12 @@ class ToolGenerator:
         llm = PROVIDER_MAP.get(llm_config.llm_provider, ChatOpenAI)(
             model=llm_config.model_type_or_path, temperature=0.1
         )
-        prompt = PromptTemplate.from_template(prompts["generator_prompt"])
+        if state.stream_type == StreamType.TEXT:
+            prompt = PromptTemplate.from_template(prompts["generator_prompt"])
+        elif state.stream_type == StreamType.AUDIO:
+            prompt = PromptTemplate.from_template(prompts["generator_prompt_speech"])
+        else:
+            raise ValueError(f"Unsupported stream type: {state.stream_type}")
         input_prompt = prompt.invoke(
             {"sys_instruct": state.sys_instruct, "formatted_chat": user_message.history}
         )
@@ -75,7 +79,14 @@ class ToolGenerator:
 
         # generate answer based on the retrieved texts
         prompts = load_prompts(state.bot_config)
-        prompt = PromptTemplate.from_template(prompts["context_generator_prompt"])
+        if state.stream_type == StreamType.TEXT:
+            prompt = PromptTemplate.from_template(prompts["context_generator_prompt"])
+        elif state.stream_type == StreamType.AUDIO:
+            prompt = PromptTemplate.from_template(
+                prompts["context_generator_prompt_speech"]
+            )
+        else:
+            raise ValueError(f"Unsupported stream type: {state.stream_type}")
         input_prompt = prompt.invoke(
             {
                 "sys_instruct": state.sys_instruct,
@@ -129,7 +140,15 @@ class ToolGenerator:
 
         # generate answer based on the retrieved texts
         prompts = load_prompts(state.bot_config)
-        prompt = PromptTemplate.from_template(prompts["context_generator_prompt"])
+        if state.stream_type == StreamType.TEXT:
+            prompt = PromptTemplate.from_template(prompts["context_generator_prompt"])
+        elif state.stream_type == StreamType.AUDIO:
+            prompt = PromptTemplate.from_template(
+                prompts["context_generator_prompt_speech"]
+            )
+        else:
+            raise ValueError(f"Unsupported stream type: {state.stream_type}")
+
         input_prompt = prompt.invoke(
             {
                 "sys_instruct": state.sys_instruct,
@@ -160,7 +179,12 @@ class ToolGenerator:
         llm = PROVIDER_MAP.get(llm_config.llm_provider, ChatOpenAI)(
             model=llm_config.model_type_or_path, temperature=0.1
         )
-        prompt = PromptTemplate.from_template(prompts["generator_prompt"])
+        if state.stream_type == StreamType.TEXT:
+            prompt = PromptTemplate.from_template(prompts["generator_prompt"])
+        elif state.stream_type == StreamType.AUDIO:
+            prompt = PromptTemplate.from_template(prompts["generator_prompt_speech"])
+        else:
+            raise ValueError(f"Unsupported stream type: {state.stream_type}")
         input_prompt = prompt.invoke(
             {"sys_instruct": state.sys_instruct, "formatted_chat": user_message.history}
         )
