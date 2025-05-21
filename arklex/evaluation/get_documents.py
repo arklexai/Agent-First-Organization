@@ -4,13 +4,14 @@ import json
 import pickle
 from pathlib import Path
 from os.path import dirname, abspath
+from typing import List, Dict, Any, Optional
 
 sys.path.insert(0, dirname(dirname(abspath(__file__))))
 from arklex.utils.loader import Loader, CrawledObject, SourceType
 
 
-def get_domain_info(documents):
-    summary = None
+def get_domain_info(documents: List[Dict[str, str]]) -> Optional[str]:
+    summary: Optional[str] = None
     for doc in documents:
         if doc["URL"] == "summary":
             summary = doc["content"]
@@ -18,7 +19,9 @@ def get_domain_info(documents):
     return summary
 
 
-def load_docs(document_dir, doc_config, limit=10):
+def load_docs(
+    document_dir: Optional[str], doc_config: Dict[str, Any], limit: int = 10
+) -> List[Dict[str, str]]:
     if document_dir is not None:
         try:
             if "rag_docs" not in doc_config:
@@ -27,26 +30,30 @@ def load_docs(document_dir, doc_config, limit=10):
                         "The config json file must have a key 'rag_docs' or 'task_docs' with a list of documents to load."
                     )
             else:
-                rag_docs = doc_config["task_docs"]
-                filename = "task_documents.pkl"
-            filepath = os.path.join(document_dir, filename)
-            total_num_docs = sum(
+                rag_docs: List[Dict[str, Any]] = doc_config["task_docs"]
+                filename: str = "task_documents.pkl"
+            filepath: str = os.path.join(document_dir, filename)
+            total_num_docs: int = sum(
                 [doc.get("num") if doc.get("num") else 1 for doc in rag_docs]
             )
-            loader = Loader()
+            loader: Loader = Loader()
             if Path(filepath).exists():
-                docs = pickle.load(open(os.path.join(document_dir, filename), "rb"))
+                docs: List[CrawledObject] = pickle.load(
+                    open(os.path.join(document_dir, filename), "rb")
+                )
             else:
-                docs = []
+                docs: List[CrawledObject] = []
                 for doc in rag_docs:
-                    source = doc.get("source")
+                    source: str = doc.get("source")
                     if doc.get("type") == "url":
-                        num_docs = doc.get("num") if doc.get("num") else 1
-                        urls = loader.get_all_urls(source, num_docs)
-                        crawled_urls = loader.to_crawled_url_objs(urls)
+                        num_docs: int = doc.get("num") if doc.get("num") else 1
+                        urls: List[str] = loader.get_all_urls(source, num_docs)
+                        crawled_urls: List[CrawledObject] = loader.to_crawled_url_objs(
+                            urls
+                        )
                         docs.extend(crawled_urls)
                     elif doc.get("type") == "file":
-                        file_list = [
+                        file_list: List[str] = [
                             os.path.join(source, f) for f in os.listdir(source)
                         ]
                         docs.extend(loader.to_crawled_local_objs(file_list))
@@ -63,13 +70,15 @@ def load_docs(document_dir, doc_config, limit=10):
             else:
                 limit = 10
             if isinstance(docs[0], CrawledObject):
-                documents = []
+                documents: List[Dict[str, str]] = []
                 # Get candidate websites for only web urls
-                web_docs = list(filter(lambda x: x.source_type == SourceType.WEB, docs))
-                file_docs = list(
+                web_docs: List[CrawledObject] = list(
+                    filter(lambda x: x.source_type == SourceType.WEB, docs)
+                )
+                file_docs: List[CrawledObject] = list(
                     filter(lambda x: x.source_type == SourceType.FILE, docs)
                 )
-                text_docs = list(
+                text_docs: List[CrawledObject] = list(
                     filter(lambda x: x.source_type == SourceType.TEXT, docs)
                 )
                 documents.extend(loader.get_candidates_websites(web_docs, limit))
@@ -82,12 +91,12 @@ def load_docs(document_dir, doc_config, limit=10):
                 )
         except Exception as e:
             print(f"Error loading documents: {e}")
-            documents = []
+            documents: List[Dict[str, str]] = []
     else:
-        documents = []
+        documents: List[Dict[str, str]] = []
     return documents
 
 
 if __name__ == "__main__":
-    doc_config = json.load(open("./temp_files/richtech_config.json"))
-    docs = load_docs("./temp_files", doc_config, 10)
+    doc_config: Dict[str, Any] = json.load(open("./temp_files/richtech_config.json"))
+    docs: List[Dict[str, str]] = load_docs("./temp_files", doc_config, 10)

@@ -4,6 +4,7 @@ import hubspot
 from hubspot.crm.objects.emails import ApiException
 from hubspot.crm.associations.v4 import AssociationSpec
 from hubspot.crm.tickets.models import SimplePublicObjectInputForCreate
+from typing import Dict, Any, List
 
 from arklex.env.tools.tools import register_tool, logger
 from arklex.env.tools.hubspot.utils import authenticate_hubspot
@@ -11,10 +12,10 @@ from arklex.exceptions import ToolExecutionError
 from arklex.env.tools.hubspot._exception_prompt import HubspotExceptionPrompt
 
 
-description = "Create a ticket for the existing customer when the customer has some problem about the specific product."
+description: str = "Create a ticket for the existing customer when the customer has some problem about the specific product."
 
 
-slots = [
+slots: List[Dict[str, Any]] = [
     {
         "name": "cus_cid",
         "type": "str",
@@ -31,7 +32,7 @@ slots = [
         "required": True,
     },
 ]
-outputs = [
+outputs: List[Dict[str, Any]] = [
     {
         "name": "ticket_id",
         "type": "str",
@@ -41,33 +42,35 @@ outputs = [
 
 
 @register_tool(description, slots, outputs)
-def create_ticket(cus_cid: str, issue: str, **kwargs) -> str:
-    func_name = inspect.currentframe().f_code.co_name
-    access_token = authenticate_hubspot(kwargs)
+def create_ticket(cus_cid: str, issue: str, **kwargs: Dict[str, Any]) -> str:
+    func_name: str = inspect.currentframe().f_code.co_name
+    access_token: str = authenticate_hubspot(kwargs)
 
-    api_client = hubspot.Client.create(access_token=access_token)
+    api_client: Any = hubspot.Client.create(access_token=access_token)
 
-    timestamp = datetime.now().strftime("%Y-%m-%dT%H:%M:%S.%fZ")[:-3] + "Z"
-    subject_name = "Issue of " + cus_cid + " at " + timestamp
-    ticket_properties = {
+    timestamp: str = datetime.now().strftime("%Y-%m-%dT%H:%M:%S.%fZ")[:-3] + "Z"
+    subject_name: str = "Issue of " + cus_cid + " at " + timestamp
+    ticket_properties: Dict[str, Any] = {
         "hs_pipeline_stage": 1,
         "content": issue,
         "subject": subject_name,
     }
-    ticket_for_create = SimplePublicObjectInputForCreate(properties=ticket_properties)
+    ticket_for_create: SimplePublicObjectInputForCreate = (
+        SimplePublicObjectInputForCreate(properties=ticket_properties)
+    )
     try:
-        ticket_creation_response = api_client.crm.tickets.basic_api.create(
+        ticket_creation_response: Any = api_client.crm.tickets.basic_api.create(
             simple_public_object_input_for_create=ticket_for_create
         )
-        ticket_creation_response = ticket_creation_response.to_dict()
-        ticket_id = ticket_creation_response["id"]
-        association_spec = [
+        ticket_creation_response: Dict[str, Any] = ticket_creation_response.to_dict()
+        ticket_id: str = ticket_creation_response["id"]
+        association_spec: List[AssociationSpec] = [
             AssociationSpec(
                 association_category="HUBSPOT_DEFINED", association_type_id=15
             )
         ]
         try:
-            association_creation_response = (
+            association_creation_response: Any = (
                 api_client.crm.associations.v4.basic_api.create(
                     object_type="contact",
                     object_id=cus_cid,

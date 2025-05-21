@@ -1,3 +1,5 @@
+# TODO(christian): add annotations to the code
+
 import json
 from enum import Enum
 from typing import List, Dict
