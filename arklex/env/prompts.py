@@ -1,4 +1,7 @@
-def load_prompts(bot_config):
+from typing import Dict, Any
+
+
+def load_prompts(bot_config: Any) -> Dict[str, str]:
     if bot_config.language == "EN":
         ### ================================== Generator Prompts ================================== ###
         prompts = {
