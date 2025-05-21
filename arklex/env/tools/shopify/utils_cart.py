@@ -11,22 +11,27 @@ Module Name: utils_cart
 
 This file contains the code for operations related to shopping cart.
 """
-import json
-import os
 
-import requests 
+import os
+from typing import Dict, Any, Optional
+
 
 from arklex.env.tools.shopify.utils import *
 
 from dotenv import load_dotenv
+
 load_dotenv()
 
-cart_url = "https://xu1e3z-yi.myshopify.com/api/2024-04/graphql.json"
-cart_headers = {
-    "X-Shopify-Storefront-Access-Token": os.environ.get('SHOPIFY_STOREFRONT_ACCESS_TOKEN')
+cart_url: str = "https://xu1e3z-yi.myshopify.com/api/2024-04/graphql.json"
+cart_headers: Dict[str, Optional[str]] = {
+    "X-Shopify-Storefront-Access-Token": os.environ.get(
+        "SHOPIFY_STOREFRONT_ACCESS_TOKEN"
+    )
 }
-def create_cart():
-    query = '''
+
+
+def create_cart() -> str:
+    query: str = """
             mutation cartCreate($input: CartInput) {
                 cartCreate(input: $input) {
                     cart {
@@ -45,17 +50,17 @@ def create_cart():
                     }
                 }
             }
-            '''
-    variable = {
+            """
+    variable: Dict[str, Dict[str, Any]] = {
         "input": {
-        # "attributes": [
-        #   {
-        #     "key": "test",
-        #     "value": "test"
-        #   }
-        # ]
+            # "attributes": [
+            #   {
+            #     "key": "test",
+            #     "value": "test"
+            #   }
+            # ]
         }
     }
 
-    cart_dict = make_query(cart_url, query, variable, cart_headers)
-    return cart_dict['data']['cartCreate']['cart']['id']
+    cart_dict: Dict[str, Any] = make_query(cart_url, query, variable, cart_headers)
+    return cart_dict["data"]["cartCreate"]["cart"]["id"]
