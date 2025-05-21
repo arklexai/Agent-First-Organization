@@ -1,3 +1,4 @@
+from typing import List, Dict, Any, Optional, Union
 from ..tools import register_tool
 from .utils import *
 
@@ -21,16 +22,26 @@ import pandas as pd
     ],
     lambda x: x not in (LOG_IN_FAILURE or "No shows exist."),
 )
-def search_show(show_name=None, date=None, time=None, location=None) -> str | None:
+def search_show(
+    show_name: Optional[str] = None,
+    date: Optional[str] = None,
+    time: Optional[str] = None,
+    location: Optional[str] = None,
+) -> Union[str, None]:
     if not log_in():
         return LOG_IN_FAILURE
 
     # Populate the slots with verified values
-    conn = sqlite3.connect(booking.db_path)
-    cursor = conn.cursor()
-    query = "SELECT show_name, date, time, description, location, price, available_seats FROM show WHERE 1 = 1"
-    params = []
-    slots = {"show_name": show_name, "date": date, "time": time, "location": location}
+    conn: sqlite3.Connection = sqlite3.connect(booking.db_path)
+    cursor: sqlite3.Cursor = conn.cursor()
+    query: str = "SELECT show_name, date, time, description, location, price, available_seats FROM show WHERE 1 = 1"
+    params: List[str] = []
+    slots: Dict[str, Optional[str]] = {
+        "show_name": show_name,
+        "date": date,
+        "time": time,
+        "location": location,
+    }
     logger.info(f"{slots=}")
     for slot_name, slot_value in slots.items():
         if slot_value:
@@ -40,13 +51,13 @@ def search_show(show_name=None, date=None, time=None, location=None) -> str | No
 
     # Execute the query
     cursor.execute(query, params)
-    rows = cursor.fetchall()
+    rows: List[tuple] = cursor.fetchall()
     cursor.close()
     conn.close()
-    result = "No shows exist."
+    result: str = "No shows exist."
     if len(rows):
-        column_names = [column[0] for column in cursor.description]
-        results = [dict(zip(column_names, row)) for row in rows]
-        results_df = pd.DataFrame(results)
+        column_names: List[str] = [column[0] for column in cursor.description]
+        results: List[Dict[str, Any]] = [dict(zip(column_names, row)) for row in rows]
+        results_df: pd.DataFrame = pd.DataFrame(results)
         result = "Available shows are:\n" + results_df.to_string(index=False)
     return result

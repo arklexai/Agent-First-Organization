@@ -1,6 +1,7 @@
 import json
 from datetime import datetime, timezone
 import inspect
+from typing import Dict, Any, List
 
 import hubspot
 from hubspot.crm.objects.emails import PublicObjectSearchRequest, ApiException
@@ -12,10 +13,10 @@ from arklex.env.tools.hubspot.utils import authenticate_hubspot
 from arklex.exceptions import ToolExecutionError
 from arklex.env.tools.hubspot._exception_prompt import HubspotExceptionPrompt
 
-description = "Find the contacts record by email. If the record is found, the lastmodifieddate of the contact will be updated. If the correspodning record is not found, the function will return an error message."
+description: str = "Find the contacts record by email. If the record is found, the lastmodifieddate of the contact will be updated. If the correspodning record is not found, the function will return an error message."
 
 
-slots = [
+slots: List[Dict[str, Any]] = [
     {
         "name": "email",
         "type": "str",
@@ -31,7 +32,7 @@ slots = [
         "required": True,
     },
 ]
-outputs = [
+outputs: List[Dict[str, Any]] = [
     {
         "name": "contact_information",
         "type": "dict",
@@ -41,34 +42,36 @@ outputs = [
 
 
 @register_tool(description, slots, outputs)
-def find_contact_by_email(email: str, chat: str, **kwargs) -> str:
-    func_name = inspect.currentframe().f_code.co_name
-    access_token = authenticate_hubspot(kwargs)
+def find_contact_by_email(email: str, chat: str, **kwargs: Dict[str, Any]) -> str:
+    func_name: str = inspect.currentframe().f_code.co_name
+    access_token: str = authenticate_hubspot(kwargs)
 
-    api_client = hubspot.Client.create(access_token=access_token)
-    public_object_search_request = PublicObjectSearchRequest(
+    api_client: Any = hubspot.Client.create(access_token=access_token)
+    public_object_search_request: PublicObjectSearchRequest = PublicObjectSearchRequest(
         filter_groups=[
             {"filters": [{"propertyName": "email", "operator": "EQ", "value": email}]}
         ]
     )
 
     try:
-        contact_search_response = api_client.crm.contacts.search_api.do_search(
+        contact_search_response: Any = api_client.crm.contacts.search_api.do_search(
             public_object_search_request=public_object_search_request
         )
         logger.info("Found contact by email: {}".format(email))
-        contact_search_response = contact_search_response.to_dict()
+        contact_search_response: Dict[str, Any] = contact_search_response.to_dict()
         if contact_search_response["total"] == 1:
-            contact_id = contact_search_response["results"][0]["id"]
-            communication_data = SimplePublicObjectInputForCreate(
-                properties={
-                    "hs_communication_channel_type": "CUSTOM_CHANNEL_CONVERSATION",
-                    "hs_communication_body": chat,
-                    "hs_communication_logged_from": "CRM",
-                    "hs_timestamp": datetime.now(timezone.utc).isoformat(),
-                }
+            contact_id: str = contact_search_response["results"][0]["id"]
+            communication_data: SimplePublicObjectInputForCreate = (
+                SimplePublicObjectInputForCreate(
+                    properties={
+                        "hs_communication_channel_type": "CUSTOM_CHANNEL_CONVERSATION",
+                        "hs_communication_body": chat,
+                        "hs_communication_logged_from": "CRM",
+                        "hs_timestamp": datetime.now(timezone.utc).isoformat(),
+                    }
+                )
             )
-            contact_info_properties = {
+            contact_info_properties: Dict[str, Any] = {
                 "contact_id": contact_id,
                 "contact_email": email,
                 "contact_first_name": contact_search_response["results"][0][
@@ -79,22 +82,22 @@ def find_contact_by_email(email: str, chat: str, **kwargs) -> str:
                 ].get("lastname"),
             }
             try:
-                communication_creation_response = (
+                communication_creation_response: Any = (
                     api_client.crm.objects.communications.basic_api.create(
                         communication_data
                     )
                 )
-                communication_creation_response = (
+                communication_creation_response: Dict[str, Any] = (
                     communication_creation_response.to_dict()
                 )
-                communication_id = communication_creation_response["id"]
-                association_spec = [
+                communication_id: str = communication_creation_response["id"]
+                association_spec: List[AssociationSpec] = [
                     AssociationSpec(
                         association_category="HUBSPOT_DEFINED", association_type_id=82
                     )
                 ]
                 try:
-                    association_creation_response = (
+                    association_creation_response: Any = (
                         api_client.crm.associations.v4.basic_api.create(
                             object_type="contact",
                             object_id=contact_id,
