@@ -123,7 +123,7 @@ class MessageWorker(BaseWorker):
         state.response = answer
         return state
 
-    def audio_stream_generator(self, state: MessageState) -> MessageState:
+    def speech_stream_generator(self, state: MessageState) -> MessageState:
         # get the input message
         user_message = state.user_message
         orchestrator_message = state.orchestrator_message
@@ -179,20 +179,13 @@ class MessageWorker(BaseWorker):
 
     def choose_generator(self, state: MessageState):
 
-        if (
-            self.state.bot_config.language == "CN"
-            and state.stream_type == StreamType.SPEECH
-        ):
-            # we do not have seperate audio and text prompts for Chinese yet
+        if state.bot_config.language == "CN" and state.stream_type == StreamType.SPEECH:
+            # we do not have seperate speech and text prompts for Chinese yet
             return "text_stream_generator"
-        if state.stream_type == StreamType.TEXT:
-            # is_stream is True and stream_type is TEXT
+        if state.stream_type == StreamType.TEXT or state.stream_type == StreamType.AUDIO:
             return "text_stream_generator"
         elif state.stream_type == StreamType.SPEECH:
-            # is stream is True and stream_type is AUDIO
             return "speech_stream_generator"
-        # is_stream is False and the response is not streamed, therefore defaults to TEXT
-        # because AUDIO is always streamed
         return "generator"
 
     def _create_action_graph(self):
@@ -200,7 +193,7 @@ class MessageWorker(BaseWorker):
         # Add nodes for each worker
         workflow.add_node("generator", self.generator)
         workflow.add_node("text_stream_generator", self.text_stream_generator)
-        workflow.add_node("audio_stream_generator", self.audio_stream_generator)
+        workflow.add_node("speech_stream_generator", self.speech_stream_generator)
 
         # Add edges
         # workflow.add_edge(START, "generator")
