@@ -1,6 +1,7 @@
 import os
 import argparse
 import json
+from typing import List, Dict, Any
 from tqdm import tqdm
 from openai import OpenAI
 from dotenv import load_dotenv
@@ -43,18 +44,18 @@ client = OpenAI(
 )
 
 
-def chatgpt_chatbot(messages, model):
+def chatgpt_chatbot(messages: List[Dict[str, str]], model: str) -> str:
     completion = client.chat.completions.create(
         model=model,
         messages=messages,
         temperature=0,
     )
-    answer = completion.choices[0].message.content.strip()
+    answer: str = completion.choices[0].message.content.strip()
     return answer
 
 
-def join_messages(messages):
-    message_str = ""
+def join_messages(messages: List[Dict[str, str]]) -> str:
+    message_str: str = ""
     for message in messages:
         if message["role"] == "bot_follow_up":
             continue
@@ -62,9 +63,9 @@ def join_messages(messages):
     return message_str[:-1]
 
 
-def rule_based_filtering(convos):
-    bad_msg_order = False
-    final_convos = []
+def rule_based_filtering(convos: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+    bad_msg_order: bool = False
+    final_convos: List[Dict[str, Any]] = []
     for convo in convos:
         if convo["user_msg_length"] < 5:
             continue
@@ -84,18 +85,20 @@ def rule_based_filtering(convos):
     return final_convos
 
 
-def first_pass_model_filtering(convos, model):
-    final_convos = []
+def first_pass_model_filtering(
+    convos: List[Dict[str, Any]], model: str
+) -> List[Dict[str, Any]]:
+    final_convos: List[Dict[str, Any]] = []
     for convo in tqdm(convos):
-        convo_str = join_messages(convo["message"])
-        english_check = chatgpt_chatbot(
+        convo_str: str = join_messages(convo["message"])
+        english_check: str = chatgpt_chatbot(
             [{"role": "user", "content": CHECK_ENGLISH.format(conversation=convo_str)}],
             model=model,
         )
         if "no" in english_check:
             continue
 
-        goal_guess = chatgpt_chatbot(
+        goal_guess: str = chatgpt_chatbot(
             [
                 {
                     "role": "user",
@@ -106,45 +109,51 @@ def first_pass_model_filtering(convos, model):
             ],
             model=model,
         )
-        final_answer = goal_guess.split("\n")[-1]
+        final_answer: str = goal_guess.split("\n")[-1]
         if "yes" in final_answer:
             final_convos.append(convo)
 
     return final_convos
 
 
-def second_pass_model_filtering(convos, model):
-    final_convos = []
+def second_pass_model_filtering(
+    convos: List[Dict[str, Any]], model: str
+) -> List[Dict[str, Any]]:
+    final_convos: List[Dict[str, Any]] = []
     for convo in tqdm(convos):
-        convo_str = join_messages(convo["message"])
-        engagement_guess = chatgpt_chatbot(
+        convo_str: str = join_messages(convo["message"])
+        engagement_guess: str = chatgpt_chatbot(
             [{"role": "user", "content": CHECK_ENGAGEMENT.format(convo=convo_str)}],
             model=model,
         )
-        final_answer = engagement_guess.split("\n")[-1]
+        final_answer: str = engagement_guess.split("\n")[-1]
         if "yes" in final_answer:
             final_convos.append(convo)
     return final_convos
 
 
-def extract_customer_profile(customer_profile_output):
-    split_profile = customer_profile_output.split("Final Profile:\n")
-    profile_text = split_profile[-1]
-    profile = {}
+def extract_customer_profile(customer_profile_output: str) -> Dict[str, str]:
+    split_profile: List[str] = customer_profile_output.split("Final Profile:\n")
+    profile_text: str = split_profile[-1]
+    profile: Dict[str, str] = {}
     for line in profile_text.split("\n"):
         if ":" not in line:
             continue
+        key: str
+        val: str
         key, val = line.split(": ")
         profile[key] = val
     return profile
 
 
-def get_all_customer_profiles(final_convos, model):
-    failed_extractions = 0
-    profiles = {}
+def get_all_customer_profiles(
+    final_convos: List[Dict[str, Any]], model: str
+) -> Dict[str, List[Dict[str, Any]]]:
+    failed_extractions: int = 0
+    profiles: Dict[str, List[Dict[str, Any]]] = {}
     for convo in tqdm(final_convos):
-        convo_str = join_messages(convo["message"])
-        customer_profile_output = chatgpt_chatbot(
+        convo_str: str = join_messages(convo["message"])
+        customer_profile_output: str = chatgpt_chatbot(
             [
                 {
                     "role": "user",
@@ -156,11 +165,11 @@ def get_all_customer_profiles(final_convos, model):
             model=model,
         )
         try:
-            profile = extract_customer_profile(customer_profile_output)
+            profile: Dict[str, str] = extract_customer_profile(customer_profile_output)
         except:
             failed_extractions += 1
             print(f"Profile extraction failed. Total failures: {failed_extractions}")
-        profile_vals = ",".join(list(profile.values()))
+        profile_vals: str = ",".join(list(profile.values()))
         profiles[profile_vals] = profiles.get(profile_vals, []) + [convo]
     return profiles
 

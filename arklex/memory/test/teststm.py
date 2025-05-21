@@ -1,4 +1,4 @@
-from typing import List
+from typing import List, Dict, Any
 from arklex.memory.core import ShortTermMemory
 from arklex.utils.graph_state import ResourceRecord, LLMConfig, MessageState, BotConfig
 from arklex.utils.model_config import MODEL
@@ -168,10 +168,8 @@ sample_records = [
     record_case4_navy,
 ]
 
+
 # Shopify-style grouped records function
-from typing import List
-
-
 def get_shopify_records() -> List[List[ResourceRecord]]:
     """
     Returns sample ResourceRecord groups simulating Shopify ecommerce assistant turns.
@@ -189,7 +187,7 @@ def get_shopify_records() -> List[List[ResourceRecord]]:
 
 
 # Test configuration
-TEST_CONFIG = {
+TEST_CONFIG: Dict[str, Any] = {
     "model": MODEL,
     "role": "test_assistant",
     "user_objective": "Test the short term memory functionality",
@@ -202,12 +200,12 @@ TEST_CONFIG = {
 }
 
 
-def init_test_state():
+def init_test_state() -> MessageState:
     # Initialize LLMConfig from test config
-    llm_config = LLMConfig(**TEST_CONFIG.get("model", MODEL))
+    llm_config: LLMConfig = LLMConfig(**TEST_CONFIG.get("model", MODEL))
 
     # Create BotConfig
-    bot_config = BotConfig(
+    bot_config: BotConfig = BotConfig(
         bot_id=TEST_CONFIG.get("bot_id", "test_bot"),
         version=TEST_CONFIG.get("version", "1.0"),
         language=TEST_CONFIG.get("language", "EN"),
@@ -216,7 +214,7 @@ def init_test_state():
     )
 
     # Create MessageState
-    sys_instruct = (
+    sys_instruct: str = (
         "You are a "
         + TEST_CONFIG["role"]
         + ". "
@@ -228,15 +226,15 @@ def init_test_state():
     return MessageState(sys_instruct=sys_instruct, bot_config=bot_config)
 
 
-def test_shopify_intent():
+def test_shopify_intent() -> None:
     # Initialize test state
-    state = init_test_state()
+    state: MessageState = init_test_state()
 
     # build trajectory as list-of-lists
-    trajectory = [[r] for r in sample_records]
+    trajectory: List[List[ResourceRecord]] = [[r] for r in sample_records]
 
     # matching user utterances
-    chat_history = [
+    chat_history: List[Dict[str, str]] = [
         {"role": "user", "content": "What products do you have?"},
         {"role": "user", "content": "Show me the denim apron with 5 pockets."},
         {"role": "user", "content": "Do you have any aprons?"},
