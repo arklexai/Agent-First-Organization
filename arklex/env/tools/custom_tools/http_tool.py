@@ -17,7 +17,6 @@ def http_tool(**kwargs) -> str:
     """Make an HTTP request and return the response"""
     try:
         params = HTTPParams(**kwargs)
-        
         logger.info(f"Making a {params.method} request to {params.endpoint}")
         response = requests.request(
             method=params.method,
@@ -37,5 +36,4 @@ def http_tool(**kwargs) -> str:
         logger.error(f"Unexpected error in HTTPTool: {str(e)}")
         return f"Unexpected error: {str(e)}"
 
-# Register the tool with a specific name
 http_tool.__name__ = "http_tool" 
