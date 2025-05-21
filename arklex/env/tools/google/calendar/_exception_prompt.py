@@ -7,5 +7,5 @@ class GoogleCalendarExceptionPrompt(ExceptionPrompt):
     """
 
     # create_event exception prompt
-    EVENT_CREATION_ERROR_PROMPT = "Event creation error (the event could not be created because {error}), please try again later."
-    DATETIME_ERROR_PROMPT = "Datetime error, please check the start time format."
+    EVENT_CREATION_ERROR_PROMPT: str = "Event creation error (the event could not be created because {error}), please try again later."
+    DATETIME_ERROR_PROMPT: str = "Datetime error, please check the start time format."

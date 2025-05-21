@@ -5,7 +5,7 @@ from arklex.env.tools.tools import register_tool
 #   no postprocessing
 """
 @register_tool("Repeats the user query back at them")
-def echo(state: MessageState):
+def echo(state: MessageState) -> MessageState:
     state.response = state.user_message.message
     return state
 """
@@ -23,7 +23,7 @@ def echo(state: MessageState):
         "description": "the most recent user message",
     }]
     )
-def shoutEcho(msg):
+def shoutEcho(msg: str) -> str:
     return msg.upper()
 """
 
@@ -51,6 +51,6 @@ def shoutEcho(msg):
         }
     ],
 )
-def calculator(expression):
-    py_expression = expression.replace("^", "**")
+def calculator(expression: str) -> int:
+    py_expression: str = expression.replace("^", "**")
     return eval(py_expression)

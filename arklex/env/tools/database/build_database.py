@@ -2,15 +2,16 @@ import sqlite3
 import argparse
 from pathlib import Path
 import os
+from typing import List, Dict, Any, Tuple
 
 
-def build_database(folder_path):
-    db_path = Path(folder_path) / "show_booking_db.sqlite"
+def build_database(folder_path: str) -> None:
+    db_path: Path = Path(folder_path) / "show_booking_db.sqlite"
     if os.path.exists(db_path):
         os.remove(db_path)
     # Creating the database with a .sqlite extension
-    conn = sqlite3.connect(db_path)
-    cursor = conn.cursor()
+    conn: sqlite3.Connection = sqlite3.connect(db_path)
+    cursor: sqlite3.Cursor = conn.cursor()
 
     # Create tables based on the provided schema
     cursor.execute("""
@@ -50,7 +51,7 @@ def build_database(folder_path):
     """)
 
     # Populate sample data
-    shows = [
+    shows: List[Dict[str, Any]] = [
         {
             "show_name": "The Dead, 1904",
             "genre": "Opera",
@@ -163,7 +164,7 @@ def build_database(folder_path):
         },
     ]
 
-    users = [
+    users: List[Dict[str, Any]] = [
         {
             "first_name": "Alice",
             "last_name": "Smith",
@@ -208,17 +209,17 @@ def build_database(folder_path):
 
     # Insert data into the database
     for show in shows:
-        columns = ", ".join(show.keys())
-        placeholders = ", ".join(["?"] * len(show))
-        values = tuple(show.values())
-        sql = f"INSERT INTO show ({columns}) VALUES ({placeholders})"
+        columns: str = ", ".join(show.keys())
+        placeholders: str = ", ".join(["?"] * len(show))
+        values: Tuple[Any, ...] = tuple(show.values())
+        sql: str = f"INSERT INTO show ({columns}) VALUES ({placeholders})"
         cursor.execute(sql, values)
 
     for user in users:
-        columns = ", ".join(user.keys())
-        placeholders = ", ".join(["?"] * len(user))
-        values = tuple(user.values())
-        sql = f"INSERT INTO user ({columns}) VALUES ({placeholders})"
+        columns: str = ", ".join(user.keys())
+        placeholders: str = ", ".join(["?"] * len(user))
+        values: Tuple[Any, ...] = tuple(user.values())
+        sql: str = f"INSERT INTO user ({columns}) VALUES ({placeholders})"
         cursor.execute(sql, values)
 
     cursor.execute("""
@@ -233,11 +234,11 @@ def build_database(folder_path):
 
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser()
+    parser: argparse.ArgumentParser = argparse.ArgumentParser()
     parser.add_argument(
         "--folder_path", required=True, type=str, help="location to save the documents"
     )
-    args = parser.parse_args()
+    args: argparse.Namespace = parser.parse_args()
 
     if not os.path.exists(args.folder_path):
         os.makedirs(args.folder_path)

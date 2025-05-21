@@ -1,8 +1,8 @@
-import ast
 import json
 from datetime import datetime, timedelta
 import pytz
 import inspect
+from typing import Dict, Any, List, Optional
 
 import hubspot
 import parsedatetime
@@ -15,10 +15,10 @@ from arklex.exceptions import ToolExecutionError
 from arklex.env.tools.hubspot._exception_prompt import HubspotExceptionPrompt
 
 
-description = "Schedule a meeting for the existing customer with the specific representative. If you are not sure any information, please ask users to confirm in response."
+description: str = "Schedule a meeting for the existing customer with the specific representative. If you are not sure any information, please ask users to confirm in response."
 
 
-slots = [
+slots: List[Dict[str, Any]] = [
     {
         "name": "cus_fname",
         "type": "str",
@@ -82,7 +82,7 @@ slots = [
         "required": True,
     },
 ]
-outputs = [
+outputs: List[Dict[str, Any]] = [
     {
         "name": "meeting_confirmation_info",
         "type": "dict",
@@ -101,29 +101,33 @@ def create_meeting(
     duration: int,
     slug: str,
     time_zone: str,
-    **kwargs,
+    **kwargs: Dict[str, Any],
 ) -> str:
-    func_name = inspect.currentframe().f_code.co_name
-    access_token = authenticate_hubspot(kwargs)
+    func_name: str = inspect.currentframe().f_code.co_name
+    access_token: str = authenticate_hubspot(kwargs)
 
-    meeting_date = parse_natural_date(meeting_date, timezone=time_zone, date_input=True)
+    meeting_date: datetime = parse_natural_date(
+        meeting_date, timezone=time_zone, date_input=True
+    )
     if is_iso8601(meeting_start_time):
-        dt = isoparse(meeting_start_time)
+        dt: datetime = isoparse(meeting_start_time)
         if dt.tzinfo is None:
             dt = pytz.timezone(time_zone).localize(dt)
-        dt_utc = dt.astimezone(pytz.utc)
-        meeting_start_time = int(dt_utc.timestamp() * 1000)
+        dt_utc: datetime = dt.astimezone(pytz.utc)
+        meeting_start_time: int = int(dt_utc.timestamp() * 1000)
     else:
-        dt = parse_natural_date(meeting_start_time, meeting_date, timezone=time_zone)
-        meeting_start_time = int(dt.timestamp() * 1000)
+        dt: datetime = parse_natural_date(
+            meeting_start_time, meeting_date, timezone=time_zone
+        )
+        meeting_start_time: int = int(dt.timestamp() * 1000)
 
-    duration = int(duration)
-    duration = int(timedelta(minutes=duration).total_seconds() * 1000)
+    duration: int = int(duration)
+    duration: int = int(timedelta(minutes=duration).total_seconds() * 1000)
 
-    api_client = hubspot.Client.create(access_token=access_token)
+    api_client: Any = hubspot.Client.create(access_token=access_token)
 
     try:
-        create_meeting_response = api_client.api_request(
+        create_meeting_response: Any = api_client.api_request(
             {
                 "path": "/scheduler/v3/meetings/meeting-links/book",
                 "method": "POST",
@@ -140,7 +144,7 @@ def create_meeting(
                 "qs": {"timezone": time_zone},
             }
         )
-        create_meeting_response = create_meeting_response.json()
+        create_meeting_response: Dict[str, Any] = create_meeting_response.json()
         return json.dumps(create_meeting_response)
     except ApiException as e:
         logger.info("Exception when scheduling a meeting: %s\n" % e)
@@ -149,25 +153,30 @@ def create_meeting(
         )
 
 
-def parse_natural_date(date_str, base_date=None, timezone=None, date_input=False):
-    cal = parsedatetime.Calendar()
-    time_struct, _ = cal.parse(date_str, base_date)
+def parse_natural_date(
+    date_str: str,
+    base_date: Optional[datetime] = None,
+    timezone: Optional[str] = None,
+    date_input: bool = False,
+) -> datetime:
+    cal: parsedatetime.Calendar = parsedatetime.Calendar()
+    time_struct: tuple = cal.parse(date_str, base_date)[0]
     if date_input:
-        parsed_dt = datetime(*time_struct[:3])
+        parsed_dt: datetime = datetime(*time_struct[:3])
     else:
-        parsed_dt = datetime(*time_struct[:6])
+        parsed_dt: datetime = datetime(*time_struct[:6])
 
     if base_date and (parsed_dt.date() != base_date.date()):
         parsed_dt = datetime.combine(base_date.date(), parsed_dt.time())
 
     if timezone:
-        local_timezone = pytz.timezone(timezone)
+        local_timezone: pytz.BaseTzInfo = pytz.timezone(timezone)
         parsed_dt = local_timezone.localize(parsed_dt)
         parsed_dt = parsed_dt.astimezone(pytz.utc)
     return parsed_dt
 
 
-def is_iso8601(s):
+def is_iso8601(s: str) -> bool:
     try:
         isoparse(s)
         return True
