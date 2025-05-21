@@ -2,7 +2,7 @@ import os
 import logging
 import uuid
 import importlib
-from typing import Optional
+from typing import Optional, Dict, Any, List, Union, Callable
 from functools import partial
 
 from arklex.env.tools.tools import Tool
@@ -17,28 +17,28 @@ logger = logging.getLogger(__name__)
 
 class BaseResourceInitializer:
     @staticmethod
-    def init_tools(tools):
+    def init_tools(tools: List[Dict[str, Any]]) -> Dict[str, Dict[str, Any]]:
         raise NotImplementedError
 
     @staticmethod
-    def init_workers(workers):
+    def init_workers(workers: List[Dict[str, Any]]) -> Dict[str, Dict[str, Any]]:
         raise NotImplementedError
 
 
 class DefaulResourceInitializer(BaseResourceInitializer):
     @staticmethod
-    def init_tools(tools):
+    def init_tools(tools: List[Dict[str, Any]]) -> Dict[str, Dict[str, Any]]:
         # return dict of valid tools with name and description
-        tool_registry = {}
+        tool_registry: Dict[str, Dict[str, Any]] = {}
         for tool in tools:
-            tool_id = tool["id"]
-            name = tool["name"]
-            path = tool["path"]
+            tool_id: str = tool["id"]
+            name: str = tool["name"]
+            path: str = tool["path"]
             try:  # try to import the tool to check its existance
-                filepath = os.path.join("arklex.env.tools", path)
-                module_name = filepath.replace(os.sep, ".").rstrip(".py")
+                filepath: str = os.path.join("arklex.env.tools", path)
+                module_name: str = filepath.replace(os.sep, ".").rstrip(".py")
                 module = importlib.import_module(module_name)
-                func = getattr(module, name)
+                func: Callable = getattr(module, name)
             except Exception as e:
                 logger.error(f"Tool {name} is not registered, error: {e}")
                 continue
@@ -51,17 +51,17 @@ class DefaulResourceInitializer(BaseResourceInitializer):
         return tool_registry
 
     @staticmethod
-    def init_workers(workers):
-        worker_registry = {}
+    def init_workers(workers: List[Dict[str, Any]]) -> Dict[str, Dict[str, Any]]:
+        worker_registry: Dict[str, Dict[str, Any]] = {}
         for worker in workers:
-            worker_id = worker["id"]
-            name = worker["name"]
-            path = worker["path"]
+            worker_id: str = worker["id"]
+            name: str = worker["name"]
+            path: str = worker["path"]
             try:  # try to import the worker to check its existance
-                filepath = os.path.join("arklex.env.workers", path)
-                module_name = filepath.replace(os.sep, ".").rstrip(".py")
+                filepath: str = os.path.join("arklex.env.workers", path)
+                module_name: str = filepath.replace(os.sep, ".").rstrip(".py")
                 module = importlib.import_module(module_name)
-                func = getattr(module, name)
+                func: Callable = getattr(module, name)
             except Exception as e:
                 logger.error(f"Worker {name} is not registered, error: {e}")
                 continue
@@ -76,41 +76,44 @@ class DefaulResourceInitializer(BaseResourceInitializer):
 class Env:
     def __init__(
         self,
-        tools,
-        workers,
-        slotsfillapi="",
+        tools: List[Dict[str, Any]],
+        workers: List[Dict[str, Any]],
+        slotsfillapi: str = "",
         resource_inizializer: Optional[BaseResourceInitializer] = None,
         planner_enabled: bool = False,
-    ):
+    ) -> None:
         if resource_inizializer is None:
             resource_inizializer = DefaulResourceInitializer()
-        self.tools = resource_inizializer.init_tools(tools)
-        self.workers = resource_inizializer.init_workers(workers)
-        self.name2id = {
+        self.tools: Dict[str, Dict[str, Any]] = resource_inizializer.init_tools(tools)
+        self.workers: Dict[str, Dict[str, Any]] = resource_inizializer.init_workers(
+            workers
+        )
+        self.name2id: Dict[str, str] = {
             resource["name"]: id
             for id, resource in {**self.tools, **self.workers}.items()
         }
-        self.id2name = {
+        self.id2name: Dict[str, str] = {
             id: resource["name"]
             for id, resource in {**self.tools, **self.workers}.items()
         }
-        self.slotfillapi = self.initialize_slotfillapi(slotsfillapi)
+        self.slotfillapi: SlotFilling = self.initialize_slotfillapi(slotsfillapi)
 
         if planner_enabled:
-            self.planner = ReactPlanner(
+            self.planner: Union[ReactPlanner, DefaultPlanner] = ReactPlanner(
                 tools_map=self.tools, workers_map=self.workers, name2id=self.name2id
             )
         else:
-            self.planner = DefaultPlanner(
+            self.planner: Union[ReactPlanner, DefaultPlanner] = DefaultPlanner(
                 tools_map=self.tools, workers_map=self.workers, name2id=self.name2id
             )
 
-    def initialize_slotfillapi(self, slotsfillapi):
+    def initialize_slotfillapi(self, slotsfillapi: str) -> SlotFilling:
         return SlotFilling(slotsfillapi)
 
     def step(
         self, id: str, message_state: MessageState, params: Params, node_info: NodeInfo
-    ):
+    ) -> tuple[MessageState, Params]:
+        response_state: MessageState
         if id in self.tools:
             logger.info(f"{self.tools[id]['name']} tool selected")
             tool: Tool = self.tools[id]["execute"]()
@@ -132,7 +135,7 @@ class Env:
             if hasattr(worker, "init_slotfilling"):
                 worker.init_slotfilling(self.slotfillapi)
             response_state = worker.execute(message_state, **node_info.additional_args)
-            call_id = str(uuid.uuid4())
+            call_id: str = str(uuid.uuid4())
             params.memory.function_calling_trajectory.append(
                 {
                     "content": None,
@@ -162,6 +165,9 @@ class Env:
             )
         else:
             logger.info("planner selected")
+            action: str
+            response_state: MessageState
+            msg_history: List[Dict[str, Any]]
             action, response_state, msg_history = self.planner.execute(
                 message_state, params.memory.function_calling_trajectory
             )

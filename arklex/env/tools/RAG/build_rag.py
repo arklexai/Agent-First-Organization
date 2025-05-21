@@ -5,19 +5,20 @@ from pathlib import Path
 import logging
 import zipfile
 import tempfile
+from typing import List, Dict, Any
 
 from arklex.utils.loader import Loader
 
-logger = logging.getLogger(__name__)
+logger: logging.Logger = logging.getLogger(__name__)
 
 
-def build_rag(folder_path, rag_docs):
+def build_rag(folder_path: str, rag_docs: List[Dict[str, Any]]) -> None:
     if not os.path.exists(folder_path):
         os.makedirs(folder_path)
 
-    filepath = os.path.join(folder_path, "documents.pkl")
-    loader = Loader()
-    docs = []
+    filepath: str = os.path.join(folder_path, "documents.pkl")
+    loader: Loader = Loader()
+    docs: List[Any] = []
     if Path(filepath).exists():
         logger.warning(
             f"Loading existing documents from {os.path.join(folder_path, 'documents.pkl')}! If you want to recrawl, please delete the file or specify a new --output-dir when initiate Generator."
@@ -25,13 +26,13 @@ def build_rag(folder_path, rag_docs):
         docs = pickle.load(open(os.path.join(folder_path, "documents.pkl"), "rb"))
     else:
         for doc in rag_docs:
-            source = doc.get("source")
+            source: str = doc.get("source")
             logging.info(f"Crawling {source}")
-            num_docs = doc.get("num") if doc.get("num") else 1
+            num_docs: int = doc.get("num") if doc.get("num") else 1
             if doc.get("type") == "url":
                 num_docs = doc.get("num") if doc.get("num") else 1
-                urls = loader.get_all_urls(source, num_docs)
-                crawled_urls = loader.to_crawled_url_objs(urls)
+                urls: List[str] = loader.get_all_urls(source, num_docs)
+                crawled_urls: List[Any] = loader.to_crawled_url_objs(urls)
                 docs.extend(crawled_urls)
 
             elif doc.get("type") == "file":
@@ -43,7 +44,7 @@ def build_rag(folder_path, rag_docs):
                             with zipfile.ZipFile(source, "r") as zip_ref:
                                 zip_ref.extractall(temp_dir)
                             # Process all files in the extracted directory
-                            file_list = []
+                            file_list: List[str] = []
                             for root, _, files in os.walk(temp_dir):
                                 for file in files:
                                     file_list.append(os.path.join(root, file))
@@ -51,7 +52,9 @@ def build_rag(folder_path, rag_docs):
                     else:
                         docs.extend(loader.to_crawled_local_objs([source]))
                 elif os.path.isdir(source):
-                    file_list = [os.path.join(source, f) for f in os.listdir(source)]
+                    file_list: List[str] = [
+                        os.path.join(source, f) for f in os.listdir(source)
+                    ]
                     docs.extend(loader.to_crawled_local_objs(file_list))
                 else:
                     raise FileNotFoundError(
@@ -70,13 +73,13 @@ def build_rag(folder_path, rag_docs):
         Loader.save(filepath, docs)
 
     logging.info(f"crawled sources: {[c.source for c in docs]}")
-    chunked_docs = Loader.chunk(docs)
-    filepath_chunk = os.path.join(folder_path, "chunked_documents.pkl")
+    chunked_docs: List[Any] = Loader.chunk(docs)
+    filepath_chunk: str = os.path.join(folder_path, "chunked_documents.pkl")
     Loader.save(filepath_chunk, chunked_docs)
 
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser()
+    parser: argparse.ArgumentParser = argparse.ArgumentParser()
 
     parser.add_argument("--base_url", required=True, type=str, help="base url to crawl")
     parser.add_argument(
@@ -85,7 +88,7 @@ if __name__ == "__main__":
     parser.add_argument(
         "--max_num", type=int, default=10, help="maximum number of urls to crawl"
     )
-    args = parser.parse_args()
+    args: argparse.Namespace = parser.parse_args()
 
     build_rag(
         folder_path=args.folder_path,
