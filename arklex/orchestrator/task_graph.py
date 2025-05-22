@@ -142,7 +142,8 @@ class TaskGraph(TaskGraphBase):
             add_flow_stack=False,
             additional_args={
                 "tags": node_info["attribute"].get("tags", {}),
-                **node_info["attribute"].get("other_additional_args", {})
+                **{k2: v2 for k, v in node_info["attribute"].get("node_specific_data", {}).items() if isinstance(v, dict) for k2, v2 in v.items()},
+                **{k: v for k, v in node_info["attribute"].get("node_specific_data", {}).items() if not isinstance(v, dict)}
             },
         )
 
@@ -237,7 +238,6 @@ class TaskGraph(TaskGraphBase):
         In case of a node having status == STAY, returned directly the same node
         """
         node_status = params.taskgraph.node_status
-        logger.info(f"node_status: {node_status}")
         status = node_status.get(curr_node, StatusEnum.COMPLETE)
         if status == StatusEnum.STAY:
             node_info = self.graph.nodes[curr_node]
@@ -253,7 +253,8 @@ class TaskGraph(TaskGraphBase):
                 attributes=node_info["attribute"],
                 additional_args={
                     "tags": node_info["attribute"].get("tags", {}),
-                    **node_info["attribute"].get("other_additional_args", {})
+                    **{k2: v2 for k, v in node_info["attribute"].get("node_specific_data", {}).items() if isinstance(v, dict) for k2, v2 in v.items()},
+                    **{k: v for k, v in node_info["attribute"].get("node_specific_data", {}).items() if not isinstance(v, dict)}
                 },
             )
             return True, node_info, params
