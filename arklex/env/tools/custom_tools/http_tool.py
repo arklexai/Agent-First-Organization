@@ -11,7 +11,7 @@ logger = logging.getLogger(__name__)
     desc="Make HTTP requests to external APIs and handle responses",
     slots=[],
     outputs=["response"],
-    isResponse=True
+    isResponse=False
 )
 def http_tool(**kwargs) -> str:
     """Make an HTTP request and return the response"""
@@ -25,7 +25,6 @@ def http_tool(**kwargs) -> str:
             json=params.body
         )
         response.raise_for_status()
-        
         response_data = response.json()
         return str(response_data)
             
