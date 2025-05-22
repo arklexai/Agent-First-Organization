@@ -23,7 +23,7 @@ def evaluate(
     bot_goal: Optional[str] = config.get("builder_objective", None)
     bot_goal = None if bot_goal == "" else bot_goal
 
-    if task == "first_pass":
+    if task == "first_pass" or task == "simulate_conv_only":
         # first pass
         first_pass_data, goals = simulate_conversations(
             model_api, model_params, synthetic_data_params, config
@@ -61,7 +61,10 @@ if __name__ == "__main__":
         "--customer_type", type=str, default=None, choices=["b2b", "b2c"]
     )
     parser.add_argument(
-        "--task", type=str, default="first_pass", choices=["first_pass", "all"]
+        "--task",
+        type=str,
+        default="first_pass",
+        choices=["first_pass", "simulate_conv_only", "all"],
     )
     parser.add_argument(
         "--user_attributes", type=str, default="arklex/evaluation/user_attributes.json"

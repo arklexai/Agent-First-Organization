@@ -373,6 +373,7 @@ class TaskGraph(TaskGraphBase):
                 if next_node != curr_node and list(self.graph.successors(curr_node)):
                     node_info.add_flow_stack = True
                 params.taskgraph.curr_global_intent = pred_intent
+                params.taskgraph.intent = pred_intent
                 return True, pred_intent, node_info, params
         return False, pred_intent, {}, params
 
@@ -478,7 +479,7 @@ class TaskGraph(TaskGraphBase):
         """
         # if none of the available intents can represent user's utterance, transfer to the planner to let it decide for the next step
         params.taskgraph.intent = self.unsure_intent.get("intent")
-        params.taskgraph.curr_global_intent = ""
+        params.taskgraph.curr_global_intent = self.unsure_intent.get("intent")
         if params.taskgraph.nlu_records:
             params.taskgraph.nlu_records[-1]["no_intent"] = True  # no intent found
         else:

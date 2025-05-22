@@ -170,16 +170,13 @@ def conversation(
         output: str = chatgpt_chatbot(history, env_config["client"])
         history.append({"role": "assistant", "content": output})
         chatbot_history.append({"role": "assistant", "content": output})
-        curr_node: str = model_params.get("curr_node", "start")
         response_data: Dict[str, Any] = query_chatbot(
             model_api, chatbot_history, model_params, env_config
         )
         answer: str = response_data["answer"]
         answer = answer.replace("\n", " ")
         model_params = response_data["parameters"]
-        history[-1]["intent"] = model_params["taskgraph"][
-            "intent"
-        ]  ## TODO: After add global intent, change to global intent, the current intent if the last intent of each turn
+        history[-1]["intent"] = model_params["taskgraph"]["curr_global_intent"]
         history[-1]["curr_node"] = model_params["taskgraph"]["curr_node"]
         history[-1]["trajectory"] = model_params["memory"]["trajectory"][-1]
 
@@ -208,15 +205,28 @@ def generate_conversations(
 ) -> List[Dict[str, Any]]:
     convos: List[Dict[str, Any]] = []
 
-    def worker(
-        profile: str, goal: str, attr: Dict[str, Any], sys_input: Dict[str, Any]
-    ) -> Dict[str, Any]:
+    # Create input combinations with IDs
+    input_combinations = []
+    for i, (profile, goal, attr, sys_input) in enumerate(
+        zip(profiles, goals, attributes_list, system_inputs)
+    ):
+        input_combinations.append(
+            {
+                "id": i,
+                "profile": profile,
+                "goal": goal,
+                "attr": attr,
+                "sys_input": sys_input,
+            }
+        )
+
+    def worker(input_combo):
         convo, goal_completion = conversation(
             model_api,
-            profile,
-            goal,
-            attr,
-            sys_input,
+            input_combo["profile"],
+            input_combo["goal"],
+            input_combo["attr"],
+            input_combo["sys_input"],
             summary,
             model_params,
             synthetic_data_params,
@@ -224,23 +234,27 @@ def generate_conversations(
         )
         syn_convo = flip_hist(filter_convo(convo, filter_turns=False))
         return {
+            "id": input_combo["id"],
             "convo": syn_convo,
-            "profile": profile,
-            "goal": goal,
-            "attributes": attr,
+            "profile": input_combo["profile"],
+            "goal": input_combo["goal"],
+            "attributes": input_combo["attr"],
             "goal_completion": goal_completion,
         }
 
     with ThreadPoolExecutor(max_workers=8) as executor:
         futures = [
-            executor.submit(worker, profile, goal, attr, sys_input)
-            for profile, goal, attr, sys_input in zip(
-                profiles, goals, attributes_list, system_inputs
-            )
+            executor.submit(worker, input_combo) for input_combo in input_combinations
         ]
 
+        # Store results in a list with the same length as input
+        results = [None] * len(input_combinations)
         for future in as_completed(futures):
-            convos.append(future.result())
+            result = future.result()
+            results[result["id"]] = result
+
+        # Filter out None values and convert to final format
+        convos = [r for r in results if r is not None]
 
     return convos
 
@@ -251,32 +265,59 @@ def simulate_conversations(
     synthetic_data_params: Dict[str, Any],
     config: Dict[str, Any],
 ) -> Tuple[List[Dict[str, Any]], List[str]]:
-    profiles, goals, attributes_list, system_inputs, labels_list = build_profile(
-        synthetic_data_params, config
-    )
+    if config["task"] == "first_pass":
+        profiles, goals, attributes_list, system_inputs, labels_list = build_profile(
+            synthetic_data_params, config
+        )
 
-    # save the profiles, goals, attributes_list, system_inputs, labels_list in a json file
-    os.makedirs(os.path.join(config["output_dir"], "simulate_data"), exist_ok=True)
-    with open(
-        os.path.join(config["output_dir"], "simulate_data", "profiles.json"), "w"
-    ) as f:
-        json.dump(profiles, f, indent=4)
-    with open(
-        os.path.join(config["output_dir"], "simulate_data", "goals.json"), "w"
-    ) as f:
-        json.dump(goals, f, indent=4)
-    with open(
-        os.path.join(config["output_dir"], "simulate_data", "attributes_list.json"), "w"
-    ) as f:
-        json.dump(attributes_list, f, indent=4)
-    with open(
-        os.path.join(config["output_dir"], "simulate_data", "system_inputs.json"), "w"
-    ) as f:
-        json.dump(system_inputs, f, indent=4)
-    with open(
-        os.path.join(config["output_dir"], "simulate_data", "labels_list.json"), "w"
-    ) as f:
-        json.dump(labels_list, f, indent=4)
+        # save the profiles, goals, attributes_list, system_inputs, labels_list in a json file
+        os.makedirs(os.path.join(config["output_dir"], "simulate_data"), exist_ok=True)
+        with open(
+            os.path.join(config["output_dir"], "simulate_data", "profiles.json"), "w"
+        ) as f:
+            json.dump(profiles, f, indent=4)
+        with open(
+            os.path.join(config["output_dir"], "simulate_data", "goals.json"), "w"
+        ) as f:
+            json.dump(goals, f, indent=4)
+        with open(
+            os.path.join(config["output_dir"], "simulate_data", "attributes_list.json"),
+            "w",
+        ) as f:
+            json.dump(attributes_list, f, indent=4)
+        with open(
+            os.path.join(config["output_dir"], "simulate_data", "system_inputs.json"),
+            "w",
+        ) as f:
+            json.dump(system_inputs, f, indent=4)
+        with open(
+            os.path.join(config["output_dir"], "simulate_data", "labels_list.json"), "w"
+        ) as f:
+            json.dump(labels_list, f, indent=4)
+
+    elif config["task"] == "simulate_conv_only":
+        with open(
+            os.path.join(config["output_dir"], "simulate_data", "profiles.json"), "r"
+        ) as f:
+            profiles = json.load(f)
+        with open(
+            os.path.join(config["output_dir"], "simulate_data", "goals.json"), "r"
+        ) as f:
+            goals = json.load(f)
+        with open(
+            os.path.join(config["output_dir"], "simulate_data", "attributes_list.json"),
+            "r",
+        ) as f:
+            attributes_list = json.load(f)
+        with open(
+            os.path.join(config["output_dir"], "simulate_data", "system_inputs.json"),
+            "r",
+        ) as f:
+            system_inputs = json.load(f)
+        with open(
+            os.path.join(config["output_dir"], "simulate_data", "labels_list.json"), "r"
+        ) as f:
+            labels_list = json.load(f)
 
     summary: str = config["intro"]
     env_config: Dict[str, Any] = {
