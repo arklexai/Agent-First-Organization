@@ -400,9 +400,9 @@ class TaskGraph(TaskGraphBase):
             node_info: NodeInfo
             node_info, params = self._get_node(next_node, params)
             if params.taskgraph.nlu_records:
-                params.taskgraph.nlu_records[-1][
-                    "no_intent"
-                ] = True  # move on to the next node
+                params.taskgraph.nlu_records[-1]["no_intent"] = (
+                    True  # move on to the next node
+                )
             else:  # only others available
                 params.taskgraph.nlu_records = [
                     {
