@@ -131,7 +131,6 @@ class TaskGraph(TaskGraphBase):
                 params.taskgraph.available_global_intents.pop(intent)
 
         params.taskgraph.curr_node = sample_node
-
         node_info = NodeInfo(
             node_id=sample_node,
             type=node_info.get("type", ""),
@@ -141,7 +140,10 @@ class TaskGraph(TaskGraphBase):
             is_leaf=len(list(self.graph.successors(sample_node))) == 0,
             attributes=node_info["attribute"],
             add_flow_stack=False,
-            additional_args={"tags": node_info["attribute"].get("tags", {})},
+            additional_args={
+                "tags": node_info["attribute"].get("tags", {}),
+                **node_info["attribute"].get("other_additional_args", {})
+            },
         )
 
         return node_info, params
@@ -249,7 +251,10 @@ class TaskGraph(TaskGraphBase):
                 can_skipped=False,
                 is_leaf=len(list(self.graph.successors(curr_node))) == 0,
                 attributes=node_info["attribute"],
-                additional_args={"tags": node_info["attribute"].get("tags", {})},
+                additional_args={
+                    "tags": node_info["attribute"].get("tags", {}),
+                    **node_info["attribute"].get("other_additional_args", {})
+                },
             )
             return True, node_info, params
         return False, NodeInfo(), params
