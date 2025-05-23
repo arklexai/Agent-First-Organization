@@ -1,12 +1,24 @@
 import os
 import argparse
 import json
+from typing import List, Dict, Any
 from tqdm import tqdm
 from openai import OpenAI
 from dotenv import load_dotenv
+
 load_dotenv()
 
-RELEVANT_GOALS = ["order tracking", "asking for refund", "report order missing", "report product issue", "asking replacement", "request repair", "interested in product information", "product purchase", "product rental"]
+RELEVANT_GOALS = [
+    "order tracking",
+    "asking for refund",
+    "report order missing",
+    "report product issue",
+    "asking replacement",
+    "request repair",
+    "interested in product information",
+    "product purchase",
+    "product rental",
+]
 CHECK_ENGLISH = "Is this conversation in English:\n{conversation}"
 CHECK_GOAL = "Here is a conversation between a user and a customer service chatbot:\n{conversation}\nGive a guess as to what the user's goal was during this conversation, explain your reasoning. After that, determine if the goal you picked falls into one of the categories below, explain your reasoning followed by your final answer which should be either 'yes' or 'no'. If you have any uncertanties about the user's goal your answer should be 'no'. Here are the goal categories:\n{goals}"
 
@@ -28,102 +40,146 @@ GET_CUSTOMER_PROFILE = "Your job is to take conversations between a user and a c
 
 
 client = OpenAI(
-    api_key=os.environ["OPENAI_API_KEY"],
-    organization=os.environ["OPENAI_ORG_ID"]
+    api_key=os.environ["OPENAI_API_KEY"], organization=os.environ["OPENAI_ORG_ID"]
 )
 
-def chatgpt_chatbot(messages, model):
+
+def chatgpt_chatbot(messages: List[Dict[str, str]], model: str) -> str:
     completion = client.chat.completions.create(
         model=model,
         messages=messages,
         temperature=0,
     )
-    answer = completion.choices[0].message.content.strip()
+    answer: str = completion.choices[0].message.content.strip()
     return answer
 
-def join_messages(messages):
-    message_str = ""
+
+def join_messages(messages: List[Dict[str, str]]) -> str:
+    message_str: str = ""
     for message in messages:
-        if message['role'] == 'bot_follow_up':
+        if message["role"] == "bot_follow_up":
             continue
         message_str += f"{message['role']}: {message['content']}\n"
     return message_str[:-1]
 
-def rule_based_filtering(convos):
-    bad_msg_order = False
-    final_convos = []
+
+def rule_based_filtering(convos: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+    bad_msg_order: bool = False
+    final_convos: List[Dict[str, Any]] = []
     for convo in convos:
-        if convo['user_msg_length'] < 5:
+        if convo["user_msg_length"] < 5:
             continue
-        for i in range(len(convo['message'])-1):
-            if convo['message'][i]['role'] == 'user' and convo['message'][i+1]['role'] == 'user':
+        for i in range(len(convo["message"]) - 1):
+            if (
+                convo["message"][i]["role"] == "user"
+                and convo["message"][i + 1]["role"] == "user"
+            ):
                 bad_msg_order = True
                 break
-        
+
         if bad_msg_order:
             bad_msg_order = False
             continue
         final_convos.append(convo)
-    
+
     return final_convos
 
-def first_pass_model_filtering(convos, model):
-    final_convos = []
+
+def first_pass_model_filtering(
+    convos: List[Dict[str, Any]], model: str
+) -> List[Dict[str, Any]]:
+    final_convos: List[Dict[str, Any]] = []
     for convo in tqdm(convos):
-        convo_str = join_messages(convo["message"])
-        english_check = chatgpt_chatbot([{'role': 'user', 'content': CHECK_ENGLISH.format(conversation=convo_str)}], model=model)
-        if 'no' in english_check:
+        convo_str: str = join_messages(convo["message"])
+        english_check: str = chatgpt_chatbot(
+            [{"role": "user", "content": CHECK_ENGLISH.format(conversation=convo_str)}],
+            model=model,
+        )
+        if "no" in english_check:
             continue
-        
-        goal_guess = chatgpt_chatbot([{'role': 'user', 'content': CHECK_GOAL.format(conversation=convo_str, goals=RELEVANT_GOALS)}], model=model)
-        final_answer = goal_guess.split('\n')[-1]
-        if 'yes' in final_answer:
+
+        goal_guess: str = chatgpt_chatbot(
+            [
+                {
+                    "role": "user",
+                    "content": CHECK_GOAL.format(
+                        conversation=convo_str, goals=RELEVANT_GOALS
+                    ),
+                }
+            ],
+            model=model,
+        )
+        final_answer: str = goal_guess.split("\n")[-1]
+        if "yes" in final_answer:
             final_convos.append(convo)
-    
+
     return final_convos
 
-def second_pass_model_filtering(convos, model):
-    final_convos = []
+
+def second_pass_model_filtering(
+    convos: List[Dict[str, Any]], model: str
+) -> List[Dict[str, Any]]:
+    final_convos: List[Dict[str, Any]] = []
     for convo in tqdm(convos):
-        convo_str = join_messages(convo["message"])        
-        engagement_guess = chatgpt_chatbot([{'role': 'user', 'content': CHECK_ENGAGEMENT.format(convo=convo_str)}], model=model)
-        final_answer = engagement_guess.split('\n')[-1]
-        if 'yes' in final_answer:
+        convo_str: str = join_messages(convo["message"])
+        engagement_guess: str = chatgpt_chatbot(
+            [{"role": "user", "content": CHECK_ENGAGEMENT.format(convo=convo_str)}],
+            model=model,
+        )
+        final_answer: str = engagement_guess.split("\n")[-1]
+        if "yes" in final_answer:
             final_convos.append(convo)
     return final_convos
 
-def extract_customer_profile(customer_profile_output):
-    split_profile = customer_profile_output.split("Final Profile:\n")
-    profile_text = split_profile[-1]
-    profile = {}
-    for line in profile_text.split('\n'):
-        if ':' not in line:
+
+def extract_customer_profile(customer_profile_output: str) -> Dict[str, str]:
+    split_profile: List[str] = customer_profile_output.split("Final Profile:\n")
+    profile_text: str = split_profile[-1]
+    profile: Dict[str, str] = {}
+    for line in profile_text.split("\n"):
+        if ":" not in line:
             continue
-        key, val = line.split(': ')
+        key: str
+        val: str
+        key, val = line.split(": ")
         profile[key] = val
     return profile
 
-def get_all_customer_profiles(final_convos, model):
-    failed_extractions = 0
-    profiles = {}
+
+def get_all_customer_profiles(
+    final_convos: List[Dict[str, Any]], model: str
+) -> Dict[str, List[Dict[str, Any]]]:
+    failed_extractions: int = 0
+    profiles: Dict[str, List[Dict[str, Any]]] = {}
     for convo in tqdm(final_convos):
-        convo_str = join_messages(convo['message'])
-        customer_profile_output = chatgpt_chatbot([{'role': 'user', 'content': GET_CUSTOMER_PROFILE.format(full_profile=FULL_PROFILE, convo=convo_str)}], model=model)
+        convo_str: str = join_messages(convo["message"])
+        customer_profile_output: str = chatgpt_chatbot(
+            [
+                {
+                    "role": "user",
+                    "content": GET_CUSTOMER_PROFILE.format(
+                        full_profile=FULL_PROFILE, convo=convo_str
+                    ),
+                }
+            ],
+            model=model,
+        )
         try:
-            profile = extract_customer_profile(customer_profile_output)
+            profile: Dict[str, str] = extract_customer_profile(customer_profile_output)
         except:
             failed_extractions += 1
-            print(f'Profile extraction failed. Total failures: {failed_extractions}')
-        profile_vals = ','.join(list(profile.values()))
+            print(f"Profile extraction failed. Total failures: {failed_extractions}")
+        profile_vals: str = ",".join(list(profile.values()))
         profiles[profile_vals] = profiles.get(profile_vals, []) + [convo]
     return profiles
 
+
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
-    parser.add_argument('--input_data_file', type=str)
-    parser.add_argument('--filtering_model', type=str, default='gpt-4o-mini')
-    parser.add_argument('--extraction_model', type=str, default='gpt-4o')
-    parser.add_argument('--output_data_file', type=str, default='profiles.json')
+    parser.add_argument("--input_data_file", type=str)
+    parser.add_argument("--filtering_model", type=str, default="gpt-4o-mini")
+    parser.add_argument("--extraction_model", type=str, default="gpt-4o")
+    parser.add_argument("--output_data_file", type=str, default="profiles.json")
     args = parser.parse_args()
 
     with open(args.data_file) as f:
@@ -134,5 +190,5 @@ if __name__ == "__main__":
     filtered_convos = second_pass_model_filtering(convos, args.filtering_model)
     profiles = get_all_customer_profiles(filtered_convos, args.extraction_model)
 
-    with open(args.output_data_file, 'w') as f:
+    with open(args.output_data_file, "w") as f:
         json.dump(profiles, f, indent=4)

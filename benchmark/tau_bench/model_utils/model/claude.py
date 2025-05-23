@@ -1,9 +1,13 @@
 import json
 import os
+from typing import Dict, List, Optional
 
 from benchmark.tau_bench.model_utils.api.datapoint import Datapoint
 from benchmark.tau_bench.model_utils.model.chat import ChatModel, Message
-from benchmark.tau_bench.model_utils.model.completion import approx_cost_for_datapoint, approx_prompt_str
+from benchmark.tau_bench.model_utils.model.completion import (
+    approx_cost_for_datapoint,
+    approx_prompt_str,
+)
 from benchmark.tau_bench.model_utils.model.general_model import wrap_temperature
 from benchmark.tau_bench.model_utils.model.utils import approx_num_tokens
 
@@ -11,22 +15,22 @@ DEFAULT_CLAUDE_MODEL = "claude-3-5-sonnet-20240620"
 DEFAULT_MAX_TOKENS = 8192
 ENV_VAR_API_KEY = "ANTHROPIC_API_KEY"
 
-PRICE_PER_INPUT_TOKEN_MAP = {
+PRICE_PER_INPUT_TOKEN_MAP: Dict[str, float] = {
     "claude-3-5-sonnet-20240620": 3 / 1000000,
 }
 INPUT_PRICE_PER_TOKEN_FALLBACK = 15 / 1000000
 
-CAPABILITY_SCORE_MAP = {
+CAPABILITY_SCORE_MAP: Dict[str, float] = {
     "claude-3-5-sonnet-20240620": 1.0,
 }
 CAPABILITY_SCORE_FALLBACK = 0.5
 
 # TODO: implement
-LATENCY_MS_PER_OUTPUT_TOKEN_MAP = {}
+LATENCY_MS_PER_OUTPUT_TOKEN_MAP: Dict[str, float] = {}
 # TODO: implement
 LATENCY_MS_PER_OUTPUT_TOKEN_FALLBACK = 0.0
 
-MAX_CONTEXT_LENGTH_MAP = {
+MAX_CONTEXT_LENGTH_MAP: Dict[str, int] = {
     "claude-3-5-sonnet-20240620": 8192,
 }
 MAX_CONTEXT_LENGTH_FALLBACK = 8192
@@ -35,8 +39,8 @@ MAX_CONTEXT_LENGTH_FALLBACK = 8192
 class ClaudeModel(ChatModel):
     def __init__(
         self,
-        model: str | None = None,
-        api_key: str | None = None,
+        model: Optional[str] = None,
+        api_key: Optional[str] = None,
         temperature: float = 0.0,
     ) -> None:
         from anthropic import Anthropic, AsyncAnthropic
@@ -53,20 +57,25 @@ class ClaudeModel(ChatModel):
                 raise ValueError(f"{ENV_VAR_API_KEY} environment variable is not set")
         # `anthropic-beta` header is needed for the 8192 context length (https://docs.anthropic.com/en/docs/about-claude/models)
         self.client = Anthropic(
-            api_key=api_key, default_headers={"anthropic-beta": "max-tokens-3-5-sonnet-2024-07-15"}
+            api_key=api_key,
+            default_headers={"anthropic-beta": "max-tokens-3-5-sonnet-2024-07-15"},
         )
         self.async_client = AsyncAnthropic(api_key=api_key)
         self.temperature = temperature
 
     def get_approx_cost(self, dp: Datapoint) -> float:
-        cost_per_token = PRICE_PER_INPUT_TOKEN_MAP.get(self.model, INPUT_PRICE_PER_TOKEN_FALLBACK)
+        cost_per_token = PRICE_PER_INPUT_TOKEN_MAP.get(
+            self.model, INPUT_PRICE_PER_TOKEN_FALLBACK
+        )
         return approx_cost_for_datapoint(dp=dp, price_per_input_token=cost_per_token)
 
     def get_latency(self, dp: Datapoint) -> float:
         latency_per_output_token = LATENCY_MS_PER_OUTPUT_TOKEN_MAP.get(
             self.model, LATENCY_MS_PER_OUTPUT_TOKEN_FALLBACK
         )
-        return approx_cost_for_datapoint(dp=dp, price_per_input_token=latency_per_output_token)
+        return approx_cost_for_datapoint(
+            dp=dp, price_per_input_token=latency_per_output_token
+        )
 
     def get_capability(self) -> float:
         return CAPABILITY_SCORE_MAP.get(self.model, CAPABILITY_SCORE_FALLBACK)
@@ -77,8 +86,8 @@ class ClaudeModel(ChatModel):
             self.model, MAX_CONTEXT_LENGTH_FALLBACK
         )
 
-    def _remap_messages(self, messages: list[dict[str, str]]) -> list[dict[str, str]]:
-        remapped: list[dict[str, str]] = []
+    def _remap_messages(self, messages: List[Dict[str, str]]) -> List[Dict[str, str]]:
+        remapped: List[Dict[str, str]] = []
         is_user = True
         for i, message in enumerate(messages):
             role = message["role"]
@@ -107,9 +116,9 @@ class ClaudeModel(ChatModel):
 
     def build_generate_message_state(
         self,
-        messages: list[Message],
-    ) -> list[dict[str, str]]:
-        msgs: list[dict[str, str]] = []
+        messages: List[Message],
+    ) -> List[Dict[str, str]]:
+        msgs: List[Dict[str, str]] = []
         for msg in messages:
             if msg.obj is not None:
                 content = json.dumps(msg.obj)
@@ -120,9 +129,9 @@ class ClaudeModel(ChatModel):
 
     def generate_message(
         self,
-        messages: list[Message],
+        messages: List[Message],
         force_json: bool,
-        temperature: float | None = None,
+        temperature: Optional[float] = None,
     ) -> Message:
         if temperature is None:
             temperature = self.temperature

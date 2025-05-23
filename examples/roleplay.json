@@ -7,6 +7,10 @@
     "docs": [],
     "tasks": [],
     "workers": [
-        {"id": "9244468a-5b0a-4bd2-99aa-650f0efeb0ac", "name": "MessageWorker", "path": "message_worker.py"}
+        {
+            "id": "9244468a-5b0a-4bd2-99aa-650f0efeb0ac",
+            "name": "MessageWorker",
+            "path": "message_worker.py"
+        }
     ]
 }

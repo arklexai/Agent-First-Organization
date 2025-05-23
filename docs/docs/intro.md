@@ -1,4 +1,5 @@
 # Introduction
+
 Artificial intelligence has come a long way from simple automation to fully autonomous AI agents. While traditional rule-based systems and AI workflows serve many use cases, they often lack flexibility and adaptability. The next generation of AI systems—AI agents—push the boundaries by enabling autonomous reasoning, decision-making, and task execution. However, as AI agents become more powerful, they also become less predictable and harder to control.
 
 To bridge this gap, we introduce the Arklex AI Agent Framework—a system designed to combine the robustness of structured AI workflows with the adaptability of modern AI agents. Arklex enhances reliability, control, and efficiency while maintaining the autonomy necessary for complex applications like AI-driven coding, research, and automation.
@@ -37,13 +38,13 @@ Arklex introduces Mixed-Control, where agents balance user objectives with build
 
 **3\. Task Graph: Structuring AI Decision-Making**
 
-One of the biggest challenges in AI autonomy is ensuring structured, logical decision-making. Arklex solves this with a Task Graph, a control mechanism that ensures agents follow predefined workflows while minimizing unpredictable reasoning. This improves reliability, predictability, and efficiency. You can view the graph as domain knowledge which saves the agent's time to do real-time planning. The graph also carries explainability which supports safety and compliance review. 
+One of the biggest challenges in AI autonomy is ensuring structured, logical decision-making. Arklex solves this with a Task Graph, a control mechanism that ensures agents follow predefined workflows while minimizing unpredictable reasoning. This improves reliability, predictability, and efficiency. You can view the graph as domain knowledge which saves the agent's time to do real-time planning. The graph also carries explainability which supports safety and compliance review.
 
-While if a task cannot be completed through such a graph, the framework will then call the dynamic AI agent planning flow on the fly. If the agent can complete the task under the requirement, then the system will autonomously incorporate this trajectory into the task graph to improve its generality. If the agent cannot complete the task within a time frame or lacks confidence in certain critical steps, the system will transfer humans for support. 
+While if a task cannot be completed through such a graph, the framework will then call the dynamic AI agent planning flow on the fly. If the agent can complete the task under the requirement, then the system will autonomously incorporate this trajectory into the task graph to improve its generality. If the agent cannot complete the task within a time frame or lacks confidence in certain critical steps, the system will transfer humans for support.
 
 **4\. Natural Language Understanding (NLU) for Smarter AI Decisions**
 
-Arklex integrates Natural Language Understanding (NLU) to interpret user input and guide LLM-based decision-making. A robust NLU system ensures coherent and logical task execution, allowing agents to act more intelligently in dynamic environments. NLU is critical to enable any agents that are customer facing. 
+Arklex integrates Natural Language Understanding (NLU) to interpret user input and guide LLM-based decision-making. A robust NLU system ensures coherent and logical task execution, allowing agents to act more intelligently in dynamic environments. NLU is critical to enable any agents that are customer facing.
 
 **5\. Task Composition for Adaptive Workflows**
 

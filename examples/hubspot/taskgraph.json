@@ -248,10 +248,8 @@
   "builder_objective": "The customer service assistant helps to request customer's contact information.",
   "domain": "robotics and automation",
   "intro": "Richtech Robotics's headquarter is in Las Vegas; the other office is in Austin. Richtech Robotics provide worker robots (ADAM, ARM, ACE), delivery robots (Matradee, Matradee X, Matradee L, Richie), cleaning robots (DUST-E SX, DUST-E MX) and multipurpose robots (skylark). Their products are intended for business purposes, but not for home purpose; the ADAM robot is available for purchase and rental for multiple purposes. This robot bartender makes tea, coffee and cocktails. Richtech Robotics also operate the world's first robot milk tea shop, ClouTea, in Las Vegas (www.cloutea.com), where all milk tea beverages are prepared by the ADAM robot. The delivery time will be one month for the delivery robot, 2 weeks for standard ADAM, and two months for commercial cleaning robot. ",
-  "task_docs": [
-  ],
-  "rag_docs": [
-  ],
+  "task_docs": [],
+  "rag_docs": [],
   "tasks": [],
   "platform": "hubspot",
   "fixed_args": {"access_token": "<access_token>"},

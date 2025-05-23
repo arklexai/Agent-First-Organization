@@ -1,4 +1,4 @@
-COM 4705 Introduction to Natural Language Processing 2024 Fall 
+COM 4705 Introduction to Natural Language Processing 2024 Fall
 
 Note: The syllabus is subject to change. Please check this page frequently for any updated information.
 
@@ -21,20 +21,19 @@ TAs and their office hours, location:
 | :---- | :---- | :---- |
 | Siyan Li | Tuesdays 9:30 am \- 11:30 am | Schapiro CEPSR 7th Floor Lounge |
 | Zachary Horvitz | Tuesdays 3:00 pm \- 5:00 pm | Schapiro CEPSR 724 |
-| Matthew Toles | Wednesday 11:00am \- 1:00pm | Schapiro CEPSR 725 http://meet.google.com/oaj-fwdz-ryt |
+| Matthew Toles | Wednesday 11:00am \- 1:00pm | Schapiro CEPSR 725 <http://meet.google.com/oaj-fwdz-ryt> |
 | Xiao Yu | Thursday 4:30 pm \- 6:30 pm | Schapiro CEPSR 7th Floor Lounge(*checkout CEPSR 7LE5 if I am not there*) |
 | Xuanming Zhang | Friday 2:00 pm \- 4:00 pm | Schapiro CEPSR 713 |
 
-   
 Discussion Policy
 
 This class has a Ed Discussion section for students to ask and discuss all kinds of questions regarding lectures, homework, and exams.  While TAs and Instructors will answer questions, all the students are also welcome to post their solutions to help their classmates. We strongly encourage students to respond to questions on the Ed Discussion at the end of the semester, 5 students with the most instructor-endorsed responses will receive a 3% extra credit to their final grade.  
 Attendance Policy  
-**Attendance Form:** [https://forms.gle/vzsRBEYyXy4AxTzD7](https://forms.gle/vzsRBEYyXy4AxTzD7)   
+**Attendance Form:** [https://forms.gle/vzsRBEYyXy4AxTzD7](https://forms.gle/vzsRBEYyXy4AxTzD7)
 When attendance is being taken during a class session, an attendance code will be provided to all students. To mark your attendance:  
-1\. 	Access the provided Attendance Form link.  
-2\. 	Enter the given attendance code.  
-3\. 	Ensure you submit the form by no later than 2:30 am on the following day.  
+1\.  Access the provided Attendance Form link.  
+2\.  Enter the given attendance code.  
+3\.  Ensure you submit the form by no later than 2:30 am on the following day.  
 Submissions after the 12-hour deadline will not be considered as present for that class.  
 You will receive full mark if you attend at least 80% of the courses
 
@@ -44,7 +43,7 @@ If you have a question that is not confidential or personal, post it on the Ed D
 Regrade Policy  
 Regrade Requests  
 If you feel you deserve a better grade on an assignment or a quiz, you may submit a regrade request to the course email within two days after the grades are released. Your request should briefly summarize why you feel the original grade was unfair. Your TA will reevaluate your assignment as soon as possible and then issue a decision. If you are still not happy, you can ask for your assignment to be graded by an instructor.  
-   
+
 Honor Code  
 Since we occasionally reuse assignments from previous years, we expect students not to copy, refer to, or look at the solutions in preparing their answers. It is an honor code violation to intentionally refer to a previous year's solutions. This applies both to the official solutions and to solutions that you or someone else may have written up in the previous year. It is also an honor code violation to find some way to look at the test set or interfere in any way with programming assignment scoring or tampering with the submitted script.  
 Cheating Policy  
@@ -58,10 +57,9 @@ Grades
 | Attendance | 12% |
 | Ed Discussion (extra credit) | 3% |
 
-   
 Homework Grading  
 You will be given a total of 4 days of late days for all homework throughout the semester. If all the late days are used up, work that is up to 48 hours late will still be credited, but with an extra 10% deduction for every 12 hours past the deadline. Please notice that as we have already given you some late days for any kind of exception for late homework, once the late days are used up, we will accept no exception excuse to waive the late homework penalty, which includes doctor's notice and all kinds of uploading issues at the last minute.  
-   
+
 Textbooks  
 There is no required textbook, but I will expect you to know the material listed above, drawn from the textbooks and other readings. The material in the readings will be tested on the final exam. Different people may learn better from different combinations of videos/lectures, reading the chapters, or coming to the in-class group exercises. The best-prepared students who do the best on the final exams tend to do all three. Attendance is taken by filling a form after every lecture. Online new chapters from [Jurafsky and Martin. third edition in progress. Speech and Language Processing.](http://web.stanford.edu/~jurafsky/slp3/)
 
@@ -100,7 +98,3 @@ Course Schedule
 | Dec 4 (Wed) | RAG \+ Fact Checking |  |  | [link](https://docs.google.com/presentation/d/1A7jelRkbubVOLKKoquV3OZeD4d2lN5U8/edit?usp=sharing&ouid=109231055856631695291&rtpof=true&sd=true) |
 | Dec 9 (Mon) | Final Exam |  |  |  |
 |  |  |  |  |  |
-
-   
-   
-   

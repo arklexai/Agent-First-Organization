@@ -6,16 +6,17 @@
 [![PyPI version](https://img.shields.io/pypi/v/arklex.svg)](https://pypi.org/project/arklex)
 ![Python version](https://img.shields.io/pypi/pyversions/arklex)
 
-Arklex Agent First Organization provides a framework for developing **AI Agents** to complete complex tasks powered by LLMs. The framework is designed to be modular and extensible, allowing developers to customize workers/tools that can interact with each other in a variety of ways under the supervision of the orchestrator managed by *Taskgraph*. 
+Arklex Agent First Organization provides a framework for developing **AI Agents** to complete complex tasks powered by LLMs. The framework is designed to be modular and extensible, allowing developers to customize workers/tools that can interact with each other in a variety of ways under the supervision of the orchestrator managed by *Taskgraph*.
 
 ## 📖 Documentation
 
 Please see [here](https://www.arklex.ai/qa/open-source) for full documentation, which includes:
+
 * [Introduction](https://arklexai.github.io/Agent-First-Organization/docs/intro): Overview of the Arklex AI agent framework and structure of the docs.
-* [Tutorials](https://arklexai.github.io/Agent-First-Organization/docs/tutorials/intro): If you're looking to build a customer service agent or booking service bot, check out our tutorials. This is the best place to get started. 
+* [Tutorials](https://arklexai.github.io/Agent-First-Organization/docs/tutorials/intro): If you're looking to build a customer service agent or booking service bot, check out our tutorials. This is the best place to get started.
 
+## 💻 Installation
 
-## 💻 Installation 
 ```
 pip install arklex
 ```
@@ -30,25 +31,23 @@ Watch the tutorial on [YouTube](https://youtu.be/y1P2Ethvy0I) to learn how to bu
 
 ***
 
-
 **⚙️ 0. Preparation**
 
 * 📂 Environment Setup
 
-  *	Add API keys to the `.env` file for providers like OpenAI, Gemini, Anthropic, and Tavily.
+  * Add API keys to the `.env` file for providers like OpenAI, Gemini, Anthropic, and Tavily.
 
-  *	Enable LangSmith tracing (LANGCHAIN_TRACING_V2=true) for debugging (optional).
+  * Enable LangSmith tracing (LANGCHAIN_TRACING_V2=true) for debugging (optional).
 
 * 📄 Configuration File
 
-  *	Create a chatbot config file similar to `customer_service_config.json`.
+  * Create a chatbot config file similar to `customer_service_config.json`.
 
-  *	Define chatbot parameters, including role, objectives, domain, introduction, and relevant documents.
+  * Define chatbot parameters, including role, objectives, domain, introduction, and relevant documents.
 
-  *	Specify tasks, workers, and tools to enhance chatbot functionality.
+  * Specify tasks, workers, and tools to enhance chatbot functionality.
 
-*	Workers and tools should be pre-defined in arklex/env/workers and arklex/env/tools, respectively.
-
+* Workers and tools should be pre-defined in arklex/env/workers and arklex/env/tools, respectively.
 
 **📊 1. Create Taskgraph and Initialize Worker**
 
@@ -61,57 +60,56 @@ python create.py --config ./examples/customer_service_config.json --output-dir .
 * Fields:
   * `--config`: The path to the config file
   * `--output-dir`: The directory to save the generated files
-  * `--llm_provider`: The LLM provider you wish to use. 
-    - Options: `openai` (default), `gemini`, `anthropic`
-  *  `--model`: The model type used to generate the taskgraph. The default is `gpt-4o`. 
-      - You can change this to other models like:
-        - `gpt-4o-mini`
-        - `gemini-2.0-flash`
-        - `claude-3-5-haiku-20241022`
+  * `--llm_provider`: The LLM provider you wish to use.
+    * Options: `openai` (default), `gemini`, `anthropic`
+  * `--model`: The model type used to generate the taskgraph. The default is `gpt-4o`.
+    * You can change this to other models like:
+      * `gpt-4o-mini`
+      * `gemini-2.0-flash`
+      * `claude-3-5-haiku-20241022`
 
 * It will first generate a task plan based on the config file and you could modify it in an interactive way from the command line. Made the necessary changes and press `s` to save the task plan under `output-dir` folder and continue the task graph generation process.
 * Then it will generate the task graph based on the task plan and save it under `output-dir` folder as well.
 * It will also initialize the Workers listed in the config file to prepare the documents needed by each worker. The function `init_worker(args)` is customizable based on the workers you defined. Currently, it will automatically build the `RAGWorker` and the `DataBaseWorker` by using the function `build_rag()` and `build_database()` respectively. The needed documents will be saved under the `output-dir` folder.
 
-
 **💬 2. Start Chatting**
+
 ```
 python run.py --input-dir ./examples/customer_service
 ```
 
 * Fields:
   * `--input-dir`: The directory that contains the generated files
-  * `--llm_provider`: The LLM provider you wish to use. 
-    - Options: `openai` (default), `gemini`, `anthropic`
-  * `--model`: The model type used to generate bot response. The default is `gpt-4o`. 
-    - You can change this to other models like:
-      - `gpt-4o-mini`
-      - `gemini-2.0-flash`
-      - `claude-3-5-haiku-20241022`
+  * `--llm_provider`: The LLM provider you wish to use.
+    * Options: `openai` (default), `gemini`, `anthropic`
+  * `--model`: The model type used to generate bot response. The default is `gpt-4o`.
+    * You can change this to other models like:
+      * `gpt-4o-mini`
+      * `gemini-2.0-flash`
+      * `claude-3-5-haiku-20241022`
   
-
-* It will first automatically start the nluapi and slotapi services through `start_apis()` function. By default, this will start the `NLUModelAPI ` and `SlotFillModelAPI` services defined under `./arklex/orchestrator/NLU/api.py` file. You could customize the function based on the nlu and slot models you trained.
+* It will first automatically start the nluapi and slotapi services through `start_apis()` function. By default, this will start the `NLUModelAPI` and `SlotFillModelAPI` services defined under `./arklex/orchestrator/NLU/api.py` file. You could customize the function based on the nlu and slot models you trained.
 * Then it will start the agent and you could chat with the agent
-
-
 
 **🔍 3. Evaluation**
 
-  * First, create api for the previous chatbot you built. It will start an api on the default port 8000.
+* First, create api for the previous chatbot you built. It will start an api on the default port 8000.
+
     ```
     python model_api.py  --input-dir ./examples/customer_service
     ```
 
-    * Fields:
-      * `--input-dir`: The directory that contains the generated files
-       * `--llm_provider`: The LLM provider you wish to use. 
-          - Options: `openai` (default), `gemini`, `anthropic`
-      * `--model`: The model type used to generate bot response. The default is `gpt-4o`. 
-        - You can change this to other models like:
-          - `gpt-4o-mini`,  `gemini-2.0-flash` , `claude-3-5-haiku-20241022`
-      * `--port`: The port number to start the api. Default is 8000.
+  * Fields:
+    * `--input-dir`: The directory that contains the generated files
+    * `--llm_provider`: The LLM provider you wish to use.
+      * Options: `openai` (default), `gemini`, `anthropic`
+    * `--model`: The model type used to generate bot response. The default is `gpt-4o`.
+      * You can change this to other models like:
+        * `gpt-4o-mini`,  `gemini-2.0-flash` , `claude-3-5-haiku-20241022`
+    * `--port`: The port number to start the api. Default is 8000.
 
-  * Then, start the evaluation process: 
+* Then, start the evaluation process:
+
     ```
     python eval.py \
     --model_api http://127.0.0.1:8000/eval/chat \
@@ -119,18 +117,19 @@ python run.py --input-dir ./examples/customer_service
     --documents_dir ./examples/customer_service \
     --output-dir ./examples/customer_service
     ```
-    * Fields:
-      * `--model_api`: The api url that you created in the previous step
-      * `--config`: The path to the config file
-      * `--documents_dir`: The directory that contains the generated files
-      * `--output-dir`: The directory to save the evaluation results
-      * `--num_convos`: Number of synthetic conversations to simulate. Default is 5.
-      * `--num_goals`: Number of goals/tasks to simulate. Default is 5.
-      * `--max_turns`: Maximum number of turns per conversation. Default is 5.
-       * `--llm_provider`: The LLM provider you wish to use. 
-          - Options: `openai` (default), `gemini`, `anthropic`
-      * `--model`: The model type used to generate bot response. The default is `gpt-4o`. 
-        - You can change this to other models like:
-          - `gpt-4o-mini`,  `gemini-2.0-flash` , `claude-3-5-haiku-20241022`
+
+  * Fields:
+    * `--model_api`: The api url that you created in the previous step
+    * `--config`: The path to the config file
+    * `--documents_dir`: The directory that contains the generated files
+    * `--output-dir`: The directory to save the evaluation results
+    * `--num_convos`: Number of synthetic conversations to simulate. Default is 5.
+    * `--num_goals`: Number of goals/tasks to simulate. Default is 5.
+    * `--max_turns`: Maximum number of turns per conversation. Default is 5.
+    * `--llm_provider`: The LLM provider you wish to use.
+      * Options: `openai` (default), `gemini`, `anthropic`
+    * `--model`: The model type used to generate bot response. The default is `gpt-4o`.
+      * You can change this to other models like:
+        * `gpt-4o-mini`,  `gemini-2.0-flash` , `claude-3-5-haiku-20241022`
   
     📄 For more details, check out the [Evaluation README](https://github.com/arklexai/Agent-First-Organization/blob/main/arklex/evaluation/README.md).

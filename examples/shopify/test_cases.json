@@ -8,7 +8,10 @@
         "description": "Question about account setup",
         "criteria": "Ask user for email and provide account setup",
         "final_state": "Answer user query",
-        "trajectory": ["2", "3"],
+        "trajectory": [
+            "2",
+            "3"
+        ],
         "expected_conversation": [
             {
                 "role": "assistant",
@@ -37,10 +40,12 @@
         "user_utterance": [
             "Do you have recommendation for hats?"
         ],
-        "description": "Question about product recommendation", 
+        "description": "Question about product recommendation",
         "criteria": "Provide product recommendation",
         "final_state": "Answer user query",
-        "trajectory": ["10"],
+        "trajectory": [
+            "10"
+        ],
         "expected_conversation": [
             {
                 "role": "assistant",
@@ -65,7 +70,16 @@
         "description": "Question about products",
         "criteria": "Provide product information",
         "final_state": "Answer user query",
-        "trajectory": [["5", "5"], ["5", "11"]],
+        "trajectory": [
+            [
+                "5",
+                "5"
+            ],
+            [
+                "5",
+                "11"
+            ]
+        ],
         "expected_conversation": [
             {
                 "role": "assistant",
@@ -98,7 +112,10 @@
         "description": "Question about past orders",
         "criteria": "Provide product information of past orders",
         "final_state": "Answer user query",
-        "trajectory": ["6", "9"],
+        "trajectory": [
+            "6",
+            "9"
+        ],
         "expected_conversation": [
             {
                 "role": "assistant",

@@ -4,19 +4,35 @@
     "builder_objective": "The customer service assistant helps to request customer's contact information.",
     "domain": "robotics and automation",
     "intro": "Richtech Robotics's headquarter is in Las Vegas; the other office is in Austin. Richtech Robotics provide worker robots (ADAM, ARM, ACE), delivery robots (Matradee, Matradee X, Matradee L, Richie), cleaning robots (DUST-E SX, DUST-E MX) and multipurpose robots (skylark). Their products are intended for business purposes, but not for home purpose; the ADAM robot is available for purchase and rental for multiple purposes. This robot bartender makes tea, coffee and cocktails. Richtech Robotics also operate the world's first robot milk tea shop, ClouTea, in Las Vegas (www.cloutea.com), where all milk tea beverages are prepared by the ADAM robot. The delivery time will be one month for the delivery robot, 2 weeks for standard ADAM, and two months for commercial cleaning robot. ",
-    "task_docs": [{
-        "source": "https://www.richtechrobotics.com/",
-        "num": 20
-    }],
-    "rag_docs": [{
-        "source": "https://www.richtechrobotics.com/",
-        "num": 20
-    }],
+    "task_docs": [
+        {
+            "source": "https://www.richtechrobotics.com/",
+            "num": 20
+        }
+    ],
+    "rag_docs": [
+        {
+            "source": "https://www.richtechrobotics.com/",
+            "num": 20
+        }
+    ],
     "tasks": [],
     "workers": [
-        {"id": "9aa47724-0b77-4752-9528-cf4b06a46915", "name": "FaissRAGWorker", "path": "faiss_rag_worker.py"},
-        {"id": "26bb6634-3bee-417d-ad75-23269ac17bc3", "name": "MessageWorker", "path": "message_worker.py"},
-        {"id": "9c15af81-04b3-443e-be04-a3522124b905", "name": "SearchWorker", "path": "search_worker.py"}
+        {
+            "id": "9aa47724-0b77-4752-9528-cf4b06a46915",
+            "name": "FaissRAGWorker",
+            "path": "faiss_rag_worker.py"
+        },
+        {
+            "id": "26bb6634-3bee-417d-ad75-23269ac17bc3",
+            "name": "MessageWorker",
+            "path": "message_worker.py"
+        },
+        {
+            "id": "9c15af81-04b3-443e-be04-a3522124b905",
+            "name": "SearchWorker",
+            "path": "search_worker.py"
+        }
     ],
     "tools": []
 }

@@ -1,4 +1,5 @@
 import json
+from typing import Dict, List
 
 from pydantic import BaseModel
 
@@ -16,21 +17,25 @@ from benchmark.tau_bench.model_utils.api.datapoint import (
 class TokenUsage(BaseModel):
     input_tokens: int
     output_tokens: int
-    by_primitive: dict[str, "TokenUsage"]
+    by_primitive: Dict[str, "TokenUsage"]
 
 
-def batch_token_analysis(dps: list[Datapoint], encoding_for_model: str = "gpt-4o") -> TokenUsage:
+def batch_token_analysis(
+    dps: List[Datapoint], encoding_for_model: str = "gpt-4o"
+) -> TokenUsage:
     import tiktoken
 
     enc = tiktoken.encoding_for_model(encoding_for_model)
     # very rough estimates
-    inputs_by_primitive: dict[str, list[str]] = {}
-    outputs_by_primitive: dict[str, list[str]] = {}
+    inputs_by_primitive: Dict[str, List[str]] = {}
+    outputs_by_primitive: Dict[str, List[str]] = {}
     for dp in dps:
-        input = json.dumps({k: v for k, v in dp.model_dump().items() if k != "response"})
+        input: str = json.dumps(
+            {k: v for k, v in dp.model_dump().items() if k != "response"}
+        )
         inputs_by_primitive.setdefault(type(dp).__name__, []).append(input)
         if isinstance(dp, ClassifyDatapoint):
-            output = f'{{"classification": {dp.response}}}'
+            output: str = f'{{"classification": {dp.response}}}'
         elif isinstance(dp, BinaryClassifyDatapoint):
             output = f'{{"classification": {0 if dp.response else 1}}}'
         elif isinstance(dp, ParseForceDatapoint):
@@ -52,13 +57,13 @@ def batch_token_analysis(dps: list[Datapoint], encoding_for_model: str = "gpt-4o
         else:
             raise ValueError(f"Unknown datapoint type: {type(dp)}")
         outputs_by_primitive.setdefault(type(dp).__name__, []).append(output)
-    input_tokens_by_primitive = {}
-    output_tokens_by_primitive = {}
+    input_tokens_by_primitive: Dict[str, int] = {}
+    output_tokens_by_primitive: Dict[str, int] = {}
     for primitive, inputs in inputs_by_primitive.items():
-        input_tokens = sum([len(item) for item in enc.encode_batch(inputs)])
+        input_tokens: int = sum([len(item) for item in enc.encode_batch(inputs)])
         input_tokens_by_primitive[primitive] = input_tokens
     for primitive, outputs in outputs_by_primitive.items():
-        output_tokens = sum([len(item) for item in enc.encode_batch(outputs)])
+        output_tokens: int = sum([len(item) for item in enc.encode_batch(outputs)])
         output_tokens_by_primitive[primitive] = output_tokens
     return TokenUsage(
         input_tokens=sum(input_tokens_by_primitive.values()),

@@ -11,7 +11,13 @@
         "description": "Test create event on Google calendar with ambiguous time",
         "criteria": "Tmr is not a valid specified date. The bot should ask again for more details.",
         "final_state": "Setup a meeting on the google calendar at 2pm for 30 mins",
-        "trajectory": ["1", "1", "1", "1", "1"],
+        "trajectory": [
+            "1",
+            "1",
+            "1",
+            "1",
+            "1"
+        ],
         "expected_conversation": [
             {
                 "role": "assistant",
@@ -67,7 +73,9 @@
         "description": "Directly provide all the necessary information for the event.",
         "criteria": "Directly success",
         "final_state": "Setup a meeting on the google calendar at 2pm for 30 mins",
-        "trajectory": ["1"],
+        "trajectory": [
+            "1"
+        ],
         "expected_conversation": [
             {
                 "role": "assistant",

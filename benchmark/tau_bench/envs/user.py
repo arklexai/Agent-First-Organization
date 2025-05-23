@@ -6,6 +6,7 @@ from litellm import completion
 
 from typing import Optional, List, Dict, Any, Union
 
+
 class BaseUserSimulationEnv(abc.ABC):
     metadata = {}
 

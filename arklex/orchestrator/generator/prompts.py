@@ -1,4 +1,4 @@
-generate_tasks_sys_prompt = """The builder plans to create a chatbot designed to fulfill user's objectives. Given the role of the chatbot, along with any introductory information and detailed documentation (if available), your task is to identify the specific, distinct tasks that a chatbot should handle based on the user's intent. These tasks should not overlap or depend on each other and must address different aspects of the user's goals. Ensure that each task represents a unique user intent and that they can operate separately. Return the response in JSON format.
+generate_tasks_sys_prompt = """The builder plans to create a chatbot designed to fulfill user's objectives. Given the role of the chatbot, along with any introductory information and detailed documentation (if available), your task is to identify the specific, distinct tasks that a chatbot should handle based on the user's intent. You are also given a list of existing tasks with user's intent. You must not return tasks that deal the same existing user's intent. All tasks should not overlap or depend on each other and must address different aspects of the user's goals. Ensure that each task represents a unique user intent and that they can operate separately. Moreover, you are given the instructions that you must follow. Return the response in JSON format.
 
 For Example:
 
@@ -71,6 +71,22 @@ Toys & Games
 Unique Finds
 Video Games
 
+Existing tasks:
+Answer:
+```json
+[
+    {{
+        "intent": "User want to do product search and discovery",
+        "task": "Provide help in Product Search and Discovery"
+    }},
+    {{
+        "intent": "User ask for billing and payment support",
+        "task": "Provide help in billing and payment support"
+    }}
+]
+```
+
+
 Reasoning Process:
 Thought 1: Understand the general responsibilities of the assistant type.
 Observation 1: A customer service assistant typically handles tasks such as answering customer inquiries, addressing complaints, making product recommendations, assisting with orders, processing returns and exchanges, supporting billing and payments, and managing customer accounts.
@@ -85,20 +101,12 @@ Answer:
 ```json
 [
     {{
-        "intent": "User want to do product search and discovery",
-        "task": "Provide help in Product Search and Discovery"
-    }},
-    {{
         "intent": "User has product inquiry",
         "task": "Provide help in product inquiry"
     }},
     {{
         "intent": "User want to compare different products",
         "task": "Provide help in product comparison"
-    }},
-    {{
-        "intent": "User ask for billing and payment support",
-        "task": "Provide help in billing and payment support"
     }},
     {{
         "intent": "User want to manage orders",
@@ -115,6 +123,10 @@ Builder's prompt: The builder want to create a chatbot - {role}. {u_objective}
 Builder's information: {intro}
 Builder's documentations: 
 {docs}
+Builder's instructions: 
+{instructions}
+Existing tasks:
+{existing_tasks}
 Reasoning Process:
 """
 
@@ -125,7 +137,9 @@ User’s Objective: {u_objective}
 Builder’s Introductory Information: {intro}
 Builder’s Tasks: {tasks}
 Builder’s Documentation (if any): {docs}
-Instruction:
+Instructions that you must follow: {instructions}
+Here are some example conversations to help you understand how the bot's interactions should look. For each task, consider only the relevant parts of the example conversations: {example_conversations}
+Your tasks is:
 Identify Shared Subtasks: Based on the chatbot’s role, any introductory information, available documentation, and the overall task set, identify and define subtasks that: Are essential to multiple tasks, Are granular, independent, and reusable, Can be logically grouped as recurring procedures.
 Analyze Each Task: Break down each task into its smallest meaningful steps.
 Exclude Simple or Overly Specific Procedures: Only include subtasks that represent more complex or significant actions and are relevant across multiple tasks. Exclude those that are overly simplistic or too task-specific.
@@ -231,7 +245,7 @@ Reasoning:
 """
 
 
-generate_best_practice_sys_prompt = """Given the background information about the chatbot, the task it needs to handle, and the available resources, your task is to generate a step-by-step best practice for addressing this task. Each step should represent a distinct interaction with the user, where the next step builds upon the user's response. Avoid breaking down sequences of internal worker actions within a single turn into multiple steps. Return the answer in JSON format. Only use resources listed in the input, resources listed in the Example may not be available.
+generate_best_practice_sys_prompt = """Given the background information about the chatbot, the task it needs to handle, and the available resources, your task is to generate a step-by-step best practice for addressing this task. Each step should represent a distinct interaction with the user, where the next step builds upon the user's response. Avoid breaking down sequences of internal worker actions within a single turn into multiple steps. Return the answer in JSON format. Only use resources listed in the input, resources listed in the Example may not be available. Moreover, you are given the instructions that you must follow
 
 For example:
 Background: The builder want to create a chatbot - Customer Service Assistant. The customer service assistant typically handles tasks such as answering customer inquiries, making product recommendations, assisting with orders, processing returns and exchanges, supporting billing and payments, addressing complaints, and managing customer accounts.
@@ -243,6 +257,9 @@ MessageWorker: The worker responsible for interacting with the user with predefi
 RAGWorker: Answer the user's questions based on the company's internal documentations, such as the policies, FAQs, and product information,
 ProductWorker: Access the company's database to retrieve information about products, such as availability, pricing, and specifications,
 UserProfileWorker: Access the company's database to retrieve information about the user's preferences and history.
+
+Instructions:
+you should inquire specific preference before searching for the products that the user might want
 
 Thought: To help users find products effectively, the assistant should first get context information about the customer from CRM, such as purchase history, demographic information, preference metadata, inquire about specific preferences or requirements (e.g., brand, features, price range) specific for the request. Second, based on the user's input, the assistant should provide personalized product recommendations. Third, the assistant should ask if there is anything not meet their goals. Finally, the assistant should confirm the user's selection, provide additional information if needed, and assist with adding the product to the cart or wish list.
 Answer:
@@ -274,6 +291,8 @@ Answer:
 Background: The builder want to create a chatbot - {role}. {u_objective}
 Task: {task}
 Resources: {resources}
+Instructions: {instructions}
+Here are some example conversations to help you understand how the bot's interactions should look. For each task, consider only the relevant parts of the example conversations: {example_conversations}
 Thought:
 """
 
@@ -492,4 +511,153 @@ Start Message:
 
 Builder's prompt: The builder want to create a chatbot - {role}. {u_objective}
 Start Message:
+"""
+
+task_intents_prediction_prompt = """The builder plans to create a chatbot designed to fulfill user's objectives. Given the role of the chatbot, along with any introductory information, detailed documentation (if available) and a list of tasks, your task is to identify the user's intent based on given tasks .Ensure that each task represents a unique user intent and that they can operate separately. Moreover, you are given the instructions that you must follow. Return the response in JSON format.
+
+For Example:
+
+Builder's prompt: The builder want to create a chatbot - Customer Service Assistant. The customer service assistant typically handles tasks such as answering customer inquiries, making product recommendations, assisting with orders, processing returns and exchanges, supporting billing and payments, addressing complaints, and managing customer accounts.
+Builder's Information: Amazon.com is a large e-commerce platform that sells a wide variety of products, ranging from electronics to groceries.
+Builder's documentations: 
+https://www.amazon.com/
+Holiday Deals
+Disability Customer Support
+Same-Day Delivery
+Medical Care
+Customer Service
+Amazon Basics
+Groceries
+Prime
+Buy Again
+New Releases
+Pharmacy
+Shop By Interest
+Amazon Home
+Amazon Business
+Subscribe & Save
+Livestreams
+luwanamazon's Amazon.com
+Best Sellers
+Household, Health & Baby Care
+Sell
+Gift Cards
+
+https://www.amazon.com/bestsellers
+Any Department
+Amazon Devices & Accessories
+Amazon Renewed
+Appliances
+Apps & Games
+Arts, Crafts & Sewing
+Audible Books & Originals
+Automotive
+Baby
+Beauty & Personal Care
+Books
+Camera & Photo Products
+CDs & Vinyl
+Cell Phones & Accessories
+Clothing, Shoes & Jewelry
+Collectible Coins
+Computers & Accessories
+Digital Educational Resources
+Digital Music
+Electronics
+Entertainment Collectibles
+Gift Cards
+Grocery & Gourmet Food
+Handmade Products
+Health & Household
+Home & Kitchen
+Industrial & Scientific
+Kindle Store
+Kitchen & Dining
+Movies & TV
+Musical Instruments
+Office Products
+Patio, Lawn & Garden
+Pet Supplies
+Software
+Sports & Outdoors
+Sports Collectibles
+Tools & Home Improvement
+Toys & Games
+Unique Finds
+Video Games
+
+Tasks:
+```json
+[
+    {{
+        "task": "Provide help in Product Search and Discovery"
+    }},
+    {{
+        "task": "Provide help in product inquiry"
+    }},
+    {{
+        "task": "Provide help in product comparison"
+    }},
+    {{
+        "task": "Provide help in billing and payment support"
+    }},
+    {{
+        "task": "Provide help in order management"
+    }},
+    {{
+        "task": "Provide help in Returns and Exchanges"
+    }}
+]
+```
+
+
+Reasoning Process:
+Thought 1: Understand the general responsibilities of the assistant type.
+Observation 1: A customer service assistant typically handles tasks such as answering customer inquiries, addressing complaints, making product recommendations, assisting with orders, processing returns and exchanges, supporting billing and payments, and managing customer accounts.
+
+Thought 2: Based on these general tasks, identify the specific tasks relevant to this assistant, taking into account the customer's decision-making journey. Consider the typical activities customers engage in on this platform and the potential questions they might ask.
+Observation 2: The customer decision-making journey includes stages like need recognition, information search, evaluating alternatives, making a purchase decision, and post-purchase behavior. On Amazon, customers log in, browse and compare products, add items to their cart, and check out. They also track orders, manage returns, and leave reviews. Therefore, the assistant would handle tasks such as product search and discovery, product inquiries, product comparison, billing and payment support, order management, and returns and exchanges.
+
+Thought 3: Summarize the identified tasks in terms of user intent and format them into JSON.
+Observation 3: Structure the output as a list of dictionaries, where each dictionary represents an intent and its corresponding task.
+
+Answer:
+```json
+[
+    {{
+        "intent": "User want to do product search and discovery",
+        "task": "Provide help in Product Search and Discovery"
+    }},
+    {{
+        "intent": "User has product inquiry",
+        "task": "Provide help in product inquiry"
+    }},
+    {{
+        "intent": "User want to compare different products",
+        "task": "Provide help in product comparison"
+    }},
+    {{
+        "intent": "User ask for billing and payment support",
+        "task": "Provide help in billing and payment support"
+    }},
+    {{
+        "intent": "User want to manage orders",
+        "task": "Provide help in order management"
+    }},
+    {{
+        "intent": "User has request in returns and exchanges",
+        "task": "Provide help in Returns and Exchanges"
+    }}
+]
+```
+
+Builder's prompt: The builder want to create a chatbot - {role}. {u_objective}
+Builder's information: {intro}
+Builder's documentations: 
+{docs}
+Builder's instructions: 
+{instructions}
+Tasks: 
+{user_tasks}
+Reasoning Process:
 """

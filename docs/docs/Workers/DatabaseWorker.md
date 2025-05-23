@@ -1,4 +1,5 @@
 # DatabaseWorker
+
 ## Introduction
 
 Database Workers can handle customer inquiries and take correct operations. Different from other workers, this worker can be a highly customized one capable of solving different tasks. For each task, there will be a different database to interact with.

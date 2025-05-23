@@ -2,18 +2,19 @@ import sqlite3
 import argparse
 from pathlib import Path
 import os
+from typing import List, Dict, Any, Tuple
 
 
-def build_database(folder_path):
-    db_path = Path(folder_path) / "show_booking_db.sqlite"
+def build_database(folder_path: str) -> None:
+    db_path: Path = Path(folder_path) / "show_booking_db.sqlite"
     if os.path.exists(db_path):
         os.remove(db_path)
     # Creating the database with a .sqlite extension
-    conn = sqlite3.connect(db_path)
-    cursor = conn.cursor()
+    conn: sqlite3.Connection = sqlite3.connect(db_path)
+    cursor: sqlite3.Cursor = conn.cursor()
 
     # Create tables based on the provided schema
-    cursor.execute('''
+    cursor.execute("""
         CREATE TABLE show (
             id VARCHAR(40) PRIMARY KEY,
             show_name VARCHAR(100),
@@ -25,9 +26,9 @@ def build_database(folder_path):
             price DECIMAL,
             available_seats INTEGER
         )
-    ''')
+    """)
 
-    cursor.execute('''
+    cursor.execute("""
         CREATE TABLE user (
             id VARCHAR(40) PRIMARY KEY,
             first_name VARCHAR(40),
@@ -36,9 +37,9 @@ def build_database(folder_path):
             register_at TIMESTAMP,
             last_login TIMESTAMP
         )
-    ''')
+    """)
 
-    cursor.execute('''
+    cursor.execute("""
         CREATE TABLE booking (
             id VARCHAR(40) PRIMARY KEY,
             show_id VARCHAR(40),
@@ -47,10 +48,10 @@ def build_database(folder_path):
             FOREIGN KEY (show_id) REFERENCES show(id) ON DELETE CASCADE,
             FOREIGN KEY (user_id) REFERENCES user(id) ON DELETE CASCADE
         )
-    ''')
+    """)
 
     # Populate sample data
-    shows = [
+    shows: List[Dict[str, Any]] = [
         {
             "show_name": "The Dead, 1904",
             "genre": "Opera",
@@ -60,7 +61,7 @@ def build_database(folder_path):
             "location": "991 Fifth Avenue New York, NY",
             "price": 200.0,
             "available_seats": 200,
-            "id": "show_8406f0c6-6644-4a19-9448-670c9941b8d8"
+            "id": "show_8406f0c6-6644-4a19-9448-670c9941b8d8",
         },
         {
             "show_name": "The Dead, 1904",
@@ -71,7 +72,7 @@ def build_database(folder_path):
             "location": "991 Fifth Avenue New York, NY",
             "price": 300.0,
             "available_seats": 200,
-            "id": "show_06d03f1d-c38c-4ab2-b210-3342c76425f5"
+            "id": "show_06d03f1d-c38c-4ab2-b210-3342c76425f5",
         },
         {
             "show_name": "Carmen",
@@ -82,7 +83,7 @@ def build_database(folder_path):
             "location": "San Francisco Opera, San Francisco, CA",
             "price": 120.0,
             "available_seats": 150,
-            "id": "show_c32f2e1f-798a-406d-979b-733c2b37d90c"
+            "id": "show_c32f2e1f-798a-406d-979b-733c2b37d90c",
         },
         {
             "show_name": "A Child's Christmas in Wales",
@@ -93,7 +94,7 @@ def build_database(folder_path):
             "location": "991 Fifth Avenue New York, NY",
             "price": 55.0,
             "available_seats": 180,
-            "id": "show_84c92d38-1f01-4251-ac57-334fb8244477"
+            "id": "show_84c92d38-1f01-4251-ac57-334fb8244477",
         },
         {
             "show_name": "A Child's Christmas in Wales",
@@ -104,7 +105,7 @@ def build_database(folder_path):
             "location": "Lyric Opera of Chicago, Chicago, IL",
             "price": 45.0,
             "available_seats": 100,
-            "id": "show_44df967e-e4ef-44ec-923a-a118be06240d"
+            "id": "show_44df967e-e4ef-44ec-923a-a118be06240d",
         },
         {
             "show_name": "Beckett Briefs",
@@ -115,7 +116,7 @@ def build_database(folder_path):
             "location": "Houston Grand Opera, Houston, TX",
             "price": 65.0,
             "available_seats": 180,
-            "id": "show_c7ac8410-e03d-45e8-9b50-6a9c72b87805"
+            "id": "show_c7ac8410-e03d-45e8-9b50-6a9c72b87805",
         },
         {
             "show_name": "The Beacon",
@@ -126,7 +127,7 @@ def build_database(folder_path):
             "location": "991 Fifth Avenue New York, NY",
             "price": 140.0,
             "available_seats": 160,
-            "id": "show_851cd9f3-734d-414e-b75c-5a389dc6a380"
+            "id": "show_851cd9f3-734d-414e-b75c-5a389dc6a380",
         },
         {
             "show_name": "The Beacon",
@@ -137,7 +138,7 @@ def build_database(folder_path):
             "location": "991 Fifth Avenue New York, NY",
             "price": 140.0,
             "available_seats": 90,
-            "id": "show_0a3babd6-d153-41f7-bab0-8a6a995ffb5a"
+            "id": "show_0a3babd6-d153-41f7-bab0-8a6a995ffb5a",
         },
         {
             "show_name": "Don Giovanni",
@@ -148,7 +149,7 @@ def build_database(folder_path):
             "location": "Washington National Opera, Washington, D.C.",
             "price": 155.0,
             "available_seats": 170,
-            "id": "show_2be3c426-2822-45dc-84f0-68609ca53f86"
+            "id": "show_2be3c426-2822-45dc-84f0-68609ca53f86",
         },
         {
             "show_name": "On Beckett",
@@ -159,18 +160,18 @@ def build_database(folder_path):
             "location": "Metropolitan Opera House, New York, NY",
             "price": 155.0,
             "available_seats": 170,
-            "id": "show_11604b40-6058-4264-8c80-95d774596d12"
-        }
+            "id": "show_11604b40-6058-4264-8c80-95d774596d12",
+        },
     ]
 
-    users = [
+    users: List[Dict[str, Any]] = [
         {
             "first_name": "Alice",
             "last_name": "Smith",
             "email": "alice.smith@gmail.com",
             "register_at": "2024-10-01 09:15:00",
             "last_login": "2024-10-12 08:30:00",
-            "id": "user_be6e1836-8fe9-4938-b2d0-48f810648e72"
+            "id": "user_be6e1836-8fe9-4938-b2d0-48f810648e72",
         },
         {
             "first_name": "Bob",
@@ -178,7 +179,7 @@ def build_database(folder_path):
             "email": "bob.johnson@gmail.com",
             "register_at": "2024-10-02 10:00:00",
             "last_login": "2024-10-13 07:45:00",
-            "id": "user_ffd7218a-31c4-4377-902e-33faf36d168c"
+            "id": "user_ffd7218a-31c4-4377-902e-33faf36d168c",
         },
         {
             "first_name": "Carol",
@@ -186,7 +187,7 @@ def build_database(folder_path):
             "email": "carol.williams@gmail.com",
             "register_at": "2024-10-03 11:30:00",
             "last_login": "2024-10-14 09:00:00",
-            "id": "user_7404fbd7-d043-4d4c-80e6-28c9ae81dacc"
+            "id": "user_7404fbd7-d043-4d4c-80e6-28c9ae81dacc",
         },
         {
             "first_name": "David",
@@ -194,7 +195,7 @@ def build_database(folder_path):
             "email": "david.jones@gmail.com",
             "register_at": "2024-10-04 12:00:00",
             "last_login": "2024-10-15 09:30:00",
-            "id": "user_42f20628-1989-4d87-81e6-4f4faca63410"
+            "id": "user_42f20628-1989-4d87-81e6-4f4faca63410",
         },
         {
             "first_name": "Eve",
@@ -202,30 +203,30 @@ def build_database(folder_path):
             "email": "eve.brown@gmail.com",
             "register_at": "2024-10-05 13:45:00",
             "last_login": "2024-10-16 10:15:00",
-            "id": "user_13074ec4-3813-4bbd-afa4-339e9eee27e9"
-        }
+            "id": "user_13074ec4-3813-4bbd-afa4-339e9eee27e9",
+        },
     ]
 
     # Insert data into the database
     for show in shows:
-        columns = ', '.join(show.keys())
-        placeholders = ', '.join(['?'] * len(show))
-        values = tuple(show.values())
-        sql = f"INSERT INTO show ({columns}) VALUES ({placeholders})"
+        columns: str = ", ".join(show.keys())
+        placeholders: str = ", ".join(["?"] * len(show))
+        values: Tuple[Any, ...] = tuple(show.values())
+        sql: str = f"INSERT INTO show ({columns}) VALUES ({placeholders})"
         cursor.execute(sql, values)
 
     for user in users:
-        columns = ', '.join(user.keys())
-        placeholders = ', '.join(['?'] * len(user))
-        values = tuple(user.values())
-        sql = f"INSERT INTO user ({columns}) VALUES ({placeholders})"
+        columns: str = ", ".join(user.keys())
+        placeholders: str = ", ".join(["?"] * len(user))
+        values: Tuple[Any, ...] = tuple(user.values())
+        sql: str = f"INSERT INTO user ({columns}) VALUES ({placeholders})"
         cursor.execute(sql, values)
 
-    cursor.execute('''
+    cursor.execute("""
         INSERT INTO booking (id, show_id, user_id, created_at)
         VALUES
             ('1', 'show_8406f0c6-6644-4a19-9448-670c9941b8d8', 'user_be6e1836-8fe9-4938-b2d0-48f810648e72', '2024-10-12 10:00:00')
-    ''')
+    """)
 
     # Commit changes and close the connection
     conn.commit()
@@ -233,9 +234,11 @@ def build_database(folder_path):
 
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser()
-    parser.add_argument("--folder_path", required=True, type=str, help="location to save the documents")
-    args = parser.parse_args()
+    parser: argparse.ArgumentParser = argparse.ArgumentParser()
+    parser.add_argument(
+        "--folder_path", required=True, type=str, help="location to save the documents"
+    )
+    args: argparse.Namespace = parser.parse_args()
 
     if not os.path.exists(args.folder_path):
         os.makedirs(args.folder_path)

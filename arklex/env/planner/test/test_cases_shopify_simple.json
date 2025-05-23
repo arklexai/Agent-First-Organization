@@ -177,7 +177,10 @@
         "taskgraph": "./shopify_empty_1/taskgraph.json",
         "expected_output": {
             "contains": {
-                "any": ["", " "]
+                "any": [
+                    "",
+                    " "
+                ]
             }
         },
         "expected_tool_calls": {

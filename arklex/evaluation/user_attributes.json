@@ -1,39 +1,76 @@
 {
     "goal": {
-        "values": ["order tracking", "asking for refund", "report order missing", "report product issue", "asking replacement", "request repair", "interested in product information", "product purchase", "product rental"],
+        "values": [
+            "order tracking",
+            "asking for refund",
+            "report order missing",
+            "report product issue",
+            "asking replacement",
+            "request repair",
+            "interested in product information",
+            "product purchase",
+            "product rental"
+        ],
         "generate_values": false
     },
     "generic": {
         "product_experience_level": {
-            "values": ["new to this product", "used competitor product"],
+            "values": [
+                "new to this product",
+                "used competitor product"
+            ],
             "generate_values": false
         },
         "customer_type": {
-            "values": ["new prospect", "returning customer"],
+            "values": [
+                "new prospect",
+                "returning customer"
+            ],
             "generate_values": false
         },
         "persona": {
-            "values": ["aggressive", "passive", "neutral"],
+            "values": [
+                "aggressive",
+                "passive",
+                "neutral"
+            ],
             "generate_values": false
         },
         "current_webpage": {
-            "values": ["home page", "product page", "about page"],
+            "values": [
+                "home page",
+                "product page",
+                "about page"
+            ],
             "generate_values": false
         },
         "modality": {
-            "values": ["text"],
+            "values": [
+                "text"
+            ],
             "generate_values": false
         },
         "communication_type": {
-            "values": ["outgoing", "incoming"],
+            "values": [
+                "outgoing",
+                "incoming"
+            ],
             "generate_values": false
         },
         "discovery_type": {
-            "values": ["social media", "friend recommendation", "search engine results", "third party website"],
+            "values": [
+                "social media",
+                "friend recommendation",
+                "search engine results",
+                "third party website"
+            ],
             "generate_values": false
         },
         "buying_behavior": {
-            "values": ["economic", "quality oriented"],
+            "values": [
+                "economic",
+                "quality oriented"
+            ],
             "generate_values": false
         },
         "budget": {
@@ -51,11 +88,22 @@
     },
     "b2b": {
         "decision_making_authority": {
-            "values": ["primary", "secondary"],
+            "values": [
+                "primary",
+                "secondary"
+            ],
             "generate_values": false
         },
         "deal_stage": {
-            "values": ["new leads", "demo schedule", "after demo", "decision make buy in", "contract sent", "contract signed", "money paid"],
+            "values": [
+                "new leads",
+                "demo schedule",
+                "after demo",
+                "decision make buy in",
+                "contract sent",
+                "contract signed",
+                "money paid"
+            ],
             "generate_values": false
         },
         "job_information": {
@@ -73,11 +121,18 @@
     },
     "b2c": {
         "brand_behavior": {
-            "values": ["brand loyal", "brand indifferent"],
+            "values": [
+                "brand loyal",
+                "brand indifferent"
+            ],
             "generate_values": false
         },
         "purchasing_preference": {
-            "values": ["discount oriented", "economic", "quality oriented"],
+            "values": [
+                "discount oriented",
+                "economic",
+                "quality oriented"
+            ],
             "generate_values": false
         }
     },
@@ -90,7 +145,11 @@
             "api": "http://127.0.0.1:8001/products",
             "bind_to": "user_profiles.current_webpage_content"
         },
-        "cart_id": [{"input": "<your_cart_id>"}]
+        "cart_id": [
+            {
+                "input": "<your_cart_id>"
+            }
+        ]
     },
     "user_profiles": {
         "user_info": {

@@ -58,7 +58,6 @@
             "num": 400
         }
     ],
-
     "tasks": [],
     "workers": [
         "RAGWorker",

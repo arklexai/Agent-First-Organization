@@ -7,8 +7,14 @@
         ],
         "description": "The user wants to talk to a human, then it should activate the human-in-the-loop worker. Skip the middle conversation between human and user, the next user utterance is delivered to agent again and go to the second half of the hitl worker.",
         "criteria": "After the first turn, the bot response key 'human-in-the-loop' should be return 'live'.",
-        "final_state": ["live", ""],
-        "trajectory": ["1", "1"],
+        "final_state": [
+            "live",
+            ""
+        ],
+        "trajectory": [
+            "1",
+            "1"
+        ],
         "expected_conversation": [
             {
                 "role": "assistant",
@@ -40,8 +46,14 @@
         ],
         "description": "Ask some question that can be answered by RAG, then ask to talk to human.",
         "criteria": "",
-        "final_state": ["", "live"],
-        "trajectory": ["3", "1"],
+        "final_state": [
+            "",
+            "live"
+        ],
+        "trajectory": [
+            "3",
+            "1"
+        ],
         "expected_conversation": [
             {
                 "role": "assistant",

@@ -13,13 +13,21 @@
     "rag_docs": [
         {
             "source": "examples/syllabus_assistant/syllabus_local_docs",
-            "type": "local"
+            "type": "file"
         }
     ],
     "tasks": [],
     "workers": [
-        {"id": "9aa47724-0b77-4752-9528-cf4b06a46915", "name": "FaissRAGWorker", "path": "faiss_rag_worker.py"},
-        {"id": "26bb6634-3bee-417d-ad75-23269ac17bc3", "name": "MessageWorker", "path": "message_worker.py"}
-       ],
+        {
+            "id": "9aa47724-0b77-4752-9528-cf4b06a46915",
+            "name": "FaissRAGWorker",
+            "path": "faiss_rag_worker.py"
+        },
+        {
+            "id": "26bb6634-3bee-417d-ad75-23269ac17bc3",
+            "name": "MessageWorker",
+            "path": "message_worker.py"
+        }
+    ],
     "tools": []
 }

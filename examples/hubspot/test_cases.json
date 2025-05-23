@@ -8,7 +8,10 @@
     "description": "Test the search_contact_by_email on Hubspot when user has inquiry",
     "criteria": "Directly success",
     "final_state": "Update the lastmodifieddate by associating the communication with the contact",
-    "trajectory": [ "1", "2"],
+    "trajectory": [
+      "1",
+      "2"
+    ],
     "expected_conversation": [
       {
         "role": "assistant",
@@ -41,7 +44,10 @@
     "description": "Test the ticket creation on Hubspot when user has a issue",
     "criteria": "The ticket is created or not for users",
     "final_state": "Directly success",
-    "trajectory": [ "3", "4" ],
+    "trajectory": [
+      "3",
+      "4"
+    ],
     "expected_conversation": [
       {
         "role": "assistant",
@@ -78,7 +84,14 @@
     "description": "Test the meeting schedule function",
     "criteria": "The meeting is scheduled for the customer",
     "final_state": "Directly success",
-    "trajectory": [ "5", "7", "7", "8", "8", "8"],
+    "trajectory": [
+      "5",
+      "7",
+      "7",
+      "8",
+      "8",
+      "8"
+    ],
     "expected_conversation": [
       {
         "role": "assistant",

@@ -5,7 +5,6 @@ from typing import List
 import requests
 import pickle
 import uuid
-import argparse
 from enum import Enum
 import os
 
@@ -17,27 +16,32 @@ import networkx as nx
 from langchain.text_splitter import RecursiveCharacterTextSplitter
 from langchain_core.documents import Document
 from mistralai import Mistral
-import filetype
-from langchain_community.document_loaders import PyPDFLoader, TextLoader, UnstructuredWordDocumentLoader, UnstructuredExcelLoader, UnstructuredMarkdownLoader, TextLoader
+from langchain_community.document_loaders import (
+    PyPDFLoader,
+    UnstructuredWordDocumentLoader,
+    UnstructuredExcelLoader,
+    UnstructuredMarkdownLoader,
+    TextLoader,
+)
 import base64
-from pathlib import Path
 
 # Configure logging
 logging.basicConfig(
-    level=logging.INFO,  
-    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
-    handlers=[logging.StreamHandler()]
+    level=logging.INFO,
+    format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
+    handlers=[logging.StreamHandler()],
 )
 logger = logging.getLogger(__name__)
 
 CHROME_DRIVER_VERSION = "125.0.6422.7"
 MISTRAL_API_KEY = os.getenv("MISTRAL_API_KEY")
 
+
 def encode_image(image_path):
     """Encode the image to base64."""
     try:
         with open(image_path, "rb") as image_file:
-            return base64.b64encode(image_file.read()).decode('utf-8')
+            return base64.b64encode(image_file.read()).decode("utf-8")
     except FileNotFoundError:
         logger.error(f"Error: The file {image_path} was not found.")
         return None
@@ -45,14 +49,18 @@ def encode_image(image_path):
         logger.error(f"Error: {e}")
         return None
 
+
 class SourceType(Enum):
     WEB = 1
-    LOCAL = 2
+    FILE = 2
+    TEXT = 3
+
 
 class DocObject:
     def __init__(self, id: str, source: str):
         self.id = id
         self.source = source
+
 
 class CrawledObject(DocObject):
     def __init__(
@@ -64,7 +72,7 @@ class CrawledObject(DocObject):
         is_chunk=False,
         is_error=False,
         error_message=None,
-        source_type=SourceType.WEB
+        source_type=SourceType.WEB,
     ):
         super().__init__(id, source)
         self.content = content
@@ -83,9 +91,9 @@ class CrawledObject(DocObject):
             "is_chunk": self.is_chunk,
             "is_error": self.is_error,
             "error_message": self.error_message,
-            "source_type": self.source_type
+            "source_type": self.source_type,
         }
-    
+
     @classmethod
     def from_dict(cls, data: dict):
         return cls(
@@ -96,15 +104,15 @@ class CrawledObject(DocObject):
             is_chunk=data["is_chunk"],
             is_error=data["is_error"],
             error_message=data["error_message"],
-            source_type=data["source_type"]
+            source_type=data["source_type"],
         )
-        
-        
+
+
 class Loader:
     def __init__(self):
         pass
 
-    def to_crawled_url_objs(self, url_list: List[str]) -> List[CrawledObject]:    
+    def to_crawled_url_objs(self, url_list: List[str]) -> List[CrawledObject]:
         url_objs = [DocObject(str(uuid.uuid4()), url) for url in url_list]
         crawled_url_objs = self.crawl_urls(url_objs)
         return crawled_url_objs
@@ -119,7 +127,9 @@ class Loader:
         options.add_argument("--disable-extensions")
         options.add_argument("--disable-infobars")
         options.add_argument("--remote-debugging-pipe")
-        chrome_driver_path = Path(ChromeDriverManager(driver_version=CHROME_DRIVER_VERSION).install())
+        chrome_driver_path = Path(
+            ChromeDriverManager(driver_version=CHROME_DRIVER_VERSION).install()
+        )
         options.binary_location = str(chrome_driver_path.parent.absolute())
         logger.info(f"chrome binary location: {options.binary_location}")
         driver = webdriver.Chrome(options=options)
@@ -134,16 +144,18 @@ class Loader:
                 soup = BeautifulSoup(html, "html.parser")
 
                 text_list = []
-                for string in soup.strings:        
+                for string in soup.strings:
                     if string.find_parent("a"):
-                        href = urljoin(url_obj.source, string.find_parent("a").get("href"))
+                        href = urljoin(
+                            url_obj.source, string.find_parent("a").get("href")
+                        )
                         if href.startswith(url_obj.source):
                             text = f"{string} {href}"
                             text_list.append(text)
                     elif string.strip():
                         text_list.append(string)
                 text_output = "\n".join(text_list)
-                
+
                 title = url_obj.source
                 for title in soup.find_all("title"):
                     title = title.get_text()
@@ -155,7 +167,7 @@ class Loader:
                         source=url_obj.source,
                         content=text_output,
                         metadata={"title": title, "source": url_obj.source},
-                        source_type=SourceType.WEB
+                        source_type=SourceType.WEB,
                     )
                 )
 
@@ -170,18 +182,20 @@ class Loader:
                         metadata={"title": url_obj.source, "source": url_obj.source},
                         is_error=True,
                         error_message=str(err),
-                        source_type=SourceType.WEB
+                        source_type=SourceType.WEB,
                     )
                 )
         driver.quit()
         return docs
 
     def get_all_urls(self, base_url: str, max_num: int) -> List[str]:
-        logger.info(f"Getting all pages for base url: {base_url}, maximum number is: {max_num}")
+        logger.info(
+            f"Getting all pages for base url: {base_url}, maximum number is: {max_num}"
+        )
         urls_visited = []
         base_url = base_url.split("#")[0].rstrip("/")
         urls_to_visit = [base_url]
-        
+
         while urls_to_visit:
             if len(urls_visited) >= max_num:
                 break
@@ -193,17 +207,17 @@ class Loader:
                 urls_to_visit = list(set(urls_to_visit))
         logger.info(f"URLs visited: {urls_visited}")
         return sorted(urls_visited[:max_num])
-    
+
     def get_outsource_urls(self, curr_url: str, base_url: str):
         headers = {
-            'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/14.0.3 Safari/605.1.15'
-        } 
+            "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/14.0.3 Safari/605.1.15"
+        }
         new_urls = list()
         try:
             response = requests.get(curr_url, headers=headers, timeout=10)
             # Check if the request was successful
             if response.status_code == 200:
-                soup = BeautifulSoup(response.text, 'html.parser')
+                soup = BeautifulSoup(response.text, "html.parser")
                 for link in soup.find_all("a"):
                     try:
                         full_url = urljoin(curr_url, link.get("href"))
@@ -211,25 +225,36 @@ class Loader:
                         if self._check_url(full_url, base_url):
                             new_urls.append(full_url)
                     except Exception as err:
-                        logger.error(f"Fail to process sub-url {link.get('href')}: {err}")
+                        logger.error(
+                            f"Fail to process sub-url {link.get('href')}: {err}"
+                        )
             else:
-                logger.error(f"Failed to retrieve page {curr_url}, status code: {response.status_code}")
+                logger.error(
+                    f"Failed to retrieve page {curr_url}, status code: {response.status_code}"
+                )
         except Exception as err:
             logger.error(f"Fail to get the page from {curr_url}: {err}")
         return list(set(new_urls))
-    
+
     def _check_url(self, full_url, base_url):
-        kw_list = ['.pdf', '.jpg', '.png', '.docx', '.xlsx', '.pptx', '.zip', ".jpeg"]
-        if full_url.startswith(base_url) and full_url and not any(kw in full_url for kw in kw_list) and full_url != base_url:
+        kw_list = [".pdf", ".jpg", ".png", ".docx", ".xlsx", ".pptx", ".zip", ".jpeg"]
+        if (
+            full_url.startswith(base_url)
+            and full_url
+            and not any(kw in full_url for kw in kw_list)
+            and full_url != base_url
+        ):
             return True
         return False
 
-    def get_candidates_websites(self, urls: List[CrawledObject], top_k: int) -> List[CrawledObject]:
-        """Based on the pagerank algorithm of the crawled websites, return the top k websites. 
+    def get_candidates_websites(
+        self, urls: List[CrawledObject], top_k: int
+    ) -> List[CrawledObject]:
+        """Based on the pagerank algorithm of the crawled websites, return the top k websites.
         The reason why we can do that is because we have the hreqs of the including <a> tags in the content of the website.
         So we can use that to construct the edges and then use the tool from networkx to get the pagerank of the websites.
         """
-        
+
         nodes = []
         edges = []
         url_to_id_mapping = {}
@@ -246,7 +271,7 @@ class Loader:
 
             node = [url.id, url.to_dict()]
             nodes.append(node)
-        
+
         self.graph = nx.DiGraph(name="website graph")
         self.graph.add_nodes_from(nodes)
         self.graph.add_edges_from(edges)
@@ -259,25 +284,42 @@ class Loader:
         urls_candidates = [self.graph.nodes[url_id] for url_id, _ in top_k_websites]
         urls_cleaned = [CrawledObject.from_dict(doc) for doc in urls_candidates if doc]
         return urls_cleaned
-    
+
+    def to_crawled_text(self, text_list: List[str]) -> List[CrawledObject]:
+        """Crawls a list of text."""
+        crawled_local_objs = []
+        for text in text_list:
+            crawled_obj = CrawledObject(
+                id=str(uuid.uuid4()),
+                source="text",
+                content=text,
+                metadata={},
+                source_type=SourceType.TEXT,
+            )
+            crawled_local_objs.append(crawled_obj)
+        return crawled_local_objs
+
     def to_crawled_local_objs(self, file_list: List[str]) -> List[CrawledObject]:
-        '''Crawls a list of locally present files.'''    
+        """Crawls a list of locally present files."""
         local_objs = [DocObject(str(uuid.uuid4()), file) for file in file_list]
         crawled_local_objs = [self.crawl_file(local_obj) for local_obj in local_objs]
         return crawled_local_objs
-    
+
     def crawl_file(self, local_obj: DocObject) -> CrawledObject:
-        '''This function crawls a file that is present locally and returns the crawled object.'''
+        """This function crawls a file that is present locally and returns the crawled object."""
         file_path = Path(local_obj.source)
-        file_type = file_path.suffix.lstrip('.')
+        file_type = file_path.suffix.lstrip(".")
         file_name = file_path.name
-        
+
         try:
             if not file_type:
                 err_msg = f"No file type detected for file: {str(file_path)}"
                 raise FileNotFoundError(err_msg)
-            
-            if file_type in ["pdf", "png", "jpg", "jpeg"] and (MISTRAL_API_KEY is not None and MISTRAL_API_KEY != '<your-mistral-api-key>'):
+
+            if file_type in ["pdf", "png", "jpg", "jpeg"] and (
+                MISTRAL_API_KEY is not None
+                and MISTRAL_API_KEY != "<your-mistral-api-key>"
+            ):
                 # Call the Mistral API to extract data.
                 client = Mistral(api_key=MISTRAL_API_KEY)
                 if file_type == "pdf":
@@ -287,15 +329,15 @@ class Loader:
                             "file_name": file_name,
                             "content": open(file_path, "rb"),
                         },
-                        purpose="ocr"
-                    ) 
+                        purpose="ocr",
+                    )
                     signed_url = client.files.get_signed_url(file_id=uploaded_pdf.id)
                     ocr_response = client.ocr.process(
                         model="mistral-ocr-latest",
                         document={
                             "type": "document_url",
                             "document_url": signed_url.url,
-                        }
+                        },
                     )
                 else:
                     # For image files
@@ -304,20 +346,20 @@ class Loader:
                         model="mistral-ocr-latest",
                         document={
                             "type": "image_url",
-                            "image_url": f"data:image/{file_type};base64,{base64_image}" 
-                        }
+                            "image_url": f"data:image/{file_type};base64,{base64_image}",
+                        },
                     )
                 doc_text = ""
                 for page in ocr_response.pages:
                     doc_text += page.markdown
-                
-                logger.info('Mistral PDF extractor worked as expected.')
+
+                logger.info("Mistral PDF extractor worked as expected.")
                 return CrawledObject(
                     id=local_obj.id,
                     source=local_obj.source,
                     content=doc_text,
                     metadata={"title": file_name, "source": local_obj.source},
-                    source_type=SourceType.LOCAL
+                    source_type=SourceType.FILE,
                 )
             elif file_type == "html":
                 # TODO : Consider replacing this logic with the Unstructured HTML Loader.
@@ -326,7 +368,7 @@ class Loader:
                 soup = BeautifulSoup(html, "html.parser")
 
                 text_list = []
-                for string in soup.strings:        
+                for string in soup.strings:
                     if string.find_parent("a"):
                         href = string.find_parent("a").get("href")
                         text = f"{string} {href}"
@@ -334,22 +376,24 @@ class Loader:
                     elif string.strip():
                         text_list.append(string)
                 doc_text = "\n".join(text_list)
-                
+
                 title = file_name
                 for title in soup.find_all("title"):
                     title = title.get_text()
                     break
 
                 return CrawledObject(
-                        id=local_obj.id,
-                        source=local_obj.source,
-                        content=doc_text,
-                        metadata={"title": title, "source": local_obj.source},
-                        source_type=SourceType.LOCAL
-                    )
+                    id=local_obj.id,
+                    source=local_obj.source,
+                    content=doc_text,
+                    metadata={"title": title, "source": local_obj.source},
+                    source_type=SourceType.FILE,
+                )
             elif file_type == "pdf":
                 # Since Mistral API key is absent, we default to basic pdf parser
-                logger.info("MISTRAL_API_KEY env variable not set, hence defaulting to static parsing.")
+                logger.info(
+                    "MISTRAL_API_KEY env variable not set, hence defaulting to static parsing."
+                )
                 loader = PyPDFLoader(file_path)
             elif file_type == "doc" or file_type == "docx":
                 loader = UnstructuredWordDocumentLoader(file_path, mode="single")
@@ -362,15 +406,19 @@ class Loader:
             else:
                 err_msg = "Unsupported file type. If you are trying to upload a pdf, make sure it is less than 50MB. Images are only supported with the advanced parser."
                 raise NotImplementedError(err_msg)
-                
-            document = loader.load()[0]
-            doc_text = document.to_json()["kwargs"]["page_content"]
+
+            doc_text = "\n".join(
+                [
+                    document.to_json()["kwargs"]["page_content"]
+                    for document in loader.load()
+                ]
+            )
             return CrawledObject(
                 id=local_obj.id,
                 source=local_obj.source,
                 content=doc_text,
                 metadata={"title": file_name, "source": local_obj.source},
-                source_type=SourceType.LOCAL,   
+                source_type=SourceType.FILE,
             )
 
         except Exception as err_msg:
@@ -380,40 +428,47 @@ class Loader:
                 source=local_obj.source,
                 content=None,
                 metadata={"title": file_name},
-                source_type=SourceType.LOCAL,
+                source_type=SourceType.FILE,
                 is_error=True,
-                error_message=str(err_msg)
+                error_message=str(err_msg),
             )
-    
+
     @staticmethod
     def save(file_path: str, docs: List[CrawledObject]):
         with open(file_path, "wb") as f:
             pickle.dump(docs, f)
-    
+
     @classmethod
     def chunk(cls, doc_objs: List[CrawledObject]) -> List[CrawledObject]:
-        text_splitter = RecursiveCharacterTextSplitter.from_tiktoken_encoder(encoding_name="cl100k_base", chunk_size=200, chunk_overlap=40)
+        text_splitter = RecursiveCharacterTextSplitter.from_tiktoken_encoder(
+            encoding_name="cl100k_base", chunk_size=200, chunk_overlap=40
+        )
         docs = []
         langchain_docs = []
         for doc_obj in doc_objs:
             if doc_obj.is_error or doc_obj.content is None:
-                logger.error(f"Skip source: {doc_obj.source} because of error or no content")
+                logger.error(
+                    f"Skip source: {doc_obj.source} because of error or no content"
+                )
                 continue
             elif doc_obj.is_chunk:
-                logger.error(f"Skip source: {doc_obj.source} because it has been chunked")
+                logger.error(
+                    f"Skip source: {doc_obj.source} because it has been chunked"
+                )
                 docs.append(doc_obj)
                 continue
             splitted_text = text_splitter.split_text(doc_obj.content)
             for i, txt in enumerate(splitted_text):
                 doc = CrawledObject(
-                    id=doc_obj.id+"_"+str(i),
+                    id=doc_obj.id + "_" + str(i),
                     source=doc_obj.source,
                     content=txt,
                     metadata=doc_obj.metadata,
                     is_chunk=True,
-                    source_type=doc_obj.source_type
+                    source_type=doc_obj.source_type,
                 )
                 docs.append(doc)
-                langchain_docs.append(Document(page_content=txt, metadata={"source": doc_obj.source}))
+                langchain_docs.append(
+                    Document(page_content=txt, metadata={"source": doc_obj.source})
+                )
         return langchain_docs
-

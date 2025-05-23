@@ -1,14 +1,14 @@
 # Mock Data Generation
 
 ## Current Mock Data for the Benchmark
+
 Feel free to use some of the data for other purposes.
+
 - `users.json`: a database of users with their emails, addresses, and orders
 - `products.json`: a database of products, where each product has variants (e.g., size, color).
 - `orders.json`: a database of orders that can be operated upon.
 
-
 Check `../tools` for mock APIs on top of current mock data.
-
 
 ### Experience of Mock Data Generation
 

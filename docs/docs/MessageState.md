@@ -29,6 +29,7 @@ class MessageState(TypedDict):
 - `slots`: A list of `Slot` objects to collect information during the conversation.
 
 For the list of `Slot` objects, they should be defined as:
+
 ```py
 class Slot(BaseModel):
     name: str

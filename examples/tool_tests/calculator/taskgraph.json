@@ -24,7 +24,9 @@
     "rag_docs": [],
     "tasks": [],
     "workers": [],
-    "tools": ["calculator"],
+    "tools": [
+        "calculator"
+    ],
     "nluapi": "http://localhost:55135/nlu/predict",
     "slotfillapi": "http://localhost:55135/slotfill/predict"
 }

@@ -2,138 +2,182 @@ import os
 import random
 import json
 import requests
+from typing import List, Dict, Any, Optional, Union
 from openai import OpenAI
 import anthropic
 from dotenv import load_dotenv
 
 from arklex.utils.model_config import MODEL
+
 load_dotenv()
 
 
-def create_client():
+def create_client() -> Union[OpenAI, anthropic.Anthropic]:
     try:
-        org_key = os.environ["OPENAI_ORG_ID"]
+        org_key: Optional[str] = os.environ["OPENAI_ORG_ID"]
     except:
         org_key = None
-    if MODEL['llm_provider'] == 'openai' or MODEL['llm_provider']== 'gemini':
-        client = OpenAI(
+    if MODEL["llm_provider"] == "openai" or MODEL["llm_provider"] == "gemini":
+        client: OpenAI = OpenAI(
             api_key=os.environ[f"{MODEL['llm_provider'].upper()}_API_KEY"],
-            base_url="https://generativelanguage.googleapis.com/v1beta/openai/" if MODEL['llm_provider'] == 'gemini' else None,
-            organization=org_key
+            base_url="https://generativelanguage.googleapis.com/v1beta/openai/"
+            if MODEL["llm_provider"] == "gemini"
+            else None,
+            organization=org_key,
         )
-    elif MODEL['llm_provider'] == 'anthropic':
-        client = anthropic.Anthropic()
+    elif MODEL["llm_provider"] == "anthropic":
+        client: anthropic.Anthropic = anthropic.Anthropic()
     return client
-    
 
-def chatgpt_chatbot(messages, client, model=MODEL["model_type_or_path"]):
-   
-    if MODEL['llm_provider'] != 'anthropic':
-        answer = client.chat.completions.create(
-            model=MODEL['model_type_or_path'], messages=messages, temperature=0.1
-        ).choices[0].message.content.strip()
+
+def chatgpt_chatbot(
+    messages: List[Dict[str, str]],
+    client: Union[OpenAI, anthropic.Anthropic],
+    model: str = MODEL["model_type_or_path"],
+) -> str:
+    if MODEL["llm_provider"] != "anthropic":
+        answer: str = (
+            client.chat.completions.create(
+                model=MODEL["model_type_or_path"], messages=messages, temperature=0.1
+            )
+            .choices[0]
+            .message.content.strip()
+        )
     else:
-        kwargs = {
+        kwargs: Dict[str, Any] = {
             "model": MODEL["model_type_or_path"],
-            "messages": messages if messages[0]['role'] != 'system' else [messages[1]],
+            "messages": messages if messages[0]["role"] != "system" else [messages[1]],
             "temperature": 0.1,
             "max_tokens": 1024,
-            **({"system": messages[0]['content']} if messages[0]['role'] == 'system' else {})
+            **(
+                {"system": messages[0]["content"]}
+                if messages[0]["role"] == "system"
+                else {}
+            ),
         }
-        answer = client.messages.create(**kwargs).content[0].text.strip()
-   
+        answer: str = client.messages.create(**kwargs).content[0].text.strip()
+
     return answer
 
+
 # flip roles in convo history, only keep role and content
-def flip_hist_content_only(hist):
-    new_hist = []
+def flip_hist_content_only(hist: List[Dict[str, Any]]) -> List[Dict[str, str]]:
+    new_hist: List[Dict[str, str]] = []
     for turn in hist:
-        if turn['role'] == 'system':
+        if turn["role"] == "system":
             continue
-        elif turn['role'] == 'user':
-            new_hist.append({'role': 'assistant', 'content': turn['content']})
+        elif turn["role"] == "user":
+            new_hist.append({"role": "assistant", "content": turn["content"]})
         else:
-            new_hist.append({'role': 'user', 'content': turn['content']})
+            new_hist.append({"role": "user", "content": turn["content"]})
     return new_hist
+
 
 # flip roles in convo history, keep all other keys the same
-def flip_hist(hist):
-    new_hist = []
+def flip_hist(hist: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+    new_hist: List[Dict[str, Any]] = []
     for turn in hist.copy():
-        if 'role' not in turn.keys():
+        if "role" not in turn.keys():
             new_hist.append(turn)
-        elif turn['role'] == 'system':
+        elif turn["role"] == "system":
             continue
-        elif turn['role'] == 'user':
-            turn['role'] = 'assistant'
+        elif turn["role"] == "user":
+            turn["role"] = "assistant"
             new_hist.append(turn)
         else:
-            turn['role'] = 'user'
+            turn["role"] = "user"
             new_hist.append(turn)
     return new_hist
 
-def query_chatbot(model_api, history, params, env_config):
+
+def query_chatbot(
+    model_api: str,
+    history: List[Dict[str, Any]],
+    params: Dict[str, Any],
+    env_config: Dict[str, Any],
+) -> Dict[str, Any]:
     history = flip_hist_content_only(history)
-    data = {
+    data: Dict[str, Any] = {
         "history": history,
         "parameters": params,
         "workers": env_config["workers"],
         "tools": env_config["tools"],
     }
-    data = json.dumps(data)
-    response = requests.post(model_api, headers={"Content-Type": "application/json"}, data=data)
+    data_str: str = json.dumps(data)
+    response = requests.post(
+        model_api, headers={"Content-Type": "application/json"}, data=data_str
+    )
     return response.json()
 
-def format_chat_history_str(chat_history):
-    formatted_hist = ''
+
+def format_chat_history_str(chat_history: List[Dict[str, str]]) -> str:
+    formatted_hist: str = ""
     for turn in chat_history:
-        formatted_hist += turn['role'].upper() + ': ' + turn['content'] + ' '
+        formatted_hist += turn["role"].upper() + ": " + turn["content"] + " "
     return formatted_hist.strip()
 
+
 # filter prompts out of bot utterances
-def filter_convo(convo, delim = '\n', filter_turns = True):
-    filtered_convo = []
+def filter_convo(
+    convo: List[Dict[str, Any]], delim: str = "\n", filter_turns: bool = True
+) -> List[Dict[str, Any]]:
+    filtered_convo: List[Dict[str, Any]] = []
     for i, turn in enumerate(convo):
         if i <= 1:
             continue
-        elif 'role' not in turn.keys() and filter_turns:
+        elif "role" not in turn.keys() and filter_turns:
             continue
-        elif 'role' not in turn.keys():
+        elif "role" not in turn.keys():
             filtered_convo.append(turn)
-        elif turn['role'] == 'assistant':
+        elif turn["role"] == "assistant":
             filtered_convo.append(turn)
         else:
-            idx = turn['content'].find(delim)
-            new_turn = {}
+            idx: int = turn["content"].find(delim)
+            new_turn: Dict[str, Any] = {}
             for key in turn.keys():
-                if key == 'content':
+                if key == "content":
                     new_turn[key] = turn[key][:idx]
                 else:
                     new_turn[key] = turn[key]
             filtered_convo.append(new_turn)
     return filtered_convo
 
-def adjust_goal(doc_content, goal):
-    message = f"Pretend you have the following goal in the mind. If the goal including some specific product, such as floss, mug, iphone, etc., then please replace it with the product from the following document content. Otherwise, don't need to change it and just return the original goal. The document content is as follows:\n{doc_content}\n\nThe original goal is as follows:\n{goal}\n\nOnly give the answer to the question in your response."
 
-    return chatgpt_chatbot([{'role': 'user', 'content': message}], model=MODEL["model_type_or_path"])
+def adjust_goal(doc_content: str, goal: str) -> str:
+    message: str = f"Pretend you have the following goal in the mind. If the goal including some specific product, such as floss, mug, iphone, etc., then please replace it with the product from the following document content. Otherwise, don't need to change it and just return the original goal. The document content is as follows:\n{doc_content}\n\nThe original goal is as follows:\n{goal}\n\nOnly give the answer to the question in your response."
 
-def generate_goal(doc_content, client):
-    message = f"Pretend you have just read the following website:\n{doc_content}\nThis website also has a chatbot. What is some information you want to get from this chatbot or a goal you might have when chatting with this chatbot based on the website content? Answer the question in the first person. Only give the answer to the question in your response."
-    
-    return chatgpt_chatbot([{'role': 'user', 'content': message}], client, model=MODEL["model_type_or_path"])
+    return chatgpt_chatbot(
+        [{"role": "user", "content": message}], model=MODEL["model_type_or_path"]
+    )
 
-def generate_goals(documents, params,client):
-    goals = []
-    for i in range(params['num_goals']):
-        doc = random.choice(documents)
-        goals.append(generate_goal(doc['content']), client)
+
+def generate_goal(doc_content: str, client: Union[OpenAI, anthropic.Anthropic]) -> str:
+    message: str = f"Pretend you have just read the following website:\n{doc_content}\nThis website also has a chatbot. What is some information you want to get from this chatbot or a goal you might have when chatting with this chatbot based on the website content? Answer the question in the first person. Only give the answer to the question in your response."
+
+    return chatgpt_chatbot(
+        [{"role": "user", "content": message}],
+        client,
+        model=MODEL["model_type_or_path"],
+    )
+
+
+def generate_goals(
+    documents: List[Dict[str, str]],
+    params: Dict[str, Any],
+    client: Union[OpenAI, anthropic.Anthropic],
+) -> List[str]:
+    goals: List[str] = []
+    for i in range(params["num_goals"]):
+        doc: Dict[str, str] = random.choice(documents)
+        goals.append(generate_goal(doc["content"], client))
     return goals
 
-if __name__ == '__main__':
+
+if __name__ == "__main__":
     from get_documents import get_all_documents, filter_documents
+
     documents = get_all_documents()
     documents = filter_documents(documents)
     client = create_client()
-    params = {'num_goals': 1}
+    params = {"num_goals": 1}
     print(generate_goals(documents, params, client))

@@ -1,10 +1,12 @@
 # How to host the documentation locally
 
 ## Pre-requisites
+
 - [Node.js](https://nodejs.org/en/download/) version 18.0 or above:
 - npm version 9.0 or above
 
   Installation through nvm:
+
   ```bash
   # installs nvm (Node Version Manager)
   curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.40.0/install.sh | bash
@@ -20,18 +22,20 @@
   ```
 
 ## Install Docusaurus required dependencies
+
   ```bash
   cd docs # navigate to the docs folder from the root directory: AgentOrg/docs
   npm install
   ```
 
 ## Start the site
+
   ```bash
   npm run start
   ```
-  The `npm run start` command builds your website locally and serves it through a development server, ready for you to view at http://localhost:3000/.
-  
 
+  The `npm run start` command builds your website locally and serves it through a development server, ready for you to view at <http://localhost:3000/>.
+  
 # Deploy your site
 
 Docusaurus is a **static-site-generator** (also called **[Jamstack](https://jamstack.org/)**).

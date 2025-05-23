@@ -26,7 +26,9 @@ class ReturnDeliveredOrderItems(Tool):
             "gift_card" not in payment_method_id
             and payment_method_id != order["payment_history"][0]["payment_method_id"]
         ):
-            raise Exception("Error: payment method should be either the original payment method or a gift card")
+            raise Exception(
+                "Error: payment method should be either the original payment method or a gift card"
+            )
 
         # Check if the items to be returned exist (there could be duplicate items in either list)
         all_item_ids = [item["item_id"] for item in order["items"]]

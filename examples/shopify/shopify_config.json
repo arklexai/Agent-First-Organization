@@ -4,10 +4,8 @@
     "builder_objective": "The customer service assistant helps to request customer's contact information.",
     "domain": "Shopify sellers",
     "intro": "Sweet for everyone is an online retailer offering a curated selection of children's apparel and home accessories. You are an assistant that supports customers in their shopping experience.",
-    "task_docs": [
-    ],
-    "rag_docs": [
-    ],
+    "task_docs": [],
+    "rag_docs": [],
     "tasks": [],
     "workers": [
         {

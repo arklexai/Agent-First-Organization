@@ -25,11 +25,9 @@
   font-size: 2.8rem;
   font-weight: 700;
   margin-top: -3.5rem;
-  background: linear-gradient(
-    135deg,
-    var(--title-color),
-    var(--ifm-color-primary)
-  );
+  background: linear-gradient(135deg,
+      var(--title-color),
+      var(--ifm-color-primary));
   background-clip: text;
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
@@ -53,6 +51,7 @@
   from {
     transform: rotate(0deg);
   }
+
   to {
     transform: rotate(360deg);
   }
@@ -68,7 +67,8 @@
   border: 1px solid rgba(var(--ifm-color-primary-rgb), 0.1);
   box-shadow: rgba(3, 102, 214, 0.3) 0px 0px 0px 3px;
   transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
-  overflow: visible; /* Changed from hidden to show animations */
+  overflow: visible;
+  /* Changed from hidden to show animations */
   max-width: 540px;
   margin: 0 auto;
   width: 100%;
@@ -136,11 +136,13 @@
 }
 
 @keyframes glow {
+
   0%,
   100% {
     transform: scale(1);
     opacity: 0.5;
   }
+
   50% {
     transform: scale(1.5);
     opacity: 1;

@@ -30,7 +30,9 @@ class ModifyPendingOrderPayment(Tool):
             len(order["payment_history"]) > 1
             or order["payment_history"][0]["transaction_type"] != "payment"
         ):
-            raise Exception("Error: there should be exactly one payment for a pending order")
+            raise Exception(
+                "Error: there should be exactly one payment for a pending order"
+            )
 
         # Check that the payment method is different
         if order["payment_history"][0]["payment_method_id"] == payment_method_id:
@@ -48,7 +50,9 @@ class ModifyPendingOrderPayment(Tool):
             payment_method["source"] == "gift_card"
             and payment_method["balance"] < amount
         ):
-            raise Exception("Error: insufficient gift card balance to pay for the order")
+            raise Exception(
+                "Error: insufficient gift card balance to pay for the order"
+            )
 
         # Modify the payment method
         order["payment_history"].extend(

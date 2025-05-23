@@ -24,7 +24,7 @@ const sidebars = {
     {
       type: 'category',
       label: 'Tutorials',
-      link: {type: 'doc', id: 'tutorials/intro'},
+      link: { type: 'doc', id: 'tutorials/intro' },
       items: [
         // 'tutorials/roleplay-chatbot',
         'tutorials/customer-service',
@@ -34,7 +34,7 @@ const sidebars = {
     {
       type: 'category',
       label: 'Config',
-      link: {type: 'doc', id: 'Config/intro'},
+      link: { type: 'doc', id: 'Config/intro' },
       items: [
         'Config/ChatModels'
       ],
@@ -42,7 +42,7 @@ const sidebars = {
     {
       type: 'category',
       label: 'Taskgraph',
-      link: {type: 'doc', id: 'Taskgraph/intro'},
+      link: { type: 'doc', id: 'Taskgraph/intro' },
       items: [
         'Taskgraph/Generation'
       ],
@@ -51,7 +51,7 @@ const sidebars = {
     {
       type: 'category',
       label: 'Workers',
-      link: {type: 'doc', id: 'Workers/intro'},
+      link: { type: 'doc', id: 'Workers/intro' },
       items: [
         'Workers/Workers',
         'Workers/MessageWorker',
@@ -65,7 +65,7 @@ const sidebars = {
     {
       type: 'category',
       label: 'Integration',
-      link: {type: 'doc', id: 'Integration/intro'},
+      link: { type: 'doc', id: 'Integration/intro' },
       items: [
         'Integration/Hubspot'
       ],
@@ -73,7 +73,7 @@ const sidebars = {
     {
       type: 'category',
       label: 'Evaluation',
-      link: {type: 'doc', id: 'Evaluation/intro'},
+      link: { type: 'doc', id: 'Evaluation/intro' },
       items: [
         'Evaluation/UserSimulator',
         'Evaluation/Metrics'

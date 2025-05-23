@@ -160,5 +160,5 @@ class Env(object):
                     r_outputs = 0.0
                     reward = 0.0
             info = RewardOutputInfo(r_outputs=r_outputs, outputs=outputs)
-            
+
         return RewardResult(reward=reward, info=info, actions=actions)

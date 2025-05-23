@@ -1,13 +1,17 @@
 # Hubspot
+
 ## Introduction
-HubSpot is a platform that connects your marketing, sales, and services tools to a unified **CRM** database. 
+
+HubSpot is a platform that connects your marketing, sales, and services tools to a unified **CRM** database.
 In this framework, the feature of the Hubspot is integrated for users to better manage the relationship between customers.
 
 ## Setup
+
 Setting up the private app
+
 * Login to [Hubspot](https://app.hubspot.com/login) and then go to ⚙ (Settings icon) on the top right
 * On the left navbar, go to **Integrations** > **Private Apps**
-* Create a new private app 
+* Create a new private app
 * Give a name for the new private app ("agent-integration"), upload a logo, and give some descriptions if you want
 * Go to scopes to add the following necessary scopes:
   * crm.lists.read
@@ -20,18 +24,23 @@ Setting up the private app
 * Adding relevant data for your company using several ways, such as **Import from files**, **Sync from files** and **Migrate from your data.**
 
 ## Implementation
-### find_contact_by_email(email, chat, **kwargs): 
-This function aims to find the existing customer by their emails and update the last activity date. 
+
+### find_contact_by_email(email, chat, **kwargs)
+
+This function aims to find the existing customer by their emails and update the last activity date.
 
 Inputs:
+
 * `email`: the email address of the customer (It should be noted that email address is also a unique identifier for each customer)
 * `chat`: the chat content that customer communicates with the chatbot
 * `**kwargs`: contains the **access token** for the hubspot private app
 
 Output:
+
 * `contact_info_properties`: id, email, first_name and last_name of the contact of the existing customer
 
 There are several steps for the implementation of this function:
+
 * Detect whether the customer is the existing one using `email`:
   
   ```python
@@ -55,8 +64,9 @@ There are several steps for the implementation of this function:
     contact_search_response = contact_search_response.to_dict()
   ```
 
-* If the user is not an existing customer, `USER_NOT_FOUND_ERROR` will be returned. If the user is the existing customer, the response of search_api is shown below. 
+* If the user is not an existing customer, `USER_NOT_FOUND_ERROR` will be returned. If the user is the existing customer, the response of search_api is shown below.
 The structure of a contact is demonstrated inside the `results` field.
+
   ```
   {'paging': None,
    'results': [{'archived': False,
@@ -103,6 +113,7 @@ The structure of a contact is demonstrated inside the `results` field.
   ```
   
   The structure of the **communication** object is shown below:
+
   ```
    {'archived': False,
    'archived_at': None,
@@ -137,7 +148,7 @@ The structure of a contact is demonstrated inside the `results` field.
   
   ![hubspot_communication.png](../../static/img/hubspot/hubspot_communication.png)
 
-* Associate the **created communication** with the **contact**. 
+* Associate the **created communication** with the **contact**.
 After associating, the `'lastmodifieddate'` and `'updated_at'` of contact will be updated accordingly.:
   
   ```python
@@ -159,6 +170,7 @@ After associating, the `'lastmodifieddate'` and `'updated_at'` of contact will b
   ```
   
   The structure of the association object is shown below:
+
   ```
   {'from_object_id': '84246479604',
    'from_object_type_id': '0-1',
@@ -166,23 +178,27 @@ After associating, the `'lastmodifieddate'` and `'updated_at'` of contact will b
    'to_object_id': '81116227304',
    'to_object_type_id': '0-18'}
   ```
+
   At the same time, `Last Activity Date` on the **contact** information page is also updated as well:
   
   ![hubspot_updated_date.png](../../static/img/hubspot/hubspot_updated_date.png)
   
-  
-### create_ticket(contact_information, issue, **kwargs): 
+### create_ticket(contact_information, issue, **kwargs)
+
 When users need technical support/repair service/exchange service, the function will be called. This function is used to create the ticket only for existing customers after calling `find_contact_by_email` function.
 
 Inputs:
+
 * `cus_cid`: `id` of the contact of the existing customer returned from `find_contact_by_email`
 * `issue`: the issue that the customer has for the product
 * `**kwargs`: contains the **access token** for the hubspot private app
 
 Output:
+
 * `ticket_id`: `id` of ticket for the existing customer
 
 There are several steps for the implementation of this function:
+
 * Create a **ticket** for the existing customer:
   
   ```python
@@ -200,6 +216,7 @@ There are several steps for the implementation of this function:
   ```
 
   The structure of the created **ticket** is like:
+
   ```
   {'archived': False,
    'archived_at': None,
@@ -231,7 +248,6 @@ There are several steps for the implementation of this function:
 
   ![hubspot_ticket.png](../../static/img/hubspot/hubspot_ticket.png)
 
-
 * Associate the created **ticket** with the **contact**. It should be noted that `'lastmodifieddate'` and `'updated_at'` of contact will be updated after logging a ticket
   (On Hubspot, `Last Activity Date` of the **contact** is also updated:
   
@@ -253,18 +269,21 @@ There are several steps for the implementation of this function:
     )
   ```
 
+### find_owner_id_by_contact_id(cus_cid, **kwargs)
 
-### find_owner_id_by_contact_id(cus_cid, **kwargs):
 The function finds the owner_id of the customer based on the existing contact.
 
 Inputs:
+
 * `cus_cid`: `id` of the contact of the existing customer returned from `find_contact_by_email`
 * `**kwargs`: contains the **access token** for the hubspot private app
 
 Output:
+
 * `owner_id`: id of the owner corresponding to the customer
 
 Get the `owner_id` from the properties of the contact:
+
 ```python
     get_owner_id_response = api_client.api_request(
             {
@@ -282,23 +301,26 @@ Get the `owner_id` from the properties of the contact:
     get_owner_id_response = get_owner_id_response.json()
 ```
 
-
 ![hubspot_owner.png](../../static/img/hubspot/hubspot_owner.png)
 
-### check_available(owner_id, time_zone, meeting_date, **kwargs):
+### check_available(owner_id, time_zone, meeting_date, **kwargs)
+
 This function aims to search for the unavailable slots of the owner.
 
 Inputs:
-* `owner_id`: id of the owner. 
+
+* `owner_id`: id of the owner.
 * `time_zone`: the timezone of the customer's location
 * `meeting_date`: the date when customer want to schedule a meeting
 * `**kwargs`: contains the **access token** for the hubspot private app
 
 Output:
+
 * `meeting_link_related_info`: the available time slots (milliseconds) of the owner
 
 To achieve the goal of the function, several steps are implemented:
-* Using the *owner_id* to retrieve the meeting scheduler link of the owner. If there is no corresponding link of that owner, 
+
+* Using the *owner_id* to retrieve the meeting scheduler link of the owner. If there is no corresponding link of that owner,
 `MEETING_LINK_UNFOUND_ERROR` will be returned.
 
 ```python
@@ -352,12 +374,14 @@ The unavailable time slots will not be shown on the meeting scheduler on hubspot
 
 ![hubspot_meeting_2.png](../../static/img/hubspot/hubspot_meeting_2.png)
 
-### create_meeting(cus_fname, cus_lname, cus_email, meeting_date, meeting_start_time, duration, slug, bt_slots_ux, time_zone, **kwargs):
+### create_meeting(cus_fname, cus_lname, cus_email, meeting_date, meeting_start_time, duration, slug, bt_slots_ux, time_zone, **kwargs)
+
 This function will help the customer to schedule a meeting
 
 Inputs:
-* `cus_fname`: the first name of the customer. 
-* `cus_lname`: the last name of the customer. 
+
+* `cus_fname`: the first name of the customer.
+* `cus_lname`: the last name of the customer.
 * `cus_email`: the email address of the customer
 * `meeting_date`: the date when customer want to schedule a meeting
 * `meeting_start_time`: the exact time the customer wish to begin
@@ -368,9 +392,10 @@ Inputs:
 * `**kwargs`: contains the **access token** for the hubspot private app
 
 Output:
+
 * `meeting_confirmation_info`: the scheduled meeting information
 
-* Firstly, the start time of the meeting will be checked within the unavailable slots. 
+* Firstly, the start time of the meeting will be checked within the unavailable slots.
 If the `start_time` and `end_time` of the meeting are in the unavailable slots, `UNAVAILABLE_ERROR` will be returned.
 
 ```python
@@ -426,9 +451,10 @@ Because hubspot is synchronized with Google Calendar, the meeting information wi
 
 ![hubspot_cal.png](../../static/img/hubspot/hubspot_cal.png)
 
-
 ## Taskgraph
+
 **Fields**:
+
 * `nodes`: The nodes in the TaskGraph, each node contains the worker/tool name, task, and the directed attribute.
 * `edges`: The edges in the TaskGraph, each edge contains the intent, weight, pred, definition, and sample_utterances.
 The edge defines the connection between two nodes
@@ -437,15 +463,17 @@ The edge defines the connection between two nodes
 * `slotfillapi`: It will automatically add the default SlotFill api which use the `SlotFillOpenAIAPI` service defined under `./arklex/orchestrator/NLU/api.py` file. If you want to customize the SlotFill api, you can change the `slotfillapi` field to your own SlotFill api url.
 
 In the **Hubspot Integration**, there are two intents for users communicating the chatbot:
-* When users have **questions** about the product, the chatbot will firstly ask for users' email to detect 
+
+* When users have **questions** about the product, the chatbot will firstly ask for users' email to detect
 whether they are existing customers. At the same time, it will update the contact's last activity date if the user is an existing customer.
 Then it will use `FaissRAGWorker` to generate answer for user's question. So the basic flow for this case is: `start_node -> search_customer -> FaissRAGWorker`
-* When users need **technical support/repair service/exchange service** about the product, the chatbot will firstly ask for users' email to detect 
+* When users need **technical support/repair service/exchange service** about the product, the chatbot will firstly ask for users' email to detect
 whether they are existing customers. At the same time, it will update the contact's last activity date if the user is an existing customer.
-Then it will move to create a ticket for the corresponding issue and head it to the technician support team. 
+Then it will move to create a ticket for the corresponding issue and head it to the technician support team.
 So the basic flow for this case is: `start_node -> search_customer -> create_ticket`
 
 So the taskgraph to handle these two cases is shown below:
+
 ```json
 {
   "nodes": [
@@ -763,11 +791,14 @@ So the taskgraph to handle these two cases is shown below:
 ```
 
 ## Running the chatbot
+
 When the taskgraph is generated, you could use the following command to run the chatbot (suppose the `./examples/hubspot` contains the taskgraph):
 `python run.py --input-dir ./examples/hubspot`
 
 ## Sample conversation
+
 (1) 1st case (When user has questions about the product)
+
 ```
 Bot: Hello! Welcome to Richtech. How can I assist you today?
 Customer: I want to know more about your product: Adam
@@ -777,7 +808,9 @@ Bot: The ADAM robot is a versatile worker robot available for both purchase and 
 Customer: How much is the Adam?
 Bot: The pricing for the ADAM robot can vary based on the specific configuration and requirements for your business. To provide you with the most accurate pricing, could you please share more details about your intended use or any specific features you are interested in? Alternatively, I can have a sales representative contact you with detailed pricing information.
 ```
+
 (2) 2nd case (When user needs technical support/repair service/exchange service)
+
 ```
 Bot: Hello! Welcome to Richtech. How can I assist you today?
 Customer: I have a issue in installing the DUST-E robot
@@ -785,6 +818,3 @@ Bot: Thank you for reaching out about the issue with installing the DUST-E robot
 Customer: "sarah@gmail.com"
 Bot: Thank you, Sarah. I've created a support ticket for your issue with installing the DUST-E robot. Our team will reach out to you shortly to assist you further. Your ticket ID is 20616280431. If you have any more questions or need further assistance, feel free to ask!
 ```
-
-
-
