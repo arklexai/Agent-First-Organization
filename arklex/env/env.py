@@ -1,16 +1,15 @@
-import os
-import logging
-import uuid
 import importlib
-from typing import Optional
+import logging
+import os
+import uuid
 from functools import partial
+from typing import Optional
 
+from arklex.env.planner.react_planner import DefaultPlanner, ReactPlanner
 from arklex.env.tools.tools import Tool
 from arklex.env.workers.worker import BaseWorker
-from arklex.env.planner.react_planner import ReactPlanner, DefaultPlanner
-from arklex.utils.graph_state import Params, MessageState, NodeInfo
 from arklex.orchestrator.NLU.nlu import SlotFilling
-
+from arklex.utils.graph_state import MessageState, NodeInfo, Params
 
 logger = logging.getLogger(__name__)
 
@@ -36,7 +35,7 @@ class DefaulResourceInitializer(BaseResourceInitializer):
             path = tool["path"]
             try:  # try to import the tool to check its existance
                 filepath = os.path.join("arklex.env.tools", path)
-                module_name = filepath.replace(os.sep, ".").rstrip(".py")
+                module_name = filepath.replace(os.sep, ".").replace(".py", "")
                 module = importlib.import_module(module_name)
                 func = getattr(module, name)
             except Exception as e:
@@ -152,9 +151,11 @@ class Env:
                     "role": "tool",
                     "tool_call_id": call_id,
                     "name": self.id2name[id],
-                    "content": response_state.response
-                    if response_state.response
-                    else response_state.message_flow,
+                    "content": (
+                        response_state.response
+                        if response_state.response
+                        else response_state.message_flow
+                    ),
                 }
             )
             params.taskgraph.node_status[params.taskgraph.curr_node] = (
