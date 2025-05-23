@@ -79,39 +79,39 @@ def check_availability(timezone: str, duration: int, start_time: str, **kwargs) 
             api_client, slug, start_time_dt, duration_ms, timezone
         )
         if is_available:
-            return {
-                "status": "available",
-                "duration": duration,
-                "timezone": timezone,
-                "time": [
-                    {
-                        "slug": slug,
-                        "start_time": start_time_dt.isoformat(),
-                    }
-                ],
-            }
+            return str(
+                {
+                    "status": "available",
+                    "duration": duration,
+                    "timezone": timezone,
+                    "time": [
+                        {
+                            "slug": slug,
+                            "start_time": start_time_dt.isoformat(),
+                        }
+                    ],
+                }
+            )
         if alternates:
             for alternate_time in alternates:
                 all_alternate_times.append((alternate_time, slug))
 
     if all_alternate_times:
         unique_times = sorted(set(all_alternate_times))
-        return {
-            "status": "alternate times available",
-            "duration": duration,
-            "timezone": timezone,
-            "time": summarize_time_slots(unique_times),
+        return str(
+            {
+                "status": "alternate times available",
+                "duration": duration,
+                "timezone": timezone,
+                "time": summarize_time_slots(unique_times),
+            }
+        )
+    return str(
+        {
+            "status": "no available times on the same day",
+            "times": [],
         }
-    return {
-        "status": "no available times on the same day",
-        "times": [],
-    }
-
-
-def format_time_range(start_time: datetime, end_time: datetime) -> str:
-    """Format a time range in a user-friendly way."""
-    date_str = start_time.strftime("%B %d, %Y")
-    return f"{date_str} {start_time.strftime('%I:%M %p')} - {end_time.strftime('%I:%M %p')}"
+    )
 
 
 def summarize_time_slots(times: list[tuple]) -> list[dict]:
