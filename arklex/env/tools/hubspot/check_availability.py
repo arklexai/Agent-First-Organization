@@ -39,11 +39,12 @@ slots = [
     },
 ]
 
+
 outputs = [
     {
         "name": "meeting_info",
         "type": "dict",
-        "decription": "The time and date of the meeting if available. If not, the function will return a list of available time slots to choose from. If no time slots are available, the function will return an error message.",
+        "decription": "The time and date of the meeting if available. If not, the function will return a list of available time slots to choose from. If no time slots are available, the function will say no times available.",
     }
 ]
 
@@ -78,17 +79,33 @@ def check_availability(timezone: str, duration: int, start_time: str, **kwargs) 
             api_client, slug, start_time_dt, duration_ms, timezone
         )
         if is_available:
-            return f"The representative is available at {start_time_dt.strftime('%I:%M %p')} on {start_time_dt.strftime('%B %d, %Y')}."
+            return {
+                "status": "available",
+                "duration": duration,
+                "timezone": timezone,
+                "time": [
+                    {
+                        "slug": slug,
+                        "start_time": start_time_dt.isoformat(),
+                    }
+                ],
+            }
         if alternates:
-            all_alternate_times.extend(alternates)
+            for alternate_time in alternates:
+                all_alternate_times.append((alternate_time, slug))
 
     if all_alternate_times:
         unique_times = sorted(set(all_alternate_times))
-        return (
-            "The representative is not available at that time. Here are some alternate times on the same day across all representatives:\n"
-            + summarize_time_slots(unique_times)
-        )
-    return "The representative is not available at that time and there are no alternate times on the same day."
+        return {
+            "status": "alternate times available",
+            "duration": duration,
+            "timezone": timezone,
+            "time": summarize_time_slots(unique_times),
+        }
+    return {
+        "status": "no available times on the same day",
+        "times": [],
+    }
 
 
 def format_time_range(start_time: datetime, end_time: datetime) -> str:
@@ -97,35 +114,50 @@ def format_time_range(start_time: datetime, end_time: datetime) -> str:
     return f"{date_str} {start_time.strftime('%I:%M %p')} - {end_time.strftime('%I:%M %p')}"
 
 
-def summarize_time_slots(times: list[datetime]) -> str:
+def summarize_time_slots(times: list[tuple]) -> list[dict]:
     """Summarize a list of time slots by grouping consecutive slots together.
 
     Args:
-        times: List of datetime objects representing available time slots
+        times: List of (datetime, slug) tuples representing available time slots
 
     Returns:
-        A formatted string with time ranges
+        A list of dicts with slot info
     """
     if not times:
-        return ""
+        return []
 
     # Sort times to ensure proper grouping
-    sorted_times = sorted(times)
+    sorted_times = sorted(times, key=lambda x: x[0])
     ranges = []
-    current_start = sorted_times[0]
+    current_start, current_slug = sorted_times[0]
+    current_end = current_start
 
     for i in range(1, len(sorted_times)):
-        # Check if this slot is 15 minutes after the previous slot
+        slot_time, slot_slug = sorted_times[i]
+        # Check if this slot is 15 minutes after the previous slot and has the same slug
         if (
-            sorted_times[i] - sorted_times[i - 1]
-        ).total_seconds() != 900:  # 900 seconds = 15 minutes
-            ranges.append(format_time_range(current_start, sorted_times[i - 1]))
-            current_start = sorted_times[i]
+            slot_time - current_end
+        ).total_seconds() == 900 and slot_slug == current_slug:
+            current_end = slot_time
+        else:
+            ranges.append(
+                {
+                    "slug": current_slug,
+                    "start_time": current_start.isoformat(),
+                }
+            )
+            current_start, current_slug = slot_time, slot_slug
+            current_end = slot_time
 
     # Add the last range
-    ranges.append(format_time_range(current_start, sorted_times[-1]))
+    ranges.append(
+        {
+            "slug": current_slug,
+            "start_time": current_start.isoformat(),
+        }
+    )
 
-    return "\n".join(ranges)
+    return ranges
 
 
 def get_all_slugs(api_client: HubSpot) -> list[str]:
