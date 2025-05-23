@@ -9,8 +9,8 @@
 
 
 
-<script src="/js/rb2b-tracking.js"></script><link rel="stylesheet" href="/Agent-First-Organization/assets/css/styles.72141fdf.css">
-<script src="/Agent-First-Organization/assets/js/runtime~main.22e410f2.js" defer="defer"></script>
+<script src="/js/rb2b-tracking.js"></script><link rel="stylesheet" href="/Agent-First-Organization/assets/css/styles.e9e681e1.css">
+<script src="/Agent-First-Organization/assets/js/runtime~main.c4eb4194.js" defer="defer"></script>
 <script src="/Agent-First-Organization/assets/js/main.fd4732ff.js" defer="defer"></script>
 </head>
 <body class="navigation-with-keyboard">
@@ -26,7 +26,20 @@
 <li>Fields:<!-- -->
 <ul>
 <li><code>--input-dir</code>: The directory that contains the needed files for the orchestrator and documents for the workers.</li>
-<li><code>--model</code>: The openai model type used to generate bot response. Default is <code>gpt-4o</code>. You could change it to other models like <code>gpt-4o-mini</code>.</li>
+<li><code>--llm_provider</code>: The LLM provider you wish to use.<!-- -->
+<ul>
+<li>Options: <code>openai</code> (default), <code>gemini</code>, <code>anthropic</code></li>
+</ul>
+</li>
+<li><code>--model</code>: The model type used to generate bot response. The default is <code>gpt-4o</code>.<!-- -->
+<ul>
+<li>You can change this to other models like:<!-- -->
+<ul>
+<li><code>gpt-4o-mini</code>,  <code>gemini-2.0-flash</code> , <code>claude-3-5-haiku-20241022</code></li>
+</ul>
+</li>
+</ul>
+</li>
 <li><code>--port</code>: The port number to start the API. Default is 8000.</li>
 </ul>
 </li>
@@ -45,7 +58,20 @@
 <li><code>--num_convos</code>: Number of synthetic conversations to simulate. Default is 5.</li>
 <li><code>--num_goals</code>: Number of goals/tasks to simulate. Default is 5.</li>
 <li><code>--max_turns</code>: Maximum number of turns per conversation. Default is 5.</li>
-<li><code>--model</code>: The openai model type used to generate bot response. Default is <code>gpt-4o</code>. You could change it to other models like <code>gpt-4o-mini</code>.</li>
+<li><code>--llm_provider</code>: The LLM provider you wish to use.<!-- -->
+<ul>
+<li>Options: <code>openai</code> (default), <code>gemini</code>, <code>anthropic</code></li>
+</ul>
+</li>
+<li><code>--model</code>: The model type used to generate bot response. The default is <code>gpt-4o</code>.<!-- -->
+<ul>
+<li>You can change this to other models like:<!-- -->
+<ul>
+<li><code>gpt-4o-mini</code>,  <code>gemini-2.0-flash</code> , <code>claude-3-5-haiku-20241022</code></li>
+</ul>
+</li>
+</ul>
+</li>
 </ul>
 </li>
 </ul>
