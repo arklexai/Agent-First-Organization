@@ -8,6 +8,7 @@ import traceback
 import uuid
 import shutil
 import pickle
+import re
 
 from langchain.schema import AIMessage
 from langchain_openai import ChatOpenAI
@@ -21,16 +22,27 @@ from arklex.utils.model_config import MODEL
 from arklex.utils.model_provider_config import PROVIDER_MAP, PROVIDER_EMBEDDINGS, PROVIDER_EMBEDDING_MODELS
 from arklex.orchestrator.prompts import (
     RESPOND_ACTION_NAME, 
+    PLANNER_SUMMARIZE_TRAJECTORY_PROMPT,
     PLANNER_REACT_INSTRUCTION_ZERO_SHOT,  
     PLANNER_REACT_INSTRUCTION_FEW_SHOT, 
-    PLANNER_SUMMARIZE_TRAJECTORY_PROMPT
+    PLANNER_REASONING_INSTRUCTION_ZERO_SHOT,
+    PLANNER_REASONING_INSTRUCTION_FEW_SHOT,
+    PLANNER_TOOL_CALL_INSTRUCTION_ZERO_SHOT
 )
 
 
 logger = logging.getLogger(__name__)
 
-# If False, use shorter version of planner ReAct instruction without few-shot example(s)
-USE_FEW_SHOT_REACT_PROMPT = True
+# If False, use shorter version(s) of planner instruction(s) without few-shot example(s)
+# where appropriate
+USE_FEW_SHOT_PROMPTS = False
+
+# If True, planning loop will be done 'ReAct-like' even if using LangChain tool objects. I.e.,
+# first generate a thought about the next action, then bind tools and make a tool call selection.
+# If False, planning loop will use generic ReAct instruction(s) without tool objects if tools are
+# not used, or will skip thought generation (and only return tool call responses) if using
+# LangChain tool objects.
+DO_THOUGHT_GENERATION = True
 
 # Globals determining number of resources to retrieve based on step count of model
 # planning trajectory summary
@@ -651,6 +663,98 @@ class ReactPlanner(DefaultPlanner):
                 content = args.get("content", content)
 
             return [Action(name=RESPOND_ACTION_NAME, kwargs={"content": content})]
+        
+    def _do_planning_step(
+            self, 
+            state: MessageState, 
+            msg_history,
+            available_resources: List[Document] = []
+        ) -> Tuple[str, List[Dict[str, Any]]]:
+        """
+        Perform a single iteration of the planner's main planning loop based on trajectory generation
+        parameters (few-shot vs. zero-shot prompts, strict tool-calling vs. thought generation, etc.).
+
+        Returns:
+            A tuple containing the tool call info from the model response and the updated msg_history.
+        """
+
+        user_message = state.user_message.message
+        task = state.orchestrator_message.attribute.get("task", "")
+        
+        if DO_THOUGHT_GENERATION:
+            # Use reasoning prompt to generate thought to guide tool selection
+            reasoning_prompt = PromptTemplate.from_template(
+                PLANNER_REASONING_INSTRUCTION_FEW_SHOT 
+                if USE_FEW_SHOT_PROMPTS 
+                else PLANNER_REASONING_INSTRUCTION_ZERO_SHOT
+            )
+
+            resource_signatures = [d.metadata['json_signature'] for d in available_resources]
+            reasoning_prompt_input = reasoning_prompt.invoke({
+                "user_message": user_message,
+                "task": task,
+                "available_actions": resource_signatures
+            })
+            #logger.info(f"Planner thought generation system prompt:\n{reasoning_prompt_input.text}")
+
+            reasoning_message: List[Dict[str, Any]] = {
+                "role": self.system_role, 
+                "content": reasoning_prompt_input.text
+            }
+            reasoning_messages = [m for m in msg_history]
+            reasoning_messages.append(reasoning_message)
+            reasoning_response = self.llm.invoke(reasoning_messages)
+
+            # Use reasoning output to inform tool selection
+            tool_selection_prompt = PromptTemplate.from_template(
+                PLANNER_TOOL_CALL_INSTRUCTION_FEW_SHOT 
+                if USE_FEW_SHOT_PROMPTS 
+                else PLANNER_TOOL_CALL_INSTRUCTION_ZERO_SHOT
+            )
+
+            tool_selection_prompt_input = tool_selection_prompt.invoke({
+                "user_message": user_message,
+                "task": task,
+                "thought": reasoning_response.content,
+                "respond_action_name": RESPOND_ACTION_NAME
+            })
+            #logger.info(f"Planner tool selection prompt: {tool_selection_prompt_input.text}")
+
+            tool_selection_message: List[Dict[str, Any]] = {
+                "role": self.system_role, 
+                "content": tool_selection_prompt_input.text
+            }
+
+            tool_selection_messages = [m for m in msg_history]
+            tool_selection_messages.append(tool_selection_message)
+            
+            # Bind tools and ensure tool call
+            resource_models = [self.resource_models[d.metadata['json_signature']['name']] for d in available_resources]
+            tool_choice = "required" if self.llm_provider == "openai" else "any"
+            llm_with_tools = self.llm.bind_tools(resource_models, tool_choice=tool_choice)
+
+            # Invoke model and extract tool call info
+            tool_call_response = llm_with_tools.invoke(tool_selection_messages)
+            tool_calls = tool_call_response.tool_calls
+
+            logger.info(f"Planner tool calls: {tool_call_response.tool_calls}")
+
+            # Add reasoning response and tool call response to msg_history
+            reasoning_response_dict = aimessage_to_dict(reasoning_response)
+            tool_call_response_dict = aimessage_to_dict(tool_call_response)
+            msg_history.extend([
+                reasoning_message,
+                reasoning_response_dict,
+                tool_selection_message,
+                tool_call_response_dict
+            ])
+        
+        else:
+            tool_calls = []
+            raise NotImplementedError("Planner currently only supports DO_THOUGHT_GENERATION = True.")
+        
+        return tool_calls, msg_history
+
 
     def plan(self, state: MessageState, msg_history, max_num_steps=3):
 
@@ -666,24 +770,21 @@ class ReactPlanner(DefaultPlanner):
         resource_names = [doc.metadata["resource_name"] for doc in signature_docs]
         logger.info(f"Planner retrieved {actual_n_retrievals} signatures for the following resources (tools/workers): {resource_names}")
 
-        # Format signatures of retrieved resources to insert into ReAct instruction
-        formatted_actions_str = "None"
-        if len(signature_docs) > 0:
-            retrieved_actions = {doc.metadata["resource_name"]: doc.metadata["json_signature"] for doc in signature_docs}
-            formatted_actions_str = str(retrieved_actions)
+        # Retrieve pydantic models corresponding to retrieved resources and bind to LLM
+        resource_models = [self.resource_models[name] for name in resource_names]
+        llm_with_tools = self.llm.bind_tools(resource_models)
             
         user_message = state.user_message.message
         task = state.orchestrator_message.attribute.get("task", "")
 
         # Format planner ReAct system prompt
-        if USE_FEW_SHOT_REACT_PROMPT:
+        if USE_FEW_SHOT_PROMPTS:
             prompt = PromptTemplate.from_template(PLANNER_REACT_INSTRUCTION_FEW_SHOT)
         else:
             prompt = PromptTemplate.from_template(PLANNER_REACT_INSTRUCTION_ZERO_SHOT)
 
         input_prompt = prompt.invoke({
             "user_message": user_message,
-            "available_actions": formatted_actions_str,
             "respond_action_name": RESPOND_ACTION_NAME,
             "task": task
         })
@@ -695,52 +796,41 @@ class ReactPlanner(DefaultPlanner):
 
         for _ in range(max_num_steps):
 
-            # Invoke model to get response to ReAct instruction
-            res = self.llm.invoke(messages)
-            message = aimessage_to_dict(res)
-            response_text = message["content"]
-            logger.info(f"response text in planner: {response_text}")
-            json_response = self._parse_response_action_to_json(response_text)
-            logger.info(f"JSON response in planner: {json_response}")
-            actions = self.message_to_actions(json_response)
+            tool_calls, msg_history = self._do_planning_step(
+                state, 
+                msg_history, 
+                available_resources=signature_docs
+            )
 
-            logger.info(f"actions in planner: {actions}")
+            # Convert tool call info to actions
+            tool_call_ids = [tc['id'] for tc in tool_calls]
+            actions = [Action(name=tc['name'], kwargs=tc['args']) for tc in tool_calls]
 
             # Execute actions
-            for action in actions:
+            for i, action in enumerate(actions):
                 env_response = self.step(action, state)
+
+                # Add tool call response to msg_history
+                tool_response = {
+                    "role": "tool",
+                    "tool_call_id": tool_call_ids[i],
+                    "name": action.name,
+                    "content": env_response.observation
+                }
+                msg_history.append(tool_response)
 
                 # Exit loop if planner action is RESPOND_ACTION
                 if action.name == RESPOND_ACTION_NAME:
                     return msg_history, action.name, env_response.observation
 
-                else:
-                    # Mimic tool call(s) in msg_history in absence of tools input parameter
-                    call_id = str(uuid.uuid4())
-                    assistant_message = {
-                        "role": "assistant",
-                        "content": response_text,
-                        "tool_calls": [
-                            {
-                                "function": {
-                                    "name": action.name,
-                                    "arguments": json.dumps(action.kwargs)
-                                },
-                                "id": call_id,
-                                "type": "function"
-                            }
-                        ],
-                        "function_call": None
-                    }
-                    resource_response = {
-                        "role": "tool",
-                        "tool_call_id": call_id,
-                        "name": action.name,
-                        "content": env_response.observation
-                    }
-                    new_messages = [assistant_message, resource_response]
-                    messages.extend(new_messages)
-                    msg_history.extend(new_messages)
+                # else:
+                #     tool_response = {
+                #         "role": "tool",
+                #         "tool_call_id": tool_call_ids[i],
+                #         "name": action.name,
+                #         "content": env_response.observation
+                #     }
+                #     msg_history.append(tool_response)
 
         return msg_history, action.name, env_response.observation
 
@@ -794,10 +884,11 @@ class ReactPlanner(DefaultPlanner):
 
 
 def aimessage_to_dict(ai_message):
+    tool_calls = ai_message.tool_calls
     message_dict = {
         "content": ai_message.content,
         "role": "assistant" if isinstance(ai_message, AIMessage) else "user", 
         "function_call": None, 
-        "tool_calls": None, 
+        "tool_calls": tool_calls, 
     }
     return message_dict
