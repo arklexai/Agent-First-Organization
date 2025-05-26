@@ -88,9 +88,10 @@ class Logic_Test(unittest.TestCase):
             if msg["role"] == "tool":
                 tool_name = msg["name"]
 
-                if tool_name != "DefaultWorker" and tool_name in actual_tool_calls:
+                # Ignore respond action when checking tool calls
+                if tool_name != "respond" and tool_name in actual_tool_calls:
                     actual_tool_calls[tool_name] += 1
-                elif tool_name != "DefaultWorker":
+                elif tool_name != "respond":
                     actual_tool_calls[tool_name] = 1
 
         # If only one set of tool calls is allowed to pass this test, check that actual tool
