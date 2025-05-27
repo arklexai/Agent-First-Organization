@@ -1,4 +1,5 @@
 import inspect
+import json
 import logging
 from datetime import datetime
 
@@ -11,9 +12,26 @@ from arklex.env.tools.tools import logger, register_tool
 
 logger = logging.getLogger(__name__)
 
-description = "Check the availability of any representative from Husbspot calendar"
+description = "Check the availability of any representative from Husbspot calendar. If you are not sure any information, please ask users to confirm in response."
 
 slots = [
+    {
+        "name": "start_time",
+        "type": "str",
+        "required": True,
+        "prompt": "Could you please provide when you want to meet with the representative?",
+        "description": "The start time that the meeting will take place. The meeting's start time includes the hour, as the date alone is not sufficient. The format should be 'YYYY-MM-DDTHH:MM:SS'. Today is {today}.".format(
+            today=datetime.now().isoformat()
+        ),
+    },
+    {
+        "name": "duration",
+        "type": "int",
+        "enum": [15, 30, 60],
+        "description": "The duration of the meeting in minutes. Ask the user how long he wants the meeting to be.",
+        "prompt": "Could you please provide the duration of the meeting in minutes? It can be 15, 30, or 60 minutes.",
+        "required": True,
+    },
     {
         "name": "timezone",
         "type": "str",
@@ -21,21 +39,6 @@ slots = [
         "description": "The timezone of the user. For example, 'America/New_York'.",
         "prompt": "Could you please provide your timezone or where are you now?",
         "required": True,
-    },
-    {
-        "name": "duration",
-        "type": "int",
-        "enum": [15, 30, 60],
-        "description": "The duration of the meeting in minutes. Ask the user how long he wants the meeting to be.",
-        "required": True,
-    },
-    {
-        "name": "start_time",
-        "type": "str",
-        "required": True,
-        "description": "The start time that the meeting will take place. The meeting's start time includes the hour, as the date alone is not sufficient. The format should be 'YYYY-MM-DDTHH:MM:SS'. Today is {today}.".format(
-            today=datetime.now().isoformat()
-        ),
     },
 ]
 
@@ -79,7 +82,7 @@ def check_availability(timezone: str, duration: int, start_time: str, **kwargs) 
             api_client, slug, start_time_dt, duration_ms, timezone
         )
         if is_available:
-            return str(
+            return json.dumps(
                 {
                     "status": "available",
                     "duration": duration,
@@ -98,7 +101,7 @@ def check_availability(timezone: str, duration: int, start_time: str, **kwargs) 
 
     if all_alternate_times:
         unique_times = sorted(set(all_alternate_times))
-        return str(
+        return json.dumps(
             {
                 "status": "alternate times available",
                 "duration": duration,
@@ -106,7 +109,7 @@ def check_availability(timezone: str, duration: int, start_time: str, **kwargs) 
                 "time": summarize_time_slots(unique_times),
             }
         )
-    return str(
+    return json.dumps(
         {
             "status": "no available times on the same day",
             "times": [],
