@@ -2,6 +2,7 @@ import argparse
 import json
 import logging
 import os
+from typing import Any, Dict, List, Set
 
 from dotenv import load_dotenv
 
@@ -21,16 +22,16 @@ logger = init_logger(
 load_dotenv()
 
 
-def generate_taskgraph(args):
+def generate_taskgraph(args: argparse.Namespace) -> None:
     model = PROVIDER_MAP.get(MODEL["llm_provider"], ChatOpenAI)(
         model=MODEL["model_type_or_path"], timeout=30000
     )
-    config = json.load(open(args.config))
+    config: Dict[str, Any] = json.load(open(args.config))
     generator = Generator(config, model, args.output_dir)
     taskgraph = generator.generate()
-    taskgraph_filepath = generator.save_task_graph(taskgraph)
+    taskgraph_filepath: str = generator.save_task_graph(taskgraph)
     # Update the task graph with the API URLs
-    task_graph = json.load(
+    task_graph: Dict[str, Any] = json.load(
         open(os.path.join(os.path.dirname(__file__), taskgraph_filepath))
     )
     task_graph["nluapi"] = ""
@@ -39,11 +40,11 @@ def generate_taskgraph(args):
         json.dump(task_graph, f, indent=4)
 
 
-def init_worker(args):
+def init_worker(args: argparse.Namespace) -> None:
     ## TODO: Need to customized based on different use cases
-    config = json.load(open(args.config))
-    workers = config["workers"]
-    worker_names = set([worker["name"] for worker in workers])
+    config: Dict[str, Any] = json.load(open(args.config))
+    workers: List[Dict[str, Any]] = config["workers"]
+    worker_names: Set[str] = set([worker["name"] for worker in workers])
     if "FaissRAGWorker" in worker_names:
         logger.info("Initializing FaissRAGWorker...")
         build_rag(args.output_dir, config["rag_docs"])

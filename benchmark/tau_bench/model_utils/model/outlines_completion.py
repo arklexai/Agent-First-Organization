@@ -1,4 +1,4 @@
-from typing import Any
+from typing import Any, Dict, Optional
 
 from pydantic import BaseModel
 
@@ -9,12 +9,12 @@ from benchmark.tau_bench.model_utils.model.vllm_utils import generate_request
 
 class OutlinesCompletionModel(VLLMCompletionModel):
     def parse_force_from_prompt(
-        self, prompt: str, typ: BaseModel, temperature: float | None = None
-    ) -> dict[str, Any]:
+        self, prompt: str, typ: BaseModel, temperature: Optional[float] = None
+    ) -> Dict[str, Any]:
         if temperature is None:
             temperature = self.temperature
-        schema = typ.model_json_schema()
-        res = generate_request(
+        schema: Dict[str, Any] = typ.model_json_schema()
+        res: str = generate_request(
             url=self.url,
             prompt=prompt,
             force_json=True,

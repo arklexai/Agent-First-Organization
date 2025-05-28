@@ -1,4 +1,5 @@
 import logging
+from typing import Any, Dict
 
 from langgraph.graph import StateGraph, START
 
@@ -14,16 +15,18 @@ logger = logging.getLogger(__name__)
 
 @register_worker
 class SearchWorker(BaseWorker):
-    description = "Answer the user's questions based on real-time online search results"
+    description: str = (
+        "Answer the user's questions based on real-time online search results"
+    )
 
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__()
-        self.action_graph = self._create_action_graph()
+        self.action_graph: StateGraph = self._create_action_graph()
 
-    def _create_action_graph(self):
-        workflow = StateGraph(MessageState)
+    def _create_action_graph(self) -> StateGraph:
+        workflow: StateGraph = StateGraph(MessageState)
         # Add nodes for each worker
-        search_engine = SearchEngine()
+        search_engine: SearchEngine = SearchEngine()
         workflow.add_node("search_engine", search_engine.search)
         workflow.add_node("tool_generator", ToolGenerator.context_generate)
         # Add edges
@@ -31,7 +34,7 @@ class SearchWorker(BaseWorker):
         workflow.add_edge("search_engine", "tool_generator")
         return workflow
 
-    def _execute(self, msg_state: MessageState, **kwargs):
+    def _execute(self, msg_state: MessageState, **kwargs: Any) -> Dict[str, Any]:
         graph = self.action_graph.compile()
-        result = graph.invoke(msg_state)
+        result: Dict[str, Any] = graph.invoke(msg_state)
         return result

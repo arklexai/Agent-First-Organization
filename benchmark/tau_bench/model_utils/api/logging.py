@@ -2,18 +2,26 @@ import functools
 import inspect
 import json
 from multiprocessing import Lock
-from typing import Any
+from typing import (
+    Any,
+    Dict,
+    Callable,
+    TypeVar,
+    Optional,
+)
 
 from pydantic import BaseModel
 
 from benchmark.tau_bench.model_utils.api.sample import SamplingStrategy
 from benchmark.tau_bench.model_utils.model.utils import optionalize_type
 
-log_files = {}
+log_files: Dict[str, Lock] = {}  # type: ignore
+
+T = TypeVar("T")
+F = TypeVar("F", bound=Callable[..., Any])
 
 
-def prep_for_json_serialization(obj: Any, from_parse_method: bool = False):
-    # TODO: refine type annotations
+def prep_for_json_serialization(obj: Any, from_parse_method: bool = False) -> Any:
     if isinstance(obj, (str, int, float, bool, type(None))):
         return obj
     elif isinstance(obj, dict):
@@ -40,22 +48,22 @@ def prep_for_json_serialization(obj: Any, from_parse_method: bool = False):
         raise TypeError(f"Object of type {type(obj)} is not JSON serializable")
 
 
-def log_call(func):
+def log_call(func: F) -> F:
     @functools.wraps(func)
-    def wrapper(self, *args, **kwargs):
-        response = func(self, *args, **kwargs)
-        log_file = getattr(self, "_log_file", None)
+    def wrapper(self: Any, *args: Any, **kwargs: Any) -> Any:
+        response: Any = func(self, *args, **kwargs)
+        log_file: Optional[str] = getattr(self, "_log_file", None)
         if log_file is not None:
             if log_file not in log_files:
                 log_files[log_file] = Lock()
-            sig = inspect.signature(func)
-            bound_args = sig.bind(self, *args, **kwargs)
+            sig: inspect.Signature = inspect.signature(func)
+            bound_args: inspect.BoundArguments = sig.bind(self, *args, **kwargs)
             bound_args.apply_defaults()
-            all_args = bound_args.arguments
+            all_args: Dict[str, Any] = bound_args.arguments
             all_args.pop("self", None)
 
-            cls_name = self.__class__.__name__
-            log_entry = {
+            cls_name: str = self.__class__.__name__
+            log_entry: Dict[str, Any] = {
                 "cls_name": cls_name,
                 "method_name": func.__name__,
                 "kwargs": {
@@ -71,4 +79,4 @@ def log_call(func):
                     f.write(f"{json.dumps(log_entry)}\n")
         return response
 
-    return wrapper
+    return wrapper  # type: ignore

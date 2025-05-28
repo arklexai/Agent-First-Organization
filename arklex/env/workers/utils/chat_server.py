@@ -15,6 +15,7 @@ This file contains the code for setting up a chat server that can accept connect
 import asyncio
 import json
 import sys
+from typing import Dict, List, Tuple
 
 import argparse
 
@@ -23,31 +24,33 @@ class ChatServer:
     """Chat server class"""
 
     # dict of all current users
-    ALL_USERS = {}
-    SERVER_USER = "Server"
+    ALL_USERS: Dict[str, Tuple[asyncio.StreamReader, asyncio.StreamWriter]] = {}
+    SERVER_USER: str = "Server"
 
-    def __init__(self, host_address, host_port):
-        self.host_address = host_address
-        self.host_port = host_port
+    def __init__(self, host_address: str, host_port: int) -> None:
+        self.host_address: str = host_address
+        self.host_port: int = host_port
 
     # write a message to a stream writer
-    async def write_message(self, writer, msg_bytes):
+    async def write_message(
+        self, writer: asyncio.StreamWriter, msg_bytes: bytes
+    ) -> None:
         # write message to this user
         writer.write(msg_bytes)
         # wait for the buffer to empty
         await writer.drain()
 
     # send a message to all connected users
-    async def broadcast_message(self, name, message: str = ""):
+    async def broadcast_message(self, name: str, message: str = "") -> None:
         # report locally
 
         print(f"{name}: {message.strip()}")
         sys.stdout.flush()
-        msg_bytes = json.dumps({"name": name, "message": message}).encode()
+        msg_bytes: bytes = json.dumps({"name": name, "message": message}).encode()
         # enumerate all users and broadcast the message
 
         # create a task for each write to client
-        tasks = [
+        tasks: List[asyncio.Task] = [
             asyncio.create_task(self.write_message(w, msg_bytes))
             for _, (_, w) in self.ALL_USERS.items()
         ]
@@ -57,13 +60,13 @@ class ChatServer:
 
     # connect a user
     async def connect_user(
-        self, reader: asyncio.StreamWriter, writer: asyncio.StreamWriter
-    ):
+        self, reader: asyncio.StreamReader, writer: asyncio.StreamWriter
+    ) -> str:
         # ask the user for their name
-        data = await reader.read(1024)  # Read raw bytes
+        data: bytes = await reader.read(1024)  # Read raw bytes
         # print(data)
         # convert name to string
-        name = json.loads(data.decode())["name"]
+        name: str = json.loads(data.decode())["name"]
         # store the user details
         self.ALL_USERS[name] = (reader, writer)
         # announce the user
@@ -81,7 +84,7 @@ class ChatServer:
         return name
 
     # disconnect a user
-    async def disconnect_user(self, name: str, writer: asyncio.StreamWriter):
+    async def disconnect_user(self, name: str, writer: asyncio.StreamWriter) -> None:
         # close the user's connection
         writer.close()
         await writer.wait_closed()
@@ -92,25 +95,26 @@ class ChatServer:
 
     # handle a chat client
     async def handle_chat_client(
-        self, reader: asyncio.StreamWriter, writer: asyncio.StreamWriter
-    ):
+        self, reader: asyncio.StreamReader, writer: asyncio.StreamWriter
+    ) -> None:
         print("Client connecting...")
         # connect the user
-        name = await self.connect_user(reader, writer)
+        name: str = await self.connect_user(reader, writer)
         try:
             # read messages from the user
             while True:
                 # read data
-                data = await reader.read(1024)  # Read raw bytes
-                decoded_data = data.decode()
+                data: bytes = await reader.read(1024)  # Read raw bytes
+                decoded_data: str = data.decode()
                 sys.stdout.flush()
                 for data in decoded_data.split("{"):
                     if not data:
                         continue
 
                     # convert to string
-                    data_json = json.loads("{" + data)
-                    name, line = data_json["name"], data_json["message"].strip()
+                    data_json: Dict[str, str] = json.loads("{" + data)
+                    name: str = data_json["name"]
+                    line: str = data_json["message"].strip()
                     # check for exit
                     if line == "QUIT":
                         break
@@ -124,10 +128,10 @@ class ChatServer:
             await self.disconnect_user(name, writer)
 
     # chat server
-    async def main(self):
+    async def main(self) -> None:
         # define the local host
         # create the server
-        server = await asyncio.start_server(
+        server: asyncio.Server = await asyncio.start_server(
             self.handle_chat_client, self.host_address, self.host_port
         )
         # run the server
@@ -139,11 +143,11 @@ class ChatServer:
 
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser()
+    parser: argparse.ArgumentParser = argparse.ArgumentParser()
     parser.add_argument("--server-address", type=str, default="127.0.0.1")
     parser.add_argument("--server-port", type=int, default=8888)
-    args = parser.parse_args()
+    args: argparse.Namespace = parser.parse_args()
 
-    server = ChatServer(args.server_address, args.server_port)
+    server: ChatServer = ChatServer(args.server_address, args.server_port)
     # start the event loop
     asyncio.run(server.main())

@@ -1,3 +1,3 @@
-from typing import Any
+from typing import Any, Dict
 
-PartialObj = dict[str, Any]
+PartialObj = Dict[str, Any]
