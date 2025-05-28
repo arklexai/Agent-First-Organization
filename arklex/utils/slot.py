@@ -61,7 +61,7 @@ def structured_input_output(slots: list[Slot]) -> tuple[SlotInputList, Type]:
 
     output_format = create_model(
         "DynamicSlotOutputs",
-        **{slot.name: Optional[TypeMapping.string_to_type(slot.type)] for slot in slots}
+        **{slot.name: (Optional[TypeMapping.string_to_type(slot.type)], None) for slot in slots}
     )
     return SlotInputList(slot_input_list=input_slots), output_format
 
