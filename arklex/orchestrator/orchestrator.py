@@ -91,15 +91,29 @@ class AgentOrg:
 
         params.memory.trajectory.append([])
 
+        PROMPT_TEMPLATE = """
+You are a {role}, {user_objective} {builder_objective}.
+Your primary objective in this conversation is to: {primary_objective}.
+Your secondary objective is: {secondary_objective}.
+Tone: {tone}. Formality: {formality_level}. Sentence complexity: {sentence_complexity}.
+Make sure you follow these rules: {rules}
+Additional instructions: {additional_instruct}
+{opt_instruct}"""
+
         # Initialize the message state
-        sys_instruct: str = (
-            "You are a "
-            + self.product_kwargs["role"]
-            + ". "
-            + self.product_kwargs["user_objective"]
-            + self.product_kwargs["builder_objective"]
-            + self.product_kwargs["intro"]
-            + self.product_kwargs.get("opt_instruct", "")
+        sys_instruct = PROMPT_TEMPLATE.format(
+            role=self.product_kwargs["role"],
+            user_objective=self.product_kwargs["user_objective"],
+            builder_objective=self.product_kwargs["builder_objective"],
+            primary_objective=self.product_kwargs.get("primary_objective", "Just follow your role"),
+            secondary_objective=self.product_kwargs.get("secondary_objective", "None. Just follow the primary objective"),
+            intro=self.product_kwargs["intro"],
+            tone=self.product_kwargs.get("tone", "Neutral"),
+            formality_level=self.product_kwargs.get("formality_level", "Semi-formal"),
+            sentence_complexity=self.product_kwargs.get("sentence_complexity", "Moderate"),
+            rules=self.product_kwargs.get("rules", "None."),
+            additional_instruct=self.product_kwargs.get("additional_instruct", "None."),
+            opt_instruct=self.product_kwargs.get("opt_instruct", "")
         )
         bot_config: BotConfig = BotConfig(
             bot_id=self.product_kwargs.get("bot_id", "default"),
