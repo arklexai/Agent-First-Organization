@@ -22,7 +22,8 @@ def http_tool(**kwargs) -> str:
             method=params.method,
             url=params.endpoint,
             headers=params.headers,
-            json=params.body
+            json=params.body,
+            params=params.params
         )
         response.raise_for_status()
         response_data = response.json()

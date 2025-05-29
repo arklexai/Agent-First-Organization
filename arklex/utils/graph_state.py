@@ -138,3 +138,4 @@ class HTTPParams(BaseModel):
     method: str = Field(default="GET")
     headers: Dict[Any, Any] = Field(default_factory=lambda: {"Content-Type": "application/json"})
     body: Optional[Any] = Field(default=None)
+    params: Optional[Any] = Field(default=None)
