@@ -131,6 +131,7 @@ class TaskGraph(TaskGraphBase):
                 params.taskgraph.available_global_intents.pop(intent)
 
         params.taskgraph.curr_node = sample_node
+        
         node_info = NodeInfo(
             node_id=sample_node,
             type=node_info.get("type", ""),
