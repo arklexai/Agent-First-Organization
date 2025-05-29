@@ -238,6 +238,7 @@ class TaskGraph(TaskGraphBase):
         In case of a node having status == STAY, returned directly the same node
         """
         node_status = params.taskgraph.node_status
+        logger.info(f"node_status: {node_status}")
         status = node_status.get(curr_node, StatusEnum.COMPLETE)
         if status == StatusEnum.STAY:
             node_info = self.graph.nodes[curr_node]
