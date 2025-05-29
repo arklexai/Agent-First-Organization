@@ -306,7 +306,6 @@ class AgentOrg:
             n_node_performed += 1
             # If the current node is not complete, then no need to continue to the next node
             node_status = params.taskgraph.node_status
-            logger.info(f"node_status: {node_status}")
             cur_node_id = params.taskgraph.curr_node
             status = node_status.get(cur_node_id, StatusEnum.COMPLETE)
             if status == StatusEnum.INCOMPLETE:
