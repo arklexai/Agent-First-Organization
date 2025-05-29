@@ -266,16 +266,34 @@ class AgentOrg:
             "parameters": params,
             "allow_global_intent_switch": True,
         }
-        stm: ShortTermMemory = ShortTermMemory(
-            message_state.trajectory, chat_history_str, llm_config=self.llm_config
+
+        stm = ShortTermMemory(
+            params.memory.trajectory, chat_history_str, llm_config=self.llm_config
         )
         asyncio.run(stm.personalize())
-        found_records: bool
-        relevant_records: List[ResourceRecord]
+        message_state.trajectory = params.memory.trajectory
+
+        # Log personalized intents from trajectory
+        for turn in params.memory.trajectory:
+            for record in turn:
+                if record.personalized_intent:
+                    logger.info(f"Personalized Intent: {record.personalized_intent}")
+                    logger.info(f"Original Intent: {record.personalized_intent}")
+
         found_records, relevant_records = stm.retrieve_records(text)
-        found_intent: bool
-        relevant_intent: Optional[str]
+
+        logger.info(f"Found Records: {found_records}")
+        if found_records:
+            logger.info(
+                f"Relevant Records: {[r.personalized_intent for r in relevant_records]}"
+            )
+
         found_intent, relevant_intent = stm.retrieve_intent(text)
+
+        logger.info(f"Found Intent: {found_intent}")
+        if found_intent:
+            logger.info(f"Relevant Intent: {relevant_intent}")
+
         if found_records:
             message_state.relevant_records = relevant_records
         taskgraph_chain = RunnableLambda(self.task_graph.get_node) | RunnableLambda(
@@ -297,7 +315,11 @@ class AgentOrg:
                     resource_id="planner",
                     resource_name="planner",
                     can_skipped=False,
-                    is_leaf=len(list(self.graph.successors(params.taskgraph.curr_node)))
+                    is_leaf=len(
+                        list(
+                            self.task_graph.graph.successors(params.taskgraph.curr_node)
+                        )
+                    )
                     == 0,
                     attributes={"value": "", "direct": False},
                 )

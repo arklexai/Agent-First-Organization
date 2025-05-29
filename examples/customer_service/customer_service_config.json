@@ -7,12 +7,14 @@
     "task_docs": [
         {
             "source": "https://www.richtechrobotics.com/",
+            "type": "url",
             "num": 20
         }
     ],
     "rag_docs": [
         {
             "source": "https://www.richtechrobotics.com/",
+            "type": "url",
             "num": 20
         }
     ],

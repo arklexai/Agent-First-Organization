@@ -1,8 +1,9 @@
-from typing import List, Dict, Any
-from arklex.memory.core import ShortTermMemory
-from arklex.utils.graph_state import ResourceRecord, LLMConfig, MessageState, BotConfig
-from arklex.utils.model_config import MODEL
 import asyncio
+from typing import Any, Dict, List, Tuple
+
+from arklex.memory.core import ShortTermMemory
+from arklex.utils.graph_state import BotConfig, LLMConfig, MessageState, ResourceRecord
+from arklex.utils.model_config import MODEL
 
 # class ResourceRecord(BaseModel):
 #     info: Dict
@@ -226,26 +227,85 @@ def init_test_state() -> MessageState:
     return MessageState(sys_instruct=sys_instruct, bot_config=bot_config)
 
 
+def run_test_case(
+    case_name: str,
+    description: str,
+    trajectory: List[List[ResourceRecord]],
+    chat_history: str,
+    query: str,
+    expected_intent: bool,
+    expected_record: bool,
+    llm_config: LLMConfig,
+) -> Tuple[bool, bool]:
+    """Helper function to run a test case with standardized format.
+
+    Args:
+        case_name: Name of the test case
+        description: Description of what the test case is testing
+        trajectory: List of records for the test case
+        chat_history: Chat history string
+        query: Query string to test
+        expected_intent: Expected found_intent value
+        expected_record: Expected found_record value
+        llm_config: LLM configuration
+
+    Returns:
+        Tuple of (found_intent, found_record) results
+    """
+    print(f"\n=== Case {case_name}: {description} ===")
+
+    # Create STM instance
+    stm = ShortTermMemory(trajectory, chat_history, llm_config=llm_config)
+    asyncio.run(stm.personalize())
+
+    # Run retrievals
+    found_record, records = stm.retrieve_records(query)
+    found_intent, intent = stm.retrieve_intent(query)
+
+    # Print results
+    print("Results:")
+    print(f"- found_intent: {found_intent} (Expected: {expected_intent})")
+    print(f"- found_record: {found_record} (Expected: {expected_record})")
+
+    if found_record:
+        print("\nFound Records Info:")
+        for record in records:
+            print(f"Record Intent: {record.intent}")
+            print(f"Record Personalized Intent: {record.personalized_intent}")
+            print(f"Record Output (first 100 tokens): {record.output[:100]}")
+
+    return found_intent, found_record
+
+
 def test_shopify_intent() -> None:
     # Initialize test state
-    state: MessageState = init_test_state()
+    state = init_test_state()
 
-    # build trajectory as list-of-lists
-    trajectory: List[List[ResourceRecord]] = [[r] for r in sample_records]
+    # Define test case labels
+    test_case_labels = {
+        "case1": {
+            "found_intent_label": True,
+            "found_record_label": True,
+            "description": "Product Selection Flow",
+        },
+        "case2": {
+            "found_intent_label": True,
+            "found_record_label": True,
+            "description": "Follow-up Questions",
+        },
+        "case3": {
+            "found_intent_label": False,
+            "found_record_label": False,
+            "description": "Different Product Recommendations",
+        },
+        "case4": {
+            "found_intent_label": True,
+            "found_record_label": True,
+            "description": "Same Product, Different Attributes",
+        },
+    }
 
-    # matching user utterances
-    chat_history: List[Dict[str, str]] = [
-        {"role": "user", "content": "What products do you have?"},
-        {"role": "user", "content": "Show me the denim apron with 5 pockets."},
-        {"role": "user", "content": "Do you have any aprons?"},
-        {"role": "user", "content": "Does it have pockets?"},
-        {"role": "user", "content": "I need an apron."},
-        {"role": "user", "content": "Actually, show me some hats."},
-        {"role": "user", "content": "Show me hats."},
-        {"role": "user", "content": "Do you have navy blue hats?"},
-    ]
-
-    # Create LLMConfig instance from bot_config
+    # Initialize LLM config
     llm_config = LLMConfig(**TEST_CONFIG.get("model", MODEL))
     bot_config = BotConfig(
         bot_id="test_bot",
@@ -254,24 +314,98 @@ def test_shopify_intent() -> None:
         bot_type="test",
         llm_config=llm_config,
     )
-    stm = ShortTermMemory(trajectory, chat_history, llm_config=bot_config.llm_config)
-    asyncio.run(stm.personalize())
 
-    # Check that personalized_intent is set
-    for turn in stm.trajectory:
-        for record in turn:
-            print("Intent:", record.intent)
-            print("Personalized Intent:", record.personalized_intent)
+    # Test Case 1: Product Selection Flow
+    trajectory_case1 = [[record_case1]]
+    chat_history_case1 = """assistant: Hello! How can I help you today?
+user: What products do you have?
+assistant: We have several products in our store. Are you looking for something particular?"""
+    found_intent_case1, found_record_case1 = run_test_case(
+        "1",
+        test_case_labels["case1"]["description"],
+        trajectory_case1,
+        chat_history_case1,
+        "Show me the denim apron with 5 pockets",
+        test_case_labels["case1"]["found_intent_label"],
+        test_case_labels["case1"]["found_record_label"],
+        bot_config.llm_config,
+    )
 
-    found, records = stm.retrieve_records("Tell me about the denim apron")
-    print("Found?", found)
-    for rec in records:
-        print("Retrieved Record Output:", rec.output)
-        found_intent, intent = stm.retrieve_intent(
-            "I am looking for the 5-pocket apron"
+    # Test Case 2: Follow-up Questions
+    trajectory_case2 = [[record_case2_initial]]
+    chat_history_case2 = """assistant: Hello! How can I help you today?
+user: Do you have any aprons?
+assistant: Yes, we have several aprons available."""
+    found_intent_case2, found_record_case2 = run_test_case(
+        "2",
+        test_case_labels["case2"]["description"],
+        trajectory_case2,
+        chat_history_case2,
+        "Does it have pockets?",
+        test_case_labels["case2"]["found_intent_label"],
+        test_case_labels["case2"]["found_record_label"],
+        bot_config.llm_config,
+    )
+
+    # Test Case 3: Different Product Recommendations
+    trajectory_case3 = [[record_case3_aprons]]
+    chat_history_case3 = """assistant: Hello! How can I help you today?
+user: I need an apron.
+assistant: I can help you find the perfect apron."""
+    found_intent_case3, found_record_case3 = run_test_case(
+        "3",
+        test_case_labels["case3"]["description"],
+        trajectory_case3,
+        chat_history_case3,
+        "I want bedframes",
+        test_case_labels["case3"]["found_intent_label"],
+        test_case_labels["case3"]["found_record_label"],
+        bot_config.llm_config,
+    )
+
+    # Test Case 4: Same Product, Different Attributes
+    trajectory_case4 = [[record_case4_hats]]
+    chat_history_case4 = """assistant: Hello! How can I help you today?
+user: Show me hats.
+assistant: Here are our hat collections."""
+    found_intent_case4, found_record_case4 = run_test_case(
+        "4",
+        test_case_labels["case4"]["description"],
+        trajectory_case4,
+        chat_history_case4,
+        "Do you have navy blue hats?",
+        test_case_labels["case4"]["found_intent_label"],
+        test_case_labels["case4"]["found_record_label"],
+        bot_config.llm_config,
+    )
+
+    # Summary of Test Results
+    print("\n=== Test Summary ===")
+    actual_results = {
+        "case1": {
+            "found_intent": found_intent_case1,
+        },
+        "case2": {
+            "found_intent": found_intent_case2,
+        },
+        "case3": {
+            "found_intent": found_intent_case3,
+        },
+        "case4": {
+            "found_intent": found_intent_case4,
+        },
+    }
+
+    for case, labels in test_case_labels.items():
+        actual = actual_results[case]
+        intent_status = (
+            "PASS" if actual["found_intent"] == labels["found_intent_label"] else "FAIL"
         )
-    print("Intent Found?", found_intent)
-    print("Best Matched Intent:", intent)
+
+        print(f"\n{case} ({labels['description']}):")
+        print(
+            f"  Intent: {intent_status} (Expected: {labels['found_intent_label']}, Got: {actual['found_intent']})"
+        )
 
 
 if __name__ == "__main__":
