@@ -17,7 +17,7 @@ def http_tool(**kwargs) -> str:
     """Make an HTTP request and return the response"""
     try:
         params = HTTPParams(**kwargs)
-        logger.info(f"Making a {params.method} request to {params.endpoint}")
+        logger.info(f"Making a {params.method} request to {params.endpoint}, with body: {params.body} and params: {params.params}")
         response = requests.request(
             method=params.method,
             url=params.endpoint,
@@ -27,6 +27,7 @@ def http_tool(**kwargs) -> str:
         )
         response.raise_for_status()
         response_data = response.json()
+        logger.info(f"Response from the {params.endpoint} for body: {params.body} and params: {params.params} is: {response_data}")
         return str(response_data)
             
     except requests.exceptions.RequestException as e:
