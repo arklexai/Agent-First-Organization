@@ -1,4 +1,5 @@
 import os
+from typing import Dict, List, Optional
 
 from benchmark.tau_bench.model_utils.api.datapoint import Datapoint
 from benchmark.tau_bench.model_utils.model.chat import ChatModel, Message
@@ -11,22 +12,22 @@ from benchmark.tau_bench.model_utils.model.utils import approx_num_tokens
 
 DEFAULT_MISTRAL_MODEL = "mistral-large-latest"
 
-PRICE_PER_INPUT_TOKEN_MAP = {
+PRICE_PER_INPUT_TOKEN_MAP: Dict[str, float] = {
     "mistral-largest-latest": 3 / 1000000,
 }
 INPUT_PRICE_PER_TOKEN_FALLBACK = 10 / 1000000
 
-CAPABILITY_SCORE_MAP = {
+CAPABILITY_SCORE_MAP: Dict[str, float] = {
     "mistral-largest-latest": 0.9,
 }
 CAPABILITY_SCORE_FALLBACK = 0.3
 
 # TODO: implement
-LATENCY_MS_PER_OUTPUT_TOKEN_MAP = {}
+LATENCY_MS_PER_OUTPUT_TOKEN_MAP: Dict[str, float] = {}
 # TODO: implement
 LATENCY_MS_PER_OUTPUT_TOKEN_FALLBACK = 0.0
 
-MAX_CONTEXT_LENGTH_MAP = {
+MAX_CONTEXT_LENGTH_MAP: Dict[str, int] = {
     "mistral-largest-latest": 128000,
 }
 MAX_CONTEXT_LENGTH_FALLBACK = 128000
@@ -35,8 +36,8 @@ MAX_CONTEXT_LENGTH_FALLBACK = 128000
 class MistralModel(ChatModel):
     def __init__(
         self,
-        model: str | None = None,
-        api_key: str | None = None,
+        model: Optional[str] = None,
+        api_key: Optional[str] = None,
         temperature: float = 0.0,
     ) -> None:
         from mistralai.async_client import MistralAsyncClient
@@ -58,9 +59,9 @@ class MistralModel(ChatModel):
 
     def generate_message(
         self,
-        messages: list[Message],
+        messages: List[Message],
         force_json: bool,
-        temperature: float | None = None,
+        temperature: Optional[float] = None,
     ) -> Message:
         if temperature is None:
             temperature = self.temperature

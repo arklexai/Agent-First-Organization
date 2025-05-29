@@ -1,7 +1,7 @@
 import abc
 import functools
 from multiprocessing import Lock
-from typing import Any, Callable, TypeVar
+from typing import Any, Callable, TypeVar, List, Dict, Optional, Union
 
 from pydantic import BaseModel
 
@@ -18,14 +18,14 @@ T = TypeVar("T")
 class SamplingStrategy(abc.ABC):
     @abc.abstractmethod
     def execute(
-        self, invocable_or_invokables: Callable[..., T] | list[Callable[..., T]]
+        self, invocable_or_invokables: Union[Callable[..., T], List[Callable[..., T]]]
     ) -> T:
         raise NotImplementedError
 
 
 def catch_model_errors(func: Callable[..., T]) -> Callable[..., T]:
     @functools.wraps(func)
-    def wrapper(*args, **kwargs) -> T:
+    def wrapper(*args: Any, **kwargs: Any) -> T:
         try:
             return func(*args, **kwargs)
         except ModelError as e:
@@ -51,13 +51,13 @@ class SingleSamplingStrategy(SamplingStrategy):
 class RedundantSamplingStrategy(SamplingStrategy):
     def __init__(self, n: int = 2) -> None:
         assert n > 0
-        self.n = n
+        self.n: int = n
 
     @catch_model_errors
     def execute(
-        self, invocable_or_invokables: Callable[..., T] | list[Callable[..., T]]
+        self, invocable_or_invokables: Union[Callable[..., T], List[Callable[..., T]]]
     ) -> T:
-        results = execute_and_filter_model_errors(
+        results: List[T] = execute_and_filter_model_errors(
             [lambda: invocable_or_invokables() for _ in range(self.n)]
             if isinstance(invocable_or_invokables, Callable)
             else invocable_or_invokables
@@ -69,12 +69,12 @@ class RedundantSamplingStrategy(SamplingStrategy):
 class RetrySamplingStrategy(SamplingStrategy):
     def __init__(self, max_retries: int = 5) -> None:
         assert max_retries > 0
-        self.max_retries = max_retries
+        self.max_retries: int = max_retries
 
     @catch_model_errors
     def execute(self, invocable_or_invokables: Callable[..., T]) -> T:
         assert isinstance(invocable_or_invokables, Callable)
-        first_error = None
+        first_error: Optional[ModelError] = None
         for _ in range(self.max_retries):
             try:
                 return invocable_or_invokables()
@@ -89,20 +89,22 @@ class MajoritySamplingStrategy(SamplingStrategy):
     def __init__(
         self,
         n: int = 5,
-        max_concurrency: int | None = None,
+        max_concurrency: Optional[int] = None,
         panic_on_first_model_error: bool = False,
     ) -> None:
-        self.n = n
-        self.max_concurrency = max_concurrency if max_concurrency is not None else n
-        self.panic_on_first_model_error = panic_on_first_model_error
+        self.n: int = n
+        self.max_concurrency: int = (
+            max_concurrency if max_concurrency is not None else n
+        )
+        self.panic_on_first_model_error: bool = panic_on_first_model_error
 
     @catch_model_errors
     def execute(
-        self, invocable_or_invokables: Callable[..., T] | list[Callable[..., T]]
+        self, invocable_or_invokables: Union[Callable[..., T], List[Callable[..., T]]]
     ) -> T:
         if self.panic_on_first_model_error:
             if isinstance(invocable_or_invokables, Callable):
-                results = list(
+                results: List[T] = list(
                     func_tools.map(
                         lambda _: invocable_or_invokables(),
                         range(self.n),
@@ -133,11 +135,11 @@ class MajoritySamplingStrategy(SamplingStrategy):
         return get_majority(results)
 
 
-def get_majority(results: list[T]) -> T:
-    grouped: dict[str, Any] = {}
+def get_majority(results: List[T]) -> T:
+    grouped: Dict[str, List[T]] = {}
     for result in results:
         if isinstance(result, BaseModel):
-            key = result.model_dump_json()
+            key: str = result.model_dump_json()
         else:
             key = str(result)
         if key not in grouped:
@@ -145,22 +147,22 @@ def get_majority(results: list[T]) -> T:
             grouped[key] = [result]
         else:
             grouped[key].append(result)
-    majority = max(grouped, key=lambda key: len(grouped[key]))
+    majority: str = max(grouped, key=lambda key: len(grouped[key]))
     return grouped[majority][0]
 
 
 class EnsembleSamplingStrategy(SamplingStrategy):
     def __init__(
         self,
-        max_concurrency: int | None = None,
+        max_concurrency: Optional[int] = None,
         panic_on_first_model_error: bool = False,
     ) -> None:
-        self.max_concurrency = max_concurrency
-        self.panic_on_first_model_error = panic_on_first_model_error
+        self.max_concurrency: Optional[int] = max_concurrency
+        self.panic_on_first_model_error: bool = panic_on_first_model_error
 
     @catch_model_errors
     def execute(
-        self, invocable_or_invokables: Callable[..., T] | list[Callable[..., T]]
+        self, invocable_or_invokables: Union[Callable[..., T], List[Callable[..., T]]]
     ) -> T:
         if (
             not isinstance(invocable_or_invokables, list)
@@ -168,7 +170,7 @@ class EnsembleSamplingStrategy(SamplingStrategy):
         ):
             raise ValueError("Ensemble sampling requires at least 2 invocables")
         if self.panic_on_first_model_error:
-            results = list(
+            results: List[T] = list(
                 func_tools.map(
                     lambda invocable: invocable(),
                     invocable_or_invokables,
@@ -190,20 +192,22 @@ class UnanimousSamplingStrategy(SamplingStrategy):
     def __init__(
         self,
         n: int = 5,
-        max_concurrency: int | None = None,
+        max_concurrency: Optional[int] = None,
         panic_on_first_model_error: bool = False,
     ) -> None:
-        self.n = n
-        self.max_concurrency = max_concurrency if max_concurrency is not None else n
-        self.panic_on_first_model_error = panic_on_first_model_error
+        self.n: int = n
+        self.max_concurrency: int = (
+            max_concurrency if max_concurrency is not None else n
+        )
+        self.panic_on_first_model_error: bool = panic_on_first_model_error
 
     @catch_model_errors
     def execute(
-        self, invocable_or_invokables: Callable[..., T] | list[Callable[..., T]]
+        self, invocable_or_invokables: Union[Callable[..., T], List[Callable[..., T]]]
     ) -> T:
         if self.panic_on_first_model_error:
             if isinstance(invocable_or_invokables, Callable):
-                results = list(
+                results: List[T] = list(
                     func_tools.map(
                         lambda _: invocable_or_invokables(),
                         range(self.n),
@@ -236,8 +240,8 @@ class SamplingError(Exception):
     pass
 
 
-DEFAULT_SAMPLING_STRATEGY = SingleSamplingStrategy()
-_DEFAULT_SAMPLING_STRATEGY_LOCK = Lock()
+DEFAULT_SAMPLING_STRATEGY: SamplingStrategy = SingleSamplingStrategy()
+_DEFAULT_SAMPLING_STRATEGY_LOCK: Lock = Lock()
 
 
 def set_default_sampling_strategy(strategy: SamplingStrategy) -> None:

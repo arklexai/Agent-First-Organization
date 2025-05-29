@@ -4,26 +4,26 @@ import inspect
 import threading
 from collections import defaultdict
 from multiprocessing import Lock
-from typing import Any, Callable, TypeVar
+from typing import Any, Callable, TypeVar, Dict, Tuple, Union
 
 from pydantic import BaseModel
 
 T = TypeVar("T")
 
-USE_CACHE = True
-_USE_CACHE_LOCK = Lock()
-cache: dict[str, tuple[T, threading.Event]] = {}
-lock = threading.Lock()
-conditions = defaultdict(threading.Condition)
+USE_CACHE: bool = True
+_USE_CACHE_LOCK: Lock = Lock()  # type: ignore
+cache: Dict[str, Tuple[Union[T, Exception], threading.Event]] = {}
+lock: threading.Lock = threading.Lock()
+conditions: Dict[str, threading.Condition] = defaultdict(threading.Condition)
 
 
-def disable_cache():
+def disable_cache() -> None:
     global USE_CACHE
     with _USE_CACHE_LOCK:
         USE_CACHE = False
 
 
-def enable_cache():
+def enable_cache() -> None:
     global USE_CACHE
     with _USE_CACHE_LOCK:
         USE_CACHE = True
@@ -44,14 +44,14 @@ def hash_item(item: Any) -> int:
 
 
 def hash_func_call(
-    func: Callable[..., Any], args: tuple[Any], kwargs: dict[str, Any]
+    func: Callable[..., Any], args: Tuple[Any, ...], kwargs: Dict[str, Any]
 ) -> str:
     bound_args = inspect.signature(func).bind(*args, **kwargs)
     bound_args.apply_defaults()
     standardized_args = sorted(bound_args.arguments.items())
-    arg_hash = hash_item(standardized_args)
-    hashed_func = id(func)
-    call = (hashed_func, arg_hash)
+    arg_hash: int = hash_item(standardized_args)
+    hashed_func: int = id(func)
+    call: Tuple[int, int] = (hashed_func, arg_hash)
     return hashlib.md5(str(call).encode()).hexdigest()
 
 
@@ -60,11 +60,11 @@ def cache_call_w_dedup(func: Callable[..., T]) -> Callable[..., T]:
     def wrapper(*args: Any, **kwargs: Any) -> T:
         if not USE_CACHE:
             return func(*args, **kwargs)
-        key = hash_func_call(func=func, args=args, kwargs=kwargs)
+        key: str = hash_func_call(func=func, args=args, kwargs=kwargs)
         if key in cache:
             result, event = cache[key]
             if event.is_set():
-                return result
+                return result  # type: ignore
         else:
             with lock:
                 cache[key] = (None, threading.Event())
@@ -72,10 +72,10 @@ def cache_call_w_dedup(func: Callable[..., T]) -> Callable[..., T]:
         condition = conditions[key]
         with condition:
             if cache[key][1].is_set():
-                return cache[key][0]
+                return cache[key][0]  # type: ignore
             if not cache[key][0]:
                 try:
-                    result = func(*args, **kwargs)
+                    result: T = func(*args, **kwargs)
                     with lock:
                         cache[key] = (result, threading.Event())
                         cache[key][1].set()
@@ -84,6 +84,6 @@ def cache_call_w_dedup(func: Callable[..., T]) -> Callable[..., T]:
                         cache[key] = (e, threading.Event())
                         cache[key][1].set()
                     raise e
-            return cache[key][0]
+            return cache[key][0]  # type: ignore
 
     return wrapper

@@ -5,7 +5,7 @@ from benchmark.tau_bench.envs.airline.rules import RULES
 from benchmark.tau_bench.envs.airline.tools import ALL_TOOLS
 from benchmark.tau_bench.envs.airline.wiki import WIKI
 from benchmark.tau_bench.envs.base import Env
-from typing import Optional, Union
+from typing import Optional, Union, List
 from benchmark.tau_bench.envs.user import UserStrategy
 
 
@@ -34,4 +34,4 @@ class MockAirlineDomainEnv(Env):
             user_provider=user_provider,
             task_index=task_index,
         )
-        self.terminate_tools = ["transfer_to_human_agents"]
+        self.terminate_tools: List[str] = ["transfer_to_human_agents"]

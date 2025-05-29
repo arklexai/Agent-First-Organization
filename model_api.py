@@ -2,9 +2,9 @@ import argparse
 import logging
 import os
 import uvicorn
+from typing import Any, Dict, List, Tuple
 
 from fastapi import FastAPI
-from typing import Dict
 
 from arklex.utils.utils import init_logger
 from arklex.env.env import Env
@@ -17,23 +17,33 @@ logger = logging.getLogger(__name__)
 app = FastAPI()
 
 
-def get_api_bot_response(args, history, user_text, parameters, env):
-    data = {"text": user_text, "chat_history": history, "parameters": parameters}
+def get_api_bot_response(
+    args: argparse.Namespace,
+    history: List[Dict[str, str]],
+    user_text: str,
+    parameters: Dict[str, Any],
+    env: Env,
+) -> Tuple[str, Dict[str, Any]]:
+    data: Dict[str, Any] = {
+        "text": user_text,
+        "chat_history": history,
+        "parameters": parameters,
+    }
     orchestrator = AgentOrg(
         config=os.path.join(args.input_dir, "taskgraph.json"), env=env
     )
-    result = orchestrator.get_response(data)
+    result: Dict[str, Any] = orchestrator.get_response(data)
 
     return result["answer"], result["parameters"]
 
 
 @app.post("/eval/chat")
-def predict(data: Dict):
-    history = data["history"]
-    params = data["parameters"]
-    workers = data["workers"]
-    tools = data["tools"]
-    user_text = history[-1]["content"]
+def predict(data: Dict[str, Any]) -> Dict[str, Any]:
+    history: List[Dict[str, str]] = data["history"]
+    params: Dict[str, Any] = data["parameters"]
+    workers: List[Dict[str, Any]] = data["workers"]
+    tools: List[Dict[str, Any]] = data["tools"]
+    user_text: str = history[-1]["content"]
 
     env = Env(tools=tools, workers=workers, slotsfillapi="")
     answer, params = get_api_bot_response(args, history[:-1], user_text, params, env)

@@ -1,0 +1,654 @@
+{
+  "nodes": [
+    [
+      "0",
+      {
+        "resource": {
+          "id": "be303c9a-a902-4de9-bbb2-61343e59e888",
+          "name": "MessageWorker"
+        },
+        "attribute": {
+          "value": "Hello! Welcome to AIMS. How can I assist you today?",
+          "task": "start message",
+          "directed": false
+        },
+        "limit": 1,
+        "type": "start"
+      }
+    ],
+    [
+      "1",
+      {
+        "resource": {
+          "id": "ddbe6adc-cd0e-40bc-8a95-91cb69ed807b",
+          "name": "get_apt_by_email"
+        },
+        "attribute": {
+          "value": "",
+          "task": "Retrieve the list of all appointments the user made",
+          "directed": false
+        },
+        "limit": 1
+      }
+    ],
+    [
+      "2", 
+      {
+        "resource": {
+          "id": "be303c9a-a902-4de9-bbb2-61343e59e888",
+          "name": "MessageWorker"
+        },
+        "attribute": {
+          "value": "Which info session do you want to reschedule",
+          "task": "Asks user to choose one info session from the existing appointments",
+          "directed": false
+        },
+        "limit": 10
+      }
+    ],
+    [
+      "3", 
+      {
+        "resource": {
+          "id": "129eda6d-96d8-4638-81fc-c55b619b3386",
+          "name": "get_type_id_by_apt_name"
+        },
+        "attribute": {
+          "value": "",
+          "task": "Retreive the type id of the appointment",
+          "directed": false
+        },
+        "limit": 10
+      }
+    ],
+    [
+      "4",  
+      {
+        "resource": {
+          "id": "be303c9a-a902-4de9-bbb2-61343e59e888",
+          "name": "MessageWorker"
+        },
+        "attribute": {
+          "value": "Could you please let me know your preferred month?",
+          "task": "Asks user to input the desired month to check availability",
+          "directed": false
+        },
+        "limit": 10
+      }
+    ],
+    [
+      "5",  
+      {
+        "resource": {
+          "id": "5703e6a0-86fe-4421-b517-3b651ed3c74b",
+          "name": "get_available_dates"
+        },
+        "attribute": {
+          "value": "",
+          "task": "Retrieve the available dates of the specific month",
+          "directed": false
+        },
+        "limit": 1
+      }
+    ],
+    [
+      "6", 
+      {
+        "resource": {
+          "id": "be303c9a-a902-4de9-bbb2-61343e59e888",
+          "name": "MessageWorker"
+        },
+        "attribute": {
+          "value": "",
+          "task": "Provide the list of info sessions and ask users to choose an info session from info session lists",
+          "directed": false
+        },
+        "limit": 10
+      }
+    ],
+    [
+      "7", 
+      {
+        "resource": {
+          "id": "aa8dd20d-fda7-475b-91ce-8c5fc356a2b7",
+          "name": "get_available_times"
+        },
+        "attribute": {
+          "value": "",
+          "task": "Retrieve the available times of the specific date",
+          "directed": false
+        },
+        "limit": 1
+      }
+    ],
+    [
+      "8", 
+      {
+        "resource": {
+          "id": "de71e8e7-6c01-4ff8-9539-467761eba659",
+          "name": "reschedule"
+        },
+        "attribute": {
+          "value": "",
+          "task": "Help the user to reschedule",
+          "directed": false
+        },
+        "limit": 1
+      }
+    ],
+    [
+      "9", 
+      {
+        "resource": {
+          "id": "55e10740-dbaf-4a97-bfd9-e96bb7017ce9",
+          "name": "get_session_types"
+        },
+        "attribute": {
+          "value": "",
+          "task": "Get all types of info session",
+          "directed": false
+        },
+        "limit": 1
+      }
+    ],
+    [
+      "10", 
+      {
+        "resource": {
+          "id": "be303c9a-a902-4de9-bbb2-61343e59e888",
+          "name": "MessageWorker"
+        },
+        "attribute": {
+          "value": "",
+          "task": "Provide the list of info sessions and ask users to choose an info session from info session lists",
+          "directed": false
+        },
+        "limit": 10
+      }
+    ],
+    [
+      "11", 
+      {
+        "resource": {
+          "id": "5703e6a0-86fe-4421-b517-3b651ed3c74b",
+          "name": "get_available_dates"
+        },
+        "attribute": {
+          "value": "",
+          "task": "Retrieve the available dates of the specific month",
+          "directed": false
+        },
+        "limit": 1
+      }
+    ],
+    [
+      "12",
+      {
+        "resource": {
+          "id": "be303c9a-a902-4de9-bbb2-61343e59e888",
+          "name": "MessageWorker"
+        },
+        "attribute": {
+          "value": "Could you please let me know your preferred month?",
+          "task": "Asks user to input the desired month to check availability",
+          "directed": false
+        },
+        "limit": 10
+      }
+    ],
+    [
+      "13", 
+      {
+        "resource": {
+          "id": "aa8dd20d-fda7-475b-91ce-8c5fc356a2b7",
+          "name": "get_available_times"
+        },
+        "attribute": {
+          "value": "",
+          "task": "Retrieve the available times of the specific date",
+          "directed": false
+        },
+        "limit": 1
+      }
+    ],
+    [
+      "14", 
+      {
+        "resource": {
+          "id": "be303c9a-a902-4de9-bbb2-61343e59e888",
+          "name": "MessageWorker"
+        },
+        "attribute": {
+          "value": "Could you please tell me which time works for you?",
+          "task": "Asks user to input the desired time based on the availability",
+          "directed": false
+        },
+        "limit": 10
+      }
+    ],
+    [
+      "15", 
+      {
+        "resource": {
+          "id": "a8c9035c-5495-488c-a244-1061e0ba5e2f",
+          "name": "book_info_session"
+        },
+        "attribute": {
+          "value": "",
+          "task": "Help the users to book an info session",
+          "directed": false
+        },
+        "limit": 1
+      }
+    ],
+    [
+      "16", 
+      {
+        "resource": {
+          "id": "ddbe6adc-cd0e-40bc-8a95-91cb69ed807b",
+          "name": "get_apt_by_email"
+        },
+        "attribute": {
+          "value": "",
+          "task": "Retrieve the list of all appointments the user made",
+          "directed": false
+        },
+        "limit": 1
+      }
+    ],
+    [
+      "17", 
+      {
+        "resource": {
+          "id": "be303c9a-a902-4de9-bbb2-61343e59e888",
+          "name": "MessageWorker"
+        },
+        "attribute": {
+          "value": "Which info session do you want to cancel?",
+          "task": "Asks user to choose one info session from the existing appointments",
+          "directed": false
+        },
+        "limit": 10
+      }
+    ],
+    [
+      "18", 
+      {
+        "resource": {
+          "id": "7be0e2c8-7056-4278-9e2f-9f9a3b18287a",
+          "name": "cancel"
+        },
+        "attribute": {
+          "value": "",
+          "task": "Help the user cancel the appointment",
+          "directed": false
+        },
+        "limit": 1
+      }
+    ],
+    [
+      "19", 
+      {
+        "resource": {
+          "id": "be303c9a-a902-4de9-bbb2-61343e59e888",
+          "name": "MessageWorker"
+        },
+        "attribute": {
+          "value": "Could you please tell me which time works for you?",
+          "task": "Asks user to input the desired time based on the availability",
+          "directed": false
+        },
+        "limit": 10
+      }
+    ]
+  ],
+  
+  "edges": [
+    [
+      "0",
+      "1",
+      {
+        "intent": "User wants to reschedule the appointment",
+        "attribute": {
+          "weight": 1,
+          "pred": true,
+          "definition": "",
+          "sample_utterances": []
+        }
+      }
+    ],
+    [
+      "1",
+      "2",
+      {
+        "intent": "none",
+        "attribute": {
+          "weight": 1,
+          "pred": true,
+          "definition": "",
+          "sample_utterances": []
+        }
+      }
+    ],
+    [
+      "2",
+      "3",
+      {
+        "intent": "choose a specific info session to reschedule",
+        "attribute": {
+          "weight": 1,
+          "pred": true,
+          "definition": "",
+          "sample_utterances": []
+        }
+      }
+    ],
+    [
+      "3",
+      "4",
+      {
+        "intent": "none",
+        "attribute": {
+          "weight": 1,
+          "pred": true,
+          "definition": "",
+          "sample_utterances": []
+        }
+      }
+    ],
+    [
+      "4",
+      "5",
+      {
+        "intent": "check the availability of the specific month that user inputs",
+        "attribute": {
+          "weight": 1,
+          "pred": true,
+          "definition": "",
+          "sample_utterances": []
+        }
+      }
+    ],
+    [
+      "5",
+      "6",
+      {
+        "intent": "none",
+        "attribute": {
+          "weight": 1,
+          "pred": true,
+          "definition": "",
+          "sample_utterances": []
+        }
+      }
+    ],
+    [
+      "6",
+      "7",
+      {
+        "intent": "choose a specific date to check the available times",
+        "attribute": {
+          "weight": 1,
+          "pred": true,
+          "definition": "",
+          "sample_utterances": []
+        }
+      }
+    ],
+    [
+      "7",
+      "19",
+      {
+        "intent": "none",
+        "attribute": {
+          "weight": 1,
+          "pred": true,
+          "definition": "",
+          "sample_utterances": []
+        }
+      }
+    ],
+    [
+      "19",
+      "8",
+      {
+        "intent": "choose the desired time to reschedule",
+        "attribute": {
+          "weight": 1,
+          "pred": true,
+          "definition": "",
+          "sample_utterances": []
+        }
+      }
+    ],
+    [
+      "0",
+      "9",
+      {
+        "intent": "User wants to book an info session from the provided info session list",
+        "attribute": {
+          "weight": 1,
+          "pred": true,
+          "definition": "",
+          "sample_utterances": []
+        }
+      }
+    ],
+    [
+      "9",
+      "10",
+      {
+        "intent": "none",
+        "attribute": {
+          "weight": 1,
+          "pred": true,
+          "definition": "",
+          "sample_utterances": []
+        }
+      }
+    ],
+    [
+      "10",
+      "11",
+      {
+        "intent": "choose a specific info session to check availablity",
+        "attribute": {
+          "weight": 1,
+          "pred": true,
+          "definition": "",
+          "sample_utterances": []
+        }
+      }
+    ],
+    [
+      "11",
+      "12",
+      {
+        "intent": "none",
+        "attribute": {
+          "weight": 1,
+          "pred": true,
+          "definition": "",
+          "sample_utterances": []
+        }
+      }
+    ],
+    [
+      "12",
+      "13",
+      {
+        "intent": "choose a specific date to check the available times",
+        "attribute": {
+          "weight": 1,
+          "pred": true,
+          "definition": "",
+          "sample_utterances": []
+        }
+      }
+    ],
+    [
+      "13",
+      "14",
+      {
+        "intent": "none",
+        "attribute": {
+          "weight": 1,
+          "pred": true,
+          "definition": "",
+          "sample_utterances": []
+        }
+      }
+    ],
+    [
+      "14",
+      "15",
+      {
+        "intent": "choose a specific time to book the info session",
+        "attribute": {
+          "weight": 1,
+          "pred": true,
+          "definition": "",
+          "sample_utterances": []
+        }
+      }
+    ],
+    [
+      "0",
+      "16",
+      {
+        "intent": "User wants to cancel the appointment",
+        "attribute": {
+          "weight": 1,
+          "pred": true,
+          "definition": "",
+          "sample_utterances": []
+        }
+      }
+    ],
+    [
+      "16",
+      "17",
+      {
+        "intent": "none",
+        "attribute": {
+          "weight": 1,
+          "pred": true,
+          "definition": "",
+          "sample_utterances": []
+        }
+      }
+    ],
+    [
+      "17",
+      "18",
+      {
+        "intent": "choose the specific info session from the existing appointments to cancel",
+        "attribute": {
+          "weight": 1,
+          "pred": true,
+          "definition": "",
+          "sample_utterances": []
+        }
+      }
+    ]
+  ],
+  "role": "acuity scheduling assistant",
+  "user_objective": "The acuity scheduling assistant helps users to schedule, cancel or reschedule the info session.",
+  "builder_objective": "The acuity scheduling assistant helps users to schedule the info session.",
+  "domain": "Education",
+  "intro": "AIMS Education is a private college located in Piscataway, NJ. We offer degree and certificate programs for various healthcare professions.",
+  "task_docs": [
+  ],
+  "rag_docs": [
+  ],
+  "tasks": [],
+  "tools": [
+    {
+      "id": "ddbe6adc-cd0e-40bc-8a95-91cb69ed807b",
+      "name": "get_apt_by_email",
+      "path": "acuity.get_apt_by_email",
+      "fixed_args": {
+        "ACUITY_USER_ID": "<user_id>",
+        "ACUITY_API_KEY": "<api_key>"
+      }
+    },
+
+    {
+      "id": "5703e6a0-86fe-4421-b517-3b651ed3c74b",
+      "name": "get_available_dates",
+      "path": "acuity.get_available_dates",
+      "fixed_args": {
+        "ACUITY_USER_ID": "<user_id>",
+        "ACUITY_API_KEY": "<api_key>"
+      }
+    },
+    {
+      "id": "aa8dd20d-fda7-475b-91ce-8c5fc356a2b7",
+      "name": "get_available_times",
+      "path": "acuity.get_available_times",
+      "fixed_args": {
+        "ACUITY_USER_ID": "<user_id>",
+        "ACUITY_API_KEY": "<api_key>"
+      }
+    },
+    {
+      "id": "de71e8e7-6c01-4ff8-9539-467761eba659",
+      "name": "reschedule",
+      "path": "acuity.reschedule",
+      "fixed_args": {
+        "ACUITY_USER_ID": "<user_id>",
+        "ACUITY_API_KEY": "<api_key>"
+      }
+    },
+    {
+      "id": "55e10740-dbaf-4a97-bfd9-e96bb7017ce9",
+      "name": "get_session_types",
+      "path": "acuity.get_session_types",
+      "fixed_args": {
+        "ACUITY_USER_ID": "<user_id>",
+        "ACUITY_API_KEY": "<api_key>"
+      }
+    },
+    {
+      "id": "a8c9035c-5495-488c-a244-1061e0ba5e2f",
+      "name": "book_info_session",
+      "path": "acuity.book_info_session",
+      "fixed_args": {
+        "ACUITY_USER_ID": "<user_id>",
+        "ACUITY_API_KEY": "<api_key>"
+      }
+    },
+    {
+      "id": "7be0e2c8-7056-4278-9e2f-9f9a3b18287a",
+      "name": "cancel",
+      "path": "acuity.cancel",
+      "fixed_args": {
+        "ACUITY_USER_ID": "<user_id>",
+        "ACUITY_API_KEY": "<api_key>"
+      }
+    },
+    {
+      "id": "129eda6d-96d8-4638-81fc-c55b619b3386",
+      "name": "get_type_id_by_apt_name",
+      "path": "acuity.get_type_id_by_apt_name",
+      "fixed_args": {
+        "ACUITY_USER_ID": "<user_id>",
+        "ACUITY_API_KEY": "<api_key>"
+      }
+    }
+  ],
+  "workers": [
+    {
+      "id": "be303c9a-a902-4de9-bbb2-61343e59e888",
+      "name": "MessageWorker",
+      "path": "message_worker.py"
+    },
+    {
+      "id": "40f05456-525c-4d9d-ac37-54482d6b220b",
+      "name": "FaissRAGWorker",
+      "path": "faiss_rag_worker.py"
+    }
+  ],
+  "nluapi": "",
+  "slotfillapi": ""
+}

@@ -1,5 +1,5 @@
 from dataclasses import dataclass
-from typing import Generic, TypeVar
+from typing import Dict, Generic, List, Optional, TypeVar, Union
 
 T = TypeVar("T")
 
@@ -8,16 +8,16 @@ class ModelError(Exception):
     def __init__(
         self,
         short_message: str,
-        prompt: str | list[dict[str, str]] | None = None,
-        response: str | None = None,
+        prompt: Optional[Union[str, List[Dict[str, str]]]] = None,
+        response: Optional[str] = None,
     ) -> None:
         super().__init__(short_message)
-        self.short_message = short_message
-        self.prompt = prompt
-        self.response = response
+        self.short_message: str = short_message
+        self.prompt: Optional[Union[str, List[Dict[str, str]]]] = prompt
+        self.response: Optional[str] = response
 
 
 @dataclass
 class Result(Generic[T]):
-    value: T | None
-    error: ModelError | None
+    value: Optional[T]
+    error: Optional[ModelError]

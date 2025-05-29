@@ -44,10 +44,10 @@ dependencies = [
   "scipy>=1.14.1,<2.0.0",
   "litellm>=1.59.0,<2.0.0",
   "janus>=1.0.0,<2.0.0",
-  "pydantic_ai>=0.0.46,<1.0.0",
+  "pydantic_ai>=0.1.10,<1.0.0",
   "markdown>=3.8",
   "pytest>=8.3.5,<9.0.0",
-  "parsedatetime==2.6"
+  "parsedatetime>=2.6,<3.0"
 ]
 license = "MIT"
 
@@ -59,6 +59,47 @@ milvus = [
 ]
 shopify = ["ShopifyAPI>=12.7.0,<13.0.0"]
 hubspot = ["hubspot-api-client>=11.1.0,<12.0.0"]
+strict-versions = [
+  "email_validator==2.2.0",
+  "fastapi==0.115.3",
+  "fastapi-cli==0.0.5",
+  "greenlet==3.1.1",
+  "httptools==0.6.4",
+  "langchain-community==0.3.3",
+  "langchain-openai==0.2.3",
+  "langchain-anthropic==0.3.5",
+  "langchain-google-genai==2.0.9",
+  "langchain-huggingface==0.1.2",
+  "langgraph==0.2.39",
+  "linkify-it-py==2.0.3",
+  "mdit-py-plugins==0.4.2",
+  "networkx==3.4.2",
+  "phonenumbers==8.13.48",
+  "PySocks==1.7.1",
+  "python-Levenshtein==0.26.0",
+  "python-multipart==0.0.12",
+  "selenium==4.26.1",
+  "textual==0.85.2",
+  "unstructured==0.16.4",
+  "unstructured-client==0.30.0",
+  "watchfiles==0.24.0",
+  "websockets==13.1",
+  "faiss-cpu==1.10.0",
+  "tavily-python==0.5.0",
+  "webdriver-manager==4.0.2",
+  "scipy==1.14.1",
+  "litellm==1.59.0",
+  "janus==1.0.0",
+  "pydantic_ai==0.1.10",
+  "markdown==3.8",
+  "pytest==8.3.5",
+  "parsedatetime==2.6",
+  "pymilvus==2.4.7",
+  "mysql-connector-python==8.3.0",
+  "PyMySQL==1.1.0",
+  "ShopifyAPI==12.7.0",
+  "hubspot-api-client==11.1.0"
+]
 
 [tool.hatch.version]
 path = "arklex/__init__.py"

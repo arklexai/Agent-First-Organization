@@ -1,4 +1,5 @@
 import os
+from typing import Dict, List, Optional
 
 from benchmark.tau_bench.model_utils.api.datapoint import Datapoint
 from benchmark.tau_bench.model_utils.model.chat import ChatModel, Message
@@ -12,21 +13,23 @@ from benchmark.tau_bench.model_utils.model.utils import approx_num_tokens
 API_KEY_ENV_VAR = "ANYSCALE_API_KEY"
 BASE_URL = "https://api.endpoints.anyscale.com/v1"
 
-PRICE_PER_INPUT_TOKEN_MAP = {"meta-llama/Meta-Llama-3-8B-Instruct": ...}
+PRICE_PER_INPUT_TOKEN_MAP: Dict[str, float] = {
+    "meta-llama/Meta-Llama-3-8B-Instruct": ...
+}
 INPUT_PRICE_PER_TOKEN_FALLBACK = 10 / 1000000
 
-CAPABILITY_SCORE_MAP = {
+CAPABILITY_SCORE_MAP: Dict[str, float] = {
     "meta-llama/Meta-Llama-3-8B-Instruct": 0.2,
     "meta-llama/Meta-Llama-3-70B-Instruct": 0.6,
 }
 CAPABILITY_SCORE_FALLBACK = 0.2
 
 # TODO: implement
-LATENCY_MS_PER_OUTPUT_TOKEN_MAP = {}
+LATENCY_MS_PER_OUTPUT_TOKEN_MAP: Dict[str, float] = {}
 # TODO: implement
 LATENCY_MS_PER_OUTPUT_TOKEN_FALLBACK = 0.0
 
-MAX_CONTEXT_LENGTH_MAP = {
+MAX_CONTEXT_LENGTH_MAP: Dict[str, int] = {
     "meta-llama/Meta-Llama-3-8B-Instruct": 8192,
     "meta-llama/Meta-Llama-3-70B-Instruct": 8192,
 }
@@ -37,7 +40,7 @@ class AnyscaleModel(ChatModel):
     def __init__(
         self,
         model: str,
-        api_key: str | None = None,
+        api_key: Optional[str] = None,
         temperature: float = 0.0,
     ) -> None:
         from openai import AsyncOpenAI, OpenAI
@@ -55,9 +58,9 @@ class AnyscaleModel(ChatModel):
 
     def generate_message(
         self,
-        messages: list[Message],
+        messages: List[Message],
         force_json: bool,
-        temperature: float | None = None,
+        temperature: Optional[float] = None,
     ) -> Message:
         if temperature is None:
             temperature = self.temperature

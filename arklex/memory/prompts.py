@@ -11,7 +11,10 @@ Thought 3: Formulate a concise conversational summary of all products. Double ch
 Thought 4: Use that summary plus Task, Agent Response, Basic Intent, and User Utterance to derive a personalized intent focusing on the product and attribute. 
 """
 
-examples = """
+
+# These exemplars show how to combine both product/attribute and intent personalization.
+# Each example demonstrates how to extract both the user's intent and relevant product/attribute information.
+final_examples = """
 EXAMPLE 1 (General list → user picks one):
 
 Output:
@@ -35,7 +38,9 @@ We have durable noise‑cancelling headphones, a stainless steel travel mug, and
 Thought 4: Derive intent based on this summary, task, context_generate, user_intent, user_utterance. From the user utterance and user intent, it is clear that the user is not talking about any specific product, they merely want to know the products in the store.
 
 Personalized Intent: 
-User wants to know the different kinds of products at the store.
+intent: User wants to know the different kinds of products at the store.
+product: general list of store products  
+attribute: none
 
 EXAMPLE 2 (Follow‑up attribute request):
 
@@ -57,7 +62,9 @@ Thought 3: Summarize: We have two headphones, one being wireless lasts 30h, and 
 Thought 4: Derive intent based on this summary, task, context_generate, user_intent, user_utterance. Think about it. Don't infer product or attributes that the user has not mentioned. The user is asking specifically for headphones, and we have two models of them to offer.
 
 Personalized Intent: 
-User wants to know if we have headphones in stock.
+intent: User wants to know if we have headphones in stock.
+product: headphones  
+attribute: none
 
 EXAMPLE 3 (Attribute‑specific follow‑up):
 
@@ -76,8 +83,10 @@ Thought 2: Note the features of both—mesh, trail, available sizes, waterproof,
 Thought 3: Summarize that choice. Double check the user_utterance to make sure that you are not inferring attributes which have NOT been mentioned by the user!
 Thought 4: Derive intent based on this summary, task, context_generate, user_intent, user_utterance. Think about it. Don't infer product or attributes that the user has not mentioned. User now seeking sneaker recommendations but in waterproof category.
 
-Personalized Intent:
-User is looking for waterproof sneakers.
+Personalized Intent: 
+intent: User is looking for waterproof sneakers.
+product: sneakers  
+attribute: waterproof
 """
 
 output_instructions = """
@@ -90,13 +99,170 @@ output_instructions = """
 DO NOT HALLUCINATE ATTRIBUTES OR PRODUCTS THAT THE USER HAS NOT MENTIONED. This is very important! Only mention the attributes that the user has mentioned in user_utterance!!
 Make sure to only infer the products and attributes that the user has mentioned, do not hallucinate based on only the summarized output. Sometimes the attributes may not exist, in which case don't display it in the personalized intent.
 
-**Example Outputs:**
-- 'User wants to track order of hat'
-- 'User wants to inquire about size of blue jacket'
+
 
 **Output Format:**
-Write the final personalized intent as a **short clean phrase**, focusing on user's intent augmented with product and attribute (IF ANY).
+Write the final personalized intent as a short clean phrase, followed by the product and attribute inferred  (IF ANY), by your reasoning.
 Do not add explanations or extra text.
 
 Now generate the final personalized intent for the following input information:
+"""
+# These exemplars are commented out as they are for reference only.
+# They show how to personalize intents focusing on product and attribute information.
+# Each example demonstrates how to extract and format product and attribute information from user queries.
+"""
+pa_examples = '''
+EXAMPLE 1 (General list → user picks one):
+
+Output:
+• Wireless Noise‑Cancelling Headphones – over‑ear, 30h battery, Bluetooth 5.0, inventory 120.
+• Stainless Steel Travel Mug – 16oz, vacuum insulated, leak‑proof lid, inventory 200.
+• Mesh Running Sneakers – breathable, size 6–12, cushioned sole, inventory 75.
+
+Task: List available products
+Context Generate: We offer a variety of gear and accessories. What are you interested in?
+User Intent: User is browsing product categories
+User Utterance: What can I choose from today?
+
+Chain-of-Thought:
+Thought 1: Three categories: headphones, travel mugs, and sneakers.
+Thought 2:
+- Headphones: long battery life and noise‑cancellation.
+- Mug: keeps drinks hot/cold, leak‑proof.
+- Sneakers: breathable mesh, cushioned sole.
+Thought 3: Summarize and prompt choice. Double check the user_utterance to make sure that you are not inferring attributes which have NOT been mentioned by the user!
+We have durable noise‑cancelling headphones, a stainless steel travel mug, and breathable running sneakers. Which would you like?
+Thought 4: Derive intent based on this summary, task, context_generate, user_intent, user_utterance. From the user utterance and user intent, it is clear that the user is not talking about any specific product, they merely want to know the products in the store.
+
+Personalized Intent: 
+intent: User wants to know the different kinds of products at the store.
+product: general list of store products  
+attribute: none
+
+EXAMPLE 2 (Follow‑up attribute request):
+
+Output:
+• Wireless Noise‑Cancelling Headphones – battery 30h, Bluetooth 5.0.
+• Wired Studio Headphones – coiled cable, 50mm drivers.
+
+Task: List available products
+Context Generate: We have many headphones. Do you have a preference?
+User Intent: User wants information about products
+User Utterance: Do you have headphones?
+
+Chain-of-Thought:
+Thought 1: Identify the product cards to be of headphones.
+Thought 2: List attributes
+- Wireless: 30h battery.
+- Wired: no battery required.
+Thought 3: Summarize: We have two headphones, one being wireless lasts 30h, and the other—wired—draws from device. Double check the user_utterance to make sure that you are not inferring attributes which have NOT been mentioned by the user!
+Thought 4: Derive intent based on this summary, task, context_generate, user_intent, user_utterance. Think about it. Don't infer product or attributes that the user has not mentioned. The user is asking specifically for headphones, and we have two models of them to offer.
+
+Personalized Intent: 
+intent: User wants to know if we have headphones in stock.
+product: headphones  
+attribute: none
+
+EXAMPLE 3 (Attribute‑specific follow‑up):
+
+Output:
+• Mesh Running Sneakers – available sizes 6–12, cushioned sole.
+• Trail Running Sneakers – waterproof, grippy outsole.
+
+Task: Recommend products
+Context-Generate: We have running sneakers in stock. Interested in a specific feature?
+User Intent: User wants recommendation
+User Utterance: Do you have waterproof options?
+
+Chain-of-Thought:
+Thought 1: Identify sneakers as the product.
+Thought 2: Note the features of both—mesh, trail, available sizes, waterproof, grippy outsole.
+Thought 3: Summarize that choice. Double check the user_utterance to make sure that you are not inferring attributes which have NOT been mentioned by the user!
+Thought 4: Derive intent based on this summary, task, context_generate, user_intent, user_utterance. Think about it. Don't infer product or attributes that the user has not mentioned. User now seeking sneaker recommendations but in waterproof category.
+
+Personalized Intent: 
+intent: User is looking for waterproof sneakers.
+product: sneakers  
+attribute: waterproof
+'''
+"""
+
+# These exemplars are commented out as they are for reference only.
+# They show how to personalize intents focusing on user intent only.
+# Each example demonstrates how to extract and format the user's intent from their queries.
+"""
+intent_examples = '''
+EXAMPLE 1 (General list → user picks one):
+
+Output:
+• Wireless Noise‑Cancelling Headphones – over‑ear, 30h battery, Bluetooth 5.0, inventory 120.
+• Stainless Steel Travel Mug – 16oz, vacuum insulated, leak‑proof lid, inventory 200.
+• Mesh Running Sneakers – breathable, size 6–12, cushioned sole, inventory 75.
+
+Task: List available products
+Context Generate: We offer a variety of gear and accessories. What are you interested in?
+User Intent: User is browsing product categories
+User Utterance: What can I choose from today?
+
+Chain-of-Thought:
+Thought 1: Three categories: headphones, travel mugs, and sneakers.
+Thought 2:
+- Headphones: long battery life and noise‑cancellation.
+- Mug: keeps drinks hot/cold, leak‑proof.
+- Sneakers: breathable mesh, cushioned sole.
+Thought 3: Summarize and prompt choice. Double check the user_utterance to make sure that you are not inferring attributes which have NOT been mentioned by the user!
+We have durable noise‑cancelling headphones, a stainless steel travel mug, and breathable running sneakers. Which would you like?
+Thought 4: Derive intent based on this summary, task, context_generate, user_intent, user_utterance. From the user utterance and user intent, it is clear that the user is not talking about any specific product, they merely want to know the products in the store.
+
+Personalized Intent: 
+intent: User wants to know the different kinds of products at the store.
+product: general list of store products  
+attribute: none
+
+EXAMPLE 2 (Follow‑up attribute request):
+
+Output:
+• Wireless Noise‑Cancelling Headphones – battery 30h, Bluetooth 5.0.
+• Wired Studio Headphones – coiled cable, 50mm drivers.
+
+Task: List available products
+Context Generate: We have many headphones. Do you have a preference?
+User Intent: User wants information about products
+User Utterance: Do you have headphones?
+
+Chain-of-Thought:
+Thought 1: Identify the product cards to be of headphones.
+Thought 2: List attributes
+- Wireless: 30h battery.
+- Wired: no battery required.
+Thought 3: Summarize: We have two headphones, one being wireless lasts 30h, and the other—wired—draws from device. Double check the user_utterance to make sure that you are not inferring attributes which have NOT been mentioned by the user!
+Thought 4: Derive intent based on this summary, task, context_generate, user_intent, user_utterance. Think about it. Don't infer product or attributes that the user has not mentioned. The user is asking specifically for headphones, and we have two models of them to offer.
+
+Personalized Intent: 
+intent: User wants to know if we have headphones in stock.
+product: headphones  
+attribute: none
+
+EXAMPLE 3 (Attribute‑specific follow‑up):
+
+Output:
+• Mesh Running Sneakers – available sizes 6–12, cushioned sole.
+• Trail Running Sneakers – waterproof, grippy outsole.
+
+Task: Recommend products
+Context-Generate: We have running sneakers in stock. Interested in a specific feature?
+User Intent: User wants recommendation
+User Utterance: Do you have waterproof options?
+
+Chain-of-Thought:
+Thought 1: Identify sneakers as the product.
+Thought 2: Note the features of both—mesh, trail, available sizes, waterproof, grippy outsole.
+Thought 3: Summarize that choice. Double check the user_utterance to make sure that you are not inferring attributes which have NOT been mentioned by the user!
+Thought 4: Derive intent based on this summary, task, context_generate, user_intent, user_utterance. Think about it. Don't infer product or attributes that the user has not mentioned. User now seeking sneaker recommendations but in waterproof category.
+
+Personalized Intent: 
+intent: User is looking for waterproof sneakers.
+product: sneakers  
+attribute: waterproof
+'''
 """

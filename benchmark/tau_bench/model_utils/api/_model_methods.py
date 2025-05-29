@@ -1,4 +1,6 @@
-MODEL_METHODS = [
+from typing import List
+
+MODEL_METHODS: List[str] = [
     "classify",
     "binary_classify",
     "parse",

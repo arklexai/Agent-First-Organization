@@ -1,5 +1,5 @@
 import abc
-from typing import Any, TypeVar
+from typing import Any, TypeVar, List, Union, Optional, Dict, Type
 
 from pydantic import BaseModel
 
@@ -24,7 +24,7 @@ from benchmark.tau_bench.model_utils.model.model import (
 
 T = TypeVar("T", bound=BaseModel)
 
-LLM_SAMPLING_TEMPERATURE_EPS = 1e-5
+LLM_SAMPLING_TEMPERATURE_EPS: float = 1e-5
 
 
 def wrap_temperature(temperature: float) -> float:
@@ -44,9 +44,9 @@ class GeneralModel(
         self,
         instruction: str,
         text: str,
-        options: list[str],
-        examples: list[ClassifyDatapoint] | None = None,
-        temperature: float | None = None,
+        options: List[str],
+        examples: Optional[List[ClassifyDatapoint]] = None,
+        temperature: Optional[float] = None,
     ) -> int:
         raise NotImplementedError
 
@@ -54,8 +54,8 @@ class GeneralModel(
         self,
         instruction: str,
         text: str,
-        examples: list[BinaryClassifyDatapoint] | None = None,
-        temperature: float | None = None,
+        examples: Optional[List[BinaryClassifyDatapoint]] = None,
+        temperature: Optional[float] = None,
     ) -> bool:
         return (
             self.classify(
@@ -84,10 +84,10 @@ class GeneralModel(
     def parse(
         self,
         text: str,
-        typ: type[T] | dict[str, Any],
-        examples: list[ParseDatapoint] | None = None,
-        temperature: float | None = None,
-    ) -> T | PartialObj | dict[str, Any]:
+        typ: Union[Type[T], Dict[str, Any]],
+        examples: Optional[List[ParseDatapoint]] = None,
+        temperature: Optional[float] = None,
+    ) -> Union[T, PartialObj, Dict[str, Any]]:
         raise NotImplementedError
 
     @abc.abstractmethod
@@ -95,8 +95,8 @@ class GeneralModel(
         self,
         instruction: str,
         text: str,
-        examples: list[GenerateDatapoint] | None = None,
-        temperature: float | None = None,
+        examples: Optional[List[GenerateDatapoint]] = None,
+        temperature: Optional[float] = None,
     ) -> str:
         raise NotImplementedError
 
@@ -104,11 +104,11 @@ class GeneralModel(
     def parse_force(
         self,
         instruction: str,
-        typ: type[T] | dict[str, Any],
-        text: str | None = None,
-        examples: list[ParseForceDatapoint] | None = None,
-        temperature: float | None = None,
-    ) -> T | dict[str, Any]:
+        typ: Union[Type[T], Dict[str, Any]],
+        text: Optional[str] = None,
+        examples: Optional[List[ParseForceDatapoint]] = None,
+        temperature: Optional[float] = None,
+    ) -> Union[T, Dict[str, Any]]:
         raise NotImplementedError
 
     @abc.abstractmethod
@@ -118,8 +118,8 @@ class GeneralModel(
         text: str,
         min: int,
         max: int,
-        examples: list[ScoreDatapoint] | None = None,
-        temperature: float | None = None,
+        examples: Optional[List[ScoreDatapoint]] = None,
+        temperature: Optional[float] = None,
     ) -> int:
         raise NotImplementedError
 
@@ -138,9 +138,9 @@ def default_quick_model() -> GeneralModel:
 
 def model_factory(
     model_id: str,
-    platform: str | Platform,
-    base_url: str | None = None,
-    api_key: str | None = None,
+    platform: Union[str, Platform],
+    base_url: Optional[str] = None,
+    api_key: Optional[str] = None,
     temperature: float = 0.0,
 ) -> GeneralModel:
     if isinstance(platform, str):

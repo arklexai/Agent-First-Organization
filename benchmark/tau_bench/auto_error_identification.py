@@ -14,7 +14,7 @@ from concurrent.futures import ThreadPoolExecutor
 
 
 def get_args() -> argparse.Namespace:
-    parser = api_parser()
+    parser: argparse.ArgumentParser = api_parser()
     parser.add_argument(
         "--env",
         type=str,
@@ -112,7 +112,9 @@ def context_description(grading_strategy: GradingStrategy) -> str:
 def display_traj(traj: List[Dict[str, Any]]) -> str:
     if len(traj) == 0:
         raise ValueError("Trajectory is empty")
-    stripped_traj = [item for item in traj if item["role"] != "system"]
+    stripped_traj: List[Dict[str, Any]] = [
+        item for item in traj if item["role"] != "system"
+    ]
     return "\n".join(
         [f"{item['role'].capitalize()}: {item['content']}" for item in stripped_traj]
     )
@@ -128,8 +130,8 @@ def display_context(
     ground_truth_outputs: List[str],
     trajectory: List[Dict[str, Any]],
 ) -> str:
-    traj_display = display_traj(trajectory)
-    context = f"""----- start user instruction -----
+    traj_display: str = display_traj(trajectory)
+    context: str = f"""----- start user instruction -----
 {user_instruction}
 ----- end user instruction -----"""
     if len(ground_truth_outputs) > 0:
@@ -161,21 +163,21 @@ def fault_assignment_analysis(
         ground_truth_actions: List[Action],
         ground_truth_outputs: List[str],
     ) -> FaultAssignmentResult:
-        idx_to_author = {
+        idx_to_author: Dict[int, FaultAuthor] = {
             0: FaultAuthor.USER,
             1: FaultAuthor.AGENT,
             2: FaultAuthor.ENVIRONMENT,
         }
-        grading_strategy = (
+        grading_strategy: GradingStrategy = (
             GradingStrategy.OUTPUTS
             if len(ground_truth_outputs) > 0
             else GradingStrategy.ACTIONS
         )
-        ctx_desc = context_description(grading_strategy)
-        context = display_context(
+        ctx_desc: str = context_description(grading_strategy)
+        context: str = display_context(
             user_instruction, ground_truth_actions, ground_truth_outputs, traj
         )
-        res = api.classify(
+        res: int = api.classify(
             instruction=f"{ctx_desc}\n\nDetermine the entity that is responsible for the fault. The user is responsible for the fault if they caused an action that was not grounded in the user instruction. The agent is responsible for the fault if they took an action that was not correct (or took the action with the wrong arguments). The environment is responsible for all other faults.",
             text=context,
             options=[
@@ -184,8 +186,8 @@ def fault_assignment_analysis(
                 "The environment (neither user nor agent)",
             ],
         )
-        author = idx_to_author[res]
-        description = api.generate(
+        author: FaultAuthor = idx_to_author[res]
+        description: str = api.generate(
             instruction=f"{ctx_desc}\n\nDescribe the reason why {author.value} is responsible for the fault in the trajectory. Be concise and only focus on the functional differences between the ground truth and the trajectory.",
             text=context,
         )
@@ -194,12 +196,16 @@ def fault_assignment_analysis(
         )
 
     with ThreadPoolExecutor(max_workers=max_concurrency) as executor:
-        task_ids = [r.task_id for r in results]
-        user_instructions = [r.user_instruction for r in results]
-        trajs = [r.traj for r in results]
-        ground_truth_actions = [r.ground_truth_actions for r in results]
-        ground_truth_outputs = [r.ground_truth_outputs for r in results]
-        results = list(
+        task_ids: List[int] = [r.task_id for r in results]
+        user_instructions: List[str] = [r.user_instruction for r in results]
+        trajs: List[List[Dict[str, Any]]] = [r.traj for r in results]
+        ground_truth_actions: List[List[Action]] = [
+            r.ground_truth_actions for r in results
+        ]
+        ground_truth_outputs: List[List[str]] = [
+            r.ground_truth_outputs for r in results
+        ]
+        results: List[FaultAssignmentResult] = list(
             executor.map(
                 assign_fault,
                 task_ids,
@@ -222,22 +228,22 @@ def fault_type_analysis(
         ground_truth_actions: List[Action],
         ground_truth_outputs: List[str],
     ) -> FaultTypeResult:
-        idx_to_fault_type = {
+        idx_to_fault_type: Dict[int, FaultType] = {
             0: FaultType.CALLED_WRONG_TOOL,
             1: FaultType.USED_WRONG_TOOL_ARGUMENT,
             2: FaultType.GOAL_PARTIALLY_COMPLETED,
             3: FaultType.OTHER,
         }
-        grading_strategy = (
+        grading_strategy: GradingStrategy = (
             GradingStrategy.OUTPUTS
             if len(ground_truth_outputs) > 0
             else GradingStrategy.ACTIONS
         )
-        ctx_desc = context_description(grading_strategy)
-        context = display_context(
+        ctx_desc: str = context_description(grading_strategy)
+        context: str = display_context(
             user_instruction, ground_truth_actions, ground_truth_outputs, traj
         )
-        res = api.classify(
+        res: int = api.classify(
             instruction=f"{ctx_desc}\n\nDetermine the type of fault of the first instance of the fault.",
             text=context,
             options=[
@@ -247,9 +253,9 @@ def fault_type_analysis(
                 "Other",
             ],
         )
-        fault_type = idx_to_fault_type[res]
-        description = api.generate(
-            instruction=f'{ctx_desc}\n\nDescribe the reason why the following trajectory contains a fault of type "{fault_type.value}". Be concise and only focus on the functional differences between the ground truth and the trajectory.',
+        fault_type: FaultType = idx_to_fault_type[res]
+        description: str = api.generate(
+            instruction=f"{ctx_desc}\n\nDescribe the reason why this is a {fault_type.value} fault in the trajectory. Be concise and only focus on the functional differences between the ground truth and the trajectory.",
             text=context,
         )
         return FaultTypeResult(
@@ -257,12 +263,16 @@ def fault_type_analysis(
         )
 
     with ThreadPoolExecutor(max_workers=max_concurrency) as executor:
-        task_ids = [r.task_id for r in results]
-        user_instructions = [r.user_instruction for r in results]
-        trajs = [r.traj for r in results]
-        ground_truth_actions = [r.ground_truth_actions for r in results]
-        ground_truth_outputs = [r.ground_truth_outputs for r in results]
-        results = list(
+        task_ids: List[int] = [r.task_id for r in results]
+        user_instructions: List[str] = [r.user_instruction for r in results]
+        trajs: List[List[Dict[str, Any]]] = [r.traj for r in results]
+        ground_truth_actions: List[List[Action]] = [
+            r.ground_truth_actions for r in results
+        ]
+        ground_truth_outputs: List[List[str]] = [
+            r.ground_truth_outputs for r in results
+        ]
+        results: List[FaultTypeResult] = list(
             executor.map(
                 get_fault_type,
                 task_ids,
@@ -275,83 +285,37 @@ def fault_type_analysis(
     return results
 
 
-def run_error_identification(args) -> None:
-    api = default_api_from_args(args)
-    with open(args.results_path, "r") as f:
-        results = json.load(f)
-        if isinstance(results, dict):
-            results = results["task_results"]
-    print(f"Loaded {len(results)} results")
-    env = args.env
-    if env == "airline":
-        tasks: List[Task] = AIRLINE_TASKS
-    elif env == "retail":
-        tasks: List[Task] = RETAIL_TASKS
-    else:
-        raise ValueError(f"Invalid environment: {env}")
-    failed_results = [r for r in results if r["reward"] <= 1e-3]
-    print(f"Found {len(failed_results)} failed trajectories")
-    if (
-        args.max_num_failed_results is not None
-        and len(failed_results) > args.max_num_failed_results
-    ):
-        print(f"Limiting to {args.max_num_failed_results} failed trajectories")
+def run_error_identification(args: argparse.Namespace) -> None:
+    api: API = default_api_from_args(args)
+    with open(args.results_path) as f:
+        results: List[Dict[str, Any]] = json.load(f)
+    failed_results: List[Dict[str, Any]] = [r for r in results if r["reward"] < 1]
+    if args.max_num_failed_results is not None:
         failed_results = failed_results[: args.max_num_failed_results]
-    original_results = []
-    for result in failed_results:
-        task_id: int = result["task_id"]
-        task = tasks[task_id]
-        user_instruction = task.instruction
-        ground_truth_actions = task.actions
-        ground_truth_outputs = task.outputs
-        original_result = OriginalResult(
-            task_id=task_id,
-            user_instruction=user_instruction,
-            traj=result["traj"],
-            ground_truth_actions=ground_truth_actions,
-            ground_truth_outputs=ground_truth_outputs,
+    original_results: List[OriginalResult] = []
+    for r in failed_results:
+        task_id: int = r["task_id"]
+        if args.env == "airline":
+            task: Task = AIRLINE_TASKS[task_id]
+        else:
+            task: Task = RETAIL_TASKS[task_id]
+        original_results.append(
+            OriginalResult(
+                task_id=task_id,
+                user_instruction=task.instruction,
+                traj=r["traj"],
+                ground_truth_actions=task.actions,
+                ground_truth_outputs=task.outputs,
+            )
         )
-        original_results.append(original_result)
-    print(
-        f"Performing fault assignment analysis on {len(original_results)} failed trajectories with a max concurrency of {args.max_concurrency}..."
+    fault_assignment_results: List[FaultAssignmentResult] = fault_assignment_analysis(
+        api, original_results, args.max_concurrency
     )
-    fault_assignment_results = fault_assignment_analysis(
-        api=api, results=original_results, max_concurrency=args.max_concurrency
+    fault_type_results: List[FaultTypeResult] = fault_type_analysis(
+        api, original_results, args.max_concurrency
     )
-    failures_due_to_agent = [
-        original_results[i]
-        for i, r in enumerate(fault_assignment_results)
-        if r.author == FaultAuthor.AGENT
-    ]
-    print(
-        f"Performing fault type analysis on {len(failures_due_to_agent)} failures that have been marked as being caused by the agent with a max concurrency of {args.max_concurrency}..."
-    )
-    fault_type_results = fault_type_analysis(
-        api=api, results=failures_due_to_agent, max_concurrency=args.max_concurrency
-    )
-    print(f"""Reviewed {len(fault_assignment_results)} trajectories:
-
-Author fault distribution:
-  - User: {sum(1 for r in fault_assignment_results if r.author == FaultAuthor.USER)} ({round(sum(1 for r in fault_assignment_results if r.author == FaultAuthor.USER) / len(fault_assignment_results) * 100, 2)}%)
-  - Agent: {sum(1 for r in fault_assignment_results if r.author == FaultAuthor.AGENT)} ({round(sum(1 for r in fault_assignment_results if r.author == FaultAuthor.AGENT) / len(fault_assignment_results) * 100, 2)}%)
-  - Environment (otherwise case): {sum(1 for r in fault_assignment_results if r.author == FaultAuthor.ENVIRONMENT)} ({round(sum(1 for r in fault_assignment_results if r.author == FaultAuthor.ENVIRONMENT) / len(fault_assignment_results) * 100, 2)}%)
-
-Fault type distribution (only failures marked as being caused by the agent):
-  - Called wrong tool: {sum(1 for r in fault_type_results if r.fault_type == FaultType.CALLED_WRONG_TOOL)} ({round(sum(1 for r in fault_type_results if r.fault_type == FaultType.CALLED_WRONG_TOOL) / len(fault_type_results) * 100, 2)}%)
-  - Used wrong tool argument: {sum(1 for r in fault_type_results if r.fault_type == FaultType.USED_WRONG_TOOL_ARGUMENT)} ({round(sum(1 for r in fault_type_results if r.fault_type == FaultType.USED_WRONG_TOOL_ARGUMENT) / len(fault_type_results) * 100, 2)}%)
-  - Goal partially completed: {sum(1 for r in fault_type_results if r.fault_type == FaultType.GOAL_PARTIALLY_COMPLETED)} ({round(sum(1 for r in fault_type_results if r.fault_type == FaultType.GOAL_PARTIALLY_COMPLETED) / len(fault_type_results) * 100, 2)}%)
-  - Other: {sum(1 for r in fault_type_results if r.fault_type == FaultType.OTHER)} ({round(sum(1 for r in fault_type_results if r.fault_type == FaultType.OTHER) / len(fault_type_results) * 100, 2)}%)
-""")
-    tau_bench_analysis_file = os.path.join(args.output_dir, "tau_bench_analysis.json")
-    with open(tau_bench_analysis_file, "w") as f:
-        json.dump(
-            {
-                "fault_assignment_analysis": [
-                    r.model_dump() for r in fault_assignment_results
-                ],
-                "fault_type_analysis": [r.model_dump() for r in fault_type_results],
-            },
-            f,
-            indent=4,
-        )
-    print(f"Saved results to {args.output_dir}")
+    os.makedirs(args.output_dir, exist_ok=True)
+    with open(os.path.join(args.output_dir, "fault_assignment.json"), "w") as f:
+        json.dump([r.model_dump() for r in fault_assignment_results], f, indent=4)
+    with open(os.path.join(args.output_dir, "fault_type.json"), "w") as f:
+        json.dump([r.model_dump() for r in fault_type_results], f, indent=4)

@@ -4,7 +4,7 @@ from benchmark.tau_bench.model_utils.model.model import Platform
 
 
 def api_parser() -> argparse.ArgumentParser:
-    parser = argparse.ArgumentParser()
+    parser: argparse.ArgumentParser = argparse.ArgumentParser()
     parser.add_argument("--model", type=str)
     parser.add_argument("--base-url", type=str)
     parser.add_argument(

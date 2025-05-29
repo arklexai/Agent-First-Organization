@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import abc
 import json
-from typing import Any, Callable, TypeVar
+from typing import Any, Callable, TypeVar, Dict, List, Optional, Union, Set
 
 from pydantic import BaseModel
 from benchmark import tau_bench
@@ -14,7 +14,7 @@ from benchmark.tau_bench.model_utils.model.exception import ModelError
 T = TypeVar("T", bound=BaseModel)
 
 
-def _is_trace(obj: dict[str, Any]) -> bool:
+def _is_trace(obj: Dict[str, Any]) -> bool:
     return (
         "method_name" in obj
         and obj["method_name"] in MODEL_METHODS
@@ -24,9 +24,9 @@ def _is_trace(obj: dict[str, Any]) -> bool:
     )
 
 
-def dict_equal(d1: dict, d2: dict) -> bool:
-    d1_keys_sorted = sorted(d1.keys())
-    d2_keys_sorted = sorted(d2.keys())
+def dict_equal(d1: Dict[str, Any], d2: Dict[str, Any]) -> bool:
+    d1_keys_sorted: List[str] = sorted(d1.keys())
+    d2_keys_sorted: List[str] = sorted(d2.keys())
     if d1_keys_sorted != d2_keys_sorted:
         return False
     for k in d1_keys_sorted:
@@ -47,7 +47,7 @@ def dict_equal(d1: dict, d2: dict) -> bool:
     return True
 
 
-def list_equal(l1: list, l2: list) -> bool:
+def list_equal(l1: List[Any], l2: List[Any]) -> bool:
     if len(l1) != len(l2):
         return False
     for i1, i2 in zip(l1, l2):
@@ -68,7 +68,7 @@ def list_equal(l1: list, l2: list) -> bool:
     return True
 
 
-def set_equal(s1: set, s2: set) -> bool:
+def set_equal(s1: Set[Any], s2: Set[Any]) -> bool:
     if len(s1) != len(s2):
         return False
     for i1, i2 in zip(s1, s2):
@@ -104,22 +104,22 @@ def str_equal(s1: str, s2: str) -> bool:
 class EvaluationResult(BaseModel):
     is_error: bool
     is_correct: bool
-    datapoint: dict[str, Any] | None
-    response: Any | None
-    error: str | None
+    datapoint: Optional[Dict[str, Any]]
+    response: Optional[Any]
+    error: Optional[str]
 
 
 class Datapoint(BaseModel, abc.ABC):
     @classmethod
-    def from_trace(cls, d: dict[str, Any]) -> "Datapoint":
+    def from_trace(cls, d: Dict[str, Any]) -> "Datapoint":
         if not _is_trace(d):
             raise ValueError(f"This is not a trace: {d}")
-        response = d["response"]
-        kwargs = d["kwargs"]
+        response: Any = d["response"]
+        kwargs: Dict[str, Any] = d["kwargs"]
         return cls(response=response, **kwargs)
 
     @classmethod
-    def from_dict(cls, d: dict[str, Any]) -> "Datapoint":
+    def from_dict(cls, d: Dict[str, Any]) -> "Datapoint":
         if _is_trace(d):
             return cls.from_trace(d)
         return cls(**d)
@@ -132,9 +132,9 @@ class Datapoint(BaseModel, abc.ABC):
 class ClassifyDatapoint(Datapoint):
     instruction: str
     text: str
-    options: list[str]
-    response: int | None = None
-    examples: list["ClassifyDatapoint"] | None = None
+    options: List[str]
+    response: Optional[int] = None
+    examples: Optional[List["ClassifyDatapoint"]] = None
 
     def evaluate(self, api: tau_bench.model_utils.API) -> EvaluationResult:
         return run_and_catch_api_error(
@@ -152,8 +152,8 @@ class ClassifyDatapoint(Datapoint):
 class BinaryClassifyDatapoint(Datapoint):
     instruction: str
     text: str
-    response: bool | None = None
-    examples: list["BinaryClassifyDatapoint"] | None = None
+    response: Optional[bool] = None
+    examples: Optional[List["BinaryClassifyDatapoint"]] = None
 
     def evaluate(self, api: tau_bench.model_utils.API) -> EvaluationResult:
         return run_and_catch_api_error(
@@ -170,8 +170,8 @@ class ScoreDatapoint(Datapoint):
     text: str
     min: int
     max: int
-    response: int | None = None
-    examples: list["ScoreDatapoint"] | None = None
+    response: Optional[int] = None
+    examples: Optional[List["ScoreDatapoint"]] = None
 
     def evaluate(self, api: tau_bench.model_utils.API) -> EvaluationResult:
         raise NotImplementedError
@@ -179,9 +179,9 @@ class ScoreDatapoint(Datapoint):
 
 class ParseDatapoint(Datapoint):
     text: str
-    typ: type[T] | dict[str, Any]
-    response: dict[str, Any] | T | PartialObj | None = None
-    examples: list["ParseDatapoint"] | None = None
+    typ: Union[type[T], Dict[str, Any]]
+    response: Optional[Union[Dict[str, Any], T, PartialObj]] = None
+    examples: Optional[List["ParseDatapoint"]] = None
 
     def evaluate(self, api: tau_bench.model_utils.API) -> EvaluationResult:
         return run_and_catch_api_error(
@@ -194,8 +194,8 @@ class ParseDatapoint(Datapoint):
 class GenerateDatapoint(Datapoint):
     instruction: str
     text: str
-    response: str | None = None
-    examples: list["GenerateDatapoint"] | None = None
+    response: Optional[str] = None
+    examples: Optional[List["GenerateDatapoint"]] = None
 
     def evaluate(
         self, api: tau_bench.model_utils.API
@@ -205,10 +205,10 @@ class GenerateDatapoint(Datapoint):
 
 class ParseForceDatapoint(Datapoint):
     instruction: str
-    typ: type[T] | dict[str, Any]
-    text: str | None = None
-    response: dict[str, Any] | T | None = None
-    examples: list["ParseForceDatapoint"] | None = None
+    typ: Union[type[T], Dict[str, Any]]
+    text: Optional[str] = None
+    response: Optional[Union[Dict[str, Any], T]] = None
+    examples: Optional[List["ParseForceDatapoint"]] = None
 
     def evaluate(self, api: tau_bench.model_utils.API) -> EvaluationResult:
         return run_and_catch_api_error(
@@ -223,11 +223,11 @@ class ParseForceDatapoint(Datapoint):
         )
 
 
-def datapoint_factory(d: dict[str, Any]) -> Datapoint:
+def datapoint_factory(d: Dict[str, Any]) -> Datapoint:
     if _is_trace(d):
-        method_name = d["method_name"]
-        kwargs = d["kwargs"]
-        data = {"response": d["response"], **kwargs}
+        method_name: str = d["method_name"]
+        kwargs: Dict[str, Any] = d["kwargs"]
+        data: Dict[str, Any] = {"response": d["response"], **kwargs}
         if method_name == "classify":
             return ClassifyDatapoint(**data)
         elif method_name == "binary_classify":
@@ -251,56 +251,43 @@ def datapoint_factory(d: dict[str, Any]) -> Datapoint:
             d["response"], bool
         ):
             return BinaryClassifyDatapoint(**d)
-        elif all(k in d for k in ["instruction", "text", "min", "max"]) and isinstance(
-            d["response"], int
-        ):
-            return ScoreDatapoint(**d)
-        elif all(k in d for k in ["instruction", "text", "typ"]) and isinstance(
-            d["response"], dict
-        ):
-            return ParseForceDatapoint(**d)
-        elif all(k in d for k in ["text", "typ"]) and isinstance(d["response"], dict):
+        elif all(k in d for k in ["text", "typ"]):
             return ParseDatapoint(**d)
+        elif all(k in d for k in ["instruction", "typ"]):
+            return ParseForceDatapoint(**d)
         elif all(k in d for k in ["instruction", "text"]) and isinstance(
             d["response"], str
         ):
             return GenerateDatapoint(**d)
+        elif all(k in d for k in ["instruction", "text", "min", "max"]):
+            return ScoreDatapoint(**d)
         else:
-            raise ValueError(f"Unknown datapoint: {d}")
+            raise ValueError(f"Unknown datapoint type: {d}")
 
 
 def run_and_catch_api_error(
-    callable: Callable[..., Any], response: Any, datapoint: dict[str, Any]
+    callable: Callable[..., Any], response: Any, datapoint: Dict[str, Any]
 ) -> EvaluationResult:
     try:
-        res = callable()
-        if isinstance(response, dict):
-            is_correct = dict_equal(res, response)
-        else:
-            is_correct = res == response
+        result: Any = callable()
         return EvaluationResult(
             is_error=False,
-            is_correct=is_correct,
-            response=res,
-            error=None,
+            is_correct=result == response,
             datapoint=datapoint,
+            response=result,
+            error=None,
         )
     except (APIError, ModelError) as e:
         return EvaluationResult(
             is_error=True,
             is_correct=False,
+            datapoint=datapoint,
             response=None,
             error=str(e),
-            datapoint=datapoint,
         )
 
 
-def load_from_disk(path: str) -> list[Datapoint]:
-    with open(path, "r") as f:
-        if path.endswith(".jsonl"):
-            data = [json.loads(line) for line in f]
-        elif path.endswith(".json"):
-            data = json.load(f)
-        else:
-            raise ValueError(f"Unknown file format: {path}")
+def load_from_disk(path: str) -> List[Datapoint]:
+    with open(path) as f:
+        data: List[Dict[str, Any]] = json.load(f)
     return [datapoint_factory(d) for d in data]
