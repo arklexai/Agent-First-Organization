@@ -1,3 +1,11 @@
+"""Core test utilities for the Arklex framework.
+
+This module provides core test utilities for the Arklex framework, including
+the MockOrchestrator base class for testing orchestrator behavior. It includes
+methods for initializing tests, executing conversations, and validating results,
+with support for custom validation through abstract methods.
+"""
+
 import json
 from abc import ABC, abstractmethod
 from typing import Any, Dict, List, Optional, Tuple

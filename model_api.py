@@ -1,3 +1,12 @@
+"""FastAPI server for the Arklex framework.
+
+This module provides a FastAPI server implementation for the Arklex framework,
+exposing endpoints for model evaluation and chat interactions. It handles
+HTTP requests, processes them through the orchestrator, and returns the
+responses. The module also manages server configuration, logging, and
+environment setup.
+"""
+
 import argparse
 import logging
 import os

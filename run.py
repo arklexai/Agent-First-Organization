@@ -1,3 +1,12 @@
+"""Command-line interface for running the Arklex framework.
+
+This module provides a command-line interface for running the Arklex framework,
+allowing users to interact with the system through a text-based interface. It
+handles user input, processes it through the orchestrator, and displays the
+responses. The module also manages configuration loading, environment setup,
+and logging.
+"""
+
 import argparse
 import json
 import logging

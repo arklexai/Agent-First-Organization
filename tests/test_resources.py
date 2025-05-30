@@ -1,3 +1,11 @@
+"""Test resources for the Arklex framework.
+
+This module provides test cases and utilities for testing various components of
+the Arklex framework, including workers and tools. It includes test cases for
+multiple choice workers, message workers, and Shopify tools, along with
+parameterized test functions to run these test cases.
+"""
+
 import json
 import os
 from typing import Any, Dict, List, Tuple, Type

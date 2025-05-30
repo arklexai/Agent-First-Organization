@@ -1,3 +1,10 @@
+"""Tool test utilities for the Arklex framework.
+
+This module provides test utilities for validating tool behavior in the Arklex
+framework. It includes test orchestrators for Shopify tools, with validation
+methods to ensure correct task graph paths and node status.
+"""
+
 import os
 import json
 from typing import Any, Dict, List

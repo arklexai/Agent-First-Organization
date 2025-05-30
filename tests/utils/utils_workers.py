@@ -1,3 +1,11 @@
+"""Worker test utilities for the Arklex framework.
+
+This module provides test utilities for validating worker behavior in the Arklex
+framework. It includes test orchestrators for multiple choice workers and message
+workers, with validation methods to ensure correct task graph paths and response
+content.
+"""
+
 from typing import Any, Dict, List
 
 from tests.utils.utils import MockOrchestrator

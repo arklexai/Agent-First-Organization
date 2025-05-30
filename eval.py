@@ -1,3 +1,11 @@
+"""Evaluation utilities for the Arklex framework.
+
+This module provides functionality for evaluating the performance of the Arklex
+framework through conversation simulation and metrics extraction. It includes
+utilities for simulating first-pass and second-pass conversations, extracting
+task completion metrics, and generating labeled conversation data for analysis.
+"""
+
 import os
 import json
 import argparse

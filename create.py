@@ -1,3 +1,11 @@
+"""Task graph generation and worker initialization for the Arklex framework.
+
+This module provides functionality for generating task graphs and initializing
+workers in the Arklex framework. It includes utilities for creating task graphs
+based on configuration files, setting up workers like FaissRAGWorker and
+DataBaseWorker, and managing the overall system initialization process.
+"""
+
 import argparse
 import json
 import logging

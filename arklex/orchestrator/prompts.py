@@ -1,3 +1,11 @@
+"""Prompt templates for the orchestrator in the Arklex framework.
+
+This module contains the prompt templates used by the orchestrator for various tasks,
+including action selection, trajectory summarization, and planning. It includes
+prompts for both zero-shot and few-shot scenarios, with templates for reasoning
+about available tools and actions, and generating appropriate responses.
+"""
+
 RESPOND_ACTION_NAME = "respond"
 RESPOND_ACTION_FIELD_NAME = "content"
 
