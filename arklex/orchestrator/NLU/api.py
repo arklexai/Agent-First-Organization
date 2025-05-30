@@ -1,3 +1,11 @@
+"""API implementation for Natural Language Understanding (NLU) services.
+
+This module provides the API layer for NLU services, including intent detection and slot filling.
+It includes classes for handling model interactions, formatting inputs and outputs,
+and providing FastAPI endpoints for remote access to NLU functionality.
+The module supports both local model execution and remote API calls.
+"""
+
 import sys
 from pathlib import Path
 
@@ -31,6 +39,10 @@ logger = logging.getLogger(__name__)
 
 class NLUModelAPI:
     def __init__(self) -> None:
+        """Initialize the NLU model API.
+
+        This function initializes the NLU model API with default user and assistant prefixes.
+        """
         self.user_prefix: str = "user"
         self.assistant_prefix: str = "assistant"
 
@@ -41,6 +53,20 @@ class NLUModelAPI:
         response_format: str = "text",
         note: str = "intent detection",
     ) -> str:
+        """Get a response from the language model.
+
+        This function sends a system prompt to the language model and returns its response.
+        It supports different response formats and model providers.
+
+        Args:
+            sys_prompt (str): The system prompt to send to the model.
+            model (Dict[str, Any]): Model configuration including provider and type.
+            response_format (str, optional): Format of the response. Defaults to "text".
+            note (str, optional): Note for logging purposes. Defaults to "intent detection".
+
+        Returns:
+            str: The model's response.
+        """
         logger.info(f"Prompt for {note}: {sys_prompt}")
         dialog_history: List[Dict[str, str]] = [
             {"role": "system", "content": sys_prompt}
@@ -75,7 +101,21 @@ class NLUModelAPI:
     def format_input(
         self, intents: Dict[str, List[Dict[str, Any]]], chat_history_str: str
     ) -> Tuple[str, Dict[str, str]]:
-        """Format input text before feeding it to the model."""
+        """Format input text for intent detection.
+
+        This function formats the input text by combining intents, definitions, and chat history
+        into a structured prompt for the language model. It creates a multiple-choice format
+        for intent selection and maintains a mapping between indices and intent names.
+
+        Args:
+            intents (Dict[str, List[Dict[str, Any]]]): Dictionary of intents with their attributes,
+                including definitions and sample utterances.
+            chat_history_str (str): Formatted chat history string.
+
+        Returns:
+            Tuple[str, Dict[str, str]]: A tuple containing the formatted system prompt and
+                a mapping from indices to intent names.
+        """
         intents_choice: str = ""
         definition_str: str = ""
         exemplars_str: str = ""
@@ -150,6 +190,21 @@ class NLUModelAPI:
         chat_history_str: str,
         model: Dict[str, Any],
     ) -> str:
+        """Predict the intent from the input text.
+
+        This function processes the input text and chat history to predict the user's intent
+        using the language model. It formats the input, gets a response, and processes the
+        result to return the predicted intent.
+
+        Args:
+            text (str): The input text to analyze.
+            intents (Dict[str, List[Dict[str, Any]]]): Dictionary of possible intents.
+            chat_history_str (str): Formatted chat history.
+            model (Dict[str, Any]): Model configuration.
+
+        Returns:
+            str: The predicted intent.
+        """
         system_prompt: str
         idx2intents_mapping: Dict[str, str]
         system_prompt, idx2intents_mapping = self.format_input(
@@ -168,19 +223,33 @@ class NLUModelAPI:
 
 class SlotFillModelAPI:
     def __init__(self) -> None:
+        """Initialize the slot filling model API.
+
+        This function initializes the slot filling model API with default user and assistant prefixes.
+        """
         self.user_prefix: str = "user"
         self.assistant_prefix: str = "assistant"
 
-    # System prompt for slot filling
     def format_input(self, slots: SlotInputList, input: str, type: str = "chat") -> str:
-        """Format input text before feeding it to the model."""
+        """Format input text for slot filling.
+
+        This function formats the input text by combining slot definitions and input text
+        into a structured prompt for the language model.
+
+        Args:
+            slots (SlotInputList): List of slots to fill.
+            input (str): The input text to analyze.
+            type (str, optional): Type of slot filling task. Defaults to "chat".
+
+        Returns:
+            str: The formatted system prompt.
+        """
         if type == "chat":
             system_prompt: str = f"Given the conversation and definition of each dialog state, update the value of following dialogue states.\nConversation:\n{input}\n\nDialogue Statues:\n{slots}\n"
         elif type == "user_simulator":
             system_prompt: str = f"Given a user profile, extract the values for each defined slot type. Only extract values that are explicitly mentioned in the profile. If a value is not found, leave it empty.\n\nSlot definitions:\n{slots}\n\nUser profile:\n{input}\n\nFor each slot:\n1. Look for an exact match in the profile\n2. Only extract values that are clearly stated\n3. Do not make assumptions or infer values\n4. If a slot has enum values, the extracted value must match one of them exactly\n\nExtract the values:\n"
         return system_prompt
 
-    # get response from model
     def get_response(
         self,
         sys_prompt: str,
@@ -188,6 +257,20 @@ class SlotFillModelAPI:
         model: Dict[str, Any],
         note: str = "slot filling",
     ) -> Any:
+        """Get a response from the language model for slot filling.
+
+        This function sends a system prompt to the language model and returns its response
+        in the specified format. It supports different model providers and response formats.
+
+        Args:
+            sys_prompt (str): The system prompt to send to the model.
+            format (Any): The expected response format.
+            model (Dict[str, Any]): Model configuration.
+            note (str, optional): Note for logging purposes. Defaults to "slot filling".
+
+        Returns:
+            Any: The model's response in the specified format.
+        """
         logger.info(f"Prompt for {note}: {sys_prompt}")
         dialog_history: List[Dict[str, str]] = [
             {"role": "system", "content": sys_prompt}
@@ -229,10 +312,24 @@ class SlotFillModelAPI:
             response: Any = format(**res.tool_calls[0]["args"])
         return response
 
-    # endpoint for slot filling
     def predict(
         self, slots: List[Slot], input: str, model: Dict[str, Any], type: str = "chat"
     ) -> List[Slot]:
+        """Predict slot values from the input text.
+
+        This function processes the input text to extract values for the specified slots
+        using the language model. It handles different types of slot filling tasks and
+        formats the output appropriately.
+
+        Args:
+            slots (List[Slot]): List of slots to fill.
+            input (str): The input text to analyze.
+            model (Dict[str, Any]): Model configuration.
+            type (str, optional): Type of slot filling task. Defaults to "chat".
+
+        Returns:
+            List[Slot]: List of slots with their predicted values.
+        """
         try:
             input_slots: SlotInputList
             output_slots: Any
@@ -250,13 +347,26 @@ class SlotFillModelAPI:
             )
             return slots
 
-    # endpoint for slot verification
     def verify(
         self,
         slot: Dict[str, Any],
         chat_history_str: str,
         model: Dict[str, Any],
     ) -> Verification:
+        """Verify a slot value against the chat history.
+
+        This function checks if a slot value is valid based on the chat history and slot
+        definition. It uses the language model to verify the value and returns a verification
+        result.
+
+        Args:
+            slot (Dict[str, Any]): The slot to verify.
+            chat_history_str (str): Formatted chat history.
+            model (Dict[str, Any]): Model configuration.
+
+        Returns:
+            Verification: The verification result.
+        """
         reformat_slot: Dict[str, Any] = {
             key: value
             for key, value in slot.items()
@@ -280,6 +390,17 @@ slotfilling_api: SlotFillModelAPI = SlotFillModelAPI()
 
 @app.post("/nlu/predict")
 def predict(data: Dict[str, Any], res: Response) -> Dict[str, str]:
+    """Predict intent from the input data.
+
+    This endpoint processes the input data to predict the user's intent using the NLU model.
+
+    Args:
+        data (Dict[str, Any]): Input data containing text, intents, and model configuration.
+        res (Response): FastAPI response object.
+
+    Returns:
+        Dict[str, str]: Dictionary containing the predicted intent.
+    """
     logger.info(f"Received data: {data}")
     pred_intent: str = nlu_api.predict(**data)
 
@@ -289,6 +410,17 @@ def predict(data: Dict[str, Any], res: Response) -> Dict[str, str]:
 
 @app.post("/slotfill/predict")
 def predict(data: Dict[str, Any], res: Response) -> List[Slot]:
+    """Predict slot values from the input data.
+
+    This endpoint processes the input data to predict slot values using the slot filling model.
+
+    Args:
+        data (Dict[str, Any]): Input data containing slots, text, and model configuration.
+        res (Response): FastAPI response object.
+
+    Returns:
+        List[Slot]: List of predicted slot values.
+    """
     logger.info(f"Received data: {data}")
     results: List[Slot] = slotfilling_api.predict(**data)
     logger.info(f"pred_slots: {results}")
@@ -297,6 +429,17 @@ def predict(data: Dict[str, Any], res: Response) -> List[Slot]:
 
 @app.post("/slotfill/verify")
 def verify(data: Dict[str, Any], res: Response) -> Verification:
+    """Verify slot values against the input data.
+
+    This endpoint verifies slot values using the slot filling model.
+
+    Args:
+        data (Dict[str, Any]): Input data containing slot, chat history, and model configuration.
+        res (Response): FastAPI response object.
+
+    Returns:
+        Verification: The verification result.
+    """
     logger.info(f"Received data: {data}")
     verify_needed: Verification = slotfilling_api.verify(**data)
 

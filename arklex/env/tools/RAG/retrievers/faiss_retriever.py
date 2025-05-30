@@ -1,3 +1,12 @@
+"""FAISS retriever implementation for the Arklex framework.
+
+This module provides a FAISS-based retriever implementation for efficient similarity search
+in document collections. It includes the RetrieveEngine class for handling retrieval
+operations and the FaissRetrieverExecutor class for managing FAISS index creation and
+document retrieval. The module supports contextualized query reformulation and
+confidence-scored document retrieval.
+"""
+
 import os
 import logging
 from typing import List, Dict, Any, Tuple

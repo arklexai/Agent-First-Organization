@@ -1,3 +1,12 @@
+"""Message worker implementation for the Arklex framework.
+
+This module provides a specialized worker for handling message generation and delivery
+in the Arklex framework. The MessageWorker class is responsible for processing user
+messages, orchestrator messages, and generating appropriate responses. It supports
+both streaming and non-streaming response generation, with functionality for handling
+message flows and direct responses.
+"""
+
 import logging
 from typing import Any, Dict, Optional
 

@@ -1,3 +1,12 @@
+"""MySQL database connection and pool management for the Arklex framework.
+
+This module provides functionality for managing MySQL database connections using connection pooling.
+It includes configuration settings for database connections, connection pool management,
+and utility methods for executing queries and managing database transactions.
+The module implements connection pooling to efficiently handle multiple database operations
+while maintaining connection limits and proper resource management.
+"""
+
 import os
 import mysql.connector
 import time

@@ -1,3 +1,11 @@
+"""Search worker implementation for the Arklex framework.
+
+This module provides a specialized worker for handling search-related tasks. It implements
+a search engine worker that can answer user questions based on real-time online search
+results. The worker uses a state graph to manage the workflow of search operations and
+response generation, integrating with the framework's tool generation system.
+"""
+
 import logging
 from typing import Any, Dict
 

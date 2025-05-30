@@ -1,3 +1,11 @@
+"""Task graph generation and worker initialization for the Arklex framework.
+
+This module provides functionality for generating task graphs and initializing
+workers in the Arklex framework. It includes utilities for creating task graphs
+based on configuration files, setting up workers like FaissRAGWorker and
+DataBaseWorker, and managing the overall system initialization process.
+"""
+
 import argparse
 import json
 import logging
@@ -23,6 +31,14 @@ load_dotenv()
 
 
 def generate_taskgraph(args: argparse.Namespace) -> None:
+    """Generate a task graph based on the provided configuration.
+
+    This function initializes a language model, loads the configuration, and uses the Generator
+    to create a task graph. It then saves the task graph to a file and updates it with API URLs.
+
+    Args:
+        args (argparse.Namespace): Command-line arguments containing configuration and output settings.
+    """
     model = PROVIDER_MAP.get(MODEL["llm_provider"], ChatOpenAI)(
         model=MODEL["model_type_or_path"], timeout=30000
     )
@@ -41,6 +57,14 @@ def generate_taskgraph(args: argparse.Namespace) -> None:
 
 
 def init_worker(args: argparse.Namespace) -> None:
+    """Initialize workers based on the provided configuration.
+
+    This function loads the configuration and initializes workers such as FaissRAGWorker
+    or DataBaseWorker based on the specified worker names in the configuration.
+
+    Args:
+        args (argparse.Namespace): Command-line arguments containing configuration and output settings.
+    """
     ## TODO: Need to customized based on different use cases
     config: Dict[str, Any] = json.load(open(args.config))
     workers: List[Dict[str, Any]] = config["workers"]

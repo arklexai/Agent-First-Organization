@@ -34,32 +34,31 @@
   npm run start
   ```
 
-  The `npm run start` command builds your website locally and serves it through a development server, ready for you to view at <http://localhost:3000/>.
+The `npm run start` command builds your website locally and serves it through a development server, ready for you to view at <http://localhost:3000/>.
   
-# Deploy your site
+Test your production build locally:
+
+  ```bash
+  npm run serve
+  ```
+The `build` folder is now served at [http://localhost:3000/](http://localhost:3000/).
+
+
+## Deploy your site
 
 Docusaurus is a **static-site-generator** (also called **[Jamstack](https://jamstack.org/)**).
 
 It builds your site as simple **static HTML, JavaScript and CSS files**.
 
-## Build your site
-
 Build your site **for production**:
 
-```bash
-npm run build
-```
-
+1. Make sure you're in the `docs` directory
+2. Set your GitHub username as an environment variable:
+   ```bash
+   export GIT_USER=<your-github-user-name>
+   ```
+3. Run the deployment command:
+   ```bash
+   npm run deploy
+   ```
 The static files are generated in the `build` folder.
-
-## Deploy your site
-
-Test your production build locally:
-
-```bash
-npm run serve
-```
-
-The `build` folder is now served at [http://localhost:3000/](http://localhost:3000/).
-
-You can now deploy the `build` folder **almost anywhere** easily, **for free** or very small cost (read the **[Deployment Guide](https://docusaurus.io/docs/deployment)**).

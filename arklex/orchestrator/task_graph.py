@@ -1,3 +1,11 @@
+"""Task graph implementation for the Arklex framework.
+
+This module provides the core task graph functionality for orchestrating conversations and workflows.
+It includes classes for managing task graphs, handling intents, and processing nodes in the conversation flow.
+The TaskGraph class is responsible for managing the flow of conversation and determining the next steps
+based on user input and available intents.
+"""
+
 import copy
 import logging
 import collections
@@ -401,9 +409,9 @@ class TaskGraph(TaskGraphBase):
             node_info: NodeInfo
             node_info, params = self._get_node(next_node, params)
             if params.taskgraph.nlu_records:
-                params.taskgraph.nlu_records[-1][
-                    "no_intent"
-                ] = True  # move on to the next node
+                params.taskgraph.nlu_records[-1]["no_intent"] = (
+                    True  # move on to the next node
+                )
             else:  # only others available
                 params.taskgraph.nlu_records = [
                     {

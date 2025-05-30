@@ -1,3 +1,12 @@
+"""Document and content loading utilities for the Arklex framework.
+
+This module provides functionality for loading and processing various types of content,
+including web pages, local files, and text data. It includes classes and methods for
+web crawling, document parsing, and content chunking. The module supports multiple
+file formats and provides utilities for handling different types of content sources,
+ensuring consistent processing and storage of loaded content.
+"""
+
 import logging
 import time
 from pathlib import Path
@@ -209,6 +218,18 @@ class Loader:
         return sorted(urls_visited[:max_num])
 
     def get_outsource_urls(self, curr_url: str, base_url: str):
+        """Get outsource URLs from a given URL.
+
+        This function extracts URLs from a webpage that point to external resources.
+        It filters and validates the URLs to ensure they are relevant to the base URL.
+
+        Args:
+            curr_url (str): The current URL to extract links from.
+            base_url (str): The base URL for filtering and validation.
+
+        Returns:
+            List[str]: List of valid outsource URLs.
+        """
         headers = {
             "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/14.0.3 Safari/605.1.15"
         }
@@ -237,6 +258,18 @@ class Loader:
         return list(set(new_urls))
 
     def _check_url(self, full_url, base_url):
+        """Check if a URL is valid and belongs to the base URL.
+
+        This function validates a URL by checking if it is properly formatted and
+        belongs to the specified base URL domain.
+
+        Args:
+            full_url (str): The URL to check.
+            base_url (str): The base URL for validation.
+
+        Returns:
+            bool: True if the URL is valid and belongs to the base URL, False otherwise.
+        """
         kw_list = [".pdf", ".jpg", ".png", ".docx", ".xlsx", ".pptx", ".zip", ".jpeg"]
         if (
             full_url.startswith(base_url)
@@ -250,9 +283,17 @@ class Loader:
     def get_candidates_websites(
         self, urls: List[CrawledObject], top_k: int
     ) -> List[CrawledObject]:
-        """Based on the pagerank algorithm of the crawled websites, return the top k websites.
-        The reason why we can do that is because we have the hreqs of the including <a> tags in the content of the website.
-        So we can use that to construct the edges and then use the tool from networkx to get the pagerank of the websites.
+        """Get candidate websites based on content relevance.
+
+        This function analyzes the content of crawled URLs and selects the most
+        relevant ones based on their content and metadata.
+
+        Args:
+            urls (List[CrawledObject]): List of crawled URL objects.
+            top_k (int): Number of top candidates to return.
+
+        Returns:
+            List[CrawledObject]: List of selected candidate websites.
         """
 
         nodes = []
@@ -286,7 +327,17 @@ class Loader:
         return urls_cleaned
 
     def to_crawled_text(self, text_list: List[str]) -> List[CrawledObject]:
-        """Crawls a list of text."""
+        """Convert a list of text strings to CrawledObject instances.
+
+        This function creates CrawledObject instances from a list of text strings,
+        assigning unique IDs and appropriate metadata.
+
+        Args:
+            text_list (List[str]): List of text strings to convert.
+
+        Returns:
+            List[CrawledObject]: List of CrawledObject instances.
+        """
         crawled_local_objs = []
         for text in text_list:
             crawled_obj = CrawledObject(
@@ -300,13 +351,33 @@ class Loader:
         return crawled_local_objs
 
     def to_crawled_local_objs(self, file_list: List[str]) -> List[CrawledObject]:
-        """Crawls a list of locally present files."""
+        """Convert a list of local files to CrawledObject instances.
+
+        This function processes local files and creates CrawledObject instances
+        for each file, handling different file formats and extracting content.
+
+        Args:
+            file_list (List[str]): List of file paths to process.
+
+        Returns:
+            List[CrawledObject]: List of CrawledObject instances.
+        """
         local_objs = [DocObject(str(uuid.uuid4()), file) for file in file_list]
         crawled_local_objs = [self.crawl_file(local_obj) for local_obj in local_objs]
         return crawled_local_objs
 
     def crawl_file(self, local_obj: DocObject) -> CrawledObject:
-        """This function crawls a file that is present locally and returns the crawled object."""
+        """Crawl a local file and extract its content.
+
+        This function reads and processes a local file, extracting its content
+        and metadata based on the file type.
+
+        Args:
+            local_obj (DocObject): The local file object to process.
+
+        Returns:
+            CrawledObject: A CrawledObject instance containing the file's content and metadata.
+        """
         file_path = Path(local_obj.source)
         file_type = file_path.suffix.lstrip(".")
         file_name = file_path.name
@@ -435,11 +506,31 @@ class Loader:
 
     @staticmethod
     def save(file_path: str, docs: List[CrawledObject]):
+        """Save a list of CrawledObject instances to a file.
+
+        This function serializes and saves CrawledObject instances to a file
+        for later use.
+
+        Args:
+            file_path (str): Path where to save the objects.
+            docs (List[CrawledObject]): List of CrawledObject instances to save.
+        """
         with open(file_path, "wb") as f:
             pickle.dump(docs, f)
 
     @classmethod
     def chunk(cls, doc_objs: List[CrawledObject]) -> List[CrawledObject]:
+        """Split documents into smaller chunks.
+
+        This function splits large documents into smaller, more manageable chunks
+        while preserving their metadata and structure.
+
+        Args:
+            doc_objs (List[CrawledObject]): List of CrawledObject instances to chunk.
+
+        Returns:
+            List[CrawledObject]: List of chunked CrawledObject instances.
+        """
         text_splitter = RecursiveCharacterTextSplitter.from_tiktoken_encoder(
             encoding_name="cl100k_base", chunk_size=200, chunk_overlap=40
         )
