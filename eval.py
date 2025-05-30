@@ -24,6 +24,19 @@ def evaluate(
 ) -> Tuple[
     List[Dict[str, Any]], List[Dict[str, Any]], Dict[str, Any], List[Dict[str, Any]]
 ]:
+    """Evaluate the performance of the Arklex framework based on the provided configuration.
+
+    This function simulates conversations and extracts metrics based on the task specified in the config.
+    It supports first-pass and second-pass evaluations, and returns the results of the evaluation.
+
+    Args:
+        config (Dict[str, Any]): Configuration dictionary containing task, model API, model parameters,
+                                 synthetic data parameters, and other settings.
+
+    Returns:
+        Tuple[List[Dict[str, Any]], List[Dict[str, Any]], Dict[str, Any], List[Dict[str, Any]]]:
+            A tuple containing the first-pass data, labeled conversations, goal metrics, and goals.
+    """
     task: str = config["task"]
     model_api: str = config["model_api"]
     model_params: Dict[str, Any] = config["model_params"]
