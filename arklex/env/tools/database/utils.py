@@ -1,3 +1,12 @@
+"""Database utility tools for the Arklex framework.
+
+This module provides database utility tools and helper functions for managing show bookings
+and related operations. It includes the DatabaseActions class for handling database
+operations such as searching shows, booking shows, checking bookings, and canceling
+bookings. The module also manages slot verification and user authentication for database
+operations.
+"""
+
 import os
 import sqlite3
 from datetime import datetime

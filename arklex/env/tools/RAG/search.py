@@ -1,3 +1,11 @@
+"""Search engine implementation for the Arklex framework.
+
+This module provides search functionality using the Tavily search engine. It includes
+the SearchEngine class for handling search operations and the TavilySearchExecutor
+class for executing searches and processing results. The module supports contextualized
+query reformulation and result processing for integration with the RAG system.
+"""
+
 import logging
 from typing import List, Dict, Any
 

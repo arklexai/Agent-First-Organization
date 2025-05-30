@@ -1,3 +1,12 @@
+"""Utility tools for the Arklex framework.
+
+This module provides utility tools and helper functions for the Arklex framework,
+including the ToolGenerator class for generating responses and handling streaming
+outputs. It also includes functions for tracing execution flow and managing message
+states. The module integrates with various language models and prompt templates to
+provide flexible response generation capabilities.
+"""
+
 import logging
 import inspect
 from typing import Dict
