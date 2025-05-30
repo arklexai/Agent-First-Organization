@@ -50,6 +50,19 @@ INFO_WORKERS: List[str] = [
 
 
 class AgentOrg:
+    """Agent organization orchestrator for the Arklex framework.
+
+    This class manages the orchestration of agent interactions, task execution,
+    and workflow management. It handles the flow of conversations and ensures
+    proper execution of tasks.
+
+    Attributes:
+        config (Dict[str, Any]): Configuration settings.
+        env (Any): Environment object.
+        memory (Any): Memory management object.
+        task_graph (Any): Task graph object.
+    """
+
     def __init__(
         self, config: Union[str, Dict[str, Any]], env: Env, **kwargs: Any
     ) -> None:
