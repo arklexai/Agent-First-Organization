@@ -1,3 +1,12 @@
+"""ChatGPT and LLM utility functions for evaluation in the Arklex framework.
+
+This module provides utility functions for interacting with various language models (OpenAI,
+Anthropic, Gemini) during evaluation. It includes functionality for client creation,
+message handling, conversation history management, and goal generation. The module supports
+multiple LLM providers, conversation role flipping, history formatting, and chatbot querying
+with parameter management.
+"""
+
 import os
 import random
 import json

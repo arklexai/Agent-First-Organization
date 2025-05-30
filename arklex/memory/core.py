@@ -1,3 +1,12 @@
+"""Core memory implementation for the Arklex framework.
+
+This module provides the core memory functionality for managing conversation context and history.
+The ShortTermMemory class is responsible for storing and retrieving conversation trajectories,
+managing embeddings for semantic search, and personalizing user intents based on conversation context.
+It includes functionality for retrieving relevant records, managing embeddings with caching,
+and generating personalized intents from user interactions.
+"""
+
 # TODO(christian): fix annotations in this file.
 
 import asyncio

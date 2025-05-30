@@ -1,3 +1,11 @@
+"""Orchestrator implementation for the Arklex framework.
+
+This module provides the main orchestrator functionality for managing conversations and workflows.
+The AgentOrg class is responsible for coordinating the flow of conversation, managing the task graph,
+and handling the interaction between different components of the system. It processes user input,
+manages conversation state, and determines appropriate responses based on the current context.
+"""
+
 import asyncio
 import copy
 import janus

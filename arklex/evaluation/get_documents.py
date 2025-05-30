@@ -1,3 +1,11 @@
+"""Document loading and processing utilities for evaluation in the Arklex framework.
+
+This module provides functionality for loading and processing documents from various sources
+during evaluation, including web URLs, local files, and text content. It includes utilities
+for domain information extraction, document loading with caching, and handling different
+document types (web, file, text) with appropriate processing methods.
+"""
+
 import os
 import sys
 import json

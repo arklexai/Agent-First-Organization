@@ -1,3 +1,11 @@
+"""API implementation for Natural Language Understanding (NLU) services.
+
+This module provides the API layer for NLU services, including intent detection and slot filling.
+It includes classes for handling model interactions, formatting inputs and outputs,
+and providing FastAPI endpoints for remote access to NLU functionality.
+The module supports both local model execution and remote API calls.
+"""
+
 import sys
 from pathlib import Path
 

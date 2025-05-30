@@ -1,3 +1,12 @@
+"""Document and content loading utilities for the Arklex framework.
+
+This module provides functionality for loading and processing various types of content,
+including web pages, local files, and text data. It includes classes and methods for
+web crawling, document parsing, and content chunking. The module supports multiple
+file formats and provides utilities for handling different types of content sources,
+ensuring consistent processing and storage of loaded content.
+"""
+
 import logging
 import time
 from pathlib import Path

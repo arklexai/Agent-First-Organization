@@ -1,3 +1,13 @@
+"""Prompt templates and management for the Arklex framework.
+
+This module provides prompt templates for various components of the system, including
+generators, RAG (Retrieval-Augmented Generation), workers, and database operations. It
+supports multiple languages (currently English and Chinese) and includes templates for
+different use cases such as vanilla generation, context-aware generation, message flow
+generation, and database interactions. The module ensures consistent prompt formatting
+and language-specific adaptations.
+"""
+
 from typing import Dict, Any
 
 

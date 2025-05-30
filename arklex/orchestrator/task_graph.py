@@ -1,3 +1,11 @@
+"""Task graph implementation for the Arklex framework.
+
+This module provides the core task graph functionality for orchestrating conversations and workflows.
+It includes classes for managing task graphs, handling intents, and processing nodes in the conversation flow.
+The TaskGraph class is responsible for managing the flow of conversation and determining the next steps
+based on user input and available intents.
+"""
+
 import copy
 import logging
 import collections

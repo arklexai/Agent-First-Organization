@@ -1,3 +1,10 @@
+"""Natural Language Understanding (NLU) implementation for the Arklex framework.
+
+This module provides the core NLU functionality for intent detection and slot filling.
+It includes classes for handling NLU requests either through a remote API or local implementation,
+and managing slot filling operations for extracting structured information from user input.
+"""
+
 import requests
 import logging
 from typing import Dict, List, Any, Tuple, Optional

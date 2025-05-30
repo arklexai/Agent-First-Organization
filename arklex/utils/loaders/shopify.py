@@ -1,3 +1,13 @@
+"""Shopify document loader implementation for the Arklex framework.
+
+This module provides a specialized document loader for Shopify data, implementing
+the base Loader interface. It includes functionality for loading product information
+from Shopify's GraphQL API and processing the data into document chunks suitable
+for further processing. The loader handles product descriptions, titles, and metadata,
+making it easy to integrate Shopify product data into the framework's document
+processing pipeline.
+"""
+
 import json
 from typing import List
 

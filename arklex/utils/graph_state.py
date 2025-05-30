@@ -1,3 +1,12 @@
+"""Graph state management for the Arklex framework.
+
+This module defines the data structures and models for managing the state of conversation
+graphs and task execution flows. It includes classes for representing bot configurations,
+message states, task status, and various components of the conversation graph.
+The module provides comprehensive state management for tracking conversation progress,
+resource records, and orchestrator responses throughout the system's operation.
+"""
+
 from typing import Any, Optional, List, Dict
 from pydantic import BaseModel, Field
 from enum import Enum

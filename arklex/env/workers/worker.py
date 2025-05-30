@@ -1,3 +1,11 @@
+"""Base worker implementation for the Arklex framework.
+
+This module provides the base abstract class for workers in the framework. It defines the
+interface for worker execution and includes functionality for worker registration, error
+handling, and state management. The module serves as a foundation for implementing specific
+workers that handle different types of tasks and operations within the system.
+"""
+
 from abc import ABC, abstractmethod
 from typing import Any, Dict, Optional, Type, TypeVar
 from arklex.utils.graph_state import MessageState, StatusEnum

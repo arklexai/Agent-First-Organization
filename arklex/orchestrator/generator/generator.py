@@ -1,3 +1,12 @@
+"""Task graph generator implementation for the Arklex framework.
+
+This module provides functionality for generating task graphs and managing task hierarchies.
+It includes classes for task editing, task generation, and handling reusable tasks.
+The Generator class is responsible for creating task graphs based on user objectives,
+documentation, and best practices, while the TaskEditorApp provides a text-based UI
+for editing tasks and their steps.
+"""
+
 import os
 import json
 import logging

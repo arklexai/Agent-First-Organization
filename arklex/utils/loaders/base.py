@@ -1,3 +1,12 @@
+"""Base loader implementation for the Arklex framework.
+
+This module provides the base abstract class for document loaders in the framework.
+It defines the interface for loading and processing documents, including methods for
+saving data, loading documents, and chunking content into smaller pieces. The module
+serves as a foundation for implementing specific document loaders for different
+file formats and data sources.
+"""
+
 from abc import ABC
 from abc import abstractmethod
 import pickle

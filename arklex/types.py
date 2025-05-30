@@ -1,3 +1,9 @@
+"""Type definitions for the Arklex framework.
+
+This module contains enumerations and type definitions used throughout the Arklex framework,
+particularly for handling different types of data streams and events.
+"""
+
 from enum import Enum
 
 

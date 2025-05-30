@@ -1,3 +1,11 @@
+"""Utility functions for the Arklex framework.
+
+This module provides a collection of utility functions used throughout the Arklex framework,
+including logging configuration, string manipulation, JSON processing, and chat history formatting.
+These utilities support various aspects of the framework's functionality, from basic string
+operations to complex data processing tasks.
+"""
+
 import os
 import sys
 import json

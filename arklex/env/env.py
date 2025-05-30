@@ -1,3 +1,12 @@
+"""Environment management and resource initialization for the Arklex framework.
+
+This module provides functionality for managing the execution environment, including tool and
+worker initialization, resource registration, and step-by-step execution of actions. It
+includes classes for resource initialization, environment management, and integration with
+planners and slot filling systems. The module supports dynamic loading of tools and workers,
+state management, and execution flow control.
+"""
+
 import os
 import logging
 import uuid
