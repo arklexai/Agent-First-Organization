@@ -207,13 +207,14 @@ class Generator:
         self.tasks = []  # tasks
 
     def _generate_reusable_tasks(self):
-        """
-        Generate reusable task graphs and pair each step with available resources.
+        """Generate reusable tasks based on the configuration.
 
-        Steps:
-        1. Prompt the LLM for tasks as nested graphs.
-        2. Build a resource map from workers and tools.
-        3. Refine each task graph to embed only valid resources.
+        This function creates reusable tasks that can be shared across different parts
+        of the task graph. It uses the language model to generate task definitions and
+        their associated steps.
+
+        Returns:
+            List[Dict[str, Any]]: List of generated reusable tasks.
         """
         prompt = PromptTemplate.from_template(generate_reusable_tasks_sys_prompt)
         input_prompt = prompt.invoke(
@@ -288,6 +289,15 @@ class Generator:
         self.reusable_tasks = reusable_tasks
 
     def _generate_tasks(self):
+        """Generate tasks based on the type and documents.
+
+        This function creates tasks based on the configuration type and available
+        documentation. It handles different types of task generation and integrates
+        them into the task graph.
+
+        Returns:
+            List[Dict[str, Any]]: List of generated tasks.
+        """
         # based on the type and documents
         prompt = PromptTemplate.from_template(generate_tasks_sys_prompt)
         input_prompt = prompt.invoke(
@@ -306,6 +316,14 @@ class Generator:
         self.tasks.extend(postprocess_json(answer))
 
     def _add_provided_tasks(self):
+        """Add provided tasks to the task graph.
+
+        This function processes and adds tasks that were explicitly provided in the
+        configuration to the task graph.
+
+        Returns:
+            List[Dict[str, Any]]: List of added tasks.
+        """
         if not self.user_tasks:
             return
         new_format_tasks = []
@@ -334,6 +352,17 @@ class Generator:
         self.tasks.extend(new_format_tasks)
 
     def _generate_best_practice(self, task):
+        """Generate best practices for a given task.
+
+        This function analyzes a task and generates best practices for its execution.
+        It uses the language model to identify optimal approaches and strategies.
+
+        Args:
+            task (Dict[str, Any]): The task to generate best practices for.
+
+        Returns:
+            Dict[str, Any]: Generated best practices for the task.
+        """
         # Best practice detection
         resources = {}
         for _, worker_info in self.workers.items():
@@ -400,6 +429,17 @@ class Generator:
         return postprocess_json(answer)
 
     def _finetune_best_practice(self, best_practice):
+        """Finetune best practices based on the builder's objective.
+
+        This function adjusts the generated best practices to align with the builder's
+        objectives and requirements.
+
+        Args:
+            best_practice (Dict[str, Any]): The best practice to finetune.
+
+        Returns:
+            Dict[str, Any]: Finetuned best practice.
+        """
         # embed build's objective
         if not self.b_objective:
             prompt = PromptTemplate.from_template(embed_builder_obj_sys_prompt)
@@ -452,6 +492,17 @@ class Generator:
         return json_answer
 
     def _format_task_graph(self, finetuned_best_practices):
+        """Format the task graph with finetuned best practices.
+
+        This function structures the task graph, incorporating the finetuned best
+        practices and organizing the tasks and their relationships.
+
+        Args:
+            finetuned_best_practices (List[Dict[str, Any]]): List of finetuned best practices.
+
+        Returns:
+            Dict[str, Any]: Formatted task graph.
+        """
         node_id = 1
         nodes = []
         edges = []
@@ -626,6 +677,14 @@ class Generator:
         return task_graph
 
     def _load_docs(self):
+        """Load documentation for task graph generation.
+
+        This function loads and processes documentation that will be used to inform
+        the task graph generation process.
+
+        Returns:
+            Dict[str, Any]: Loaded documentation.
+        """
         if self.task_docs:
             filepath = os.path.join(self.output_dir, "task_documents.pkl")
             total_num_docs = sum([doc.get("num", 1) for doc in self.task_docs])
@@ -679,6 +738,14 @@ class Generator:
             self.documents = ""
 
     def _load_instructions(self):
+        """Load instructions for task graph generation.
+
+        This function loads and processes instructions that will guide the task graph
+        generation process.
+
+        Returns:
+            Dict[str, Any]: Loaded instructions.
+        """
         instructions = []
         if not self.instruction_docs:
             self.instructions = ""
@@ -718,6 +785,15 @@ class Generator:
         self.instructions = "\n\n".join([f"{doc.content}" for doc in crawled_docs])
 
     def generate(self) -> dict:
+        """Generate a complete task graph.
+
+        This function orchestrates the task graph generation process, loading
+        documentation and instructions, generating tasks and best practices,
+        and formatting the final task graph.
+
+        Returns:
+            dict: The generated task graph.
+        """
         # Load the docs for task graph
         self._load_docs()
 
@@ -780,6 +856,17 @@ class Generator:
         return task_graph
 
     def save_task_graph(self, task_graph) -> str:
+        """Save the task graph to a file.
+
+        This function saves the generated task graph to a JSON file in the output
+        directory.
+
+        Args:
+            task_graph (dict): The task graph to save.
+
+        Returns:
+            str: Path to the saved task graph file.
+        """
         taskgraph_filepath = os.path.join(self.output_dir, f"taskgraph.json")
         with open(taskgraph_filepath, "w") as f:
             json.dump(task_graph, f, indent=4)
