@@ -22,6 +22,18 @@ load_dotenv()
 
 
 def create_client() -> Union[OpenAI, anthropic.Anthropic]:
+    """Create a client for interacting with language models.
+
+    This function creates and returns a client for the configured language model provider
+    (OpenAI, Anthropic, or Gemini). It handles API key configuration and organization
+    settings.
+
+    Returns:
+        Union[OpenAI, anthropic.Anthropic]: A client instance for the configured LLM provider.
+
+    Raises:
+        KeyError: If required environment variables are not set.
+    """
     try:
         org_key: Optional[str] = os.environ["OPENAI_ORG_ID"]
     except:
@@ -44,6 +56,20 @@ def chatgpt_chatbot(
     client: Union[OpenAI, anthropic.Anthropic],
     model: str = MODEL["model_type_or_path"],
 ) -> str:
+    """Send messages to a language model and get a response.
+
+    This function sends a list of messages to the specified language model and returns
+    its response. It handles different providers (OpenAI, Anthropic) and their specific
+    API requirements.
+
+    Args:
+        messages (List[Dict[str, str]]): List of message dictionaries with 'role' and 'content'.
+        client (Union[OpenAI, anthropic.Anthropic]): The LLM client to use.
+        model (str, optional): The model to use. Defaults to MODEL["model_type_or_path"].
+
+    Returns:
+        str: The model's response text.
+    """
     if MODEL["llm_provider"] != "anthropic":
         answer: str = (
             client.chat.completions.create(
@@ -71,6 +97,18 @@ def chatgpt_chatbot(
 
 # flip roles in convo history, only keep role and content
 def flip_hist_content_only(hist: List[Dict[str, Any]]) -> List[Dict[str, str]]:
+    """Flip roles in conversation history, keeping only role and content.
+
+    This function takes a conversation history and flips the roles (user becomes assistant
+    and vice versa), while keeping only the 'role' and 'content' fields. System messages
+    are removed.
+
+    Args:
+        hist (List[Dict[str, Any]]): The conversation history to process.
+
+    Returns:
+        List[Dict[str, str]]: The processed conversation history with flipped roles.
+    """
     new_hist: List[Dict[str, str]] = []
     for turn in hist:
         if turn["role"] == "system":
@@ -84,6 +122,18 @@ def flip_hist_content_only(hist: List[Dict[str, Any]]) -> List[Dict[str, str]]:
 
 # flip roles in convo history, keep all other keys the same
 def flip_hist(hist: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+    """Flip roles in conversation history, preserving all fields.
+
+    This function takes a conversation history and flips the roles (user becomes assistant
+    and vice versa), while preserving all other fields in the message dictionaries.
+    System messages are removed.
+
+    Args:
+        hist (List[Dict[str, Any]]): The conversation history to process.
+
+    Returns:
+        List[Dict[str, Any]]: The processed conversation history with flipped roles.
+    """
     new_hist: List[Dict[str, Any]] = []
     for turn in hist.copy():
         if "role" not in turn.keys():
@@ -105,6 +155,21 @@ def query_chatbot(
     params: Dict[str, Any],
     env_config: Dict[str, Any],
 ) -> Dict[str, Any]:
+    """Query a chatbot API with conversation history and parameters.
+
+    This function sends a request to a chatbot API with the provided conversation history,
+    parameters, and environment configuration. It flips the roles in the history before
+    sending the request.
+
+    Args:
+        model_api (str): The URL of the chatbot API.
+        history (List[Dict[str, Any]]): The conversation history.
+        params (Dict[str, Any]): Additional parameters for the request.
+        env_config (Dict[str, Any]): Environment configuration including workers and tools.
+
+    Returns:
+        Dict[str, Any]: The API response as a dictionary.
+    """
     history = flip_hist_content_only(history)
     data: Dict[str, Any] = {
         "history": history,
@@ -120,6 +185,17 @@ def query_chatbot(
 
 
 def format_chat_history_str(chat_history: List[Dict[str, str]]) -> str:
+    """Format chat history into a single string.
+
+    This function takes a list of chat messages and formats them into a single string,
+    with each message prefixed by its role in uppercase.
+
+    Args:
+        chat_history (List[Dict[str, str]]): List of chat messages with 'role' and 'content'.
+
+    Returns:
+        str: The formatted chat history string.
+    """
     formatted_hist: str = ""
     for turn in chat_history:
         formatted_hist += turn["role"].upper() + ": " + turn["content"] + " "
@@ -130,6 +206,22 @@ def format_chat_history_str(chat_history: List[Dict[str, str]]) -> str:
 def filter_convo(
     convo: List[Dict[str, Any]], delim: str = "\n", filter_turns: bool = True
 ) -> List[Dict[str, Any]]:
+    """Filter and process a conversation.
+
+    This function processes a conversation by:
+    1. Skipping the first two turns
+    2. Optionally filtering out turns without a 'role' field
+    3. For assistant messages, keeping them as is
+    4. For user messages, truncating content at the specified delimiter
+
+    Args:
+        convo (List[Dict[str, Any]]): The conversation to process.
+        delim (str, optional): Delimiter for truncating user messages. Defaults to "\n".
+        filter_turns (bool, optional): Whether to filter turns without roles. Defaults to True.
+
+    Returns:
+        List[Dict[str, Any]]: The processed conversation.
+    """
     filtered_convo: List[Dict[str, Any]] = []
     for i, turn in enumerate(convo):
         if i <= 1:
@@ -153,6 +245,19 @@ def filter_convo(
 
 
 def adjust_goal(doc_content: str, goal: str) -> str:
+    """Adjust a goal based on document content.
+
+    This function uses a language model to adjust a goal by replacing specific product
+    mentions with products from the provided document content. If no specific products
+    are mentioned in the goal, it returns the original goal unchanged.
+
+    Args:
+        doc_content (str): The document content to reference for product replacements.
+        goal (str): The original goal to adjust.
+
+    Returns:
+        str: The adjusted goal.
+    """
     message: str = f"Pretend you have the following goal in the mind. If the goal including some specific product, such as floss, mug, iphone, etc., then please replace it with the product from the following document content. Otherwise, don't need to change it and just return the original goal. The document content is as follows:\n{doc_content}\n\nThe original goal is as follows:\n{goal}\n\nOnly give the answer to the question in your response."
 
     return chatgpt_chatbot(
@@ -161,6 +266,20 @@ def adjust_goal(doc_content: str, goal: str) -> str:
 
 
 def generate_goal(doc_content: str, client: Union[OpenAI, anthropic.Anthropic]) -> str:
+    """Generate a goal based on document content.
+
+    This function uses a language model to generate a goal or information request
+    based on the provided document content. The goal is generated in first person
+    and represents what a user might want to achieve when interacting with a chatbot
+    about the document's content.
+
+    Args:
+        doc_content (str): The document content to base the goal on.
+        client (Union[OpenAI, anthropic.Anthropic]): The LLM client to use.
+
+    Returns:
+        str: The generated goal.
+    """
     message: str = f"Pretend you have just read the following website:\n{doc_content}\nThis website also has a chatbot. What is some information you want to get from this chatbot or a goal you might have when chatting with this chatbot based on the website content? Answer the question in the first person. Only give the answer to the question in your response."
 
     return chatgpt_chatbot(
@@ -175,6 +294,19 @@ def generate_goals(
     params: Dict[str, Any],
     client: Union[OpenAI, anthropic.Anthropic],
 ) -> List[str]:
+    """Generate multiple goals based on a collection of documents.
+
+    This function generates a specified number of goals by randomly selecting documents
+    and using the language model to generate goals based on their content.
+
+    Args:
+        documents (List[Dict[str, str]]): List of documents with their content.
+        params (Dict[str, Any]): Parameters including 'num_goals' to generate.
+        client (Union[OpenAI, anthropic.Anthropic]): The LLM client to use.
+
+    Returns:
+        List[str]: List of generated goals.
+    """
     goals: List[str] = []
     for i in range(params["num_goals"]):
         doc: Dict[str, str] = random.choice(documents)
