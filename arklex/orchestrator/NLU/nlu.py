@@ -18,7 +18,19 @@ logger = logging.getLogger(__name__)
 
 
 class NLU:
+    """Natural Language Understanding (NLU) class for intent detection.
+
+    This class provides functionality for detecting intents from user input, either through
+    a remote API or local implementation. It handles the communication with the NLU service
+    and processes the responses.
+    """
+
     def __init__(self, url: Optional[str]) -> None:
+        """Initialize the NLU instance.
+
+        Args:
+            url (Optional[str]): URL of the remote NLU API. If None, local implementation will be used.
+        """
         self.url: Optional[str] = url
 
     def execute(
@@ -28,6 +40,24 @@ class NLU:
         chat_history_str: str,
         llm_config: Dict[str, Any],
     ) -> str:
+        """Execute intent detection on the given text.
+
+        This method processes the input text and chat history to detect the most likely intent
+        from the provided list of intents. It can use either a remote API or local implementation
+        based on the configuration.
+
+        Args:
+            text (str): The input text to analyze.
+            intents (Dict[str, List[Dict[str, Any]]]): Dictionary of intents with their attributes.
+            chat_history_str (str): Formatted chat history string.
+            llm_config (Dict[str, Any]): Configuration for the language model.
+
+        Returns:
+            str: The predicted intent.
+
+        Note:
+            If using remote API and the request fails, returns "others" as the default intent.
+        """
         logger.info(f"candidates intents of NLU: {intents}")
         data: Dict[str, Any] = {
             "text": text,
@@ -56,12 +86,42 @@ class NLU:
 
 
 class SlotFilling:
+    """Slot filling class for extracting structured information from user input.
+
+    This class provides functionality for verifying and extracting slot values from user input,
+    either through a remote API or local implementation. It handles the communication with the
+    slot filling service and processes the responses.
+    """
+
     def __init__(self, url: Optional[str]) -> None:
+        """Initialize the SlotFilling instance.
+
+        Args:
+            url (Optional[str]): URL of the remote slot filling API. If None, local implementation will be used.
+        """
         self.url: Optional[str] = url
 
     def verify_needed(
         self, slot: Slot, chat_history_str: str, llm_config: Dict[str, Any]
     ) -> Tuple[bool, str]:
+        """Verify if a slot value needs to be confirmed with the user.
+
+        This method checks if the extracted slot value needs verification based on the chat history
+        and slot configuration. It can use either a remote API or local implementation.
+
+        Args:
+            slot (Slot): The slot to verify.
+            chat_history_str (str): Formatted chat history string.
+            llm_config (Dict[str, Any]): Configuration for the language model.
+
+        Returns:
+            Tuple[bool, str]: A tuple containing:
+                - bool: Whether verification is needed
+                - str: The reasoning for the verification decision
+
+        Note:
+            If using remote API and the request fails, returns (False, "No need to verify").
+        """
         logger.info(f"verify slot: {slot}")
         data: Dict[str, Any] = {
             "slot": slot.model_dump(),
@@ -95,6 +155,23 @@ class SlotFilling:
         llm_config: Dict[str, Any],
         type: str = "chat",
     ) -> List[Slot]:
+        """Execute slot filling on the given context.
+
+        This method processes the input context to extract values for the specified slots.
+        It can use either a remote API or local implementation based on the configuration.
+
+        Args:
+            slots (List[Slot]): List of slots to fill.
+            context (str): The input context to analyze.
+            llm_config (Dict[str, Any]): Configuration for the language model.
+            type (str, optional): Type of slot filling task. Defaults to "chat".
+
+        Returns:
+            List[Slot]: List of slots with their extracted values.
+
+        Note:
+            If using remote API and the request fails, returns the original slots unchanged.
+        """
         logger.info(f"extracted slots: {slots}")
         if not slots:
             return []

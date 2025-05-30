@@ -53,6 +53,17 @@ class AgentOrg:
     def __init__(
         self, config: Union[str, Dict[str, Any]], env: Env, **kwargs: Any
     ) -> None:
+        """Initialize the AgentOrg orchestrator.
+
+        This function initializes the orchestrator with configuration settings and environment.
+        It sets up the task graph, model configuration, and other necessary components.
+
+        Args:
+            config (Union[str, Dict[str, Any]]): Configuration file path or dictionary containing
+                product settings, model configuration, and other parameters.
+            env (Env): Environment object containing tools, workers, and other resources.
+            **kwargs (Any): Additional keyword arguments for customization.
+        """
         self.user_prefix: str = "user"
         self.worker_prefix: str = "assistant"
         self.environment_prefix: str = "tool"

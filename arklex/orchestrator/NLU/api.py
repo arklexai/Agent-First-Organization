@@ -97,7 +97,21 @@ class NLUModelAPI:
     def format_input(
         self, intents: Dict[str, List[Dict[str, Any]]], chat_history_str: str
     ) -> Tuple[str, Dict[str, str]]:
-        """Format input text before feeding it to the model."""
+        """Format input text for intent detection.
+
+        This function formats the input text by combining intents, definitions, and chat history
+        into a structured prompt for the language model. It creates a multiple-choice format
+        for intent selection and maintains a mapping between indices and intent names.
+
+        Args:
+            intents (Dict[str, List[Dict[str, Any]]]): Dictionary of intents with their attributes,
+                including definitions and sample utterances.
+            chat_history_str (str): Formatted chat history string.
+
+        Returns:
+            Tuple[str, Dict[str, str]]: A tuple containing the formatted system prompt and
+                a mapping from indices to intent names.
+        """
         intents_choice: str = ""
         definition_str: str = ""
         exemplars_str: str = ""
