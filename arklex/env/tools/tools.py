@@ -244,6 +244,7 @@ class Tool:
         if all([slot.value and slot.verified for slot in slots if slot.required]):
             logger.info("all slots filled")
             kwargs: Dict[str, Any] = {slot.name: slot.value for slot in slots}
+            fixed_args["stream_type"] = state.stream_type
             combined_kwargs: Dict[str, Any] = {
                 **kwargs,
                 **fixed_args,
