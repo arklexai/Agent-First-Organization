@@ -44,6 +44,21 @@ def test_resources(
     config_file_name: str,
     test_cases_file_name: str,
 ) -> None:
+    """Run test cases for a specific orchestrator class.
+
+    This function loads test cases from a file and runs them using the specified
+    orchestrator class. It handles test failures and provides detailed error
+    messages.
+
+    Args:
+        orchestrator_cls (Type[Any]): The orchestrator class to test.
+        config_file_name (str): Name of the configuration file.
+        test_cases_file_name (str): Name of the test cases file.
+
+    Raises:
+        pytest.fail: If any test case fails, with a detailed error message
+            including the test case number and orchestrator class name.
+    """
     test_resources_instance = orchestrator_cls(
         os.path.join(os.path.dirname(__file__), "data", config_file_name)
     )
