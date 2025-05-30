@@ -22,15 +22,48 @@ class Loader(ABC):
 
     @staticmethod
     def save(filepath: str, data: Any) -> None:
+        """Save data to a file.
+
+        This function serializes and saves data to a file using pickle.
+
+        Args:
+            filepath (str): Path where to save the data.
+            data (Any): Data to save.
+        """
         with open(filepath, "wb") as f:
             pickle.dump(data, f)
 
     @abstractmethod
     def load(self, filepath: str) -> List[Document]:
+        """Load documents from a file.
+
+        This abstract method should be implemented by subclasses to load documents
+        from a specific file format or data source.
+
+        Args:
+            filepath (str): Path to the file to load.
+
+        Returns:
+            List[Document]: List of loaded documents.
+
+        Raises:
+            NotImplementedError: If the method is not implemented by a subclass.
+        """
         raise NotImplementedError
 
     @abstractmethod
     def chunk(self, document_objs: List[Any]) -> List[Document]:
+        """Split documents into smaller chunks.
+
+        This method splits documents into smaller, more manageable chunks while
+        preserving their metadata and structure.
+
+        Args:
+            document_objs (List[Any]): List of document objects to chunk.
+
+        Returns:
+            List[Document]: List of chunked documents.
+        """
         text_splitter = RecursiveCharacterTextSplitter.from_tiktoken_encoder(
             encoding_name="cl100k_base", chunk_size=200, chunk_overlap=40
         )

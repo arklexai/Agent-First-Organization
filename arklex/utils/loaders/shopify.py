@@ -23,6 +23,15 @@ class ShopifyLoader(Loader):
         pass
 
     def load(self) -> List[Document]:
+        """Load product data from Shopify's GraphQL API.
+
+        This function retrieves product information from Shopify's GraphQL API,
+        including titles, descriptions, tags, and inventory data. It processes
+        the data into Document objects suitable for further processing.
+
+        Returns:
+            List[Document]: List of documents containing product information.
+        """
         docs = []
         response = shopify.GraphQL().execute("""
             {
@@ -49,6 +58,18 @@ class ShopifyLoader(Loader):
         return docs
 
     def chunk(self, document_objs: List[Document]) -> List[Document]:
+        """Split product documents into smaller chunks.
+
+        This function splits product documents into smaller, more manageable chunks
+        while preserving their metadata. It uses a text splitter to create chunks
+        of appropriate size for processing.
+
+        Args:
+            document_objs (List[Document]): List of product documents to chunk.
+
+        Returns:
+            List[Document]: List of chunked product documents.
+        """
         text_splitter = RecursiveCharacterTextSplitter.from_tiktoken_encoder(
             encoding_name="cl100k_base", chunk_size=200, chunk_overlap=40
         )
