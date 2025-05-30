@@ -14,6 +14,7 @@ from arklex.env.tools.hubspot._exception_prompt import HubspotExceptionPrompt
 from arklex.env.tools.hubspot.utils import authenticate_hubspot
 from arklex.env.tools.tools import logger, register_tool
 from arklex.exceptions import ToolExecutionError
+from arklex.types import StreamType
 
 description: str = "Schedule a meeting for the existing customer with the specific representative. If you are not sure any information, please ask users to confirm in response."
 
@@ -168,6 +169,11 @@ def create_meeting(
             }
         )
         create_meeting_response: Dict[str, Any] = create_meeting_response.json()
+
+        if kwargs.get("stream_type") == StreamType.SPEECH:
+            del create_meeting_response["webConferenceUrl"]
+            del create_meeting_response["webConferenceMeetingId"]
+
         return json.dumps(create_meeting_response)
     except ApiException as e:
         logger.info("Exception when scheduling a meeting: %s\n" % e)
