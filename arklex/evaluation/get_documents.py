@@ -19,6 +19,16 @@ from arklex.utils.loader import Loader, CrawledObject, SourceType
 
 
 def get_domain_info(documents: List[Dict[str, str]]) -> Optional[str]:
+    """Retrieve the domain information from a list of documents.
+
+    This function searches for a document with the URL "summary" in the list and returns its content.
+
+    Args:
+        documents (List[Dict[str, str]]): List of documents containing URL and content.
+
+    Returns:
+        Optional[str]: Content of the summary document, or None if no summary document is found.
+    """
     summary: Optional[str] = None
     for doc in documents:
         if doc["URL"] == "summary":
@@ -30,6 +40,18 @@ def get_domain_info(documents: List[Dict[str, str]]) -> Optional[str]:
 def load_docs(
     document_dir: Optional[str], doc_config: Dict[str, Any], limit: int = 10
 ) -> List[Dict[str, str]]:
+    """Load documents from specified sources.
+
+    This function loads documents from the specified directory or configuration and returns them as a list of dictionaries.
+
+    Args:
+        document_dir (Optional[str]): Directory containing documents.
+        doc_config (Dict[str, Any]): Configuration settings containing document source information.
+        limit (int): Maximum number of documents to load.
+
+    Returns:
+        List[Dict[str, str]]: List of loaded documents.
+    """
     if document_dir is not None:
         try:
             if "rag_docs" not in doc_config:
