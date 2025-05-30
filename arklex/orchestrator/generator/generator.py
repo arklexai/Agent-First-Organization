@@ -179,6 +179,22 @@ class Generator:
         interactable_with_user=True,
         allow_nested_graph=True,
     ):
+        """Initialize the Generator instance.
+
+        This function initializes the task graph generator with configuration settings,
+        model, and other parameters. It sets up the necessary components for generating
+        and managing task graphs.
+
+        Args:
+            config (dict): Configuration dictionary containing product settings and parameters.
+            model: The language model to use for task generation.
+            output_dir (Optional[str]): Directory to save generated task graphs. Defaults to None.
+            resource_inizializer (Optional[BaseResourceInitializer]): Initializer for resources.
+                Defaults to None.
+            interactable_with_user (bool): Whether to allow user interaction during generation.
+                Defaults to True.
+            allow_nested_graph (bool): Whether to allow nested graph generation. Defaults to True.
+        """
         if resource_inizializer is None:
             resource_inizializer = DefaulResourceInitializer()
         self.product_kwargs = config
