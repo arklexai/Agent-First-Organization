@@ -39,6 +39,10 @@ logger = logging.getLogger(__name__)
 
 class NLUModelAPI:
     def __init__(self) -> None:
+        """Initialize the NLU model API.
+
+        This function initializes the NLU model API with default user and assistant prefixes.
+        """
         self.user_prefix: str = "user"
         self.assistant_prefix: str = "assistant"
 
@@ -219,19 +223,33 @@ class NLUModelAPI:
 
 class SlotFillModelAPI:
     def __init__(self) -> None:
+        """Initialize the slot filling model API.
+
+        This function initializes the slot filling model API with default user and assistant prefixes.
+        """
         self.user_prefix: str = "user"
         self.assistant_prefix: str = "assistant"
 
-    # System prompt for slot filling
     def format_input(self, slots: SlotInputList, input: str, type: str = "chat") -> str:
-        """Format input text before feeding it to the model."""
+        """Format input text for slot filling.
+
+        This function formats the input text by combining slot definitions and input text
+        into a structured prompt for the language model.
+
+        Args:
+            slots (SlotInputList): List of slots to fill.
+            input (str): The input text to analyze.
+            type (str, optional): Type of slot filling task. Defaults to "chat".
+
+        Returns:
+            str: The formatted system prompt.
+        """
         if type == "chat":
             system_prompt: str = f"Given the conversation and definition of each dialog state, update the value of following dialogue states.\nConversation:\n{input}\n\nDialogue Statues:\n{slots}\n"
         elif type == "user_simulator":
             system_prompt: str = f"Given a user profile, extract the values for each defined slot type. Only extract values that are explicitly mentioned in the profile. If a value is not found, leave it empty.\n\nSlot definitions:\n{slots}\n\nUser profile:\n{input}\n\nFor each slot:\n1. Look for an exact match in the profile\n2. Only extract values that are clearly stated\n3. Do not make assumptions or infer values\n4. If a slot has enum values, the extracted value must match one of them exactly\n\nExtract the values:\n"
         return system_prompt
 
-    # get response from model
     def get_response(
         self,
         sys_prompt: str,
@@ -239,6 +257,20 @@ class SlotFillModelAPI:
         model: Dict[str, Any],
         note: str = "slot filling",
     ) -> Any:
+        """Get a response from the language model for slot filling.
+
+        This function sends a system prompt to the language model and returns its response
+        in the specified format. It supports different model providers and response formats.
+
+        Args:
+            sys_prompt (str): The system prompt to send to the model.
+            format (Any): The expected response format.
+            model (Dict[str, Any]): Model configuration.
+            note (str, optional): Note for logging purposes. Defaults to "slot filling".
+
+        Returns:
+            Any: The model's response in the specified format.
+        """
         logger.info(f"Prompt for {note}: {sys_prompt}")
         dialog_history: List[Dict[str, str]] = [
             {"role": "system", "content": sys_prompt}
@@ -280,10 +312,24 @@ class SlotFillModelAPI:
             response: Any = format(**res.tool_calls[0]["args"])
         return response
 
-    # endpoint for slot filling
     def predict(
         self, slots: List[Slot], input: str, model: Dict[str, Any], type: str = "chat"
     ) -> List[Slot]:
+        """Predict slot values from the input text.
+
+        This function processes the input text to extract values for the specified slots
+        using the language model. It handles different types of slot filling tasks and
+        formats the output appropriately.
+
+        Args:
+            slots (List[Slot]): List of slots to fill.
+            input (str): The input text to analyze.
+            model (Dict[str, Any]): Model configuration.
+            type (str, optional): Type of slot filling task. Defaults to "chat".
+
+        Returns:
+            List[Slot]: List of slots with their predicted values.
+        """
         try:
             input_slots: SlotInputList
             output_slots: Any
@@ -301,7 +347,6 @@ class SlotFillModelAPI:
             )
             return slots
 
-    # endpoint for slot verification
     def verify(
         self,
         slot: Dict[str, Any],
