@@ -34,8 +34,8 @@ class DefaulResourceInitializer(BaseResourceInitializer):
             name: str = tool["name"]
             path: str = tool["path"]
             try:  # try to import the tool to check its existance
-                filepath = os.path.join("arklex.env.tools", path)
-                module_name = filepath.replace(os.sep, ".").replace(".py", "")
+                filepath: str = os.path.join("arklex.env.tools", path)
+                module_name: str = filepath.replace(os.sep, ".").replace(".py", "")
                 module = importlib.import_module(module_name)
                 func: Callable = getattr(module, name)
             except Exception as e:

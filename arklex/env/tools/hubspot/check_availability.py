@@ -56,7 +56,6 @@ errors = []
 
 @register_tool(description, slots, outputs)
 def check_availability(timezone: str, duration: int, start_time: str, **kwargs) -> str:
-
     access_token = authenticate_hubspot(kwargs)
     api_client = hubspot.Client.create(access_token=access_token)
 

@@ -19,9 +19,7 @@ logger = logging.getLogger(__name__)
 
 @register_worker
 class MessageWorker(BaseWorker):
-    description: str = (
-        "The worker that used to deliver the message to the user, either a question or provide some information."
-    )
+    description: str = "The worker that used to deliver the message to the user, either a question or provide some information."
 
     def __init__(self) -> None:
         super().__init__()
@@ -186,10 +184,10 @@ class MessageWorker(BaseWorker):
         state.response = answer
         return state
 
-    def choose_generator(self, state: MessageState):
-
+    def choose_generator(self, state: MessageState) -> str:
         if state.bot_config.language == "CN" and state.stream_type == StreamType.SPEECH:
             # we do not have seperate speech and text prompts for Chinese yet
+            # TODO(Vishruth): add speech prompt for Chinese
             return "text_stream_generator"
         if (
             state.stream_type == StreamType.TEXT

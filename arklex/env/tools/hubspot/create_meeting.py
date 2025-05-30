@@ -15,9 +15,7 @@ from arklex.env.tools.hubspot.utils import authenticate_hubspot
 from arklex.env.tools.tools import logger, register_tool
 from arklex.exceptions import ToolExecutionError
 
-description: str = (
-    "Schedule a meeting for the existing customer with the specific representative. If you are not sure any information, please ask users to confirm in response."
-)
+description: str = "Schedule a meeting for the existing customer with the specific representative. If you are not sure any information, please ask users to confirm in response."
 
 
 slots: List[Dict[str, Any]] = [

@@ -21,11 +21,12 @@ def get_prompt_template(state: MessageState, prompt_key: str) -> PromptTemplate:
     if state.stream_type == StreamType.SPEECH:
         if state.bot_config.language == "CN":
             # no speech prompts for Chinese yet
+            # TODO(Vishruth): add speech prompts for Chinese
             return PromptTemplate.from_template(prompts[prompt_key])
         else:
-            # is stream is True and stream_type is AUDIO
             return PromptTemplate.from_template(prompts[prompt_key + "_speech"])
 
+    # the regular text prompts are used for both text stream and text without stream
     return PromptTemplate.from_template(prompts[prompt_key])
 
 
@@ -38,7 +39,7 @@ class ToolGenerator:
         llm = PROVIDER_MAP.get(llm_config.llm_provider, ChatOpenAI)(
             model=llm_config.model_type_or_path, temperature=0.1
         )
-        prompt = get_prompt_template(state, "generator_prompt")
+        prompt: PromptTemplate = get_prompt_template(state, "generator_prompt")
         input_prompt = prompt.invoke(
             {"sys_instruct": state.sys_instruct, "formatted_chat": user_message.history}
         )
@@ -88,7 +89,7 @@ class ToolGenerator:
         )
 
         # generate answer based on the retrieved texts
-        prompt = get_prompt_template(state, "context_generator_prompt")
+        prompt: PromptTemplate = get_prompt_template(state, "context_generator_prompt")
         input_prompt = prompt.invoke(
             {
                 "sys_instruct": state.sys_instruct,
@@ -141,7 +142,7 @@ class ToolGenerator:
         )
 
         # generate answer based on the retrieved texts
-        prompt = get_prompt_template(state, "context_generator_prompt")
+        prompt: PromptTemplate = get_prompt_template(state, "context_generator_prompt")
 
         input_prompt = prompt.invoke(
             {
@@ -172,7 +173,7 @@ class ToolGenerator:
         llm = PROVIDER_MAP.get(llm_config.llm_provider, ChatOpenAI)(
             model=llm_config.model_type_or_path, temperature=0.1
         )
-        prompt = get_prompt_template(state, "generator_prompt")
+        prompt: PromptTemplate = get_prompt_template(state, "generator_prompt")
         input_prompt = prompt.invoke(
             {"sys_instruct": state.sys_instruct, "formatted_chat": user_message.history}
         )
