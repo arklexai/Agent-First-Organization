@@ -1,9 +1,10 @@
 import logging
 import requests
-from typing import Dict, Any, Optional
+import inspect
 
 from arklex.env.tools.tools import Tool, register_tool
-from arklex.utils.graph_state import MessageState, HTTPParams
+from arklex.utils.graph_state import HTTPParams
+from arklex.exceptions import ToolExecutionError
 
 logger = logging.getLogger(__name__)
 
@@ -15,6 +16,7 @@ logger = logging.getLogger(__name__)
 )
 def http_tool(**kwargs) -> str:
     """Make an HTTP request and return the response"""
+    func_name = inspect.currentframe().f_code.co_name
     try:
         params = HTTPParams(**kwargs)
         logger.info(f"Making a {params.method} request to {params.endpoint}, with body: {params.body} and params: {params.params}")
@@ -32,9 +34,9 @@ def http_tool(**kwargs) -> str:
             
     except requests.exceptions.RequestException as e:
         logger.error(f"Error making HTTP request: {str(e)}")
-        return f"Error making HTTP request: {str(e)}"
+        raise ToolExecutionError(func_name, f"Error making HTTP request: {str(e)}")
     except Exception as e:
         logger.error(f"Unexpected error in HTTPTool: {str(e)}")
-        return f"Unexpected error: {str(e)}"
+        raise ToolExecutionError(func_name, f"Unexpected error: {str(e)}")
 
 http_tool.__name__ = "http_tool" 
