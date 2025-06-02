@@ -1,3 +1,13 @@
+"""Prompt templates for memory management in the Arklex framework.
+
+This module contains the prompt templates used by the memory system to personalize
+user intents and manage conversation context. It includes prompts for intent
+personalization, chain-of-thought reasoning, and example conversations that
+demonstrate how to extract and format product and attribute information from
+user queries. The prompts are designed to guide the language model in creating
+detailed and accurate personalized intents based on user interactions.
+"""
+
 intro = """
 You are helping personalize user intents in an agentic taskgraph workflow.
 Your job: 

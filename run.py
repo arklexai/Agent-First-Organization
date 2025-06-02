@@ -1,3 +1,12 @@
+"""Command-line interface for running the Arklex framework.
+
+This module provides a command-line interface for running the Arklex framework,
+allowing users to interact with the system through a text-based interface. It
+handles user input, processes it through the orchestrator, and displays the
+responses. The module also manages configuration loading, environment setup,
+and logging.
+"""
+
 import argparse
 import json
 import logging
@@ -20,6 +29,14 @@ load_dotenv()
 def pprint_with_color(
     data: Any, color_code: str = "\033[34m"
 ) -> None:  # Default to blue
+    """Print data with a specified color.
+
+    This function prints the provided data with the specified color code.
+
+    Args:
+        data (Any): The data to be printed.
+        color_code (str, optional): The color code to use for printing. Defaults to blue.
+    """
     print(color_code, end="")  # Set the color
     pprint(data)
     print("\033[0m", end="")
@@ -32,6 +49,21 @@ def get_api_bot_response(
     parameters: Dict[str, Any],
     env: Env,
 ) -> Tuple[str, Dict[str, Any], bool]:
+    """Get a response from the bot based on the provided input.
+
+    This function processes the user input and chat history through the orchestrator
+    to generate a response from the bot.
+
+    Args:
+        config (Dict[str, Any]): Configuration dictionary for the orchestrator.
+        history (List[Dict[str, str]]): List of previous chat messages.
+        user_text (str): The current user message.
+        parameters (Dict[str, Any]): Additional parameters for the bot response.
+        env (Env): Environment object containing tools and workers.
+
+    Returns:
+        Tuple[str, Dict[str, Any], bool]: A tuple containing the bot's response, updated parameters, and a boolean indicating if human intervention is required.
+    """
     data: Dict[str, Any] = {
         "text": user_text,
         "chat_history": history,

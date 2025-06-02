@@ -1,3 +1,9 @@
+"""Type definitions for the Arklex framework.
+
+This module contains enumerations and type definitions used throughout the Arklex framework,
+particularly for handling different types of data streams and events.
+"""
+
 from enum import Enum
 
 
@@ -7,6 +13,8 @@ class StreamType(str, Enum):
     AUDIO = "audio"
     # TEXT is used to denote text streams
     TEXT = "text"
+    # SPEECH is used to denote speech streams
+    SPEECH = "speech"
 
 
 # Enum for event types used when streaming data.

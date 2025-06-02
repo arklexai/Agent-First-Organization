@@ -1,19 +1,19 @@
+import ast
+import inspect
 import json
 from datetime import datetime, timedelta
-import pytz
-import inspect
-from typing import Dict, Any, List, Optional
+from typing import Any, Dict, List, Optional
 
 import hubspot
 import parsedatetime
+import pytz
 from dateutil.parser import isoparse
 from hubspot.crm.objects.meetings import ApiException
 
-from arklex.env.tools.tools import register_tool, logger
-from arklex.env.tools.hubspot.utils import authenticate_hubspot
-from arklex.exceptions import ToolExecutionError
 from arklex.env.tools.hubspot._exception_prompt import HubspotExceptionPrompt
-
+from arklex.env.tools.hubspot.utils import authenticate_hubspot
+from arklex.env.tools.tools import logger, register_tool
+from arklex.exceptions import ToolExecutionError
 
 description: str = "Schedule a meeting for the existing customer with the specific representative. If you are not sure any information, please ask users to confirm in response."
 
@@ -23,6 +23,7 @@ slots: List[Dict[str, Any]] = [
         "name": "cus_fname",
         "type": "str",
         "description": "The first name of the customer contact.",
+        "prompt": "Please provide your first and last name.",
         "required": True,
         "verified": True,
     },
@@ -30,6 +31,7 @@ slots: List[Dict[str, Any]] = [
         "name": "cus_lname",
         "type": "str",
         "description": "The last name of the customer contact.",
+        "prompt": "Please provide your first and last name.",
         "required": True,
         "verified": True,
     },
@@ -37,6 +39,7 @@ slots: List[Dict[str, Any]] = [
         "name": "cus_email",
         "type": "str",
         "description": "The email of the customer contact.",
+        "prompt": "Please provide your email address.",
         "required": True,
     },
     {

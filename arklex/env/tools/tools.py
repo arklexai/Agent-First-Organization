@@ -1,3 +1,11 @@
+"""Tool management and execution for the Arklex framework.
+
+This module provides functionality for registering, managing, and executing tools in the Arklex framework.
+It includes a decorator for tool registration, a base Tool class for tool implementation, and utilities
+for slot filling and tool execution. The module supports dynamic tool registration, parameter validation,
+and error handling during tool execution.
+"""
+
 import os
 import logging
 import json
@@ -21,6 +29,20 @@ def register_tool(
     outputs: List[str] = [],
     isResponse: bool = False,
 ) -> Callable:
+    """Register a tool with the Arklex framework.
+
+    This decorator registers a function as a tool with the specified description, slots,
+    outputs, and response flag. It handles path normalization and tool initialization.
+
+    Args:
+        desc (str): Description of the tool's functionality.
+        slots (List[Dict[str, Any]], optional): List of slot definitions. Defaults to [].
+        outputs (List[str], optional): List of output field names. Defaults to [].
+        isResponse (bool, optional): Whether the tool is a response tool. Defaults to False.
+
+    Returns:
+        Callable: A function that creates and returns a Tool instance.
+    """
     current_file_dir: str = os.path.dirname(__file__)
 
     def inner(func: Callable) -> Callable:
@@ -42,6 +64,25 @@ def register_tool(
 
 
 class Tool:
+    """Base class for tools in the Arklex framework.
+
+    This class provides the core functionality for tool execution, slot management,
+    and state handling. It supports slot filling, parameter validation, and error
+    handling during tool execution.
+
+    Attributes:
+        func (Callable): The function implementing the tool's functionality.
+        name (str): The name of the tool.
+        description (str): Description of the tool's functionality.
+        output (List[str]): List of output field names.
+        slotfillapi (Optional[SlotFilling]): Slot filling API instance.
+        info (Dict[str, Any]): Tool information including parameters and requirements.
+        slots (List[Slot]): List of slot instances.
+        isResponse (bool): Whether the tool is a response tool.
+        properties (Dict[str, Dict[str, Any]]): Tool properties.
+        llm_config (Dict[str, Any]): Language model configuration.
+    """
+
     def __init__(
         self,
         func: Callable,
@@ -51,6 +92,16 @@ class Tool:
         outputs: List[str],
         isResponse: bool,
     ):
+        """Initialize a new Tool instance.
+
+        Args:
+            func (Callable): The function implementing the tool's functionality.
+            name (str): The name of the tool.
+            description (str): Description of the tool's functionality.
+            slots (List[Dict[str, Any]]): List of slot definitions.
+            outputs (List[str]): List of output field names.
+            isResponse (bool): Whether the tool is a response tool.
+        """
         self.func: Callable = func
         self.name: str = name
         self.description: str = description
@@ -63,6 +114,17 @@ class Tool:
         self.llm_config: Dict[str, Any] = {}
 
     def get_info(self, slots: List[Dict[str, Any]]) -> Dict[str, Any]:
+        """Get tool information including parameters and requirements.
+
+        This method processes the slot definitions to create a structured
+        representation of the tool's parameters and requirements.
+
+        Args:
+            slots (List[Dict[str, Any]]): List of slot definitions.
+
+        Returns:
+            Dict[str, Any]: Tool information including parameters and requirements.
+        """
         self.properties = {}
         for slot in slots:
             self.properties[slot["name"]] = {
@@ -87,9 +149,22 @@ class Tool:
         }
 
     def init_slotfilling(self, slotfillapi: SlotFilling) -> None:
+        """Initialize the slot filling API.
+
+        Args:
+            slotfillapi (SlotFilling): The slot filling API instance to use.
+        """
         self.slotfillapi = slotfillapi
 
     def _init_slots(self, state: MessageState) -> None:
+        """Initialize slots with default values from the message state.
+
+        This method processes default slots from the message state and updates
+        the tool's slots with their values.
+
+        Args:
+            state (MessageState): The current message state.
+        """
         default_slots: List[Slot] = state.slots.get("default_slots", [])
         logger.info(f"Default slots are: {default_slots}")
         if not default_slots:
@@ -113,6 +188,18 @@ class Tool:
         logger.info(f"Slots after initialization are: {self.slots}")
 
     def _execute(self, state: MessageState, **fixed_args: Any) -> MessageState:
+        """Execute the tool with the current state and fixed arguments.
+
+        This method handles slot filling, parameter validation, and tool execution.
+        It manages the execution flow, error handling, and state updates.
+
+        Args:
+            state (MessageState): The current message state.
+            **fixed_args (Any): Additional fixed arguments for the tool.
+
+        Returns:
+            MessageState: The updated message state after tool execution.
+        """
         slot_verification: bool = False
         reason: str = ""
         # if this tool has been called before, then load the previous slots status
@@ -238,12 +325,34 @@ class Tool:
         return state
 
     def execute(self, state: MessageState, **fixed_args: Any) -> MessageState:
+        """Execute the tool with the current state and fixed arguments.
+
+        This method is a wrapper around _execute that handles the execution flow
+        and state management.
+
+        Args:
+            state (MessageState): The current message state.
+            **fixed_args (Any): Additional fixed arguments for the tool.
+
+        Returns:
+            MessageState: The updated message state after tool execution.
+        """
         self.llm_config = state.bot_config.llm_config.model_dump()
         state = self._execute(state, **fixed_args)
         return state
 
     def __str__(self) -> str:
+        """Get a string representation of the tool.
+
+        Returns:
+            str: A string representation of the tool.
+        """
         return f"{self.__class__.__name__}"
 
     def __repr__(self) -> str:
+        """Get a detailed string representation of the tool.
+
+        Returns:
+            str: A detailed string representation of the tool.
+        """
         return f"{self.__class__.__name__}"

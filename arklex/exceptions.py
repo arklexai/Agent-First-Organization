@@ -1,3 +1,11 @@
+"""Exception definitions for the Arklex framework.
+
+This module defines custom exceptions used throughout the Arklex framework,
+including authentication errors, tool execution errors, and user-facing errors.
+It provides a base class for tool-specific exception prompts and implements
+error handling mechanisms for various system components.
+"""
+
 __all__ = [
     "AuthenticationError",
     "ToolExecutionError",

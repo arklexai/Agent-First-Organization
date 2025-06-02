@@ -1,3 +1,12 @@
+"""Second-pass conversation simulation for evaluation in the Arklex framework.
+
+This module provides functionality for generating labeled conversations based on intent paths
+derived from first-pass conversations. It includes utilities for sampling conversation paths,
+interacting with the chatbot system, and generating labeled conversations with specific
+intents. The module supports path sampling with weighted edges and natural conversation flow
+while maintaining intent control.
+"""
+
 import json
 import random
 from typing import List, Dict, Any

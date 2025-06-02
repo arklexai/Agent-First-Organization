@@ -1,18 +1,42 @@
-import logging
+"""Utility tools for the Arklex framework.
+
+This module provides utility tools and helper functions for the Arklex framework,
+including the ToolGenerator class for generating responses and handling streaming
+outputs. It also includes functions for tracing execution flow and managing message
+states. The module integrates with various language models and prompt templates to
+provide flexible response generation capabilities.
+"""
+
 import inspect
+import logging
 from typing import Dict
 
 from langchain.prompts import PromptTemplate
-from langchain_openai import ChatOpenAI
 from langchain_core.output_parsers import StrOutputParser
+from langchain_openai import ChatOpenAI
 
 from arklex.env.prompts import load_prompts
-from arklex.types import EventType
+from arklex.types import EventType, StreamType
 from arklex.utils.graph_state import MessageState
 from arklex.utils.model_provider_config import PROVIDER_MAP
 
-
 logger = logging.getLogger(__name__)
+
+
+def get_prompt_template(state: MessageState, prompt_key: str) -> PromptTemplate:
+    """Get the prompt template based on the stream type."""
+    prompts = load_prompts(state.bot_config)
+
+    if state.stream_type == StreamType.SPEECH:
+        if state.bot_config.language == "CN":
+            # no speech prompts for Chinese yet
+            # TODO(Vishruth): add speech prompts for Chinese
+            return PromptTemplate.from_template(prompts[prompt_key])
+        else:
+            return PromptTemplate.from_template(prompts[prompt_key + "_speech"])
+
+    # the regular text prompts are used for both text stream and text without stream
+    return PromptTemplate.from_template(prompts[prompt_key])
 
 
 class ToolGenerator:
@@ -21,13 +45,10 @@ class ToolGenerator:
         llm_config = state.bot_config.llm_config
         user_message = state.user_message
 
-        prompts: Dict[str, str] = load_prompts(state.bot_config)
         llm = PROVIDER_MAP.get(llm_config.llm_provider, ChatOpenAI)(
             model=llm_config.model_type_or_path, temperature=0.1
         )
-        prompt: PromptTemplate = PromptTemplate.from_template(
-            prompts["generator_prompt"]
-        )
+        prompt: PromptTemplate = get_prompt_template(state, "generator_prompt")
         input_prompt = prompt.invoke(
             {"sys_instruct": state.sys_instruct, "formatted_chat": user_message.history}
         )
@@ -77,10 +98,7 @@ class ToolGenerator:
         )
 
         # generate answer based on the retrieved texts
-        prompts: Dict[str, str] = load_prompts(state.bot_config)
-        prompt: PromptTemplate = PromptTemplate.from_template(
-            prompts["context_generator_prompt"]
-        )
+        prompt: PromptTemplate = get_prompt_template(state, "context_generator_prompt")
         input_prompt = prompt.invoke(
             {
                 "sys_instruct": state.sys_instruct,
@@ -133,10 +151,8 @@ class ToolGenerator:
         )
 
         # generate answer based on the retrieved texts
-        prompts: Dict[str, str] = load_prompts(state.bot_config)
-        prompt: PromptTemplate = PromptTemplate.from_template(
-            prompts["context_generator_prompt"]
-        )
+        prompt: PromptTemplate = get_prompt_template(state, "context_generator_prompt")
+
         input_prompt = prompt.invoke(
             {
                 "sys_instruct": state.sys_instruct,
@@ -162,14 +178,11 @@ class ToolGenerator:
     def stream_generate(state: MessageState) -> MessageState:
         user_message = state.user_message
 
-        prompts: Dict[str, str] = load_prompts(state.bot_config)
         llm_config = state.bot_config.llm_config
         llm = PROVIDER_MAP.get(llm_config.llm_provider, ChatOpenAI)(
             model=llm_config.model_type_or_path, temperature=0.1
         )
-        prompt: PromptTemplate = PromptTemplate.from_template(
-            prompts["generator_prompt"]
-        )
+        prompt: PromptTemplate = get_prompt_template(state, "generator_prompt")
         input_prompt = prompt.invoke(
             {"sys_instruct": state.sys_instruct, "formatted_chat": user_message.history}
         )

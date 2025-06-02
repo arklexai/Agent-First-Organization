@@ -1,3 +1,12 @@
+"""FastAPI server for the Arklex framework.
+
+This module provides a FastAPI server implementation for the Arklex framework,
+exposing endpoints for model evaluation and chat interactions. It handles
+HTTP requests, processes them through the orchestrator, and returns the
+responses. The module also manages server configuration, logging, and
+environment setup.
+"""
+
 import argparse
 import logging
 import os
@@ -24,6 +33,21 @@ def get_api_bot_response(
     parameters: Dict[str, Any],
     env: Env,
 ) -> Tuple[str, Dict[str, Any]]:
+    """Get a response from the bot based on the provided input.
+
+    This function processes the user input and chat history through the orchestrator
+    to generate a response from the bot.
+
+    Args:
+        args (argparse.Namespace): Command-line arguments containing configuration settings.
+        history (List[Dict[str, str]]): List of previous chat messages.
+        user_text (str): The current user message.
+        parameters (Dict[str, Any]): Additional parameters for the bot response.
+        env (Env): Environment object containing tools and workers.
+
+    Returns:
+        Tuple[str, Dict[str, Any]]: A tuple containing the bot's response and updated parameters.
+    """
     data: Dict[str, Any] = {
         "text": user_text,
         "chat_history": history,
@@ -39,6 +63,17 @@ def get_api_bot_response(
 
 @app.post("/eval/chat")
 def predict(data: Dict[str, Any]) -> Dict[str, Any]:
+    """Predict a response based on the provided chat data.
+
+    This function processes the chat history and parameters to generate a response
+    from the bot using the get_api_bot_response function.
+
+    Args:
+        data (Dict[str, Any]): Dictionary containing chat history, parameters, workers, and tools.
+
+    Returns:
+        Dict[str, Any]: A dictionary containing the bot's response and updated parameters.
+    """
     history: List[Dict[str, str]] = data["history"]
     params: Dict[str, Any] = data["parameters"]
     workers: List[Dict[str, Any]] = data["workers"]

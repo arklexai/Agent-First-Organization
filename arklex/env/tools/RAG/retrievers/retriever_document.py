@@ -1,3 +1,11 @@
+"""Retriever document implementation for the Arklex framework.
+
+This module provides document handling and processing functionality for the RAG (Retrieval-Augmented
+Generation) system. It includes classes for managing retriever documents, handling document
+chunking, and processing retrieval results. The module supports different document types,
+embedding generation, and conversion between different document formats for vector storage.
+"""
+
 # TODO(christian): add annotations to the code
 
 import json

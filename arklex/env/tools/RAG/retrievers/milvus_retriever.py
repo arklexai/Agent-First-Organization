@@ -1,3 +1,12 @@
+"""Milvus retriever implementation for the Arklex framework.
+
+This module provides a Milvus-based retriever implementation for efficient vector similarity
+search in document collections. It includes the RetrieveEngine class for handling retrieval
+operations, the MilvusRetriever class for managing Milvus collections and document operations,
+and the MilvusRetrieverExecutor class for executing retrieval tasks. The module supports
+document embedding, vector storage, and similarity search with metadata filtering.
+"""
+
 # TODO(christian): add annotations to the code
 
 import logging

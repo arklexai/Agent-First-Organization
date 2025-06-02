@@ -1,3 +1,11 @@
+"""Model provider configuration for the Arklex framework.
+
+This module defines the configuration and mapping for different language model providers
+supported by the framework, including OpenAI, Google Gemini, Anthropic, and HuggingFace.
+It provides functions and mappings for initializing language models and embeddings from
+different providers, ensuring consistent interface across different model backends.
+"""
+
 from typing import Dict, Type, Any, List
 from langchain_openai import ChatOpenAI
 from langchain_google_genai import ChatGoogleGenerativeAI

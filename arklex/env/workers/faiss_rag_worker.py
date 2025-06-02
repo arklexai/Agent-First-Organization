@@ -1,3 +1,12 @@
+"""FAISS RAG worker implementation for the Arklex framework.
+
+This module provides a specialized worker for handling Retrieval-Augmented Generation (RAG)
+tasks using FAISS for efficient similarity search. It implements a worker that can answer
+user questions based on internal documentation, including policies, FAQs, and product
+information. The worker supports both streaming and non-streaming responses, using a state
+graph to manage the workflow of document retrieval and response generation.
+"""
+
 import logging
 from typing import Any, Dict
 

@@ -1,3 +1,11 @@
+"""Model configuration settings for the Arklex framework.
+
+This module defines the default model configuration settings used throughout the framework,
+including model type, provider, context window size, and token limits. These settings
+are used to configure language model interactions and ensure consistent behavior across
+different components of the system.
+"""
+
 from typing import Dict, Any
 
 MODEL: Dict[str, Any] = {

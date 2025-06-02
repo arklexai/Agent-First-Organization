@@ -1,3 +1,12 @@
+"""Prompt templates for task graph generation in the Arklex framework.
+
+This module contains the prompt templates used by the task graph generator to create
+and manage task hierarchies. It includes prompts for generating tasks, reusable subtasks,
+and best practices for task organization. The prompts are designed to guide the language
+model in creating well-structured and reusable task graphs based on user objectives
+and available documentation.
+"""
+
 generate_tasks_sys_prompt = """The builder plans to create a chatbot designed to fulfill user's objectives. Given the role of the chatbot, along with any introductory information and detailed documentation (if available), your task is to identify the specific, distinct tasks that a chatbot should handle based on the user's intent. You are also given a list of existing tasks with user's intent. You must not return tasks that deal the same existing user's intent. All tasks should not overlap or depend on each other and must address different aspects of the user's goals. Ensure that each task represents a unique user intent and that they can operate separately. Moreover, you are given the instructions that you must follow. Return the response in JSON format.
 
 For Example:
@@ -133,18 +142,18 @@ Reasoning Process:
 generate_reusable_tasks_sys_prompt = """
 The builder wants to create a chatbot with the following information:
 Role of the Chatbot: {role}
-User’s Objective: {u_objective}
-Builder’s Introductory Information: {intro}
-Builder’s Tasks: {tasks}
-Builder’s Documentation (if any): {docs}
+User's Objective: {u_objective}
+Builder's Introductory Information: {intro}
+Builder's Tasks: {tasks}
+Builder's Documentation (if any): {docs}
 Instructions that you must follow: {instructions}
 Here are some example conversations to help you understand how the bot's interactions should look. For each task, consider only the relevant parts of the example conversations: {example_conversations}
 Your tasks is:
-Identify Shared Subtasks: Based on the chatbot’s role, any introductory information, available documentation, and the overall task set, identify and define subtasks that: Are essential to multiple tasks, Are granular, independent, and reusable, Can be logically grouped as recurring procedures.
+Identify Shared Subtasks: Based on the chatbot's role, any introductory information, available documentation, and the overall task set, identify and define subtasks that: Are essential to multiple tasks, Are granular, independent, and reusable, Can be logically grouped as recurring procedures.
 Analyze Each Task: Break down each task into its smallest meaningful steps.
 Exclude Simple or Overly Specific Procedures: Only include subtasks that represent more complex or significant actions and are relevant across multiple tasks. Exclude those that are overly simplistic or too task-specific.
 Name Each Subtask Clearly: Use descriptive names for the subtasks.
-Describe the Subtask’s Purpose and Steps: Provide a clear and detailed definition for each subtask, along with a detailed outline of the steps it involves.
+Describe the Subtask's Purpose and Steps: Provide a clear and detailed definition for each subtask, along with a detailed outline of the steps it involves.
 Maintain Independence: Subtasks should be self-contained, modular, and applicable in different contexts.
 Return the Response in JSON Format
 The JSON structure should include a clear name, description, and a steps (or next) hierarchy that outlines the logical flow.
