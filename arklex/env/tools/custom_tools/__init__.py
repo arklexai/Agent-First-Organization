@@ -1,5 +1,5 @@
 """
-Custom tools package for the Arklex system.
+Custom tools package
 """
 
 from .http_tool import http_tool
