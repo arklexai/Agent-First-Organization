@@ -120,12 +120,12 @@ class NLUModelAPI:
         definition_str: str = ""
         exemplars_str: str = ""
         idx2intents_mapping: Dict[str, str] = {}
-        multiple_choice_index: Dict[int, str] = dict(enumerate(string.ascii_lowercase))
-        count: int = 0
+        count: int = 1  
+        
         for intent_k, intent_v in intents.items():
             if len(intent_v) == 1:
                 intent_name: str = intent_k
-                idx2intents_mapping[multiple_choice_index[count]] = intent_name
+                idx2intents_mapping[str(count)] = intent_name
                 definition: str = intent_v[0].get("attribute", {}).get("definition", "")
                 sample_utterances: List[str] = (
                     intent_v[0].get("attribute", {}).get("sample_utterances", [])
@@ -133,30 +133,30 @@ class NLUModelAPI:
 
                 if definition:
                     definition_str += (
-                        f"{multiple_choice_index[count]}) {intent_name}: {definition}\n"
+                        f"{count}) {intent_name}: {definition}\n"
                     )
                 if sample_utterances:
                     exemplars: str = "\n".join(sample_utterances)
-                    exemplars_str += f"{multiple_choice_index[count]}) {intent_name}: \n{exemplars}\n"
-                intents_choice += f"{multiple_choice_index[count]}) {intent_name}\n"
+                    exemplars_str += f"{count}) {intent_name}: \n{exemplars}\n"
+                intents_choice += f"{count}) {intent_name}\n"
 
                 count += 1
 
             else:
                 for idx, intent in enumerate(intent_v):
                     intent_name: str = f"{intent_k}__<{idx}>"
-                    idx2intents_mapping[multiple_choice_index[count]] = intent_name
+                    idx2intents_mapping[str(count)] = intent_name
                     definition: str = intent.get("attribute", {}).get("definition", "")
                     sample_utterances: List[str] = intent.get("attribute", {}).get(
                         "sample_utterances", []
                     )
 
                     if definition:
-                        definition_str += f"{multiple_choice_index[count]}) {intent_name}: {definition}\n"
+                        definition_str += f"{count}) {intent_name}: {definition}\n"
                     if sample_utterances:
                         exemplars: str = "\n".join(sample_utterances)
-                        exemplars_str += f"{multiple_choice_index[count]}) {intent_name}: \n{exemplars}\n"
-                    intents_choice += f"{multiple_choice_index[count]}) {intent_name}\n"
+                        exemplars_str += f"{count}) {intent_name}: \n{exemplars}\n"
+                    intents_choice += f"{count}) {intent_name}\n"
 
                     count += 1
         # Base prompt without conditional sections
