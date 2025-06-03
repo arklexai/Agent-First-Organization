@@ -3,6 +3,48 @@
 This module provides the core NLU functionality for intent detection and slot filling.
 It includes classes for handling NLU requests either through a remote API or local implementation,
 and managing slot filling operations for extracting structured information from user input.
+
+Key Components:
+1. NLU Class
+   - Intent detection from user input
+   - Support for remote API and local implementation
+   - Chat history integration
+   - Language model configuration
+
+2. SlotFilling Class
+   - Slot value extraction and verification
+   - Support for remote API and local implementation
+   - Context-aware slot filling
+   - Multiple slot types support
+
+Features:
+- Intent detection with confidence scoring
+- Slot value extraction and verification
+- Remote API integration
+- Local implementation fallback
+- Chat history context integration
+- Configurable language models
+- Error handling and logging
+
+Usage:
+    from arklex.orchestrator.NLU.nlu import NLU, SlotFilling
+
+    # Initialize NLU
+    nlu = NLU(url="http://nlu-api.example.com")
+    intent = nlu.execute(
+        text="I want to check my order status",
+        intents=available_intents,
+        chat_history_str=history,
+        llm_config=model_config
+    )
+
+    # Initialize SlotFilling
+    slot_filling = SlotFilling(url="http://slot-filling-api.example.com")
+    filled_slots = slot_filling.execute(
+        slots=required_slots,
+        context="My order number is 12345",
+        llm_config=model_config
+    )
 """
 
 import requests
@@ -23,6 +65,19 @@ class NLU:
     This class provides functionality for detecting intents from user input, either through
     a remote API or local implementation. It handles the communication with the NLU service
     and processes the responses.
+
+    The class supports:
+    - Remote API-based intent detection
+    - Local implementation fallback
+    - Chat history context integration
+    - Configurable language models
+    - Error handling and logging
+
+    Attributes:
+        url (Optional[str]): URL of the remote NLU API. If None, local implementation is used.
+
+    Methods:
+        execute: Process input text to detect intent
     """
 
     def __init__(self, url: Optional[str]) -> None:
@@ -45,6 +100,12 @@ class NLU:
         This method processes the input text and chat history to detect the most likely intent
         from the provided list of intents. It can use either a remote API or local implementation
         based on the configuration.
+
+        The method:
+        1. Prepares the request data with text, intents, and context
+        2. Sends the request to the remote API or local implementation
+        3. Processes the response to extract the predicted intent
+        4. Handles errors and provides fallback behavior
 
         Args:
             text (str): The input text to analyze.
@@ -91,6 +152,20 @@ class SlotFilling:
     This class provides functionality for verifying and extracting slot values from user input,
     either through a remote API or local implementation. It handles the communication with the
     slot filling service and processes the responses.
+
+    The class supports:
+    - Remote API-based slot filling
+    - Local implementation fallback
+    - Slot value verification
+    - Multiple slot types
+    - Error handling and logging
+
+    Attributes:
+        url (Optional[str]): URL of the remote slot filling API. If None, local implementation is used.
+
+    Methods:
+        verify_needed: Check if slot value needs verification
+        execute: Extract slot values from input
     """
 
     def __init__(self, url: Optional[str]) -> None:
@@ -108,6 +183,12 @@ class SlotFilling:
 
         This method checks if the extracted slot value needs verification based on the chat history
         and slot configuration. It can use either a remote API or local implementation.
+
+        The method:
+        1. Prepares the verification request data
+        2. Sends the request to the remote API or local implementation
+        3. Processes the response to determine if verification is needed
+        4. Handles errors and provides fallback behavior
 
         Args:
             slot (Slot): The slot to verify.
@@ -159,6 +240,12 @@ class SlotFilling:
 
         This method processes the input context to extract values for the specified slots.
         It can use either a remote API or local implementation based on the configuration.
+
+        The method:
+        1. Prepares the slot filling request data
+        2. Sends the request to the remote API or local implementation
+        3. Processes the response to extract slot values
+        4. Handles errors and provides fallback behavior
 
         Args:
             slots (List[Slot]): List of slots to fill.

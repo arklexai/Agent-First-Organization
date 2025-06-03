@@ -4,6 +4,53 @@ This module provides the API layer for NLU services, including intent detection 
 It includes classes for handling model interactions, formatting inputs and outputs,
 and providing FastAPI endpoints for remote access to NLU functionality.
 The module supports both local model execution and remote API calls.
+
+Key Components:
+1. NLUModelAPI
+   - Intent detection using language models
+   - Input formatting and response processing
+   - Support for multiple model providers
+   - Chat history integration
+
+2. SlotFillModelAPI
+   - Slot value extraction and verification
+   - Input formatting for different slot types
+   - Model response processing
+   - Support for chat and user simulator modes
+
+3. FastAPI Endpoints
+   - /nlu/predict: Intent detection endpoint
+   - /slotfill/predict: Slot filling endpoint
+   - /slotfill/verify: Slot verification endpoint
+
+Features:
+- Multiple language model provider support
+- Structured input/output formatting
+- Chat history context integration
+- Slot value verification
+- Error handling and logging
+- FastAPI integration
+- Configurable model parameters
+
+Usage:
+    from arklex.orchestrator.NLU.api import NLUModelAPI, SlotFillModelAPI
+
+    # Initialize NLU API
+    nlu_api = NLUModelAPI()
+    intent = nlu_api.predict(
+        text="I want to check my order",
+        intents=available_intents,
+        chat_history_str=history,
+        model=model_config
+    )
+
+    # Initialize Slot Filling API
+    slot_api = SlotFillModelAPI()
+    filled_slots = slot_api.predict(
+        slots=required_slots,
+        input="My order number is 12345",
+        model=model_config
+    )
 """
 
 import sys
@@ -38,6 +85,28 @@ logger = logging.getLogger(__name__)
 
 
 class NLUModelAPI:
+    """API class for Natural Language Understanding (NLU) model interactions.
+
+    This class provides functionality for intent detection using language models,
+    including input formatting, model interaction, and response processing.
+    It supports multiple model providers and handles chat history context.
+
+    The class supports:
+    - Multiple language model providers
+    - Structured input formatting
+    - Response processing and validation
+    - Error handling and logging
+
+    Attributes:
+        user_prefix (str): Prefix for user messages
+        assistant_prefix (str): Prefix for assistant messages
+
+    Methods:
+        get_response: Get response from language model
+        format_input: Format input for intent detection
+        predict: Predict intent from input text
+    """
+
     def __init__(self) -> None:
         """Initialize the NLU model API.
 
@@ -58,6 +127,12 @@ class NLUModelAPI:
         This function sends a system prompt to the language model and returns its response.
         It supports different response formats and model providers.
 
+        The method:
+        1. Prepares the dialog history with system prompt
+        2. Configures model parameters based on provider
+        3. Sends request to the model
+        4. Processes and returns the response
+
         Args:
             sys_prompt (str): The system prompt to send to the model.
             model (Dict[str, Any]): Model configuration including provider and type.
@@ -66,6 +141,12 @@ class NLUModelAPI:
 
         Returns:
             str: The model's response.
+
+        Note:
+            Supports different model providers with specific configurations:
+            - OpenAI: JSON or text response format
+            - Anthropic: Text response format
+            - Other providers: Text response format
         """
         logger.info(f"Prompt for {note}: {sys_prompt}")
         dialog_history: List[Dict[str, str]] = [
@@ -107,56 +188,68 @@ class NLUModelAPI:
         into a structured prompt for the language model. It creates a multiple-choice format
         for intent selection and maintains a mapping between indices and intent names.
 
+        The method:
+        1. Processes each intent and its attributes
+        2. Creates definitions and exemplars sections
+        3. Builds a multiple-choice format
+        4. Maintains index-to-intent mapping
+
         Args:
             intents (Dict[str, List[Dict[str, Any]]]): Dictionary of intents with their attributes,
                 including definitions and sample utterances.
             chat_history_str (str): Formatted chat history string.
 
         Returns:
-            Tuple[str, Dict[str, str]]: A tuple containing the formatted system prompt and
-                a mapping from indices to intent names.
+            Tuple[str, Dict[str, str]]: A tuple containing:
+                - str: The formatted system prompt
+                - Dict[str, str]: Mapping from indices to intent names
+
+        Note:
+            The formatted prompt includes:
+            - Intent definitions (if available)
+            - Sample utterances (if available)
+            - Multiple-choice options
+            - Chat history context
         """
         intents_choice: str = ""
         definition_str: str = ""
         exemplars_str: str = ""
         idx2intents_mapping: Dict[str, str] = {}
-        multiple_choice_index: Dict[int, str] = dict(enumerate(string.ascii_lowercase))
-        count: int = 0
+        count: int = 1
+
         for intent_k, intent_v in intents.items():
             if len(intent_v) == 1:
                 intent_name: str = intent_k
-                idx2intents_mapping[multiple_choice_index[count]] = intent_name
+                idx2intents_mapping[str(count)] = intent_name
                 definition: str = intent_v[0].get("attribute", {}).get("definition", "")
                 sample_utterances: List[str] = (
                     intent_v[0].get("attribute", {}).get("sample_utterances", [])
                 )
 
                 if definition:
-                    definition_str += (
-                        f"{multiple_choice_index[count]}) {intent_name}: {definition}\n"
-                    )
+                    definition_str += f"{count}) {intent_name}: {definition}\n"
                 if sample_utterances:
                     exemplars: str = "\n".join(sample_utterances)
-                    exemplars_str += f"{multiple_choice_index[count]}) {intent_name}: \n{exemplars}\n"
-                intents_choice += f"{multiple_choice_index[count]}) {intent_name}\n"
+                    exemplars_str += f"{count}) {intent_name}: \n{exemplars}\n"
+                intents_choice += f"{count}) {intent_name}\n"
 
                 count += 1
 
             else:
                 for idx, intent in enumerate(intent_v):
                     intent_name: str = f"{intent_k}__<{idx}>"
-                    idx2intents_mapping[multiple_choice_index[count]] = intent_name
+                    idx2intents_mapping[str(count)] = intent_name
                     definition: str = intent.get("attribute", {}).get("definition", "")
                     sample_utterances: List[str] = intent.get("attribute", {}).get(
                         "sample_utterances", []
                     )
 
                     if definition:
-                        definition_str += f"{multiple_choice_index[count]}) {intent_name}: {definition}\n"
+                        definition_str += f"{count}) {intent_name}: {definition}\n"
                     if sample_utterances:
                         exemplars: str = "\n".join(sample_utterances)
-                        exemplars_str += f"{multiple_choice_index[count]}) {intent_name}: \n{exemplars}\n"
-                    intents_choice += f"{multiple_choice_index[count]}) {intent_name}\n"
+                        exemplars_str += f"{count}) {intent_name}: \n{exemplars}\n"
+                    intents_choice += f"{count}) {intent_name}\n"
 
                     count += 1
         # Base prompt without conditional sections
@@ -196,6 +289,12 @@ class NLUModelAPI:
         using the language model. It formats the input, gets a response, and processes the
         result to return the predicted intent.
 
+        The method:
+        1. Formats the input with intents and chat history
+        2. Gets response from the language model
+        3. Processes the response to extract intent
+        4. Handles errors and provides fallback
+
         Args:
             text (str): The input text to analyze.
             intents (Dict[str, List[Dict[str, Any]]]): Dictionary of possible intents.
@@ -204,6 +303,10 @@ class NLUModelAPI:
 
         Returns:
             str: The predicted intent.
+
+        Note:
+            If the response cannot be parsed as an index, returns the lowercase
+            response text as the intent.
         """
         system_prompt: str
         idx2intents_mapping: Dict[str, str]
@@ -222,6 +325,29 @@ class NLUModelAPI:
 
 
 class SlotFillModelAPI:
+    """API class for Slot Filling model interactions.
+
+    This class provides functionality for extracting and verifying slot values
+    using language models, including input formatting and response processing.
+    It supports different slot types and modes of operation.
+
+    The class supports:
+    - Multiple slot types
+    - Chat and user simulator modes
+    - Slot value verification
+    - Structured input/output formatting
+
+    Attributes:
+        user_prefix (str): Prefix for user messages
+        assistant_prefix (str): Prefix for assistant messages
+
+    Methods:
+        format_input: Format input for slot filling
+        get_response: Get response from language model
+        predict: Predict slot values from input
+        verify: Verify slot value with user
+    """
+
     def __init__(self) -> None:
         """Initialize the slot filling model API.
 
@@ -236,6 +362,12 @@ class SlotFillModelAPI:
         This function formats the input text by combining slot definitions and input text
         into a structured prompt for the language model.
 
+        The method:
+        1. Processes slot definitions
+        2. Formats input text
+        3. Creates appropriate prompt based on type
+        4. Adds instructions for value extraction
+
         Args:
             slots (SlotInputList): List of slots to fill.
             input (str): The input text to analyze.
@@ -243,6 +375,11 @@ class SlotFillModelAPI:
 
         Returns:
             str: The formatted system prompt.
+
+        Note:
+            Different prompt formats for:
+            - chat: Conversation-based slot filling
+            - user_simulator: Profile-based slot filling
         """
         if type == "chat":
             system_prompt: str = f"Given the conversation and definition of each dialog state, update the value of following dialogue states.\nConversation:\n{input}\n\nDialogue Statues:\n{slots}\n"

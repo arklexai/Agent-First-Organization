@@ -2,11 +2,61 @@
 
 This module contains the prompt templates used by the task graph generator to create
 and manage task hierarchies. It includes prompts for generating tasks, reusable subtasks,
-and best practices for task organization. The prompts are designed to guide the language
-model in creating well-structured and reusable task graphs based on user objectives
-and available documentation.
+and best practices for task organization.
+
+Key Components:
+- Task Generation Prompts: Templates for creating main tasks and subtasks
+- Reusable Task Prompts: Templates for identifying and defining shared subtasks
+- Best Practice Prompts: Templates for task decomposition and optimization
+- Task Validation Prompts: Templates for verifying task structure and completeness
+
+Features:
+- Structured JSON output formatting
+- Hierarchical task organization
+- Reusable task identification
+- Task decomposition guidance
+- Resource utilization optimization
+- Example-based learning
+- Clear reasoning processes
+- Comprehensive documentation
+
+Usage:
+    from arklex.orchestrator.generator.prompts import (
+        generate_tasks_sys_prompt,
+        generate_reusable_tasks_sys_prompt,
+        check_best_practice_sys_prompt
+    )
+
+    # Format task generation prompt
+    task_prompt = generate_tasks_sys_prompt.format(
+        role="customer_service",
+        u_objective="Handle customer inquiries",
+        intro="E-commerce platform information",
+        docs="Product documentation",
+        instructions="Task generation guidelines",
+        existing_tasks="Current task list"
+    )
+
+    # Format reusable task prompt
+    reusable_prompt = generate_reusable_tasks_sys_prompt.format(
+        role="customer_service",
+        u_objective="Handle customer inquiries",
+        intro="Platform overview",
+        tasks="Main task list",
+        docs="Available documentation",
+        instructions="Task guidelines",
+        example_conversations="Sample interactions"
+    )
+
+    # Format best practice check prompt
+    practice_prompt = check_best_practice_sys_prompt.format(
+        task="Handle customer inquiry",
+        level=1,
+        resources="Available workers and tools"
+    )
 """
 
+# Task Generation Prompt Template
 generate_tasks_sys_prompt = """The builder plans to create a chatbot designed to fulfill user's objectives. Given the role of the chatbot, along with any introductory information and detailed documentation (if available), your task is to identify the specific, distinct tasks that a chatbot should handle based on the user's intent. You are also given a list of existing tasks with user's intent. You must not return tasks that deal the same existing user's intent. All tasks should not overlap or depend on each other and must address different aspects of the user's goals. Ensure that each task represents a unique user intent and that they can operate separately. Moreover, you are given the instructions that you must follow. Return the response in JSON format.
 
 For Example:
@@ -139,6 +189,7 @@ Existing tasks:
 Reasoning Process:
 """
 
+# Reusable Task Generation Prompt Template
 generate_reusable_tasks_sys_prompt = """
 The builder wants to create a chatbot with the following information:
 Role of the Chatbot: {role}
@@ -215,7 +266,7 @@ Expected Answer Format (Example):
 Use this structure as a reference when defining and returning your own set of reusable subtasks in JSON.
 """
 
-
+# Best Practice Check Prompt Template
 check_best_practice_sys_prompt = """You are a userful assistance to detect if the current task needs to be further decomposed if it cannot be solved by the provided resources. Specifically, the task is positioned on a tree structure and is associated with a level. Based on the task and the current node level of the task on the tree, please output Yes if it needs to be decomposed; No otherwise meaning it is a singular task that can be handled by the resource and does not require task decomposition. Please also provide explanations for your choice. 
 
 Here are some examples:

@@ -4,8 +4,44 @@ This module provides prompt templates for various components of the system, incl
 generators, RAG (Retrieval-Augmented Generation), workers, and database operations. It
 supports multiple languages (currently English and Chinese) and includes templates for
 different use cases such as vanilla generation, context-aware generation, message flow
-generation, and database interactions. The module ensures consistent prompt formatting
-and language-specific adaptations.
+generation, and database interactions.
+
+Key Components:
+- Generator Prompts:
+  - Vanilla generation for basic responses
+  - Context-aware generation with RAG
+  - Message flow generation with additional context
+  - Speech-specific variants for voice interactions
+- RAG Prompts:
+  - Contextualized question formulation
+  - Retrieval necessity determination
+- Worker Prompts:
+  - Worker selection based on task and context
+- Database Prompts:
+  - Action selection based on user intent
+  - Slot value validation and reformulation
+
+Key Features:
+- Multi-language support (EN/CN)
+- Speech-specific prompt variants
+- Context-aware generation
+- Message flow integration
+- Database interaction templates
+- Consistent formatting across languages
+
+Usage:
+    # Initialize bot configuration
+    config = BotConfig(language="EN")
+
+    # Load prompts for the specified language
+    prompts = load_prompts(config)
+
+    # Use prompts in generation
+    response = generator.generate(
+        prompt=prompts["generator_prompt"],
+        context=context,
+        chat_history=history
+    )
 """
 
 from typing import Dict, Any, Union
@@ -14,10 +50,37 @@ from dataclasses import dataclass
 
 @dataclass
 class BotConfig:
+    """Configuration for bot language settings.
+
+    This class defines the language configuration for the bot, which determines
+    which set of prompts to use for generation and interaction.
+
+    Attributes:
+        language: The language code for the bot (e.g., "EN" for English, "CN" for Chinese)
+    """
+
     language: str
 
 
 def load_prompts(bot_config: BotConfig) -> Dict[str, str]:
+    """Load prompt templates based on bot configuration.
+
+    This function loads the appropriate set of prompt templates based on the
+    specified language in the bot configuration. It includes templates for
+    various generation scenarios, RAG operations, worker selection, and
+    database interactions.
+
+    Args:
+        bot_config: Bot configuration specifying the language
+
+    Returns:
+        Dictionary mapping prompt names to their templates
+
+    Note:
+        Currently supports English (EN) and Chinese (CN) languages.
+        Each language has its own set of specialized prompts for different
+        use cases and interaction modes.
+    """
     prompts: Dict[str, str]
     if bot_config.language == "EN":
         ### ================================== Generator Prompts ================================== ###

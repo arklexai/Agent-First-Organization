@@ -4,11 +4,42 @@ This module contains the prompt templates used by the orchestrator for various t
 including action selection, trajectory summarization, and planning. It includes
 prompts for both zero-shot and few-shot scenarios, with templates for reasoning
 about available tools and actions, and generating appropriate responses.
+
+Key Components:
+1. Action Constants
+   - RESPOND_ACTION_NAME: Name of the response action
+   - RESPOND_ACTION_FIELD_NAME: Field name for response content
+
+2. Prompt Templates
+   - REACT_INSTRUCTION: Base instruction for ReAct-based reasoning
+   - PLANNER_REACT_INSTRUCTION_ZERO_SHOT: Zero-shot planning instruction
+   - PLANNER_SUMMARIZE_TRAJECTORY_PROMPT: Trajectory summarization template
+   - PLANNER_REACT_INSTRUCTION_FEW_SHOT: Few-shot planning instruction
+
+Features:
+- Structured prompt templates
+- Support for both zero-shot and few-shot learning
+- Tool and action reasoning
+- Trajectory summarization
+- Response formatting
+- Task context integration
+
+Usage:
+    from arklex.orchestrator.prompts import REACT_INSTRUCTION
+
+    # Format the instruction with context
+    formatted_prompt = REACT_INSTRUCTION.format(
+        conversation_record=history,
+        available_tools=tools,
+        task=current_task
+    )
 """
 
-RESPOND_ACTION_NAME = "respond"
-RESPOND_ACTION_FIELD_NAME = "content"
+# Action name constants
+RESPOND_ACTION_NAME = "respond"  # Name of the response action
+RESPOND_ACTION_FIELD_NAME = "content"  # Field name for response content
 
+# Base ReAct instruction template
 REACT_INSTRUCTION = """
 # Instruction
 You need to act as an agent that use a set of tools to help the user according to the policy.
@@ -33,8 +64,7 @@ Make the decision based on the current task, conversation record, and available 
 Thought:
 """
 
-### REACT PLANNER PROMPTS
-
+# Zero-shot planning instruction template
 PLANNER_REACT_INSTRUCTION_ZERO_SHOT = """
 # Instruction
 Please act as an agent that selects the next appropriate action in a sequence of actions in order to satisfy the user's request.
@@ -66,6 +96,7 @@ Select the next action based on the current task, conversation record, and avail
 Thought:
 """
 
+# Trajectory summarization template
 PLANNER_SUMMARIZE_TRAJECTORY_PROMPT = """
 # Instruction
 Please summarize the planning steps required to satisfy the user's request.
@@ -83,6 +114,7 @@ Your current task is:
 Answer:
 """
 
+# Few-shot planning instruction template with example
 PLANNER_REACT_INSTRUCTION_FEW_SHOT = """
 # Instruction
 Please act as an agent that selects the next appropriate action in a sequence of actions in order to satisfy the user's request.

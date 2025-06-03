@@ -148,7 +148,7 @@ indent-width = 4
 
 [tool.ruff.lint]
 select = ["E", "ANN"]
-ignore = ["E501", "E722", "E402"] #The last two are:Do not use bare `except`, and Module level import not at top of file
+ignore = ["E501", "E722", "E402", "ANN401"] #The last two are:Do not use bare `except`, and Module level import not at top of file
 fixable = ["ALL"]
 
 [tool.ruff.format]

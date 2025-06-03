@@ -2,8 +2,42 @@
 
 This module provides the core task graph functionality for orchestrating conversations and workflows.
 It includes classes for managing task graphs, handling intents, and processing nodes in the conversation flow.
-The TaskGraph class is responsible for managing the flow of conversation and determining the next steps
-based on user input and available intents.
+
+Key Components:
+- TaskGraphBase: Base class for task graph functionality
+- TaskGraph: Main class for managing conversation flow and intent handling
+- NodeInfo: Information about graph nodes
+- Params: Parameters for graph traversal
+- PathNode: Node information for path tracking
+
+Features:
+- Directed graph structure for task flow
+- Intent-based node navigation
+- Global and local intent handling
+- Node state management
+- Path tracking and history
+- Resource management
+- Slot filling integration
+- NLU integration
+
+Usage:
+    from arklex.orchestrator.task_graph import TaskGraph
+    from arklex.utils.graph_state import LLMConfig, Params
+
+    # Initialize task graph
+    config = {
+        "nodes": [...],
+        "edges": [...],
+        "nluapi": {...},
+        "slotfillapi": {...}
+    }
+
+    llm_config = LLMConfig(...)
+    task_graph = TaskGraph("conversation", config, llm_config)
+
+    # Process input
+    params = Params(...)
+    node_info, updated_params = task_graph.get_node({"input": "user message"})
 """
 
 import copy
@@ -23,6 +57,23 @@ logger = logging.getLogger(__name__)
 
 
 class TaskGraphBase:
+    """Base class for task graph functionality.
+
+    This class provides the fundamental structure and methods for managing task graphs.
+    It handles graph creation, intent management, and node traversal.
+
+    Attributes:
+        graph (nx.DiGraph): The directed graph representing the task flow
+        product_kwargs (Dict[str, Any]): Configuration settings for the graph
+        intents (DefaultDict[str, List[Dict[str, Any]]]): Global intents for node navigation
+        start_node (Optional[str]): The initial node in the graph
+
+    Methods:
+        create_graph(): Creates the graph structure
+        get_pred_intents(): Gets predicted intents from graph edges
+        get_start_node(): Gets the starting node of the graph
+    """
+
     def __init__(self, name: str, product_kwargs: Dict[str, Any]) -> None:
         self.graph: nx.DiGraph = nx.DiGraph(name=name)
         self.product_kwargs: Dict[str, Any] = product_kwargs
@@ -53,6 +104,36 @@ class TaskGraphBase:
 
 
 class TaskGraph(TaskGraphBase):
+    """Main class for managing conversation flow and intent handling.
+
+    This class extends TaskGraphBase to provide conversation-specific functionality.
+    It handles intent prediction, node navigation, and state management.
+
+    Attributes:
+        unsure_intent (Dict[str, Any]): Default intent for unknown inputs
+        initial_node (Optional[str]): Initial node for conversation flow
+        llm_config (LLMConfig): Configuration for language model
+        nluapi (NLU): Natural Language Understanding API
+        slotfillapi (SlotFilling): Slot filling API
+
+    Methods:
+        create_graph(): Creates the conversation graph
+        get_initial_flow(): Gets the initial flow for conversation
+        jump_to_node(): Jumps to a node based on intent
+        get_current_node(): Gets the current node in conversation
+        get_available_global_intents(): Gets available global intents
+        update_node_limit(): Updates node visit limits
+        get_local_intent(): Gets local intents for current node
+        handle_multi_step_node(): Handles multi-step node processing
+        handle_incomplete_node(): Handles incomplete node processing
+        global_intent_prediction(): Predicts global intents
+        local_intent_prediction(): Predicts local intents
+        handle_unknown_intent(): Handles unknown intents
+        handle_leaf_node(): Handles leaf node processing
+        get_node(): Gets next node based on input
+        postprocess_node(): Post-processes node information
+    """
+
     def __init__(
         self, name: str, product_kwargs: Dict[str, Any], llm_config: LLMConfig
     ) -> None:
@@ -330,7 +411,7 @@ class TaskGraph(TaskGraphBase):
         status: StatusEnum = node_status.get(curr_node, StatusEnum.COMPLETE)
         if status == StatusEnum.INCOMPLETE:
             logger.info(
-                f"no local or global intent found, the current node is not complete"
+                "no local or global intent found, the current node is not complete"
             )
             node_info: NodeInfo
             node_info, params = self._get_node(curr_node, params)
@@ -624,7 +705,7 @@ class TaskGraph(TaskGraphBase):
         if (
             not curr_local_intents and allow_global_intent_switch
         ):  # no local intent under the current node
-            logger.info(f"no local intent under the current node")
+            logger.info("no local intent under the current node")
             is_global_intent_found: bool
             pred_intent: Optional[str]
             node_output: NodeInfo
@@ -648,7 +729,7 @@ class TaskGraph(TaskGraphBase):
         # if completed and no local intents -> randomly choose one of the next connected nodes (edges with intent = None)
         if not curr_local_intents:
             logger.info(
-                f"no local or global intent found, move to the next connected node(s)"
+                "no local or global intent found, move to the next connected node(s)"
             )
             has_random_next_node: bool
             node_output: Dict[str, Any]

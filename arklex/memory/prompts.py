@@ -4,15 +4,30 @@ This module contains the prompt templates used by the memory system to personali
 user intents and manage conversation context. It includes prompts for intent
 personalization, chain-of-thought reasoning, and example conversations that
 demonstrate how to extract and format product and attribute information from
-user queries. The prompts are designed to guide the language model in creating
-detailed and accurate personalized intents based on user interactions.
+user queries.
+
+Key Components:
+- Introduction Prompt: Sets up the context and goal for intent personalization
+- Chain-of-Thought Steps: Guides the reasoning process for intent extraction
+- Example Conversations: Demonstrates proper intent personalization patterns
+- Output Instructions: Defines the format and rules for intent generation
+
+Key Features:
+- Structured reasoning process for intent extraction
+- Clear examples of different conversation scenarios
+- Strict rules against attribute hallucination
+- Consistent output formatting
+- Context-aware intent personalization
 """
 
+# Introduction prompt that sets up the context and goal for intent personalization
 intro = """
 You are helping personalize user intents in an agentic taskgraph workflow.
 Your job: 
 Given the tool's final raw output: tool_output, task performed by the tool: task, tool's context generated response: context_generate, basic user intent: user_intent, and current user utterance: user_utterance → output a detailed Chain-of-Thought reasoning followed by a short clean Personalized Intent focused on product + attribute.
 """
+
+# Step-by-step instructions for the chain-of-thought reasoning process
 cot_steps = """
 INSTRUCTIONS (Chain-of-Thought):
 Thought 1: From the tool output, identify each product card and its standout feature.
@@ -21,9 +36,7 @@ Thought 3: Formulate a concise conversational summary of all products. Double ch
 Thought 4: Use that summary plus Task, Agent Response, Basic Intent, and User Utterance to derive a personalized intent focusing on the product and attribute. 
 """
 
-
-# These exemplars show how to combine both product/attribute and intent personalization.
-# Each example demonstrates how to extract both the user's intent and relevant product/attribute information.
+# Example conversations demonstrating proper intent personalization patterns
 final_examples = """
 EXAMPLE 1 (General list → user picks one):
 
@@ -99,6 +112,7 @@ product: sneakers
 attribute: waterproof
 """
 
+# Instructions for generating the final personalized intent
 output_instructions = """
 **Important Cases:**
 1. If user mentions a product, identify the product and also the attribute, IF ANY.
@@ -109,17 +123,14 @@ output_instructions = """
 DO NOT HALLUCINATE ATTRIBUTES OR PRODUCTS THAT THE USER HAS NOT MENTIONED. This is very important! Only mention the attributes that the user has mentioned in user_utterance!!
 Make sure to only infer the products and attributes that the user has mentioned, do not hallucinate based on only the summarized output. Sometimes the attributes may not exist, in which case don't display it in the personalized intent.
 
-
-
 **Output Format:**
 Write the final personalized intent as a short clean phrase, followed by the product and attribute inferred  (IF ANY), by your reasoning.
 Do not add explanations or extra text.
 
 Now generate the final personalized intent for the following input information:
 """
-# These exemplars are commented out as they are for reference only.
-# They show how to personalize intents focusing on product and attribute information.
-# Each example demonstrates how to extract and format product and attribute information from user queries.
+
+# Reference examples for product/attribute personalization (commented out)
 """
 pa_examples = '''
 EXAMPLE 1 (General list → user picks one):
@@ -197,9 +208,7 @@ attribute: waterproof
 '''
 """
 
-# These exemplars are commented out as they are for reference only.
-# They show how to personalize intents focusing on user intent only.
-# Each example demonstrates how to extract and format the user's intent from their queries.
+# Reference examples for intent-only personalization (commented out)
 """
 intent_examples = '''
 EXAMPLE 1 (General list → user picks one):

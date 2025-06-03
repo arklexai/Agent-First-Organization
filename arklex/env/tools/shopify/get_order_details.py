@@ -1,5 +1,14 @@
+"""
+This module provides functionality to retrieve detailed information about orders from the Shopify store.
+It supports filtering orders by customer ID, order IDs, and order names.
+
+Module Name: get_order_details
+
+This file contains the code for retrieving detailed order information from Shopify.
+"""
+
 import json
-from typing import Any, Dict
+from typing import List, Any
 
 import shopify
 
@@ -20,8 +29,36 @@ outputs = [ShopifyOutputs.ORDERS_DETAILS]
 
 @register_tool(description, slots, outputs)
 def get_order_details(
-    order_ids: list, order_names: list, user_id: str, limit=10, **kwargs
+    order_ids: List[str],
+    order_names: List[str],
+    user_id: str,
+    limit: int = 10,
+    **kwargs: Any,
 ) -> str:
+    """
+    Retrieve detailed information about orders from the Shopify store.
+
+    Args:
+        order_ids (List[str]): List of order IDs to filter by.
+        order_names (List[str]): List of order names to filter by.
+        user_id (str): The customer ID to filter orders by.
+        limit (int, optional): Maximum number of orders to return. Defaults to 10.
+        **kwargs (Any): Additional keyword arguments for authentication.
+
+    Returns:
+        str: A formatted string containing detailed information about each order, including:
+            - Order ID and name
+            - Creation and cancellation dates
+            - Return status
+            - Status page URL
+            - Total price
+            - Fulfillment status
+            - Line items with their details
+        str: "You have no orders placed." if no orders are found.
+
+    Raises:
+        ToolExecutionError: If there's an error retrieving the orders.
+    """
     func_name = inspect.currentframe().f_code.co_name
     limit = int(limit) if limit else 10
     auth = authorify_admin(kwargs)

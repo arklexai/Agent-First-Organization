@@ -2,9 +2,49 @@
 
 This module provides functionality for generating task graphs and managing task hierarchies.
 It includes classes for task editing, task generation, and handling reusable tasks.
-The Generator class is responsible for creating task graphs based on user objectives,
-documentation, and best practices, while the TaskEditorApp provides a text-based UI
-for editing tasks and their steps.
+
+Key Components:
+- Generator: Main class for creating task graphs based on user objectives and documentation
+- TaskEditorApp: Text-based UI for editing tasks and their steps
+- InputModal: Modal dialog for editing task and step descriptions
+
+Features:
+- Natural language task generation
+- Interactive task editing
+- Reusable task management
+- Best practice integration
+- Documentation processing
+- Resource initialization
+- Task graph formatting
+- Configuration management
+
+Usage:
+    from arklex.orchestrator.generator import Generator
+    from arklex.env.env import DefaulResourceInitializer
+
+    # Initialize generator
+    config = {
+        "role": "customer_service",
+        "user_objective": "Handle customer inquiries",
+        "builder_objective": "Create efficient response system",
+        "instructions": [...],
+        "tasks": [...],
+        "workers": [...],
+        "tools": [...]
+    }
+
+    generator = Generator(
+        config=config,
+        model=language_model,
+        output_dir="output",
+        resource_inizializer=DefaulResourceInitializer()
+    )
+
+    # Generate task graph
+    task_graph = generator.generate()
+
+    # Save task graph
+    output_path = generator.save_task_graph(task_graph)
 """
 
 import os
@@ -37,7 +77,22 @@ logger = logging.getLogger(__name__)
 
 
 class InputModal(Screen):
-    """A simple input modal for editing or adding tasks/steps."""
+    """A simple input modal for editing or adding tasks/steps.
+
+    This class provides a modal dialog interface for editing task and step descriptions.
+    It includes input validation and callback handling for user interactions.
+
+    Attributes:
+        title (str): The title of the modal dialog
+        default (str): Default value for the input field
+        result (str): The final result after user interaction
+        node (TreeNode): The tree node being edited
+        callback (callable): Function to call after user interaction
+
+    Methods:
+        compose(): Creates the modal UI components
+        on_button_pressed(): Handles button press events
+    """
 
     def __init__(self, title: str, default: str = "", node=None, callback=None):
         super().__init__()
@@ -69,7 +124,24 @@ class InputModal(Screen):
 
 
 class TaskEditorApp(App):
-    """A Textual app to edit tasks and steps in a hierarchical structure."""
+    """A Textual app to edit tasks and steps in a hierarchical structure.
+
+    This class provides a text-based user interface for editing tasks and their steps.
+    It supports adding, editing, and deleting tasks and steps in a tree structure.
+
+    Attributes:
+        tasks (list): List of task dictionaries containing task names and steps
+        task_tree (Tree): The tree widget displaying tasks and steps
+
+    Methods:
+        compose(): Creates the main UI components
+        on_mount(): Initializes the UI after mounting
+        on_tree_node_selected(): Handles node selection events
+        on_key(): Processes keyboard input
+        action_add_node(): Adds new nodes to the tree
+        show_input_modal(): Displays the input modal dialog
+        update_tasks(): Updates the tasks list from the tree structure
+    """
 
     def __init__(self, tasks):
         super().__init__()
@@ -170,6 +242,47 @@ class TaskEditorApp(App):
 
 
 class Generator:
+    """Main class for generating task graphs based on user objectives and documentation.
+
+    This class handles the generation of task graphs, including reusable tasks,
+    best practices, and task hierarchy management. It processes user objectives,
+    documentation, and configuration to create structured task graphs.
+
+    Attributes:
+        product_kwargs (dict): Configuration settings for the generator
+        role (str): The role or context for task generation
+        u_objective (str): User's objective for the task graph
+        b_objective (str): Builder's objective for the task graph
+        intro (str): Introduction text for the task graph
+        instruction_docs (list): Documentation for instructions
+        task_docs (list): Documentation for tasks
+        rag_docs (list): Documentation for RAG operations
+        user_tasks (list): User-provided tasks
+        example_conversations (list): Example conversations for reference
+        workers (list): Available workers for task execution
+        tools (list): Available tools for task execution
+        interactable_with_user (bool): Whether to allow user interaction
+        allow_nested_graph (bool): Whether to allow nested graph generation
+        model: The language model for task generation
+        timestamp (str): Timestamp for output files
+        output_dir (str): Directory for saving generated files
+        documents (str): Processed task documents
+        reusable_tasks (dict): Generated reusable tasks
+        tasks (list): Generated tasks
+
+    Methods:
+        _generate_reusable_tasks(): Generates reusable tasks
+        _generate_tasks(): Generates main tasks
+        _add_provided_tasks(): Adds user-provided tasks
+        _generate_best_practice(): Generates best practices
+        _finetune_best_practice(): Refines best practices
+        _format_task_graph(): Formats the final task graph
+        _load_docs(): Loads and processes documentation
+        _load_instructions(): Loads and processes instructions
+        generate(): Main method to generate the task graph
+        save_task_graph(): Saves the generated task graph
+    """
+
     def __init__(
         self,
         config: dict,

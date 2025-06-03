@@ -1,7 +1,17 @@
+"""
+This module provides functionality to process product returns in the Shopify store.
+It handles the retrieval of returnable fulfillment items and submission of return requests.
+
+Module Name: return_products
+
+This file contains the code for processing product returns in Shopify.
+"""
+
 import json
 import shopify
 import logging
 import inspect
+from typing import Any
 
 # general GraphQL navigation utilities
 from arklex.env.tools.shopify.utils_nav import *
@@ -26,7 +36,23 @@ outputs = [
 
 
 @register_tool(description, slots, outputs)
-def return_products(return_order_id: str, **kwargs) -> str:
+def return_products(return_order_id: str, **kwargs: Any) -> str:
+    """
+    Process a return request for a Shopify order.
+
+    Args:
+        return_order_id (str): The ID of the order to be returned.
+        **kwargs (Any): Additional keyword arguments for authentication.
+
+    Returns:
+        str: A success message with return request details if successful.
+
+    Raises:
+        ToolExecutionError: If:
+            - No fulfillments are found for the order
+            - There's an error parsing the response
+            - The return request submission fails
+    """
     func_name = inspect.currentframe().f_code.co_name
     auth = authorify_admin(kwargs)
 

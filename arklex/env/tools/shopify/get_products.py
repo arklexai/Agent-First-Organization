@@ -1,5 +1,14 @@
+"""
+This module provides functionality to retrieve detailed information about multiple products
+from the Shopify store, including their inventory, descriptions, and variants.
+
+Module Name: get_products
+
+This file contains the code for retrieving product information from Shopify.
+"""
+
 import json
-from typing import Any, Dict
+from typing import Any, List
 import logging
 import inspect
 import shopify
@@ -24,7 +33,26 @@ outputs = [ShopifyOutputs.PRODUCTS_DETAILS, *PAGEINFO_OUTPUTS]
 
 
 @register_tool(description, slots, outputs)
-def get_products(product_ids: list, **kwargs) -> str:
+def get_products(product_ids: List[str], **kwargs: Any) -> str:
+    """
+    Retrieve detailed information about multiple products from the Shopify store.
+
+    Args:
+        product_ids (List[str]): List of product IDs to retrieve information for.
+        **kwargs (Any): Additional keyword arguments for pagination and authentication.
+
+    Returns:
+        str: A formatted string containing detailed information about each product, including:
+            - Product ID
+            - Title
+            - Description
+            - Total Inventory
+            - Options
+            - Variants (with name, ID, price, and inventory quantity)
+
+    Raises:
+        ToolExecutionError: If no products are found or if there's an error retrieving the products.
+    """
     func_name = inspect.currentframe().f_code.co_name
     nav = cursorify(kwargs)
     if not nav[1]:
