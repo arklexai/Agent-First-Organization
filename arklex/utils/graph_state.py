@@ -172,4 +172,4 @@ class HTTPParams(BaseModel):
         default_factory=lambda: {"Content-Type": "application/json"}
     )
     body: Optional[Any] = Field(default=None)
-    params: Optional[Any] = Field(default=None)
+    params: Optional[Dict[str, Any]] = Field(default=None)
