@@ -147,7 +147,7 @@ line-length = 88
 indent-width = 4
 
 [tool.ruff.lint]
-select = ["E"]
+select = ["E", "ANN"]
 ignore = ["E501", "E722", "E402"] #The last two are:Do not use bare `except`, and Module level import not at top of file
 fixable = ["ALL"]
 
