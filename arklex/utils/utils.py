@@ -11,12 +11,12 @@ import sys
 import json
 import logging
 from logging.handlers import RotatingFileHandler
-from typing import List, Dict, Any, Optional, cast
+from typing import List, Dict, Any, Optional
 
 import tiktoken
 import Levenshtein
 
-logger: logging.Logger = logging.getLogger(__name__)
+logger = logging.getLogger(__name__)
 
 
 def init_logger(
@@ -34,20 +34,18 @@ def init_logger(
     Returns:
         logging.Logger: The configured logger instance.
     """
-    root_logger: logging.Logger = logging.getLogger()  # Root logger
+    root_logger = logging.getLogger()  # Root logger
 
     # Remove existing handlers to reconfigure them
     if root_logger.hasHandlers():
         root_logger.handlers.clear()
-    handlers: List[logging.Handler] = []
+    handlers = []
     # File handler
     if filename is not None:
-        directory_name: str
-        _: str
         directory_name, _ = os.path.split(filename)
         if not os.path.exists(directory_name):
             os.makedirs(directory_name)
-        file_handler: RotatingFileHandler = RotatingFileHandler(
+        file_handler = RotatingFileHandler(
             filename=filename,
             mode="a",
             maxBytes=50 * 1024 * 1024,
@@ -65,7 +63,7 @@ def init_logger(
         handlers.append(file_handler)
 
     # Stream (terminal) handler
-    stream_handler: logging.StreamHandler = logging.StreamHandler(sys.stdout)
+    stream_handler = logging.StreamHandler(sys.stdout)
     stream_handler.setLevel(log_level)  # Set log level for the terminal
     stream_handler.setFormatter(
         logging.Formatter(
@@ -103,9 +101,8 @@ def chunk_string(
         str: The chunked text string.
     """
     # Initialize the tokenizer
-    encoding: tiktoken.Encoding = tiktoken.get_encoding(tokenizer)
-    tokens: List[int] = encoding.encode(text)
-    chunks: str
+    encoding = tiktoken.get_encoding(tokenizer)
+    tokens = encoding.encode(text)
     if from_end:
         chunks = encoding.decode(tokens[-max_length:])
     else:
@@ -142,9 +139,9 @@ def str_similarity(string1: str, string2: str) -> float:
         float: A similarity score between 0 and 1, where 1 indicates identical strings.
     """
     try:
-        distance: int = Levenshtein.distance(string1, string2)
-        max_length: int = max(len(string1), len(string2))
-        similarity: float = 1 - (distance / max_length)
+        distance = Levenshtein.distance(string1, string2)
+        max_length = max(len(string1), len(string2))
+        similarity = 1 - (distance / max_length)
     except Exception as err:
         print(err)
         similarity = 0
@@ -163,14 +160,14 @@ def postprocess_json(raw_code: str) -> Optional[Dict[str, Any]]:
     Returns:
         Optional[Dict[str, Any]]: The parsed JSON as a dictionary, or None if parsing fails.
     """
-    valid_phrases: List[str] = ['"', "{", "}", "[", "]"]
+    valid_phrases = ['"', "{", "}", "[", "]"]
 
-    valid_lines: List[str] = []
+    valid_lines = []
     for line in raw_code.split("\n"):
         if len(line) == 0:
             continue
         # If the line not starts with any of the valid phrases, skip it
-        should_skip: bool = not any(
+        should_skip = not any(
             [line.strip().startswith(phrase) for phrase in valid_phrases]
         )
         if should_skip:
@@ -178,8 +175,8 @@ def postprocess_json(raw_code: str) -> Optional[Dict[str, Any]]:
         valid_lines.append(line)
 
     try:
-        generated_result: str = "\n".join(valid_lines)
-        result: Optional[Dict[str, Any]] = json.loads(generated_result)
+        generated_result = "\n".join(valid_lines)
+        result = json.loads(generated_result)
     except json.JSONDecodeError as e:
         logger.error(f"Error decoding generated JSON - {generated_result}")
         logger.error(f"raw result: {raw_code}")
@@ -188,7 +185,7 @@ def postprocess_json(raw_code: str) -> Optional[Dict[str, Any]]:
     return result
 
 
-def truncate_string(text: str, max_length: int = 400) -> str:
+def truncate_string(text: str, max_length: int = 400):
     """Truncate a string to a maximum length.
 
     This function truncates the input string to the specified maximum length,
@@ -218,7 +215,7 @@ def format_chat_history(chat_history: List[Dict[str, str]]) -> str:
     Returns:
         str: The formatted chat history string.
     """
-    chat_history_str: str = ""
+    chat_history_str = ""
     for turn in chat_history:
         chat_history_str += f"{turn['role']}: {turn['content']}\n"
     return chat_history_str.strip()
@@ -239,7 +236,7 @@ def format_truncated_chat_history(
     Returns:
         str: The formatted chat history string with truncated messages.
     """
-    chat_history_str: str = ""
+    chat_history_str = ""
     for turn in chat_history:
         chat_history_str += f"{turn['role']}: {truncate_string(turn['content'], max_length) if turn['content'] else turn['content']}\n"
     return chat_history_str.strip()
