@@ -168,7 +168,7 @@ class OrchestratorResp(BaseModel):
 class HTTPParams(BaseModel):
     endpoint: str
     method: str = Field(default="GET")
-    headers: Dict[Any, Any] = Field(
+    headers: Dict[str, str] = Field(
         default_factory=lambda: {"Content-Type": "application/json"}
     )
     body: Optional[Any] = Field(default=None)
