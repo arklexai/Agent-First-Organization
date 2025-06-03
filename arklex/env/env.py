@@ -127,7 +127,7 @@ class Env:
             tool: Tool = self.tools[id]["execute"]()
             # slotfilling is in the basetoool class
             tool.init_slotfilling(self.slotfillapi)
-            combined_args = {
+            combined_args: Dict[str, Any] = {
                 **self.tools[id]["fixed_args"],
                 **(node_info.additional_args or {}),
             }
