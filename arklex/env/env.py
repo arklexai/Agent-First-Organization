@@ -12,7 +12,7 @@ import logging
 import os
 import uuid
 from functools import partial
-from typing import Any, Callable, Dict, List, Optional, Union
+from typing import Any, Callable, Dict, List, Optional, Union, Tuple, cast
 
 from arklex.env.planner.react_planner import DefaultPlanner, ReactPlanner
 from arklex.env.tools.tools import Tool
@@ -20,7 +20,7 @@ from arklex.env.workers.worker import BaseWorker
 from arklex.orchestrator.NLU.nlu import SlotFilling
 from arklex.utils.graph_state import MessageState, NodeInfo, Params
 
-logger = logging.getLogger(__name__)
+logger: logging.Logger = logging.getLogger(__name__)
 
 
 class BaseResourceInitializer:
@@ -120,14 +120,17 @@ class Env:
 
     def step(
         self, id: str, message_state: MessageState, params: Params, node_info: NodeInfo
-    ) -> tuple[MessageState, Params]:
+    ) -> Tuple[MessageState, Params]:
         response_state: MessageState
         if id in self.tools:
             logger.info(f"{self.tools[id]['name']} tool selected")
             tool: Tool = self.tools[id]["execute"]()
             # slotfilling is in the basetoool class
             tool.init_slotfilling(self.slotfillapi)
-            combined_args = {**self.tools[id]["fixed_args"], **(node_info.additional_args or {})}
+            combined_args: Dict[str, Any] = {
+                **self.tools[id]["fixed_args"],
+                **(node_info.additional_args or {}),
+            }
             response_state = tool.execute(message_state, **combined_args)
             params.memory.function_calling_trajectory = (
                 response_state.function_calling_trajectory
