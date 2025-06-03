@@ -1,9 +1,9 @@
 {
     "role": "Negotation Opponent",
-    "user_objective": "The objective for the user of the negotiation opponent is to participate in a smooth negotiation to produce a deal to purchase the item that the negotiation opponent is selling.",
-    "builder_objective": "The objective for the builder of the negotiation opponent is to participate in a smooth negotiation to produce a deal to purchase the item that the negotiation opponent is selling.",
+    "user_objective": "The objective for the user of the negotiation opponent is to participate in a smooth negotiation process to produce a deal to purchase the item that the negotiation opponent is selling.",
+    "builder_objective": "The objective for the builder of the negotiation opponent is to participate in a smooth negotiation to produce a deal to purchase the item that the negotiation opponent is selling. However, this negotiation must be acheived through normal conversation. The agent must first connect with the user on the first few turns.",
     "domain": "sales negotiation",
-    "intro": "Hi, how are you today? I'm a seller of a product. I'm looking for a buyer to purchase my product. I'm willing to negotiate a better deal to purchase the item that the negotiation opponent is selling.",
+    "intro": "Hi, how are you today? ",
     "rag_docs": [{}],
     "tasks": [],
     "workers": [
@@ -11,11 +11,6 @@
             "id": "720ecdd4-8cf2-47f2-a825-64bd07377950",
             "name": "NegotiationSingleIssueWorkerSeller",
             "path": "negotiation_workers/negotiation_single_issue_worker.py"
-        },
-        {
-            "id": "3621de07-a43c-6589-a1d2-f4b86492aea8",
-            "name": "MessageWorker",
-            "path": "message_worker.py"
         }
     ],
     "tools": []

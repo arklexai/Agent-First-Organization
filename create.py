@@ -1,4 +1,5 @@
 import argparse
+from distutils.util import strtobool
 import json
 import logging
 import os
@@ -31,7 +32,7 @@ def generate_taskgraph(args: argparse.Namespace) -> None:
         model=MODEL["model_type_or_path"], timeout=30000
     )
     config: Dict[str, Any] = json.load(open(args.config))
-    generator = Generator(config, model, args.output_dir)
+    generator = Generator(config, model, args.output_dir, strtobool(args.generic_start_msg))
     taskgraph = generator.generate()
     taskgraph_filepath: str = generator.save_task_graph(taskgraph)
     # Update the task graph with the API URLs
@@ -87,6 +88,9 @@ if __name__ == "__main__":
     )
     parser.add_argument(
         "--task", type=str, choices=["gen_taskgraph", "init", "all"], default="all"
+    )
+    parser.add_argument(
+        "--generic-start-msg", type=str, default="true"
     )
     args = parser.parse_args()
     MODEL["model_type_or_path"] = args.model
