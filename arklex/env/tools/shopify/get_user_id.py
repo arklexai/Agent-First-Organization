@@ -11,6 +11,7 @@ Module Name: get_user_id
 
 This file contains the code for getting the user id by refresh token.
 """
+
 from typing import Any, Dict
 
 from arklex.env.tools.tools import register_tool
@@ -24,14 +25,18 @@ description = "Find user id by refresh token. If the user is not found, the func
 slots = [
     ShopifySlots.REFRESH_TOKEN,
 ]
-outputs = [
-    ShopifyOutputs.USER_ID
-]
+outputs = [ShopifyOutputs.USER_ID]
 
 USER_NOT_FOUND_ERROR = "error: user not found"
 errors = [AUTH_ERROR, USER_NOT_FOUND_ERROR]
 
-@register_tool(description, slots, outputs, lambda x: x not in errors or not x.startswith("error: "))
+
+@register_tool(
+    description,
+    slots,
+    outputs,
+    lambda x: x not in errors or not x.startswith("error: "),
+)
 def get_user_id(refresh_token) -> str:
     try:
         return get_id(refresh_token)

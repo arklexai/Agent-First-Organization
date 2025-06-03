@@ -161,13 +161,15 @@ class OrchestratorResp(BaseModel):
     human_in_the_loop: Optional[str] = Field(default=None)
     choice_list: Optional[List[str]] = Field(default=[])
 
-      
+
 # Custom Tool Related Classes
+
 
 class HTTPParams(BaseModel):
     endpoint: str
     method: str = Field(default="GET")
-    headers: Dict[Any, Any] = Field(default_factory=lambda: {"Content-Type": "application/json"})
+    headers: Dict[Any, Any] = Field(
+        default_factory=lambda: {"Content-Type": "application/json"}
+    )
     body: Optional[Any] = Field(default=None)
     params: Optional[Any] = Field(default=None)
-

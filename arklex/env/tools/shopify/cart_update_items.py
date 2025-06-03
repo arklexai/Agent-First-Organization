@@ -11,6 +11,7 @@ Module Name: cart_update_items
 
 This file contains the code for updating items in a shopping cart.
 """
+
 from arklex.env.tools.shopify.utils_slots import ShopifySlots, ShopifyOutputs
 from arklex.env.tools.shopify.utils_cart import *
 from arklex.env.tools.shopify.utils_nav import *
@@ -28,10 +29,11 @@ outputs = []
 CART_UPDATE_ITEM_ERROR = "error: products could not be updated to cart"
 errors = [CART_UPDATE_ITEM_ERROR]
 
+
 @register_tool(description, slots, outputs, lambda x: x not in errors)
 def cart_update_items(cart_id, items):
     try:
-        query = '''
+        query = """
         mutation cartLinesUpdate($cartId: ID!, $lines: [CartLineUpdateInput!]!) {
             cartLinesUpdate(cartId: $cartId, lines: $lines) {
                 cart {
@@ -39,22 +41,19 @@ def cart_update_items(cart_id, items):
                 }
             }
         }
-        '''
-        
+        """
+
         lines = []
         for i in items:
-            lineItem = {'id': i[0]}
+            lineItem = {"id": i[0]}
             if i[1]:
-                lineItem['merchandiseId'] = i[1]
+                lineItem["merchandiseId"] = i[1]
             if i[2]:
-                lineItem['quantity'] = i[2]
+                lineItem["quantity"] = i[2]
             lines.append(lineItem)
-        
-        variable = {
-            "cartId": cart_id,
-            "lines": lines
-        }
+
+        variable = {"cartId": cart_id, "lines": lines}
         make_query(cart_url, query, variable, cart_headers)
-        return 
+        return
     except:
         return CART_UPDATE_ITEM_ERROR

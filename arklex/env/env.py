@@ -127,7 +127,10 @@ class Env:
             tool: Tool = self.tools[id]["execute"]()
             # slotfilling is in the basetoool class
             tool.init_slotfilling(self.slotfillapi)
-            combined_args = {**self.tools[id]["fixed_args"], **(node_info.additional_args or {})}
+            combined_args = {
+                **self.tools[id]["fixed_args"],
+                **(node_info.additional_args or {}),
+            }
             response_state = tool.execute(message_state, **combined_args)
             params.memory.function_calling_trajectory = (
                 response_state.function_calling_trajectory

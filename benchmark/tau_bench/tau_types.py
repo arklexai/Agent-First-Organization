@@ -22,6 +22,7 @@ class Action(BaseModel):
         name (str): The name of the action.
         kwargs (Dict[str, Any]): The keyword arguments for the action.
     """
+
     name: str
     kwargs: Dict[str, Any]
 
@@ -38,6 +39,7 @@ class Task(BaseModel):
         instruction (str): The instruction describing the task.
         outputs (List[str]): The expected outputs from completing the task.
     """
+
     user_id: str
     actions: List[Action]
     instruction: str
@@ -54,6 +56,7 @@ class RewardOutputInfo(BaseModel):
         r_outputs (float): The reward value based on outputs.
         outputs (Dict[str, bool]): Dictionary mapping outputs to their match status.
     """
+
     r_outputs: float
     outputs: Dict[str, bool]
 
@@ -68,6 +71,7 @@ class RewardActionInfo(BaseModel):
         r_actions (float): The reward value based on actions.
         gt_data_hash (str): Hash of the ground truth data.
     """
+
     r_actions: float
     gt_data_hash: str
 
@@ -83,6 +87,7 @@ class RewardResult(BaseModel):
         info (Union[RewardOutputInfo, RewardActionInfo]): Information about the reward calculation.
         actions (List[Action]): The actions that led to this reward.
     """
+
     reward: float
     info: Union[RewardOutputInfo, RewardActionInfo]
     actions: List[Action]
@@ -100,6 +105,7 @@ class SolveResult(BaseModel):
         info (Dict[str, Any]): Additional information about the solution.
         total_cost (Optional[float]): The total cost of the solution attempt.
     """
+
     reward: float
     messages: List[Dict[str, Any]]
     info: Dict[str, Any]
@@ -118,6 +124,7 @@ class EnvInfo(BaseModel):
         user_cost (Optional[float]): The cost incurred by the user.
         reward_info (Optional[RewardResult]): Information about the reward.
     """
+
     task: Task
     source: Optional[str] = None
     user_cost: Optional[float] = None
@@ -136,6 +143,7 @@ class EnvResponse(BaseModel):
         done (bool): Whether the task is complete.
         info (EnvInfo): Information about the environment state.
     """
+
     observation: str
     reward: float
     done: bool
@@ -152,6 +160,7 @@ class EnvResetResponse(BaseModel):
         observation (str): The initial observation.
         info (EnvInfo): Information about the environment state.
     """
+
     observation: str
     info: EnvInfo
 
@@ -169,6 +178,7 @@ class EnvRunResult(BaseModel):
         traj (List[Dict[str, Any]]): The trajectory of the run.
         trial (int): The trial number.
     """
+
     task_id: int
     reward: float
     info: Dict[str, Any]
@@ -199,6 +209,7 @@ class RunConfig(BaseModel):
         output_dir (str): Directory for output.
         taskgraph_dir (str): Directory containing task graphs.
     """
+
     user_model_provider: str
     user_model: str = "gpt-4o"
     num_trials: int = 1
