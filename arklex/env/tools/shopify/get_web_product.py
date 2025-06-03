@@ -1,6 +1,23 @@
+"""
+This module provides functionality to retrieve detailed information about a specific product
+from the Shopify store using the Admin API. It supports retrieving comprehensive product details
+including inventory, descriptions, variants, and category information.
+
+The module:
+1. Uses the Shopify Admin API to fetch product data
+2. Supports pagination and cursor-based navigation
+3. Handles authentication and error cases
+4. Formats product information for easy consumption
+
+Module Name: get_web_product
+
+This file contains the code for retrieving product information using the Shopify Admin API.
+"""
+
 import json
-from typing import Any, Dict
+from typing import Any, Dict, List
 import logging
+import inspect
 
 import shopify
 
@@ -9,25 +26,50 @@ from arklex.env.tools.shopify.utils_nav import *
 from arklex.env.tools.shopify.utils import authorify_admin
 
 # ADMIN
-from arklex.env.tools.shopify.utils_slots import ShopifyGetWebProductSlots, ShopifyOutputs
+from arklex.env.tools.shopify.utils_slots import (
+    ShopifyGetWebProductSlots,
+    ShopifyOutputs,
+)
 from arklex.env.tools.tools import register_tool
-
 from arklex.exceptions import ToolExecutionError
 from arklex.env.tools.shopify._exception_prompt import ShopifyExceptionPrompt
-import inspect
 
 logger = logging.getLogger(__name__)
 
 description = "Get the inventory information and description details of a product."
 slots = ShopifyGetWebProductSlots.get_all_slots()
-outputs = [
-    ShopifyOutputs.PRODUCTS_DETAILS,
-    *PAGEINFO_OUTPUTS
-]
+outputs = [ShopifyOutputs.PRODUCTS_DETAILS, *PAGEINFO_OUTPUTS]
 
 
 @register_tool(description, slots, outputs)
-def get_web_product(web_product_id: str, **kwargs) -> str:
+def get_web_product(web_product_id: str, **kwargs: Any) -> str:
+    """
+    Retrieve detailed information about a specific product using the Shopify Admin API.
+
+    Args:
+        web_product_id (str): The ID of the product to retrieve information for.
+            Can be a full product ID or just the numeric portion.
+        **kwargs (Any): Additional keyword arguments for pagination and authentication.
+
+    Returns:
+        str: A formatted string containing detailed product information, including:
+            - Product ID and title
+            - Description and total inventory
+            - Online store URL
+            - Product options and values
+            - Category name
+            - Variant details (name, ID, price, inventory quantity)
+
+    Raises:
+        ToolExecutionError: If:
+            - The product is not found
+            - There's an error retrieving the product information
+            - The API request fails
+
+    Note:
+        The function automatically extracts the numeric portion of the product ID
+        if a full ID is provided (e.g., "gid://shopify/Product/123456" -> "123456").
+    """
     func_name = inspect.currentframe().f_code.co_name
     nav = cursorify(kwargs)
     if not nav[1]:
@@ -70,23 +112,31 @@ def get_web_product(web_product_id: str, **kwargs) -> str:
                     }}
                 }}
             """)
-            result = json.loads(response)['data']['products']
-            response = result["nodes"]
+            result: Dict[str, Any] = json.loads(response)["data"]["products"]
+            response: List[Dict[str, Any]] = result["nodes"]
             if len(response) == 0:
-                raise ToolExecutionError(func_name, ShopifyExceptionPrompt.PRODUCT_NOT_FOUND_PROMPT)
-            product = response[0]
+                raise ToolExecutionError(
+                    func_name, ShopifyExceptionPrompt.PRODUCT_NOT_FOUND_PROMPT
+                )
+            product: Dict[str, Any] = response[0]
             response_text = ""
             response_text += f"Product ID: {product.get('id', 'None')}\n"
             response_text += f"Title: {product.get('title', 'None')}\n"
             response_text += f"Description: {product.get('description', 'None')}\n"
-            response_text += f"Total Inventory: {product.get('totalInventory', 'None')}\n"
+            response_text += (
+                f"Total Inventory: {product.get('totalInventory', 'None')}\n"
+            )
             response_text += f"Options: {product.get('options', 'None')}\n"
-            response_text += f"Category: {product.get('category', {}.get('name', 'None'))}\n"
+            response_text += (
+                f"Category: {product.get('category', {}.get('name', 'None'))}\n"
+            )
             response_text += "The following are several variants of the product:\n"
-            for variant in product.get('variants', {}).get('nodes', []):
+            for variant in product.get("variants", {}).get("nodes", []):
                 response_text += f"Variant name: {variant.get('displayName', 'None')}, Variant ID: {variant.get('id', 'None')}, Price: {variant.get('price', 'None')}, Inventory Quantity: {variant.get('inventoryQuantity', 'None')}\n"
             response_text += "\n"
 
             return response_text
     except Exception as e:
-        raise ToolExecutionError(func_name, ShopifyExceptionPrompt.PRODUCT_NOT_FOUND_PROMPT)
+        raise ToolExecutionError(
+            func_name, ShopifyExceptionPrompt.PRODUCT_NOT_FOUND_PROMPT
+        )
