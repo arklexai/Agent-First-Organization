@@ -17,10 +17,25 @@ from langchain_huggingface import HuggingFaceEndpoint, ChatHuggingFace
 
 
 def get_huggingface_llm(model: str, **kwargs: Any) -> ChatHuggingFace:
-    llm = HuggingFaceEndpoint(repo_id=model, task="text-generation", **kwargs)
+    """Initialize a HuggingFace language model.
+
+    This function creates a HuggingFace language model instance using the specified model
+    and configuration parameters. It sets up the model for text generation tasks.
+
+    Args:
+        model (str): The HuggingFace model identifier to use.
+        **kwargs (Any): Additional configuration parameters for the model.
+
+    Returns:
+        ChatHuggingFace: A configured HuggingFace chat model instance.
+    """
+    llm: HuggingFaceEndpoint = HuggingFaceEndpoint(
+        repo_id=model, task="text-generation", **kwargs
+    )
     return ChatHuggingFace(llm=llm)
 
 
+# List of supported language model providers
 LLM_PROVIDERS: List[str] = ["openai", "gemini", "anthropic", "huggingface"]
 
 PROVIDER_MAP: Dict[str, Type] = {
@@ -37,6 +52,7 @@ PROVIDER_EMBEDDINGS: Dict[str, Type] = {
     "huggingface": HuggingFaceEmbeddings,
 }
 
+# Mapping of provider names to their default embedding model identifiers
 PROVIDER_EMBEDDING_MODELS: Dict[str, str] = {
     "anthropic": "sentence-transformers/sentence-t5-base",
     "gemini": "models/embedding-001",

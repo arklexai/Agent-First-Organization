@@ -7,12 +7,13 @@ This module defines a tool for making HTTP requests to external APIs and handlin
 import logging
 import requests
 import inspect
+from typing import Dict, Any, Union, List
 
-from arklex.env.tools.tools import Tool, register_tool
+from arklex.env.tools.tools import register_tool
 from arklex.utils.graph_state import HTTPParams
 from arklex.exceptions import ToolExecutionError
 
-logger = logging.getLogger(__name__)
+logger: logging.Logger = logging.getLogger(__name__)
 
 
 @register_tool(
@@ -21,15 +22,15 @@ logger = logging.getLogger(__name__)
     outputs=["response"],
     isResponse=False,
 )
-def http_tool(**kwargs) -> str:
+def http_tool(**kwargs: Dict[str, Any]) -> str:
     """Make an HTTP request and return the response"""
-    func_name = inspect.currentframe().f_code.co_name
+    func_name: str = inspect.currentframe().f_code.co_name
     try:
-        params = HTTPParams(**kwargs)
+        params: HTTPParams = HTTPParams(**kwargs)
         logger.info(
             f"Making a {params.method} request to {params.endpoint}, with body: {params.body} and params: {params.params}"
         )
-        response = requests.request(
+        response: requests.Response = requests.request(
             method=params.method,
             url=params.endpoint,
             headers=params.headers,
@@ -37,7 +38,7 @@ def http_tool(**kwargs) -> str:
             params=params.params,
         )
         response.raise_for_status()
-        response_data = response.json()
+        response_data: Union[Dict[str, Any], List[Any]] = response.json()
         logger.info(
             f"Response from the {params.endpoint} for body: {params.body} and params: {params.params} is: {response_data}"
         )

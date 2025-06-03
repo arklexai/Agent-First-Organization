@@ -11,7 +11,7 @@ import argparse
 import logging
 import os
 import uvicorn
-from typing import Any, Dict, List, Tuple
+from typing import Any, Dict, List, Tuple, Optional, cast
 
 from fastapi import FastAPI
 
@@ -22,8 +22,8 @@ from arklex.utils.model_config import MODEL
 from arklex.utils.model_provider_config import LLM_PROVIDERS
 
 
-logger = logging.getLogger(__name__)
-app = FastAPI()
+logger: logging.Logger = logging.getLogger(__name__)
+app: FastAPI = FastAPI()
 
 
 def get_api_bot_response(
@@ -53,7 +53,7 @@ def get_api_bot_response(
         "chat_history": history,
         "parameters": parameters,
     }
-    orchestrator = AgentOrg(
+    orchestrator: AgentOrg = AgentOrg(
         config=os.path.join(args.input_dir, "taskgraph.json"), env=env
     )
     result: Dict[str, Any] = orchestrator.get_response(data)
@@ -97,15 +97,19 @@ def predict(data: Dict[str, Any]) -> Dict[str, Any]:
     user_text: str = history[-1]["content"]
 
     # Initialize environment with provided workers and tools
-    env = Env(tools=tools, workers=workers, slotsfillapi="")
+    env: Env = Env(tools=tools, workers=workers, slotsfillapi="")
 
     # Get bot response using the orchestrator
+    answer: str
+    params: Dict[str, Any]
     answer, params = get_api_bot_response(args, history[:-1], user_text, params, env)
     return {"answer": answer, "parameters": params}
 
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser(description="Start FastAPI with custom config.")
+    parser: argparse.ArgumentParser = argparse.ArgumentParser(
+        description="Start FastAPI with custom config."
+    )
     parser.add_argument("--input-dir", type=str, default="./examples/test")
     parser.add_argument("--model", type=str, default=MODEL["model_type_or_path"])
     parser.add_argument(
@@ -121,13 +125,13 @@ if __name__ == "__main__":
         choices=["DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"],
     )
 
-    args = parser.parse_args()
+    args: argparse.Namespace = parser.parse_args()
     os.environ["DATA_DIR"] = args.input_dir
     MODEL["model_type_or_path"] = args.model
     MODEL["llm_provider"] = args.llm_provider
 
-    log_level = getattr(logging, args.log_level.upper(), logging.WARNING)
-    logger = init_logger(
+    log_level: int = getattr(logging, args.log_level.upper(), logging.WARNING)
+    logger: logging.Logger = init_logger(
         log_level=log_level,
         filename=os.path.join(os.path.dirname(__file__), "logs", "arklex.log"),
     )

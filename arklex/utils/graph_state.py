@@ -9,7 +9,7 @@ resource records, and orchestrator responses throughout the system's operation.
 
 import uuid
 from enum import Enum
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any, Dict, List, Optional, Tuple, Union, TypeVar, Generic
 
 from pydantic import BaseModel, Field
 
@@ -18,11 +18,28 @@ from arklex.utils.slot import Slot
 
 ### Bot-related classes
 class LLMConfig(BaseModel):
+    """Configuration for language model settings.
+
+    Attributes:
+        model_type_or_path (str): The model identifier or path to use.
+        llm_provider (str): The provider of the language model (e.g., 'openai', 'anthropic').
+    """
+
     model_type_or_path: str
     llm_provider: str
 
 
 class BotConfig(BaseModel):
+    """Configuration for bot settings.
+
+    Attributes:
+        bot_id (str): Unique identifier for the bot.
+        version (str): Version number of the bot.
+        language (str): Primary language of the bot.
+        bot_type (str): Type or category of the bot.
+        llm_config (LLMConfig): Language model configuration for the bot.
+    """
+
     bot_id: str
     version: str
     language: str
@@ -34,38 +51,86 @@ class BotConfig(BaseModel):
 
 
 class ConvoMessage(BaseModel):
+    """Represents a conversation message with history.
+
+    Attributes:
+        history (str): Previous conversation history or its summarization.
+        message (str): The current message content.
+    """
+
     history: str  # it could be the whole original message or the summarization of the previous conversation from memory module
     message: str
 
 
 class OrchestratorMessage(BaseModel):
+    """Message processed by the orchestrator.
+
+    Attributes:
+        message (str): The message content.
+        attribute (dict): Additional attributes associated with the message.
+    """
+
     message: str
-    attribute: dict
+    attribute: Dict[str, Any]
 
 
 ### Task status-related classes
 
 
 class StatusEnum(str, Enum):
-    COMPLETE = "complete"
-    INCOMPLETE = "incomplete"
-    STAY = "stay"
+    """Enumeration of possible task statuses.
+
+    Values:
+        COMPLETE: Task has been completed successfully.
+        INCOMPLETE: Task is not yet complete.
+        STAY: Task should remain in its current state.
+    """
+
+    COMPLETE: str = "complete"
+    INCOMPLETE: str = "incomplete"
+    STAY: str = "stay"
 
 
 class Timing(BaseModel):
+    """Timing information for task execution.
+
+    Attributes:
+        taskgraph (Optional[float]): Time taken for task graph processing.
+    """
+
     taskgraph: Optional[float] = None
 
 
 class ResourceRecord(BaseModel):
-    info: Dict
+    """Record of resource usage and processing.
+
+    Attributes:
+        info (Dict[str, Any]): General information about the resource.
+        intent (str): The intent associated with the resource.
+        input (List[Any]): Input data for the resource.
+        output (str): Output data from the resource.
+        steps (List[Any]): Processing steps taken.
+        personalized_intent (str): User-specific intent for the resource.
+    """
+
+    info: Dict[str, Any]
     intent: str = Field(default="")
-    input: List = Field(default_factory=list)
+    input: List[Any] = Field(default_factory=list)
     output: str = Field(default="")
-    steps: List = Field(default_factory=list)
+    steps: List[Any] = Field(default_factory=list)
     personalized_intent: str = Field(default="")
 
 
 class Metadata(BaseModel):
+    """Metadata for tracking conversation and execution.
+
+    Attributes:
+        chat_id (str): Unique identifier for the chat session.
+        turn_id (int): Current turn number in the conversation.
+        hitl (Optional[str]): Human-in-the-loop intervention status.
+        timing (Timing): Timing information for the session.
+    """
+
     # TODO: May need to initialize the metadata(i.e. chat_id, turn_id) based on the conversation database
     chat_id: str = Field(default_factory=lambda: str(uuid.uuid4()))
     turn_id: int = 0
@@ -74,16 +139,36 @@ class Metadata(BaseModel):
 
 
 class MessageState(BaseModel):
+    """State management for message processing.
+
+    Attributes:
+        sys_instruct (str): System instructions for message processing.
+        bot_config (BotConfig): Configuration for the bot.
+        user_message (ConvoMessage): User's input message.
+        orchestrator_message (OrchestratorMessage): Message from the orchestrator.
+        function_calling_trajectory (List[Dict[str, Any]]): History of function calls.
+        trajectory (List[List[ResourceRecord]]): Processing trajectory.
+        message_flow (str): Flow of messages between nodes.
+        response (str): Final response to the user.
+        status (StatusEnum): Current status of the message processing.
+        slots (Dict[str, List[Slot]]): Dialogue state slots.
+        metadata (Metadata): Session metadata.
+        is_stream (bool): Whether the message is being streamed.
+        message_queue (Any): Queue for streaming messages.
+        stream_type (str): Type of streaming being used.
+        relevant_records (Optional[List[ResourceRecord]]): Relevant resource records.
+    """
+
     # system configuration
     sys_instruct: str = Field(default="")
     # bot configuration
-    bot_config: BotConfig = Field(default=None)
+    bot_config: Optional[BotConfig] = Field(default=None)
     # input message
-    user_message: ConvoMessage = Field(default=None)
-    orchestrator_message: OrchestratorMessage = Field(default=None)
+    user_message: Optional[ConvoMessage] = Field(default=None)
+    orchestrator_message: Optional[OrchestratorMessage] = Field(default=None)
     # action trajectory
-    function_calling_trajectory: List[Dict[str, Any]] = Field(default=None)
-    trajectory: List[List[ResourceRecord]] = Field(default=None)
+    function_calling_trajectory: Optional[List[Dict[str, Any]]] = Field(default=None)
+    trajectory: Optional[List[List[ResourceRecord]]] = Field(default=None)
     # message flow between different nodes
     message_flow: str = Field(
         description="message flow between different nodes", default=""
@@ -92,10 +177,10 @@ class MessageState(BaseModel):
     response: str = Field(default="")
     # task-related params
     status: StatusEnum = Field(default=StatusEnum.INCOMPLETE)
-    slots: Dict[str, List[Slot]] = Field(
+    slots: Optional[Dict[str, List[Slot]]] = Field(
         description="record the dialogue states of each action", default=None
     )
-    metadata: Metadata = Field(default=None)
+    metadata: Optional[Metadata] = Field(default=None)
     # stream
     is_stream: bool = Field(default=False)
     message_queue: Any = Field(exclude=True, default=None)
@@ -105,6 +190,17 @@ class MessageState(BaseModel):
 
 
 class PathNode(BaseModel):
+    """Node in the processing path.
+
+    Attributes:
+        node_id (str): Unique identifier for the node.
+        is_skipped (bool): Whether the node was skipped.
+        in_flow_stack (bool): Whether the node is in the flow stack.
+        nested_graph_node_value (Optional[str]): Value for nested graph nodes.
+        nested_graph_leaf_jump (Optional[int]): Jump value for nested graph leaves.
+        global_intent (str): Global intent associated with the node.
+    """
+
     node_id: str
     is_skipped: bool = False
     in_flow_stack: bool = False
@@ -114,6 +210,20 @@ class PathNode(BaseModel):
 
 
 class Taskgraph(BaseModel):
+    """Graph structure for task processing.
+
+    Attributes:
+        dialog_states (Dict[str, List[Slot]]): States of dialogue slots.
+        path (List[PathNode]): Processing path nodes.
+        curr_node (str): Current node identifier.
+        intent (str): Current intent.
+        curr_global_intent (str): Current global intent.
+        node_limit (Dict[str, int]): Limits for node processing.
+        nlu_records (List[Any]): Natural language understanding records.
+        node_status (Dict[str, StatusEnum]): Status of each node.
+        available_global_intents (List[str]): List of available global intents.
+    """
+
     # Need add global intent
     dialog_states: Dict[str, List[Slot]] = Field(default_factory=dict)
     path: List[PathNode] = Field(default_factory=list)
@@ -121,29 +231,66 @@ class Taskgraph(BaseModel):
     intent: str = Field(default="")
     curr_global_intent: str = Field(default="")
     node_limit: Dict[str, int] = Field(default_factory=dict)
-    nlu_records: List = Field(default_factory=list)
+    nlu_records: List[Any] = Field(default_factory=list)
     node_status: Dict[str, StatusEnum] = Field(default_factory=dict)
-    available_global_intents: List = Field(default_factory=list)
+    available_global_intents: List[str] = Field(default_factory=list)
 
 
 class Memory(BaseModel):
+    """Memory management for conversation and processing.
+
+    Attributes:
+        trajectory (List[List[ResourceRecord]]): Processing trajectory history.
+        function_calling_trajectory (List[Dict[str, Any]]): Function call history.
+    """
+
     trajectory: List[List[ResourceRecord]] = Field(default_factory=list)
     function_calling_trajectory: List[Dict[str, Any]] = Field(default_factory=list)
 
 
 class Params(BaseModel):
+    """Parameters for task processing.
+
+    Attributes:
+        metadata (Metadata): Session metadata.
+        taskgraph (Taskgraph): Task graph structure.
+        memory (Memory): Memory management.
+    """
+
     metadata: Metadata = Field(default_factory=Metadata)
     taskgraph: Taskgraph = Field(default_factory=Taskgraph)
     memory: Memory = Field(default_factory=Memory)
 
 
 class NodeTypeEnum(str, Enum):
-    NONE = ""
-    START = "start"
-    MULTIPLE_CHOICE = "multiple_choice"
+    """Enumeration of node types.
+
+    Values:
+        NONE: No specific type.
+        START: Starting node.
+        MULTIPLE_CHOICE: Node with multiple choice options.
+    """
+
+    NONE: str = ""
+    START: str = "start"
+    MULTIPLE_CHOICE: str = "multiple_choice"
 
 
 class NodeInfo(BaseModel):
+    """Information about a processing node.
+
+    Attributes:
+        node_id (Optional[str]): Unique identifier for the node.
+        type (str): Type of the node.
+        resource_id (str): Resource identifier.
+        resource_name (str): Name of the resource.
+        can_skipped (bool): Whether the node can be skipped.
+        is_leaf (bool): Whether the node is a leaf node.
+        attributes (Dict[str, Any]): Additional node attributes.
+        add_flow_stack (Optional[bool]): Whether to add to flow stack.
+        additional_args (Optional[Dict[str, Any]]): Additional arguments for the node.
+    """
+
     node_id: Optional[str] = Field(default=None)
     type: str = Field(default="")
     resource_id: str = Field(default="")
@@ -152,22 +299,43 @@ class NodeInfo(BaseModel):
     is_leaf: bool = Field(default=False)
     attributes: Dict[str, Any] = Field(default_factory=dict)
     add_flow_stack: Optional[bool] = Field(default=False)
-    additional_args: Optional[dict] = Field(default={})
+    additional_args: Optional[Dict[str, Any]] = Field(default={})
 
 
 class OrchestratorResp(BaseModel):
+    """Response from the orchestrator.
+
+    Attributes:
+        answer (str): The response answer.
+        parameters (Dict[str, Any]): Additional parameters.
+        human_in_the_loop (Optional[str]): Human intervention status.
+        choice_list (Optional[List[str]]): List of available choices.
+    """
+
     answer: str = Field(default="")
     parameters: Dict[str, Any] = Field(default_factory=dict)
     human_in_the_loop: Optional[str] = Field(default=None)
     choice_list: Optional[List[str]] = Field(default=[])
 
-      
+
 # Custom Tool Related Classes
 
+
 class HTTPParams(BaseModel):
+    """Parameters for HTTP requests.
+
+    Attributes:
+        endpoint (str): The API endpoint URL.
+        method (str): HTTP method to use.
+        headers (Dict[str, str]): HTTP headers.
+        body (Optional[Any]): Request body.
+        params (Optional[Dict[str, Any]]): URL parameters.
+    """
+
     endpoint: str
     method: str = Field(default="GET")
-    headers: Dict[Any, Any] = Field(default_factory=lambda: {"Content-Type": "application/json"})
+    headers: Dict[str, str] = Field(
+        default_factory=lambda: {"Content-Type": "application/json"}
+    )
     body: Optional[Any] = Field(default=None)
-    params: Optional[Any] = Field(default=None)
-
+    params: Optional[Dict[str, Any]] = Field(default=None)

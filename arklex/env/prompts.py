@@ -8,10 +8,17 @@ generation, and database interactions. The module ensures consistent prompt form
 and language-specific adaptations.
 """
 
-from typing import Dict, Any
+from typing import Dict, Any, Union
+from dataclasses import dataclass
 
 
-def load_prompts(bot_config: Any) -> Dict[str, str]:
+@dataclass
+class BotConfig:
+    language: str
+
+
+def load_prompts(bot_config: BotConfig) -> Dict[str, str]:
+    prompts: Dict[str, str]
     if bot_config.language == "EN":
         ### ================================== Generator Prompts ================================== ###
         prompts = {
@@ -275,5 +282,5 @@ Answer:
 """,
         }
     else:
-        raise ValueError(f"Language {bot_config.language} is not supported")
+        raise ValueError(f"Unsupported language: {bot_config.language}")
     return prompts
