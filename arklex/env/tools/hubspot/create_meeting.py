@@ -153,7 +153,7 @@ def create_meeting(
     duration: int = int(duration)
     duration: int = int(timedelta(minutes=duration).total_seconds() * 1000)
 
-    api_client: Any = hubspot.Client.create(access_token=access_token)
+    api_client: hubspot.Client = hubspot.Client.create(access_token=access_token)
 
     try:
         create_meeting_response: Any = api_client.api_request(

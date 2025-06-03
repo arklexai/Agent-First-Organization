@@ -96,7 +96,7 @@ def check_available(
     """
     func_name: str = inspect.currentframe().f_code.co_name
     access_token: str = authenticate_hubspot(kwargs)
-    api_client: Any = hubspot.Client.create(access_token=access_token)
+    api_client: hubspot.Client = hubspot.Client.create(access_token=access_token)
 
     try:
         meeting_link_response: Any = api_client.api_request(
@@ -139,7 +139,7 @@ def check_available(
                 else:
                     # The length is 0, then raise error
                     logger.error(
-                        f"There is no meeting links corresponding to the owner's id."
+                        "There is no meeting links corresponding to the owner's id."
                     )
                     raise ToolExecutionError(
                         func_name, HubspotExceptionPrompt.MEETING_LINK_UNFOUND_PROMPT

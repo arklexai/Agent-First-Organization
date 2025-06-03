@@ -69,7 +69,7 @@ def find_contact_by_email(email: str, chat: str, **kwargs: Dict[str, Any]) -> st
     func_name: str = inspect.currentframe().f_code.co_name
     access_token: str = authenticate_hubspot(kwargs)
 
-    api_client: Any = hubspot.Client.create(access_token=access_token)
+    api_client: hubspot.Client = hubspot.Client.create(access_token=access_token)
     public_object_search_request: PublicObjectSearchRequest = PublicObjectSearchRequest(
         filter_groups=[
             {"filters": [{"propertyName": "email", "operator": "EQ", "value": email}]}

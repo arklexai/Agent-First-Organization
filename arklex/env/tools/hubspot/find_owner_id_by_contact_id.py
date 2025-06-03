@@ -57,7 +57,7 @@ def find_owner_id_by_contact_id(cus_cid: str, **kwargs: Dict[str, Any]) -> str:
     func_name: str = inspect.currentframe().f_code.co_name
     access_token: str = authenticate_hubspot(kwargs)
 
-    api_client: Any = hubspot.Client.create(access_token=access_token)
+    api_client: hubspot.Client = hubspot.Client.create(access_token=access_token)
 
     try:
         get_owner_id_response: Any = api_client.api_request(

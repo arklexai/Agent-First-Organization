@@ -8,6 +8,7 @@ import inspect
 import json
 import logging
 from datetime import datetime
+from typing import Dict, Any, List, Optional, Union, Tuple, Set
 
 import hubspot
 import pytz
@@ -16,11 +17,11 @@ from hubspot import HubSpot
 from arklex.env.tools.hubspot.utils import authenticate_hubspot
 from arklex.env.tools.tools import logger, register_tool
 
-logger = logging.getLogger(__name__)
+logger: logging.Logger = logging.getLogger(__name__)
 
-description = "Check the availability of any representative from Husbspot calendar. If you are not sure any information, please ask users to confirm in response."
+description: str = "Check the availability of any representative from Husbspot calendar. If you are not sure any information, please ask users to confirm in response."
 
-slots = [
+slots: List[Dict[str, Any]] = [
     {
         "name": "start_time",
         "type": "str",
@@ -49,7 +50,7 @@ slots = [
 ]
 
 
-outputs = [
+outputs: List[Dict[str, Any]] = [
     {
         "name": "meeting_info",
         "type": "dict",
@@ -57,32 +58,36 @@ outputs = [
     }
 ]
 
-errors = []
+errors: List[str] = []
 
 
 @register_tool(description, slots, outputs)
-def check_availability(timezone: str, duration: int, start_time: str, **kwargs) -> str:
-    access_token = authenticate_hubspot(kwargs)
-    api_client = hubspot.Client.create(access_token=access_token)
+def check_availability(
+    timezone: str, duration: int, start_time: str, **kwargs: Dict[str, Any]
+) -> str:
+    access_token: str = authenticate_hubspot(kwargs)
+    api_client: hubspot.Client = hubspot.Client.create(access_token=access_token)
 
     if duration not in [15, 30, 60]:
         return "error: invalid meeting duration. Please choose 15, 30, or 60 minutes."
-    duration_ms = duration * 60 * 1000
+    duration_ms: int = duration * 60 * 1000
     logger.info(f"duration: {duration_ms} ms")
 
-    tz = pytz.timezone(timezone)
+    tz: pytz.BaseTzInfo = pytz.timezone(timezone)
     logger.info(f"timezone: {timezone}")
 
-    start_time_dt = datetime.fromisoformat(start_time)
-    start_time_dt = tz.localize(start_time_dt)
+    start_time_dt: datetime = datetime.fromisoformat(start_time)
+    start_time_dt: datetime = tz.localize(start_time_dt)
     logger.info(f"start_time_dt: {start_time_dt}")
 
     if not (slugs := get_all_slugs(api_client)):
         return "error: no meeting links found. there are no representatives available for meetings."
 
-    all_alternate_times = []
+    all_alternate_times: List[Tuple[datetime, str]] = []
 
     for slug in slugs:
+        is_available: bool
+        alternates: Optional[List[datetime]]
         is_available, alternates = check_slug_availability(
             api_client, slug, start_time_dt, duration_ms, timezone
         )
@@ -105,7 +110,7 @@ def check_availability(timezone: str, duration: int, start_time: str, **kwargs) 
                 all_alternate_times.append((alternate_time, slug))
 
     if all_alternate_times:
-        unique_times = sorted(set(all_alternate_times))
+        unique_times: Set[Tuple[datetime, str]] = sorted(set(all_alternate_times))
         return json.dumps(
             {
                 "status": "alternate times available",
@@ -122,7 +127,7 @@ def check_availability(timezone: str, duration: int, start_time: str, **kwargs) 
     )
 
 
-def summarize_time_slots(times: list[tuple]) -> list[dict]:
+def summarize_time_slots(times: List[Tuple[datetime, str]]) -> List[Dict[str, str]]:
     """Summarize a list of time slots by grouping consecutive slots together.
 
     Args:
@@ -135,12 +140,16 @@ def summarize_time_slots(times: list[tuple]) -> list[dict]:
         return []
 
     # Sort times to ensure proper grouping
-    sorted_times = sorted(times, key=lambda x: x[0])
-    ranges = []
+    sorted_times: List[Tuple[datetime, str]] = sorted(times, key=lambda x: x[0])
+    ranges: List[Dict[str, str]] = []
+    current_start: datetime
+    current_slug: str
     current_start, current_slug = sorted_times[0]
-    current_end = current_start
+    current_end: datetime = current_start
 
     for i in range(1, len(sorted_times)):
+        slot_time: datetime
+        slot_slug: str
         slot_time, slot_slug = sorted_times[i]
         # Check if this slot is 15 minutes after the previous slot and has the same slug
         if (
@@ -168,17 +177,17 @@ def summarize_time_slots(times: list[tuple]) -> list[dict]:
     return ranges
 
 
-def get_all_slugs(api_client: HubSpot) -> list[str]:
+def get_all_slugs(api_client: HubSpot) -> List[str]:
     """Get all slugs from the HubSpot API."""
     try:
-        response = api_client.api_request(
+        response: Any = api_client.api_request(
             {
                 "path": "/scheduler/v3/meetings/meeting-links",
                 "method": "GET",
                 "headers": {"Content-Type": "application/json"},
             }
         )
-        response = response.json()
+        response: Dict[str, Any] = response.json()
         return [link["slug"] for link in response["results"]]
     except Exception as e:
         logger.error(f"Error getting slugs: {e}")
@@ -191,14 +200,14 @@ def check_slug_availability(
     start_time: datetime,
     duration: int,
     timezone: str,
-) -> tuple[bool, list[datetime]]:
-    alternate_times_on_same_day = []
-    month_offset = 0
-    has_more = True
+) -> Tuple[bool, Optional[List[datetime]]]:
+    alternate_times_on_same_day: List[datetime] = []
+    month_offset: int = 0
+    has_more: bool = True
 
     while has_more:
         try:
-            res = api_client.api_request(
+            res: Any = api_client.api_request(
                 {
                     "path": f"/scheduler/v3/meetings/meeting-links/book/availability-page/{meeting_slug}",
                     "method": "GET",
@@ -206,22 +215,24 @@ def check_slug_availability(
                     "qs": {"timezone": timezone, "monthOffset": month_offset},
                 }
             )
-            res = res.json()
+            res: Dict[str, Any] = res.json()
 
             if res.get("status") == "error":
                 logger.error(f"Error getting availability: {res}")
                 return False, []
 
-            availabilities = res["linkAvailability"]["linkAvailabilityByDuration"][
-                str(duration)
-            ]["availabilities"]
-            has_more = res["linkAvailability"].get("hasMore", False)
+            availabilities: List[Dict[str, Any]] = res["linkAvailability"][
+                "linkAvailabilityByDuration"
+            ][str(duration)]["availabilities"]
+            has_more: bool = res["linkAvailability"].get("hasMore", False)
 
             for avail_time in availabilities:
-                avail_time_utc = datetime.fromtimestamp(
+                avail_time_utc: datetime = datetime.fromtimestamp(
                     avail_time["startMillisUtc"] / 1000, tz=pytz.utc
                 )
-                avail_time_local = avail_time_utc.astimezone(pytz.timezone(timezone))
+                avail_time_local: datetime = avail_time_utc.astimezone(
+                    pytz.timezone(timezone)
+                )
 
                 if avail_time_local == start_time:
                     return True, None
