@@ -15,8 +15,7 @@ slots = [
         "type": "str",
         "description": "The first name of the user.",
         "prompt": "Could you please give me your first name?",
-        "required": True,
-    },
+        "required": True,},
     {
         "name": "lname",
         "type": "str",
