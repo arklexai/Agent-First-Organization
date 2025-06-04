@@ -66,6 +66,7 @@ from arklex.orchestrator.task_graph import TaskGraph
 from arklex.orchestrator.post_process import post_process_response
 from arklex.env.tools.utils import ToolGenerator
 from arklex.types import StreamType
+from arklex.utils.model_config import MODEL
 from arklex.utils.graph_state import (
     ConvoMessage,
     NodeInfo,
@@ -83,8 +84,8 @@ from arklex.utils.graph_state import (
 
 
 from arklex.utils.utils import format_chat_history
-from arklex.utils.model_config import MODEL
 from arklex.memory import ShortTermMemory
+from langchain.chat_models import ChatOpenAI
 
 
 load_dotenv()
@@ -144,6 +145,12 @@ class AgentOrg:
             "taskgraph", self.product_kwargs, self.llm_config
         )
         self.env: Env = env
+
+        # Initialize LLM directly
+        self.llm = ChatOpenAI(
+            model=self.llm_config.model_type_or_path,
+            temperature=0.0,
+        )
 
         # Update planner model info now that LLMConfig is defined
         self.env.planner.set_llm_config_and_build_resource_library(
@@ -231,15 +238,47 @@ class AgentOrg:
         Returns:
             bool: True if the node can be skipped, False otherwise.
         """
-        # NOTE: Do not check the node limit to decide whether the node can be skipped because skipping a node when should not is unwanted.
-        return False
-        if not node_info.can_skipped:
+        # Check if we have enough conversation history
+        conversation = params.memory.function_calling_trajectory
+        if not conversation or len(conversation) < 2:
             return False
-        cur_node_id: str = params.taskgraph.curr_node
-        if cur_node_id in params.taskgraph.node_limit:
-            if params.taskgraph.node_limit[cur_node_id] <= 0:
-                return True
-        return False
+        
+        user_message = conversation[-1].get('content', '')
+        if not user_message:
+            return False
+
+        # Get the task this node is responsible for
+        task = node_info.attributes.get('task', '')
+        if not task:
+            return False
+
+        # Use LLM to check if the required information is present
+        prompt = f"""Given the user's message: "{user_message}"
+        And the task: "{task}"
+        Does the user's message contain the information needed for this task?
+        Answer with only 'yes' or 'no'"""
+        logger.info(f"prompt for check skip node: {prompt}")
+
+        try:
+            # Call LLM using the framework's configuration
+            response = self.llm.invoke(prompt)
+            logger.info(f"LLM response for task verification: {response}")
+            # Extract content from AIMessage and convert to lowercase
+            response_text = response.content.lower().strip() if hasattr(response, 'content') else str(response).lower().strip()
+            return response_text == 'yes'
+        except Exception as e:
+            logger.error(f"Error in LLM task verification: {str(e)}")
+            return False
+        
+        # # NOTE: Do not check the node limit to decide whether the node can be skipped because skipping a node when should not is unwanted.
+        # return False
+        # if not node_info.can_skipped:
+        #     return False
+        # cur_node_id: str = params.taskgraph.curr_node
+        # if cur_node_id in params.taskgraph.node_limit:
+        #     if params.taskgraph.node_limit[cur_node_id] <= 0:
+        #         return True
+        # return False
 
     def post_process_node(
         self, node_info: NodeInfo, params: Params, update_info: Dict[str, Any] = {}
