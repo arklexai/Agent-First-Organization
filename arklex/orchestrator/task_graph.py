@@ -240,7 +240,7 @@ class TaskGraph(TaskGraphBase):
             type=node_info.get("type", ""),
             resource_id=resource_id,
             resource_name=resource_name,
-            can_skipped=node_info.get("can_skipped", True),
+            can_skipped=node_info.get("attribute", {}).get("can_skipped", True),
             is_leaf=len(list(self.graph.successors(sample_node))) == 0,
             attributes=node_info["attribute"],
             add_flow_stack=False,
@@ -376,7 +376,7 @@ class TaskGraph(TaskGraphBase):
                 node_id=curr_node,
                 resource_id=resource_id,
                 resource_name=resource_name,
-                can_skipped=False,
+                can_skipped=node_info.get("attribute", {}).get("can_skipped", True),
                 is_leaf=len(list(self.graph.successors(curr_node))) == 0,
                 attributes=node_info["attribute"],
                 additional_args={

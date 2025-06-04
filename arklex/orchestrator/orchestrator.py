@@ -238,6 +238,8 @@ class AgentOrg:
         Returns:
             bool: True if the node can be skipped, False otherwise.
         """
+        if not node_info.can_skipped:
+            return False
         # Check if we have enough conversation history
         conversation = params.memory.function_calling_trajectory
         if not conversation or len(conversation) < 2:
@@ -562,7 +564,9 @@ class AgentOrg:
                 )
             else:
                 node_info, params = taskgraph_chain.invoke(taskgraph_inputs)
+                logger.info(f"params: {params.__dict__}")
             taskgraph_inputs["allow_global_intent_switch"] = False
+            logger.info(f"node_info: {node_info}")
             params.metadata.timing.taskgraph = time.time() - taskgraph_start_time
             # Check if current node can be skipped
             can_skip = self.check_skip_node(node_info, params)
