@@ -240,47 +240,36 @@ class AgentOrg:
         """
         if not node_info.can_skipped:
             return False
-        # Check if we have enough conversation history
         conversation = params.memory.function_calling_trajectory
         if not conversation or len(conversation) < 2:
             return False
         
-        user_message = conversation[-1].get('content', '')
-        if not user_message:
-            return False
-
-        # Get the task this node is responsible for
+        # Format the entire conversation history
+        conversation_history = "\n".join([
+            f"{msg.get('role', 'unknown')}: {msg.get('content', '')}"
+            for msg in conversation
+        ])
+        
         task = node_info.attributes.get('task', '')
         if not task:
             return False
 
-        # Use LLM to check if the required information is present
-        prompt = f"""Given the user's message: "{user_message}"
-        And the task: "{task}"
-        Does the user's message contain the information needed for this task?
-        Answer with only 'yes' or 'no'"""
+        prompt = f"""Given the following conversation history:
+{conversation_history}
+
+And the task: "{task}"
+Does the conversation contain the information needed for this task? Check synonyms and variations of phrasing.
+Answer with only 'yes' or 'no'"""
         logger.info(f"prompt for check skip node: {prompt}")
 
         try:
-            # Call LLM using the framework's configuration
             response = self.llm.invoke(prompt)
             logger.info(f"LLM response for task verification: {response}")
-            # Extract content from AIMessage and convert to lowercase
             response_text = response.content.lower().strip() if hasattr(response, 'content') else str(response).lower().strip()
             return response_text == 'yes'
         except Exception as e:
             logger.error(f"Error in LLM task verification: {str(e)}")
             return False
-        
-        # # NOTE: Do not check the node limit to decide whether the node can be skipped because skipping a node when should not is unwanted.
-        # return False
-        # if not node_info.can_skipped:
-        #     return False
-        # cur_node_id: str = params.taskgraph.curr_node
-        # if cur_node_id in params.taskgraph.node_limit:
-        #     if params.taskgraph.node_limit[cur_node_id] <= 0:
-        #         return True
-        # return False
 
     def post_process_node(
         self, node_info: NodeInfo, params: Params, update_info: Dict[str, Any] = {}
