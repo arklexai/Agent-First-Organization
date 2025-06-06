@@ -556,9 +556,7 @@ Answer with only 'yes' or 'no'"""
                 )
             else:
                 node_info, params = taskgraph_chain.invoke(taskgraph_inputs)
-                logger.info(f"params: {params.__dict__}")
             taskgraph_inputs["allow_global_intent_switch"] = False
-            logger.info(f"node_info: {node_info}")
             params.metadata.timing.taskgraph = time.time() - taskgraph_start_time
             # Check if current node can be skipped
             can_skip = self.check_skip_node(node_info, params)
