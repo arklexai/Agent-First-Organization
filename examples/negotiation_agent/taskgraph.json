@@ -9,7 +9,7 @@
                 },
                 "attribute": {
                     "value": "Hi, how are you today?",
-                    "task": "start message",
+                    "task": "start_message",
                     "directed": false
                 },
                 "limit": 1,
@@ -21,130 +21,23 @@
             {
                 "resource": {
                     "id": "720ecdd4-8cf2-47f2-a825-64bd07377950",
-                    "name": "NegotiationSingleIssueWorkerSeller"
+                    "name": "NegotiationSingleIssueWorker"
                 },
                 "attribute": {
-                    "value": "Based on your interests, would you like to consider starting with an offer of $100 for this item?",
-                    "task": "Assist user in formulating and presenting an initial offer",
+                    "value": "Would you be interested in buying this item?",
+                    "task": "Facilitate a negotiation conversation",
                     "directed": false
                 }
             }
-        ],
-        [
-            "2",
-            {
-                "resource": {
-                    "id": "720ecdd4-8cf2-47f2-a825-64bd07377950",
-                    "name": "NegotiationSingleIssueWorkerSeller"
-                },
-                "attribute": {
-                    "value": "Let's review the counteroffer together. Would you like to adjust the offer or propose different terms?",
-                    "task": "Help user evaluate and respond to a counteroffer",
-                    "directed": false
-                }
-            }
-        ],
-        [
-            "3",
-            {
-                "resource": {
-                    "id": "720ecdd4-8cf2-47f2-a825-64bd07377950",
-                    "name": "NegotiationSingleIssueWorkerSeller"
-                },
-                "attribute": {
-                    "value": "Let's discuss the terms and conditions to ensure we are on the same page. What specific areas would you like to address first?",
-                    "task": "Facilitate discussion over terms and conditions",
-                    "directed": false
-                }
-            }
-        ],
-        [
-            "4",
-            {
-                "resource": {
-                    "id": "720ecdd4-8cf2-47f2-a825-64bd07377950",
-                    "name": "NegotiationSingleIssueWorkerSeller"
-                },
-                "attribute": {
-                    "value": "Let's discuss the key points of the negotiation. Could you please specify which areas you need more clarity on?",
-                    "task": "Provide clarity and explanations on negotiation points",
-                    "directed": false
-                }
-            }
-        ],
-        [
-            "5",
-            {
-                "resource": {
-                    "id": "720ecdd4-8cf2-47f2-a825-64bd07377950",
-                    "name": "NegotiationSingleIssueWorkerSeller"
-                },
-                "attribute": {
-                    "value": "Let's work together to finalize the negotiation and reach an agreement that satisfies both parties.",
-                    "task": "Guide user through finalizing the negotiation and reaching an agreement",
-                    "directed": false
-                }
-            }
-        ]
+        ] 
+        
     ],
     "edges": [
         [
             "0",
             "1",
             {
-                "intent": "User wants to make an initial offer",
-                "attribute": {
-                    "weight": 1,
-                    "pred": true,
-                    "definition": "",
-                    "sample_utterances": []
-                }
-            }
-        ],
-        [
-            "0",
-            "2",
-            {
-                "intent": "User needs to respond to a counteroffer",
-                "attribute": {
-                    "weight": 1,
-                    "pred": true,
-                    "definition": "",
-                    "sample_utterances": []
-                }
-            }
-        ],
-        [
-            "0",
-            "3",
-            {
-                "intent": "User wants to negotiate terms and conditions",
-                "attribute": {
-                    "weight": 1,
-                    "pred": true,
-                    "definition": "",
-                    "sample_utterances": []
-                }
-            }
-        ],
-        [
-            "0",
-            "4",
-            {
-                "intent": "User requires clarification on negotiation points",
-                "attribute": {
-                    "weight": 1,
-                    "pred": true,
-                    "definition": "",
-                    "sample_utterances": []
-                }
-            }
-        ],
-        [
-            "0",
-            "5",
-            {
-                "intent": "User aims to finalize the deal",
+                "intent": "user engages in conversation",
                 "attribute": {
                     "weight": 1,
                     "pred": true,
@@ -166,7 +59,7 @@
     "workers": [
         {
             "id": "720ecdd4-8cf2-47f2-a825-64bd07377950",
-            "name": "NegotiationSingleIssueWorkerSeller",
+            "name": "NegotiationSingleIssueWorker",
             "path": "negotiation_workers/negotiation_single_issue_worker.py"
         }
     ],

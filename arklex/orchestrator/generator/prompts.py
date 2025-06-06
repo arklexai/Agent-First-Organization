@@ -513,6 +513,18 @@ Builder's prompt: The builder want to create a chatbot - {role}. {u_objective}
 Start Message:
 """
 
+generate_start_msg_custom = """Say hi and ask the user how they are doing. Make some small talk with the user about the weather or something light-hearted.
+
+Please reply in the following format: 
+Start Message:
+```json
+{{
+    "message": "Hi! How are you doing today? The weather is nice, isn't it?"
+}}
+```
+
+"""
+
 task_intents_prediction_prompt = """The builder plans to create a chatbot designed to fulfill user's objectives. Given the role of the chatbot, along with any introductory information, detailed documentation (if available) and a list of tasks, your task is to identify the user's intent based on given tasks .Ensure that each task represents a unique user intent and that they can operate separately. Moreover, you are given the instructions that you must follow. Return the response in JSON format.
 
 For Example:

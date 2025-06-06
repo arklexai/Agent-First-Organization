@@ -21,7 +21,7 @@ logger = logging.getLogger(__name__)
 
 
 @register_worker
-class NegotiationSingleIssueWorkerSeller(BaseWorker):
+class NegotiationSingleIssueWorker(BaseWorker):
     """This must run after the first ice breaker from the MessageWorker. This worker should then be the only worker running for the rest of the conversation. This worker helps process the user's message and generate a response that moves the negotiation forward."""
     
     description = "This must run after the first ice breaker from the MessageWorker. This worker should then be the only worker running for the rest of the conversation. This worker helps process the user's message and generate a response that moves the negotiation forward."
@@ -33,12 +33,12 @@ class NegotiationSingleIssueWorkerSeller(BaseWorker):
             temperature = 0.0
         )
         self.action_graph = self._create_action_graph()
-        self.unit_index = "unit1"
-        self.all_slots_present = False
+        self.unit_index = 0
         self.static_prompt = ""
         self.dynamic_prompt = ""
         # Get absolute path to the directory containing this file
         self.current_dir = os.path.dirname(os.path.abspath(__file__))
+        print(f"Current directory: {self.current_dir}")
         logger.info("NegotiationSingleIssueWorkerSeller initialized successfully")
         print("NegotiationSingleIssueWorkerSeller initialized successfully")
 
@@ -60,48 +60,56 @@ class NegotiationSingleIssueWorkerSeller(BaseWorker):
 
         return random_num
     
-    round_num = lambda num, base: base * round(num/base)
+    def round_num(self, num, base=100):
+        return base * round(num/base)
 
-    def load_prompt(self,current_target, path):
+    def load_prompt(self,current_target, message, turn, path, is_dynamic=False):
             with open(path) as f:
-                instructions = f.read().format(current_target, current_target)
+                if is_dynamic:
+                    instructions = f.read().format(current_target, current_target, message, turn)
+                else:
+                    instructions = f.read().format(message, turn)
             return instructions
         
-    def get_prompts(self, unit_index, current_target):
+    def get_prompts(self, unit_index, current_target, message, turn):
         # Base directory for prompts
-        prompts_base_dir = os.path.join(self.current_dir, "..", "..", "..", "negotiation_prompts")
+        prompts_base_dir = os.path.join(self.current_dir, "..", "negotiation_prompts")
         
-        if unit_index == 'unit1':
+        if unit_index == 0:
             print("Getting prompts for unit1")
-            static_path = os.path.join(prompts_base_dir, "prompts", "seller_system_prompt_static.txt")
+            static_path = os.path.join(prompts_base_dir, "seller_system_prompt_static.txt")
             dynamic_path = os.path.join(prompts_base_dir, "seller_system_prompt_dynamic_floor.txt")
-        elif unit_index == 'unit2':
+        elif unit_index == 1:
             static_path = os.path.join(prompts_base_dir, "apt_seller_system_prompt_static.txt")
             dynamic_path = os.path.join(prompts_base_dir, "apt_seller_system_prompt_dynamic_floor.txt")
-        elif unit_index == 'unit3': 
+        elif unit_index == 2: 
             static_path = os.path.join(prompts_base_dir, "jeep_seller_system_prompt_static.txt")
             dynamic_path = os.path.join(prompts_base_dir, "jeep_seller_system_prompt_dynamic_floor.txt")
-        elif unit_index == 'unit4': 
+        elif unit_index == 3: 
             static_path = os.path.join(prompts_base_dir, "ford_seller_system_prompt_static.txt")
             dynamic_path = os.path.join(prompts_base_dir, "ford_seller_system_prompt_dynamic_floor.txt")
-        static_prompt = self.load_prompt(current_target=current_target, path=static_path)
-        dynamic_prompt = self.load_prompt(current_target=current_target, path=dynamic_path)
+        
+        print(f"Looking for prompts at: {static_path} and {dynamic_path}")
+    
+        static_prompt = self.load_prompt(current_target=current_target, message=message, turn=turn, path=static_path, is_dynamic=False)
+        dynamic_prompt = self.load_prompt(current_target=current_target, message=message, turn=turn, path=dynamic_path, is_dynamic=True)
+        print(f"Static prompt: {static_prompt}")
         return static_prompt, dynamic_prompt
     
     def check_and_initialize_slots(self, state: MessageState):
         print("checking and initializing slots")
-        config_path = os.path.join(self.current_dir, "..", "..", "..", "negotiation_config", "seller_config.json")
+        config_path = os.path.join(self.current_dir, "..", "negotiation_config", "seller_config.json")
         configs = self.read_json(config_path)
         required_slots = ["turn", "episode_done", "max_percieved_marketPrice", 
                          "reservation_price", "max_market_price", "current_target"]
         # Check if any required slots are missing
-        if "slots" not in state:
-            state["slots"] = {}
+        if not hasattr(state, 'slots'):
+            state.slots = {}
             
         for slot_name in required_slots:
-            if slot_name not in state["slots"]:
+            if slot_name not in state.slots:
                 if slot_name == "turn":
-                    state["slots"]["turn"] = [Slot(
+                    state.slots["turn"] = [Slot(
                         name="turn",
                         type="string",
                         value=0,
@@ -112,7 +120,7 @@ class NegotiationSingleIssueWorkerSeller(BaseWorker):
                         verified=True)]
                 
                 elif slot_name == "episode_done":
-                    state["slots"]["episode_done"] = [Slot(
+                    state.slots["episode_done"] = [Slot(
                         name="episode_done",
                         type="string",
                         value=False,
@@ -127,7 +135,7 @@ class NegotiationSingleIssueWorkerSeller(BaseWorker):
                     if "max_percieved_marketPrice" in configs['units'][self.unit_index]['parameters']:
                         max_percieved_marketPrice = configs['units'][self.unit_index]['parameters']['max_percieved_marketPrice'][0]
                     
-                    state["slots"]["max_percieved_marketPrice"] = [Slot(
+                    state.slots["max_percieved_marketPrice"] = [Slot(
                         name="max_percieved_marketPrice",
                         type="string",
                         value=max_percieved_marketPrice,
@@ -138,7 +146,7 @@ class NegotiationSingleIssueWorkerSeller(BaseWorker):
                         verified=True)]
                 
                 elif slot_name == "reservation_price":
-                    state["slots"]["reservation_price"] = [Slot(
+                    state.slots["reservation_price"] = [Slot(
                         name="reservation_price",
                         type="string",
                         value=configs['units'][self.unit_index]['parameters']['reservationPrice'][0],
@@ -149,7 +157,7 @@ class NegotiationSingleIssueWorkerSeller(BaseWorker):
                         verified=True)]
                 
                 elif slot_name == "max_market_price":
-                    state["slots"]["max_market_price"] = [Slot(
+                    state.slots["max_market_price"] = [Slot(
                         name="max_market_price",
                         type="string",
                         value=configs['units'][self.unit_index]['parameters']['max_marketPrice'][0],
@@ -161,15 +169,15 @@ class NegotiationSingleIssueWorkerSeller(BaseWorker):
                     
         self.get_current_target(state)
         
-        self.all_slots_present = True
+        
     
     def get_current_target(self, state: MessageState):
         targ = self.round_num(self.random_in_last_third(
-                state["slots"]["max_percieved_marketPrice"][0].value, 
-                state["slots"]["max_market_price"][0].value, 
-                state["slots"]["reservation_price"][0].value
+                state.slots["max_percieved_marketPrice"][0].value, 
+                state.slots["max_market_price"][0].value, 
+                state.slots["reservation_price"][0].value
             ))
-        state["slots"]["current_target"] = [Slot(
+        state.slots["current_target"] = [Slot(
                 name = "current_target", 
                 type = "string", 
                 value = targ, 
@@ -180,64 +188,90 @@ class NegotiationSingleIssueWorkerSeller(BaseWorker):
                 verified = True)] 
         
     def get_response(self, state: MessageState):
-        if not self.all_slots_present:
-            logger.info("Checking and initializing slots")
-            self.check_and_initialize_slots(state)
+        # Only initialize slots if they don't exist or if turn is 0
+        # if not hasattr(state, 'slots') or not state.slots or \
+        #    'turn' not in state.slots or state.slots['turn'][0].value == 0:
+        #     logger.info("Checking and initializing slots")
+        #     self.check_and_initialize_slots(state)
+        #     # Set initial turn to 0 to start the conversation
+        #     state.slots['turn'][0].value = 0
 
-        if(state["slots"]["turn"][0].value == 0): 
-           state["slots"]["turn"][0].value += 1
-           logger.info(f"Initial target for seller: {state['slots']['current_target'][0].value}") 
-           print(f"Initial target for seller: {state['slots']['current_target'][0].value}") 
+        current_turn = state.slots["turn"][0].value
+        print(f"Current turn: {current_turn}")
+        
+        if current_turn == 0: 
+           print(f"FIRST TURN FOR SELLER {current_turn}") 
+           state.slots["turn"][0].value += 1
+           logger.info(f"Initial target for seller: {state.slots['current_target'][0].value}") 
+           print(f"Initial target for seller: {state.slots['current_target'][0].value}") 
            static_prompt, dynamic_prompt = self.get_prompts(
                         self.unit_index,
-                        state["slots"]["current_target"][0].value
+                        state.slots["current_target"][0].value,
+                        state.user_message.message, 
+                        state.slots["turn"][0].value
                     )
-           state["response"] = self.llm.invoke(dynamic_prompt).content.strip()
+           print(f"Dynamic prompt: {dynamic_prompt}")
+           state.response = self.llm.invoke(dynamic_prompt).content.strip()
+           print(f"Response: {state.response}")
 
-        elif(state["slots"]["turn"][0].value == 1):
-            state["slots"]["turn"][0].value += 1
+        elif current_turn == 1:
+            state.slots["turn"][0].value += 1
             logger.info("Responding to user as the seller")
             generic_prompt = '\nRespond to the user as the seller. Do not give a counteroffer or mention a price in your response.'
-            state["response"] = self.llm.invoke(generic_prompt).content.strip()
-        elif(state["slots"]["turn"][0].value > 4): 
-            state["slots"]["turn"][0].value += 1
+            state.response = self.llm.invoke(generic_prompt).content.strip()
+        elif current_turn > 4: 
+            state.slots["turn"][0].value += 1
             static_prompt, dynamic_prompt = self.get_prompts(
                         self.unit_index,
-                        state["slots"]["current_target"][0].value
+                        state.slots["current_target"][0].value,
+                        state.user_message.message,
+                        state.slots["turn"][0].value
                     )
-            state["response"] = self.llm.invoke(static_prompt).content.strip()
+            state.response = self.llm.invoke(static_prompt).content.strip()
 
         else: 
-            state["slots"]["turn"][0].value += 1
+            state.slots["turn"][0].value += 1
             logger.info("Generating response based on current target")
-            state["current_target"] = (
-                state["slots"]["current_target"][0].value + state["slots"]["reservation_price"][0].value) / 2
-            state["slots"]["current_target"][0].value = self.round_num(state["current_target"], int(1*10**2))
+            new_target = (
+                state.slots["current_target"][0].value + state.slots["reservation_price"][0].value) / 2
+            state.slots["current_target"][0].value = self.round_num(new_target, int(1*10**2))
             static_prompt, dynamic_prompt = self.get_prompts(
                         self.unit_index,
-                        state["slots"]["current_target"][0].value
+                        state.slots["current_target"][0].value,
+                        state.user_message.message,
+                        state.slots["turn"][0].value
                     )
-            state["response"] = self.llm.invoke(dynamic_prompt).content.strip()
+            state.response = self.llm.invoke(dynamic_prompt).content.strip()
 
-        if(state["slots"]["turn"][0].value >= 7):
+        if(state.slots["turn"][0].value >= 7):
             logger.info("Episode done")
-            state["slots"]["episode_done"][0].value = True
+            state.slots["episode_done"][0].value = True
         else:
-            state["slots"]["episode_done"][0].value = False
+            state.slots["episode_done"][0].value = False
+            
+        return state
     
     def _create_action_graph(self):
         """Create a processing flow for persuasion strategy."""
         workflow = StateGraph(MessageState)
         
         # Add persuasion strategy node
-        workflow.add_node("negotiation_resposne", self.get_response)
+        workflow.add_node("negotiation_response", self.get_response)
         
         # Add edges
-        workflow.add_edge(START, "negotiation_resposne")
+        workflow.add_edge(START, "negotiation_response")
         return workflow
     
     def _execute(self, msg_state: MessageState, **kwargs: Any) -> Dict[str, Any]:
+        print("Executing negotiation response worker")
+        # Debug the incoming state
+        self.check_and_initialize_slots(msg_state)
         graph = self.action_graph.compile()
-        result: Dict[str, Any] = graph.invoke(msg_state)
-        return result
+        result = graph.invoke(msg_state)
+        
+        # Convert the result back to a MessageState and preserve the response
+        response_state = MessageState.model_validate(result)
+        print(f"State after graph execution - slots: {response_state.slots}")
+            
+        return response_state.model_dump()
     

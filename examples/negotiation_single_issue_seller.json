@@ -9,7 +9,7 @@
     "workers": [
         {
             "id": "720ecdd4-8cf2-47f2-a825-64bd07377950",
-            "name": "NegotiationSingleIssueWorkerSeller",
+            "name": "NegotiationSingleIssueWorker",
             "path": "negotiation_workers/negotiation_single_issue_worker.py"
         }
     ],
