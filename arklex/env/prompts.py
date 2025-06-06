@@ -217,7 +217,7 @@ assistant (for speech):
 Conversation:
 {formatted_chat}
 ----------------
-Only answer yes or no.
+The answer has to be in English and should only be yes or no.
 ----------------
 Answer:
 """,
@@ -323,7 +323,7 @@ Rephrase the "Answer" only to fix fluency or coherence issues caused by removed 
 Conversation:
 {formatted_chat}
 ----------------
-Only answer yes or no.
+The answer has to be in English and should only be yes or no.
 ----------------
 Answer:
 """,
