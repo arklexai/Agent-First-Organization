@@ -258,7 +258,14 @@ class AgentOrg:
 {conversation_history}
 
 And the task: "{task}"
-Does the conversation contain the information needed for this task? Check synonyms and variations of phrasing.
+
+Your job is to decide:
+1. Whether the user has already provided the information needed for this task
+2. Whether the assistant has already performed this task
+
+Check for synonyms and variations of phrasing in both the user's messages and assistant's responses.
+Reply with 'yes' only if BOTH conditions are met (user provided info AND assistant performed task), otherwise 'no'.
+
 Answer with only 'yes' or 'no'"""
         logger.info(f"prompt for check skip node: {prompt}")
 
