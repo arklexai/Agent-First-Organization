@@ -23,9 +23,8 @@ RAG_NODES_STEPS = {
 def post_process_response(
     message_state: MessageState, params: Params, hitl_worker_available: bool
 ) -> MessageState:
-    context = _build_context(message_state)
+    context_links = _build_context(message_state)
     response_links = _extract_links(message_state.response)
-    context_links = _extract_links(context)
     missing_links = response_links - context_links
     if missing_links:
         logger.info(
@@ -39,28 +38,26 @@ def post_process_response(
     return message_state
 
 
-def _build_context(message_state: MessageState) -> str:
-    context = message_state.sys_instruct
+def _build_context(message_state: MessageState) -> set:
+    context_links = _extract_links(message_state.sys_instruct)
     for resource_group in message_state.trajectory:
         for resource in resource_group:
             if _include_resource(resource):
-                context += " " + resource.output
-            # add RAG document content
+                context_links.update(_extract_links(resource.output))
             rag_step_type = RAG_NODES_STEPS.get(resource.info.get("id"))
             if rag_step_type:
-                links = set()
                 for step in resource.steps:
                     try:
                         if rag_step_type in step:
-                            links.update(_extract_links_from_nested_dict(step))
+                            step_links = _extract_links_from_nested_dict(
+                                step[rag_step_type]
+                            )
+                            context_links.update(step_links)
                     except Exception as e:
                         logger.warning(
                             f"Error extracting links from step: {e} — step: {step}"
                         )
-
-                if links:
-                    context += " " + " ".join(links)
-    return context
+    return context_links
 
 
 def _include_resource(resource: ResourceRecord) -> bool:
@@ -97,8 +94,7 @@ def _extract_links_from_nested_dict(step: Any) -> set:
 
 
 def _remove_invalid_links(response: str, links: set) -> str:
-    sorted_links = sorted([re.escape(link)
-                          for link in links], key=len, reverse=True)
+    sorted_links = sorted([re.escape(link) for link in links], key=len, reverse=True)
     links_regex = "|".join(sorted_links)
     cleaned_response = re.sub(links_regex, "", response)
     return re.sub(r"\s+", " ", cleaned_response).strip()
