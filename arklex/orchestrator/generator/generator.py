@@ -166,10 +166,9 @@ class Generator:
         config: dict,
         model,
         output_dir: Optional[str] = None,
-        generic_start_msg: bool = True,
         resource_inizializer: Optional[BaseResourceInitializer] = None,
         interactable_with_user=True,
-        allow_nested_graph=False,
+        allow_nested_graph=True,
     ):
         if resource_inizializer is None:
             resource_inizializer = DefaulResourceInitializer()
@@ -197,7 +196,6 @@ class Generator:
         self.documents = ""  # task documents
         self.reusable_tasks = {}  # nested graph tasks
         self.tasks = []  # tasks
-        self.generic_start_msg = generic_start_msg
     def _generate_reusable_tasks(self):
         """
         Generate reusable task graphs and pair each step with available resources.
@@ -610,7 +608,6 @@ class Generator:
         )
         
         nodes.insert(0, start_node)
-
         task_graph = {"nodes": nodes, "edges": edges}
 
         for key, value in self.product_kwargs.items():

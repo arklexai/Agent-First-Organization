@@ -1,5 +1,4 @@
 import argparse
-from distutils.util import strtobool
 import json
 import logging
 import os
@@ -21,6 +20,7 @@ logger = init_logger(
     filename=os.path.join(os.path.dirname(__file__), "logs", "arklex.log"),
 )
 load_dotenv()
+
 
 def generate_taskgraph(args: argparse.Namespace) -> None:
     model = PROVIDER_MAP.get(MODEL["llm_provider"], ChatOpenAI)(
@@ -84,7 +84,6 @@ if __name__ == "__main__":
     parser.add_argument(
         "--task", type=str, choices=["gen_taskgraph", "init", "all"], default="all"
     )
-
     args = parser.parse_args()
     MODEL["model_type_or_path"] = args.model
     MODEL["llm_provider"] = args.llm_provider
