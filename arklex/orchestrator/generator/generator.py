@@ -196,6 +196,7 @@ class Generator:
         self.documents = ""  # task documents
         self.reusable_tasks = {}  # nested graph tasks
         self.tasks = []  # tasks
+
     def _generate_reusable_tasks(self):
         """
         Generate reusable task graphs and pair each step with available resources.
@@ -606,8 +607,8 @@ class Generator:
                 "type": "start",
             }
         )
-        
         nodes.insert(0, start_node)
+        
         task_graph = {"nodes": nodes, "edges": edges}
 
         for key, value in self.product_kwargs.items():
