@@ -259,13 +259,9 @@ class AgentOrg:
 
 And the task: "{task}"
 
-Your job is to decide:
-1. Whether the user has already provided the information needed for this task
-2. Whether the assistant has already performed this task
-
+Your job is to decide whether the user has already provided the information needed for this task
 Check for synonyms and variations of phrasing in both the user's messages and assistant's responses.
-Reply with 'yes' only if BOTH conditions are met (user provided info AND assistant performed task), otherwise 'no'.
-
+Reply with 'yes' only if either of these conditions are met (user provided info), otherwise 'no'.
 Answer with only 'yes' or 'no'"""
         logger.info(f"prompt for check skip node: {prompt}")
 
