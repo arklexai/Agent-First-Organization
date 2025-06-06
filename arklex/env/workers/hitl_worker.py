@@ -1,3 +1,12 @@
+"""Human-in-the-Loop (HITL) worker implementations for the Arklex framework.
+
+This module provides specialized workers for handling human-in-the-loop interactions. It
+includes implementations for live chat with human representatives, multiple-choice
+confirmations, and various verification mechanisms. The workers support different modes of
+human interaction, including chat-based and multiple-choice-based workflows, with
+capabilities for message verification, slot filling, and state management.
+"""
+
 import logging
 from typing import Any, Dict, List, Optional, Tuple
 
@@ -249,7 +258,7 @@ class HITLWorkerChatFlag(HITLWorker):
 
         return True, message
 
-    def _execute(self, state: MessageState) -> MessageState:
+    def _execute(self, state: MessageState, **kwargs: Any) -> MessageState:
         if not state.metadata.hitl:
             need_hitl: bool
             message: str
@@ -300,7 +309,7 @@ class HITLWorkerMCFlag(HITLWorker):
     def verify_literal(self, message: str) -> bool:
         return "buy" in message
 
-    def _execute(self, state: MessageState) -> MessageState:
+    def _execute(self, state: MessageState, **kwargs: Any) -> MessageState:
         if not state.metadata.hitl:
             need_hitl: bool
             _: str

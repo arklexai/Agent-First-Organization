@@ -1,4 +1,17 @@
-# Copyright Sierra
+"""Benchmark runner for the TAU benchmark.
+
+This module provides functionality for running and evaluating agents on the TAU benchmark,
+including support for different environments (retail, airline), user strategies, and
+model providers. It handles task execution, result collection, and metric calculation
+for evaluating agent performance.
+
+The module includes:
+- Task execution and result collection
+- Performance metric calculation (average reward, pass^k)
+- Concurrent task execution with configurable concurrency
+- Checkpointing and result persistence
+- Environment and agent management
+"""
 
 import os
 import json
@@ -17,6 +30,24 @@ from benchmark.tau_bench.envs.user import UserStrategy
 
 
 def run(config: RunConfig) -> List[EnvRunResult]:
+    """Run the TAU benchmark with the specified configuration.
+
+    This function executes the benchmark tasks according to the provided configuration,
+    including environment setup, task execution, and result collection. It supports
+    multiple trials, task shuffling, and concurrent execution. Results are saved to
+    a checkpoint file for persistence and analysis.
+
+    Args:
+        config (RunConfig): Configuration for the benchmark run, including environment,
+            user strategy, model provider, and task settings.
+
+    Returns:
+        List[EnvRunResult]: List of results from all task executions.
+
+    Raises:
+        AssertionError: If the environment, user model provider, task split, or
+            user strategy is invalid.
+    """
     assert config.env in ["retail", "airline"], (
         "Only retail and airline envs are supported"
     )
@@ -126,12 +157,39 @@ def run(config: RunConfig) -> List[EnvRunResult]:
 
 
 def agent_factory(config: RunConfig) -> Agent:
+    """Create an agent instance based on the configuration.
+
+    This function creates and returns an appropriate agent instance for the benchmark
+    based on the provided configuration. Currently, it creates an AgentFirstOrg
+    instance with the specified taskgraph directory.
+
+    Args:
+        config (RunConfig): Configuration for the agent, including taskgraph directory.
+
+    Returns:
+        Agent: An instance of the appropriate agent class.
+    """
     from benchmark.tau_bench.agents.agent_first_org import AgentFirstOrg
 
     return AgentFirstOrg(taskgraph_dir=config.taskgraph_dir)
 
 
 def get_metrics(results: List[EnvRunResult]) -> Tuple[float, Dict[int, float]]:
+    """Calculate performance metrics from benchmark results.
+
+    This function calculates the average reward and pass^k metrics from the benchmark
+    results. The pass^k metric represents the probability of passing k trials, which
+    is calculated using the binomial coefficient formula from the TAU benchmark paper.
+
+    Args:
+        results (List[EnvRunResult]): List of results from task executions.
+
+    Returns:
+        Tuple[float, Dict[int, float]]: A tuple containing:
+            - float: The average reward across all tasks
+            - Dict[int, float]: A dictionary mapping k to pass^k values
+    """
+
     def is_successful(reward: float) -> bool:
         return (1 - 1e-6) <= reward <= (1 + 1e-6)
 
@@ -155,6 +213,15 @@ def get_metrics(results: List[EnvRunResult]) -> Tuple[float, Dict[int, float]]:
 
 
 def display_metrics(avg_reward: float, pass_hat_ks: Dict[int, float]) -> None:
+    """Display benchmark performance metrics.
+
+    This function prints the average reward and pass^k metrics in a formatted way,
+    providing a clear overview of the benchmark performance.
+
+    Args:
+        avg_reward (float): The average reward across all tasks.
+        pass_hat_ks (Dict[int, float]): Dictionary mapping k to pass^k values.
+    """
     print(f"🏆 Average reward: {avg_reward}")
     print("📈 Pass^k")
     for k, pass_hat_k in pass_hat_ks.items():

@@ -1,7 +1,9 @@
 """
-This module is currently inactive.
+This module provides functionality to retrieve detailed information about a specific order
+from the Shopify store, including its status, total price, and line items.
 
-It is reserved for future use and may contain experimental or planned features (dependence on refresh token).
+Note: This module is currently inactive and reserved for future use.
+It may contain experimental or planned features (dependence on refresh token).
 
 Status:
     - Not in use (as of 2025-02-18)
@@ -9,9 +11,10 @@ Status:
 
 Module Name: get_order
 
-This file contains the code for getting the status and details of an order.
+This file contains the code for retrieving order information from Shopify.
 """
-from typing import Any, Dict
+
+from typing import Any, Dict, Tuple, Union
 
 from arklex.env.tools.tools import register_tool
 
@@ -24,25 +27,39 @@ from arklex.env.tools.shopify.utils import *
 from arklex.env.tools.shopify.auth_utils import *
 
 description = "Get the status and details of an order."
-slots = [
-    ShopifySlots.REFRESH_TOKEN,
-    ShopifySlots.ORDER_ID,
-    *PAGEINFO_SLOTS
-]
-outputs = [
-    ShopifyOutputs.ORDERS_DETAILS,
-    *PAGEINFO_OUTPUTS
-]
+slots = [ShopifySlots.REFRESH_TOKEN, ShopifySlots.ORDER_ID, *PAGEINFO_SLOTS]
+outputs = [ShopifyOutputs.ORDERS_DETAILS, *PAGEINFO_OUTPUTS]
 
 ORDERS_NOT_FOUND = "error: order not found"
 errors = [ORDERS_NOT_FOUND]
 
+
 @register_tool(description, slots, outputs, lambda x: x not in errors)
-def get_order(refresh_token, order_id: str, **kwargs) -> str:
+def get_order(
+    refresh_token: str, order_id: str, **kwargs: Any
+) -> Union[Tuple[Dict[str, Any], Dict[str, Any]], str]:
+    """
+    Retrieve the status and details of a specific order.
+
+    Args:
+        refresh_token (str): The refresh token for authentication.
+        order_id (str): The ID of the order to retrieve.
+        **kwargs (Any): Additional keyword arguments for pagination.
+
+    Returns:
+        Union[Tuple[Dict[str, Any], Dict[str, Any]], str]: Either:
+            - A tuple containing:
+                - Dict[str, Any]: Order details including ID, name, total price, and line items
+                - Dict[str, Any]: Page information for pagination
+            - str: Error message if the operation fails
+
+    Raises:
+        None: Errors are caught and returned as strings.
+    """
     nav = cursorify(kwargs)
-    if not nav[1]: 
+    if not nav[1]:
         return nav[0]
-    
+
     try:
         body = f'''
             query {{ 
@@ -69,16 +86,18 @@ def get_order(refresh_token, order_id: str, **kwargs) -> str:
             }}
         '''
         try:
-            auth = {'Authorization': get_access_token(refresh_token)}
+            auth: Dict[str, str] = {"Authorization": get_access_token(refresh_token)}
         except:
             return AUTH_ERROR
-        
+
         try:
-            response = make_query(customer_url, body, {}, customer_headers | auth)['data']['order']
+            response: Dict[str, Any] = make_query(
+                customer_url, body, {}, customer_headers | auth
+            )["data"]["order"]
         except Exception as e:
             return f"error: {e}"
-        
-        pageInfo = response['lineItems']['pageInfo']
+
+        pageInfo: Dict[str, Any] = response["lineItems"]["pageInfo"]
         return response, pageInfo
     except Exception as e:
         return ORDERS_NOT_FOUND

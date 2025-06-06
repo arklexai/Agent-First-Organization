@@ -1,3 +1,9 @@
+"""
+Tool for finding the owner ID of a contact via HubSpot in the Arklex framework.
+
+This module implements a tool for retrieving the owner ID associated with a contact using the HubSpot API. It is designed for integration with the Arklex tool system.
+"""
+
 import inspect
 import hubspot
 from hubspot.crm.objects.emails import ApiException
@@ -51,7 +57,7 @@ def find_owner_id_by_contact_id(cus_cid: str, **kwargs: Dict[str, Any]) -> str:
     func_name: str = inspect.currentframe().f_code.co_name
     access_token: str = authenticate_hubspot(kwargs)
 
-    api_client: Any = hubspot.Client.create(access_token=access_token)
+    api_client: hubspot.Client = hubspot.Client.create(access_token=access_token)
 
     try:
         get_owner_id_response: Any = api_client.api_request(

@@ -34,7 +34,7 @@ dependencies = [
   "python-multipart>=0.0.12,<1.0.0",
   "selenium>=4.26.1,<5.0.0",
   "textual>=0.85.2,<1.0.0",
-  "unstructured>=0.16.4,<1.0.0",
+  "unstructured[docx]>=0.16.4,<1.0.0",
   "unstructured-client>=0.30.0,<1.0.0",
   "watchfiles>=0.24.0,<1.0.0",
   "websockets>=13.1,<14.0",
@@ -80,7 +80,7 @@ strict-versions = [
   "python-multipart==0.0.12",
   "selenium==4.26.1",
   "textual==0.85.2",
-  "unstructured==0.16.4",
+  "unstructured[docx]==0.16.4",
   "unstructured-client==0.30.0",
   "watchfiles==0.24.0",
   "websockets==13.1",
@@ -111,3 +111,55 @@ Issues = "https://github.com/arklexai/Agent-First-Organization/issues"
 [build-system]
 requires = ["hatchling"]
 build-backend = "hatchling.build"
+
+[tool.ruff]
+# Exclude a variety of commonly ignored directories.
+exclude = [
+    ".bzr",
+    ".direnv",
+    ".eggs",
+    ".git",
+    ".git-rewrite",
+    ".hg",
+    ".ipynb_checkpoints",
+    ".mypy_cache",
+    ".nox",
+    ".pants.d",
+    ".pyenv",
+    ".pytest_cache",
+    ".pytype",
+    ".ruff_cache",
+    ".svn",
+    ".tox",
+    ".venv",
+    ".vscode",
+    "__pypackages__",
+    "_build",
+    "buck-out",
+    "build",
+    "dist",
+    "node_modules",
+    "site-packages",
+    "venv",
+]
+
+line-length = 88
+indent-width = 4
+
+[tool.ruff.lint]
+select = ["E", "ANN"]
+ignore = ["E501", "E722", "E402", "ANN401"] #The last two are:Do not use bare `except`, and Module level import not at top of file
+fixable = ["ALL"]
+
+[tool.ruff.format]
+quote-style = "double"
+
+indent-style = "space"
+
+skip-magic-trailing-comma = false
+
+line-ending = "auto"
+
+docstring-code-format = false
+
+docstring-code-line-length = "dynamic"

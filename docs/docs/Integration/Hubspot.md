@@ -512,7 +512,7 @@ So the taskgraph to handle these two cases is shown below:
       "2",
       {
         "resource": {
-          "id": "40f05456-525c-4d9d-ac37-54482d6b220b",
+          "id": "FaissRAGWorker",
           "name": "FaissRAGWorker"
         },
         "attribute": {
@@ -775,7 +775,7 @@ So the taskgraph to handle these two cases is shown below:
       "path": "message_worker.py"
     },
     {
-      "id": "40f05456-525c-4d9d-ac37-54482d6b220b",
+      "id": "FaissRAGWorker",
       "name": "FaissRAGWorker",
       "path": "faiss_rag_worker.py"
     },

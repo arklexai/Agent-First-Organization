@@ -1,3 +1,9 @@
+"""
+Tool for creating support tickets via HubSpot in the Arklex framework.
+
+This module implements a tool for creating support tickets for customers using the HubSpot API. It handles ticket creation, association with contacts, and is designed for integration with the Arklex tool system.
+"""
+
 from datetime import datetime
 import inspect
 import hubspot
@@ -63,7 +69,7 @@ def create_ticket(cus_cid: str, issue: str, **kwargs: Dict[str, Any]) -> str:
     func_name: str = inspect.currentframe().f_code.co_name
     access_token: str = authenticate_hubspot(kwargs)
 
-    api_client: Any = hubspot.Client.create(access_token=access_token)
+    api_client: hubspot.Client = hubspot.Client.create(access_token=access_token)
 
     timestamp: str = datetime.now().strftime("%Y-%m-%dT%H:%M:%S.%fZ")[:-3] + "Z"
     subject_name: str = "Issue of " + cus_cid + " at " + timestamp

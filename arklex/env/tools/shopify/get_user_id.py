@@ -1,7 +1,15 @@
 """
-This module is currently inactive.
+This module provides functionality to retrieve a user's ID from the Shopify store using their refresh token.
+It supports authentication and user identification through the Shopify Customer API.
 
-It is reserved for future use and may contain experimental or planned features (dependence on refresh token).
+The module:
+1. Uses the Shopify Customer API to fetch user ID
+2. Handles authentication using refresh tokens
+3. Provides error handling for authentication and user lookup failures
+4. Returns either the user ID or an error message
+
+Note: This module is currently inactive and reserved for future use.
+It may contain experimental or planned features (dependence on refresh token).
 
 Status:
     - Not in use (as of 2025-02-18)
@@ -9,9 +17,10 @@ Status:
 
 Module Name: get_user_id
 
-This file contains the code for getting the user id by refresh token.
+This file contains the code for retrieving a user's ID using their refresh token.
 """
-from typing import Any, Dict
+
+from typing import Union, Literal
 
 from arklex.env.tools.tools import register_tool
 
@@ -24,15 +33,39 @@ description = "Find user id by refresh token. If the user is not found, the func
 slots = [
     ShopifySlots.REFRESH_TOKEN,
 ]
-outputs = [
-    ShopifyOutputs.USER_ID
-]
+outputs = [ShopifyOutputs.USER_ID]
 
 USER_NOT_FOUND_ERROR = "error: user not found"
 errors = [AUTH_ERROR, USER_NOT_FOUND_ERROR]
 
-@register_tool(description, slots, outputs, lambda x: x not in errors or not x.startswith("error: "))
-def get_user_id(refresh_token) -> str:
+
+@register_tool(
+    description,
+    slots,
+    outputs,
+    lambda x: x not in errors or not x.startswith("error: "),
+)
+def get_user_id(refresh_token: str) -> Union[str, Literal["error: user not found"]]:
+    """
+    Retrieve a user's ID using their refresh token.
+
+    Args:
+        refresh_token (str): The refresh token used for authentication.
+            This token is used to obtain an access token for API requests.
+
+    Returns:
+        Union[str, Literal["error: user not found"]]: Either:
+            - str: The user's ID if successful (format: "gid://shopify/Customer/123456")
+            - Literal["error: user not found"]: Error message if the user is not found
+              or authentication fails
+
+    Raises:
+        None: All errors are caught and returned as strings.
+
+    Note:
+        This function requires a valid refresh token for authentication.
+        The user ID is returned in Shopify's Global ID format.
+    """
     try:
         return get_id(refresh_token)
     except Exception:

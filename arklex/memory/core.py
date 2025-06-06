@@ -1,3 +1,12 @@
+"""Core memory implementation for the Arklex framework.
+
+This module provides the core memory functionality for managing conversation context and history.
+The ShortTermMemory class is responsible for storing and retrieving conversation trajectories,
+managing embeddings for semantic search, and personalizing user intents based on conversation context.
+It includes functionality for retrieving relevant records, managing embeddings with caching,
+and generating personalized intents from user interactions.
+"""
+
 # TODO(christian): fix annotations in this file.
 
 import asyncio
@@ -27,19 +36,18 @@ class ShortTermMemory:
         chat_history: str,
         llm_config: LLMConfig,
     ):
-        """_summary_
-        Represents the short-term memory of a conversation, storing a trajectory of
-        ResourceRecords across multiple turns. This memory enables retrieval of past
-        context, intents, tasks, and outputs for use in dynamic and contextual reasoning.
+        """Initialize the ShortTermMemory instance.
 
+        This function initializes the short-term memory with conversation trajectory,
+        chat history, and language model configuration. It sets up the embedding model
+        and caching mechanism for efficient semantic search.
 
         Args:
             trajectory (List[List[ResourceRecord]]): Memory structure for the conversation where
-                                                    each list of ResourceRecord objects encompasses
-                                                    the information of a single conversation turn
-            chat_history (List[dict]): List of chat history messages
-            **kwargs: Additional arguments including:
-                - llm_config (LLMConfig, optional): Configuration for LLM and embedding models
+                each list of ResourceRecord objects encompasses the information of a single
+                conversation turn.
+            chat_history (str): Formatted chat history string containing recent conversation turns.
+            llm_config (LLMConfig): Configuration for the language model and embeddings.
         """
         if trajectory is None:
             trajectory = []
@@ -80,7 +88,17 @@ class ShortTermMemory:
 
     @lru_cache(maxsize=1000)
     def _get_embedding(self, text: str) -> np.ndarray:
-        """Get embedding for text with caching."""
+        """Get embedding for text with caching.
+
+        This function retrieves or computes the embedding for a given text, using
+        caching to improve performance for repeated queries.
+
+        Args:
+            text (str): The text to get the embedding for.
+
+        Returns:
+            np.ndarray: The embedding vector for the text.
+        """
         if text not in self._embedding_cache:
             self._embedding_cache[text] = np.array(
                 self.embedding_model.embed_query(text)
@@ -88,12 +106,31 @@ class ShortTermMemory:
         return self._embedding_cache[text]
 
     async def _batch_get_embeddings(self, texts: List[str]) -> List[np.ndarray]:
-        """Get embeddings for multiple texts in parallel."""
+        """Get embeddings for multiple texts in parallel.
+
+        This function efficiently computes embeddings for multiple texts using
+        asynchronous processing.
+
+        Args:
+            texts (List[str]): List of texts to get embeddings for.
+
+        Returns:
+            List[np.ndarray]: List of embedding vectors for the texts.
+        """
         tasks = [asyncio.create_task(self._get_embedding_async(text)) for text in texts]
         return await asyncio.gather(*tasks)
 
     async def _get_embedding_async(self, text: str) -> np.ndarray:
-        """Async wrapper for getting embeddings."""
+        """Async wrapper for getting embeddings.
+
+        This function provides an asynchronous interface for getting text embeddings.
+
+        Args:
+            text (str): The text to get the embedding for.
+
+        Returns:
+            np.ndarray: The embedding vector for the text.
+        """
         return self._get_embedding(text)
 
     def retrieve_records(
@@ -103,18 +140,24 @@ class ShortTermMemory:
         threshold: float = 0.55,
         cosine_threshold: float = 0.7,
     ) -> Tuple[bool, List[ResourceRecord]]:
-        """
+        """Retrieve relevant records from memory based on a query.
+
+        This function searches through the conversation trajectory to find records
+        that are semantically similar to the query. It uses a combination of
+        cosine similarity and string matching to find the most relevant records.
 
         Args:
-            query (str):  The query string to retrieve relevant records for.
+            query (str): The query string to retrieve relevant records for.
             top_k (int, optional): The number of top records to return. Defaults to 3.
-            threshold (float, optional): The string similarity score threshold for filtering relevant records. Defaults to 0.55.
-            cosine_threshold (float, optional): The cosine similarity threshold for initial filtering. Defaults to 0.7.
+            threshold (float, optional): The string similarity score threshold for filtering
+                relevant records. Defaults to 0.55.
+            cosine_threshold (float, optional): The cosine similarity threshold for initial
+                filtering. Defaults to 0.7.
 
         Returns:
-            Tuple[bool, List[ResourceRecord]]: A tuple where the first element is a boolean indicating
-                                           whether relevant records were found, and the second element is a
-                                           list of the top-k relevant `ResourceRecord` objects based on the query.
+            Tuple[bool, List[ResourceRecord]]: A tuple where the first element is a boolean
+                indicating whether relevant records were found, and the second element is a
+                list of the top-k relevant ResourceRecord objects based on the query.
         """
         if not self.trajectory:
             return False, []
@@ -226,18 +269,24 @@ class ShortTermMemory:
     def retrieve_intent(
         self, query: str, string_threshold: float = 0.4, cosine_threshold: float = 0.7
     ) -> Tuple[bool, Optional[str]]:
-        """
+        """Retrieve the most relevant intent from memory based on a query.
+
+        This function searches through the conversation trajectory to find the intent
+        that best matches the query. It uses a combination of cosine similarity and
+        string matching to find the most relevant intent.
 
         Args:
             query (str): The query string to retrieve the most relevant intent for.
-            string_threshold (float, optional): The string similarity score threshold for filtering relevant intents. Defaults to 0.4.
-            cosine_threshold (float, optional): The cosine similarity threshold for initial filtering. Defaults to 0.7.
+            string_threshold (float, optional): The string similarity score threshold for
+                filtering relevant intents. Defaults to 0.4.
+            cosine_threshold (float, optional): The cosine similarity threshold for initial
+                filtering. Defaults to 0.7.
 
         Returns:
-            Tuple[bool, Optional[str]]: A tuple where the first element is a boolean indicating
-                                     whether a relevant intent was found, and the second element is the
-                                     most relevant intent (if found), or None if no relevant intent meets
-                                     the threshold.
+            Tuple[bool, Optional[str]]: A tuple where the first element is a boolean
+                indicating whether a relevant intent was found, and the second element is
+                the most relevant intent (if found), or None if no relevant intent meets
+                the threshold.
         """
         if not self.trajectory:
             return False, None
@@ -284,9 +333,11 @@ class ShortTermMemory:
             return False, None
 
     async def personalize(self):
-        """
-        Loops through the last 5 records in the trajectory and generates personalized intents
-        only if not already computed, storing them as `personalized_intent`.
+        """Generate personalized intents for records in memory.
+
+        This function processes the conversation trajectory to generate personalized
+        intents for each record. It uses the language model to create more specific
+        and contextual intents based on the conversation history.
         """
         # Get all user utterances from chat history
         user_utterances = []
@@ -312,6 +363,15 @@ class ShortTermMemory:
     async def _set_personalized_intent(
         self, record: ResourceRecord, user_utterance: str
     ):
+        """Set personalized intent for a record.
+
+        This function generates and sets a personalized intent for a given record
+        based on the user's utterance.
+
+        Args:
+            record (ResourceRecord): The record to set the personalized intent for.
+            user_utterance (str): The user's utterance to consider for personalization.
+        """
         record.personalized_intent = (
             await self.generate_personalized_product_attribute_intent(
                 record, user_utterance
@@ -321,14 +381,18 @@ class ShortTermMemory:
     async def generate_personalized_product_attribute_intent(
         self, record: ResourceRecord, user_utterance: str
     ) -> str:
-        """
+        """Generate a personalized intent focusing on product and attribute.
+
+        This function creates a personalized intent that emphasizes the product and
+        attribute aspects of the interaction, using the record's information and
+        user utterance.
+
         Args:
-            user_utterance (str): User utterance in chat_history corresponding to the record.
-            record (ResourceRecord): Record having the information about agent trajectory.
+            record (ResourceRecord): The record containing information about the interaction.
+            user_utterance (str): The user's utterance to consider for personalization.
 
         Returns:
-            personalized_intent (str):Generate a more personalized intent using task, tool output, context generate, and intent,
-        focusing on product and attribute mentioned or inferred.
+            str: The generated personalized intent string.
         """
 
         task = record.info.get("attribute", {}).get("task", "") or ""

@@ -1,3 +1,17 @@
+"""API interface for model interactions in the TAU benchmark.
+
+This module provides a unified API interface for interacting with various language models
+in the TAU benchmark. It supports different types of model operations (classification,
+generation, parsing, scoring) and includes features for model routing, sampling strategies,
+and caching.
+
+The module includes:
+- API class for model interaction
+- Model routing and sampling strategies
+- Caching and logging utilities
+- Factory functions for creating API instances
+"""
+
 from __future__ import annotations
 
 import argparse
@@ -43,6 +57,26 @@ T = TypeVar("T", bound=BaseModel)
 
 
 class API(object):
+    """API interface for model interactions.
+
+    This class provides a unified interface for interacting with various language models,
+    supporting different types of operations (classification, generation, parsing, scoring)
+    and including features for model routing, sampling strategies, and caching.
+
+    Attributes:
+        wrappers_for_main_methods (List[Callable]): List of wrapper functions to apply
+            to main API methods.
+        sampling_strategy (SamplingStrategy): Strategy for sampling model outputs.
+        request_router (RequestRouter): Router for directing requests to appropriate models.
+        _log_file (Optional[str]): Path to the log file.
+        binary_classify_models (Optional[List[BinaryClassifyModel]]): Models for binary classification.
+        classify_models (List[ClassifyModel]): Models for classification.
+        parse_models (List[ParseModel]): Models for parsing.
+        generate_models (List[GenerateModel]): Models for generation.
+        parse_force_models (List[ParseForceModel]): Models for forced parsing.
+        score_models (List[ScoreModel]): Models for scoring.
+    """
+
     wrappers_for_main_methods: List[Callable] = [log_call, cache_call_w_dedup]
 
     def __init__(
@@ -57,6 +91,19 @@ class API(object):
         request_router: Optional[RequestRouter] = None,
         log_file: Optional[str] = None,
     ) -> None:
+        """Initialize the API interface.
+
+        Args:
+            parse_models (List[ParseModel]): Models for parsing.
+            generate_models (List[GenerateModel]): Models for generation.
+            parse_force_models (List[ParseForceModel]): Models for forced parsing.
+            score_models (List[ScoreModel]): Models for scoring.
+            classify_models (List[ClassifyModel]): Models for classification.
+            binary_classify_models (Optional[List[BinaryClassifyModel]]): Models for binary classification.
+            sampling_strategy (Optional[SamplingStrategy]): Strategy for sampling model outputs.
+            request_router (Optional[RequestRouter]): Router for directing requests.
+            log_file (Optional[str]): Path to the log file.
+        """
         if sampling_strategy is None:
             sampling_strategy = get_default_sampling_strategy()
         if request_router is None:
@@ -76,6 +123,7 @@ class API(object):
         self.__init_subclass__()
 
     def __init_subclass__(cls) -> None:
+        """Initialize subclasses by applying wrappers to main methods."""
         for method_name in MODEL_METHODS:
             if hasattr(cls, method_name):
                 method = getattr(cls, method_name)
@@ -91,6 +139,17 @@ class API(object):
         request_router: Optional[RequestRouter] = None,
         log_file: Optional[str] = None,
     ) -> "API":
+        """Create an API instance from a general model.
+
+        Args:
+            model (GeneralModel): The general model to use.
+            sampling_strategy (Optional[SamplingStrategy]): Strategy for sampling model outputs.
+            request_router (Optional[RequestRouter]): Router for directing requests.
+            log_file (Optional[str]): Path to the log file.
+
+        Returns:
+            API: A new API instance configured with the general model.
+        """
         return cls(
             binary_classify_models=[model],
             classify_models=[model],
@@ -111,6 +170,20 @@ class API(object):
         request_router: Optional[RequestRouter] = None,
         log_file: Optional[str] = None,
     ) -> "API":
+        """Create an API instance from multiple general models.
+
+        Args:
+            models (List[GeneralModel]): The general models to use.
+            sampling_strategy (Optional[SamplingStrategy]): Strategy for sampling model outputs.
+            request_router (Optional[RequestRouter]): Router for directing requests.
+            log_file (Optional[str]): Path to the log file.
+
+        Returns:
+            API: A new API instance configured with the general models.
+
+        Raises:
+            ValueError: If no models are provided.
+        """
         if len(models) == 0:
             raise ValueError("Must provide at least one model")
         return cls(
@@ -128,31 +201,79 @@ class API(object):
     def set_default_binary_classify_models(
         self, models: List[BinaryClassifyModel]
     ) -> None:
+        """Set the default binary classification models.
+
+        Args:
+            models (List[BinaryClassifyModel]): The models to use.
+
+        Raises:
+            ValueError: If no models are provided.
+        """
         if len(models) == 0:
             raise ValueError("Must provide at least one model")
         self.binary_classify_models = models
 
     def set_default_classify_models(self, models: List[ClassifyModel]) -> None:
+        """Set the default classification models.
+
+        Args:
+            models (List[ClassifyModel]): The models to use.
+
+        Raises:
+            ValueError: If no models are provided.
+        """
         if len(models) == 0:
             raise ValueError("Must provide at least one model")
         self.classify_models = models
 
     def set_default_parse_models(self, models: List[ParseModel]) -> None:
+        """Set the default parsing models.
+
+        Args:
+            models (List[ParseModel]): The models to use.
+
+        Raises:
+            ValueError: If no models are provided.
+        """
         if len(models) == 0:
             raise ValueError("Must provide at least one model")
         self.parse_models = models
 
     def set_default_generate_models(self, models: List[GenerateModel]) -> None:
+        """Set the default generation models.
+
+        Args:
+            models (List[GenerateModel]): The models to use.
+
+        Raises:
+            ValueError: If no models are provided.
+        """
         if len(models) == 0:
             raise ValueError("Must provide at least one model")
         self.generate_models = models
 
     def set_default_parse_force_models(self, models: List[ParseForceModel]) -> None:
+        """Set the default forced parsing models.
+
+        Args:
+            models (List[ParseForceModel]): The models to use.
+
+        Raises:
+            ValueError: If no models are provided.
+        """
         if len(models) == 0:
             raise ValueError("Must provide at least one model")
         self.parse_force_models = models
 
     def set_default_score_models(self, models: List[ScoreModel]) -> None:
+        """Set the default scoring models.
+
+        Args:
+            models (List[ScoreModel]): The models to use.
+
+        Raises:
+            ValueError: If no models are provided.
+        """
         if len(models) == 0:
             raise ValueError("Must provide at least one model")
         self.score_models = models
@@ -160,9 +281,19 @@ class API(object):
     def set_default_sampling_strategy(
         self, sampling_strategy: SamplingStrategy
     ) -> None:
+        """Set the default sampling strategy.
+
+        Args:
+            sampling_strategy (SamplingStrategy): The strategy to use.
+        """
         self.sampling_strategy = sampling_strategy
 
     def set_default_request_router(self, request_router: RequestRouter) -> None:
+        """Set the default request router.
+
+        Args:
+            request_router (RequestRouter): The router to use.
+        """
         self.request_router = request_router
 
     def _run_with_sampling_strategy(
@@ -171,6 +302,19 @@ class API(object):
         datapoint: Datapoint,
         sampling_strategy: SamplingStrategy,
     ) -> T:
+        """Run a datapoint through models using a sampling strategy.
+
+        Args:
+            models (List[AnyModel]): The models to use.
+            datapoint (Datapoint): The datapoint to process.
+            sampling_strategy (SamplingStrategy): The strategy to use.
+
+        Returns:
+            T: The result of processing the datapoint.
+
+        Raises:
+            ValueError: If no models are provided or if the datapoint type is unknown.
+        """
         assert len(models) > 0
 
         def _run_datapoint(model: AnyModel, temp: Optional[float] = None) -> T:
@@ -242,6 +386,16 @@ class API(object):
         datapoint: Datapoint,
         sampling_strategy: SamplingStrategy,
     ) -> T:
+        """Make an API call using the specified models and sampling strategy.
+
+        Args:
+            models (List[AnyModel]): The models to use.
+            datapoint (Datapoint): The datapoint to process.
+            sampling_strategy (SamplingStrategy): The strategy to use.
+
+        Returns:
+            T: The result of processing the datapoint.
+        """
         if isinstance(sampling_strategy, EnsembleSamplingStrategy):
             return self._run_with_sampling_strategy(
                 models, datapoint, sampling_strategy

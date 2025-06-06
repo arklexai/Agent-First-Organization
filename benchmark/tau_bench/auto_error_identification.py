@@ -1,3 +1,18 @@
+"""Automatic error identification for TAU benchmark results.
+
+This module provides functionality for analyzing and categorizing errors in TAU benchmark
+results. It includes tools for fault assignment (identifying responsible entities) and
+fault type classification, with support for different grading strategies and concurrent
+analysis of multiple results.
+
+The module includes:
+- Command line argument parsing for error identification
+- Data models for results and fault analysis
+- Fault assignment and classification
+- Context formatting and display utilities
+- Concurrent processing of multiple results
+"""
+
 # Copyright Sierra
 import os
 import json
@@ -14,6 +29,20 @@ from concurrent.futures import ThreadPoolExecutor
 
 
 def get_args() -> argparse.Namespace:
+    """Parse command line arguments for error identification.
+
+    This function sets up and parses command line arguments for the error
+    identification process, including environment selection, results path,
+    concurrency settings, and output directory.
+
+    Returns:
+        argparse.Namespace: Parsed command line arguments containing:
+            - env: The environment (airline or retail)
+            - results-path: Path to the results file
+            - max-concurrency: Maximum number of concurrent API calls
+            - output-dir: Path to the output directory
+            - max-num-failed-results: Maximum number of failed results to analyze
+    """
     parser: argparse.ArgumentParser = api_parser()
     parser.add_argument(
         "--env",
@@ -44,6 +73,19 @@ def get_args() -> argparse.Namespace:
 
 
 class OriginalResult(BaseModel):
+    """Model for original benchmark results.
+
+    This class represents the original results from a benchmark run, including
+    task ID, user instruction, trajectory, and ground truth information.
+
+    Attributes:
+        task_id (int): The ID of the task.
+        user_instruction (str): The instruction given to the user.
+        traj (List[Dict[str, Any]]): The sequence of messages in the trajectory.
+        ground_truth_actions (List[Action]): The expected actions for the task.
+        ground_truth_outputs (List[str]): The expected outputs for the task.
+    """
+
     task_id: int
     user_instruction: str
     traj: List[Dict[str, Any]]
@@ -52,17 +94,47 @@ class OriginalResult(BaseModel):
 
 
 class FaultAuthor(Enum):
+    """Enumeration of possible fault authors.
+
+    This enum defines the possible entities that could be responsible for a fault:
+    the user, the agent, or the environment.
+
+    Values:
+        USER: The user is responsible for the fault.
+        AGENT: The agent is responsible for the fault.
+        ENVIRONMENT: The environment is responsible for the fault.
+    """
+
     USER = "user"
     AGENT = "agent"
     ENVIRONMENT = "environment"
 
 
 class FaultAssignmentResult(BaseModel):
+    """Model for fault assignment results.
+
+    This class represents the result of assigning responsibility for a fault,
+    including the task ID, responsible entity, and a description of the fault.
+
+    Attributes:
+        task_id (int): The ID of the task.
+        author (FaultAuthor): The entity responsible for the fault.
+        description (str): A description of the fault.
+
+    Methods:
+        model_dump: Convert the result to a dictionary format.
+    """
+
     task_id: int
     author: FaultAuthor
     description: str
 
     def model_dump(self) -> Dict[str, Any]:
+        """Convert the fault assignment result to a dictionary.
+
+        Returns:
+            Dict[str, Any]: A dictionary representation of the fault assignment result.
+        """
         return {
             "task_id": self.task_id,
             "author": self.author.value,
@@ -71,6 +143,18 @@ class FaultAssignmentResult(BaseModel):
 
 
 class FaultType(Enum):
+    """Enumeration of possible fault types.
+
+    This enum defines the different types of faults that can occur in a benchmark
+    run, such as calling the wrong tool or using incorrect arguments.
+
+    Values:
+        CALLED_WRONG_TOOL: The agent called an incorrect tool.
+        USED_WRONG_TOOL_ARGUMENT: The agent used incorrect arguments for a tool.
+        GOAL_PARTIALLY_COMPLETED: The agent partially completed the goal.
+        OTHER: Any other type of fault.
+    """
+
     CALLED_WRONG_TOOL = "called_wrong_tool"
     USED_WRONG_TOOL_ARGUMENT = "used_wrong_tool_argument"
     GOAL_PARTIALLY_COMPLETED = "goal_partially_completed"
@@ -78,11 +162,30 @@ class FaultType(Enum):
 
 
 class FaultTypeResult(BaseModel):
+    """Model for fault type classification results.
+
+    This class represents the result of classifying a fault's type, including
+    the task ID, fault type, and a description of the fault.
+
+    Attributes:
+        task_id (int): The ID of the task.
+        fault_type (FaultType): The type of fault that occurred.
+        description (str): A description of the fault.
+
+    Methods:
+        model_dump: Convert the result to a dictionary format.
+    """
+
     task_id: int
     fault_type: FaultType
     description: str
 
     def model_dump(self) -> Dict[str, Any]:
+        """Convert the fault type result to a dictionary.
+
+        Returns:
+            Dict[str, Any]: A dictionary representation of the fault type result.
+        """
         return {
             "task_id": self.task_id,
             "fault_type": self.fault_type.value,
@@ -91,11 +194,34 @@ class FaultTypeResult(BaseModel):
 
 
 class GradingStrategy(Enum):
+    """Enumeration of grading strategies.
+
+    This enum defines the different strategies for grading benchmark results,
+    either based on actions or outputs.
+
+    Values:
+        ACTIONS: Grade based on the actions taken.
+        OUTPUTS: Grade based on the outputs produced.
+    """
+
     ACTIONS = "actions"
     OUTPUTS = "outputs"
 
 
 def context_description(grading_strategy: GradingStrategy) -> str:
+    """Generate a description of the context for error analysis.
+
+    This function creates a description of the context that will be provided
+    to the error analysis model, based on the chosen grading strategy. The
+    description includes information about the user instruction, ground truth
+    data, and trajectory.
+
+    Args:
+        grading_strategy (GradingStrategy): The strategy to use for grading.
+
+    Returns:
+        str: A description of the context for error analysis.
+    """
     if grading_strategy == GradingStrategy.ACTIONS:
         return """You will be given a user instruction, the ground truth action sequence, and a trajectory.
 - The user instruction is the instruction given to the simulated user.
@@ -110,6 +236,21 @@ def context_description(grading_strategy: GradingStrategy) -> str:
 
 
 def display_traj(traj: List[Dict[str, Any]]) -> str:
+    """Format a trajectory for display.
+
+    This function formats a trajectory (sequence of messages) into a readable
+    string format, excluding system messages. Each message is formatted as
+    "Role: Content" on a new line.
+
+    Args:
+        traj (List[Dict[str, Any]]): The trajectory to format.
+
+    Returns:
+        str: A formatted string representation of the trajectory.
+
+    Raises:
+        ValueError: If the trajectory is empty.
+    """
     if len(traj) == 0:
         raise ValueError("Trajectory is empty")
     stripped_traj: List[Dict[str, Any]] = [
@@ -121,6 +262,17 @@ def display_traj(traj: List[Dict[str, Any]]) -> str:
 
 
 def display_actions(actions: List[Action]) -> str:
+    """Format a list of actions for display.
+
+    This function formats a list of actions into a JSON string for display,
+    with each action's properties properly indented.
+
+    Args:
+        actions (List[Action]): The actions to format.
+
+    Returns:
+        str: A JSON string representation of the actions.
+    """
     return json.dumps([action.model_dump() for action in actions], indent=4)
 
 
@@ -130,6 +282,21 @@ def display_context(
     ground_truth_outputs: List[str],
     trajectory: List[Dict[str, Any]],
 ) -> str:
+    """Format the complete context for error analysis.
+
+    This function combines user instruction, ground truth information, and
+    trajectory into a formatted context string for error analysis. The context
+    includes clear section markers and appropriate formatting for each component.
+
+    Args:
+        user_instruction (str): The user's instruction.
+        ground_truth_actions (List[Action]): The expected actions.
+        ground_truth_outputs (List[str]): The expected outputs.
+        trajectory (List[Dict[str, Any]]): The actual trajectory.
+
+    Returns:
+        str: A formatted string containing all context information.
+    """
     traj_display: str = display_traj(trajectory)
     context: str = f"""----- start user instruction -----
 {user_instruction}
@@ -156,6 +323,20 @@ def display_context(
 def fault_assignment_analysis(
     api: API, results: List[OriginalResult], max_concurrency: int
 ) -> List[FaultAssignmentResult]:
+    """Analyze and assign responsibility for faults.
+
+    This function analyzes a list of benchmark results to determine which entity
+    (user, agent, or environment) is responsible for each fault.
+
+    Args:
+        api (API): The API to use for analysis.
+        results (List[OriginalResult]): The results to analyze.
+        max_concurrency (int): Maximum number of concurrent API calls.
+
+    Returns:
+        List[FaultAssignmentResult]: List of fault assignment results.
+    """
+
     def assign_fault(
         task_id: int,
         user_instruction: str,
@@ -221,6 +402,20 @@ def fault_assignment_analysis(
 def fault_type_analysis(
     api: API, results: List[OriginalResult], max_concurrency: int
 ) -> List[FaultTypeResult]:
+    """Analyze and classify fault types.
+
+    This function analyzes a list of benchmark results to determine the type
+    of each fault that occurred.
+
+    Args:
+        api (API): The API to use for analysis.
+        results (List[OriginalResult]): The results to analyze.
+        max_concurrency (int): Maximum number of concurrent API calls.
+
+    Returns:
+        List[FaultTypeResult]: List of fault type classification results.
+    """
+
     def get_fault_type(
         task_id: int,
         user_instruction: str,

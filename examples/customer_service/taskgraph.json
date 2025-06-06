@@ -35,7 +35,7 @@
             "2",
             {
                 "resource": {
-                    "id": "9aa47724-0b77-4752-9528-cf4b06a46915",
+                    "id": "FaissRAGWorker",
                     "name": "FaissRAGWorker"
                 },
                 "attribute": {
@@ -80,7 +80,7 @@
             "5",
             {
                 "resource": {
-                    "id": "9aa47724-0b77-4752-9528-cf4b06a46915",
+                    "id": "FaissRAGWorker",
                     "name": "FaissRAGWorker"
                 },
                 "attribute": {
@@ -140,7 +140,7 @@
             "9",
             {
                 "resource": {
-                    "id": "9aa47724-0b77-4752-9528-cf4b06a46915",
+                    "id": "FaissRAGWorker",
                     "name": "FaissRAGWorker"
                 },
                 "attribute": {
@@ -155,7 +155,7 @@
             "10",
             {
                 "resource": {
-                    "id": "9aa47724-0b77-4752-9528-cf4b06a46915",
+                    "id": "FaissRAGWorker",
                     "name": "FaissRAGWorker"
                 },
                 "attribute": {
@@ -215,7 +215,7 @@
             "14",
             {
                 "resource": {
-                    "id": "9aa47724-0b77-4752-9528-cf4b06a46915",
+                    "id": "FaissRAGWorker",
                     "name": "FaissRAGWorker"
                 },
                 "attribute": {
@@ -260,7 +260,7 @@
             "17",
             {
                 "resource": {
-                    "id": "9aa47724-0b77-4752-9528-cf4b06a46915",
+                    "id": "FaissRAGWorker",
                     "name": "FaissRAGWorker"
                 },
                 "attribute": {
@@ -290,7 +290,7 @@
             "19",
             {
                 "resource": {
-                    "id": "9aa47724-0b77-4752-9528-cf4b06a46915",
+                    "id": "FaissRAGWorker",
                     "name": "FaissRAGWorker"
                 },
                 "attribute": {
@@ -395,7 +395,7 @@
             "26",
             {
                 "resource": {
-                    "id": "9aa47724-0b77-4752-9528-cf4b06a46915",
+                    "id": "FaissRAGWorker",
                     "name": "FaissRAGWorker"
                 },
                 "attribute": {
@@ -485,7 +485,7 @@
             "32",
             {
                 "resource": {
-                    "id": "9aa47724-0b77-4752-9528-cf4b06a46915",
+                    "id": "FaissRAGWorker",
                     "name": "FaissRAGWorker"
                 },
                 "attribute": {
@@ -560,7 +560,7 @@
             "37",
             {
                 "resource": {
-                    "id": "9aa47724-0b77-4752-9528-cf4b06a46915",
+                    "id": "FaissRAGWorker",
                     "name": "FaissRAGWorker"
                 },
                 "attribute": {
@@ -620,7 +620,7 @@
             "41",
             {
                 "resource": {
-                    "id": "9aa47724-0b77-4752-9528-cf4b06a46915",
+                    "id": "FaissRAGWorker",
                     "name": "FaissRAGWorker"
                 },
                 "attribute": {
@@ -1175,19 +1175,21 @@
     "task_docs": [
         {
             "source": "https://www.richtechrobotics.com/",
+            "type":"url",
             "num": 20
         }
     ],
     "rag_docs": [
         {
             "source": "https://www.richtechrobotics.com/",
+            "type":"url",
             "num": 20
         }
     ],
     "tasks": [],
     "workers": [
         {
-            "id": "9aa47724-0b77-4752-9528-cf4b06a46915",
+            "id": "FaissRAGWorker",
             "name": "FaissRAGWorker",
             "path": "faiss_rag_worker.py"
         },

@@ -1,7 +1,15 @@
+"""Evaluation utilities for the Arklex framework.
+
+This module provides functionality for evaluating the performance of the Arklex
+framework through conversation simulation and metrics extraction. It includes
+utilities for simulating first-pass and second-pass conversations, extracting
+task completion metrics, and generating labeled conversation data for analysis.
+"""
+
 import os
 import json
 import argparse
-from typing import Any, Dict, List, Tuple, Optional
+from typing import Any, Dict, List, Tuple, Optional, cast
 
 from arklex.evaluation.simulate_first_pass_convos import simulate_conversations
 from arklex.evaluation.extract_conversation_info import extract_task_completion_metrics
@@ -16,12 +24,30 @@ def evaluate(
 ) -> Tuple[
     List[Dict[str, Any]], List[Dict[str, Any]], Dict[str, Any], List[Dict[str, Any]]
 ]:
+    """Evaluate the performance of the Arklex framework based on the provided configuration.
+
+    This function simulates conversations and extracts metrics based on the task specified in the config.
+    It supports first-pass and second-pass evaluations, and returns the results of the evaluation.
+
+    Args:
+        config (Dict[str, Any]): Configuration dictionary containing task, model API, model parameters,
+                                 synthetic data parameters, and other settings.
+
+    Returns:
+        Tuple[List[Dict[str, Any]], List[Dict[str, Any]], Dict[str, Any], List[Dict[str, Any]]]:
+            A tuple containing the first-pass data, labeled conversations, goal metrics, and goals.
+    """
     task: str = config["task"]
     model_api: str = config["model_api"]
     model_params: Dict[str, Any] = config["model_params"]
     synthetic_data_params: Dict[str, Any] = config["synthetic_data_params"]
     bot_goal: Optional[str] = config.get("builder_objective", None)
     bot_goal = None if bot_goal == "" else bot_goal
+
+    first_pass_data: List[Dict[str, Any]]
+    goals: List[Dict[str, Any]]
+    goal_metrics: Dict[str, Any]
+    labeled_convos: List[Dict[str, Any]]
 
     if task == "first_pass" or task == "simulate_conv_only":
         # first pass
@@ -44,7 +70,7 @@ def evaluate(
 
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser()
+    parser: argparse.ArgumentParser = argparse.ArgumentParser()
     parser.add_argument("--model_api", type=str)
     parser.add_argument("--model_params", type=dict, default={})
     parser.add_argument("--num_convos", type=int, default=5)
@@ -72,11 +98,11 @@ if __name__ == "__main__":
     parser.add_argument("--custom_profile", action="store_true")
     parser.add_argument("--system_inputs", action="store_true")
     parser.add_argument("--data_file", type=str, default=None)
-    args = parser.parse_args()
+    args: argparse.Namespace = parser.parse_args()
 
     MODEL["model_type_or_path"] = args.model
     MODEL["llm_provider"] = args.llm_provider
-    client = create_client()
+    client: Any = create_client()
 
     assert args.model_api is not None, "Model api must be provided"
     assert args.config is not None, "Config file must be provided"
@@ -109,6 +135,11 @@ if __name__ == "__main__":
     config["custom_profile"] = args.custom_profile
     config["system_inputs"] = args.system_inputs
     config["client"] = client
+
+    first_pass_data: List[Dict[str, Any]]
+    final_convos: List[Dict[str, Any]]
+    goal_metrics: Dict[str, Any]
+    goals: List[Dict[str, Any]]
     first_pass_data, final_convos, goal_metrics, goals = evaluate(config)
 
     with open(os.path.join(args.output_dir, "goals.json"), "w") as f:

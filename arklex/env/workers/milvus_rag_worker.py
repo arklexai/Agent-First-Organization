@@ -1,3 +1,12 @@
+"""Milvus RAG worker implementation for the Arklex framework.
+
+This module provides a specialized worker for handling Retrieval-Augmented Generation (RAG)
+tasks using Milvus as the vector database. The MilvusRAGWorker class is responsible for
+answering user questions based on internal documentation, supporting both streaming and
+non-streaming responses. It integrates with Milvus for efficient similarity search and
+retrieval of relevant documents.
+"""
+
 import logging
 from functools import partial
 from typing import Any, Dict, Optional
