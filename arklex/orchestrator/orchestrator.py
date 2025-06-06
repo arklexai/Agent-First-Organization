@@ -86,6 +86,7 @@ from arklex.utils.graph_state import (
 from arklex.utils.utils import format_chat_history
 from arklex.memory import ShortTermMemory
 from langchain.chat_models import ChatOpenAI
+from arklex.utils.model_provider_config import PROVIDER_MAP
 
 
 load_dotenv()
@@ -147,7 +148,7 @@ class AgentOrg:
         self.env: Env = env
 
         # Initialize LLM directly
-        self.llm = ChatOpenAI(
+        self.llm = PROVIDER_MAP.get(self.llm_config.llm_provider, ChatOpenAI)(
             model=self.llm_config.model_type_or_path,
             temperature=0.0,
         )
