@@ -217,7 +217,7 @@ assistant (for speech):
 Conversation:
 {formatted_chat}
 ----------------
-Only answer yes or no.
+The answer has to be in English and should only be yes or no.
 ----------------
 Answer:
 """,
@@ -328,7 +328,7 @@ assistant:
 Conversation:
 {formatted_chat}
 ----------------
-Only answer yes or no.
+The answer has to be in English and should only be yes or no.
 ----------------
 Answer:
 """,
