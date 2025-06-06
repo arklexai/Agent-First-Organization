@@ -35,7 +35,7 @@ class NegotiationMultiIssueWorker(BaseWorker):
         self.action_graph = self._create_action_graph()
         
         logger.info("NegotiationMultiIssueWorkerSeller initialized successfully")
-        print("NegotiationMultiIssueWorkerSeller initialized successfully")
+        logger.info("NegotiationMultiIssueWorkerSeller initialized successfully")
 
         self.MONITOR_PROMPT = """
         You are a negotiation monitor overseeing a multi-issue negotiation.
@@ -43,7 +43,7 @@ class NegotiationMultiIssueWorker(BaseWorker):
         Based on the negotiation history, please assess how many issues from {issues} have been resolved. 
         Give the answer in **exactly** this format at the end:
         NUMBER OF RESOLVED ISSUES=X where X is the number of resolved issues. 
-        When X=4 and all the issues have been agreed upon, print the final outcomes for ALL 4 ISSUES 
+        When X=4 and all the issues have been agreed upon, logger.info the final outcomes for ALL 4 ISSUES 
         (FINANCING, TAX, COLOR, PRICE, STEREO, DELIVERY DATE, NUMBER OF EXTRAS, WARRANTY) - **exactly** in this format:
         ISSUE NAME IN CAPITAL=Agreement alternative.
         """
@@ -101,15 +101,6 @@ class NegotiationMultiIssueWorker(BaseWorker):
         # Uncomment to enable delay
         # time.sleep(max(0, sleep_time - time_elapsed))
 
-
-    # def chatgpt_chatbot(messages, model):
-    #     completion = client.chat.completions.create(
-    #         model=model,
-    #         messages=messages,
-    #     )
-    #     answer = completion.choices[0].message.content.strip()
-    #     return answer
-    
     def common_sense_importance(self):
         utilities = {
             "FINANCING": {10: 4000, 8: 3000, 6: 2000, 4: 1000, 2: 0},
@@ -257,28 +248,9 @@ class NegotiationMultiIssueWorker(BaseWorker):
         # Return the peak concession size and the current concession size
         return peak_concession_size[0]
 
-
-    # class MultiSeller:
-    #     def __init__(self):
-    #         self.starting_text = {
-    #             "role": "user",
-    #             "content": "Begin the negotiation as the seller. Open the conversation with quick casual ice breaker. Do not mention the thing you are selling in this first turn.",
-    #         }
-
-        # def load_prompt(self, params, path):
-        #     with open(path) as f:
-        #         instructions = f.read()
-        #     return instructions
-
-        # def get_prompts(self, params):
-        #     base_dir = dirname(abspath(__file__))
-        #     path = base_dir + "/fourissues.txt"
-        #     static_prompt = self.load_prompt(params, path)
-        #     return static_prompt
-
     def check_and_initialize_slots(self, state: MessageState):
         """Initialize negotiation slots if they don't exist"""
-        print("checking and initializing slots")
+        logger.info("checking and initializing slots")
         required_slots = [
             "turn", 
             "episode_done", 
@@ -296,7 +268,7 @@ class NegotiationMultiIssueWorker(BaseWorker):
             
         for slot_name in required_slots:
             if slot_name not in state.slots:
-                print(f"Initializing slot: {slot_name}")
+                logger.info(f"Initializing slot: {slot_name}")
                 if slot_name == "turn":
                     state.slots["turn"] = [Slot(
                         name="turn",
@@ -578,7 +550,7 @@ class NegotiationMultiIssueWorker(BaseWorker):
         Returns:
             Dict[str, Any]: Updated message state as dictionary
         """
-        print("Executing negotiation response worker")
+        logger.info("Executing negotiation response worker")
         
         # Debug the incoming state
         self.check_and_initialize_slots(msg_state)
@@ -604,5 +576,5 @@ class NegotiationMultiIssueWorker(BaseWorker):
             # Mark episode as done if we have final outcomes
             response_state.slots["episode_done"][0].value = True
         
-        print(f"State after graph execution - slots: {response_state.slots}")
+        logger.info(f"State after graph execution - slots: {response_state.slots}")
         return response_state.model_dump()

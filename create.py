@@ -15,7 +15,6 @@ from arklex.env.tools.RAG.build_rag import build_rag
 from arklex.env.tools.database.build_database import build_database
 from arklex.utils.model_config import MODEL
 from arklex.utils.model_provider_config import LLM_PROVIDERS, PROVIDER_MAP
-from arklex.utils.rate_limiter import RateLimiter
 
 logger = init_logger(
     log_level=logging.INFO,
@@ -23,16 +22,12 @@ logger = init_logger(
 )
 load_dotenv()
 
-# # Initialize rate limiter
-# rate_limiter = RateLimiter()
-
-
 def generate_taskgraph(args: argparse.Namespace) -> None:
     model = PROVIDER_MAP.get(MODEL["llm_provider"], ChatOpenAI)(
         model=MODEL["model_type_or_path"], timeout=30000
     )
     config: Dict[str, Any] = json.load(open(args.config))
-    generator = Generator(config, model, args.output_dir, strtobool(args.generic_start_msg))
+    generator = Generator(config, model, args.output_dir)
     taskgraph = generator.generate()
     taskgraph_filepath: str = generator.save_task_graph(taskgraph)
     # Update the task graph with the API URLs
@@ -89,9 +84,7 @@ if __name__ == "__main__":
     parser.add_argument(
         "--task", type=str, choices=["gen_taskgraph", "init", "all"], default="all"
     )
-    parser.add_argument(
-        "--generic-start-msg", type=str, default="true"
-    )
+
     args = parser.parse_args()
     MODEL["model_type_or_path"] = args.model
     MODEL["llm_provider"] = args.llm_provider

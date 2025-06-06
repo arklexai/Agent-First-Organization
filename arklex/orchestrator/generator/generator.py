@@ -585,47 +585,29 @@ class Generator:
         start_node = []
         start_node.append("0")
         # generate the start message
-        prompt = ""
-        if self.generic_start_msg:
-            prompt = PromptTemplate.from_template(generate_start_msg)
-            input_prompt = prompt.invoke(
-                {"role": self.role, "u_objective": self.u_objective}
-            )
-            final_chain = self.model | StrOutputParser()
-            answer = final_chain.invoke(input_prompt)
-            start_msg = postprocess_json(answer)
+        prompt = PromptTemplate.from_template(generate_start_msg)
+        input_prompt = prompt.invoke(
+            {"role": self.role, "u_objective": self.u_objective}
+        )
+        final_chain = self.model | StrOutputParser()
+        answer = final_chain.invoke(input_prompt)
+        start_msg = postprocess_json(answer)
 
-            start_node.append(
-                {
-                    "resource": {
-                        "id": resource_id_map.get("MessageWorker"),
-                        "name": "MessageWorker",
-                    },
-                    "attribute": {
-                        "value": start_msg.get("message", ""),
-                        "task": "start message",
-                        "directed": False,
-                    },
-                    "limit": 1,
-                    "type": "start",
-                }
-            )
-        else:
-            start_node.append(
-                {
-                    "resource": {
-                        "id": resource_id_map.get("NegotiationSingleIssueWorkerSeller"),
-                        "name": "NegotiationSingleIssueWorkerSeller",
-                    },
-                    "attribute": {
-                        "value": "Hi, how are you today?",
-                        "task": "start message",
-                        "directed": False,
-                    },
-                    "limit": 1,
-                    "type": "start",
-                }
-            )#prompt = PromptTemplate.from_template(generate_start_msg_custom)
+        start_node.append(
+            {
+                "resource": {
+                    "id": resource_id_map.get("MessageWorker"),
+                    "name": "MessageWorker",
+                },
+                "attribute": {
+                    "value": start_msg.get("message", ""),
+                    "task": "start message",
+                    "directed": False,
+                },
+                "limit": 1,
+                "type": "start",
+            }
+        )
         
         nodes.insert(0, start_node)
 

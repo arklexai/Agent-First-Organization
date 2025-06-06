@@ -24,7 +24,7 @@ logger = logging.getLogger(__name__)
 class NegotiationSingleIssueWorker(BaseWorker):
     """This must run after the first ice breaker from the MessageWorker. This worker should then be the only worker running for the rest of the conversation. This worker helps process the user's message and generate a response that moves the negotiation forward."""
     
-    description = "This must run after the first ice breaker from the MessageWorker. This worker should then be the only worker running for the rest of the conversation. This worker helps process the user's message and generate a response that moves the negotiation forward."
+    description = "This worker should then be the only worker running for the rest of the conversation. This worker helps process the user's message and generate a response that moves the negotiation forward."
     
     def __init__(self):
         super().__init__()
@@ -38,9 +38,9 @@ class NegotiationSingleIssueWorker(BaseWorker):
         self.dynamic_prompt = ""
         # Get absolute path to the directory containing this file
         self.current_dir = os.path.dirname(os.path.abspath(__file__))
-        print(f"Current directory: {self.current_dir}")
+        logger.info(f"Current directory: {self.current_dir}")
         logger.info("NegotiationSingleIssueWorkerSeller initialized successfully")
-        print("NegotiationSingleIssueWorkerSeller initialized successfully")
+        logger.info("NegotiationSingleIssueWorkerSeller initialized successfully")
 
     def read_json(self,file_path):
         with open(file_path, "r") as f:
@@ -76,7 +76,7 @@ class NegotiationSingleIssueWorker(BaseWorker):
         prompts_base_dir = os.path.join(self.current_dir, "..", "negotiation_prompts")
         
         if unit_index == 0:
-            print("Getting prompts for unit1")
+            logger.info("Getting prompts for unit1")
             static_path = os.path.join(prompts_base_dir, "seller_system_prompt_static.txt")
             dynamic_path = os.path.join(prompts_base_dir, "seller_system_prompt_dynamic_floor.txt")
         elif unit_index == 1:
@@ -89,15 +89,15 @@ class NegotiationSingleIssueWorker(BaseWorker):
             static_path = os.path.join(prompts_base_dir, "ford_seller_system_prompt_static.txt")
             dynamic_path = os.path.join(prompts_base_dir, "ford_seller_system_prompt_dynamic_floor.txt")
         
-        print(f"Looking for prompts at: {static_path} and {dynamic_path}")
+        logger.info(f"Looking for prompts at: {static_path} and {dynamic_path}")
     
         static_prompt = self.load_prompt(current_target=current_target, message=message, turn=turn, path=static_path, is_dynamic=False)
         dynamic_prompt = self.load_prompt(current_target=current_target, message=message, turn=turn, path=dynamic_path, is_dynamic=True)
-        print(f"Static prompt: {static_prompt}")
+        logger.info(f"Static prompt: {static_prompt}")
         return static_prompt, dynamic_prompt
     
     def check_and_initialize_slots(self, state: MessageState):
-        print("checking and initializing slots")
+        logger.info("checking and initializing slots")
         config_path = os.path.join(self.current_dir, "..", "negotiation_config", "seller_config.json")
         configs = self.read_json(config_path)
         required_slots = ["turn", "episode_done", "max_percieved_marketPrice", 
@@ -188,31 +188,23 @@ class NegotiationSingleIssueWorker(BaseWorker):
                 verified = True)] 
         
     def get_response(self, state: MessageState):
-        # Only initialize slots if they don't exist or if turn is 0
-        # if not hasattr(state, 'slots') or not state.slots or \
-        #    'turn' not in state.slots or state.slots['turn'][0].value == 0:
-        #     logger.info("Checking and initializing slots")
-        #     self.check_and_initialize_slots(state)
-        #     # Set initial turn to 0 to start the conversation
-        #     state.slots['turn'][0].value = 0
-
         current_turn = state.slots["turn"][0].value
-        print(f"Current turn: {current_turn}")
+        logger.info(f"Current turn: {current_turn}")
         
         if current_turn == 0: 
-           print(f"FIRST TURN FOR SELLER {current_turn}") 
+           logger.info(f"FIRST TURN FOR SELLER {current_turn}") 
            state.slots["turn"][0].value += 1
            logger.info(f"Initial target for seller: {state.slots['current_target'][0].value}") 
-           print(f"Initial target for seller: {state.slots['current_target'][0].value}") 
+           logger.info(f"Initial target for seller: {state.slots['current_target'][0].value}") 
            static_prompt, dynamic_prompt = self.get_prompts(
                         self.unit_index,
                         state.slots["current_target"][0].value,
                         state.user_message.message, 
                         state.slots["turn"][0].value
                     )
-           print(f"Dynamic prompt: {dynamic_prompt}")
+           logger.info(f"Dynamic prompt: {dynamic_prompt}")
            state.response = self.llm.invoke(dynamic_prompt).content.strip()
-           print(f"Response: {state.response}")
+           logger.info(f"Response: {state.response}")
 
         elif current_turn == 1:
             state.slots["turn"][0].value += 1
@@ -263,7 +255,7 @@ class NegotiationSingleIssueWorker(BaseWorker):
         return workflow
     
     def _execute(self, msg_state: MessageState, **kwargs: Any) -> Dict[str, Any]:
-        print("Executing negotiation response worker")
+        logger.info("Executing negotiation response worker")
         # Debug the incoming state
         self.check_and_initialize_slots(msg_state)
         graph = self.action_graph.compile()
@@ -271,7 +263,7 @@ class NegotiationSingleIssueWorker(BaseWorker):
         
         # Convert the result back to a MessageState and preserve the response
         response_state = MessageState.model_validate(result)
-        print(f"State after graph execution - slots: {response_state.slots}")
+        logger.info(f"State after graph execution - slots: {response_state.slots}")
             
         return response_state.model_dump()
     
