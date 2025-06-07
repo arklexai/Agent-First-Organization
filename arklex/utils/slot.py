@@ -244,38 +244,87 @@ def structured_input_output(slots: List[Slot]) -> Tuple[SlotInputList, Type]:
     return SlotInputList(slot_input_list=input_slots), output_format
 
 
-def format_slotfilling_output(slots: List[Slot], response: Any) -> List[Slot]:
-    """Format the output of slot filling operations.
-
-    This function updates the values of slots based on the response from a slot
-    filling operation. It takes the response from the slot filling model and
-    updates the corresponding slots with the new values.
-
-    The function:
-    1. Logs the filled slots for debugging
-    2. Extracts values from the response
-    3. Updates each slot with its corresponding value
-    4. Maintains type safety throughout the process
+def format_slotfiller_output(slots: List[Slot], response: Any) -> List[Slot]:
+    """Format the output of slot filler.
 
     Args:
-        slots (List[Slot]): List of slots to update.
-        response (Any): Response from the slot filling operation, expected to be
-                       a Pydantic model with fields matching slot names.
+        slots (List[Slot]): List of slots to format
+        response (Any): Response from slot filler
 
     Returns:
-        List[Slot]: Updated list of slots with filled values from the response.
-
-    Example:
-        slots = [
-            Slot(name="name", type="str"),
-            Slot(name="age", type="int")
-        ]
-        response = DynamicSlotOutputs(name="John", age=30)
-        updated_slots = format_slotfilling_output(slots, response)
-        # updated_slots contains slots with updated values
+        List[Slot]: Formatted slots
     """
     logger.info(f"filled_slots: {response}")
     filled_slots = response.model_dump()
     for slot in slots:
         slot.value = filled_slots[slot.name]
+    return slots
+
+
+def format_slot_output(slots: List[Slot], response: Any) -> List[Slot]:
+    """Format slot output from response.
+
+    Args:
+        slots: List of slots to format
+        response: Response to format
+
+    Returns:
+        List of formatted slots
+    """
+    updated_slots = []
+    for slot in slots:
+        if slot.name in response:
+            slot.value = response[slot.name]
+            updated_slots.append(slot)
+    return updated_slots
+
+
+def validate_slot_values(slots: List[Slot]) -> List[str]:
+    """Validate slot values.
+
+    Args:
+        slots: List of slots to validate
+
+    Returns:
+        List of validation errors
+    """
+    errors = []
+    for slot in slots:
+        if slot.required and not slot.value:
+            errors.append(f"Required slot '{slot.name}' is missing")
+        elif slot.value and slot.type == "integer":
+            try:
+                int(slot.value)
+            except ValueError:
+                errors.append(f"Slot '{slot.name}' must be an integer")
+        elif slot.value and slot.type == "float":
+            try:
+                float(slot.value)
+            except ValueError:
+                errors.append(f"Slot '{slot.name}' must be a float")
+        elif slot.value and slot.type == "boolean":
+            if slot.value.lower() not in ["true", "false"]:
+                errors.append(f"Slot '{slot.name}' must be a boolean")
+        elif slot.value and slot.enum and slot.value not in slot.enum:
+            errors.append(f"Slot '{slot.name}' must be one of {slot.enum}")
+    return errors
+
+
+def convert_slot_values(slots: List[Slot]) -> List[Slot]:
+    """Convert slot values to appropriate types.
+
+    Args:
+        slots: List of slots to convert
+
+    Returns:
+        List of converted slots
+    """
+    for slot in slots:
+        if slot.value:
+            if slot.type == "integer":
+                slot.value = int(slot.value)
+            elif slot.type == "float":
+                slot.value = float(slot.value)
+            elif slot.type == "boolean":
+                slot.value = slot.value.lower() == "true"
     return slots

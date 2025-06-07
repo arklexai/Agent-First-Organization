@@ -235,7 +235,7 @@ class ReactPlanner(DefaultPlanner):
             worker_name: PlannerResource(
                 name=worker_name,
                 type="worker",
-                description=workers_map[worker_name]["description"],
+                description=workers_map[worker_name].get("description", ""),
                 parameters=[],
                 required=[],
                 returns={},
@@ -257,13 +257,17 @@ class ReactPlanner(DefaultPlanner):
         """
         Convert info on available tools to standardized format for planner ReAct prompt.
         """
-        tools: List[Any] = [tool["execute"]() for tool in self.tools_map.values()]
         formatted_tools_info: Dict[str, PlannerResource] = {}
-        for tool_class in tools:
-            tool_info: Dict[str, Any] = tool_class.info
-            tool_outputs: List[Dict[str, Any]] = tool_class.output
+        for tool_id, tool in tools_map.items():
+            # Handle both MockTool instances and regular tool dictionaries
+            if hasattr(tool, "info"):
+                tool_info = tool.info
+                tool_outputs = tool.output
+            else:
+                tool_info = tool.get("info", {})
+                tool_outputs = tool.get("output", [])
 
-            if tool_info["type"] == "function":
+            if tool_info.get("type") == "function":
                 tool_name: str = tool_info["function"]["name"]
                 tool_description: str = tool_info["function"]["description"]
 

@@ -1,52 +1,59 @@
-"""Trace run name definitions for the Arklex framework.
+"""Tracing utilities for the Arklex framework.
 
-This module defines the different types of trace runs that can be performed in the system,
-including task graph execution, NLU processing, and slot filling operations.
-These trace names are used to identify and categorize different types of operations
-in the system's execution flow.
-
-Key Components:
-1. TraceRunName: Enumeration of different trace run types
-   - TaskGraph: Task graph execution traces
-   - ExecutionResult: Execution result traces
-   - OrchestResponse: Orchestrator response traces
-   - NLU: Natural Language Understanding traces
-   - SlotFilling: Slot filling operation traces
-
-Usage:
-    from arklex.utils.trace import TraceRunName
-
-    # Use in tracing
-    trace_name = TraceRunName.TaskGraph
-    if trace_name == TraceRunName.NLU:
-        process_nlu_trace()
+This module provides utilities for tracing operations in the Arklex framework,
+including intent detection, slot filling, and tool execution.
 """
 
+import logging
 from enum import Enum
+from typing import Any, Dict, List, Optional
+
+logger = logging.getLogger(__name__)
 
 
-class TraceRunName(str, Enum):
-    """Enumeration of trace run types in the system.
+class TraceType(Enum):
+    """Types of traces in the Arklex framework.
 
-    This enum defines the different types of trace runs that can be performed
-    in the system. Each type represents a specific category of operation that
-    can be traced for monitoring and debugging purposes.
-
-    Values:
-        TaskGraph: Traces for task graph execution
-        ExecutionResult: Traces for execution results
-        OrchestResponse: Traces for orchestrator responses
-        NLU: Traces for Natural Language Understanding operations
-        SlotFilling: Traces for slot filling operations
-
-    Example:
-        trace_name = TraceRunName.TaskGraph
-        if trace_name == TraceRunName.NLU:
-            process_nlu_trace()
+    Attributes:
+        IntentDetection: Traces for intent detection operations
+        SlotFiller: Traces for slot filling operations
+        ToolExecution: Traces for tool execution operations
     """
 
-    TaskGraph = "TaskGraph"  # Task graph execution traces
-    ExecutionResult = "ExecutionResult"  # Execution result traces
-    OrchestResponse = "OrchestResponse"  # Orchestrator response traces
-    NLU = "NLU"  # Natural Language Understanding traces
-    SlotFilling = "SlotFilling"  # Slot filling operation traces
+    IntentDetection = "IntentDetection"  # Intent detection operation traces
+    SlotFiller = "SlotFiller"  # Slot filling operation traces
+    ToolExecution = "ToolExecution"  # Tool execution operation traces
+
+
+class Trace:
+    """Trace for an operation in the Arklex framework.
+
+    This class represents a trace of an operation, including
+    the operation type, input, output, and metadata.
+
+    Attributes:
+        type (TraceType): Type of the operation
+        input (Any): Input to the operation
+        output (Any): Output from the operation
+        metadata (Dict[str, Any]): Additional metadata
+    """
+
+    def __init__(
+        self,
+        type: TraceType,
+        input: Any,
+        output: Any,
+        metadata: Optional[Dict[str, Any]] = None,
+    ) -> None:
+        """Initialize the trace.
+
+        Args:
+            type: Type of the operation
+            input: Input to the operation
+            output: Output from the operation
+            metadata: Additional metadata
+        """
+        self.type = type
+        self.input = input
+        self.output = output
+        self.metadata = metadata or {}
