@@ -1,3 +1,10 @@
+"""Setup configuration for the TAU benchmark package.
+
+This module defines the package configuration for the TAU benchmark, including
+package metadata, dependencies, and installation requirements. It uses setuptools
+to configure the package for distribution and installation.
+"""
+
 # Copyright Sierra
 
 from setuptools import find_packages, setup

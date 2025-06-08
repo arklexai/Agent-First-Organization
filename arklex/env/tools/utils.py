@@ -1,38 +1,59 @@
-import logging
+"""Utility tools for the Arklex framework.
+
+This module provides utility tools and helper functions for the Arklex framework,
+including the ToolGenerator class for generating responses and handling streaming
+outputs. It also includes functions for tracing execution flow and managing message
+states. The module integrates with various language models and prompt templates to
+provide flexible response generation capabilities.
+"""
+
 import inspect
-from typing import Dict
+import logging
+from typing import Dict, Any, List, Optional, Union, TypeVar, Generic
 
 from langchain.prompts import PromptTemplate
-from langchain_openai import ChatOpenAI
 from langchain_core.output_parsers import StrOutputParser
+from langchain_openai import ChatOpenAI
 
 from arklex.env.prompts import load_prompts
-from arklex.types import EventType
+from arklex.types import EventType, StreamType
 from arklex.utils.graph_state import MessageState
 from arklex.utils.model_provider_config import PROVIDER_MAP
 
+logger: logging.Logger = logging.getLogger(__name__)
 
-logger = logging.getLogger(__name__)
+
+def get_prompt_template(state: MessageState, prompt_key: str) -> PromptTemplate:
+    """Get the prompt template based on the stream type."""
+    prompts: Dict[str, str] = load_prompts(state.bot_config)
+
+    if state.stream_type == StreamType.SPEECH:
+        if state.bot_config.language == "CN":
+            # no speech prompts for Chinese yet
+            # TODO(Vishruth): add speech prompts for Chinese
+            return PromptTemplate.from_template(prompts[prompt_key])
+        else:
+            return PromptTemplate.from_template(prompts[prompt_key + "_speech"])
+
+    # the regular text prompts are used for both text stream and text without stream
+    return PromptTemplate.from_template(prompts[prompt_key])
 
 
 class ToolGenerator:
     @staticmethod
     def generate(state: MessageState) -> MessageState:
-        llm_config = state.bot_config.llm_config
-        user_message = state.user_message
+        llm_config: Dict[str, Any] = state.bot_config.llm_config
+        user_message: Any = state.user_message
 
-        prompts: Dict[str, str] = load_prompts(state.bot_config)
-        llm = PROVIDER_MAP.get(llm_config.llm_provider, ChatOpenAI)(
+        llm: Any = PROVIDER_MAP.get(llm_config.llm_provider, ChatOpenAI)(
             model=llm_config.model_type_or_path, temperature=0.1
         )
-        prompt: PromptTemplate = PromptTemplate.from_template(
-            prompts["generator_prompt"]
-        )
-        input_prompt = prompt.invoke(
+        prompt: PromptTemplate = get_prompt_template(state, "generator_prompt")
+        input_prompt: Any = prompt.invoke(
             {"sys_instruct": state.sys_instruct, "formatted_chat": user_message.history}
         )
         logger.info(f"Prompt: {input_prompt.text}")
-        final_chain = llm | StrOutputParser()
+        final_chain: Any = llm | StrOutputParser()
         answer: str = final_chain.invoke(input_prompt.text)
 
         state.response = answer
@@ -40,12 +61,12 @@ class ToolGenerator:
 
     @staticmethod
     def context_generate(state: MessageState) -> MessageState:
-        llm_config = state.bot_config.llm_config
-        llm = PROVIDER_MAP.get(llm_config.llm_provider, ChatOpenAI)(
+        llm_config: Dict[str, Any] = state.bot_config.llm_config
+        llm: Any = PROVIDER_MAP.get(llm_config.llm_provider, ChatOpenAI)(
             model=llm_config.model_type_or_path, temperature=0.1
         )
         # get the input message
-        user_message = state.user_message
+        user_message: Any = state.user_message
         message_flow: str = state.message_flow
 
         # Add relevant records to context if available
@@ -77,18 +98,15 @@ class ToolGenerator:
         )
 
         # generate answer based on the retrieved texts
-        prompts: Dict[str, str] = load_prompts(state.bot_config)
-        prompt: PromptTemplate = PromptTemplate.from_template(
-            prompts["context_generator_prompt"]
-        )
-        input_prompt = prompt.invoke(
+        prompt: PromptTemplate = get_prompt_template(state, "context_generator_prompt")
+        input_prompt: Any = prompt.invoke(
             {
                 "sys_instruct": state.sys_instruct,
                 "formatted_chat": user_message.history,
                 "context": message_flow,
             }
         )
-        final_chain = llm | StrOutputParser()
+        final_chain: Any = llm | StrOutputParser()
         logger.info(f"Prompt: {input_prompt.text}")
         answer: str = final_chain.invoke(input_prompt.text)
         state.message_flow = ""
@@ -98,12 +116,12 @@ class ToolGenerator:
 
     @staticmethod
     def stream_context_generate(state: MessageState) -> MessageState:
-        llm_config = state.bot_config.llm_config
-        llm = PROVIDER_MAP.get(llm_config.llm_provider, ChatOpenAI)(
+        llm_config: Dict[str, Any] = state.bot_config.llm_config
+        llm: Any = PROVIDER_MAP.get(llm_config.llm_provider, ChatOpenAI)(
             model=llm_config.model_type_or_path, temperature=0.1
         )
         # get the input message
-        user_message = state.user_message
+        user_message: Any = state.user_message
         message_flow: str = state.message_flow
         # Add relevant records to context if available
         if state.relevant_records:
@@ -133,18 +151,16 @@ class ToolGenerator:
         )
 
         # generate answer based on the retrieved texts
-        prompts: Dict[str, str] = load_prompts(state.bot_config)
-        prompt: PromptTemplate = PromptTemplate.from_template(
-            prompts["context_generator_prompt"]
-        )
-        input_prompt = prompt.invoke(
+        prompt: PromptTemplate = get_prompt_template(state, "context_generator_prompt")
+
+        input_prompt: Any = prompt.invoke(
             {
                 "sys_instruct": state.sys_instruct,
                 "formatted_chat": user_message.history,
                 "context": message_flow,
             }
         )
-        final_chain = llm | StrOutputParser()
+        final_chain: Any = llm | StrOutputParser()
         logger.info(f"Prompt: {input_prompt.text}")
         answer: str = ""
         for chunk in final_chain.stream(input_prompt.text):
@@ -160,20 +176,17 @@ class ToolGenerator:
 
     @staticmethod
     def stream_generate(state: MessageState) -> MessageState:
-        user_message = state.user_message
+        user_message: Any = state.user_message
 
-        prompts: Dict[str, str] = load_prompts(state.bot_config)
-        llm_config = state.bot_config.llm_config
-        llm = PROVIDER_MAP.get(llm_config.llm_provider, ChatOpenAI)(
+        llm_config: Dict[str, Any] = state.bot_config.llm_config
+        llm: Any = PROVIDER_MAP.get(llm_config.llm_provider, ChatOpenAI)(
             model=llm_config.model_type_or_path, temperature=0.1
         )
-        prompt: PromptTemplate = PromptTemplate.from_template(
-            prompts["generator_prompt"]
-        )
-        input_prompt = prompt.invoke(
+        prompt: PromptTemplate = get_prompt_template(state, "generator_prompt")
+        input_prompt: Any = prompt.invoke(
             {"sys_instruct": state.sys_instruct, "formatted_chat": user_message.history}
         )
-        final_chain = llm | StrOutputParser()
+        final_chain: Any = llm | StrOutputParser()
         answer: str = ""
         for chunk in final_chain.stream(input_prompt.text):
             answer += chunk
@@ -186,8 +199,10 @@ class ToolGenerator:
 
 
 def trace(input: str, state: MessageState) -> MessageState:
-    current_frame = inspect.currentframe()
-    previous_frame = current_frame.f_back if current_frame else None
+    current_frame: Optional[inspect.FrameInfo] = inspect.currentframe()
+    previous_frame: Optional[inspect.FrameInfo] = (
+        current_frame.f_back if current_frame else None
+    )
     previous_function_name: str = (
         previous_frame.f_code.co_name if previous_frame else "unknown"
     )

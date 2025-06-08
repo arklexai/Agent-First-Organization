@@ -13,6 +13,7 @@
 
 ## Tests
 <!-- How did you verify these changes? -->
+- [ ] Pre-commit code format check: Run `pip install pre-commit` and `pre-commit install` before committing changes <!-- enforce code formatter -->
 - [ ] Test case 1: <!-- describe what you tested -->
 - [ ] Test case 2: <!-- describe what you tested -->
 

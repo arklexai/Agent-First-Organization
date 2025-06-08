@@ -76,7 +76,7 @@ As a refresher, here is the structure for a [Config](../Config/intro.md) JSON fi
     }],
     "tasks": [],
     "workers": [
-        {"id": "9aa47724-0b77-4752-9528-cf4b06a46915", "name": "FaissRAGWorker", "path": "faiss_rag_worker.py"},
+        {"id": "FaissRAGWorker", "name": "FaissRAGWorker", "path": "faiss_rag_worker.py"},
         {"id": "26bb6634-3bee-417d-ad75-23269ac17bc3", "name": "MessageWorker", "path": "message_worker.py"},
         {"id": "9c15af81-04b3-443e-be04-a3522124b905", "name": "SearchWorker", "path": "search_worker.py"},
         {"id": "b06c2b58-12c5-41fe-9838-e93b530e42e8", "name": "DefaultWorker", "path": "default_worker.py"}

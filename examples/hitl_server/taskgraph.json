@@ -50,7 +50,7 @@
             "3",
             {
                 "resource": {
-                    "id": "12347724-0b77-4752-9528-cf4b06a46915",
+                    "id": "FaissRAGWorker",
                     "name": "FaissRAGWorker"
                 },
                 "attribute": {
@@ -169,7 +169,7 @@
             "fixed_args": {}
         },
         {
-            "id": "12347724-0b77-4752-9528-cf4b06a46915",
+            "id": "FaissRAGWorker",
             "name": "FaissRAGWorker",
             "path": "faiss_rag_worker.py"
         }

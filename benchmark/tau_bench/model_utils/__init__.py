@@ -1,3 +1,18 @@
+"""Model utilities for the TAU benchmark.
+
+This module provides utilities for working with language models in the TAU benchmark,
+including API interfaces, model implementations, and data handling. It supports
+various model types (OpenAI, etc.) and provides functionality for classification,
+generation, parsing, and scoring tasks.
+
+The module includes:
+- API interfaces for model interaction
+- Model implementations for different platforms
+- Data point handling and evaluation
+- Sampling strategies for model outputs
+- Error handling and exceptions
+"""
+
 from benchmark.tau_bench.model_utils.api.api import API as API
 from benchmark.tau_bench.model_utils.api.api import (
     default_api_from_args as default_api_from_args,

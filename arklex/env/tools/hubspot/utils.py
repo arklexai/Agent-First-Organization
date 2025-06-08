@@ -1,3 +1,9 @@
+"""
+Utility functions for HubSpot tool authentication in the Arklex framework.
+
+This module provides helper functions for authenticating HubSpot API requests within the Arklex tool system.
+"""
+
 from typing import Dict, Any
 from arklex.exceptions import AuthenticationError
 

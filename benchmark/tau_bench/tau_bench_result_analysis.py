@@ -1,3 +1,11 @@
+"""Script for analyzing TAU benchmark results.
+
+This script provides functionality to analyze the results of TAU benchmark runs,
+including error identification and result processing. It sets up the necessary
+environment and runs the error identification process with default parameters
+for the retail environment and OpenAI platform.
+"""
+
 import os
 import sys
 import argparse
@@ -14,8 +22,16 @@ sys.path.append(root_dir)
 load_dotenv()
 
 if __name__ == "__main__":
-    """
-    Provide --results-path and --output-dir
+    """Main entry point for the TAU benchmark result analysis.
+    
+    This script runs the error identification process with the following default parameters:
+    - Environment: retail
+    - Platform: OpenAI
+    - Max concurrency: 16
+    
+    Additional parameters can be provided via command line arguments:
+    --results-path: Path to the results directory
+    --output-dir: Path to the output directory
     """
     sys.argv += ["--env", "retail"]
     sys.argv += ["--platform", "openai"]

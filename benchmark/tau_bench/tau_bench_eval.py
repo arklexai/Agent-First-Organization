@@ -1,3 +1,17 @@
+"""TAU benchmark evaluation module.
+
+This module provides functionality for evaluating agents on the TAU benchmark,
+including configuration generation, task graph creation, and evaluation execution.
+It supports different environments, user strategies, and model providers, with
+configurable parameters for trials, task selection, and concurrency.
+
+The module includes:
+- Tool mapping and initialization
+- Configuration generation for the retail environment
+- Task graph generation and management
+- Evaluation execution with customizable parameters
+"""
+
 import argparse
 import json
 import logging
@@ -32,6 +46,15 @@ tool_name_class_map: Dict[str, Any] = {}
 
 
 def get_tool_name_class_map() -> Dict[str, Any]:
+    """Create a mapping of tool names to their class implementations.
+
+    This function creates a dictionary that maps tool names to their corresponding
+    class implementations from the ALL_TOOLS list. This mapping is used for tool
+    initialization and execution during the benchmark evaluation.
+
+    Returns:
+        Dict[str, Any]: A dictionary mapping tool names to their class implementations.
+    """
     tool_map: Dict[str, Any] = {}
     for tool in ALL_TOOLS:
         name: str = tool.get_info()["function"]["name"]
@@ -40,8 +63,28 @@ def get_tool_name_class_map() -> Dict[str, Any]:
 
 
 class TauBenchResourceInitializer(DefaulResourceInitializer):
+    """Resource initializer for TAU benchmark tools.
+
+    This class extends the default resource initializer to handle TAU benchmark
+    specific tool initialization, including parameter mapping and slot creation.
+    It manages the creation and configuration of tools used in the benchmark
+    evaluation process.
+    """
+
     @staticmethod
     def init_tools(tools: Dict[str, Any]) -> Dict[str, Any]:
+        """Initialize tools for the TAU benchmark.
+
+        This method creates tool instances with appropriate parameters, slots,
+        and descriptions based on the provided tool information. It handles the
+        creation of tool functions, parameter slots, and output configurations.
+
+        Args:
+            tools (Dict[str, Any]): Dictionary of tool information to initialize.
+
+        Returns:
+            Dict[str, Any]: Dictionary of initialized tools with their configurations.
+        """
         tool_name_class_map: Dict[str, Any] = get_tool_name_class_map()
         tool_registry: Dict[str, Any] = {}
 
@@ -94,6 +137,16 @@ class TauBenchResourceInitializer(DefaulResourceInitializer):
 
 
 def generate_tau_bench_config(output_dir: str) -> None:
+    """Generate TAU benchmark configuration file.
+
+    This function creates a configuration file for the TAU benchmark with
+    predefined settings for the retail environment. The configuration includes
+    tools, workers, objectives, and other necessary parameters for running
+    the benchmark evaluation.
+
+    Args:
+        output_dir (str): Directory where the configuration file will be saved.
+    """
     retain_tools: List[Any] = ALL_TOOLS
     tools: Dict[str, Any] = {}
     for tool in retain_tools:
@@ -130,6 +183,16 @@ def generate_tau_bench_config(output_dir: str) -> None:
 
 
 def generate_taskgraph(config_file: str, output_dir: str) -> None:
+    """Generate task graph for the TAU benchmark.
+
+    This function creates a task graph using the provided configuration and
+    saves it to the specified output directory. It also updates the task graph
+    with API URLs for NLU and slot filling services.
+
+    Args:
+        config_file (str): Path to the configuration file.
+        output_dir (str): Directory where the task graph will be saved.
+    """
     model: ChatOpenAI = ChatOpenAI(model=MODEL["model_type_or_path"], timeout=30000)
     resource_initializer: TauBenchResourceInitializer = TauBenchResourceInitializer()
     config: Dict[str, Any] = json.load(open(config_file))
@@ -156,6 +219,23 @@ def run_tau_bench_eval(
     user_strategy: str = "llm",
     max_concurrency: int = 10,
 ) -> None:
+    """Run TAU benchmark evaluation.
+
+    This function executes the TAU benchmark evaluation with the specified
+    parameters. It handles the configuration and execution of the evaluation
+    process, including task selection, trial management, and result collection.
+
+    Args:
+        taskgraph_dir (str): Directory containing the task graph.
+        output_dir (str): Directory for evaluation output.
+        num_trials (int): Number of trials to run.
+        task_ids (List[int]): List of task IDs to evaluate.
+        env (str): Environment to use (e.g., "retail").
+        task_split (str, optional): Task split to use. Defaults to "test".
+        user_strategy (str, optional): User strategy to use. Defaults to "llm".
+        max_concurrency (int, optional): Maximum number of concurrent tasks.
+            Defaults to 10.
+    """
     start_index: int = 0
     end_index: int = -1
     seed: int = 10

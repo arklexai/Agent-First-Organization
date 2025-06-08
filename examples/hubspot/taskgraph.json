@@ -35,7 +35,7 @@
       "2",
       {
         "resource": {
-          "id": "40f05456-525c-4d9d-ac37-54482d6b220b",
+          "id": "FaissRAGWorker",
           "name": "FaissRAGWorker"
         },
         "attribute": {
@@ -308,7 +308,7 @@
       "path": "message_worker.py"
     },
     {
-      "id": "40f05456-525c-4d9d-ac37-54482d6b220b",
+      "id": "FaissRAGWorker",
       "name": "FaissRAGWorker",
       "path": "faiss_rag_worker.py"
     },

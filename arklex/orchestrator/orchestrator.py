@@ -1,3 +1,56 @@
+"""Orchestrator for the Arklex framework.
+
+This module implements the core orchestrator functionality that manages the flow of
+conversation and task execution in the Arklex framework. It coordinates between
+different components of the system, including NLU processing, task graph execution,
+and response generation.
+
+Key Components:
+- AgentOrg: Main orchestrator class for managing conversation flow
+- Task Execution: Methods for executing tasks and managing task states
+- Message Processing: Methods for handling user messages and generating responses
+- State Management: Methods for maintaining conversation and task states
+- Resource Management: Methods for handling system resources and connections
+
+Features:
+- Comprehensive conversation flow management
+- Task graph execution and state tracking
+- Message processing and response generation
+- Resource management and cleanup
+- Error handling and recovery
+- State persistence and restoration
+- Nested graph support
+- Streaming response handling
+- Memory management
+- Tool integration
+
+Usage:
+    from arklex.orchestrator import AgentOrg
+    from arklex.env.env import Env
+
+    # Initialize environment
+    env = Env()
+
+    # Load configuration
+    config = {
+        "role": "customer_service",
+        "user_objective": "Handle customer inquiries",
+        "model": {...},
+        "workers": [...],
+        "tools": [...]
+    }
+
+    # Create orchestrator
+    orchestrator = AgentOrg(config, env)
+
+    # Process message
+    response = orchestrator.get_response({
+        "text": "user message",
+        "chat_history": [...],
+        "parameters": {...}
+    })
+"""
+
 import asyncio
 import copy
 import janus
@@ -10,6 +63,7 @@ from typing import Any, Dict, Tuple, List, Optional, Union
 from arklex.env.nested_graph.nested_graph import NESTED_GRAPH_ID, NestedGraph
 from arklex.env.env import Env
 from arklex.orchestrator.task_graph import TaskGraph
+from arklex.orchestrator.post_process import post_process_response
 from arklex.env.tools.utils import ToolGenerator
 from arklex.types import StreamType
 from arklex.utils.graph_state import (
@@ -26,9 +80,12 @@ from arklex.utils.graph_state import (
     OrchestratorResp,
     NodeTypeEnum,
 )
+
+
 from arklex.utils.utils import format_chat_history
 from arklex.utils.model_config import MODEL
 from arklex.memory import ShortTermMemory
+
 
 load_dotenv()
 logger = logging.getLogger(__name__)
@@ -42,9 +99,36 @@ INFO_WORKERS: List[str] = [
 
 
 class AgentOrg:
+    """Agent organization orchestrator for the Arklex framework.
+
+    This class manages the orchestration of agent interactions, task execution,
+    and workflow management. It handles the flow of conversations and ensures
+    proper execution of tasks.
+
+    Attributes:
+        user_prefix (str): Prefix for user messages
+        worker_prefix (str): Prefix for worker messages
+        environment_prefix (str): Prefix for environment messages
+        product_kwargs (Dict[str, Any]): Configuration settings
+        llm_config (LLMConfig): Language model configuration
+        task_graph (TaskGraph): Task graph for conversation flow
+        env (Env): Environment with tools and workers
+    """
+
     def __init__(
         self, config: Union[str, Dict[str, Any]], env: Env, **kwargs: Any
     ) -> None:
+        """Initialize the AgentOrg orchestrator.
+
+        This function initializes the orchestrator with configuration settings and environment.
+        It sets up the task graph, model configuration, and other necessary components.
+
+        Args:
+            config (Union[str, Dict[str, Any]]): Configuration file path or dictionary containing
+                product settings, model configuration, and other parameters.
+            env (Env): Environment object containing tools, workers, and other resources.
+            **kwargs (Any): Additional keyword arguments for customization.
+        """
         self.user_prefix: str = "user"
         self.worker_prefix: str = "assistant"
         self.environment_prefix: str = "tool"
@@ -62,11 +146,28 @@ class AgentOrg:
         self.env: Env = env
 
         # Update planner model info now that LLMConfig is defined
-        self.env.planner.set_llm_config_and_build_resource_library(self.llm_config)
+        self.env.planner.set_llm_config_and_build_resource_library(
+            self.llm_config)
+
+        self.hitl_worker_available = any(worker.get('name') ==
+                                         'HITLWorkerChatFlag' for worker in self.task_graph.product_kwargs['workers'])
 
     def init_params(
         self, inputs: Dict[str, Any]
     ) -> Tuple[str, str, Params, MessageState]:
+        """Initialize parameters for a new conversation turn.
+
+        This function processes the input text, chat history, and parameters to initialize
+        the state for a new conversation turn. It updates the turn ID, function calling
+        trajectory, and creates a new message state with system instructions.
+
+        Args:
+            inputs (Dict[str, Any]): Dictionary containing text, chat history, and parameters.
+
+        Returns:
+            Tuple[str, str, Params, MessageState]: A tuple containing the processed text,
+                formatted chat history, updated parameters, and new message state.
+        """
         text: str = inputs["text"]
         chat_history: List[Dict[str, str]] = inputs["chat_history"]
         input_params: Optional[Dict[str, Any]] = inputs["parameters"]
@@ -85,9 +186,11 @@ class AgentOrg:
         # Update turn_id and function_calling_trajectory
         params.metadata.turn_id += 1
         if not params.memory.function_calling_trajectory:
-            params.memory.function_calling_trajectory = copy.deepcopy(chat_history_copy)
+            params.memory.function_calling_trajectory = copy.deepcopy(
+                chat_history_copy)
         else:
-            params.memory.function_calling_trajectory.extend(chat_history_copy[-2:])
+            params.memory.function_calling_trajectory.extend(
+                chat_history_copy[-2:])
 
         params.memory.trajectory.append([])
 
@@ -115,6 +218,19 @@ class AgentOrg:
         return text, chat_history_str, params, message_state
 
     def check_skip_node(self, node_info: NodeInfo, params: Params) -> bool:
+        """Check if a node can be skipped in the task graph.
+
+        This function determines whether a node can be skipped based on its configuration
+        and the current state of the task graph. It checks if the node is marked as skippable
+        and if it has reached its execution limit.
+
+        Args:
+            node_info (NodeInfo): Information about the current node.
+            params (Params): Current parameters and state of the conversation.
+
+        Returns:
+            bool: True if the node can be skipped, False otherwise.
+        """
         # NOTE: Do not check the node limit to decide whether the node can be skipped because skipping a node when should not is unwanted.
         return False
         if not node_info.can_skipped:
@@ -128,6 +244,21 @@ class AgentOrg:
     def post_process_node(
         self, node_info: NodeInfo, params: Params, update_info: Dict[str, Any] = {}
     ) -> Params:
+        """Process a node after its execution.
+
+        This function updates the task graph path with the current node's information,
+        including whether it was skipped and its flow stack. It also updates the node's
+        execution limit if applicable.
+
+        Args:
+            node_info (NodeInfo): Information about the current node.
+            params (Params): Current parameters and state of the conversation.
+            update_info (Dict[str, Any], optional): Additional information about the node's execution.
+                Defaults to an empty dictionary.
+
+        Returns:
+            Params: Updated parameters after processing the node.
+        """
         """
         update_info is a dict of
             skipped = Optional[bool]
@@ -151,13 +282,29 @@ class AgentOrg:
     def handl_direct_node(
         self, node_info: NodeInfo, params: Params
     ) -> Tuple[bool, Optional[OrchestratorResp], Params]:
+        """Handle a direct response node in the task graph.
+
+        This function processes nodes that are configured to return direct responses,
+        such as predefined messages or multiple choice options. It updates the task graph
+        path and returns the appropriate response.
+
+        Args:
+            node_info (NodeInfo): Information about the current node.
+            params (Params): Current parameters and state of the conversation.
+
+        Returns:
+            Tuple[bool, Optional[OrchestratorResp], Params]: A tuple containing a boolean
+                indicating if a direct response was handled, the response if applicable,
+                and updated parameters.
+        """
         node_attribute: Dict[str, Any] = node_info.attributes
         if node_attribute.get("direct"):
             # Direct response
             if node_attribute.get("value", "").strip():
                 params = self.post_process_node(node_info, params)
                 return_response: OrchestratorResp = OrchestratorResp(
-                    answer=node_attribute["value"], parameters=params.model_dump()
+                    answer=node_attribute["value"], parameters=params.model_dump(
+                    )
                 )
                 # Multiple choice list
                 if (
@@ -178,6 +325,25 @@ class AgentOrg:
         stream_type: Optional[StreamType],
         message_queue: Optional[janus.SyncQueue],
     ) -> Tuple[NodeInfo, MessageState, Params]:
+        """Execute a node in the task graph.
+
+        This function processes a node in the task graph, handling nested graph nodes,
+        creating messages, and managing the conversation flow. It updates the node information,
+        message state, and parameters based on the execution results.
+
+        Args:
+            message_state (MessageState): Current state of the conversation.
+            node_info (NodeInfo): Information about the current node.
+            params (Params): Current parameters and state of the conversation.
+            text (str): The current user message.
+            chat_history_str (str): Formatted chat history.
+            stream_type (Optional[StreamType]): Type of stream for the response.
+            message_queue (Optional[janus.SyncQueue]): Queue for streaming messages.
+
+        Returns:
+            Tuple[NodeInfo, MessageState, Params]: A tuple containing updated node information,
+                message state, and parameters.
+        """
         # Tool/Worker
         node_info, params = self.handle_nested_graph_node(node_info, params)
 
@@ -212,6 +378,7 @@ class AgentOrg:
         message_state.slots = params.taskgraph.dialog_states
         message_state.metadata = params.metadata
         message_state.is_stream = True if stream_type is not None else False
+        message_state.stream_type = stream_type
         message_state.message_queue = message_queue
 
         response_state: MessageState
@@ -224,6 +391,19 @@ class AgentOrg:
     def handle_nested_graph_node(
         self, node_info: NodeInfo, params: Params
     ) -> Tuple[NodeInfo, Params]:
+        """Handle a nested graph node in the task graph.
+
+        This function processes nodes that represent nested graphs, updating the current node
+        to the start of the nested graph and managing the path and status of the nested graph
+        execution.
+
+        Args:
+            node_info (NodeInfo): Information about the current node.
+            params (Params): Current parameters and state of the conversation.
+
+        Returns:
+            Tuple[NodeInfo, Params]: A tuple containing updated node information and parameters.
+        """
         if node_info.resource_id != NESTED_GRAPH_ID:
             return node_info, params
         # if current node is a nested graph resource, change current node to the start of the nested graph
@@ -254,12 +434,27 @@ class AgentOrg:
         stream_type: Optional[StreamType] = None,
         message_queue: Optional[janus.SyncQueue] = None,
     ) -> OrchestratorResp:
+        """Get a response from the orchestrator.
+
+        This function processes the input through the task graph, handling personalized intents,
+        retrieving relevant records, and managing the conversation flow. It supports streaming
+        responses and maintains the conversation state.
+
+        Args:
+            inputs (Dict[str, Any]): Dictionary containing text, chat history, and parameters.
+            stream_type (Optional[StreamType]): Type of stream for the response.
+            message_queue (Optional[janus.SyncQueue]): Queue for streaming messages.
+
+        Returns:
+            OrchestratorResp: The orchestrator's response containing the answer and parameters.
+        """
         text: str
         chat_history_str: str
         params: Params
         message_state: MessageState
-        text, chat_history_str, params, message_state = self.init_params(inputs)
-        ##### TaskGraph Chain
+        text, chat_history_str, params, message_state = self.init_params(
+            inputs)
+        # TaskGraph Chain
         taskgraph_inputs: Dict[str, Any] = {
             "text": text,
             "chat_history_str": chat_history_str,
@@ -277,8 +472,10 @@ class AgentOrg:
         for turn in params.memory.trajectory:
             for record in turn:
                 if record.personalized_intent:
-                    logger.info(f"Personalized Intent: {record.personalized_intent}")
-                    logger.info(f"Original Intent: {record.personalized_intent}")
+                    logger.info(
+                        f"Personalized Intent: {record.personalized_intent}")
+                    logger.info(
+                        f"Original Intent: {record.personalized_intent}")
 
         found_records, relevant_records = stm.retrieve_records(text)
 
@@ -317,7 +514,8 @@ class AgentOrg:
                     can_skipped=False,
                     is_leaf=len(
                         list(
-                            self.task_graph.graph.successors(params.taskgraph.curr_node)
+                            self.task_graph.graph.successors(
+                                params.taskgraph.curr_node)
                         )
                     )
                     == 0,
@@ -330,7 +528,8 @@ class AgentOrg:
             # Check if current node can be skipped
             can_skip = self.check_skip_node(node_info, params)
             if can_skip:
-                params = self.post_process_node(node_info, params, {"is_skipped": True})
+                params = self.post_process_node(
+                    node_info, params, {"is_skipped": True})
                 continue
             logger.info(f"The current node info is : {node_info}")
 
@@ -375,7 +574,11 @@ class AgentOrg:
             if not stream_type:
                 message_state = ToolGenerator.context_generate(message_state)
             else:
-                message_state = ToolGenerator.stream_context_generate(message_state)
+                message_state = ToolGenerator.stream_context_generate(
+                    message_state)
+
+        message_state = post_process_response(
+            message_state, params, self.hitl_worker_available)
 
         return OrchestratorResp(
             answer=message_state.response,
@@ -389,5 +592,19 @@ class AgentOrg:
         stream_type: Optional[StreamType] = None,
         message_queue: Optional[janus.SyncQueue] = None,
     ) -> Dict[str, Any]:
+
+        """Get a response from the orchestrator with additional metadata.
+
+        This function wraps the _get_response method to provide additional metadata about
+        the response, such as whether human intervention is required.
+
+        Args:
+            inputs (Dict[str, Any]): Dictionary containing text, chat history, and parameters.
+            stream_type (Optional[StreamType]): Type of stream for the response.
+            message_queue (Optional[janus.SyncQueue]): Queue for streaming messages.
+
+        Returns:
+            Dict[str, Any]: A dictionary containing the response, parameters, and metadata.
+        """
         orchestrator_response = self._get_response(inputs, stream_type, message_queue)
         return orchestrator_response.model_dump()

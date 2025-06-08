@@ -1,3 +1,12 @@
+"""Conversation information extraction and analysis for evaluation in the Arklex framework.
+
+This module provides functionality for analyzing conversations and extracting metrics for
+evaluation purposes. It includes utilities for building intent graphs, tracking conversation
+flows, checking goal completion, and calculating various performance metrics such as task
+completion rates and efficiency. The module supports both user and bot goal tracking,
+conversation filtering, and statistical analysis of conversation patterns.
+"""
+
 import json
 import networkx as nx
 from typing import List, Dict, Any, Optional, Union

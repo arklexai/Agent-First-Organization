@@ -1,19 +1,25 @@
+"""
+Tool for scheduling meetings via HubSpot in the Arklex framework.
+
+This module provides a tool implementation for scheduling meetings with customer representatives using the HubSpot API. It handles slot extraction, time parsing, and meeting creation, and is designed for integration with the Arklex tool system.
+"""
+
+import ast
+import inspect
 import json
 from datetime import datetime, timedelta
-import pytz
-import inspect
-from typing import Dict, Any, List, Optional
+from typing import Any, Dict, List, Optional
 
 import hubspot
 import parsedatetime
+import pytz
 from dateutil.parser import isoparse
 from hubspot.crm.objects.meetings import ApiException
 
-from arklex.env.tools.tools import register_tool, logger
-from arklex.env.tools.hubspot.utils import authenticate_hubspot
-from arklex.exceptions import ToolExecutionError
 from arklex.env.tools.hubspot._exception_prompt import HubspotExceptionPrompt
-
+from arklex.env.tools.hubspot.utils import authenticate_hubspot
+from arklex.env.tools.tools import logger, register_tool
+from arklex.exceptions import ToolExecutionError
 
 description: str = "Schedule a meeting for the existing customer with the specific representative. If you are not sure any information, please ask users to confirm in response."
 
@@ -23,6 +29,7 @@ slots: List[Dict[str, Any]] = [
         "name": "cus_fname",
         "type": "str",
         "description": "The first name of the customer contact.",
+        "prompt": "Please provide your first and last name.",
         "required": True,
         "verified": True,
     },
@@ -30,6 +37,7 @@ slots: List[Dict[str, Any]] = [
         "name": "cus_lname",
         "type": "str",
         "description": "The last name of the customer contact.",
+        "prompt": "Please provide your first and last name.",
         "required": True,
         "verified": True,
     },
@@ -37,6 +45,7 @@ slots: List[Dict[str, Any]] = [
         "name": "cus_email",
         "type": "str",
         "description": "The email of the customer contact.",
+        "prompt": "Please provide your email address.",
         "required": True,
     },
     {
@@ -144,7 +153,7 @@ def create_meeting(
     duration: int = int(duration)
     duration: int = int(timedelta(minutes=duration).total_seconds() * 1000)
 
-    api_client: Any = hubspot.Client.create(access_token=access_token)
+    api_client: hubspot.Client = hubspot.Client.create(access_token=access_token)
 
     try:
         create_meeting_response: Any = api_client.api_request(

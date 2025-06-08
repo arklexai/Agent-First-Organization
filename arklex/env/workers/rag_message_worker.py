@@ -1,3 +1,12 @@
+"""RAG Message worker implementation for the Arklex framework.
+
+This module provides a specialized worker that combines Retrieval-Augmented Generation (RAG)
+and message generation capabilities. The RagMsgWorker class intelligently decides whether
+to use RAG retrieval or direct message generation based on the context, providing a flexible
+approach to handling user queries that may require either factual information from documents
+or conversational responses.
+"""
+
 import logging
 from functools import partial
 from typing import Any, Dict, Optional

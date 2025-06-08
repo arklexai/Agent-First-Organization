@@ -1,3 +1,16 @@
+"""Data point handling for model interactions in the TAU benchmark.
+
+This module provides classes and utilities for handling data points in model interactions,
+including classification, generation, parsing, and scoring tasks. It includes functionality
+for data point creation, evaluation, and comparison.
+
+The module includes:
+- Base Datapoint class and specialized datapoint types
+- Evaluation result handling
+- Data point comparison utilities
+- Factory functions for creating datapoints
+"""
+
 from __future__ import annotations
 
 import abc
@@ -15,6 +28,14 @@ T = TypeVar("T", bound=BaseModel)
 
 
 def _is_trace(obj: Dict[str, Any]) -> bool:
+    """Check if a dictionary represents a trace.
+
+    Args:
+        obj (Dict[str, Any]): The dictionary to check.
+
+    Returns:
+        bool: True if the dictionary represents a trace, False otherwise.
+    """
     return (
         "method_name" in obj
         and obj["method_name"] in MODEL_METHODS
@@ -25,6 +46,18 @@ def _is_trace(obj: Dict[str, Any]) -> bool:
 
 
 def dict_equal(d1: Dict[str, Any], d2: Dict[str, Any]) -> bool:
+    """Compare two dictionaries for equality.
+
+    This function performs a deep comparison of two dictionaries, handling nested
+    dictionaries, lists, sets, and strings with special comparison rules.
+
+    Args:
+        d1 (Dict[str, Any]): First dictionary to compare.
+        d2 (Dict[str, Any]): Second dictionary to compare.
+
+    Returns:
+        bool: True if the dictionaries are equal, False otherwise.
+    """
     d1_keys_sorted: List[str] = sorted(d1.keys())
     d2_keys_sorted: List[str] = sorted(d2.keys())
     if d1_keys_sorted != d2_keys_sorted:
@@ -48,6 +81,18 @@ def dict_equal(d1: Dict[str, Any], d2: Dict[str, Any]) -> bool:
 
 
 def list_equal(l1: List[Any], l2: List[Any]) -> bool:
+    """Compare two lists for equality.
+
+    This function performs a deep comparison of two lists, handling nested
+    dictionaries, lists, sets, and strings with special comparison rules.
+
+    Args:
+        l1 (List[Any]): First list to compare.
+        l2 (List[Any]): Second list to compare.
+
+    Returns:
+        bool: True if the lists are equal, False otherwise.
+    """
     if len(l1) != len(l2):
         return False
     for i1, i2 in zip(l1, l2):
@@ -69,6 +114,18 @@ def list_equal(l1: List[Any], l2: List[Any]) -> bool:
 
 
 def set_equal(s1: Set[Any], s2: Set[Any]) -> bool:
+    """Compare two sets for equality.
+
+    This function performs a deep comparison of two sets, handling nested
+    dictionaries, lists, sets, and strings with special comparison rules.
+
+    Args:
+        s1 (Set[Any]): First set to compare.
+        s2 (Set[Any]): Second set to compare.
+
+    Returns:
+        bool: True if the sets are equal, False otherwise.
+    """
     if len(s1) != len(s2):
         return False
     for i1, i2 in zip(s1, s2):
@@ -90,6 +147,19 @@ def set_equal(s1: Set[Any], s2: Set[Any]) -> bool:
 
 
 def str_equal(s1: str, s2: str) -> bool:
+    """Compare two strings for equality.
+
+    This function compares two strings after removing special characters and
+    normalizing whitespace and case.
+
+    Args:
+        s1 (str): First string to compare.
+        s2 (str): Second string to compare.
+
+    Returns:
+        bool: True if the strings are equal after normalization, False otherwise.
+    """
+
     def remove_special_chars(s: str) -> str:
         return "".join(filter(str.isalnum, s))
 
@@ -102,6 +172,19 @@ def str_equal(s1: str, s2: str) -> bool:
 
 
 class EvaluationResult(BaseModel):
+    """Result of evaluating a datapoint.
+
+    This class represents the result of evaluating a datapoint against a model,
+    including information about errors and correctness.
+
+    Attributes:
+        is_error (bool): Whether an error occurred during evaluation.
+        is_correct (bool): Whether the evaluation was correct.
+        datapoint (Optional[Dict[str, Any]]): The datapoint that was evaluated.
+        response (Optional[Any]): The response from the model.
+        error (Optional[str]): Any error message that occurred.
+    """
+
     is_error: bool
     is_correct: bool
     datapoint: Optional[Dict[str, Any]]
@@ -110,8 +193,30 @@ class EvaluationResult(BaseModel):
 
 
 class Datapoint(BaseModel, abc.ABC):
+    """Abstract base class for datapoints.
+
+    This class defines the interface for all datapoint types, including methods
+    for creation from traces and dictionaries, and evaluation against a model.
+
+    Methods:
+        from_trace: Create a datapoint from a trace dictionary.
+        from_dict: Create a datapoint from a dictionary.
+        evaluate: Evaluate the datapoint against a model.
+    """
+
     @classmethod
     def from_trace(cls, d: Dict[str, Any]) -> "Datapoint":
+        """Create a datapoint from a trace dictionary.
+
+        Args:
+            d (Dict[str, Any]): The trace dictionary.
+
+        Returns:
+            Datapoint: A new datapoint instance.
+
+        Raises:
+            ValueError: If the dictionary is not a valid trace.
+        """
         if not _is_trace(d):
             raise ValueError(f"This is not a trace: {d}")
         response: Any = d["response"]
@@ -120,16 +225,48 @@ class Datapoint(BaseModel, abc.ABC):
 
     @classmethod
     def from_dict(cls, d: Dict[str, Any]) -> "Datapoint":
+        """Create a datapoint from a dictionary.
+
+        Args:
+            d (Dict[str, Any]): The dictionary to create from.
+
+        Returns:
+            Datapoint: A new datapoint instance.
+        """
         if _is_trace(d):
             return cls.from_trace(d)
         return cls(**d)
 
     @abc.abstractmethod
     def evaluate(self, api: tau_bench.model_utils.API) -> EvaluationResult:
+        """Evaluate the datapoint against a model.
+
+        Args:
+            api (tau_bench.model_utils.API): The API to use for evaluation.
+
+        Returns:
+            EvaluationResult: The result of the evaluation.
+
+        Raises:
+            NotImplementedError: This method must be implemented by subclasses.
+        """
         raise NotImplementedError
 
 
 class ClassifyDatapoint(Datapoint):
+    """Datapoint for classification tasks.
+
+    This class represents a datapoint for classification tasks, including
+    instruction, text, options, and optional examples.
+
+    Attributes:
+        instruction (str): The instruction for classification.
+        text (str): The text to classify.
+        options (List[str]): The possible classification options.
+        response (Optional[int]): The expected response.
+        examples (Optional[List[ClassifyDatapoint]]): Example datapoints.
+    """
+
     instruction: str
     text: str
     options: List[str]
@@ -137,6 +274,14 @@ class ClassifyDatapoint(Datapoint):
     examples: Optional[List["ClassifyDatapoint"]] = None
 
     def evaluate(self, api: tau_bench.model_utils.API) -> EvaluationResult:
+        """Evaluate the classification datapoint.
+
+        Args:
+            api (tau_bench.model_utils.API): The API to use for evaluation.
+
+        Returns:
+            EvaluationResult: The result of the evaluation.
+        """
         return run_and_catch_api_error(
             lambda: api.classify(
                 instruction=self.instruction,
@@ -150,12 +295,32 @@ class ClassifyDatapoint(Datapoint):
 
 
 class BinaryClassifyDatapoint(Datapoint):
+    """Datapoint for binary classification tasks.
+
+    This class represents a datapoint for binary classification tasks, including
+    instruction, text, and optional examples.
+
+    Attributes:
+        instruction (str): The instruction for classification.
+        text (str): The text to classify.
+        response (Optional[bool]): The expected response.
+        examples (Optional[List[BinaryClassifyDatapoint]]): Example datapoints.
+    """
+
     instruction: str
     text: str
     response: Optional[bool] = None
     examples: Optional[List["BinaryClassifyDatapoint"]] = None
 
     def evaluate(self, api: tau_bench.model_utils.API) -> EvaluationResult:
+        """Evaluate the binary classification datapoint.
+
+        Args:
+            api (tau_bench.model_utils.API): The API to use for evaluation.
+
+        Returns:
+            EvaluationResult: The result of the evaluation.
+        """
         return run_and_catch_api_error(
             lambda: api.binary_classify(
                 instruction=self.instruction, text=self.text, examples=self.examples
@@ -166,6 +331,20 @@ class BinaryClassifyDatapoint(Datapoint):
 
 
 class ScoreDatapoint(Datapoint):
+    """Datapoint for scoring tasks.
+
+    This class represents a datapoint for scoring tasks, including instruction,
+    text, score range, and optional examples.
+
+    Attributes:
+        instruction (str): The instruction for scoring.
+        text (str): The text to score.
+        min (int): The minimum possible score.
+        max (int): The maximum possible score.
+        response (Optional[int]): The expected response.
+        examples (Optional[List[ScoreDatapoint]]): Example datapoints.
+    """
+
     instruction: str
     text: str
     min: int
@@ -174,16 +353,47 @@ class ScoreDatapoint(Datapoint):
     examples: Optional[List["ScoreDatapoint"]] = None
 
     def evaluate(self, api: tau_bench.model_utils.API) -> EvaluationResult:
+        """Evaluate the scoring datapoint.
+
+        Args:
+            api (tau_bench.model_utils.API): The API to use for evaluation.
+
+        Returns:
+            EvaluationResult: The result of the evaluation.
+
+        Raises:
+            NotImplementedError: This method is not implemented.
+        """
         raise NotImplementedError
 
 
 class ParseDatapoint(Datapoint):
+    """Datapoint for parsing tasks.
+
+    This class represents a datapoint for parsing tasks, including text,
+    type information, and optional examples.
+
+    Attributes:
+        text (str): The text to parse.
+        typ (Union[type[T], Dict[str, Any]]): The type to parse into.
+        response (Optional[Union[Dict[str, Any], T, PartialObj]]): The expected response.
+        examples (Optional[List[ParseDatapoint]]): Example datapoints.
+    """
+
     text: str
     typ: Union[type[T], Dict[str, Any]]
     response: Optional[Union[Dict[str, Any], T, PartialObj]] = None
     examples: Optional[List["ParseDatapoint"]] = None
 
     def evaluate(self, api: tau_bench.model_utils.API) -> EvaluationResult:
+        """Evaluate the parsing datapoint.
+
+        Args:
+            api (tau_bench.model_utils.API): The API to use for evaluation.
+
+        Returns:
+            EvaluationResult: The result of the evaluation.
+        """
         return run_and_catch_api_error(
             lambda: api.parse(text=self.text, typ=self.typ),
             self.response,
@@ -192,6 +402,18 @@ class ParseDatapoint(Datapoint):
 
 
 class GenerateDatapoint(Datapoint):
+    """Datapoint for generation tasks.
+
+    This class represents a datapoint for generation tasks, including instruction,
+    text, and optional examples.
+
+    Attributes:
+        instruction (str): The instruction for generation.
+        text (str): The text to generate from.
+        response (Optional[str]): The expected response.
+        examples (Optional[List[GenerateDatapoint]]): Example datapoints.
+    """
+
     instruction: str
     text: str
     response: Optional[str] = None
@@ -200,10 +422,34 @@ class GenerateDatapoint(Datapoint):
     def evaluate(
         self, api: tau_bench.model_utils.API
     ) -> tau_bench.model_utils.EvaluationResult:
+        """Evaluate the generation datapoint.
+
+        Args:
+            api (tau_bench.model_utils.API): The API to use for evaluation.
+
+        Returns:
+            EvaluationResult: The result of the evaluation.
+
+        Raises:
+            NotImplementedError: This method is not implemented.
+        """
         raise NotImplementedError
 
 
 class ParseForceDatapoint(Datapoint):
+    """Datapoint for forced parsing tasks.
+
+    This class represents a datapoint for forced parsing tasks, including
+    instruction, type information, optional text, and optional examples.
+
+    Attributes:
+        instruction (str): The instruction for parsing.
+        typ (Union[type[T], Dict[str, Any]]): The type to parse into.
+        text (Optional[str]): The text to parse.
+        response (Optional[Union[Dict[str, Any], T]]): The expected response.
+        examples (Optional[List[ParseForceDatapoint]]): Example datapoints.
+    """
+
     instruction: str
     typ: Union[type[T], Dict[str, Any]]
     text: Optional[str] = None
@@ -211,6 +457,14 @@ class ParseForceDatapoint(Datapoint):
     examples: Optional[List["ParseForceDatapoint"]] = None
 
     def evaluate(self, api: tau_bench.model_utils.API) -> EvaluationResult:
+        """Evaluate the forced parsing datapoint.
+
+        Args:
+            api (tau_bench.model_utils.API): The API to use for evaluation.
+
+        Returns:
+            EvaluationResult: The result of the evaluation.
+        """
         return run_and_catch_api_error(
             lambda: api.parse_force(
                 instruction=self.instruction,
@@ -224,6 +478,20 @@ class ParseForceDatapoint(Datapoint):
 
 
 def datapoint_factory(d: Dict[str, Any]) -> Datapoint:
+    """Create a datapoint from a dictionary.
+
+    This function creates an appropriate datapoint instance based on the
+    contents of the input dictionary.
+
+    Args:
+        d (Dict[str, Any]): The dictionary to create from.
+
+    Returns:
+        Datapoint: A new datapoint instance.
+
+    Raises:
+        ValueError: If the dictionary does not match any known datapoint type.
+    """
     if _is_trace(d):
         method_name: str = d["method_name"]
         kwargs: Dict[str, Any] = d["kwargs"]
@@ -268,6 +536,19 @@ def datapoint_factory(d: Dict[str, Any]) -> Datapoint:
 def run_and_catch_api_error(
     callable: Callable[..., Any], response: Any, datapoint: Dict[str, Any]
 ) -> EvaluationResult:
+    """Run a callable and catch any API errors.
+
+    This function runs a callable and catches any API or model errors,
+    returning an appropriate evaluation result.
+
+    Args:
+        callable (Callable[..., Any]): The callable to run.
+        response (Any): The expected response.
+        datapoint (Dict[str, Any]): The datapoint being evaluated.
+
+    Returns:
+        EvaluationResult: The result of the evaluation.
+    """
     try:
         result: Any = callable()
         return EvaluationResult(
@@ -288,6 +569,16 @@ def run_and_catch_api_error(
 
 
 def load_from_disk(path: str) -> List[Datapoint]:
+    """Load datapoints from a file.
+
+    This function loads datapoints from a JSON file on disk.
+
+    Args:
+        path (str): The path to the file.
+
+    Returns:
+        List[Datapoint]: A list of datapoints loaded from the file.
+    """
     with open(path) as f:
         data: List[Dict[str, Any]] = json.load(f)
     return [datapoint_factory(d) for d in data]
