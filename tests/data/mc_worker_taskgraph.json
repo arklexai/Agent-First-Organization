@@ -121,7 +121,14 @@
         {
             "id": "message_worker",
             "name": "MessageWorker",
-            "path": "message_worker.py"
+            "path": "message_worker.py",
+            "description": "A worker that handles message-based interactions with users, providing responses and collecting information."
+        },
+        {
+            "id": "multiple_choice_worker",
+            "name": "MultipleChoiceWorker",
+            "path": "multiple_choice_worker.py",
+            "description": "A worker that presents multiple choice options to users and handles their selections."
         }
     ],
     "nluapi": "",

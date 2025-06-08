@@ -1,195 +1,127 @@
 # Tools
 
-# Introduction
+Tools are the building blocks of the Arklex framework, providing functionality for
+various operations such as intent detection, slot filling, and task execution.
 
-Alongside [Workers](./Workers), **Tools** are a fundamental building block of the **Agent First Organization** framework and responsible for the "execution" of the tasks and its subtasks. Tools are the unstructured counterpart to Workers, with a flexible input and output (contrary to Workers with a [MessageState](./MessageState.md) input and output). Powered through the SlotFilling mechanism, the framework handles the translation between MessageState and the specified parameter and return values, allowing smoother development of custom methods and integration of API.
+## Overview
 
-# Implementation
+Tools in the Arklex framework are designed to be modular and reusable components
+that can be combined to create complex workflows. Each tool has a well-defined
+interface for input and output. Powered through the slot filling mechanism, the
+framework handles the translation between MessageState and the specified parameter
+and return values, allowing smoother development of custom methods and integration
+of API.
 
-:::tip  Technical Details
-Tools could be thought of as a Worker-wrapped method that has the framework translate values to and from MessageStates.
-:::
+## Tool Structure
 
-Unlike Workers, there are no BaseWorker equivalent for Tools as it is designed to be unstructured. Instead, Tools could be easily created from any method through `@register-tool` decorator. To turn a method into a tool, just add a `@register-tool` decorator on the method declaration with 4 parameters: **description**, **slots**, **outputs**.
+Each tool in the Arklex framework follows a standard structure:
 
-## Parameters
+```python
+from arklex.env.tools.tools import BaseTool
+from arklex.utils.graph_state import MessageState
+from arklex.utils.slot import Slot
 
-### Description
+class MyTool(BaseTool):
+    def __init__(self):
+        super().__init__(
+            name="my_tool",
+            description="Description of my tool"
+        )
 
-`description` is a string that describes what the Tools does and what tasks is meant to handle. This is used by the Generator to assign the right tool for the tool when generating the TaskGraph.
+    def _get_required_slots(self) -> List[Slot]:
+        return [
+            Slot(
+                name="param1",
+                description="Description of parameter 1",
+                required=True,
+                type="string"
+            ),
+            Slot(
+                name="param2",
+                description="Description of parameter 2",
+                required=False,
+                type="integer"
+            )
+        ]
 
-Example include:\
-&emsp;"Adds two numbers and returns the sum"\
-&emsp;"Searches the database for shows given descriptions"\
-&emsp;"Add items to cart with line ids"
-
-### Slots
-
-Slots are the frameworks approach to extract values from the conversations. Slots are used in a tooling context to extract the parameters values from the conversation. Each parameter should have a corresponding slot. Through specifying the parameter's `name`, `type`, `description`, `prompt`, `required`, the framework would can extract the necessary information from the conversation.
-
-**`name`**\
-A string representing the name of the parameter, this should be the parameter name.
-> **Examples**: 'x', 'show_name', 'ids'
-
-**`type`**: A string representing the type of data.
-> **Examples**: 'int', 'str', 'list'
-
-**`enum`**: The candidate values for the slot. This is used to aid the slotfilling verifier to check if the extracted value is valid.
-> **Examples**: 'int', 'str'
-
-**`description`**: A string describing the parameter. This will be used to aid the extraction component of slotfilling. Adding examples often help the slotfilling.
-> **Examples**\
-> &emsp;"Name of the show, such as 'Hamilton'"\
-> &emsp;"list of (item_id, quantity) tuples of Items to remove to the cart such as [('41552094527601', 5), ('41552094494833', 10)]."
-
-**`prompt`**: A string representing the prompt if parameter required but not found
-> **Examples**\
-> &emsp;"Please provide the name of the show"
-
-**`required`**: A boolean representing if the parameter is required. If required and a value could not be extracted, the prompt would be returned for the value
-
-**`verified`**: A boolean representing whether the extracted parameter need verification from user. If need verification from user, then set as False, means haven't been verified. If not, set as True, means it has been verified.
-
-#### Example Slots
-
-```py
-[
-    {
-        "name": "cart_id",
-        "type": "str",
-        "description": "Cart ID to add items to, such as '2938501948327'",
-        "prompt": "",
-        "required": True,
-        "verified": True
-    },
-    {
-        "name": "item_ids",
-        "type": "list",
-        "items": "tuples"
-        "description": "list of (item_id, quantity) tuples of Items to add to the cart such as [('41552094527601', 5), ('41552094494833', 10)].",
-        "prompt": "",
-        "required": True,
-        "verified": True
-    }
-]
+    def _execute_impl(self, message_state: MessageState) -> Any:
+        # Tool implementation
+        return result
 ```
 
-### Outputs
+## Slot Definition
 
-Outputs describes the expected return value of the method and aids the framework to contextualize the output of the tool for further Taskgraph decisions. Outputs are similar to slots except without `prompt` or `required` attributes.
+Slots are used to define the parameters that a tool requires. Each slot has the
+following attributes:
 
-> **Example**
->
-> ```py
-> [{
->    "name": "user_id",
->    "type": "string",
->    "description": "The user id of the user. such as '13573257450893'.",
-> }]
-> ```
+- **`name`**: The name of the parameter
+- **`type`**: The type of the parameter (string, integer, float, boolean)
+- **`required`**: Whether the parameter is required
+- **`enum`**: The candidate values for the slot. This is used to aid the slot
+  filler to check if the extracted value is valid.
+- **`description`**: A string describing the parameter. This will be used to aid
+  the extraction component of slot filling. Adding examples often help the slot
+  filling.
 
-**Always Complete**
+## Tool Registration
 
-```py
-lambda x: return True
+Tools can be registered using the `@tool` decorator:
+
+```python
+from arklex.env.tools.tools import tool
+
+@tool(name="my_tool", description="Description of my tool")
+def my_tool(param1: str, param2: int = 0) -> str:
+    # Tool implementation
+    return result
 ```
 
-**Error Messages**
+## Tool Execution
 
-```py
-lambda x: return x not in ERROR_MSGS
+Tools are executed through the environment:
+
+```python
+from arklex.env.env import Environment
+
+# Initialize environment
+env = Environment(workers=[], tools=[my_tool])
+
+# Execute tool
+result = env.execute_tool("my_tool", message_state)
 ```
 
-**Not None**
+## Best Practices
 
-```py
-lambda x: return x is not None
-```
+1. **Tool Design**
+   - Keep tools focused and single-purpose
+   - Use clear parameter names
+   - Provide detailed descriptions
+   - Handle errors gracefully
 
-## Examples
+2. **Slot Definition**
+   - Use clear slot names
+   - Provide detailed descriptions
+   - Include examples when helpful
+   - Define appropriate types
 
-### Decorator
+3. **Error Handling**
+   - Validate input parameters
+   - Handle edge cases
+   - Provide clear error messages
+   - Log errors appropriately
 
-```py
-@register_tool(
-    "Add items to cart",
-    [
-        {
-            "name": "cart_id",
-            "type": "str",
-            "description": "Cart ID to add items to, such as '2938501948327'",
-            "prompt": "",
-            "required": True,
-            "verified": True
-        },
-        {
-            "name": "item_ids",
-            "type": "list",
-            "items": "tuples"
-            "description": "list of (item_id, quantity) tuples of Items to add to the cart such as [('41552094527601', 5), ('41552094494833', 10)].",
-            "prompt": "",
-            "required": True,
-            "verified": True
-        }
-    ],
-    [{
-        "name": "cart",
-        "type": "dict",
-        "description": "The cart information after adding, such as {'id': 'sample_cart', 'items': {'41552094527601': 5, '41552094494833': 10\}\}.",
-    }],
-    lambda x: x is not None and x not in ERROR_MSGS
-)
-```
+4. **Testing**
+   - Write unit tests
+   - Test edge cases
+   - Test error handling
+   - Test integration
 
-### Custom Tool
+## Integration
 
-```py
-import ast
+Tools integrate with:
 
-@register_tool(
-    "Calculates and return the function output of mathematical query.",
-    [{
-        "name": "expression",
-        "type": "string",
-        "description": "valid math expression extracted from the user message expressed with only numerical digits and these special characters ['(', ')', '+', '-', '*', '/', '%', '^'], like '21 * 2'",
-        "prompt": "Could you please provide the mathematical expression?",
-        "required": True
-    }],
-    [{
-        "name": "result",
-        "type": "float",
-        "value": "",
-        "description": "result of evaluated mathematical expression like 42",
-    }],
-    lambda x: isinstance(x, (int, float, complex)) and not isinstance(x, bool)
-)
-def calculator(expression):
-    py_expression = expression.replace("^", "**")
-    return ast.eval(py_expression)
-```
-
-### Convert Existing Method into a Tool
-
-```py
-from ast import eval as calculate
-
-register_tool(
-    "Calculates and return the function output of mathematical query.",
-    [{
-        "name": "expression",
-        "type": "string",
-        "description": "valid math expression extracted from the user message expressed with only numerical digits and these special characters ['(', ')', '+', '-', '*', '/', '%', '^'], like '21 * 2'",
-        "prompt": "Could you please provide the mathematical expression?",
-        "required": True
-    }],
-    [{
-        "name": "result",
-        "type": "float",
-        "value": "",
-        "description": "result of evaluated mathematical expression like 42",
-    }],
-    lambda x: isinstance(x, (int, float, complex)) and not isinstance(x, bool)
-)(
-    calculate
-)
-```
+- Environment
+- Message Processing
+- Slot Filling
+- State Management
+- Logging System

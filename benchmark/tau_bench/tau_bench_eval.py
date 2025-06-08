@@ -27,7 +27,7 @@ from langchain_openai import ChatOpenAI
 from arklex.utils.utils import init_logger
 from arklex.utils.model_config import MODEL
 from arklex.orchestrator.generator.generator import Generator
-from arklex.env.env import DefaulResourceInitializer
+from arklex.env.env import DefaultResourceInitializer
 from arklex.env.tools.tools import Tool
 
 from benchmark.tau_bench.envs.retail.tools import ALL_TOOLS
@@ -62,7 +62,7 @@ def get_tool_name_class_map() -> Dict[str, Any]:
     return tool_map
 
 
-class TauBenchResourceInitializer(DefaulResourceInitializer):
+class TauBenchResourceInitializer(DefaultResourceInitializer):
     """Resource initializer for TAU benchmark tools.
 
     This class extends the default resource initializer to handle TAU benchmark

@@ -336,7 +336,8 @@
                 "admin_token": "<shopify_admin_token>",
                 "shop_url": "<your-shopify-shop-url>",
                 "api_version": "<api-version>"
-            }
+            },
+            "description": "Retrieves user details from the Shopify admin API."
         },
         {
             "id": "shopify/search_products",
@@ -346,7 +347,8 @@
                 "admin_token": "<shopify_admin_token>",
                 "shop_url": "<your-shopify-shop-url>",
                 "api_version": "<api-version>"
-            }
+            },
+            "description": "Searches for products in the Shopify store based on a query."
         },
         {
             "id": "shopify/get_order_details",
@@ -356,7 +358,8 @@
                 "admin_token": "<shopify_admin_token>",
                 "shop_url": "<your-shopify-shop-url>",
                 "api_version": "<api-version>"
-            }
+            },
+            "description": "Retrieves order details from the Shopify store."
         },
         {
             "id": "shopify/get_products",
@@ -366,7 +369,8 @@
                 "admin_token": "<shopify_admin_token>",
                 "shop_url": "<your-shopify-shop-url>",
                 "api_version": "<api-version>"
-            }
+            },
+            "description": "Retrieves product information based on product IDs."
         },
         {
             "id": "shopify/return_products",
@@ -376,7 +380,8 @@
                 "admin_token": "<shopify_admin_token>",
                 "shop_url": "<your-shopify-shop-url>",
                 "api_version": "<api-version>"
-            }
+            },
+            "description": "Handles product return requests in the Shopify store."
         },
         {
             "id": "shopify/cancel_order",
@@ -386,7 +391,8 @@
                 "admin_token": "<shopify_admin_token>",
                 "shop_url": "<your-shopify-shop-url>",
                 "api_version": "<api-version>"
-            }
+            },
+            "description": "Cancels orders in the Shopify store."
         },
         {
             "id": "shopify/get_cart",
@@ -396,7 +402,8 @@
                 "storefront_token": "<shopify_storefront_token>",
                 "shop_url": "<your-shopify-shop-url>",
                 "api_version": "<api-version>"
-            }
+            },
+            "description": "Retrieves the contents of a user's shopping cart."
         },
         {
             "id": "shopify/cart_add_items",
@@ -406,14 +413,16 @@
                 "storefront_token": "<shopify_storefront_token>",
                 "shop_url": "<your-shopify-shop-url>",
                 "api_version": "<api-version>"
-            }
+            },
+            "description": "Adds items to a user's shopping cart."
         }
     ],
     "workers": [
         {
             "id": "message_worker",
             "name": "MessageWorker",
-            "path": "message_worker.py"
+            "path": "message_worker.py",
+            "description": "A worker that handles message-based interactions with users, providing responses and collecting information."
         }
     ],
     "role": "customer service assistant",

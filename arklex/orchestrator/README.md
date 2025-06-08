@@ -1,90 +1,157 @@
 # Arklex Orchestrator
 
-The Orchestrator is the main component of the AgentOrg framework, providing a task-oriented orchestration system that manages task completion through multiple turns of interaction. It is responsible for managing workers and executing tasks based on a graph-based workflow.
+The Orchestrator is the central component of the Arklex framework, responsible for managing conversation flow, task execution, and integration with various services.
 
-## Overview
+## Components
 
-The Orchestrator takes JSON/YAML configuration as input, reconstructs a task graph, and executes workers according to the graph structure. The system is designed to handle complex, multi-step tasks through a flexible and extensible architecture.
+### Task Graph
 
-## Key Components
+- Directed graph structure for conversation flow
+- Intent-based node navigation
+- State management and tracking
+- Path history and resource management
+- Integration with intent detection and slot filling
 
-### Graph Structure
+### Natural Language Understanding (NLU)
 
-- **Nodes**: Represent workers that execute specific sub-tasks
-- **Edges**: Represent user intents and define the flow between workers
-- **Leaf Nodes**: Mark the completion of a task
+- Intent detection and classification
+- Slot filling and value extraction
+- Input processing and validation
+- Response formatting
+- Error handling
 
-### Worker Management
+### Message Processing
 
-- Workers execute defined sub-tasks
-- Each worker may require:
-  - User input
-  - Pre-defined values
-  - Results from previous workers
-- Workers return results that influence the next steps
+- Input/output handling
+- Message state management
+- Context tracking
+- Response generation
+- Error handling
 
-### Task Handling
+### State Management
 
-- Support for multiple concurrent tasks
-- Task detection through NLU module
-- Graph traversal based on user intents
-- Result propagation between workers
+- Conversation state tracking
+- Node state management
+- Resource state management
+- History tracking
+- State persistence
 
-## Workflow
+### Resource Management
 
-1. **Task Detection**
-   - NLU module parses user input
-   - Detects intent and connected node
-   - Initiates task execution
-
-2. **Task Execution**
-   - Starts from detected node
-   - Traverses graph based on edges
-   - Executes workers in sequence
-   - Passes results to next worker
-
-3. **Task Completion**
-   - Reaches leaf node
-   - Returns final results
-   - Resets for next task
+- Resource allocation
+- Resource tracking
+- Resource cleanup
+- Resource state management
+- Resource limits
 
 ## Features
 
-- Graph-based task management
-- Multi-turn task execution
-- Flexible worker configuration
-- Intent-based navigation
-- Result propagation
-- Concurrent task handling
+- Task detection through intent detection
+- Slot filling and verification
+- Multi-step task handling
+- Global and local intent handling
+- Node state management
+- Path tracking
+- Resource management
+- Error handling
+- Logging and monitoring
 
 ## Usage
 
 ```python
-from arklex.orchestrator import Orchestrator
+from arklex.orchestrator.task_graph import TaskGraph
+from arklex.utils.graph_state import LLMConfig, Params
 
-# Initialize orchestrator with configuration
-orchestrator = Orchestrator(config_path="task_config.yaml")
+# Initialize task graph
+config = {
+    "nodes": [...],
+    "edges": [...],
+    "intent_api": {...},
+    "slotfillapi": {...}
+}
 
-# Process user input
-response = orchestrator.process_input(user_input)
+llm_config = LLMConfig(...)
+task_graph = TaskGraph("conversation", config, llm_config)
 
-# Get task status
-status = orchestrator.get_task_status()
+# Process input
+params = Params(...)
+node_info, updated_params = task_graph.get_node({"input": "user message"})
 ```
 
 ## Configuration
 
-The orchestrator accepts configuration in JSON or YAML format, defining:
+### Task Graph Configuration
 
-- Task graph structure
-- Worker definitions
-- Edge conditions
-- Input requirements
-- Output specifications
+```json
+{
+    "nodes": [
+        {
+            "id": "start",
+            "type": "start",
+            "intents": ["greeting", "help"]
+        },
+        {
+            "id": "task",
+            "type": "task",
+            "intents": ["book_flight", "check_status"]
+        }
+    ],
+    "edges": [
+        {
+            "source": "start",
+            "target": "task",
+            "intent": "book_flight"
+        }
+    ],
+    "intent_api": {
+        "api_url": "your_api_url",
+        "api_key": "your_api_key"
+    },
+    "slotfillapi": {
+        "api_url": "your_api_url",
+        "api_key": "your_api_key"
+    }
+}
+```
 
-## Dependencies
+## Best Practices
 
-- NLU module for intent detection
-- Worker implementations
-- Graph management system
-- Configuration parser
+1. **Task Graph Design**
+   - Use clear node names
+   - Define clear intent mappings
+   - Consider fallback paths
+   - Handle edge cases
+
+2. **Intent Detection**
+   - Use clear intent names
+   - Include fallback intents
+   - Consider context
+   - Validate confidence
+
+3. **Slot Filling**
+   - Define clear slot types
+   - Validate slot values
+   - Handle missing slots
+   - Provide clear prompts
+
+4. **State Management**
+   - Track conversation state
+   - Manage node state
+   - Handle resource state
+   - Persist important state
+
+5. **Error Handling**
+   - Handle API errors
+   - Handle timeouts
+   - Handle invalid inputs
+   - Provide clear error messages
+
+## Integration
+
+The Orchestrator integrates with:
+
+- NLU System
+- Message Processing
+- State Management
+- Resource Management
+- Logging System

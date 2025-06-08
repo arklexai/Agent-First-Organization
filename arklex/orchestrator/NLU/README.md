@@ -1,168 +1,133 @@
-# Arklex Natural Language Understanding (NLU)
+# Natural Language Understanding (NLU)
 
-This directory contains the Natural Language Understanding (NLU) components of the Arklex framework. The NLU system is responsible for intent detection, slot filling, and understanding user input in conversations.
+The NLU module provides functionality for natural language understanding, including
+intent detection, slot filling, and entity recognition.
+
+## Overview
+
+The NLU module is designed to be modular and extensible, with a clear separation of
+concerns between different components. It provides a unified interface for natural
+language understanding tasks through the `SlotFiller` class.
 
 ## Components
 
-### Core NLU (`nlu.py`)
+### Core
 
-- Intent detection and classification
-- Slot filling and value extraction
-- Input processing and validation
-- Response formatting
-- Error handling
+The core components provide the fundamental functionality for natural language
+understanding:
 
-### API Layer (`api.py`)
+- `SlotFiller`: Main class for slot filling operations
+- `IntentDetector`: Class for intent detection
+- `EntityRecognizer`: Class for entity recognition
 
-- FastAPI endpoints for NLU services
-- Model interaction and response generation
-- Input/output formatting
-- Error handling and validation
-- Configuration management
+### API
 
-## Features
+The API components provide HTTP endpoints for the NLU functionality:
 
-### Intent Detection
+```python
+from arklex.orchestrator.NLU.core.routes import create_app
 
-- Multi-intent classification
-- Confidence scoring
-- Context-aware processing
-- Fallback handling
-- Custom intent support
-
-### Slot Filling
-
-- Entity extraction
-- Value validation
-- Type conversion
-- Required slot handling
-- Slot verification
-
-### API Integration
-
-- RESTful endpoints
-- Streaming support
-- Authentication
-- Rate limiting
-- Error responses
+app = create_app()
+```
 
 ## Usage
 
-### Core NLU
+### Slot Filling
 
 ```python
-from arklex.orchestrator.NLU.nlu import NLU, SlotFilling
+from arklex.orchestrator.NLU.core.slot import SlotFiller
+from arklex.utils.slot import Slot
 
-# Initialize NLU
-nlu = NLU(config={
-    "model": "gpt-4",
-    "api_key": "your-api-key"
-})
+# Initialize slot filler
+slot_filler = SlotFiller(url="http://localhost:8000")
 
-# Detect intent
-intent = nlu.execute("I want to book a flight")
-
-# Initialize slot filling
-slot_filler = SlotFilling(config={
-    "model": "gpt-4",
-    "api_key": "your-api-key"
-})
+# Define slots
+slots = [
+    Slot(
+        name="name",
+        description="User's name",
+        required=True,
+        type="string"
+    ),
+    Slot(
+        name="age",
+        description="User's age",
+        required=False,
+        type="integer"
+    )
+]
 
 # Fill slots
-slots = slot_filler.execute(
-    "I want to fly to New York on Monday",
-    required_slots=["destination", "date"]
-)
+filled_slots = slot_filler.execute(slots, "My name is John and I am 30 years old")
 ```
 
-### API Endpoints
+### Intent Detection
 
 ```python
-from fastapi import FastAPI
-from arklex.orchestrator.NLU.api import NLUModelAPI, SlotFillModelAPI
+from arklex.orchestrator.NLU.core.intent import IntentDetector
 
-app = FastAPI()
+# Initialize intent detector
+intent_detector = IntentDetector(url="http://localhost:8000")
 
-# Initialize APIs
-nlu_api = NLUModelAPI()
-slot_api = SlotFillModelAPI()
+# Detect intent
+intent = intent_detector.execute("I want to book a flight to New York")
+```
 
-# Add endpoints
-app.post("/nlu/predict")(nlu_api.predict)
-app.post("/slotfill/predict")(slot_api.predict)
-app.post("/slotfill/verify")(slot_api.verify)
+### Entity Recognition
+
+```python
+from arklex.orchestrator.NLU.core.entity import EntityRecognizer
+
+# Initialize entity recognizer
+entity_recognizer = EntityRecognizer(url="http://localhost:8000")
+
+# Recognize entities
+entities = entity_recognizer.execute("I want to book a flight to New York")
 ```
 
 ## Configuration
 
-### NLU Configuration
+The NLU module can be configured through environment variables or a configuration file:
 
-```json
-{
-    "model": "gpt-4",
-    "api_key": "your-api-key",
-    "temperature": 0.7,
-    "max_tokens": 100,
-    "timeout": 30
-}
-```
+```python
+from arklex.orchestrator.NLU.core.config import Config
 
-### Slot Filling Configuration
-
-```json
-{
-    "model": "gpt-4",
-    "api_key": "your-api-key",
-    "temperature": 0.7,
-    "max_tokens": 100,
-    "timeout": 30,
-    "required_slots": ["destination", "date"]
-}
+config = Config(
+    api_url="http://localhost:8000",
+    model_path="models/nlu",
+    batch_size=32
+)
 ```
 
 ## Best Practices
 
-1. **Intent Detection**
-   - Use clear and specific intent names
-   - Include fallback intents
-   - Consider context in classification
-   - Validate intent confidence
+1. **Error Handling**
+   - Handle API errors gracefully
+   - Provide meaningful error messages
+   - Log errors appropriately
 
-2. **Slot Filling**
-   - Define clear slot types
-   - Validate slot values
-   - Handle missing slots
-   - Provide clear prompts
+2. **Performance**
+   - Use batch processing when possible
+   - Cache results when appropriate
+   - Monitor resource usage
 
-3. **API Usage**
-   - Implement proper error handling
-   - Use appropriate timeouts
-   - Validate input/output
-   - Monitor API usage
+3. **Testing**
+   - Write unit tests for each component
+   - Test edge cases
+   - Test error handling
+   - Test integration
 
-4. **Performance**
-   - Cache common intents
-   - Batch process when possible
-   - Optimize model parameters
-   - Monitor response times
-
-## Error Handling
-
-The NLU system handles various error cases:
-
-- Invalid input format
-- Missing required slots
-- Invalid slot values
-- API timeouts
-- Model errors
-- Configuration issues
+4. **Documentation**
+   - Document API endpoints
+   - Document configuration options
+   - Document best practices
+   - Document examples
 
 ## Integration
 
-The NLU system integrates with:
+The NLU module integrates with:
 
-- Task Graph
-- Orchestrator
+- Environment
 - Message Processing
 - State Management
-- Resource Management
+- Logging System

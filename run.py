@@ -17,7 +17,7 @@ from typing import Any, Dict, List, Tuple
 from dotenv import load_dotenv
 from pprint import pprint
 
-from arklex.env.env import Env
+from arklex.env.env import Environment
 from arklex.orchestrator.orchestrator import AgentOrg
 from arklex.utils.model_config import MODEL
 from arklex.utils.model_provider_config import LLM_PROVIDERS
@@ -47,7 +47,7 @@ def get_api_bot_response(
     history: List[Dict[str, str]],
     user_text: str,
     parameters: Dict[str, Any],
-    env: Env,
+    env: Environment,
 ) -> Tuple[str, Dict[str, Any], bool]:
     """Get a response from the bot based on the provided input.
 
@@ -110,10 +110,11 @@ if __name__ == "__main__":
         open(os.path.join(args.input_dir, "taskgraph.json"))
     )
     config["model"] = model
-    env = Env(
+    env = Environment(
         tools=config.get("tools", []),
         workers=config.get("workers", []),
-        slotsfillapi=config["slotfillapi"],
+        slot_fill_api=config["slotfillapi"],
+        planner_enabled=True,
     )
 
     # Initialize chat history and parameters
