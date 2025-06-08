@@ -2,6 +2,7 @@ import json
 import logging
 import os
 from os.path import dirname, abspath
+import random
 import time
 import re
 from itertools import product
@@ -35,7 +36,6 @@ class NegotiationMultiIssueWorker(BaseWorker):
         self.action_graph = self._create_action_graph()
         
         logger.info("NegotiationMultiIssueWorkerSeller initialized successfully")
-        logger.info("NegotiationMultiIssueWorkerSeller initialized successfully")
 
         self.MONITOR_PROMPT = """
         You are a negotiation monitor overseeing a multi-issue negotiation.
@@ -43,45 +43,59 @@ class NegotiationMultiIssueWorker(BaseWorker):
         Based on the negotiation history, please assess how many issues from {issues} have been resolved. 
         Give the answer in **exactly** this format at the end:
         NUMBER OF RESOLVED ISSUES=X where X is the number of resolved issues. 
-        When X=4 and all the issues have been agreed upon, logger.info the final outcomes for ALL 4 ISSUES 
-        (FINANCING, TAX, COLOR, PRICE, STEREO, DELIVERY DATE, NUMBER OF EXTRAS, WARRANTY) - **exactly** in this format:
+        When X=6 and all the issues have been agreed upon, print the final outcomes for ALL 6 ISSUES 
+        (LOCATION, SALARY, HEALTHCARE, VACATION, MOVING EXPENSES, JOB ASSIGNMENT) - **exactly** in this format:
         ISSUE NAME IN CAPITAL=Agreement alternative.
         """
 
         # Utility dictionaries for buyer and seller
         self.buyer_utilities = {
-            "FINANCING": {"10%": 0, "8%": 400, "6%": 800, "4%": 1200, "2%": 1600},
-            "WARRANTY": {"6 months": 0, "12 months": 1000, "18 months": 2000, "24 months": 3000, "30 months": 4000},
-            "PRICE": {"$24000": -6000, "$23000": -4500, "$22000": -3000, "$21000": -1500, "$20000": 0},
-            "COLOR": {"Black": 0, "Red": 300, "Blue": 600, "Green": 900, "Yellow": 1200}
+            "LOCATION": {"Boston": 3200, "Philadelphia": 1600, "New York": 1600, "San Francisco": 1600, "Chicago": 0},
+            "SALARY": {"$85000": 0, "$90000": 1000, "$95000": 2000, "$100000": 3000, "$105000": 4000},
+            "HEALTHCARE": {"Red Shield HMO": 0, "Ulster HMO": 1000, "Ulster + Dental": 2000, "Ajax POS": 3000, "Ajax + Dental": 4000},
+            "VACATION": {"8 days": 0, "10 days": 250, "12 days": 500, "15 days": 750, "18 days": 1000},
+            "MOVING EXPENSES": {"20% covered": 0, "40% covered": 250, "60% covered": 500, "80% covered": 750, "100% covered": 1000},
+            "JOB ASSIGNMENT": {"Retail": 1600, "Technology": 1200, "Manufacturing": 800, "Financial Services": 400, "Pharmaceuticals": 0}
         }
 
         self.seller_utilities = {
-            "FINANCING": {"10%": 4000, "8%": 3000, "6%": 2000, "4%": 1000, "2%": 0},
-            "WARRANTY": {"6 months": 1600, "12 months": 1200, "18 months": 800, "24 months": 400, "30 months": 0},
-            "PRICE": {"$24000": 0, "$23000": -1500, "$22000": -3000, "$21000": -4500, "$20000": -6000},
-            "COLOR": {"Yellow": 1200, "Green": 900, "Blue": 600, "Red": 300, "Black": 0}
+            "LOCATION": {"Boston": 3200, "Philadelphia": 3200, "New York": 1600, "San Francisco": 0, "Chicago": 1600},
+            "SALARY": {"$85000": 4000, "$90000": 3000, "$95000": 2000, "$100000": 1000, "$105000": 0},
+            "HEALTHCARE": {"Red Shield HMO": 2000, "Ulster HMO": 1500, "Ulster + Dental": 1000, "Ajax POS": 500, "Ajax + Dental": 0},
+            "VACATION": {"8 days": 2000, "10 days": 1500, "12 days": 1000, "15 days": 500, "18 days": 0},
+            "MOVING EXPENSES": {"20% covered": 2000, "40% covered": 1500, "60% covered": 1000, "80% covered": 500, "100% covered": 0},
+            "JOB ASSIGNMENT": {"Retail": 1600, "Technology": 400, "Manufacturing": 800, "Financial Services": 1200, "Pharmaceuticals": 0}
         }
 
-        
+        # Initialize the KDE models for each issue
         self.kde_models = {
-            'FINANCING': KernelDensity(kernel='gaussian', bandwidth=0.5),
-            'WARRANTY': KernelDensity(kernel='gaussian', bandwidth=0.5),
-            'PRICE': KernelDensity(kernel='gaussian', bandwidth=0.5),
+            'SALARY': KernelDensity(kernel='gaussian', bandwidth=0.5),
+            'HEALTHCARE': KernelDensity(kernel='gaussian', bandwidth=0.5),
+            'MOVING EXPENSES': KernelDensity(kernel='gaussian', bandwidth=0.5),
         }
 
         # Data structure to hold observations for each issue
         self.observations = {
-            'FINANCING': [],
-            'WARRANTY': [],
-            'PRICE': []
+            'SALARY': [],
+            'HEALTHCARE': [],
+            'MOVING EXPENSES': [],
+        }
+        
+        self.payoff_schedule = {
+            "LOCATION": {"Boston": 3200, "Philadelphia": 3200, "New York": 1600, "San Francisco": 0, "Chicago": 1600},
+            "SALARY": {"$85000": 4000, "$90000": 3000, "$95000": 2000, "$100000": 1000, "$105000": 0},
+            "HEALTHCARE": {"Red Shield HMO": 2000, "Ulster HMO": 1500, "Ulster + Dental": 1000, "Ajax POS": 500, "Ajax + Dental": 0},
+            "VACATION": {"8 days": 2000, "10 days": 1500, "12 days": 1000, "15 days": 500, "18 days": 0},
+            "MOVING EXPENSES": {"20% covered": 2000, "40% covered": 1500, "60% covered": 1000, "80% covered": 500, "100% covered": 0},
+            "JOB ASSIGNMENT": {"Retail": 1600, "Technology": 400, "Manufacturing": 800, "Financial Services": 1200, "Pharmaceuticals": 0}
         }
 
+        # Walk-away point for valid combinations
+        self.walk_away_point = 10000
 
     def read_json(self,file_path):
         with open(file_path, "r") as f:
             return json.load(f)
-
 
     def delay_response(self, response: str, time_elapsed: float = 0) -> None:
         """Add a delay based on response length to simulate natural typing.
@@ -103,20 +117,22 @@ class NegotiationMultiIssueWorker(BaseWorker):
 
     def common_sense_importance(self):
         utilities = {
-            "FINANCING": {10: 4000, 8: 3000, 6: 2000, 4: 1000, 2: 0},
-            "WARRANTY": {6: 1600, 12: 1200, 18: 800, 24: 400, 30: 0},
-            "PRICE": {24000: 0, 23000: -1500, 22000: -3000, 21000: -4500, 20000: -6000},
-            "COLOR": {"Yellow": 1200, "Green": 900, "Blue": 600, "Red": 300, "Black": 0}
+            "LOCATION": {"Boston": 3200, "Philadelphia": 3200, "New York": 1600, "Chicago": 1600, "San Francisco": 0},
+            "SALARY": {"$85000": 4000, "$90000": 3000, "$95000": 2000, "$100000": 1000, "$105000": 0},
+            "HEALTHCARE": {"Red Shield HMO": 2000, "Ulster HMO": 1500, "Ulster + Dental": 1000, "Ajax POS": 500, "Ajax + Dental": 0},
+            "VACATION": {"8 days": 2000, "10 days": 1500, "12 days": 1000, "15 days": 500, "18 days": 0},
+            "MOVING EXPENSES": {"20% covered": 2000, "40% covered": 1500, "60% covered": 1000, "80% covered": 500, "100% covered": 0},
+            "JOB ASSIGNMENT": {"Retail": 1600, "Financial Services": 1200, "Manufacturing": 800, "Technology": 400, "Pharmaceuticals": 0}
         }
 
         prompt = f"""
-        Based on the following utilities for each issue, approximate the order of importance of these issues for the buyer. 
-        Use common sense and the seller's perspective.
+        Based on the following utilities for each issue, approximate the order of importance of these issues for J. Roberts. 
+        Use common sense and Global Consulting's perspective.
 
         Utilities:
         {utilities}
 
-        Provide a list ranking these issues from most to least important for the buyer based on common sense assumptions and give justification.
+        Provide a list ranking these issues from most to least important for J. Roberts based on common sense assumptions and give justification.
         """
 
         return self.llm.invoke(prompt).content.strip()
@@ -124,12 +140,12 @@ class NegotiationMultiIssueWorker(BaseWorker):
     # Importance Estimation Using KDE
     def importance_estimation_kde(self, conversation_history):
         prompt = f"""
-        As the negotiation progresses, you will use Kernel Density Estimation (KDE) to estimate how much the buyer cares about each issue based on their offer changes. Pay attention to the size of their concessions:
-        - If they make only small changes early in the negotiation, that issue may be very important to them.
-        - Conversely, if they make a significant concession later, it could indicate a final push to save the deal on that issue.
+            As the negotiation progresses, you will use Kernel Density Estimation (KDE) to estimate how much J. Roberts cares about each issue based on their offer changes. Pay attention to the size of their concessions:
+            - If they make only small changes early in the negotiation, that issue may be very important to them.
+            - Conversely, if they make a significant concession later, it could indicate a final push to save the deal on that issue.
 
-        Given the conversation history: {conversation_history}, please analyze each issue and provide an estimated importance score between 1 and 10 (10 being highly important and 1 being least important) and justify it. 
-        """
+            Given the conversation history: {conversation_history}, please analyze each issue and provide an estimated importance score between 1 and 10 (10 being highly important and 1 being least important) and justify it. 
+            """
 
         return self.llm.invoke(prompt).content.strip()
 
@@ -157,39 +173,33 @@ class NegotiationMultiIssueWorker(BaseWorker):
             str: The extracted issue, current buyer offer, and previous buyer offer in a numerical format.
         """
         prompt = f"""
-        From the following negotiation conversation history, identify the current issue being discussed 
-        and extract the buyer's two most recent offers for each issue where applicable. 
-        Note that if the buyer is sticking to their previous offer, their current and previous offer will be the SAME VALUE.
+    From the following negotiation conversation history, identify the current issue being discussed 
+    and extract J. Roberts' two most recent offers for each issue where applicable. 
+    Note that if J. Roberts is sticking to their previous offer, their current and previous offer will be the SAME VALUE.
 
-        Return the response **STRICTLY**in this format only for the current issue(DON'T DISPLAY PREVIOUS ISSUES):
-        - ISSUE: [CURRENT Issue Name]
-        CURRENT OFFER: [Most recent buyer offer as numerical value]
-        PREVIOUS OFFER: [Second most recent buyer offer as numerical value]
+    Return the response **STRICTLY**in this format only for the current issue(DON'T DISPLAY PREVIOUS ISSUES):
+    - ISSUE: [CURRENT Issue Name]
+      CURRENT OFFER: [Most recent buyer offer as numerical value]
+      PREVIOUS OFFER: [Second most recent buyer offer as numerical value]
 
-        For issues that involve numerical values, return the value itself:
-        - FINANCING: {{"10%", "8%", "6%", "4%", "2%"}} → return 10, 8, 6, 4, 2
-        - WARRANTY: {{"6 months", "12 months", "18 months", "24 months", "30 months"}} → return 6, 12, 18, 24, 30
-        - PRICE: {{"$20000", "$21000", "$22000", "$23000", "$24000"}} → return 20000, 21000, 22000, 23000, 24000
-        - COLOR: {{"Yellow", "Green", "Blue", "Red", "Black"}} → return Yellow, Green, Blue, Red, Black
+    For issues that involve numerical values, return the value itself:
+    - LOCATION: {{"Boston", "Philadelphia", "New York", "Chicago", "San Francisco"}} → return Boston, Philadelphia, New York, Chicago, San Francisco
+    - SALARY: {{"$85000", "$90000", "$95000", "$100000", "$105000"}} → return 85000, 90000, 95000, 100000, 105000
+    - HEALTHCARE: {{"Red Shield HMO", "Ulster HMO", "Ulster + Dental", "Ajax POS", "Ajax + Dental"}} → return Red Shield HMO, Ulster HMO, Ulster + Dental, Ajax POS, Ajax + Dental
+    - VACATION: {{"8 days", "10 days", "12 days", "15 days", "18 days"}} → return 8, 10, 12, 15, 18
+    - MOVING EXPENSES: {{"20% covered", "40% covered", "60% covered", "80% covered", "100% covered"}} → return 20, 40, 60, 80, 100
+    - JOB ASSIGNMENT: {{"Retail", "Financial Services", "Manufacturing", "Technology", "Pharmaceuticals"}} → return Retail, Financial Services, Manufacturing, Technology, Pharmaceuticals
 
-        If a particular issue does not have at least two buyer offers in the history, return "NO OFFERS YET".
-        Conversation history:
-        {conversation_history}
+    If a particular issue does not have at least two offers from J. Roberts in the history, return "NO OFFERS YET".
+    Conversation history:
+    {conversation_history}
 
-        Your output should only include issues with at least two buyer offers, and should follow the required numerical format.
-        """
+    Your output should only include issues with at least two offers from J. Roberts, and should follow the required numerical format.
+    """
 
         return self.llm.invoke(prompt).content.strip()
 
-    payoff_schedule = {
-            "FINANCING": {10: 4000, 8: 3000, 6: 2000, 4: 1000, 2: 0},
-            "WARRANTY": {6: 1600, 12: 1200, 18: 800, 24: 400, 30: 0},
-            "PRICE": {24000: 0, 23000: -1500, 22000: -3000, 21000: -4500, 20000: -6000},
-            "COLOR": {"Yellow": 1200, "Green": 900, "Blue": 600, "Red": 300, "Black": 0},
-        }
-    walk_away_point = 2400
-
-    def generate_combos(self):
+    def generate_combos(self, sample_size=30):
         """
         Generate all combinations of options that give the seller a total payoff
         of at least the walk-away point.
@@ -202,7 +212,6 @@ class NegotiationMultiIssueWorker(BaseWorker):
         Returns:
             str: A string containing all valid combinations, one per line.
         """
-        # Generate all combinations of options
         options = list(self.payoff_schedule.values())
         combinations = list(product(*[list(opt.items()) for opt in options]))
 
@@ -213,14 +222,16 @@ class NegotiationMultiIssueWorker(BaseWorker):
             if sum(choice[1] for choice in combination) >= self.walk_away_point
         ]
         
-        # Convert valid combinations to a string
-        result_str = f"Total valid combinations: {len(valid_combinations)}\n"
-        result_str += "\n".join(str(combination) for combination in valid_combinations)
+        # Shuffle and sample the combinations
+        random.shuffle(valid_combinations)
+        top_combos = valid_combinations[:sample_size]
+
+        # Convert the combinations to a string
+        result_str = f"Valid Combinations:\n"
+        for i, combo in enumerate(top_combos, 1):
+            result_str += f"Combination {i}: {combo}\n"
+            
         return result_str
-
-    
-
-
 
     # Function to update offers and KDE
     def update_offers_and_kde(self,issue, current_offer, previous_offer):
@@ -256,10 +267,12 @@ class NegotiationMultiIssueWorker(BaseWorker):
             "episode_done", 
             "current_issue",
             "resolved_issues",
-            "financing",
-            "warranty",
-            "color",
-            "price",
+            "location",
+            "salary",
+            "healthcare",
+            "vacation",
+            "moving_expenses",
+            "job_assignment",
             "current_target"
         ]
         
@@ -313,7 +326,7 @@ class NegotiationMultiIssueWorker(BaseWorker):
                         required=False,
                         verified=True)]
                 
-                elif slot_name in ["financing", "warranty", "color", "price"]:
+                elif slot_name in ["location", "salary", "healthcare", "vacation", "moving_expenses", "job_assignment"]:
                     state.slots[slot_name] = [Slot(
                         name=slot_name,
                         type="string",
@@ -349,7 +362,7 @@ class NegotiationMultiIssueWorker(BaseWorker):
             
             # Load the core negotiation prompt
             base_dir = dirname(abspath(__file__))
-            prompt_path = dirname(base_dir) + "/negotiation_prompts/fourissues.txt"
+            prompt_path = dirname(base_dir) + "/negotiation_prompts/adaptedscenario.txt"
             with open(prompt_path) as f:
                 core_prompt = f.read()
             
@@ -370,7 +383,7 @@ class NegotiationMultiIssueWorker(BaseWorker):
             Issue importance ranking: {common_sense_ranking}
             
             The user has already responded to an ice breaker with: "{state.user_message.message}"
-            Continue the conversation naturally and transition into discussing the car sale negotiation.
+            Continue the conversation naturally and transition into discussing the job offer negotiation.
             Do not repeat an ice breaker since one was already done.
             """
             
@@ -402,7 +415,7 @@ class NegotiationMultiIssueWorker(BaseWorker):
                     state.slots[issue_lower][0].value = json.dumps(issue_data)
                     
                     # Update KDE for numerical issues
-                    if issue != 'COLOR':
+                    if issue not in ['LOCATION', 'JOB_ASSIGNMENT'] and current_offer and previous_offer:
                         kde_peak = self.update_offers_and_kde(issue, float(current_offer), float(previous_offer))
                         if kde_peak != -1:
                             # Update current_target as JSON string
@@ -420,7 +433,7 @@ class NegotiationMultiIssueWorker(BaseWorker):
             
             # Load the core prompt for context
             base_dir = dirname(abspath(__file__))
-            prompt_path = dirname(base_dir) + "/negotiation_prompts/fourissues.txt"
+            prompt_path = dirname(base_dir) + "/negotiation_prompts/adaptedscenario.txt"
             with open(prompt_path) as f:
                 core_prompt = f.read()
             
@@ -434,10 +447,12 @@ class NegotiationMultiIssueWorker(BaseWorker):
             User personality: {personality}
             
             Current offers:
-            Financing: {state.slots['financing'][0].value}
-            Warranty: {state.slots['warranty'][0].value}
-            Color: {state.slots['color'][0].value}
-            Price: {state.slots['price'][0].value}
+            Location: {state.slots['location'][0].value}
+            Salary: {state.slots['salary'][0].value}
+            Healthcare: {state.slots['healthcare'][0].value}
+            Vacation: {state.slots['vacation'][0].value}
+            Moving Expenses: {state.slots['moving_expenses'][0].value}
+            Job Assignment: {state.slots['job_assignment'][0].value}
             
             Current Issue and Offer Details: {current_status}
             
@@ -457,7 +472,6 @@ class NegotiationMultiIssueWorker(BaseWorker):
         
         return state
 
-
     def calculate_scores(self, final_outcomes: Dict[str, str]) -> Tuple[int, int]:
         """Calculate buyer and seller scores based on final outcomes.
         
@@ -476,7 +490,6 @@ class NegotiationMultiIssueWorker(BaseWorker):
             seller_score += self.seller_utilities[issue][outcome]
 
         return buyer_score, seller_score
-
 
     # Monitor instance to track resolved issues and store final outcomes
     def monitor_instance(self, state: MessageState, issues: List[str]) -> Optional[Dict[str, str]]:
@@ -504,9 +517,9 @@ class NegotiationMultiIssueWorker(BaseWorker):
         monitor_response = self.llm.invoke(prompt).content.strip()
         
         # Check for the final result when all issues are resolved
-        if "NUMBER OF RESOLVED ISSUES=4" in monitor_response:
+        if "NUMBER OF RESOLVED ISSUES=6" in monitor_response:
             # Parse and store the outcomes in the specified format
-            final_outcome_start = monitor_response.index("NUMBER OF RESOLVED ISSUES=4") + len("NUMBER OF RESOLVED ISSUES=4")
+            final_outcome_start = monitor_response.index("NUMBER OF RESOLVED ISSUES=6") + len("NUMBER OF RESOLVED ISSUES=6")
             final_outcomes = monitor_response[final_outcome_start:].strip().splitlines()
             final_outcomes_dict = {}
             
@@ -517,8 +530,8 @@ class NegotiationMultiIssueWorker(BaseWorker):
                 issue, agreement = outcome.split('=')
                 agreement = agreement.strip()
                 
-                # Remove commas from the PRICE if present
-                if issue.strip() == "PRICE":
+                # Remove commas from SALARY if present
+                if issue.strip() == "SALARY":
                     agreement = agreement.replace(',', '')
                 
                 final_outcomes_dict[issue.strip()] = agreement
@@ -563,7 +576,7 @@ class NegotiationMultiIssueWorker(BaseWorker):
         response_state = MessageState.model_validate(result)
         
         # Check for final outcomes
-        issues = ["FINANCING", "WARRANTY", "COLOR", "PRICE"]
+        issues = ["LOCATION", "SALARY", "HEALTHCARE", "VACATION", "MOVING EXPENSES", "JOB ASSIGNMENT"]
         final_outcomes = self.monitor_instance(response_state, issues)
         
         if final_outcomes:
