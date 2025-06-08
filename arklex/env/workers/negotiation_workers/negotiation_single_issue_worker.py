@@ -40,7 +40,6 @@ class NegotiationSingleIssueWorker(BaseWorker):
         self.current_dir = os.path.dirname(os.path.abspath(__file__))
         logger.info(f"Current directory: {self.current_dir}")
         logger.info("NegotiationSingleIssueWorkerSeller initialized successfully")
-        logger.info("NegotiationSingleIssueWorkerSeller initialized successfully")
 
     def read_json(self,file_path):
         with open(file_path, "r") as f:
@@ -63,15 +62,15 @@ class NegotiationSingleIssueWorker(BaseWorker):
     def round_num(self, num, base=100):
         return base * round(num/base)
 
-    def load_prompt(self,current_target, message, turn, path, is_dynamic=False):
-            with open(path) as f:
-                if is_dynamic:
-                    instructions = f.read().format(current_target, current_target, message, turn)
-                else:
-                    instructions = f.read().format(message, turn)
-            return instructions
-        
-    def get_prompts(self, unit_index, current_target, message, turn):
+    def load_prompt(self, current_target, message, turn, path, is_dynamic=False, history=""):
+        with open(path) as f:
+            if is_dynamic:
+                instructions = f.read().format(current_target, current_target, history, turn)
+            else:
+                instructions = f.read().format(history, turn)
+        return instructions
+
+    def get_prompts(self, unit_index, current_target, message, turn, history=""):
         # Base directory for prompts
         prompts_base_dir = os.path.join(self.current_dir, "..", "negotiation_prompts")
         
@@ -91,8 +90,8 @@ class NegotiationSingleIssueWorker(BaseWorker):
         
         logger.info(f"Looking for prompts at: {static_path} and {dynamic_path}")
     
-        static_prompt = self.load_prompt(current_target=current_target, message=message, turn=turn, path=static_path, is_dynamic=False)
-        dynamic_prompt = self.load_prompt(current_target=current_target, message=message, turn=turn, path=dynamic_path, is_dynamic=True)
+        static_prompt = self.load_prompt(current_target=current_target, message=message, turn=turn, path=static_path, is_dynamic=False, history=history)
+        dynamic_prompt = self.load_prompt(current_target=current_target, message=message, turn=turn, path=dynamic_path, is_dynamic=True, history=history)
         logger.info(f"Static prompt: {static_prompt}")
         return static_prompt, dynamic_prompt
     
@@ -200,7 +199,8 @@ class NegotiationSingleIssueWorker(BaseWorker):
                         self.unit_index,
                         state.slots["current_target"][0].value,
                         state.user_message.message, 
-                        state.slots["turn"][0].value
+                        state.slots["turn"][0].value,
+                        history=state.user_message.history
                     )
            logger.info(f"Dynamic prompt: {dynamic_prompt}")
            state.response = self.llm.invoke(dynamic_prompt).content.strip()
@@ -217,7 +217,8 @@ class NegotiationSingleIssueWorker(BaseWorker):
                         self.unit_index,
                         state.slots["current_target"][0].value,
                         state.user_message.message,
-                        state.slots["turn"][0].value
+                        state.slots["turn"][0].value,
+                        history=state.user_message.history
                     )
             state.response = self.llm.invoke(static_prompt).content.strip()
 
@@ -225,13 +226,15 @@ class NegotiationSingleIssueWorker(BaseWorker):
             state.slots["turn"][0].value += 1
             logger.info("Generating response based on current target")
             new_target = (
-                state.slots["current_target"][0].value + state.slots["reservation_price"][0].value) / 2
+                state.slots["current_target"][0].value + state.slots["reservation_price"][0].value
+            ) / 2
             state.slots["current_target"][0].value = self.round_num(new_target, int(1*10**2))
             static_prompt, dynamic_prompt = self.get_prompts(
                         self.unit_index,
                         state.slots["current_target"][0].value,
                         state.user_message.message,
-                        state.slots["turn"][0].value
+                        state.slots["turn"][0].value,
+                        history=state.user_message.history
                     )
             state.response = self.llm.invoke(dynamic_prompt).content.strip()
 
