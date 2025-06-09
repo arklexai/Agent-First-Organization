@@ -58,6 +58,7 @@ import json
 import logging
 import time
 from dotenv import load_dotenv
+from langchain.chat_models import ChatOpenAI
 from typing import Any, Dict, Tuple, List, Optional, Union
 from arklex.env.nested_graph.nested_graph import NESTED_GRAPH_ID, NestedGraph
 from arklex.env.env import Environment
@@ -65,7 +66,6 @@ from arklex.orchestrator.task_graph import TaskGraph
 from arklex.orchestrator.post_process import post_process_response
 from arklex.env.tools.utils import ToolGenerator
 from arklex.types import StreamType
-from arklex.utils.model_config import MODEL
 from arklex.utils.graph_state import (
     ConvoMessage,
     NodeInfo,
@@ -83,8 +83,8 @@ from arklex.utils.graph_state import (
 
 
 from arklex.utils.utils import format_chat_history
+from arklex.utils.model_config import MODEL
 from arklex.memory import ShortTermMemory
-from langchain.chat_models import ChatOpenAI
 from arklex.utils.model_provider_config import PROVIDER_MAP
 from langchain_core.runnables import RunnableLambda
 
@@ -250,22 +250,13 @@ class AgentOrg:
         """
         if not node_info.can_skipped:
             return False
-        conversation = params.memory.function_calling_trajectory
-        if not conversation or len(conversation) < 2:
-            return False
-        
-        # Format the entire conversation history
-        conversation_history = "\n".join([
-            f"{msg.get('role', 'unknown')}: {msg.get('content', '')}"
-            for msg in conversation
-        ])
         
         task = node_info.attributes.get('task', '')
         if not task:
             return False
 
         prompt = f"""Given the following conversation history:
-{conversation_history}
+{params.memory.chat_history_str}
 
 And the task: "{task}"
 
