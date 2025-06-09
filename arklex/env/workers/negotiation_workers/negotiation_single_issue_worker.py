@@ -6,6 +6,7 @@ import os
 from tkinter import END
 from typing import Dict, Any, Optional
 from datetime import datetime
+from langchain_core.language_models import BaseChatModel
 
 from langgraph.graph import StateGraph, START
 from langchain_openai import ChatOpenAI
@@ -22,16 +23,18 @@ logger = logging.getLogger(__name__)
 
 @register_worker
 class NegotiationSingleIssueWorker(BaseWorker):
-    """This must run after the first ice breaker from the MessageWorker. This worker should then be the only worker running for the rest of the conversation. This worker helps process the user's message and generate a response that moves the negotiation forward."""
+    """This worker handles single-issue negotiations after the initial ice breaker.
+    
+    This worker processes user messages and generates responses that move the negotiation forward.
+    It maintains the negotiation state, tracks turns, and manages price targets throughout the conversation.
+    """
     
     description = "This worker should then be the only worker running for the rest of the conversation. This worker helps process the user's message and generate a response that moves the negotiation forward."
     
     def __init__(self):
+        """Initialize the NegotiationSingleIssueWorker with necessary attributes."""
         super().__init__()
-        self.llm = PROVIDER_MAP.get(MODEL['llm_provider'], ChatOpenAI)(
-            model=MODEL["model_type_or_path"], timeout=30000, 
-            temperature = 0.0
-        )
+        self.llm: Optional[BaseChatModel] = None
         self.action_graph = self._create_action_graph()
         self.unit_index = 0
         self.static_prompt = ""
@@ -41,13 +44,29 @@ class NegotiationSingleIssueWorker(BaseWorker):
         logger.info(f"Current directory: {self.current_dir}")
         logger.info("NegotiationSingleIssueWorkerSeller initialized successfully")
 
-    def read_json(self,file_path):
+    def read_json(self, file_path: str) -> Dict:
+        """Read and parse a JSON file.
+        
+        Args:
+            file_path: Path to the JSON file to read
+            
+        Returns:
+            Dict: Parsed JSON content
+        """
         with open(file_path, "r") as f:
             return json.load(f)
 
-    #Used to determine initial target price 
-    def random_in_last_third(self,max_percieved_marketPrice, max_market_price, reservationPrice):
-
+    def random_in_last_third(self, max_percieved_marketPrice: float, max_market_price: float, reservationPrice: float) -> float:
+        """Generate a random price in the last third of the price range.
+        
+        Args:
+            max_percieved_marketPrice: Maximum perceived market price
+            max_market_price: Maximum market price
+            reservationPrice: Minimum acceptable price
+            
+        Returns:
+            float: Random price within the last third of the range
+        """
         if(max_market_price == reservationPrice and max_percieved_marketPrice > reservationPrice):
             max_market_price = max_percieved_marketPrice
         # Calculate the range within the first third
@@ -59,10 +78,32 @@ class NegotiationSingleIssueWorker(BaseWorker):
 
         return random_num
     
-    def round_num(self, num, base=100):
+    def round_num(self, num: float, base: int = 100) -> int:
+        """Round a number to the nearest multiple of base.
+        
+        Args:
+            num: Number to round
+            base: Base to round to (default: 100)
+            
+        Returns:
+            int: Rounded number
+        """
         return base * round(num/base)
 
-    def load_prompt(self, current_target, message, turn, path, is_dynamic=False, history=""):
+    def load_prompt(self, current_target: float, message: str, turn: int, path: str, is_dynamic: bool = False, history: str = "") -> str:
+        """Load and format a prompt template from a file.
+        
+        Args:
+            current_target: Current target price
+            message: User's message
+            turn: Current turn number
+            path: Path to prompt template file
+            is_dynamic: Whether the prompt is dynamic (default: False)
+            history: Conversation history (default: "")
+            
+        Returns:
+            str: Formatted prompt
+        """
         with open(path) as f:
             if is_dynamic:
                 instructions = f.read().format(current_target, current_target, history, turn)
@@ -70,9 +111,21 @@ class NegotiationSingleIssueWorker(BaseWorker):
                 instructions = f.read().format(history, turn)
         return instructions
 
-    def get_prompts(self, unit_index, current_target, message, turn, history=""):
+    def get_prompts(self, unit_index: int, current_target: float, message: str, turn: int, history: str = "") -> tuple[str, str]:
+        """Get appropriate static and dynamic prompts based on the unit index.
+        
+        Args:
+            unit_index: Index of the current negotiation unit
+            current_target: Current target price
+            message: User's message
+            turn: Current turn number
+            history: Conversation history (default: "")
+            
+        Returns:
+            tuple[str, str]: Static and dynamic prompts
+        """
         # Base directory for prompts
-        prompts_base_dir = os.path.join(self.current_dir, "..", "negotiation_prompts")
+        prompts_base_dir = os.path.join(self.current_dir, "negotiation_prompts")
         
         if unit_index == 0:
             logger.info("Getting prompts for unit1")
@@ -95,9 +148,14 @@ class NegotiationSingleIssueWorker(BaseWorker):
         logger.info(f"Static prompt: {static_prompt}")
         return static_prompt, dynamic_prompt
     
-    def check_and_initialize_slots(self, state: MessageState):
+    def check_and_initialize_slots(self, state: MessageState) -> None:
+        """Initialize required negotiation slots if they don't exist.
+        
+        Args:
+            state: Current message state
+        """
         logger.info("checking and initializing slots")
-        config_path = os.path.join(self.current_dir, "..", "negotiation_config", "seller_config.json")
+        config_path = os.path.join(self.current_dir, "negotiation_config", "seller_config.json")
         configs = self.read_json(config_path)
         required_slots = ["turn", "episode_done", "max_percieved_marketPrice", 
                          "reservation_price", "max_market_price", "current_target"]
@@ -168,9 +226,12 @@ class NegotiationSingleIssueWorker(BaseWorker):
                     
         self.get_current_target(state)
         
+    def get_current_target(self, state: MessageState) -> None:
+        """Calculate and set the current target price.
         
-    
-    def get_current_target(self, state: MessageState):
+        Args:
+            state: Current message state
+        """
         targ = self.round_num(self.random_in_last_third(
                 state.slots["max_percieved_marketPrice"][0].value, 
                 state.slots["max_market_price"][0].value, 
@@ -186,7 +247,15 @@ class NegotiationSingleIssueWorker(BaseWorker):
                 required = False, 
                 verified = True)] 
         
-    def get_response(self, state: MessageState):
+    def get_response(self, state: MessageState) -> MessageState:
+        """Generate a response based on the current negotiation state.
+        
+        Args:
+            state: Current message state
+            
+        Returns:
+            MessageState: Updated message state with response
+        """
         current_turn = state.slots["turn"][0].value
         logger.info(f"Current turn: {current_turn}")
         
@@ -246,8 +315,12 @@ class NegotiationSingleIssueWorker(BaseWorker):
             
         return state
     
-    def _create_action_graph(self):
-        """Create a processing flow for persuasion strategy."""
+    def _create_action_graph(self) -> StateGraph:
+        """Create a processing flow for the negotiation strategy.
+        
+        Returns:
+            StateGraph: Graph defining the negotiation workflow
+        """
         workflow = StateGraph(MessageState)
         
         # Add persuasion strategy node
@@ -258,7 +331,17 @@ class NegotiationSingleIssueWorker(BaseWorker):
         return workflow
     
     def _execute(self, msg_state: MessageState, **kwargs: Any) -> Dict[str, Any]:
+        """Execute the negotiation worker.
+        
+        Args:
+            msg_state: Current message state
+            **kwargs: Additional arguments
+            
+        Returns:
+            Dict[str, Any]: Updated message state as dictionary
+        """
         logger.info("Executing negotiation response worker")
+        self.llm = PROVIDER_MAP.get(msg_state.bot_config.llm_config.llm_provider, ChatOpenAI )(model=msg_state.bot_config.llm_config.model_type_or_path)
         # Debug the incoming state
         self.check_and_initialize_slots(msg_state)
         graph = self.action_graph.compile()

@@ -10,6 +10,7 @@ from typing import Any, Dict, List, Optional, Tuple
 from langgraph.graph import StateGraph, START
 
 from langchain_openai import ChatOpenAI
+from langchain_core.language_models import BaseChatModel
 
 from arklex.env.workers.worker import BaseWorker, register_worker
 from arklex.utils.graph_state import MessageState, Slot
@@ -23,16 +24,20 @@ logger = logging.getLogger(__name__)
 
 @register_worker
 class NegotiationMultiIssueWorker(BaseWorker):
-    """This must run after the first ice breaker from the MessageWorker. This worker should then be the only worker running for the rest of the conversation. This worker helps process the user's message and generate a response that moves the negotiation forward."""
+    """Worker for handling multi-issue negotiations between a buyer and seller.
+    
+    This worker manages complex negotiations involving multiple issues (location, salary,
+    healthcare, vacation, moving expenses, and job assignment). It tracks the negotiation
+    state, analyzes user behavior, and generates appropriate responses using various
+    strategies including Kernel Density Estimation for importance analysis.
+    """
     
     description = "This worker should then be the only worker running for the rest of the conversation. This worker helps process the user's message and generate a response that moves the negotiation forward."
+    
     def __init__(self):
+        """Initialize the NegotiationMultiIssueWorker with necessary attributes and utilities."""
         super().__init__()
-        self.llm = PROVIDER_MAP.get(MODEL['llm_provider'], ChatOpenAI)(
-            model=MODEL["model_type_or_path"], 
-            timeout=30000, 
-            temperature=0.0
-        )
+        self.llm: Optional[BaseChatModel] = None
         self.action_graph = self._create_action_graph()
         
         logger.info("NegotiationMultiIssueWorkerSeller initialized successfully")
@@ -48,7 +53,12 @@ class NegotiationMultiIssueWorker(BaseWorker):
         ISSUE NAME IN CAPITAL=Agreement alternative.
         """
 
-        # Utility dictionaries for buyer and seller
+        # Initialize utility dictionaries and other attributes
+        self._initialize_utilities()
+        self._initialize_kde_models()
+        
+    def _initialize_utilities(self):
+        """Initialize utility dictionaries for buyer and seller preferences."""
         self.buyer_utilities = {
             "LOCATION": {"Boston": 3200, "Philadelphia": 1600, "New York": 1600, "San Francisco": 1600, "Chicago": 0},
             "SALARY": {"$85000": 0, "$90000": 1000, "$95000": 2000, "$100000": 3000, "$105000": 4000},
@@ -66,34 +76,33 @@ class NegotiationMultiIssueWorker(BaseWorker):
             "MOVING EXPENSES": {"20% covered": 2000, "40% covered": 1500, "60% covered": 1000, "80% covered": 500, "100% covered": 0},
             "JOB ASSIGNMENT": {"Retail": 1600, "Technology": 400, "Manufacturing": 800, "Financial Services": 1200, "Pharmaceuticals": 0}
         }
+        
+        self.payoff_schedule = self.seller_utilities.copy()
+        self.walk_away_point = 10000
 
-        # Initialize the KDE models for each issue
+    def _initialize_kde_models(self):
+        """Initialize Kernel Density Estimation models for analyzing issue importance."""
         self.kde_models = {
             'SALARY': KernelDensity(kernel='gaussian', bandwidth=0.5),
             'HEALTHCARE': KernelDensity(kernel='gaussian', bandwidth=0.5),
             'MOVING EXPENSES': KernelDensity(kernel='gaussian', bandwidth=0.5),
         }
 
-        # Data structure to hold observations for each issue
         self.observations = {
             'SALARY': [],
             'HEALTHCARE': [],
             'MOVING EXPENSES': [],
         }
+
+    def read_json(self, file_path: str) -> Dict:
+        """Read and parse a JSON file.
         
-        self.payoff_schedule = {
-            "LOCATION": {"Boston": 3200, "Philadelphia": 3200, "New York": 1600, "San Francisco": 0, "Chicago": 1600},
-            "SALARY": {"$85000": 4000, "$90000": 3000, "$95000": 2000, "$100000": 1000, "$105000": 0},
-            "HEALTHCARE": {"Red Shield HMO": 2000, "Ulster HMO": 1500, "Ulster + Dental": 1000, "Ajax POS": 500, "Ajax + Dental": 0},
-            "VACATION": {"8 days": 2000, "10 days": 1500, "12 days": 1000, "15 days": 500, "18 days": 0},
-            "MOVING EXPENSES": {"20% covered": 2000, "40% covered": 1500, "60% covered": 1000, "80% covered": 500, "100% covered": 0},
-            "JOB ASSIGNMENT": {"Retail": 1600, "Technology": 400, "Manufacturing": 800, "Financial Services": 1200, "Pharmaceuticals": 0}
-        }
-
-        # Walk-away point for valid combinations
-        self.walk_away_point = 10000
-
-    def read_json(self,file_path):
+        Args:
+            file_path: Path to the JSON file to read
+            
+        Returns:
+            Dict: Parsed JSON content
+        """
         with open(file_path, "r") as f:
             return json.load(f)
 
@@ -102,7 +111,7 @@ class NegotiationMultiIssueWorker(BaseWorker):
         
         Args:
             response: The response text
-            time_elapsed: Time already elapsed in processing
+            time_elapsed: Time already elapsed in processing (default: 0)
         """
         word_count = len(response.split())
         if word_count < 30:
@@ -115,7 +124,12 @@ class NegotiationMultiIssueWorker(BaseWorker):
         # Uncomment to enable delay
         # time.sleep(max(0, sleep_time - time_elapsed))
 
-    def common_sense_importance(self):
+    def common_sense_importance(self) -> str:
+        """Analyze issue importance based on common sense and utilities.
+        
+        Returns:
+            str: Analysis of issue importance ranking with justification
+        """
         utilities = {
             "LOCATION": {"Boston": 3200, "Philadelphia": 3200, "New York": 1600, "Chicago": 1600, "San Francisco": 0},
             "SALARY": {"$85000": 4000, "$90000": 3000, "$95000": 2000, "$100000": 1000, "$105000": 0},
@@ -137,8 +151,15 @@ class NegotiationMultiIssueWorker(BaseWorker):
 
         return self.llm.invoke(prompt).content.strip()
 
-    # Importance Estimation Using KDE
-    def importance_estimation_kde(self, conversation_history):
+    def importance_estimation_kde(self, conversation_history: str) -> str:
+        """Estimate issue importance using Kernel Density Estimation based on conversation history.
+        
+        Args:
+            conversation_history: Full conversation history
+            
+        Returns:
+            str: Analysis of issue importance with scores and justification
+        """
         prompt = f"""
             As the negotiation progresses, you will use Kernel Density Estimation (KDE) to estimate how much J. Roberts cares about each issue based on their offer changes. Pay attention to the size of their concessions:
             - If they make only small changes early in the negotiation, that issue may be very important to them.
@@ -149,8 +170,15 @@ class NegotiationMultiIssueWorker(BaseWorker):
 
         return self.llm.invoke(prompt).content.strip()
 
-    # Determining Buyer Personality (Cooperative/Aggressive)
-    def determine_user_personality(self, conversation_history):
+    def determine_user_personality(self, conversation_history: str) -> str:
+        """Analyze user's negotiation personality based on conversation history.
+        
+        Args:
+            conversation_history: Full conversation history
+            
+        Returns:
+            str: Analysis of user's negotiation style (cooperative/aggressive) with justification
+        """
         prompt = f"""
         Judge if the buyer is being aggressive or cooperative regarding the current issue in negotiation based on these indicators:
         - COOPERATIVE: returning concessions, openly sharing information, actively seeking information about the opponent's preferences.
@@ -162,15 +190,14 @@ class NegotiationMultiIssueWorker(BaseWorker):
 
         return self.llm.invoke(prompt).content.strip()
 
-    def extract_issue_and_offers(self, conversation_history):
-        """
-        Extract the current issue and the buyer's most recent two offers from the conversation history.
-
-        Parameters:
-            conversation_history (str): The negotiation history as a string.
-
+    def extract_issue_and_offers(self, conversation_history: str) -> str:
+        """Extract current issue and recent offers from conversation history.
+        
+        Args:
+            conversation_history: Full conversation history
+            
         Returns:
-            str: The extracted issue, current buyer offer, and previous buyer offer in a numerical format.
+            str: Formatted string containing current issue and recent offers
         """
         prompt = f"""
     From the following negotiation conversation history, identify the current issue being discussed 
@@ -199,18 +226,14 @@ class NegotiationMultiIssueWorker(BaseWorker):
 
         return self.llm.invoke(prompt).content.strip()
 
-    def generate_combos(self, sample_size=30):
-        """
-        Generate all combinations of options that give the seller a total payoff
-        of at least the walk-away point.
+    def generate_combos(self, sample_size: int = 30) -> str:
+        """Generate valid combinations of options meeting the walk-away point.
         
         Args:
-            walk_away_point (int): The minimum acceptable payoff for the seller.
-            payoff_schedule (dict): A dictionary where keys are issue names, and values
-                                    are dictionaries mapping options to payoffs.
+            sample_size: Number of combinations to generate (default: 30)
             
         Returns:
-            str: A string containing all valid combinations, one per line.
+            str: Formatted string containing valid combinations
         """
         options = list(self.payoff_schedule.values())
         combinations = list(product(*[list(opt.items()) for opt in options]))
@@ -233,10 +256,16 @@ class NegotiationMultiIssueWorker(BaseWorker):
             
         return result_str
 
-    # Function to update offers and KDE
-    def update_offers_and_kde(self,issue, current_offer, previous_offer):
-        """
-        Update the observations for the specified issue and fit the KDE model with new offers.
+    def update_offers_and_kde(self, issue: str, current_offer: float, previous_offer: float) -> float:
+        """Update KDE models with new offers and calculate peak density.
+        
+        Args:
+            issue: The issue being negotiated
+            current_offer: Current offer value
+            previous_offer: Previous offer value
+            
+        Returns:
+            float: Peak concession size or -1 if insufficient data
         """
         concession_size = abs(current_offer - previous_offer)
         
@@ -259,8 +288,12 @@ class NegotiationMultiIssueWorker(BaseWorker):
         # Return the peak concession size and the current concession size
         return peak_concession_size[0]
 
-    def check_and_initialize_slots(self, state: MessageState):
-        """Initialize negotiation slots if they don't exist"""
+    def check_and_initialize_slots(self, state: MessageState) -> None:
+        """Initialize required negotiation slots if they don't exist.
+        
+        Args:
+            state: Current message state
+        """
         logger.info("checking and initializing slots")
         required_slots = [
             "turn", 
@@ -349,7 +382,14 @@ class NegotiationMultiIssueWorker(BaseWorker):
                         verified=True)]
 
     def get_response(self, state: MessageState) -> MessageState:
-        """Generate response based on negotiation state"""
+        """Generate response based on current negotiation state.
+        
+        Args:
+            state: Current message state
+            
+        Returns:
+            MessageState: Updated message state with response
+        """
         self.check_and_initialize_slots(state)
         start_time = time.time()
         
@@ -362,7 +402,7 @@ class NegotiationMultiIssueWorker(BaseWorker):
             
             # Load the core negotiation prompt
             base_dir = dirname(abspath(__file__))
-            prompt_path = dirname(base_dir) + "/negotiation_prompts/adaptedscenario.txt"
+            prompt_path = dirname(base_dir) + "/negotiation_workers/negotiation_prompts/adaptedscenario.txt"
             with open(prompt_path) as f:
                 core_prompt = f.read()
             
@@ -433,7 +473,7 @@ class NegotiationMultiIssueWorker(BaseWorker):
             
             # Load the core prompt for context
             base_dir = dirname(abspath(__file__))
-            prompt_path = dirname(base_dir) + "/negotiation_prompts/adaptedscenario.txt"
+            prompt_path = dirname(base_dir) + "/negotiation_workers/negotiation_prompts/adaptedscenario.txt"
             with open(prompt_path) as f:
                 core_prompt = f.read()
             
@@ -473,7 +513,7 @@ class NegotiationMultiIssueWorker(BaseWorker):
         return state
 
     def calculate_scores(self, final_outcomes: Dict[str, str]) -> Tuple[int, int]:
-        """Calculate buyer and seller scores based on final outcomes.
+        """Calculate final utility scores for buyer and seller.
         
         Args:
             final_outcomes: Dictionary mapping issues to their agreed values
@@ -491,16 +531,15 @@ class NegotiationMultiIssueWorker(BaseWorker):
 
         return buyer_score, seller_score
 
-    # Monitor instance to track resolved issues and store final outcomes
     def monitor_instance(self, state: MessageState, issues: List[str]) -> Optional[Dict[str, str]]:
-        """Monitor the negotiation progress and track resolved issues.
+        """Monitor negotiation progress and track resolved issues.
         
         Args:
-            state: Current message state containing conversation history
+            state: Current message state
             issues: List of issues to track
             
         Returns:
-            Optional[Dict[str, str]]: Final outcomes if all issues are resolved, None otherwise
+            Optional[Dict[str, str]]: Final outcomes if all issues resolved, None otherwise
         """
         # Format the monitor prompt with the issues
         monitor_prompt = self.MONITOR_PROMPT.format(issues=issues)
@@ -542,9 +581,13 @@ class NegotiationMultiIssueWorker(BaseWorker):
         
         return None
 
-    def _create_action_graph(self):
-        """Create a processing flow for persuasion strategy."""
-        workflow =StateGraph(MessageState)
+    def _create_action_graph(self) -> StateGraph:
+        """Create a processing flow for the negotiation strategy.
+        
+        Returns:
+            StateGraph: Graph defining the negotiation workflow
+        """
+        workflow = StateGraph(MessageState)
         
         # Add persuasion strategy node
         workflow.add_node("negotiation_response", self.get_response)
@@ -564,6 +607,8 @@ class NegotiationMultiIssueWorker(BaseWorker):
             Dict[str, Any]: Updated message state as dictionary
         """
         logger.info("Executing negotiation response worker")
+
+        self.llm = PROVIDER_MAP.get(msg_state.bot_config.llm_config.llm_provider, ChatOpenAI)(model=msg_state.bot_config.llm_config.model_type_or_path)
         
         # Debug the incoming state
         self.check_and_initialize_slots(msg_state)
