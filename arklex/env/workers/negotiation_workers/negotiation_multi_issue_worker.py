@@ -402,7 +402,7 @@ class NegotiationMultiIssueWorker(BaseWorker):
             
             # Load the core negotiation prompt
             base_dir = dirname(abspath(__file__))
-            prompt_path = dirname(base_dir) + "/negotiation_workers/negotiation_prompts/adaptedscenario.txt"
+            prompt_path = os.path.join(base_dir, "negotiation_prompts", "adaptedscenario.txt")
             with open(prompt_path) as f:
                 core_prompt = f.read()
             
@@ -419,12 +419,16 @@ class NegotiationMultiIssueWorker(BaseWorker):
             prompt = f"""
             {core_prompt}
             
+            Remember that you are S. Gordon, the Senior Manager for Professional Talent at Global Consulting, and you are negotiating with J. Roberts about their employment package.
+            
             Available combinations: {comb}
             Issue importance ranking: {common_sense_ranking}
             
             The user has already responded to an ice breaker with: "{state.user_message.message}"
             Continue the conversation naturally and transition into discussing the job offer negotiation.
             Do not repeat an ice breaker since one was already done.
+            
+            Maintain your role as S. Gordon and continue the job offer negotiation. Do not switch to any other scenario.
             """
             
             response = self.llm.invoke(prompt).content.strip()
@@ -471,15 +475,17 @@ class NegotiationMultiIssueWorker(BaseWorker):
             personality = self.determine_user_personality(state.user_message.history)
             state.message_flow += f"\nUser Personality: {personality}"
             
-            # Load the core prompt for context
+            # Load the core negotiation prompt for context
             base_dir = dirname(abspath(__file__))
-            prompt_path = dirname(base_dir) + "/negotiation_workers/negotiation_prompts/adaptedscenario.txt"
+            prompt_path = os.path.join(base_dir, "negotiation_prompts", "adaptedscenario.txt")
             with open(prompt_path) as f:
                 core_prompt = f.read()
             
             # Generate response based on current state
             prompt = f"""
             {core_prompt}
+            
+            Remember that you are S. Gordon, the Senior Manager for Professional Talent at Global Consulting, and you are negotiating with J. Roberts about their employment package.
             
             Current turn: {state.slots['turn'][0].value}
             Current issue: {state.slots['current_issue'][0].value}
@@ -500,6 +506,8 @@ class NegotiationMultiIssueWorker(BaseWorker):
             {state.user_message.history}
             
             User's message: {state.user_message.message}
+            
+            Maintain your role as S. Gordon and continue the job offer negotiation. Do not switch to any other scenario.
             """
             
             response = self.llm.invoke(prompt).content.strip()
