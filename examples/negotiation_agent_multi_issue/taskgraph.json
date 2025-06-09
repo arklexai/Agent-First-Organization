@@ -8,7 +8,7 @@
                     "name": "NegotiationMultiIssueWorker"
                 },
                 "attribute": {
-                    "value": "Hi, how are you today?",
+                    "value": "Hello J. Roberts, a pleasure to meet with you today. I hope you're having a great day. I'm looking forward to discussing the opportunity of having you join our team here at Global Consulting. Let's work together to find a package that aligns with both your career aspirations and our organizational needs. Before we dive into specifics, let me know which areas are top of mind for you as we embark on this negotiation journey.",
                     "task": "start_message",
                     "directed": false
                 },
