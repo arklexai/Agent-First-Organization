@@ -1,10 +1,7 @@
-"""Human-in-the-Loop (HITL) worker implementations for the Arklex framework.
+"""Human-in-the-loop worker implementation for the Arklex framework.
 
-This module provides specialized workers for handling human-in-the-loop interactions. It
-includes implementations for live chat with human representatives, multiple-choice
-confirmations, and various verification mechanisms. The workers support different modes of
-human interaction, including chat-based and multiple-choice-based workflows, with
-capabilities for message verification, slot filling, and state management.
+This module provides functionality for human-in-the-loop interactions, including
+slot filling and verification with human oversight.
 """
 
 import logging
@@ -13,26 +10,41 @@ from typing import Any, Dict, List, Optional, Tuple
 from langgraph.graph import StateGraph, START
 
 from arklex.env.workers.worker import BaseWorker, register_worker
+from arklex.orchestrator.NLU.core.slot import SlotFiller
 from arklex.utils.graph_state import MessageState, StatusEnum
 from arklex.env.workers.utils.chat_client import ChatClient
-
-from arklex.orchestrator.NLU.nlu import SlotFilling
+from arklex.utils.slot import Slot
 
 logger = logging.getLogger(__name__)
 
 
 # @register_worker
 class HITLWorker(BaseWorker):
+    """Human-in-the-loop worker for slot filling and verification.
+
+    This class provides functionality for human-in-the-loop interactions,
+    allowing human oversight of slot filling and verification processes.
+
+    Attributes:
+        slot_fill_api (Optional[SlotFiller]): Slot filling API instance
+        // ... rest of attributes ...
+    """
+
     description: str = "This is a template for a HITL worker."
     mode: Optional[str] = None
     params: Optional[Dict[str, Any]] = None
     verifier: List[str] = []
 
-    slot_fill_api: Optional[SlotFilling] = None
+    slot_fill_api: Optional[SlotFiller] = None
 
     # def __init__(self, server_ip: str, server_port: int, name: str):
     def __init__(self, **kwargs: Any) -> None:
-        super().__init__()
+        """Initialize the HITL worker.
+
+        Args:
+            **kwargs: Keyword arguments for initializing the worker
+        """
+        super().__init__(**kwargs)
 
         self.action_graph: StateGraph = self._create_action_graph()
 
@@ -44,10 +56,10 @@ class HITLWorker(BaseWorker):
         After the bot generate the response for the user's query, the framework decide whether it need to call human for the help because of the low confidence of the bot's response
 
         Args:
-            message (str): _description_
+            state (MessageState): The current message state
 
         Returns:
-            tuple[bool, str]: _description_
+            tuple[bool, str]: A tuple containing a boolean indicating whether verification is needed and a string message
         """
         return True, ""
 
@@ -69,8 +81,13 @@ class HITLWorker(BaseWorker):
 
         return False, ""
 
-    def init_slotfilling(self, slotsfillapi: Any) -> None:
-        self.slotfillapi: SlotFilling = SlotFilling(slotsfillapi)
+    def init_slot_filler(self, slot_fill_api: Any) -> None:
+        """Initialize the slot filling API.
+
+        Args:
+            slot_fill_api: API endpoint for slot filling
+        """
+        self.slot_fill_api = SlotFiller(slot_fill_api)
 
     def create_prompt(self) -> str:
         """Create a prompt for the HITL mc worker"""
@@ -137,7 +154,7 @@ class HITLWorker(BaseWorker):
         """The message of the fallback
 
         Args:
-            state (MessageState): _description_
+            state (MessageState): The current message state
 
         Returns:
             MessageState: The updated state
@@ -182,7 +199,7 @@ class HITLWorkerTestChat(HITLWorker):
     mode: str = "chat"
 
     def __init__(self, **kwargs: Any) -> None:
-        super().__init__()
+        super().__init__(**kwargs)
         self.server_ip: Optional[str] = kwargs.get("server_ip")
         self.server_port: Optional[int] = kwargs.get("server_port")
         self.name: Optional[str] = kwargs.get("name")
@@ -219,7 +236,7 @@ class HITLWorkerTestMC(HITLWorker):
     }
 
     def __init__(self, **kwargs: Any) -> None:
-        super().__init__()
+        super().__init__(**kwargs)
         self.server_ip: Optional[str] = kwargs.get("server_ip")
         self.server_port: Optional[int] = kwargs.get("server_port")
         self.name: Optional[str] = kwargs.get("name")

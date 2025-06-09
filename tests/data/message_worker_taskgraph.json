@@ -60,7 +60,8 @@
         {
             "id": "message_worker",
             "name": "MessageWorker",
-            "path": "message_worker.py"
+            "path": "message_worker.py",
+            "description": "A worker that handles message-based interactions with users, providing responses and collecting information."
         }
     ],
     "nluapi": "",

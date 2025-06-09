@@ -20,7 +20,7 @@ Features:
 
 Usage:
     from arklex.orchestrator.generator import Generator
-    from arklex.env.env import DefaulResourceInitializer
+    from arklex.env.env import DefaultResourceInitializer
 
     # Initialize generator
     config = {
@@ -37,7 +37,7 @@ Usage:
         config=config,
         model=language_model,
         output_dir="output",
-        resource_inizializer=DefaulResourceInitializer()
+        resource_inizializer=DefaultResourceInitializer()
     )
 
     # Generate task graph
@@ -69,7 +69,7 @@ from textual.widgets.tree import TreeNode
 from arklex.utils.utils import postprocess_json
 from arklex.orchestrator.generator.prompts import *
 from arklex.utils.loader import Loader, SourceType
-from arklex.env.env import BaseResourceInitializer, DefaulResourceInitializer
+from arklex.env.env import BaseResourceInitializer, DefaultResourceInitializer
 from arklex.env.nested_graph.nested_graph import NESTED_GRAPH_ID
 
 
@@ -309,7 +309,7 @@ class Generator:
             allow_nested_graph (bool): Whether to allow nested graph generation. Defaults to True.
         """
         if resource_inizializer is None:
-            resource_inizializer = DefaulResourceInitializer()
+            resource_inizializer = DefaultResourceInitializer()
         self.product_kwargs = config
         self.role = self.product_kwargs.get("role")
         self.u_objective = self.product_kwargs.get("user_objective")
