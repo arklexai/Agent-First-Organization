@@ -17,11 +17,15 @@ from arklex.evaluation.chatgpt_utils import chatgpt_chatbot
 from arklex.env.env import Env
 from arklex.orchestrator.NLU.nlu import SlotFilling
 from arklex.env.tools.tools import Tool
+from arklex.orchestrator.NLU.core.slot import SlotFiller
+from arklex.utils.slot import Slot
 
 ATTR_TO_PROFILE: str = "Convert the following list user attributes in to a text description of a customer profile for the following company:\n{company_summary}\nThe user attributes are here:\n{user_attr}"
 ADAPT_GOAL: str = "Assume you are planning to speak to a chatbot with the following goal in mind:\n{goal}\nUsing the company information below, re-write this goal into one that is more specific to the company and align with your profile. The new goal should be more specific either relevent to your profile or the company's details. Here is a summary of the company:\n{company_summary}\n{doc}\n{user_profile}"
 ADD_ATTRIBUTES: str = "Your job is to add attributes to a customer profile. Here is an example of an existing profile with the categories on the left and the attributes on the right:\n{user_profile}\nSuggest three attributes for the following category:\n{category}\nThese attributes should be specific values that are relevant to the category and apply to potential customers of the company. You should return a comma separated list of attributes without any descriptions of the attributes. Generated the attributes based on a summary of the company and the company webpage and what kind of customers the compnay is likely targeting. Here is the summary fo the company:\n{company_summary}\nHere is the webpage:\n{company_doc}"
 ADD_ATTRIBUTES_WO_DOC: str = "Your job is to add attributes to a customer profile. Here is an example of an existing profile with the categories on the left and the attributes on the right:\n{user_profile}\nSuggest three attributes for the following category:\n{category}\nThese attributes should be specific values that are relevant to the category and apply to potential customers of the company. You should return a comma separated list of attributes without any descriptions of the attributes. Generated the attributes based on a summary of the company and what kind of customers the compnay is likely targeting. Here is the summary fo the company:\n{company_summary}"
+
+logger = logging.getLogger(__name__)
 
 
 def build_profile(
@@ -664,7 +668,7 @@ def get_label(attribute, config):
                 break
             selected_tool = env.tools[pred_tool_id]["execute"]()
             slots = selected_tool.slots
-            pred_slots = SlotFilling(url="").execute(
+            pred_slots = SlotFiller(url="").execute(
                 slots, str(attribute), type="user_simulator"
             )
             pred_slots_dict = {slot.name: slot.value for slot in pred_slots}
@@ -1059,3 +1063,16 @@ def select_system_attributes(
             system_attribute[key] = random.choice(value["values"])
         system_attributes.append(system_attribute)
     return system_attributes
+
+
+def build_user_profiles(test_data: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+    """Build user profiles from test data.
+
+    Args:
+        test_data: List of test data entries
+
+    Returns:
+        List of user profiles
+    """
+    slot_filler = SlotFiller(url="")
+    # ... rest of the function ...

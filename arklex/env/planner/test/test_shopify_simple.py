@@ -9,7 +9,7 @@ import time
 import warnings
 
 from arklex.orchestrator.orchestrator import AgentOrg
-from arklex.env.env import Env
+from arklex.env.env import Environment
 
 # Wait this many seconds between tests to avoid token rate-limiting
 WAIT_TIME_BETWEEN_TESTS_SEC: Optional[int] = 5  # Set to None or 0 for no wait time
@@ -26,7 +26,7 @@ class Logic_Test(unittest.TestCase):
         cls.user_prefix: str = "user"
         cls.worker_prefix: str = "assistant"
         cls.config: Optional[Dict[str, Any]] = None
-        cls.env: Optional[Env] = None
+        cls.env: Optional[Environment] = None
         cls.total_tests_run: int = 0
 
     @classmethod
@@ -68,7 +68,7 @@ class Logic_Test(unittest.TestCase):
             self.assertTrue(True in contains_flags, failure_message)
 
     def _check_tool_calls(
-        self, params: Dict[str, Any], env: Env, test_case: Dict[str, Any]
+        self, params: Dict[str, Any], env: Environment, test_case: Dict[str, Any]
     ) -> None:
         _expected_tool_calls: Dict[str, Any] = test_case.get("expected_tool_calls", {})
         correct_tool_calls: bool = False
@@ -161,7 +161,7 @@ class Logic_Test(unittest.TestCase):
         input_dir, _ = os.path.split(file_path)
         with open(file_path, "r", encoding="UTF_8") as f:
             self.config = json.load(f)
-        self.env = Env(
+        self.env = Environment(
             tools=self.config.get("tools", []),
             workers=self.config.get("workers", []),
             slotsfillapi=self.config["slotfillapi"],

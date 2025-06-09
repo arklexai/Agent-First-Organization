@@ -9,8 +9,6 @@ document types (web, file, text) with appropriate processing methods.
 import os
 import sys
 import json
-import pickle
-from pathlib import Path
 from os.path import dirname, abspath
 from typing import List, Dict, Any, Optional
 
@@ -67,7 +65,7 @@ def load_docs(
                 [doc.get("num") if doc.get("num") else 1 for doc in rag_docs]
             )
             loader: Loader = Loader()
-            if Path(filepath).exists():
+            if os.path.exists(filepath):
                 docs: List[CrawledObject] = pickle.load(
                     open(os.path.join(document_dir, filename), "rb")
                 )

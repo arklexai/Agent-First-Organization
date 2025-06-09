@@ -5,7 +5,7 @@ import unittest
 from typing import Any, Dict, List, Tuple
 
 from arklex.orchestrator.orchestrator import AgentOrg
-from arklex.env.env import Env
+from arklex.env.env import Environment
 
 
 class Logic_Test(unittest.TestCase):
@@ -21,10 +21,10 @@ class Logic_Test(unittest.TestCase):
         file_path: str = "taskgraph.json"
         with open(file_path, "r", encoding="UTF-8") as f:
             cls.config: Dict[str, Any] = json.load(f)
-        cls.env: Env = Env(
+        cls.env: Environment = Environment(
             tools=cls.config.get("tools", []),
             workers=cls.config.get("workers", []),
-            slotsfillapi=cls.config["slotfillapi"],
+            slot_fill_api=cls.config["slotfillapi"],
         )
 
     @classmethod
