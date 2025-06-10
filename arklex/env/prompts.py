@@ -246,10 +246,13 @@ Your response should only be the reformulated value or None.
 """,
             # ===== regenerate answer prompt ===== #
             "regenerate_response": """
-Answer:
+Original Answer:
 {original_answer}
+----------------
 Task:
-Rephrase the "Answer" only to fix fluency or coherence issues caused by removed or broken links (e.g. empty markdown links like [text]()). Do not modify any valid or working links that are still present in the text. Do not add or infer new information, and keep the original tone and meaning unchanged.
+Rephrase the Original Answer only to fix fluency or coherence issues caused by removed or broken links (e.g. empty markdown links like [text]()). Do not modify any valid or working links that are still present in the text. Do not add or infer new information, and keep the original tone and meaning unchanged.
+----------------
+Revised Answer:
 """,
         }
     elif bot_config.language == "CN":
