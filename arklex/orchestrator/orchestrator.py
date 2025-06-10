@@ -89,7 +89,6 @@ from arklex.utils.model_provider_config import PROVIDER_MAP
 from langchain_core.runnables import RunnableLambda
 
 
-
 load_dotenv()
 logger = logging.getLogger(__name__)
 
@@ -234,7 +233,7 @@ class AgentOrg:
         )
         return text, chat_history_str, params, message_state
 
-    def check_skip_node(self, node_info: NodeInfo, params: Params) -> bool:
+    def check_skip_node(self, node_info: NodeInfo, chat_history_str: str) -> bool:
         """Check if a node can be skipped in the task graph.
 
         This function determines whether a node can be skipped based on its configuration
@@ -250,17 +249,18 @@ class AgentOrg:
         """
         if not node_info.can_skipped:
             return False
-        
-        task = node_info.attributes.get('task', '')
+
+        task = node_info.attributes.get("task", "")
         if not task:
             return False
 
         prompt = f"""Given the following conversation history:
-{params.memory.chat_history_str}
+{chat_history_str}
 
 And the task: "{task}"
 
-Your job is to decide whether the user has already provided the information needed for this task
+Your job is to decide whether the user has already provided the information needed for this task.
+The information may hide in the user's messages or assistant's responses.
 Check for synonyms and variations of phrasing in both the user's messages and assistant's responses.
 Reply with 'yes' only if either of these conditions are met (user provided info), otherwise 'no'.
 Answer with only 'yes' or 'no'"""
@@ -269,8 +269,12 @@ Answer with only 'yes' or 'no'"""
         try:
             response = self.llm.invoke(prompt)
             logger.info(f"LLM response for task verification: {response}")
-            response_text = response.content.lower().strip() if hasattr(response, 'content') else str(response).lower().strip()
-            return response_text == 'yes'
+            response_text = (
+                response.content.lower().strip()
+                if hasattr(response, "content")
+                else str(response).lower().strip()
+            )
+            return response_text == "yes"
         except Exception as e:
             logger.error(f"Error in LLM task verification: {str(e)}")
             return False
@@ -555,7 +559,7 @@ Answer with only 'yes' or 'no'"""
             taskgraph_inputs["allow_global_intent_switch"] = False
             params.metadata.timing.taskgraph = time.time() - taskgraph_start_time
             # Check if current node can be skipped
-            can_skip = self.check_skip_node(node_info, params)
+            can_skip = self.check_skip_node(node_info, chat_history_str)
             if can_skip:
                 params = self.post_process_node(node_info, params, {"is_skipped": True})
                 continue
