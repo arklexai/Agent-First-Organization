@@ -35,7 +35,31 @@ Watch the tutorial on [YouTube](https://youtu.be/y1P2Ethvy0I) to learn how to bu
 
 * 📂 Environment Setup
 
-  * Add API keys to the `.env` file for providers like OpenAI, Gemini, Anthropic, and Tavily.
+  * Create a `.env` file in the root directory with the following information:
+
+    ```
+    OPENAI_API_KEY=<your-openai-api-key>
+    GEMINI_API_KEY = <your-gemini-api-key>
+    GOOGLE_API_KEY = <your-gemini-api-key>
+    ANTHROPIC_API_KEY = <your-anthropic-api-key>
+    HUGGINGFACE_API_KEY = <your-huggingface-api-key>
+    MISTRAL_API_KEY = <your-mistral-api-key>
+
+    LANGCHAIN_TRACING_V2=false
+    LANGCHAIN_PROJECT=AgentOrg
+    LANGCHAIN_API_KEY=<your-langchain-api-key>
+
+    TAVILY_API_KEY=<your-tavily-api-key>
+
+    MYSQL_USERNAME=<your-mysql-db-username>
+    MYSQL_PASSWORD=<your-mysql-db-password>
+    MYSQL_HOSTNAME=<your-mysql-db-hostname>
+    MYSQL_PORT=<your-mysql-db-port>
+    MYSQL_DB_NAME=<your-mysql-db-name>
+    MYSQL_CONNECTION_TIMEOUT=<your-mysql-db-timeout>
+
+    MILVUS_URI=<your-milvus-db-uri>
+    ```
 
   * Enable LangSmith tracing (LANGCHAIN_TRACING_V2=true) for debugging (optional).
 
@@ -133,3 +157,4 @@ python run.py --input-dir ./examples/customer_service
         * `gpt-4o-mini`,  `gemini-2.0-flash` , `claude-3-5-haiku-20241022`
   
     📄 For more details, check out the [Evaluation README](https://github.com/arklexai/Agent-First-Organization/blob/main/arklex/evaluation/README.md).
+
