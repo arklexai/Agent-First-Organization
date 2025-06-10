@@ -36,3 +36,4 @@ PyMySQL>=1.1.0,<2.0.0
 ShopifyAPI>=12.7.0,<13.0.0
 hubspot-api-client>=11.1.0,<12.0.0
 parsedatetime>=2.6,<3.0
+scikit-learn>=1.7.0,<2.0.0
