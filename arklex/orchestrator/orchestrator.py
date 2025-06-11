@@ -538,7 +538,8 @@ Answer with only 'yes' or 'no'"""
         max_n_node_performed = 5
         while n_node_performed < max_n_node_performed:
             taskgraph_start_time = time.time()
-            if found_intent:
+            # If there is relevant intent and records in short term memory, do generation based on past context
+            if found_intent and found_records:
                 taskgraph_inputs["allow_global_intent_switch"] = False
                 node_info = NodeInfo(
                     node_id=None,
