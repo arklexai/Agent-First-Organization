@@ -53,7 +53,17 @@ class MessageWorker(BaseWorker):
             return state
 
         prompts: Dict[str, str] = load_prompts(state.bot_config)
-        if message_flow and message_flow != "\n":
+
+        if state.function_calling_trajectory[0].get('content','') == '<start>':
+            prompt: PromptTemplate = PromptTemplate.from_template(
+                prompts["start_prompt"]
+            )
+            input_prompt = prompt.invoke(
+                {
+                    "sys_instruct": state.sys_instruct,
+                }
+            )
+        elif message_flow and message_flow != "\n":
             prompt: PromptTemplate = PromptTemplate.from_template(
                 prompts["message_flow_generator_prompt"]
             )
