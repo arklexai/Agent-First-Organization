@@ -115,11 +115,18 @@ class IntentDetector(BaseNLU):
         prompt, idx2intents_mapping = self.model_service.format_intent_input(
             intents, chat_history_str
         )
+        logger.info(f"NLU intent detection prompt: {prompt}")
+        logger.info(f"NLU intent detection idx2intents_mapping: {idx2intents_mapping}")
 
         response = self.model_service.get_response(prompt)
-        response = response.split(")")[0].strip()
+        logger.info(f"NLU intent detection response: {response}")
+        pred_idx, pred_intent = [i.strip() for i in response.split(")")]
 
-        pred_intent = idx2intents_mapping.get(response.strip(), "others")
+        if pred_intent not in idx2intents_mapping.values():
+            logger.info(
+                f"NLU intent detection pred_intent not in idx2intents_mapping.values(): {pred_intent}"
+            )
+            pred_intent = idx2intents_mapping.get(pred_idx, "others")
         logger.info(f"Predicted intent: {pred_intent}")
 
         return pred_intent
