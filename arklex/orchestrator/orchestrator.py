@@ -58,6 +58,7 @@ import json
 import logging
 import time
 from dotenv import load_dotenv
+from langchain.chat_models import ChatOpenAI
 from typing import Any, Dict, Tuple, List, Optional, Union
 from arklex.env.nested_graph.nested_graph import NESTED_GRAPH_ID, NestedGraph
 from arklex.env.env import Environment
@@ -84,6 +85,7 @@ from arklex.utils.graph_state import (
 from arklex.utils.utils import format_chat_history
 from arklex.utils.model_config import MODEL
 from arklex.memory import ShortTermMemory
+from arklex.utils.model_provider_config import PROVIDER_MAP
 from langchain_core.runnables import RunnableLambda
 
 
@@ -151,6 +153,12 @@ class AgentOrg:
             workers=self.product_kwargs.get("workers", []),
             slot_fill_api=self.product_kwargs.get("slot_fill_api", ""),
             planner_enabled=True,
+        )
+
+        # Initialize LLM directly
+        self.llm = PROVIDER_MAP.get(self.llm_config.llm_provider, ChatOpenAI)(
+            model=self.llm_config.model_type_or_path,
+            temperature=0.0,
         )
 
         # Update planner model info now that LLMConfig is defined
@@ -225,7 +233,7 @@ class AgentOrg:
         )
         return text, chat_history_str, params, message_state
 
-    def check_skip_node(self, node_info: NodeInfo, params: Params) -> bool:
+    def check_skip_node(self, node_info: NodeInfo, chat_history_str: str) -> bool:
         """Check if a node can be skipped in the task graph.
 
         This function determines whether a node can be skipped based on its configuration
@@ -239,15 +247,37 @@ class AgentOrg:
         Returns:
             bool: True if the node can be skipped, False otherwise.
         """
-        # NOTE: Do not check the node limit to decide whether the node can be skipped because skipping a node when should not is unwanted.
-        return False
         if not node_info.can_skipped:
             return False
-        cur_node_id: str = params.taskgraph.curr_node
-        if cur_node_id in params.taskgraph.node_limit:
-            if params.taskgraph.node_limit[cur_node_id] <= 0:
-                return True
-        return False
+
+        task = node_info.attributes.get("task", "")
+        if not task:
+            return False
+
+        prompt = f"""Given the following conversation history:
+{chat_history_str}
+
+And the task: "{task}"
+
+Your job is to decide whether the user has already provided the information needed for this task.
+The information may hide in the user's messages or assistant's responses.
+Check for synonyms and variations of phrasing in both the user's messages and assistant's responses.
+Reply with 'yes' only if either of these conditions are met (user provided info), otherwise 'no'.
+Answer with only 'yes' or 'no'"""
+        logger.info(f"prompt for check skip node: {prompt}")
+
+        try:
+            response = self.llm.invoke(prompt)
+            logger.info(f"LLM response for task verification: {response}")
+            response_text = (
+                response.content.lower().strip()
+                if hasattr(response, "content")
+                else str(response).lower().strip()
+            )
+            return response_text == "yes"
+        except Exception as e:
+            logger.error(f"Error in LLM task verification: {str(e)}")
+            return False
 
     def post_process_node(
         self, node_info: NodeInfo, params: Params, update_info: Dict[str, Any] = {}
@@ -529,7 +559,7 @@ class AgentOrg:
             taskgraph_inputs["allow_global_intent_switch"] = False
             params.metadata.timing.taskgraph = time.time() - taskgraph_start_time
             # Check if current node can be skipped
-            can_skip = self.check_skip_node(node_info, params)
+            can_skip = self.check_skip_node(node_info, chat_history_str)
             if can_skip:
                 params = self.post_process_node(node_info, params, {"is_skipped": True})
                 continue
