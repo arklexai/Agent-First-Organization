@@ -47,6 +47,8 @@ class StreamType(str, Enum):
     TEXT = "text"
     # SPEECH is used to denote speech streams
     SPEECH = "speech"
+    # Non-stream types
+    NON_STREAM = ""
 
 
 class EventType(str, Enum):
