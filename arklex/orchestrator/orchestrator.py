@@ -498,35 +498,35 @@ Answer with only 'yes' or 'no'"""
             "allow_global_intent_switch": True,
         }
 
-        stm = ShortTermMemory(
-            params.memory.trajectory, chat_history_str, llm_config=self.llm_config
-        )
-        asyncio.run(stm.personalize())
+        # stm = ShortTermMemory(
+        #     params.memory.trajectory, chat_history_str, llm_config=self.llm_config
+        # )
+        # asyncio.run(stm.personalize())
         message_state.trajectory = params.memory.trajectory
 
         # Log personalized intents from trajectory
-        for turn in params.memory.trajectory:
-            for record in turn:
-                if record.personalized_intent:
-                    logger.info(f"Personalized Intent: {record.personalized_intent}")
-                    logger.info(f"Original Intent: {record.personalized_intent}")
+        # for turn in params.memory.trajectory:
+        #     for record in turn:
+        #         if record.personalized_intent:
+        #             logger.info(f"Personalized Intent: {record.personalized_intent}")
+        #             logger.info(f"Original Intent: {record.personalized_intent}")
 
-        found_records, relevant_records = stm.retrieve_records(text)
+        # found_records, relevant_records = stm.retrieve_records(text)
 
-        logger.info(f"Found Records: {found_records}")
-        if found_records:
-            logger.info(
-                f"Relevant Records: {[r.personalized_intent for r in relevant_records]}"
-            )
+        # logger.info(f"Found Records: {found_records}")
+        # if found_records:
+        #     logger.info(
+        #         f"Relevant Records: {[r.personalized_intent for r in relevant_records]}"
+        #     )
 
-        found_intent, relevant_intent = stm.retrieve_intent(text)
+        # found_intent, relevant_intent = stm.retrieve_intent(text)
 
-        logger.info(f"Found Intent: {found_intent}")
-        if found_intent:
-            logger.info(f"Relevant Intent: {relevant_intent}")
+        # logger.info(f"Found Intent: {found_intent}")
+        # if found_intent:
+        #     logger.info(f"Relevant Intent: {relevant_intent}")
 
-        if found_records:
-            message_state.relevant_records = relevant_records
+        # if found_records:
+        #     message_state.relevant_records = relevant_records
         taskgraph_chain = RunnableLambda(self.task_graph.get_node) | RunnableLambda(
             self.task_graph.postprocess_node
         )
@@ -538,24 +538,24 @@ Answer with only 'yes' or 'no'"""
         max_n_node_performed = 5
         while n_node_performed < max_n_node_performed:
             taskgraph_start_time = time.time()
-            if found_intent:
-                taskgraph_inputs["allow_global_intent_switch"] = False
-                node_info = NodeInfo(
-                    node_id=None,
-                    type="",
-                    resource_id="planner",
-                    resource_name="planner",
-                    can_skipped=False,
-                    is_leaf=len(
-                        list(
-                            self.task_graph.graph.successors(params.taskgraph.curr_node)
-                        )
-                    )
-                    == 0,
-                    attributes={"value": "", "direct": False},
-                )
-            else:
-                node_info, params = taskgraph_chain.invoke(taskgraph_inputs)
+            # if found_intent:
+            #     taskgraph_inputs["allow_global_intent_switch"] = False
+            #     node_info = NodeInfo(
+            #         node_id=None,
+            #         type="",
+            #         resource_id="planner",
+            #         resource_name="planner",
+            #         can_skipped=False,
+            #         is_leaf=len(
+            #             list(
+            #                 self.task_graph.graph.successors(params.taskgraph.curr_node)
+            #             )
+            #         )
+            #         == 0,
+            #         attributes={"value": "", "direct": False},
+            #     )
+            # else:
+            node_info, params = taskgraph_chain.invoke(taskgraph_inputs)
             taskgraph_inputs["allow_global_intent_switch"] = False
             params.metadata.timing.taskgraph = time.time() - taskgraph_start_time
             # Check if current node can be skipped
