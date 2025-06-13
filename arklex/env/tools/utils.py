@@ -97,15 +97,26 @@ class ToolGenerator:
             f"Retrieved texts (from retriever/search engine to generator): {message_flow[:50]} ..."
         )
 
-        # generate answer based on the retrieved texts
-        prompt: PromptTemplate = get_prompt_template(state, "context_generator_prompt")
-        input_prompt: Any = prompt.invoke(
-            {
-                "sys_instruct": state.sys_instruct,
-                "formatted_chat": user_message.history,
-                "context": message_flow,
-            }
-        )
+        prompt: Dict[str, str] = get_prompt_template(state, "start_prompt")
+        if user_message.message == '<start>':
+            input_prompt = prompt.invoke(
+                {
+                    "sys_instruct": state.sys_instruct,
+                    "message": user_message.message,
+                    "formatted_chat": user_message.history,
+                }
+            )
+  
+        else:
+            # generate answer based on the retrieved texts
+            prompt: PromptTemplate = get_prompt_template(state, "context_generator_prompt")
+            input_prompt: Any = prompt.invoke(
+                {
+                    "sys_instruct": state.sys_instruct,
+                    "formatted_chat": user_message.history,
+                    "context": message_flow,
+                }
+            )
         final_chain: Any = llm | StrOutputParser()
         logger.info(f"Prompt: {input_prompt.text}")
         answer: str = final_chain.invoke(input_prompt.text)
