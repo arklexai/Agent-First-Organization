@@ -50,7 +50,7 @@ import numpy as np
 
 from arklex.env.nested_graph.nested_graph import NestedGraph
 from arklex.utils.utils import normalize, str_similarity
-from arklex.utils.graph_state import NodeInfo, Params, PathNode, StatusEnum, LLMConfig
+from arklex.utils.graph_state import NodeInfo, Params, PathNode, StatusEnum, LLMConfig, NodeTypeEnum
 from arklex.orchestrator.NLU.core.slot import SlotFiller
 from arklex.orchestrator.NLU.core.intent import IntentDetector
 
@@ -234,7 +234,7 @@ class TaskGraph(TaskGraphBase):
         logger.info(
             f"available_intents in _get_node: {params.taskgraph.available_global_intents}"
         )
-        logger.info(f"intent in _get_node: {intent}")
+        logger.info(f"intent in _get_node idiot: {intent}")
         node_info: Dict[str, Any] = self.graph.nodes[sample_node]
         resource_name: str = node_info["resource"]["name"]
         resource_id: str = node_info["resource"]["id"]
@@ -422,6 +422,36 @@ class TaskGraph(TaskGraphBase):
         """
         node_status: Dict[str, StatusEnum] = params.taskgraph.node_status
         status: StatusEnum = node_status.get(curr_node, StatusEnum.COMPLETE)
+        
+        # Get current node info
+        node_info: NodeInfo
+        node_info, params = self._get_node(curr_node, params)
+        
+        # Check if this is a multiple choice node and user has responded
+        if (status == StatusEnum.INCOMPLETE and 
+            node_info.type == NodeTypeEnum.MULTIPLE_CHOICE.value and 
+            node_info.attributes.get("choice_list", []) and
+            params.memory.function_calling_trajectory and 
+            len(params.memory.function_calling_trajectory) >= 2):
+            
+            # Get user's response
+            user_text = params.memory.function_calling_trajectory[-1].get("content", "").strip().lower()
+            choices = [choice.lower() for choice in node_info.attributes["choice_list"]]
+            
+            # If user's response matches a choice, mark node as complete
+            if user_text in choices:
+                params.taskgraph.node_status[curr_node] = StatusEnum.COMPLETE
+                return False, {}, params
+        
+        # For worker nodes, mark as complete if user has responded
+        if (status == StatusEnum.INCOMPLETE and 
+            node_info.type == "worker" and
+            params.memory.function_calling_trajectory and 
+            len(params.memory.function_calling_trajectory) >= 2):
+            params.taskgraph.node_status[curr_node] = StatusEnum.COMPLETE
+            return False, {}, params
+        
+        # For other incomplete nodes, return the node
         if status == StatusEnum.INCOMPLETE:
             logger.info(
                 "no local or global intent found, the current node is not complete"

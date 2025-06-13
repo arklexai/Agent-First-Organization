@@ -61,6 +61,8 @@ class MessageWorker(BaseWorker):
             input_prompt = prompt.invoke(
                 {
                     "sys_instruct": state.sys_instruct,
+                    "message": orch_msg_content,
+                    "formatted_chat": user_message.history,
                 }
             )
         elif message_flow and message_flow != "\n":
