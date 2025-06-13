@@ -99,7 +99,7 @@ class TaskGraphBase:
 
     def get_start_node(self) -> Optional[str]:
         for node in self.graph.nodes.data():
-            if node[1].get("type", "") == "start":
+            if node[1].get("type", "") == "start" or node[1].get("attribute", {}).get("start", False):
                 return node[0]
         return None
 
@@ -442,14 +442,6 @@ class TaskGraph(TaskGraphBase):
             if user_text in choices:
                 params.taskgraph.node_status[curr_node] = StatusEnum.COMPLETE
                 return False, {}, params
-        
-        # For worker nodes, mark as complete if user has responded
-        if (status == StatusEnum.INCOMPLETE and 
-            node_info.type == "worker" and
-            params.memory.function_calling_trajectory and 
-            len(params.memory.function_calling_trajectory) >= 2):
-            params.taskgraph.node_status[curr_node] = StatusEnum.COMPLETE
-            return False, {}, params
         
         # For other incomplete nodes, return the node
         if status == StatusEnum.INCOMPLETE:
