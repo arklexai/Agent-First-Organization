@@ -427,22 +427,6 @@ class TaskGraph(TaskGraphBase):
         node_info: NodeInfo
         node_info, params = self._get_node(curr_node, params)
         
-        # Check if this is a multiple choice node and user has responded
-        if (status == StatusEnum.INCOMPLETE and 
-            node_info.type == NodeTypeEnum.MULTIPLE_CHOICE.value and 
-            node_info.attributes.get("choice_list", []) and
-            params.memory.function_calling_trajectory and 
-            len(params.memory.function_calling_trajectory) >= 2):
-            
-            # Get user's response
-            user_text = params.memory.function_calling_trajectory[-1].get("content", "").strip().lower()
-            choices = [choice.lower() for choice in node_info.attributes["choice_list"]]
-            
-            # If user's response matches a choice, mark node as complete
-            if user_text in choices:
-                params.taskgraph.node_status[curr_node] = StatusEnum.COMPLETE
-                return False, {}, params
-        
         # For other incomplete nodes, return the node
         if status == StatusEnum.INCOMPLETE:
             logger.info(
@@ -704,6 +688,13 @@ class TaskGraph(TaskGraphBase):
         # boolean to check if we allow global intent switch or not.
         allow_global_intent_switch: bool = inputs["allow_global_intent_switch"]
         params.taskgraph.nlu_records = []
+
+        if self.text == '<start>':
+            curr_node: str = self.start_node
+            params.taskgraph.curr_node = curr_node
+            node_info: NodeInfo
+            node_info, params = self._get_node(curr_node, params)
+            return node_info, params
 
         curr_node: str
         curr_node, params = self.get_current_node(params)
