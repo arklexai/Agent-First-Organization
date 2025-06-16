@@ -80,7 +80,6 @@ class BotConfig(BaseModel):
     llm_config: LLMConfig
 
 
-
 ### Message-related classes
 class ConvoMessage(BaseModel):
     """Represents a conversation message with history.
@@ -121,7 +120,6 @@ class OrchestratorMessage(BaseModel):
 
     message: str
     attribute: Dict[str, Any]
-
 
 
 ### Task status-related classes
@@ -281,7 +279,7 @@ class MessageState(BaseModel):
     # stream
     is_stream: bool = Field(default=False)
     message_queue: Any = Field(exclude=True, default=None)
-    stream_type: (Optional[StreamType]) = Field(default="")
+    stream_type: Optional[StreamType] = Field(default=StreamType.NON_STREAM)
     # memory records
     relevant_records: Optional[List[ResourceRecord]] = Field(default=None)
 
@@ -373,8 +371,7 @@ class Memory(BaseModel):
     """
 
     trajectory: List[List[ResourceRecord]] = Field(default_factory=list)
-    function_calling_trajectory: List[Dict[str, Any]] = Field(
-        default_factory=list)
+    function_calling_trajectory: List[Dict[str, Any]] = Field(default_factory=list)
 
 
 class Params(BaseModel):

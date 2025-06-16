@@ -31,6 +31,7 @@ from langchain_community.document_loaders import (
     UnstructuredExcelLoader,
     UnstructuredMarkdownLoader,
     TextLoader,
+    UnstructuredPowerPointLoader,
 )
 import base64
 
@@ -46,7 +47,7 @@ CHROME_DRIVER_VERSION = "125.0.6422.7"
 MISTRAL_API_KEY = os.getenv("MISTRAL_API_KEY")
 
 
-def encode_image(image_path):
+def encode_image(image_path: str) -> str:
     """Encode the image to base64."""
     try:
         with open(image_path, "rb") as image_file:
@@ -66,7 +67,7 @@ class SourceType(Enum):
 
 
 class DocObject:
-    def __init__(self, id: str, source: str):
+    def __init__(self, id: str, source: str) -> None:
         self.id = id
         self.source = source
 
@@ -77,12 +78,12 @@ class CrawledObject(DocObject):
         id: str,
         source: str,
         content: str,
-        metadata={},
-        is_chunk=False,
-        is_error=False,
-        error_message=None,
-        source_type=SourceType.WEB,
-    ):
+        metadata: dict = {},
+        is_chunk: bool = False,
+        is_error: bool = False,
+        error_message: str = None,
+        source_type: SourceType = SourceType.WEB,
+    ) -> None:
         super().__init__(id, source)
         self.content = content
         self.metadata = metadata
@@ -91,7 +92,7 @@ class CrawledObject(DocObject):
         self.error_message = error_message
         self.source_type = source_type
 
-    def to_dict(self):
+    def to_dict(self) -> dict:
         return {
             "id": self.id,
             "source": self.source,
@@ -104,7 +105,7 @@ class CrawledObject(DocObject):
         }
 
     @classmethod
-    def from_dict(cls, data: dict):
+    def from_dict(cls, data: dict) -> "CrawledObject":
         return cls(
             id=data["id"],
             source=data["source"],
@@ -118,7 +119,7 @@ class CrawledObject(DocObject):
 
 
 class Loader:
-    def __init__(self):
+    def __init__(self) -> None:
         pass
 
     def to_crawled_url_objs(self, url_list: List[str]) -> List[CrawledObject]:
@@ -252,7 +253,7 @@ class Loader:
         logger.info(f"URLs visited: {urls_visited}")
         return sorted(urls_visited[:max_num])
 
-    def get_outsource_urls(self, curr_url: str, base_url: str):
+    def get_outsource_urls(self, curr_url: str, base_url: str) -> List[str]:
         """Get outsource URLs from a given URL.
 
         This function extracts URLs from a webpage that point to external resources.
@@ -292,7 +293,7 @@ class Loader:
             logger.error(f"Fail to get the page from {curr_url}: {err}")
         return list(set(new_urls))
 
-    def _check_url(self, full_url, base_url):
+    def _check_url(self, full_url: str, base_url: str) -> bool:
         """Check if a URL is valid and belongs to the base URL.
 
         This function validates a URL by checking if it is properly formatted and
@@ -423,22 +424,21 @@ class Loader:
                 err_msg = f"No file type detected for file: {str(file_path)}"
                 raise FileNotFoundError(err_msg)
 
-            if file_type in ["pdf", "png", "jpg", "jpeg"] and (
+            if file_type in ["pdf", "png", "jpg", "jpeg", "pptx", "ppt"] and (
                 MISTRAL_API_KEY is not None
                 and MISTRAL_API_KEY != "<your-mistral-api-key>"
             ):
                 # Call the Mistral API to extract data.
                 client = Mistral(api_key=MISTRAL_API_KEY)
-                if file_type == "pdf":
-                    # For pdf's
-                    uploaded_pdf = client.files.upload(
+                if file_type in ["pdf", "pptx", "ppt"]:
+                    uploaded_doc = client.files.upload(
                         file={
                             "file_name": file_name,
                             "content": open(file_path, "rb"),
                         },
                         purpose="ocr",
                     )
-                    signed_url = client.files.get_signed_url(file_id=uploaded_pdf.id)
+                    signed_url = client.files.get_signed_url(file_id=uploaded_doc.id)
                     ocr_response = client.ocr.process(
                         model="mistral-ocr-latest",
                         document={
@@ -510,6 +510,8 @@ class Loader:
                 loader = TextLoader(file_path)
             elif file_type == "md":
                 loader = UnstructuredMarkdownLoader(file_path)
+            elif file_type == "pptx" or file_type == "ppt":
+                loader = UnstructuredPowerPointLoader(file_path, mode="single")
             else:
                 err_msg = "Unsupported file type. If you are trying to upload a pdf, make sure it is less than 50MB. Images are only supported with the advanced parser."
                 raise NotImplementedError(err_msg)
@@ -541,7 +543,7 @@ class Loader:
             )
 
     @staticmethod
-    def save(file_path: str, docs: List[CrawledObject]):
+    def save(file_path: str, docs: List[CrawledObject]) -> None:
         """Save a list of CrawledObject instances to a file.
 
         This function serializes and saves CrawledObject instances to a file
