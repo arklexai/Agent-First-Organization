@@ -50,7 +50,7 @@ import numpy as np
 
 from arklex.env.nested_graph.nested_graph import NestedGraph
 from arklex.utils.utils import normalize, str_similarity
-from arklex.utils.graph_state import NodeInfo, Params, PathNode, StatusEnum, LLMConfig, NodeTypeEnum
+from arklex.utils.graph_state import NodeInfo, Params, PathNode, StatusEnum, LLMConfig
 from arklex.orchestrator.NLU.core.slot import SlotFiller
 from arklex.orchestrator.NLU.core.intent import IntentDetector
 
@@ -234,7 +234,7 @@ class TaskGraph(TaskGraphBase):
         logger.info(
             f"available_intents in _get_node: {params.taskgraph.available_global_intents}"
         )
-        logger.info(f"intent in _get_node idiot: {intent}")
+        logger.info(f"intent in _get_node: {intent}")
         node_info: Dict[str, Any] = self.graph.nodes[sample_node]
         resource_name: str = node_info["resource"]["name"]
         resource_id: str = node_info["resource"]["id"]
@@ -422,10 +422,6 @@ class TaskGraph(TaskGraphBase):
         """
         node_status: Dict[str, StatusEnum] = params.taskgraph.node_status
         status: StatusEnum = node_status.get(curr_node, StatusEnum.COMPLETE)
-        
-        # Get current node info
-        node_info: NodeInfo
-        node_info, params = self._get_node(curr_node, params)
         
         # For other incomplete nodes, return the node
         if status == StatusEnum.INCOMPLETE:

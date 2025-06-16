@@ -97,8 +97,9 @@ class ToolGenerator:
             f"Retrieved texts (from retriever/search engine to generator): {message_flow[:50]} ..."
         )
 
-        prompt: Dict[str, str] = get_prompt_template(state, "start_prompt")
         if user_message.message == '<start>':
+            # start prompt is used for the first message
+            prompt: Dict[str, str] = get_prompt_template(state, "start_prompt")
             input_prompt = prompt.invoke(
                 {
                     "sys_instruct": state.sys_instruct,
