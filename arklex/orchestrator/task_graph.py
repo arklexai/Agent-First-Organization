@@ -423,7 +423,6 @@ class TaskGraph(TaskGraphBase):
         node_status: Dict[str, StatusEnum] = params.taskgraph.node_status
         status: StatusEnum = node_status.get(curr_node, StatusEnum.COMPLETE)
         
-        # For other incomplete nodes, return the node
         if status == StatusEnum.INCOMPLETE:
             logger.info(
                 "no local or global intent found, the current node is not complete"
