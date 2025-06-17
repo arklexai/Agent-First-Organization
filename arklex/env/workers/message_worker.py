@@ -21,7 +21,7 @@ from arklex.env.tools.utils import trace
 from arklex.env.workers.worker import BaseWorker, register_worker
 from arklex.types import EventType, StreamType
 from arklex.utils.graph_state import MessageState
-from arklex.utils.model_provider_config import PROVIDER_MAP
+from arklex.utils.model_provider_config import PROVIDER_MAP, COMPONENT_CONFIGS
 
 logger = logging.getLogger(__name__)
 
@@ -220,9 +220,11 @@ class MessageWorker(BaseWorker):
         return workflow
 
     def _execute(self, msg_state: MessageState, **kwargs: Any) -> Dict[str, Any]:
-        self.llm = PROVIDER_MAP.get(
-            msg_state.bot_config.llm_config.llm_provider, ChatOpenAI
-        )(model=msg_state.bot_config.llm_config.model_type_or_path)
+        llm_config = COMPONENT_CONFIGS["response_generation"]
+        self.llm = PROVIDER_MAP.get(llm_config["provider"], ChatOpenAI)(
+            model=llm_config["model"],
+            temperature=llm_config["temperature"]
+        )
         graph = self.action_graph.compile()
         result: Dict[str, Any] = graph.invoke(msg_state)
         return result

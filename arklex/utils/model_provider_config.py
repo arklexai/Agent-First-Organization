@@ -99,3 +99,32 @@ PROVIDER_EMBEDDING_MODELS: Dict[str, str] = {
     "openai": "text-embedding-ada-002",  # OpenAI's Ada embeddings
     "huggingface": "sentence-transformers/all-mpnet-base-v2",  # MPNet embeddings
 }
+
+# Default configurations for different components
+COMPONENT_CONFIGS: Dict[str, Dict[str, Any]] = {
+    "default": {
+        "provider": "anthropic",    
+        "temperature": 0.7,
+        "max_tokens": 1000,
+    },
+    "intent_detection": {
+        "provider": "anthropic",
+        "temperature": 0.1,
+        "max_tokens": 100,
+    },
+    "slot_filling": {
+        "provider": "anthropic",
+        "temperature": 0.1,
+        "max_tokens": 200,
+    },
+    "response_generation": {
+        "provider": "anthropic",
+        "temperature": 0.7,
+        "max_tokens": 1000,
+    },
+    "planner": {
+        "provider": "anthropic",
+        "temperature": 0.3,
+        "max_tokens": 500,
+    }
+}

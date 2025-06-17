@@ -18,6 +18,7 @@ from arklex.utils.model_provider_config import (
     PROVIDER_MAP,
     PROVIDER_EMBEDDINGS,
     PROVIDER_EMBEDDING_MODELS,
+    COMPONENT_CONFIGS,
 )
 from arklex.orchestrator.prompts import (
     RESPOND_ACTION_NAME,
@@ -185,14 +186,12 @@ class ReactPlanner(DefaultPlanner):
         Note that in most cases, this must be invoked (again) after __init__(), because the LLMConfig info
         may be updated after planner is initialized, which may change the embedding model(s) used.
         """
-        self.llm_config = llm_config
-
-        # Update model provider info
-        self.llm_provider: str = self.llm_config.llm_provider
-        self.model_name: str = self.llm_config.model_type_or_path
+        self.llm_config = COMPONENT_CONFIGS["planner"]
+        self.llm_provider = self.llm_config["provider"]
+        self.model_name = self.llm_config["model"]
         self.llm: Any = PROVIDER_MAP.get(self.llm_provider, ChatOpenAI)(
             model=self.model_name,
-            temperature=0.0,
+            temperature=self.llm_config["temperature"]
         )
         self.system_role: str = "user" if self.llm_provider == "gemini" else "system"
 

@@ -85,7 +85,7 @@ from arklex.utils.graph_state import (
 from arklex.utils.utils import format_chat_history
 from arklex.utils.model_config import MODEL
 from arklex.memory import ShortTermMemory
-from arklex.utils.model_provider_config import PROVIDER_MAP
+from arklex.utils.model_provider_config import PROVIDER_MAP, COMPONENT_CONFIGS
 from langchain_core.runnables import RunnableLambda
 
 
@@ -142,9 +142,7 @@ class AgentOrg:
             self.product_kwargs: Dict[str, Any] = config
         else:
             self.product_kwargs: Dict[str, Any] = json.load(open(config))
-        self.llm_config: LLMConfig = LLMConfig(
-            **self.product_kwargs.get("model", MODEL)
-        )
+        self.llm_config: LLMConfig = COMPONENT_CONFIGS.get("default", {})
         self.task_graph: TaskGraph = TaskGraph(
             "taskgraph", self.product_kwargs, self.llm_config
         )

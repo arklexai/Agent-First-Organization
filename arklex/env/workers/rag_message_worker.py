@@ -21,7 +21,7 @@ from arklex.env.tools.RAG.retrievers.milvus_retriever import RetrieveEngine
 from arklex.env.prompts import load_prompts
 from arklex.env.workers.message_worker import MessageWorker
 from arklex.utils.graph_state import MessageState
-from arklex.utils.model_provider_config import PROVIDER_MAP
+from arklex.utils.model_provider_config import PROVIDER_MAP, COMPONENT_CONFIGS
 
 
 logger = logging.getLogger(__name__)
@@ -67,9 +67,11 @@ class RagMsgWorker(BaseWorker):
         return workflow
 
     def _execute(self, msg_state: MessageState, **kwargs: Any) -> Dict[str, Any]:
-        self.llm = PROVIDER_MAP.get(
-            msg_state.bot_config.llm_config.llm_provider, ChatOpenAI
-        )(model=msg_state.bot_config.llm_config.model_type_or_path)
+        llm_config = COMPONENT_CONFIGS["response_generation"]
+        self.llm = PROVIDER_MAP.get(llm_config["provider"], ChatOpenAI)(
+            model=llm_config["model"],
+            temperature=llm_config["temperature"]
+        )
         self.tags = kwargs.get("tags", {})
         self.action_graph = self._create_action_graph(self.tags)
         graph = self.action_graph.compile()
