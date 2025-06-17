@@ -47,6 +47,10 @@ dependencies = [
   "pydantic_ai>=0.1.10,<1.0.0",
   "markdown>=3.8",
   "pytest>=8.3.5,<9.0.0",
+  "pytest-asyncio>=0.18.0,<0.19.0",
+  "pytest-cov>=3.0.0,<4.0.0",
+  "pytest-mock>=3.10.0,<4.0.0",
+  "pytest-env>=1.0.0,<2.0.0",
   "parsedatetime>=2.6,<3.0",
   "scikit-learn>=1.7.0,<2.0.0"
 ]
@@ -94,6 +98,10 @@ strict-versions = [
   "pydantic_ai==0.1.10",
   "markdown==3.8",
   "pytest==8.3.5",
+  "pytest-asyncio==0.18.0",
+  "pytest-cov==3.0.0",
+  "pytest-mock==3.10.0",
+  "pytest-env==1.0.0",
   "parsedatetime==2.6",
   "pymilvus==2.4.7",
   "mysql-connector-python==8.3.0",

@@ -20,6 +20,13 @@ from arklex.exceptions import ToolExecutionError, AuthenticationError
 
 logger = logging.getLogger(__name__)
 
+PYTHON_TO_JSON_SCHEMA = {
+    "str": "string",
+    "int": "integer",
+    "float": "number",
+    "bool": "boolean",
+}
+
 
 def register_tool(
     desc: str,
@@ -89,7 +96,7 @@ class Tool:
         slots: List[Dict[str, Any]],
         outputs: List[str],
         isResponse: bool,
-    ):
+    ) -> None:
         """Initialize a new Tool instance.
 
         Args:
@@ -110,6 +117,8 @@ class Tool:
         self.isResponse: bool = isResponse
         self.properties: Dict[str, Dict[str, Any]] = {}
         self.llm_config: Dict[str, Any] = {}
+        self.fixed_args = {}
+        self.auth = {}
 
     def get_info(self, slots: List[Dict[str, Any]]) -> Dict[str, Any]:
         """Get tool information including parameters and requirements.
@@ -361,6 +370,35 @@ class Tool:
         self.llm_config = state.bot_config.llm_config.model_dump()
         state = self._execute(state, **fixed_args)
         return state
+
+    def to_openai_tool_def(self) -> dict:
+        """Convert the tool to an OpenAI tool definition.
+
+        Returns:
+            dict: The OpenAI tool definition.
+        """
+        parameters = {
+            "type": "object",
+            "properties": {},
+            "required": [slot.name for slot in self.slots if slot.required],
+        }
+        for slot in self.slots:
+            if slot.items:
+                parameters["properties"][slot.name] = {
+                    "type": "array",
+                    "items": slot.items,
+                }
+            else:
+                parameters["properties"][slot.name] = {
+                    "type": PYTHON_TO_JSON_SCHEMA[slot.type],
+                    "description": slot.description,
+                }
+        return {
+            "type": "function",
+            "name": self.name,
+            "description": self.description,
+            "parameters": parameters,
+        }
 
     def __str__(self) -> str:
         """Get a string representation of the tool.
