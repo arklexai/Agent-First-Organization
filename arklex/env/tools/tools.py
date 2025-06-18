@@ -194,6 +194,51 @@ class Tool:
 
         log_context.info(f"Slots after initialization are: {self.slots}")
 
+    def load_slots(self, slots: List[Dict[str, Any]]) -> None:
+        """Load and merge slots with existing slots.
+
+        This method handles the merging of new slots with the tool's existing slots.
+        If a slot with the same name exists in both places, the new version takes precedence.
+        New slots are added to the existing slots.
+
+        Args:
+            slots (List[Dict[str, Any]]): List of slot definitions to merge with existing slots.
+
+        Example:
+            Existing slots:
+                [Slot(name="param1", type="str", required=True),
+                 Slot(name="param2", type="int", required=False)]
+            
+            New slots:
+                [{"name": "param1", "type": "str", "required": False},
+                 {"name": "param3", "type": "bool", "required": True}]
+            
+            Result:
+                [Slot(name="param1", type="str", required=False),  # Updated
+                 Slot(name="param2", type="int", required=False),  # Preserved
+                 Slot(name="param3", type="bool", required=True)]  # Added
+        """
+        if not slots:
+            return
+
+        # Create a dictionary of existing slots for easy lookup
+        existing_slots_dict = {slot.name: slot for slot in self.slots}
+        
+        # Process new slots
+        for new_slot in slots:
+            slot_name = new_slot["name"]
+            if slot_name in existing_slots_dict:
+                # Update existing slot with new values
+                existing_slot = existing_slots_dict[slot_name]
+                for key, value in new_slot.items():
+                    setattr(existing_slot, key, value)
+            else:
+                # Add new slot
+                self.slots.append(Slot.model_validate(new_slot))
+        
+        # Update tool info with merged slots
+        self.info = self.get_info([slot.model_dump() for slot in self.slots])
+
     def _execute(self, state: MessageState, **fixed_args: Any) -> MessageState:
         """Execute the tool with the current state and fixed arguments.
 
@@ -209,6 +254,7 @@ class Tool:
         """
         slot_verification: bool = False
         reason: str = ""
+
         # if this tool has been called before, then load the previous slots status
         if state.slots.get(self.name):
             self.slots = state.slots[self.name]
