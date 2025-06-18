@@ -150,12 +150,18 @@ class NegotiationSingleIssueWorker(BaseWorker):
         logger.info(f"Static prompt: {static_prompt}")
         return static_prompt, dynamic_prompt
     
-    def check_and_initialize_slots(self, state: MessageState) -> None:
+    def check_and_initialize_slots(self, state: MessageState, tags: Dict[str, Any] = {}) -> MessageState:
         """Initialize required negotiation slots if they don't exist.
         
         Args:
             state: Current message state
+            tags: Tags containing configuration parameters
+            
+        Returns:
+            MessageState: Updated message state with initialized slots
         """
+        logger.info(f"Tags: {tags}")
+        self.unit_index = tags["unit_index"]
         logger.info("checking and initializing slots")
         config_path = os.path.join(self.current_dir, "negotiation_config", "seller_config.json")
         configs = self.read_json(config_path)
@@ -225,19 +231,26 @@ class NegotiationSingleIssueWorker(BaseWorker):
                         prompt="",
                         required=False,
                         verified=True)]
-                    
-        self.get_current_target(state)
         
-    def get_current_target(self, state: MessageState) -> None:
+        max_percieved_marketPrice = tags["max_percieved_marketPrice"]
+        max_market_price = tags["max_market_price"]
+        reservation_price = tags["reservation_price"]
+                    
+        self.get_current_target(state, max_percieved_marketPrice, max_market_price, reservation_price)
+        
+        return state
+    
+    def get_current_target(self, state: MessageState, max_percieved_marketPrice: float, max_market_price: float, reservation_price: float) -> None:
         """Calculate and set the current target price.
         
         Args:
             state: Current message state
         """
+        
         targ = self.round_num(self.random_in_last_third(
-                state.slots["max_percieved_marketPrice"][0].value, 
-                state.slots["max_market_price"][0].value, 
-                state.slots["reservation_price"][0].value
+                max_percieved_marketPrice, 
+                max_market_price, 
+                reservation_price
             ))
         state.slots["current_target"] = [Slot(
                 name = "current_target", 
@@ -249,7 +262,7 @@ class NegotiationSingleIssueWorker(BaseWorker):
                 required = False, 
                 verified = True)] 
         
-    def get_response(self, state: MessageState, tags: Dict[str, Any] = {}) -> MessageState:
+    def get_response(self, state: MessageState) -> MessageState:
         """Generate a response based on the current negotiation state.
         
         Args:
@@ -258,6 +271,8 @@ class NegotiationSingleIssueWorker(BaseWorker):
         Returns:
             MessageState: Updated message state with response
         """
+       
+
         current_turn = state.slots["turn"][0].value
         logger.info(f"Current turn: {current_turn}")
         
@@ -324,13 +339,15 @@ class NegotiationSingleIssueWorker(BaseWorker):
             StateGraph: Graph defining the negotiation workflow
         """
         workflow = StateGraph(MessageState)
-        # Create a partial function with the tags bound
-        negotiation_response_with_tags = partial(self.get_response, tags=tags)
-        # Add persuasion strategy node
-        workflow.add_node("negotiation_response", negotiation_response_with_tags)
+
+        check_and_initialize_slots_with_tags = partial(self.check_and_initialize_slots, tags=tags)
+      
+        workflow.add_node("negotiation_initialization",check_and_initialize_slots_with_tags)
+        workflow.add_node("negotiation_response", self.get_response)
         
         # Add edges
-        workflow.add_edge(START, "negotiation_response")
+        workflow.add_edge(START, "negotiation_initialization")
+        workflow.add_edge("negotiation_initialization", "negotiation_response")
         return workflow
     
     def _execute(self, msg_state: MessageState, **kwargs: Any) -> Dict[str, Any]:
@@ -347,7 +364,7 @@ class NegotiationSingleIssueWorker(BaseWorker):
         
         self.llm = PROVIDER_MAP.get(msg_state.bot_config.llm_config.llm_provider, ChatOpenAI )(model=msg_state.bot_config.llm_config.model_type_or_path)
         # Debug the incoming state
-        self.check_and_initialize_slots(msg_state)
+        
         self.tags = kwargs.get("tags", {})
         self.action_graph = self._create_action_graph(self.tags)
         graph = self.action_graph.compile()
@@ -356,7 +373,7 @@ class NegotiationSingleIssueWorker(BaseWorker):
         # Convert the result back to a MessageState and preserve the response
         response_state = MessageState.model_validate(result)
         logger.info(f"State after graph execution - slots: {response_state.slots}")
-        logger.info(f"State after graph execution - slots: {self.tags.items()}")
+        
             
         return response_state.model_dump()
     
