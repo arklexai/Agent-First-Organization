@@ -1,8 +1,11 @@
 from typing import List, Dict, Any, Union
 from ..tools import register_tool
 from .utils import *
+from arklex.utils.logging_utils import LogContext
 
 import pandas as pd
+
+log_context = LogContext(__name__)
 
 
 @register_tool(
@@ -21,7 +24,7 @@ def cancel_booking() -> Union[str, None]:
     if not log_in():
         return LOG_IN_FAILURE
 
-    logger.info("Enter cancel booking function")
+    log_context.info("Enter cancel booking function")
     conn: sqlite3.Connection = sqlite3.connect(booking.db_path)
     cursor: sqlite3.Cursor = conn.cursor()
 

@@ -19,7 +19,7 @@ from arklex.env.tools.shopify.utils_slots import (
 )
 from arklex.env.tools.shopify.utils_cart import *
 from arklex.env.tools.shopify.utils_nav import *
-from arklex.exceptions import ToolExecutionError
+from arklex.utils.exceptions import ToolExecutionError
 from arklex.env.tools.tools import register_tool
 from arklex.env.tools.shopify._exception_prompt import ShopifyExceptionPrompt
 

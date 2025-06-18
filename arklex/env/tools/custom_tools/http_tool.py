@@ -4,16 +4,16 @@ HTTP request tool for external APIs in the Arklex framework.
 This module defines a tool for making HTTP requests to external APIs and handling responses. It is designed to be registered and used within the Arklex framework's tool system, providing a flexible interface for API integrations.
 """
 
-import logging
 import requests
 import inspect
 from typing import Dict, Any, Union, List
 
 from arklex.env.tools.tools import register_tool
 from arklex.utils.graph_state import HTTPParams
-from arklex.exceptions import ToolExecutionError
+from arklex.utils.exceptions import ToolExecutionError
+from arklex.utils.logging_utils import LogContext
 
-logger: logging.Logger = logging.getLogger(__name__)
+log_context = LogContext(__name__)
 
 
 @register_tool(
@@ -27,7 +27,7 @@ def http_tool(**kwargs: Dict[str, Any]) -> str:
     func_name: str = inspect.currentframe().f_code.co_name
     try:
         params: HTTPParams = HTTPParams(**kwargs)
-        logger.info(
+        log_context.info(
             f"Making a {params.method} request to {params.endpoint}, with body: {params.body} and params: {params.params}"
         )
         response: requests.Response = requests.request(
@@ -39,16 +39,16 @@ def http_tool(**kwargs: Dict[str, Any]) -> str:
         )
         response.raise_for_status()
         response_data: Union[Dict[str, Any], List[Any]] = response.json()
-        logger.info(
+        log_context.info(
             f"Response from the {params.endpoint} for body: {params.body} and params: {params.params} is: {response_data}"
         )
         return str(response_data)
 
     except requests.exceptions.RequestException as e:
-        logger.error(f"Error making HTTP request: {str(e)}")
+        log_context.error(f"Error making HTTP request: {str(e)}")
         raise ToolExecutionError(func_name, f"Error making HTTP request: {str(e)}")
     except Exception as e:
-        logger.error(f"Unexpected error in HTTPTool: {str(e)}")
+        log_context.error(f"Unexpected error in HTTPTool: {str(e)}")
         raise ToolExecutionError(func_name, f"Unexpected error: {str(e)}")
 
 

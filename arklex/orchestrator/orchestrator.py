@@ -87,10 +87,12 @@ from arklex.utils.model_config import MODEL
 from arklex.memory import ShortTermMemory
 from arklex.utils.model_provider_config import PROVIDER_MAP
 from langchain_core.runnables import RunnableLambda
+from arklex.utils.logging_utils import LogContext
+from arklex.utils.exceptions import OrchestratorError
 
 
 load_dotenv()
-logger = logging.getLogger(__name__)
+log_context = LogContext(__name__)
 
 INFO_WORKERS: List[str] = [
     "planner",
@@ -145,14 +147,17 @@ class AgentOrg:
         self.llm_config: LLMConfig = LLMConfig(
             **self.product_kwargs.get("model", MODEL)
         )
-        self.task_graph: TaskGraph = TaskGraph(
-            "taskgraph", self.product_kwargs, self.llm_config
-        )
         self.env: Environment = env or Environment(
             tools=self.product_kwargs.get("tools", []),
             workers=self.product_kwargs.get("workers", []),
             slot_fill_api=self.product_kwargs.get("slot_fill_api", ""),
-            planner_enabled=True,
+            planner_enabled=False,
+        )
+        self.task_graph: TaskGraph = TaskGraph(
+            "taskgraph",
+            self.product_kwargs,
+            self.llm_config,
+            model_service=self.env.model_service,
         )
 
         # Initialize LLM directly
@@ -264,11 +269,11 @@ The information may hide in the user's messages or assistant's responses.
 Check for synonyms and variations of phrasing in both the user's messages and assistant's responses.
 Reply with 'yes' only if either of these conditions are met (user provided info), otherwise 'no'.
 Answer with only 'yes' or 'no'"""
-        logger.info(f"prompt for check skip node: {prompt}")
+        log_context.info(f"prompt for check skip node: {prompt}")
 
         try:
             response = self.llm.invoke(prompt)
-            logger.info(f"LLM response for task verification: {response}")
+            log_context.info(f"LLM response for task verification: {response}")
             response_text = (
                 response.content.lower().strip()
                 if hasattr(response, "content")
@@ -276,7 +281,7 @@ Answer with only 'yes' or 'no'"""
             )
             return response_text == "yes"
         except Exception as e:
-            logger.error(f"Error in LLM task verification: {str(e)}")
+            log_context.error(f"Error in LLM task verification: {str(e)}")
             return False
 
     def post_process_node(
@@ -498,35 +503,37 @@ Answer with only 'yes' or 'no'"""
             "allow_global_intent_switch": True,
         }
 
-        stm = ShortTermMemory(
-            params.memory.trajectory, chat_history_str, llm_config=self.llm_config
-        )
-        asyncio.run(stm.personalize())
+        # stm = ShortTermMemory(
+        #     params.memory.trajectory, chat_history_str, llm_config=self.llm_config
+        # )
+        # asyncio.run(stm.personalize())
         message_state.trajectory = params.memory.trajectory
 
-        # Log personalized intents from trajectory
-        for turn in params.memory.trajectory:
-            for record in turn:
-                if record.personalized_intent:
-                    logger.info(f"Personalized Intent: {record.personalized_intent}")
-                    logger.info(f"Original Intent: {record.personalized_intent}")
+        # Detect intent
+        # found_intent = self.intent_detector.predict_intent(
+        #     text=text,
+        #     intents=self.intents,
+        #     chat_history_str=chat_history_str,
+        #     model_config=self.llm_config,
+        # )
+        # log_context.info(f"Found Intent: {found_intent}")
 
-        found_records, relevant_records = stm.retrieve_records(text)
+        # found_records, relevant_records = stm.retrieve_records(text)
 
-        logger.info(f"Found Records: {found_records}")
-        if found_records:
-            logger.info(
-                f"Relevant Records: {[r.personalized_intent for r in relevant_records]}"
-            )
+        # logger.info(f"Found Records: {found_records}")
+        # if found_records:
+        #     logger.info(
+        #         f"Relevant Records: {[r.personalized_intent for r in relevant_records]}"
+        #     )
 
-        found_intent, relevant_intent = stm.retrieve_intent(text)
+        # found_intent, relevant_intent = stm.retrieve_intent(text)
 
-        logger.info(f"Found Intent: {found_intent}")
-        if found_intent:
-            logger.info(f"Relevant Intent: {relevant_intent}")
+        # logger.info(f"Found Intent: {found_intent}")
+        # if found_intent:
+        #     logger.info(f"Relevant Intent: {relevant_intent}")
 
-        if found_records:
-            message_state.relevant_records = relevant_records
+        # if found_records:
+        #     message_state.relevant_records = relevant_records
         taskgraph_chain = RunnableLambda(self.task_graph.get_node) | RunnableLambda(
             self.task_graph.postprocess_node
         )
@@ -538,24 +545,24 @@ Answer with only 'yes' or 'no'"""
         max_n_node_performed = 5
         while n_node_performed < max_n_node_performed:
             taskgraph_start_time = time.time()
-            if found_intent:
-                taskgraph_inputs["allow_global_intent_switch"] = False
-                node_info = NodeInfo(
-                    node_id=None,
-                    type="",
-                    resource_id="planner",
-                    resource_name="planner",
-                    can_skipped=False,
-                    is_leaf=len(
-                        list(
-                            self.task_graph.graph.successors(params.taskgraph.curr_node)
-                        )
-                    )
-                    == 0,
-                    attributes={"value": "", "direct": False},
-                )
-            else:
-                node_info, params = taskgraph_chain.invoke(taskgraph_inputs)
+            # if found_intent:
+            #     taskgraph_inputs["allow_global_intent_switch"] = False
+            #     node_info = NodeInfo(
+            #         node_id=None,
+            #         type="",
+            #         resource_id="planner",
+            #         resource_name="planner",
+            #         can_skipped=False,
+            #         is_leaf=len(
+            #             list(
+            #                 self.task_graph.graph.successors(params.taskgraph.curr_node)
+            #             )
+            #         )
+            #         == 0,
+            #         attributes={"value": "", "direct": False},
+            #     )
+            # else:
+            node_info, params = taskgraph_chain.invoke(taskgraph_inputs)
             taskgraph_inputs["allow_global_intent_switch"] = False
             params.metadata.timing.taskgraph = time.time() - taskgraph_start_time
             # Check if current node can be skipped
@@ -563,7 +570,7 @@ Answer with only 'yes' or 'no'"""
             if can_skip:
                 params = self.post_process_node(node_info, params, {"is_skipped": True})
                 continue
-            logger.info(f"The current node info is : {node_info}")
+            log_context.info(f"The current node info is : {node_info}")
 
             # handle direct node
             is_direct_node, direct_response, params = self.handl_direct_node(
@@ -602,7 +609,7 @@ Answer with only 'yes' or 'no'"""
                 break
 
         if not message_state.response:
-            logger.info("No response, do context generation")
+            log_context.info("No response, do context generation")
             if not stream_type:
                 message_state = ToolGenerator.context_generate(message_state)
             else:

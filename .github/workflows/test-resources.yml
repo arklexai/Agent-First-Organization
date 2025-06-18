@@ -25,9 +25,8 @@ jobs:
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
-          pip install '.[milvus,shopify,hubspot]' --quiet
+          pip install -e '.[milvus,shopify,hubspot]' --quiet
 
       - name: Test with pytest
         run: |
-          pytest tests/
-
+          pytest tests/ --cov=arklex --cov-report=term-missing --cov-report=html --no-cov-on-fail

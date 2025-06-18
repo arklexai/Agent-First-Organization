@@ -15,14 +15,13 @@ from typing import Any, Dict, List, Tuple, Optional, cast
 
 from fastapi import FastAPI
 
-from arklex.utils.utils import init_logger
 from arklex.env.env import Env
 from arklex.orchestrator.orchestrator import AgentOrg
 from arklex.utils.model_config import MODEL
 from arklex.utils.model_provider_config import LLM_PROVIDERS
+from arklex.utils.logging_utils import LogContext
 
-
-logger: logging.Logger = logging.getLogger(__name__)
+log_context = LogContext(__name__)
 app: FastAPI = FastAPI()
 
 
@@ -131,10 +130,6 @@ if __name__ == "__main__":
     MODEL["llm_provider"] = args.llm_provider
 
     log_level: int = getattr(logging, args.log_level.upper(), logging.WARNING)
-    logger: logging.Logger = init_logger(
-        log_level=log_level,
-        filename=os.path.join(os.path.dirname(__file__), "logs", "arklex.log"),
-    )
 
     # run server
     uvicorn.run(app, host="0.0.0.0", port=args.port)

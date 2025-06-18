@@ -18,7 +18,7 @@ from arklex.env.tools.shopify.utils_slots import (
     ShopifyGetOrderDetailsSlots,
     ShopifyOutputs,
 )
-from arklex.exceptions import ToolExecutionError
+from arklex.utils.exceptions import ToolExecutionError
 from arklex.env.tools.shopify._exception_prompt import ShopifyExceptionPrompt
 import inspect
 

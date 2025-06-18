@@ -53,8 +53,11 @@ from arklex.utils.utils import normalize, str_similarity
 from arklex.utils.graph_state import NodeInfo, Params, PathNode, StatusEnum, LLMConfig
 from arklex.orchestrator.NLU.core.slot import SlotFiller
 from arklex.orchestrator.NLU.core.intent import IntentDetector
+from arklex.utils.logging_utils import LogContext
+from arklex.utils.exceptions import TaskGraphError
+from arklex.orchestrator.NLU.services.model_service import DummyModelService
 
-logger = logging.getLogger(__name__)
+log_context = LogContext(__name__)
 
 
 class TaskGraphBase:
@@ -99,7 +102,7 @@ class TaskGraphBase:
 
     def get_start_node(self) -> Optional[str]:
         for node in self.graph.nodes.data():
-            if node[1].get("type", "") == "start":
+            if node[1].get("type", "") == "start" or node[1].get("attribute", {}).get("start", False):
                 return node[0]
         return None
 
@@ -141,6 +144,7 @@ class TaskGraph(TaskGraphBase):
         product_kwargs: Dict[str, Any],
         llm_config: LLMConfig,
         slotfillapi: str = "",
+        model_service: Any = None,
     ) -> None:
         """Initialize the task graph.
 
@@ -149,6 +153,7 @@ class TaskGraph(TaskGraphBase):
             product_kwargs: Configuration settings for the graph
             llm_config: Configuration for language model
             slotfillapi: API endpoint for slot filling
+            model_service: Model service for intent detection (required)
         """
         super().__init__(name, product_kwargs)
         self.unsure_intent: Dict[str, Any] = {
@@ -164,10 +169,23 @@ class TaskGraph(TaskGraphBase):
         }
         self.initial_node: Optional[str] = self.get_initial_flow()
         self.llm_config: LLMConfig = llm_config
-        self.intent_detector: IntentDetector = IntentDetector(
-            self.product_kwargs.get("intent_api")
-        )
-        self.slotfillapi: SlotFiller = SlotFiller(slotfillapi)
+        if model_service is None:
+            raise ValueError(
+                "model_service is required for TaskGraph and cannot be None."
+            )
+        self.intent_detector: IntentDetector = IntentDetector(model_service)
+        # Ensure slotfillapi is a valid model service for SlotFiller
+        if isinstance(slotfillapi, str) or not slotfillapi:
+            dummy_config = {
+                "model_name": "dummy",
+                "api_key": "dummy",
+                "endpoint": "http://dummy",
+                "model_type_or_path": "dummy-path",
+                "llm_provider": "dummy",
+            }
+            self.slotfillapi: SlotFiller = SlotFiller(DummyModelService(dummy_config))
+        else:
+            self.slotfillapi: SlotFiller = SlotFiller(slotfillapi)
 
     def create_graph(self) -> None:
         nodes: List[Dict[str, Any]] = self.product_kwargs["nodes"]
@@ -200,7 +218,7 @@ class TaskGraph(TaskGraphBase):
         """
         Jump to a node based on the intent
         """
-        logger.info(f"pred_intent in jump_to_node is {pred_intent}")
+        log_context.info(f"pred_intent in jump_to_node is {pred_intent}")
         try:
             candidates_nodes: List[Dict[str, Any]] = [
                 self.intents[pred_intent][intent_idx]
@@ -220,7 +238,7 @@ class TaskGraph(TaskGraphBase):
                     0
                 ][2]
         except Exception as e:
-            logger.error(f"Error in jump_to_node: {e}")
+            log_context.error(f"Error in jump_to_node: {e}")
             next_node: str = curr_node
             next_intent: str = list(self.graph.in_edges(curr_node, data="intent"))[0][2]
         return next_node, next_intent
@@ -231,10 +249,10 @@ class TaskGraph(TaskGraphBase):
         """
         Get the output format (NodeInfo, Params) that get_node should return
         """
-        logger.info(
+        log_context.info(
             f"available_intents in _get_node: {params.taskgraph.available_global_intents}"
         )
-        logger.info(f"intent in _get_node: {intent}")
+        log_context.info(f"intent in _get_node: {intent}")
         node_info: Dict[str, Any] = self.graph.nodes[sample_node]
         resource_name: str = node_info["resource"]["name"]
         resource_id: str = node_info["resource"]["id"]
@@ -325,7 +343,7 @@ class TaskGraph(TaskGraphBase):
                 available_global_intents[self.unsure_intent.get("intent")].append(
                     self.unsure_intent
                 )
-        logger.info(f"Available global intents: {available_global_intents}")
+        log_context.info(f"Available global intents: {available_global_intents}")
         return available_global_intents
 
     def update_node_limit(self, params: Params) -> Params:
@@ -357,7 +375,7 @@ class TaskGraph(TaskGraphBase):
                 edge_info["source_node"] = u
                 edge_info["target_node"] = v
                 candidates_intents[intent].append(edge_info)
-        logger.info(f"Current local intent: {candidates_intents}")
+        log_context.info(f"Current local intent: {candidates_intents}")
         return dict(candidates_intents)
 
     def get_last_flow_stack_node(self, params: Params) -> Optional[PathNode]:
@@ -378,7 +396,7 @@ class TaskGraph(TaskGraphBase):
         In case of a node having status == STAY, returned directly the same node
         """
         node_status: Dict[str, StatusEnum] = params.taskgraph.node_status
-        logger.info(f"node_status: {node_status}")
+        log_context.info(f"node_status: {node_status}")
         status: StatusEnum = node_status.get(curr_node, StatusEnum.COMPLETE)
         if status == StatusEnum.STAY:
             node_info: Dict[str, Any] = self.graph.nodes[curr_node]
@@ -422,8 +440,9 @@ class TaskGraph(TaskGraphBase):
         """
         node_status: Dict[str, StatusEnum] = params.taskgraph.node_status
         status: StatusEnum = node_status.get(curr_node, StatusEnum.COMPLETE)
+        
         if status == StatusEnum.INCOMPLETE:
-            logger.info(
+            log_context.info(
                 "no local or global intent found, the current node is not complete"
             )
             node_info: NodeInfo
@@ -460,7 +479,7 @@ class TaskGraph(TaskGraphBase):
             candidate_intents[self.unsure_intent.get("intent")] = candidate_intents.get(
                 self.unsure_intent.get("intent"), [self.unsure_intent]
             )
-            logger.info(
+            log_context.info(
                 f"Available global intents with unsure intent: {candidate_intents}"
             )
 
@@ -500,7 +519,7 @@ class TaskGraph(TaskGraphBase):
                 next_node, next_intent = self.jump_to_node(
                     pred_intent, intent_idx, curr_node
                 )
-                logger.info(f"curr_node: {next_node}")
+                log_context.info(f"curr_node: {next_node}")
                 node_info: NodeInfo
                 node_info, params = self._get_node(
                     next_node, params, intent=next_intent
@@ -533,7 +552,7 @@ class TaskGraph(TaskGraphBase):
         if (
             next_node != curr_node
         ):  # continue if curr_node is not leaf node, i.e. there is a actual next_node
-            logger.info(f"curr_node: {next_node}")
+            log_context.info(f"curr_node: {next_node}")
             node_info: NodeInfo
             node_info, params = self._get_node(next_node, params)
             if params.taskgraph.nlu_records:
@@ -569,7 +588,9 @@ class TaskGraph(TaskGraphBase):
                 self.unsure_intent.get("intent"), [self.unsure_intent]
             )
         )
-        logger.info(f"Check intent under current node: {curr_local_intents_w_unsure}")
+        log_context.info(
+            f"Check intent under current node: {curr_local_intents_w_unsure}"
+        )
         pred_intent: str = self.intent_detector.execute(
             self.text,
             curr_local_intents_w_unsure,
@@ -589,7 +610,7 @@ class TaskGraph(TaskGraphBase):
         found_pred_in_avil, pred_intent, intent_idx = self._postprocess_intent(
             pred_intent, curr_local_intents
         )
-        logger.info(
+        log_context.info(
             f"Local intent predition -> found_pred_in_avil: {found_pred_in_avil}, pred_intent: {pred_intent}"
         )
         if found_pred_in_avil:
@@ -599,7 +620,7 @@ class TaskGraph(TaskGraphBase):
                 if edge[2] == pred_intent:
                     next_node = edge[1]  # found intent under the current node
                     break
-            logger.info(f"curr_node: {next_node}")
+            log_context.info(f"curr_node: {next_node}")
             node_info: NodeInfo
             node_info, params = self._get_node(next_node, params, intent=pred_intent)
             if curr_node == self.start_node:
@@ -683,9 +704,16 @@ class TaskGraph(TaskGraphBase):
         allow_global_intent_switch: bool = inputs["allow_global_intent_switch"]
         params.taskgraph.nlu_records = []
 
+        if self.text == '<start>':
+            curr_node: str = self.start_node
+            params.taskgraph.curr_node = curr_node
+            node_info: NodeInfo
+            node_info, params = self._get_node(curr_node, params)
+            return node_info, params
+
         curr_node: str
         curr_node, params = self.get_current_node(params)
-        logger.info(f"Intial curr_node: {curr_node}")
+        log_context.info(f"Intial curr_node: {curr_node}")
 
         # For the multi-step nodes, directly stay at that node instead of moving to other nodes
         is_multi_step_node: bool
@@ -700,7 +728,7 @@ class TaskGraph(TaskGraphBase):
 
         # store current node
         params.taskgraph.curr_node = curr_node
-        logger.info(f"curr_node: {curr_node}")
+        log_context.info(f"curr_node: {curr_node}")
 
         # available global intents
         available_global_intents: Dict[str, List[Dict[str, Any]]] = (
@@ -718,7 +746,7 @@ class TaskGraph(TaskGraphBase):
         if (
             not curr_local_intents and allow_global_intent_switch
         ):  # no local intent under the current node
-            logger.info("no local intent under the current node")
+            log_context.info("no local intent under the current node")
             is_global_intent_found: bool
             pred_intent: Optional[str]
             node_output: NodeInfo
@@ -741,7 +769,7 @@ class TaskGraph(TaskGraphBase):
 
         # if completed and no local intents -> randomly choose one of the next connected nodes (edges with intent = None)
         if not curr_local_intents:
-            logger.info(
+            log_context.info(
                 "no local or global intent found, move to the next connected node(s)"
             )
             has_random_next_node: bool
@@ -752,7 +780,7 @@ class TaskGraph(TaskGraphBase):
             if has_random_next_node:
                 return node_output, params
 
-        logger.info("Finish global condition, start local intent prediction")
+        log_context.info("Finish global condition, start local intent prediction")
         is_local_intent_found: bool
         node_output: Dict[str, Any]
         is_local_intent_found, node_output, params = self.local_intent_prediction(
@@ -801,3 +829,40 @@ class TaskGraph(TaskGraphBase):
         params: Params = node[1]
         # TODO: future node postprocessing
         return node_info, params
+
+    def _validate_node(self, node: Dict[str, Any]) -> None:
+        """Validate a node in the task graph.
+
+        Args:
+            node: Node to validate
+
+        Raises:
+            TaskGraphError: If node is invalid
+        """
+        if not isinstance(node, dict):
+            log_context.error(
+                "Node must be a dictionary",
+                extra={"node": node},
+            )
+            raise TaskGraphError("Node must be a dictionary")
+
+        if "id" not in node:
+            log_context.error(
+                "Node must have an id",
+                extra={"node": node},
+            )
+            raise TaskGraphError("Node must have an id")
+
+        if "type" not in node:
+            log_context.error(
+                "Node must have a type",
+                extra={"node": node},
+            )
+            raise TaskGraphError("Node must have a type")
+
+        if "next" in node and not isinstance(node["next"], list):
+            log_context.error(
+                "Node next must be a list",
+                extra={"node": node},
+            )
+            raise TaskGraphError("Node next must be a list")

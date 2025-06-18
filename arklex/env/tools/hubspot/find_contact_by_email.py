@@ -14,10 +14,13 @@ from hubspot.crm.objects.emails import PublicObjectSearchRequest, ApiException
 from hubspot.crm.objects.communications.models import SimplePublicObjectInputForCreate
 from hubspot.crm.associations.v4 import AssociationSpec
 
-from arklex.env.tools.tools import register_tool, logger
+from arklex.env.tools.tools import register_tool
 from arklex.env.tools.hubspot.utils import authenticate_hubspot
-from arklex.exceptions import ToolExecutionError
+from arklex.utils.exceptions import ToolExecutionError
 from arklex.env.tools.hubspot._exception_prompt import HubspotExceptionPrompt
+from arklex.utils.logging_utils import LogContext
+
+log_context = LogContext(__name__)
 
 # Tool description for finding contacts by email
 description: str = "Find the contacts record by email. If the record is found, the lastmodifieddate of the contact will be updated. If the correspodning record is not found, the function will return an error message."
@@ -80,7 +83,7 @@ def find_contact_by_email(email: str, chat: str, **kwargs: Dict[str, Any]) -> st
         contact_search_response: Any = api_client.crm.contacts.search_api.do_search(
             public_object_search_request=public_object_search_request
         )
-        logger.info("Found contact by email: {}".format(email))
+        log_context.info("Found contact by email: {}".format(email))
         contact_search_response: Dict[str, Any] = contact_search_response.to_dict()
         if contact_search_response["total"] == 1:
             contact_id: str = contact_search_response["results"][0]["id"]
@@ -130,9 +133,9 @@ def find_contact_by_email(email: str, chat: str, **kwargs: Dict[str, Any]) -> st
                         )
                     )
                 except ApiException as e:
-                    logger.info("Exception when calling AssociationV4: %s\n" % e)
+                    log_context.info("Exception when calling AssociationV4: %s\n" % e)
             except ApiException as e:
-                logger.info("Exception when calling basic_api: %s\n" % e)
+                log_context.info("Exception when calling basic_api: %s\n" % e)
 
             return json.dumps(contact_info_properties)
         else:
@@ -140,7 +143,7 @@ def find_contact_by_email(email: str, chat: str, **kwargs: Dict[str, Any]) -> st
                 func_name, HubspotExceptionPrompt.USER_NOT_FOUND_PROMPT
             )
     except ApiException as e:
-        logger.info("Exception when calling search_api: %s\n" % e)
+        log_context.info("Exception when calling search_api: %s\n" % e)
         raise ToolExecutionError(
             func_name, HubspotExceptionPrompt.USER_NOT_FOUND_PROMPT
         )

@@ -15,6 +15,8 @@ import os
 
 from arklex.env.env import Environment
 from arklex.orchestrator.orchestrator import AgentOrg
+from arklex.orchestrator.NLU.services.model_service import DummyModelService
+from arklex.orchestrator.NLU.core.slot import SlotFiller
 
 
 class MockTool:
@@ -255,19 +257,47 @@ class MockOrchestrator(ABC):
             "parameters": params,
         }
         from tests.utils.utils import MockResourceInitializer
+        from arklex.orchestrator.task_graph import TaskGraph
 
-        env_kwargs = dict(
-            tools=self.config["tools"],
-            workers=self.config["workers"],
-            slot_fill_api=self.config["slotfillapi"],
-            planner_enabled=True,
-            resource_initializer=MockResourceInitializer(),
-        )
-        orchestrator = AgentOrg(
-            config=self.config,
-            env=Environment(**env_kwargs),
-        )
-        result = orchestrator.get_response(data)
+        # Patch TaskGraph to always use DummyModelService for tests
+        orig_taskgraph_init = TaskGraph.__init__
+
+        def patched_taskgraph_init(
+            self, name, product_kwargs, llm_config, slotfillapi="", model_service=None
+        ):
+            dummy_config = {
+                "model_name": "dummy",
+                "api_key": "dummy",
+                "endpoint": "http://dummy",
+                "model_type_or_path": "dummy-path",
+                "llm_provider": "dummy",
+            }
+            orig_taskgraph_init(
+                self,
+                name,
+                product_kwargs,
+                llm_config,
+                slotfillapi,
+                DummyModelService(dummy_config),
+            )
+            self.slotfillapi = SlotFiller(DummyModelService(dummy_config))
+
+        TaskGraph.__init__ = patched_taskgraph_init
+        try:
+            env_kwargs = dict(
+                tools=self.config["tools"],
+                workers=self.config["workers"],
+                slot_fill_api=self.config["slotfillapi"],
+                planner_enabled=True,
+                resource_initializer=MockResourceInitializer(),
+            )
+            orchestrator = AgentOrg(
+                config=self.config,
+                env=Environment(**env_kwargs),
+            )
+            result = orchestrator.get_response(data)
+        finally:
+            TaskGraph.__init__ = orig_taskgraph_init
         print(f"DEBUG: orchestrator.get_response result = {result}")
 
         # --- PATCH: update taskgraph curr_node and path if mock LLM response has node_id ---

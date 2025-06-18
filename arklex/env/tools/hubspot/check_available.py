@@ -12,10 +12,13 @@ import hubspot
 import parsedatetime
 from typing import Dict, Any, List, Optional
 from hubspot.crm.objects.meetings import ApiException
-from arklex.env.tools.tools import register_tool, logger
+from arklex.env.tools.tools import register_tool
 from arklex.env.tools.hubspot.utils import authenticate_hubspot
-from arklex.exceptions import ToolExecutionError
+from arklex.utils.exceptions import ToolExecutionError
 from arklex.env.tools.hubspot._exception_prompt import HubspotExceptionPrompt
+from arklex.utils.logging_utils import LogContext
+
+log_context = LogContext(__name__)
 
 # Tool description for checking available meeting times
 description: str = "Give the customer that the unavailable time of the specific representative and the representative's related meeting link information."
@@ -110,7 +113,7 @@ def check_available(
         if meeting_link_response.get("status") == "error" or meeting_link_response.get(
             "error"
         ):
-            logger.error(
+            log_context.error(
                 f"The error for retrieving the meeting link happens:{meeting_link_response.get('message', 'Unknown error happens')}"
             )
             raise ToolExecutionError(
@@ -119,7 +122,7 @@ def check_available(
         else:
             # Emphasize on the results part of the response
             if not meeting_link_response.get("results"):
-                logger.error(
+                log_context.error(
                     f"The error for retrieving the meeting link happens:{meeting_link_response.get('message', 'Unknown error happens')}"
                 )
                 raise ToolExecutionError(
@@ -138,7 +141,7 @@ def check_available(
                     meeting_links: Dict[str, Any] = meeting_links_ls[0]
                 else:
                     # The length is 0, then raise error
-                    logger.error(
+                    log_context.error(
                         "There is no meeting links corresponding to the owner's id."
                     )
                     raise ToolExecutionError(
@@ -238,14 +241,14 @@ def check_available(
                 response += f"You must give some available time slots for users as the reference so that they could choose from.\n"
             return response
         except ApiException as e:
-            logger.info(
+            log_context.info(
                 "Exception when extracting booking information of someone: %s\n" % e
             )
             raise ToolExecutionError(
                 func_name, HubspotExceptionPrompt.MEETING_LINK_UNFOUND_PROMPT
             )
     except ApiException as e:
-        logger.info("Exception when extracting meeting scheduler links: %s\n" % e)
+        log_context.info("Exception when extracting meeting scheduler links: %s\n" % e)
         raise ToolExecutionError(
             func_name, HubspotExceptionPrompt.MEETING_LINK_UNFOUND_PROMPT
         )

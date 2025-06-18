@@ -1,154 +1,194 @@
-"""Tests for the ModelService class.
-
-This module contains tests for the ModelService class, focusing on
-slot filling functionality and response processing.
-"""
+"""Tests for the model service module."""
 
 import pytest
-from typing import Dict, Any, List
+from typing import Dict, Any
+from unittest.mock import AsyncMock, MagicMock, patch
+
+from arklex.utils.exceptions import ValidationError, ModelError
 from arklex.orchestrator.NLU.services.model_service import ModelService
 
 
 @pytest.fixture
-def model_service():
-    """Create a ModelService instance for testing."""
-    model_config = {
+def model_config() -> Dict[str, Any]:
+    """Create a test model configuration.
+
+    Returns:
+        Dict[str, Any]: A dictionary containing model configuration.
+    """
+    return {
+        "model_name": "test-model",
+        "api_key": "test-key",
+        "endpoint": "https://api.test.com/v1",
         "model_type_or_path": "gpt-3.5-turbo",
         "llm_provider": "openai",
+        "temperature": 0.1,
+        "max_tokens": 1000,
+        "response_format": "json",
     }
+
+
+@pytest.fixture
+def model_service(model_config: Dict[str, Any]) -> ModelService:
+    """Create a test model service instance.
+
+    Args:
+        model_config: The model configuration to use.
+
+    Returns:
+        ModelService: A configured model service instance.
+    """
     return ModelService(model_config)
 
 
-@pytest.fixture
-def sample_slots():
-    """Create sample slot definitions for testing."""
-    return [
-        {
-            "name": "location",
-            "type": "string",
-            "description": "The city or location where the event will take place",
-            "required": True,
-        },
-        {
-            "name": "date",
-            "type": "string",
-            "description": "The date of the event",
-            "required": True,
-        },
-        {
-            "name": "time",
-            "type": "string",
-            "description": "The time of the event",
-            "required": False,
-        },
-    ]
+def test_model_service_initialization(model_config: Dict[str, Any]) -> None:
+    """Test model service initialization.
+
+    Args:
+        model_config: The model configuration to use.
+    """
+    service = ModelService(model_config)
+    assert service.model_config == model_config
+
+
+def test_model_service_initialization_missing_config() -> None:
+    """Test model service initialization with missing configuration."""
+    with pytest.raises(ValidationError) as exc_info:
+        ModelService({})
+    assert "Missing required field" in str(exc_info.value)
+
+
+@pytest.mark.asyncio
+async def test_process_text_success(model_service: ModelService) -> None:
+    """Test successful text processing.
+
+    Args:
+        model_service: The model service instance to test.
+    """
+    text = "Test input text"
+    context = {"user_id": "123"}
+
+    with patch.object(
+        model_service, "_make_model_request", new_callable=AsyncMock
+    ) as mock_request:
+        mock_request.return_value = {"result": "Test response"}
+
+        response = await model_service.process_text(text, context)
+
+        assert response == {"result": "Test response"}
+        mock_request.assert_called_once_with(
+            {
+                "text": text,
+                "context": context,
+                "model": model_service.model_config["model_name"],
+            }
+        )
+
+
+@pytest.mark.asyncio
+async def test_process_text_empty_input(model_service: ModelService) -> None:
+    """Test text processing with empty input.
+
+    Args:
+        model_service: The model service instance to test.
+    """
+    with pytest.raises(ValidationError) as exc_info:
+        await model_service.process_text("")
+    assert "Text cannot be empty" in str(exc_info.value)
+
+
+@pytest.mark.asyncio
+async def test_process_text_request_failure(model_service: ModelService) -> None:
+    """Test text processing when request fails.
+
+    Args:
+        model_service: The model service instance to test.
+    """
+    text = "Test input text"
+
+    with patch.object(
+        model_service, "_make_model_request", new_callable=AsyncMock
+    ) as mock_request:
+        mock_request.side_effect = Exception("API Error")
+
+        with pytest.raises(Exception) as exc_info:
+            await model_service.process_text(text)
+        assert "API Error" in str(exc_info.value)
+
+
+@pytest.mark.asyncio
+async def test_make_model_request(model_service: ModelService) -> None:
+    """Test making a model request.
+
+    Args:
+        model_service: The model service instance to test.
+    """
+    request_data = {
+        "text": "Test input",
+        "context": {"user_id": "123"},
+        "model": "test-model",
+    }
+
+    response = await model_service._make_model_request(request_data)
+    assert isinstance(response, dict)
+    assert "result" in response
 
 
 @pytest.fixture
-def sample_context():
-    """Create sample context for testing."""
-    return (
-        "I want to schedule a meeting in New York on March 15th "
-        "at 2:00 PM in the afternoon."
-    )
+def dummy_config():
+    return {
+        "model_name": "dummy",
+        "api_key": "dummy",
+        "endpoint": "http://dummy",
+        "model_type_or_path": "dummy-path",
+        "llm_provider": "dummy",
+    }
 
 
-def test_format_slot_input(model_service, sample_slots, sample_context):
-    """Test the format_slot_input method."""
-    user_prompt, system_prompt = model_service.format_slot_input(
-        sample_slots, sample_context
-    )
-
-    # Check that both prompts are strings
-    assert isinstance(user_prompt, str)
-    assert isinstance(system_prompt, str)
-
-    # Check that the prompts contain the necessary information
-    assert "Context:" in user_prompt
-    assert sample_context in user_prompt
-    assert "Slot definitions:" in user_prompt
-    assert "location" in user_prompt
-    assert "date" in user_prompt
-    assert "time" in user_prompt
-    assert "required" in user_prompt
-    assert "optional" in user_prompt
-
-    # Check system prompt
-    assert "slot filling assistant" in system_prompt.lower()
-    assert "extract" in system_prompt.lower()
-    assert "json format" in system_prompt.lower()
+def test_model_service_initialization(dummy_config) -> None:
+    service = ModelService(dummy_config)
+    assert service.model_config["model_name"] == "dummy"
 
 
-def test_process_slot_response(model_service, sample_slots):
-    """Test the process_slot_response method."""
-    # Sample response from the model
-    response = '{"location": "New York", "date": "March 15th", "time": "2:00 PM"}'
-
-    # Process the response
-    updated_slots = model_service.process_slot_response(response, sample_slots)
-
-    # Check that all slots were processed
-    assert len(updated_slots) == len(sample_slots)
-
-    # Check that values were correctly assigned
-    for slot in updated_slots:
-        if slot["name"] == "location":
-            assert slot["value"] == "New York"
-        elif slot["name"] == "date":
-            assert slot["value"] == "March 15th"
-        elif slot["name"] == "time":
-            assert slot["value"] == "2:00 PM"
+def test_model_service_get_response_success(dummy_config) -> None:
+    service = ModelService(dummy_config)
+    mock_response = MagicMock()
+    mock_response.content = "0) greeting"
+    with patch.object(service.model, "invoke", return_value=mock_response):
+        result = service.get_response("User: hello")
+        assert result == "0) greeting"
 
 
-def test_process_slot_response_with_missing_values(model_service, sample_slots):
-    """Test the process_slot_response method with missing values."""
-    # Sample response with missing values
-    response = '{"location": "New York", "date": "March 15th"}'
-
-    # Process the response
-    updated_slots = model_service.process_slot_response(response, sample_slots)
-
-    # Check that all slots were processed
-    assert len(updated_slots) == len(sample_slots)
-
-    # Check that values were correctly assigned
-    for slot in updated_slots:
-        if slot["name"] == "location":
-            assert slot["value"] == "New York"
-        elif slot["name"] == "date":
-            assert slot["value"] == "March 15th"
-        elif slot["name"] == "time":
-            assert slot["value"] is None
+def test_model_service_get_response_empty(dummy_config) -> None:
+    service = ModelService(dummy_config)
+    mock_response = MagicMock()
+    mock_response.content = ""
+    with patch.object(service.model, "invoke", return_value=mock_response):
+        with pytest.raises(ValueError, match="Empty response from model"):
+            service.get_response("User: hello")
 
 
-def test_process_slot_response_with_invalid_json(model_service, sample_slots):
-    """Test the process_slot_response method with invalid JSON."""
-    # Invalid JSON response
-    response = "invalid json"
+def test_model_service_get_response_model_error(dummy_config) -> None:
+    service = ModelService(dummy_config)
+    with patch.object(service.model, "invoke", side_effect=Exception("Model error")):
+        with pytest.raises(
+            ValueError, match="Failed to get model response: Model error"
+        ):
+            service.get_response("User: hello")
 
-    # Check that it raises ValueError
-    with pytest.raises(ValueError):
-        model_service.process_slot_response(response, sample_slots)
+
+def test_model_service_missing_model_name() -> None:
+    config = {"api_key": "key", "endpoint": "url"}
+    with pytest.raises(ValidationError, match="Missing required field"):
+        ModelService(config)
 
 
-def test_format_slot_input_with_enum_values(model_service):
-    """Test the format_slot_input method with enum values."""
-    slots = [
-        {
-            "name": "category",
-            "type": "string",
-            "description": "The category of the item",
-            "required": True,
-            "items": {"enum": ["electronics", "clothing", "books", "food"]},
-        }
-    ]
-    context = "I want to buy some electronics."
+def test_model_service_missing_api_key() -> None:
+    config = {"model_name": "name", "endpoint": "url"}
+    with pytest.raises(ValidationError, match="Missing required field"):
+        ModelService(config)
 
-    user_prompt, system_prompt = model_service.format_slot_input(slots, context)
 
-    # Check that enum values are included in the prompt
-    assert "Possible values:" in user_prompt
-    assert "electronics" in user_prompt
-    assert "clothing" in user_prompt
-    assert "books" in user_prompt
-    assert "food" in user_prompt
+def test_model_service_missing_endpoint() -> None:
+    config = {"model_name": "name", "api_key": "key"}
+    with pytest.raises(ValidationError, match="Missing required field"):
+        ModelService(config)

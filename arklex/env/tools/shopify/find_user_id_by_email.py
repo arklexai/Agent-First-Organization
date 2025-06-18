@@ -19,7 +19,7 @@ from arklex.env.tools.shopify.utils_slots import (
     ShopifyFindUserByEmailSlots,
     ShopifyOutputs,
 )
-from arklex.exceptions import ToolExecutionError
+from arklex.utils.exceptions import ToolExecutionError
 from arklex.env.tools.shopify._exception_prompt import ShopifyExceptionPrompt
 
 description = "Find user id by email. If the user is not found, the function will return an error message."

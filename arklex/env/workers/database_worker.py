@@ -14,9 +14,10 @@ from arklex.env.tools.database.utils import DatabaseActions
 from arklex.utils.utils import chunk_string
 from arklex.utils.graph_state import MessageState
 from arklex.utils.model_config import MODEL
+from arklex.utils.logging_utils import LogContext
 
 
-logger = logging.getLogger(__name__)
+log_context = LogContext(__name__)
 
 
 @register_worker
@@ -70,18 +71,22 @@ class DataBaseWorker(BaseWorker):
         chunked_prompt: str = chunk_string(
             input_prompt.text, tokenizer=MODEL["tokenizer"], max_length=MODEL["context"]
         )
-        logger.info(f"Chunked prompt for deciding choosing DB action: {chunked_prompt}")
+        log_context.info(
+            f"Chunked prompt for deciding choosing DB action: {chunked_prompt}"
+        )
         final_chain = self.llm | StrOutputParser()
         try:
             answer: str = final_chain.invoke(chunked_prompt)
             for action_name in self.actions.keys():
                 if action_name in answer:
-                    logger.info(f"Chosen action in the database worker: {action_name}")
+                    log_context.info(
+                        f"Chosen action in the database worker: {action_name}"
+                    )
                     return action_name
-            logger.info(f"Base action chosen in the database worker: Others")
+            log_context.info(f"Base action chosen in the database worker: Others")
             return "Others"
         except Exception as e:
-            logger.error(
+            log_context.error(
                 f"Error occurred while choosing action in the database worker: {e}"
             )
             return "Others"

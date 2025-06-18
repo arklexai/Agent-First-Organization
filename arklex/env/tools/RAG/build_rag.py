@@ -2,14 +2,12 @@ import os
 import argparse
 import pickle
 from pathlib import Path
-import logging
-import zipfile
-import tempfile
 from typing import List, Dict, Any
 
 from arklex.utils.loader import Loader
+from arklex.utils.logging_utils import LogContext
 
-logger: logging.Logger = logging.getLogger(__name__)
+log_context = LogContext(__name__)
 
 
 def build_rag(folder_path: str, rag_docs: List[Dict[str, Any]]) -> None:
@@ -20,14 +18,14 @@ def build_rag(folder_path: str, rag_docs: List[Dict[str, Any]]) -> None:
     loader: Loader = Loader()
     docs: List[Any] = []
     if Path(filepath).exists():
-        logger.warning(
+        log_context.warning(
             f"Loading existing documents from {os.path.join(folder_path, 'documents.pkl')}! If you want to recrawl, please delete the file or specify a new --output-dir when initiate Generator."
         )
         docs = pickle.load(open(os.path.join(folder_path, "documents.pkl"), "rb"))
     else:
         for doc in rag_docs:
             source: str = doc.get("source")
-            logging.info(f"Crawling {source}")
+            log_context.info(f"Crawling {source}")
             num_docs: int = doc.get("num") if doc.get("num") else 1
             if doc.get("type") == "url":
                 num_docs = doc.get("num") if doc.get("num") else 1
@@ -69,10 +67,10 @@ def build_rag(folder_path: str, rag_docs: List[Dict[str, Any]]) -> None:
                     "type must be one of [url, file, text] and it must be provided"
                 )
 
-        logging.info(f"Content: {[doc.content for doc in docs]}")
+        log_context.info(f"Content: {[doc.content for doc in docs]}")
         Loader.save(filepath, docs)
 
-    logging.info(f"crawled sources: {[c.source for c in docs]}")
+    log_context.info(f"crawled sources: {[c.source for c in docs]}")
     chunked_docs: List[Any] = Loader.chunk(docs)
     filepath_chunk: str = os.path.join(folder_path, "chunked_documents.pkl")
     Loader.save(filepath_chunk, chunked_docs)

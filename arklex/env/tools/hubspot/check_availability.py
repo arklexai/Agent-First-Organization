@@ -15,9 +15,9 @@ import pytz
 from hubspot import HubSpot
 
 from arklex.env.tools.hubspot.utils import authenticate_hubspot
-from arklex.env.tools.tools import logger, register_tool
+from arklex.utils.logging_utils import LogContext
 
-logger: logging.Logger = logging.getLogger(__name__)
+log_context = LogContext(__name__)
 
 description: str = "Check the availability of any representative from Husbspot calendar. If you are not sure any information, please ask users to confirm in response."
 
@@ -71,14 +71,14 @@ def check_availability(
     if duration not in [15, 30, 60]:
         return "error: invalid meeting duration. Please choose 15, 30, or 60 minutes."
     duration_ms: int = duration * 60 * 1000
-    logger.info(f"duration: {duration_ms} ms")
+    log_context.info(f"duration: {duration_ms} ms")
 
     tz: pytz.BaseTzInfo = pytz.timezone(timezone)
-    logger.info(f"timezone: {timezone}")
+    log_context.info(f"timezone: {timezone}")
 
     start_time_dt: datetime = datetime.fromisoformat(start_time)
     start_time_dt: datetime = tz.localize(start_time_dt)
-    logger.info(f"start_time_dt: {start_time_dt}")
+    log_context.info(f"start_time_dt: {start_time_dt}")
 
     if not (slugs := get_all_slugs(api_client)):
         return "error: no meeting links found. there are no representatives available for meetings."
@@ -190,7 +190,7 @@ def get_all_slugs(api_client: HubSpot) -> List[str]:
         response: Dict[str, Any] = response.json()
         return [link["slug"] for link in response["results"]]
     except Exception as e:
-        logger.error(f"Error getting slugs: {e}")
+        log_context.error(f"Error getting slugs: {e}")
         return []
 
 
@@ -218,7 +218,7 @@ def check_slug_availability(
             res: Dict[str, Any] = res.json()
 
             if res.get("status") == "error":
-                logger.error(f"Error getting availability: {res}")
+                log_context.error(f"Error getting availability: {res}")
                 return False, []
 
             availabilities: List[Dict[str, Any]] = res["linkAvailability"][
@@ -242,8 +242,8 @@ def check_slug_availability(
             month_offset += 1
 
         except Exception as e:
-            logger.error(f"Error getting availability: {e}")
-            logger.exception(e)
+            log_context.error(f"Error getting availability: {e}")
+            log_context.exception(e)
             return False, []
 
     return False, alternate_times_on_same_day

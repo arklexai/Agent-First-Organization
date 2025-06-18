@@ -11,7 +11,6 @@ import os
 import sqlite3
 from datetime import datetime
 import uuid
-import logging
 import pandas as pd
 from typing import List, Dict, Any, Optional, Tuple
 
@@ -24,14 +23,11 @@ from arklex.utils.model_config import MODEL
 from arklex.utils.graph_state import Slot, SlotDetail, MessageState
 from arklex.env.prompts import load_prompts
 from arklex.utils.graph_state import StatusEnum
+from arklex.utils.logging_utils import LogContext
 
-
+log_context = LogContext(__name__)
 DBNAME: str = "show_booking_db.sqlite"
 USER_ID: str = "user_be6e1836-8fe9-4938-b2d0-48f810648e72"
-
-logger: logging.Logger = logging.getLogger(__name__)
-
-
 SLOTS: List[Dict[str, str]] = [
     {
         "name": "show_name",
@@ -88,9 +84,9 @@ class DatabaseActions:
         cursor.execute("SELECT 1 FROM user WHERE id = ?", (self.user_id,))
         result: Optional[Tuple[int, ...]] = cursor.fetchone()
         if result is None:
-            logger.info(f"User {self.user_id} not found in the database.")
+            log_context.info(f"User {self.user_id} not found in the database.")
         else:
-            logger.info(f"User {self.user_id} successfully logged in.")
+            log_context.info(f"User {self.user_id} successfully logged in.")
         return result is not None
 
     def init_slots(
@@ -136,19 +132,21 @@ class DatabaseActions:
         chunked_prompt: List[str] = chunk_string(
             input_prompt.text, tokenizer=MODEL["tokenizer"], max_length=MODEL["context"]
         )
-        logger.info(f"Chunked prompt for verifying slot: {chunked_prompt}")
+        log_context.info(f"Chunked prompt for verifying slot: {chunked_prompt}")
         final_chain: Any = self.llm | StrOutputParser()
         try:
             answer: str = final_chain.invoke(chunked_prompt)
-            logger.info(f"Result for verifying slot value: {answer}")
+            log_context.info(f"Result for verifying slot value: {answer}")
             for value in value_list:
                 if value in answer:
-                    logger.info(f"Chosen slot value in the database worker: {value}")
+                    log_context.info(
+                        f"Chosen slot value in the database worker: {value}"
+                    )
                     slot_detail.verified_value = value
                     slot_detail.confirmed = True
                     return slot_detail
         except Exception as e:
-            logger.error(
+            log_context.error(
                 f"Error occurred while verifying slot in the database worker: {e}"
             )
         return slot_detail
@@ -185,7 +183,7 @@ class DatabaseActions:
         return msg_state
 
     def book_show(self, msg_state: MessageState) -> MessageState:
-        logger.info("Enter book show function")
+        log_context.info("Enter book show function")
         conn: sqlite3.Connection = sqlite3.connect(self.db_path)
         cursor: sqlite3.Cursor = conn.cursor()
         query: str = "SELECT id, show_name, date, time, description, location, price FROM show WHERE 1 = 1"
@@ -197,7 +195,7 @@ class DatabaseActions:
         # Execute the query
         cursor.execute(query, params)
         rows: List[Tuple[Any, ...]] = cursor.fetchall()
-        logger.info(f"Rows found: {len(rows)}")
+        log_context.info(f"Rows found: {len(rows)}")
         # Check whether info is enough to book a show
         if len(rows) == 0:
             msg_state.status = StatusEnum.INCOMPLETE
@@ -232,7 +230,7 @@ class DatabaseActions:
         return msg_state
 
     def check_booking(self, msg_state: MessageState) -> MessageState:
-        logger.info("Enter check booking function")
+        log_context.info("Enter check booking function")
         conn: sqlite3.Connection = sqlite3.connect(self.db_path)
         cursor: sqlite3.Cursor = conn.cursor()
 
@@ -262,7 +260,7 @@ class DatabaseActions:
         return msg_state
 
     def cancel_booking(self, msg_state: MessageState) -> MessageState:
-        logger.info("Enter cancel booking function")
+        log_context.info("Enter cancel booking function")
         conn: sqlite3.Connection = sqlite3.connect(self.db_path)
         cursor: sqlite3.Cursor = conn.cursor()
 

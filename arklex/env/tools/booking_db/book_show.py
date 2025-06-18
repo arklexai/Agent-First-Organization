@@ -1,10 +1,13 @@
 from typing import List, Dict, Any, Optional, Union
 from ..tools import register_tool
 from .utils import *
+from arklex.utils.logging_utils import LogContext
 
 import datetime
 import uuid
 import pandas as pd
+
+log_context = LogContext(__name__)
 
 
 @register_tool(
@@ -33,7 +36,7 @@ def book_show(
     if not log_in():
         return LOG_IN_FAILURE
 
-    logger.info("Enter book show function")
+    log_context.info("Enter book show function")
     conn: sqlite3.Connection = sqlite3.connect(booking.db_path)
     cursor: sqlite3.Cursor = conn.cursor()
     query: str = "SELECT id, show_name, date, time, description, location, price FROM show WHERE 1 = 1"
@@ -44,7 +47,7 @@ def book_show(
         "time": time,
         "location": location,
     }
-    logger.info(f"{slots=}")
+    log_context.info(f"{slots=}")
     for slot_name, slot_value in slots.items():
         if slot_value:
             query += f" AND {slot_name} = ?"
@@ -53,7 +56,7 @@ def book_show(
     # Execute the query
     cursor.execute(query, params)
     rows: List[tuple] = cursor.fetchall()
-    logger.info(f"Rows found: {len(rows)}")
+    log_context.info(f"Rows found: {len(rows)}")
 
     response: Optional[str] = None
     # Check whether info is enough to book a show

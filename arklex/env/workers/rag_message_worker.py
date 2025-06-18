@@ -7,7 +7,6 @@ approach to handling user queries that may require either factual information fr
 or conversational responses.
 """
 
-import logging
 from functools import partial
 from typing import Any, Dict, Optional
 from langgraph.graph import StateGraph, START
@@ -22,9 +21,10 @@ from arklex.env.prompts import load_prompts
 from arklex.env.workers.message_worker import MessageWorker
 from arklex.utils.graph_state import MessageState
 from arklex.utils.model_provider_config import PROVIDER_MAP
+from arklex.utils.logging_utils import LogContext
 
 
-logger = logging.getLogger(__name__)
+log_context = LogContext(__name__)
 
 
 @register_worker
@@ -43,12 +43,12 @@ class RagMsgWorker(BaseWorker):
             prompts["retrieval_needed_prompt"]
         )
         input_prompt = prompt.invoke({"formatted_chat": state.user_message.history})
-        logger.info(
+        log_context.info(
             f"Prompt for choosing the retriever in RagMsgWorker: {input_prompt.text}"
         )
         final_chain = self.llm | StrOutputParser()
         answer: str = final_chain.invoke(input_prompt.text)
-        logger.info(f"Choose retriever in RagMsgWorker: {answer}")
+        log_context.info(f"Choose retriever in RagMsgWorker: {answer}")
         if "yes" in answer.lower():
             return "retriever"
         return "message_worker"

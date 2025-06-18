@@ -68,6 +68,17 @@ def get_huggingface_llm(model: str, **kwargs: Any) -> ChatHuggingFace:
     return ChatHuggingFace(llm=llm)
 
 
+class DummyLLM:
+    def __init__(self, *args, **kwargs):
+        pass
+
+    def invoke(self, messages):
+        class Response:
+            content = "dummy response"
+
+        return Response()
+
+
 # List of supported language model providers
 LLM_PROVIDERS: List[str] = [
     "openai",  # OpenAI's language models
@@ -82,6 +93,7 @@ PROVIDER_MAP: Dict[str, Type] = {
     "gemini": ChatGoogleGenerativeAI,  # Google's Gemini models
     "openai": ChatOpenAI,  # OpenAI's GPT models
     "huggingface": get_huggingface_llm,  # HuggingFace's models
+    "dummy": DummyLLM,  # Dummy provider for tests
 }
 
 # Mapping of provider names to their embedding classes

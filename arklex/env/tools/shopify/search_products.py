@@ -10,7 +10,6 @@ This file contains the code for searching products in Shopify.
 
 import json
 import shopify
-import logging
 import inspect
 from typing import Any
 
@@ -26,11 +25,12 @@ from arklex.env.tools.shopify.utils import authorify_admin
 from arklex.env.tools.tools import register_tool
 
 from arklex.utils.model_provider_config import PROVIDER_MAP
-from arklex.exceptions import ToolExecutionError
+from arklex.utils.exceptions import ToolExecutionError
 from langchain_openai import ChatOpenAI
 from arklex.env.tools.shopify._exception_prompt import ShopifyExceptionPrompt
+from arklex.utils.logging_utils import LogContext
 
-logger = logging.getLogger(__name__)
+log_context = LogContext(__name__)
 
 
 description = "Search products by string query. If no products are found, the function will return an error message."

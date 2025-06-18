@@ -6,13 +6,14 @@ It manages HTTP communication, request formatting, and response handling
 for NLU operations including intent detection and slot filling.
 """
 
-import logging
 from typing import Dict, Any, Optional, List, Tuple
 import httpx
 from arklex.utils.slot import Slot
 from arklex.orchestrator.NLU.utils.validators import validate_intent_response
+from arklex.utils.logging_utils import LogContext, LOG_MESSAGES, handle_exceptions
+from arklex.utils.exceptions import APIError, ValidationError
 
-logger = logging.getLogger(__name__)
+log_context = LogContext(__name__)
 
 # API configuration constants
 DEFAULT_TIMEOUT: int = 30  # Default request timeout in seconds
@@ -48,15 +49,52 @@ class APIClientService:
             timeout: Request timeout in seconds
 
         Raises:
-            ValueError: If base_url is empty
+            ValidationError: If base_url is empty
+            APIError: If client initialization fails
         """
         if not base_url:
-            raise ValueError("Base URL cannot be empty")
+            log_context.error(
+                "Empty base URL provided",
+                extra={"operation": "initialization"},
+            )
+            raise ValidationError(
+                "Base URL cannot be empty",
+                details={"operation": "initialization"},
+            )
 
-        self.base_url = base_url.rstrip("/")
-        self.timeout = timeout
-        self.client = httpx.Client(timeout=timeout)
+        try:
+            self.base_url = base_url.rstrip("/")
+            self.timeout = timeout
+            self.client = httpx.Client(timeout=timeout)
+            log_context.info(
+                "API client service initialized successfully",
+                extra={
+                    "base_url": self.base_url,
+                    "timeout": self.timeout,
+                    "operation": "initialization",
+                },
+            )
+        except Exception as e:
+            log_context.error(
+                "Failed to initialize API client",
+                extra={
+                    "error": str(e),
+                    "base_url": base_url,
+                    "timeout": timeout,
+                    "operation": "initialization",
+                },
+            )
+            raise APIError(
+                "Failed to initialize API client",
+                details={
+                    "error": str(e),
+                    "base_url": base_url,
+                    "timeout": timeout,
+                    "operation": "initialization",
+                },
+            )
 
+    @handle_exceptions()
     def _make_request(
         self, endpoint: str, method: str, data: Optional[Dict[str, Any]] = None
     ) -> Dict[str, Any]:
@@ -74,20 +112,76 @@ class APIClientService:
             API response as dictionary
 
         Raises:
-            ValueError: If request fails or response is invalid
+            APIError: If request fails or response is invalid
+            ValidationError: If response validation fails
         """
         url = f"{self.base_url}/{endpoint.lstrip('/')}"
+        log_context.info(
+            "Making API request",
+            extra={
+                "url": url,
+                "method": method,
+                "endpoint": endpoint,
+                "operation": "api_request",
+            },
+        )
+
         try:
             response = self.client.request(method, url, json=data)
             response.raise_for_status()
-            return response.json()
+            result = response.json()
+            log_context.info(
+                "API request successful",
+                extra={
+                    "url": url,
+                    "method": method,
+                    "status_code": response.status_code,
+                    "operation": "api_request",
+                },
+            )
+            return result
         except httpx.HTTPError as e:
-            logger.error(f"HTTP error: {str(e)}")
-            raise ValueError(f"API request failed: {str(e)}")
+            log_context.error(
+                "HTTP error in API request",
+                extra={
+                    "error": str(e),
+                    "url": url,
+                    "method": method,
+                    "status_code": getattr(e.response, "status_code", None),
+                    "operation": "api_request",
+                },
+            )
+            raise APIError(
+                "API request failed",
+                details={
+                    "error": str(e),
+                    "url": url,
+                    "method": method,
+                    "status_code": getattr(e.response, "status_code", None),
+                    "operation": "api_request",
+                },
+            )
         except Exception as e:
-            logger.error(f"Request error: {str(e)}")
-            raise ValueError(f"API request failed: {str(e)}")
+            log_context.error(
+                "Unexpected error in API request",
+                extra={
+                    "error": str(e),
+                    "url": url,
+                    "method": method,
+                    "operation": "api_request",
+                },
+            )
+            raise APIError(
+                "API request failed",
+                details={
+                    "error": str(e),
+                    "url": url,
+                    "method": method,
+                    "operation": "api_request",
+                },
+            )
 
+    @handle_exceptions()
     def predict_intent(
         self,
         text: str,
@@ -112,8 +206,18 @@ class APIClientService:
             Predicted intent name
 
         Raises:
-            ValueError: If request fails or response is invalid
+            APIError: If request fails
+            ValidationError: If response validation fails
         """
+        log_context.info(
+            "Predicting intent",
+            extra={
+                "text": text,
+                "intents": intents,
+                "operation": "intent_prediction",
+            },
+        )
+
         data = {
             "text": text,
             "intents": intents,
@@ -121,10 +225,19 @@ class APIClientService:
             "model_config": model_config,
         }
         response = self._make_request("/nlu/predict", HTTP_METHOD_POST, data)
-        return validate_intent_response(
+        result = validate_intent_response(
             response.get("intent", ""), response.get("idx2intents_mapping", {})
         )
+        log_context.info(
+            "Intent prediction successful",
+            extra={
+                "intent": result,
+                "operation": "intent_prediction",
+            },
+        )
+        return result
 
+    @handle_exceptions()
     def predict_slots(
         self, text: str, slots: List[Slot], model_config: Dict[str, Any]
     ) -> List[Slot]:
@@ -142,16 +255,35 @@ class APIClientService:
             List of filled slots
 
         Raises:
-            ValueError: If request fails or response is invalid
+            APIError: If request fails
+            ValidationError: If response validation fails
         """
+        log_context.info(
+            "Predicting slots",
+            extra={
+                "text": text,
+                "slots": [slot.to_dict() for slot in slots],
+                "operation": "slot_prediction",
+            },
+        )
+
         data = {
             "text": text,
             "slots": [slot.to_dict() for slot in slots],
             "model_config": model_config,
         }
         response = self._make_request("/slotfill/predict", HTTP_METHOD_POST, data)
-        return [Slot(**slot) for slot in response.get("slots", [])]
+        result = [Slot(**slot) for slot in response.get("slots", [])]
+        log_context.info(
+            "Slot prediction successful",
+            extra={
+                "slots": [slot.to_dict() for slot in result],
+                "operation": "slot_prediction",
+            },
+        )
+        return result
 
+    @handle_exceptions()
     def verify_slots(
         self, text: str, slots: List[Slot], model_config: Dict[str, Any]
     ) -> Tuple[bool, str]:
@@ -170,17 +302,37 @@ class APIClientService:
                 - thought: Reasoning for verification
 
         Raises:
-            ValueError: If request fails or response is invalid
+            APIError: If request fails
+            ValidationError: If response validation fails
         """
+        log_context.info(
+            "Verifying slots",
+            extra={
+                "text": text,
+                "slots": [slot.to_dict() for slot in slots],
+                "operation": "slot_verification",
+            },
+        )
+
         data = {
             "text": text,
             "slots": [slot.to_dict() for slot in slots],
             "model_config": model_config,
         }
         response = self._make_request("/slotfill/verify", HTTP_METHOD_POST, data)
-        return response.get("verification_needed", False), response.get(
-            "thought", "No need to verify"
+        result = (
+            response.get("verification_needed", False),
+            response.get("thought", "No need to verify"),
         )
+        log_context.info(
+            "Slot verification successful",
+            extra={
+                "verification_needed": result[0],
+                "thought": result[1],
+                "operation": "slot_verification",
+            },
+        )
+        return result
 
     def close(self) -> None:
         """Close the HTTP client.
@@ -188,4 +340,17 @@ class APIClientService:
         This method should be called when the service is no longer needed
         to properly clean up resources and close the HTTP client connection.
         """
-        self.client.close()
+        try:
+            self.client.close()
+            log_context.info(
+                "API client closed successfully",
+                extra={"operation": "cleanup"},
+            )
+        except Exception as e:
+            log_context.error(
+                "Error closing API client",
+                extra={
+                    "error": str(e),
+                    "operation": "cleanup",
+                },
+            )

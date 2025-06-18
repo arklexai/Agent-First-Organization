@@ -22,10 +22,11 @@ from arklex.env.tools.shopify.utils_slots import (
 )
 
 from arklex.env.tools.tools import register_tool
-from arklex.exceptions import ToolExecutionError
+from arklex.utils.exceptions import ToolExecutionError
 from arklex.env.tools.shopify._exception_prompt import ShopifyExceptionPrompt
+from arklex.utils.logging_utils import LogContext
 
-logger = logging.getLogger(__name__)
+log_context = LogContext(__name__)
 
 description = "Return order by order id. If no fulfillments are found, the function will return an error message."
 slots = ShopifyReturnProductsSlots.get_all_slots()
@@ -103,9 +104,9 @@ def return_products(return_order_id: str, **kwargs: Any) -> str:
                         func_name,
                         ShopifyExceptionPrompt.NO_FULFILLMENT_FOUND_ERROR_PROMPT,
                     )
-                logger.info(f"Found {len(fulfillment_items)} fulfillment items.")
+                log_context.info(f"Found {len(fulfillment_items)} fulfillment items.")
             except Exception as e:
-                logger.error(f"Error parsing response: {e}")
+                log_context.error(f"Error parsing response: {e}")
                 raise ToolExecutionError(
                     func_name, ShopifyExceptionPrompt.PRODUCT_RETURN_ERROR_PROMPT
                 )
@@ -146,7 +147,7 @@ def return_products(return_order_id: str, **kwargs: Any) -> str:
                         func_name, ShopifyExceptionPrompt.PRODUCT_RETURN_ERROR_PROMPT
                     )
             except Exception as e:
-                logger.error(f"Error parsing response: {e}")
+                log_context.error(f"Error parsing response: {e}")
                 raise ToolExecutionError(
                     func_name, ShopifyExceptionPrompt.PRODUCT_RETURN_ERROR_PROMPT
                 )

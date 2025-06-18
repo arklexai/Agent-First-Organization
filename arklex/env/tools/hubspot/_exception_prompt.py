@@ -1,4 +1,4 @@
-from arklex.exceptions import ExceptionPrompt
+from arklex.utils.exceptions import ExceptionPrompt
 
 
 class HubspotExceptionPrompt(ExceptionPrompt):

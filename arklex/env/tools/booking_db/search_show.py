@@ -1,8 +1,11 @@
 from typing import List, Dict, Any, Optional, Union
 from ..tools import register_tool
 from .utils import *
+from arklex.utils.logging_utils import LogContext
 
 import pandas as pd
+
+log_context = LogContext(__name__)
 
 
 @register_tool(
@@ -42,7 +45,7 @@ def search_show(
         "time": time,
         "location": location,
     }
-    logger.info(f"{slots=}")
+    log_context.info(f"{slots=}")
     for slot_name, slot_value in slots.items():
         if slot_value:
             query += f" AND {slot_name} = ?"

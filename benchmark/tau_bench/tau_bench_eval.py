@@ -24,7 +24,7 @@ from dotenv import load_dotenv
 
 from langchain_openai import ChatOpenAI
 
-from arklex.utils.utils import init_logger
+from arklex.utils.logging_utils import LogContext
 from arklex.utils.model_config import MODEL
 from arklex.orchestrator.generator.generator import Generator
 from arklex.env.env import DefaultResourceInitializer
@@ -43,6 +43,8 @@ NLUAPI_ADDR: str = ""
 SLOTFILLAPI_ADDR: str = ""
 
 tool_name_class_map: Dict[str, Any] = {}
+
+log_context = LogContext(__name__)
 
 
 def get_tool_name_class_map() -> Dict[str, Any]:
@@ -299,7 +301,7 @@ if __name__ == "__main__":
 
     MODEL["model_type_or_path"] = args.model
     log_level: int = getattr(logging, args.log_level.upper(), logging.INFO)
-    logger: logging.Logger = init_logger(
+    logger: logging.Logger = log_context.get_logger(
         log_level=log_level,
         filename=os.path.join(root_dir, "logs", "tau_bench_eval.log"),
     )

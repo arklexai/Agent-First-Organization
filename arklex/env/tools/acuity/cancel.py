@@ -4,7 +4,7 @@ import inspect
 from requests.auth import HTTPBasicAuth
 from arklex.env.tools.tools import register_tool
 from arklex.env.tools.acuity.utils import authenticate_acuity
-from arklex.exceptions import ToolExecutionError
+from arklex.utils.exceptions import ToolExecutionError
 from arklex.env.tools.acuity._exception_prompt import AcuityExceptionPrompt
 
 description = "Help the user to cancel the appointment"
@@ -34,7 +34,7 @@ outputs = [
 
 
 @register_tool(description, slots, outputs)
-def cancel(apt_id, **kwargs):
+def cancel(apt_id, **kwargs) -> str:
     func_name = inspect.currentframe().f_code.co_name
     user_id, api_key = authenticate_acuity(kwargs)
 

@@ -1,16 +1,14 @@
 import os
 import sqlite3
-import logging
 from typing import Dict, Optional, Tuple
 from langchain_openai import ChatOpenAI
 
 from arklex.utils.model_config import MODEL
+from arklex.utils.logging_utils import LogContext
 
+log_context = LogContext(__name__)
 DBNAME: str = "show_booking_db.sqlite"
 USER_ID: str = "user_be6e1836-8fe9-4938-b2d0-48f810648e72"
-
-logger = logging.getLogger(__name__)
-
 SLOTS: Dict[str, Dict[str, str]] = {
     "show_name": {
         "name": "show_name",
@@ -77,7 +75,7 @@ def log_in() -> bool:
     cursor.execute("SELECT 1 FROM user WHERE id = ?", (booking.user_id,))
     result: Optional[Tuple[int, ...]] = cursor.fetchone()
     if result is None:
-        logger.info(f"User {booking.user_id} not found in the database.")
+        log_context.info(f"User {booking.user_id} not found in the database.")
     else:
-        logger.info(f"User {booking.user_id} successfully logged in.")
+        log_context.info(f"User {booking.user_id} successfully logged in.")
     return result is not None

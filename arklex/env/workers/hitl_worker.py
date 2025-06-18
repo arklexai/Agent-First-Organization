@@ -4,7 +4,6 @@ This module provides functionality for human-in-the-loop interactions, including
 slot filling and verification with human oversight.
 """
 
-import logging
 from typing import Any, Dict, List, Optional, Tuple
 
 from langgraph.graph import StateGraph, START
@@ -14,8 +13,9 @@ from arklex.orchestrator.NLU.core.slot import SlotFiller
 from arklex.utils.graph_state import MessageState, StatusEnum
 from arklex.env.workers.utils.chat_client import ChatClient
 from arklex.utils.slot import Slot
+from arklex.utils.logging_utils import LogContext
 
-logger = logging.getLogger(__name__)
+log_context = LogContext(__name__)
 
 
 # @register_worker
@@ -294,7 +294,7 @@ class HITLWorkerChatFlag(HITLWorker):
             state.metadata.hitl = None
             state.status = StatusEnum.COMPLETE
 
-        logger.info(state.message_flow)
+        log_context.info(state.message_flow)
         return state
 
 

@@ -7,11 +7,13 @@ from typing import Any, Dict, List, Tuple
 
 from arklex.orchestrator.orchestrator import AgentOrg
 from arklex.env.env import Env
-from arklex.env.tools.tools import logger
+from arklex.utils.logging_utils import LogContext
 
 # May not need after pip install agentorg
 sys.path.insert(0, os.path.abspath("../../"))
 print(sys.path)
+
+log_context = LogContext(__name__)
 
 
 class Logic_Test(unittest.TestCase):
@@ -54,8 +56,8 @@ class Logic_Test(unittest.TestCase):
         return result["answer"], result["parameters"]
 
     def test_Unittest0(self) -> None:
-        logger.info("\n=============Unit Test 0=============")
-        logger.info(f"{self.TEST_CASES[0]['description']}")
+        log_context.info("\n=============Unit Test 0=============")
+        log_context.info(f"{self.TEST_CASES[0]['description']}")
         history: List[Dict[str, str]] = []
         params: Dict[str, Any] = {}
         nodes: List[str] = []

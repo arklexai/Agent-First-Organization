@@ -21,9 +21,12 @@ from arklex.env.env import Environment
 from arklex.orchestrator.orchestrator import AgentOrg
 from arklex.utils.model_config import MODEL
 from arklex.utils.model_provider_config import LLM_PROVIDERS
-from arklex.utils.utils import init_logger
+from arklex.utils.logging_utils import LogContext
+from arklex.orchestrator.NLU.services.model_service import ModelService
 
 load_dotenv()
+
+log_context = LogContext(__name__)
 
 
 def pprint_with_color(
@@ -83,38 +86,34 @@ if __name__ == "__main__":
     parser.add_argument(
         "--llm-provider", type=str, default=MODEL["llm_provider"], choices=LLM_PROVIDERS
     )
-    parser.add_argument(
-        "--log-level",
-        type=str,
-        default="WARNING",
-        choices=["DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"],
-    )
     args = parser.parse_args()
 
     # Set up environment variables and model configuration
     os.environ["DATA_DIR"] = args.input_dir
     model: Dict[str, str] = {
+        "model_name": args.model,
         "model_type_or_path": args.model,
         "llm_provider": args.llm_provider,
+        "api_key": os.getenv("OPENAI_API_KEY", ""),
+        "endpoint": "https://api.openai.com/v1",
     }
-
-    # Initialize logging with specified level
-    log_level = getattr(logging, args.log_level.upper(), logging.WARNING)
-    logger = init_logger(
-        log_level=log_level,
-        filename=os.path.join(os.path.dirname(__file__), "logs", "arklex.log"),
-    )
 
     # Load task graph configuration and initialize environment
     config: Dict[str, Any] = json.load(
         open(os.path.join(args.input_dir, "taskgraph.json"))
     )
     config["model"] = model
+
+    # Initialize model service
+    model_service = ModelService(model)
+
+    # Initialize environment with model service
     env = Environment(
         tools=config.get("tools", []),
         workers=config.get("workers", []),
         slot_fill_api=config["slotfillapi"],
         planner_enabled=True,
+        model_service=model_service,  # Pass model service to environment
     )
 
     # Initialize chat history and parameters

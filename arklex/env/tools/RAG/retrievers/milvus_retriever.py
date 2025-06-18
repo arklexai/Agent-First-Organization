@@ -9,7 +9,6 @@ document embedding, vector storage, and similarity search with metadata filterin
 
 # TODO(christian): add annotations to the code
 
-import logging
 import time
 import os
 from typing import List
@@ -34,14 +33,13 @@ from arklex.env.tools.RAG.retrievers.retriever_document import (
     embed_retriever_document,
 )
 from arklex.env.tools.utils import trace
+from arklex.utils.logging_utils import LogContext
 
 EMBED_DIMENSION = 1536
 MAX_TEXT_LENGTH = 65535
 CHUNK_NEIGHBOURS = 3
 
-logging.basicConfig()
-logger = logging.getLogger(__name__)
-logger.setLevel(logging.INFO)
+log_context = LogContext(__name__)
 
 
 class RetrieveEngine:
@@ -116,7 +114,7 @@ class MilvusRetriever:
         )
 
     def delete_documents_by_qa_doc_id(self, collection_name: str, qa_doc_id: str):
-        logger.info(
+        log_context.info(
             f"Deleting vector db documents by qa_doc_id: {qa_doc_id} from collection: {collection_name}"
         )
         res = self.client.delete(
@@ -127,7 +125,7 @@ class MilvusRetriever:
     def add_documents_dicts(
         self, documents: List[dict], collection_name: str, upsert: bool = False
     ):
-        logger.info(
+        log_context.info(
             f"Celery sub task for adding {len(documents)} documents to collection: {collection_name}."
         )
         retriever_documents = [RetrieverDocument.from_dict(doc) for doc in documents]
@@ -139,7 +137,7 @@ class MilvusRetriever:
                 res = self.client.get(collection_name=collection_name, ids=doc.id)
                 if len(res) == 0:
                     documents_to_insert.append(doc)
-            logger.info(f"Exisiting documents: {len(documents_to_insert)}")
+            log_context.info(f"Exisiting documents: {len(documents_to_insert)}")
         else:
             documents_to_insert = retriever_documents
 
@@ -151,7 +149,7 @@ class MilvusRetriever:
                     self.client.upsert(collection_name=collection_name, data=[data])
                 )
             except Exception as e:
-                logger.error(f"Error adding document id: {data['id']} error: {e}")
+                log_context.error(f"Error adding document id: {data['id']} error: {e}")
                 raise e
         return res
 
@@ -164,7 +162,7 @@ class MilvusRetriever:
             qa_doc_id: The qa_doc_id to identify the vectors.
             tags: The new tags dictionary to apply.
         """
-        logger.info(
+        log_context.info(
             f"Updating metadata for qa_doc_id {qa_doc_id} in collection {collection_name}"
         )
 
@@ -186,14 +184,14 @@ class MilvusRetriever:
         )
 
         if len(res) == 0:
-            logger.error(
+            log_context.error(
                 f"No vectors found for qa_doc_id {qa_doc_id} in collection {collection_name}. No update performed."
             )
             raise ValueError(
                 f"No vectors found for qa_doc_id {qa_doc_id} in collection {collection_name}. No update performed."
             )
 
-        logger.info(
+        log_context.info(
             f"Found {len(res)} vectors for qa_doc_id {qa_doc_id}. Preparing update."
         )
 
@@ -211,12 +209,12 @@ class MilvusRetriever:
             res = self.client.upsert(
                 collection_name=collection_name, data=updated_vectors
             )
-            logger.info(
+            log_context.info(
                 f"Successfully upserted {len(updated_vectors)} vectors with new tags {tags} for qa_doc_id {qa_doc_id}. Upsert result: {res}"
             )
             return res
         except Exception as e:
-            logger.error(
+            log_context.error(
                 f"Failed to upsert updated vectors for qa_doc_id {qa_doc_id}: {e}"
             )
             raise ValueError(
@@ -232,11 +230,11 @@ class MilvusRetriever:
         process_pool: Pool,
         upsert: bool = False,
     ):
-        logger.info(
+        log_context.info(
             f"Adding {len(documents)} vector db documents to collection '{collection_name}' for bot_id: {bot_id} version: {version}"
         )
         if not self.client.has_collection(collection_name):
-            logger.info(
+            log_context.info(
                 f"No collection found hence creating collection: {collection_name}"
             )
             self.create_collection_with_partition_key(collection_name)
@@ -249,7 +247,7 @@ class MilvusRetriever:
                 res = self.client.get(collection_name=collection_name, ids=doc.id)
                 if len(res) == 0:
                     documents_to_insert.append(doc)
-            logger.info(f"Exisiting documents: {len(documents_to_insert)}")
+            log_context.info(f"Exisiting documents: {len(documents_to_insert)}")
         else:
             documents_to_insert = documents
 
@@ -266,7 +264,7 @@ class MilvusRetriever:
                 )
             )
             count += len(batch_docs)
-            logger.info(f"Added {count}/{len(documents_to_insert)} docs")
+            log_context.info(f"Added {count}/{len(documents_to_insert)} docs")
 
         return res
 
@@ -278,7 +276,7 @@ class MilvusRetriever:
         documents: List[RetrieverDocument],
         upsert: bool = False,
     ):
-        logger.info(
+        log_context.info(
             f"Adding {len(documents)} vector db documents to collection {collection_name} for bot_id: {bot_id} version: {version}"
         )
 
@@ -293,7 +291,7 @@ class MilvusRetriever:
                 res = self.client.get(collection_name=collection_name, ids=doc.id)
                 if len(res) == 0:
                     documents_to_insert.append(doc)
-            logger.info(f"Exisiting documents: {len(documents_to_insert)}")
+            log_context.info(f"Exisiting documents: {len(documents_to_insert)}")
         else:
             documents_to_insert = documents
 
@@ -305,7 +303,7 @@ class MilvusRetriever:
                     self.client.upsert(collection_name=collection_name, data=[data])
                 )
             except Exception as e:
-                logger.error(f"Error adding document id: {data['id']} error: {e}")
+                log_context.error(f"Error adding document id: {data['id']} error: {e}")
                 raise e
         return res
 
@@ -318,7 +316,7 @@ class MilvusRetriever:
         tags: dict = {},
         top_k: int = 4,
     ) -> List[RetrieverResult]:
-        logger.info(
+        log_context.info(
             f"Retreiver search for query: {query} on collection {collection_name} for bot_id: {bot_id} version: {version}"
         )
 
@@ -340,11 +338,11 @@ class MilvusRetriever:
 
         ret_results: List[RetrieverResult] = []
         for r in res[0]:
-            logger.info(f"Milvus search result: {r}")
+            log_context.info(f"Milvus search result: {r}")
             qa_doc_id = r["entity"]["qa_doc_id"]
             chunk_id = r["entity"]["chunk_id"]
             text = r["entity"]["text"]
-            logger.info(f"Retrieved qa_doc_id: {qa_doc_id} chunk_id: {chunk_id}")
+            log_context.info(f"Retrieved qa_doc_id: {qa_doc_id} chunk_id: {chunk_id}")
 
             ret_results.append(
                 RetrieverResult(
@@ -440,7 +438,7 @@ class MilvusRetriever:
         return qa_docs
 
     def get_qa_doc(self, collection_name: str, qa_doc_id: str) -> RetrieverDocument:
-        logger.info(
+        log_context.info(
             f"Getting qa doc with id {qa_doc_id} from collection {collection_name}"
         )
         res = self.client.query(
@@ -488,7 +486,7 @@ class MilvusRetriever:
         version: str,
         qa_doc_type: RetrieverDocumentType,
     ) -> List[dict]:
-        logger.info(
+        log_context.info(
             f"Getting all qa_doc_ids from collection '{collection_name}' for bot_id: {bot_id}, version: {version}"
         )
         partition_key = self.get_bot_uid(bot_id, version)
@@ -566,7 +564,7 @@ class MilvusRetriever:
                 vectors.append(r)
                 count += 1
 
-        logger.info(f"collection {collection_name} Total vectors: {count}")
+        log_context.info(f"collection {collection_name} Total vectors: {count}")
         return vectors
 
     def add_vectors_parallel(
@@ -577,11 +575,11 @@ class MilvusRetriever:
         vectors: List[dict],
         upsert: bool = False,
     ):
-        logger.info(
+        log_context.info(
             f"Adding {len(vectors)} vector db documents to institution {collection_name} for bot_id: {bot_id} version: {version}"
         )
         if not self.client.has_collection(collection_name):
-            logger.info(
+            log_context.info(
                 f"No colelction found hence creating collection: {collection_name}"
             )
             self.create_collection_with_partition_key(collection_name)
@@ -597,7 +595,7 @@ class MilvusRetriever:
                 )
                 if len(res) == 0:
                     vectors_to_insert.append(vec)
-            logger.info(f"New vectors to insert: {len(vectors_to_insert)}")
+            log_context.info(f"New vectors to insert: {len(vectors_to_insert)}")
         else:
             vectors_to_insert = vectors
 
@@ -614,7 +612,7 @@ class MilvusRetriever:
                 self.client.upsert(collection_name=collection_name, data=batch_vectors)
             )
             count += len(batch_vectors)
-            logger.info(
+            log_context.info(
                 f"{collection_name}: Added {count}/{len(vectors_to_insert)} docs"
             )
         return res
@@ -634,7 +632,7 @@ class MilvusRetriever:
         res = self.client.delete(
             collection_name=collection_name, filter=f"bot_uid=='{partition_key}'"
         )
-        logger.info(
+        log_context.info(
             f"Deleted {len(res)} vectors from collection {collection_name} for bot_id: {bot_id} version: {version}"
         )
 
@@ -643,7 +641,7 @@ class MilvusRetriever:
             collection_name=collection_name, output_fields=["count(*)"]
         )
         if res[0]["count(*)"] == 0:
-            logger.info(f"Collection {collection_name} is empty.")
+            log_context.info(f"Collection {collection_name} is empty.")
 
         return res
 
@@ -654,7 +652,7 @@ class MilvusRetriever:
         return len(res)
 
     # def get_token_count_for_bot(self, collection_name: str, bot_id: str, version: str):
-    #     logger.info(f"Counting tokens in collection {collection_name} for bot_id: {bot_id}, version: {version}")
+    #     log_context.info(f"Counting tokens in collection {collection_name} for bot_id: {bot_id}, version: {version}")
     #     partition_key = self.get_bot_uid(bot_id, version)
     #     res = self.client.query(
     #         collection_name=collection_name,
@@ -712,11 +710,13 @@ class MilvusRetriever:
                 vectors.append(r)
                 count += 1
 
-        logger.info(f"migrating {count} vectors for bot {bot_id} version {version}")
+        log_context.info(
+            f"migrating {count} vectors for bot {bot_id} version {version}"
+        )
 
         # add vectors to new collection
         if not self.has_collection(new_collection_name):
-            logger.info(
+            log_context.info(
                 f"No collection found hence creating collection: {new_collection_name}"
             )
             self.create_collection_with_partition_key(new_collection_name)
@@ -725,7 +725,7 @@ class MilvusRetriever:
         # delete vectors from old collection
         self.delete_vectors_by_partition_key(old_collection_name, bot_id, version)
 
-        logger.info(
+        log_context.info(
             f"moved {count} vectors from {old_collection_name} to {new_collection_name}"
         )
         return count
@@ -798,7 +798,7 @@ class MilvusRetrieverExecutor:
                 tags,
             )
         rt = time.time() - st
-        logger.info(f"MilvusRetriever search took {rt} seconds")
+        log_context.info(f"MilvusRetriever search took {rt} seconds")
         retriever_params = self.postprocess(ret_results)
         retriever_params["timing"] = {"retriever_input": rit, "retriever_search": rt}
         thought = self.generate_thought(ret_results)

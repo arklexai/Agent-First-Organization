@@ -31,10 +31,11 @@ from arklex.env.tools.shopify.utils_slots import (
     ShopifyOutputs,
 )
 from arklex.env.tools.tools import register_tool
-from arklex.exceptions import ToolExecutionError
+from arklex.utils.exceptions import ToolExecutionError
 from arklex.env.tools.shopify._exception_prompt import ShopifyExceptionPrompt
+from arklex.utils.logging_utils import LogContext
 
-logger = logging.getLogger(__name__)
+log_context = LogContext(__name__)
 
 description = "Get the inventory information and description details of a product."
 slots = ShopifyGetWebProductSlots.get_all_slots()

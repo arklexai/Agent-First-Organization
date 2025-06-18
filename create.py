@@ -16,17 +16,14 @@ from dotenv import load_dotenv
 
 from langchain_openai import ChatOpenAI
 
-from arklex.utils.utils import init_logger
 from arklex.orchestrator.generator.generator import Generator
 from arklex.env.tools.RAG.build_rag import build_rag
 from arklex.env.tools.database.build_database import build_database
 from arklex.utils.model_config import MODEL
 from arklex.utils.model_provider_config import LLM_PROVIDERS, PROVIDER_MAP
+from arklex.utils.logging_utils import LogContext
 
-logger = init_logger(
-    log_level=logging.INFO,
-    filename=os.path.join(os.path.dirname(__file__), "logs", "arklex.log"),
-)
+log_context = LogContext(__name__)
 load_dotenv()
 
 
@@ -80,7 +77,7 @@ def init_worker(args: argparse.Namespace) -> None:
 
     # Initialize FaissRAGWorker if specified in configuration
     if "FaissRAGWorker" in worker_names:
-        logger.info("Initializing FaissRAGWorker...")
+        log_context.info("Initializing FaissRAGWorker...")
         build_rag(args.output_dir, config["rag_docs"])
 
     # Initialize DataBaseWorker and related workers if specified
@@ -94,7 +91,7 @@ def init_worker(args: argparse.Namespace) -> None:
             "cancel_booking",
         )
     ):
-        logger.info("Initializing DataBaseWorker...")
+        log_context.info("Initializing DataBaseWorker...")
         build_database(args.output_dir)
 
 
@@ -123,10 +120,6 @@ if __name__ == "__main__":
     MODEL["model_type_or_path"] = args.model
     MODEL["llm_provider"] = args.llm_provider
     log_level = getattr(logging, args.log_level.upper(), logging.INFO)
-    logger = init_logger(
-        log_level=log_level,
-        filename=os.path.join(os.path.dirname(__file__), "logs", "arklex.log"),
-    )
 
     if not os.path.exists(args.output_dir):
         os.makedirs(args.output_dir, exist_ok=True)

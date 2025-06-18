@@ -11,9 +11,10 @@ from typing import Any, Dict, List
 
 from tests.utils.utils import MockOrchestrator, MockResourceInitializer
 from arklex.orchestrator.NLU.core.slot import SlotFiller
-import logging
+from arklex.utils.logging_utils import LogContext
+from arklex.orchestrator.NLU.services.model_service import DummyModelService
 
-logger = logging.getLogger(__name__)
+log_context = LogContext(__name__)
 
 
 class ShopifyToolOrchestrator(MockOrchestrator):
@@ -53,13 +54,20 @@ class ShopifyToolOrchestrator(MockOrchestrator):
         Returns:
             Initialized SlotFiller instance
         """
+        dummy_config = {
+            "model_name": "dummy",
+            "api_key": "dummy",
+            "endpoint": "http://dummy",
+            "model_type_or_path": "dummy-path",
+            "llm_provider": "dummy",
+        }
         if not isinstance(slotsfillapi, str):
-            logger.error("slotsfillapi must be a string")
+            log_context.error("slotsfillapi must be a string")
             return None
         if not slotsfillapi:
-            logger.warning(
+            log_context.warning(
                 "slotsfillapi is empty, using local model-based slot filling"
             )
-            return SlotFiller(None)
-        logger.info(f"Initializing SlotFiller with API URL: {slotsfillapi}")
+            return SlotFiller(DummyModelService(dummy_config))
+        log_context.info(f"Initializing SlotFiller with API URL: {slotsfillapi}")
         return SlotFiller(slotsfillapi)

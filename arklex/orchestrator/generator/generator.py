@@ -71,9 +71,10 @@ from arklex.orchestrator.generator.prompts import *
 from arklex.utils.loader import Loader, SourceType
 from arklex.env.env import BaseResourceInitializer, DefaultResourceInitializer
 from arklex.env.nested_graph.nested_graph import NESTED_GRAPH_ID
+from arklex.utils.logging_utils import LogContext
 
 
-logger = logging.getLogger(__name__)
+log_context = LogContext(__name__)
 
 
 class InputModal(Screen):
@@ -116,10 +117,9 @@ class InputModal(Screen):
     def on_button_pressed(self, event: Button.Pressed) -> None:
         if event.button.id == "submit":
             self.result = self.query_one("#input-field", Input).value
-            # logger.debug(f"InputModal result: {self.result}")
         if self.callback:
             self.callback(self.result, self.node)
-        logger.debug(f"InputModal result: {self.result}")
+        log_context.debug(f"InputModal result: {self.result}")
         self.app.pop_screen()  # Close modal
 
 
@@ -237,8 +237,7 @@ class TaskEditorApp(App):
             steps = [step.label.plain for step in task_node.children]
             self.tasks.append({"task_name": task_name, "steps": steps})
 
-        log_message = f"Updated Tasks: {self.tasks}"
-        logger.debug(log_message)
+        log_context.debug(f"Updated Tasks: {self.tasks}")
 
 
 class Generator:
@@ -441,7 +440,7 @@ class Generator:
         )
         final_chain = self.model | StrOutputParser()
         answer = final_chain.invoke(input_prompt)
-        logger.debug(f"Generated tasks with thought: {answer}")
+        log_context.debug(f"Generated tasks with thought: {answer}")
         self.tasks.extend(postprocess_json(answer))
 
     def _add_provided_tasks(self):
@@ -513,7 +512,7 @@ class Generator:
                 )
                 + "\n\n"
             )
-            logger.debug(f"Code skeleton of the worker: {worker_resource}")
+            log_context.debug(f"Code skeleton of the worker: {worker_resource}")
 
             resources[worker_name] = worker_resource
         for _, tool_info in self.tools.items():
@@ -533,7 +532,7 @@ class Generator:
         )
         final_chain = self.model | StrOutputParser()
         answer = final_chain.invoke(input_prompt)
-        logger.info(f"Best practice detection: {answer}")
+        log_context.info(f"Best practice detection: {answer}")
         answer = postprocess_json(answer)
 
         if not answer or answer["answer"].lower() == "no":
@@ -554,7 +553,7 @@ class Generator:
         )
         final_chain = self.model | StrOutputParser()
         answer = final_chain.invoke(input_prompt)
-        logger.debug(f"Generated best practice with thought: {answer}")
+        log_context.debug(f"Generated best practice with thought: {answer}")
         return postprocess_json(answer)
 
     def _finetune_best_practice(self, best_practice):
@@ -616,7 +615,7 @@ class Generator:
             resource_id = resource_id_map.get(resource_name, None)
 
             if not resource_id:
-                logger.info("Error while retrieving resource id")
+                log_context.info("Error while retrieving resource id")
             json_answer[i]["resource_id"] = resource_id
         return json_answer
 
@@ -819,7 +818,7 @@ class Generator:
             total_num_docs = sum([doc.get("num", 1) for doc in self.task_docs])
             loader = Loader()
             if Path(filepath).exists():
-                logger.warning(
+                log_context.warning(
                     f"Loading existing documents from {os.path.join(self.output_dir, 'task_documents.pkl')}! If you want to recrawl, please delete the file or specify a new --output-dir when initiate Generator."
                 )
                 docs = pickle.load(
@@ -859,7 +858,7 @@ class Generator:
             crawled_docs.extend(file_docs)
             crawled_docs.extend(text_docs)
 
-            logger.debug(f"Loaded {len(crawled_docs)} documents")
+            log_context.debug(f"Loaded {len(crawled_docs)} documents")
             self.documents = "\n\n".join(
                 [f"{doc.source}\n{doc.content}" for doc in crawled_docs]
             )
@@ -910,7 +909,7 @@ class Generator:
         crawled_docs.extend(loader.get_candidates_websites(web_docs, limit))
         crawled_docs.extend(file_docs)
         crawled_docs.extend(text_docs)
-        logger.debug(f"Loaded {len(crawled_docs)} instruction documents")
+        log_context.debug(f"Loaded {len(crawled_docs)} instruction documents")
         self.instructions = "\n\n".join([f"{doc.content}" for doc in crawled_docs])
 
     def generate(self) -> dict:
@@ -941,9 +940,9 @@ class Generator:
         # Step 2: Generate the task planning
         best_practices = []
         for idx, task in progress_bar(enumerate(self.tasks), total=len(self.tasks)):
-            logger.info(f"Generating best practice for task {idx}: {task}")
+            log_context.info(f"Generating best practice for task {idx}: {task}")
             best_practice = self._generate_best_practice(task)
-            logger.info(f"Generated best practice for task {idx}: {best_practice}")
+            log_context.info(f"Generated best practice for task {idx}: {best_practice}")
             best_practices.append(best_practice)
 
         # Step 3: iterate with user
@@ -953,8 +952,8 @@ class Generator:
                 task_name = task["task"]
                 steps = [bp["task"] for bp in best_practice]
             except Exception as e:
-                logger.error(f"Error in format task {task}")
-                logger.error(e)
+                log_context.error(f"Error in format task {task}")
+                log_context.error(e)
                 continue
             format_tasks.append({"task_name": task_name, "steps": steps})
 
@@ -974,7 +973,7 @@ class Generator:
             for idx_s, step in enumerate(steps):
                 format_steps.append({"step": idx_s + 1, "task": step})
             finetuned_best_practice = self._finetune_best_practice(format_steps)
-            logger.info(
+            log_context.info(
                 f"Finetuned best practice for task {idx_t}: {finetuned_best_practice}"
             )
             finetuned_best_practices.append(finetuned_best_practice)

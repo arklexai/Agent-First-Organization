@@ -7,8 +7,9 @@ including intent detection, slot filling, and tool execution.
 import logging
 from enum import Enum
 from typing import Any, Dict, List, Optional
+from arklex.utils.logging_utils import LogContext
 
-logger = logging.getLogger(__name__)
+log_context = LogContext(__name__)
 
 
 class TraceType(Enum):

@@ -12,7 +12,7 @@ import json
 from enum import Enum
 from typing import List, Dict
 from openai import OpenAI
-import logging
+from arklex.utils.logging_utils import LogContext
 
 import tiktoken
 from arklex.utils.mysql import mysql_pool
@@ -20,7 +20,7 @@ from langchain.text_splitter import RecursiveCharacterTextSplitter
 
 DEFAULT_CHUNK_ENCODING = "cl100k_base"
 
-logger = logging.getLogger(__name__)
+log_context = LogContext(__name__)
 
 
 def embed(text: str):
@@ -28,9 +28,9 @@ def embed(text: str):
     try:
         response = client.embeddings.create(input=text, model="text-embedding-ada-002")
     except Exception as e:
-        logger.error(f"Error embedding text of length {len(text)}")
-        logger.error(text[:1000])
-        logger.exception(e)
+        log_context.error(f"Error embedding text of length {len(text)}")
+        log_context.error(text[:1000])
+        log_context.exception(e)
         raise e
     return response.data[0].embedding
 
@@ -105,7 +105,7 @@ class RetrieverDocument:
         ).split_text(self.text.strip())
         chunked_docs = []
         tokens = encoding.encode(self.text)
-        logger.info(
+        log_context.info(
             f"Original text token length: {len(tokens)}, Chunked to {len(chunked_texts)} chunks"
         )
         for i, chunk in enumerate(chunked_texts):
@@ -277,27 +277,27 @@ class RetrieverDocument:
                     timestamp=doc["timestamp"],
                 )
             )
-        logger.info(f"Loaded {len(faq_docs)} faq docs")
+        log_context.info(f"Loaded {len(faq_docs)} faq docs")
 
         other_db_docs = mysql_pool.fetchall(
             "SELECT id, metadata, content, unix_timestamp(updated_at) as timestamp FROM qa_doc_other WHERE qa_bot_id=%s and qa_bot_version=%s;",
             (bot_id, version),
         )
-        logger.info(f"Loaded {len(other_db_docs)} other docs")
+        log_context.info(f"Loaded {len(other_db_docs)} other docs")
         chunked_other_docs = cls.chunked_retriever_docs_from_db_docs(
             other_db_docs, RetrieverDocumentType.OTHER, get_bot_uid(bot_id, version)
         )
-        logger.info(f"Chunked to {len(chunked_other_docs)} other docs")
+        log_context.info(f"Chunked to {len(chunked_other_docs)} other docs")
 
         website_db_docs = mysql_pool.fetchall(
             "SELECT id, metadata, content, unix_timestamp(updated_at) as timestamp FROM qa_doc_website WHERE qa_bot_id=%s and qa_bot_version=%s and is_crawled=1 and is_error=0;",
             (bot_id, version),
         )
-        logger.info(f"Loaded {len(website_db_docs)} website docs")
+        log_context.info(f"Loaded {len(website_db_docs)} website docs")
         chunked_website_docs = cls.chunked_retriever_docs_from_db_docs(
             website_db_docs, RetrieverDocumentType.WEBSITE, get_bot_uid(bot_id, version)
         )
-        logger.info(f"Chunked to {len(chunked_website_docs)} website docs")
+        log_context.info(f"Chunked to {len(chunked_website_docs)} website docs")
 
         return chunked_website_docs + chunked_other_docs + faq_docs
 

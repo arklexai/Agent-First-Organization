@@ -28,89 +28,10 @@ from typing import List, Dict, Any, Optional
 
 import tiktoken
 import Levenshtein
+from arklex.utils.logging_utils import LogContext
 
 # Configure logging
-logger: logging.Logger = logging.getLogger(__name__)
-
-
-def init_logger(
-    log_level: int = logging.INFO, filename: Optional[str] = None
-) -> logging.Logger:
-    """Initialize and configure the logging system.
-
-    This function sets up logging with both file and stream handlers, configures log formatting,
-    and suppresses noisy loggers. It creates the log directory if it doesn't exist.
-
-    The function performs the following tasks:
-    1. Configures the root logger
-    2. Sets up file-based logging with rotation if a filename is provided
-    3. Sets up console-based logging
-    4. Configures log formatting and levels
-    5. Suppresses noisy third-party loggers
-
-    Logging Features:
-    - File rotation with size limits (50MB per file)
-    - Backup file management (20 backup files)
-    - Formatted log messages with timestamps
-    - Multiple output handlers (file and console)
-    - Configurable log levels
-
-    Args:
-        log_level (int, optional): The logging level to use. Defaults to logging.INFO.
-        filename (Optional[str], optional): Path to the log file. Defaults to None.
-
-    Returns:
-        logging.Logger: The configured logger instance.
-    """
-    root_logger: logging.Logger = logging.getLogger()  # Root logger
-
-    # Remove existing handlers to reconfigure them
-    if root_logger.hasHandlers():
-        root_logger.handlers.clear()
-    handlers: List[logging.Handler] = []
-    # File handler
-    if filename is not None:
-        directory_name: str
-        _: str
-        directory_name, _ = os.path.split(filename)
-        if not os.path.exists(directory_name):
-            os.makedirs(directory_name)
-        file_handler: RotatingFileHandler = RotatingFileHandler(
-            filename=filename,
-            mode="a",
-            maxBytes=50 * 1024 * 1024,  # 50MB file size limit
-            backupCount=20,  # Keep 20 backup files
-            encoding=None,
-            delay=0,
-        )
-        file_handler.setLevel(log_level)  # Set log level for the file
-        file_handler.setFormatter(
-            logging.Formatter(
-                "[%(asctime)s] {%(filename)s:%(lineno)d} %(levelname)s - %(message)s",
-                datefmt="%m/%d/%Y %H:%M:%S",
-            )
-        )
-        handlers.append(file_handler)
-
-    # Stream (terminal) handler
-    stream_handler: logging.StreamHandler = logging.StreamHandler(sys.stdout)
-    stream_handler.setLevel(log_level)  # Set log level for the terminal
-    stream_handler.setFormatter(
-        logging.Formatter(
-            "[%(asctime)s] {%(filename)s:%(lineno)d} %(levelname)s - %(message)s",
-            datefmt="%m/%d/%Y %H:%M:%S",
-        )
-    )
-    handlers.append(stream_handler)
-
-    for handler in handlers:
-        root_logger.addHandler(handler)
-    root_logger.setLevel(log_level)
-
-    # Suppress noisy loggers
-    logging.getLogger("LiteLLM").setLevel(logging.ERROR)
-
-    return logging.getLogger(__name__)
+log_context = LogContext(__name__)
 
 
 def chunk_string(
@@ -244,9 +165,9 @@ def postprocess_json(raw_code: str) -> Optional[Dict[str, Any]]:
         generated_result: str = "\n".join(valid_lines)
         result: Optional[Dict[str, Any]] = json.loads(generated_result)
     except json.JSONDecodeError as e:
-        logger.error(f"Error decoding generated JSON - {generated_result}")
-        logger.error(f"raw result: {raw_code}")
-        logger.error(f"Error: {e}")
+        log_context.error(f"Error decoding generated JSON - {generated_result}")
+        log_context.error(f"raw result: {raw_code}")
+        log_context.error(f"Error: {e}")
         result = None
     return result
 

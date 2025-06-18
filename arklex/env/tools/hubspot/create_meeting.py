@@ -18,8 +18,11 @@ from hubspot.crm.objects.meetings import ApiException
 
 from arklex.env.tools.hubspot._exception_prompt import HubspotExceptionPrompt
 from arklex.env.tools.hubspot.utils import authenticate_hubspot
-from arklex.env.tools.tools import logger, register_tool
-from arklex.exceptions import ToolExecutionError
+from arklex.env.tools.tools import register_tool
+from arklex.utils.exceptions import ToolExecutionError
+from arklex.utils.logging_utils import LogContext
+
+log_context = LogContext(__name__)
 
 description: str = "Schedule a meeting for the existing customer with the specific representative. If you are not sure any information, please ask users to confirm in response."
 
@@ -176,7 +179,7 @@ def create_meeting(
         create_meeting_response: Dict[str, Any] = create_meeting_response.json()
         return json.dumps(create_meeting_response)
     except ApiException as e:
-        logger.info("Exception when scheduling a meeting: %s\n" % e)
+        log_context.info("Exception when scheduling a meeting: %s\n" % e)
         raise ToolExecutionError(
             func_name, HubspotExceptionPrompt.MEETING_UNAVAILABLE_PROMPT
         )

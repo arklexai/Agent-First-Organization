@@ -12,6 +12,70 @@ The module defines two main abstract base classes:
 
 from abc import ABC, abstractmethod
 from typing import Dict, List, Any, Optional
+from pydantic import BaseModel, Field
+
+
+class IntentResponse(BaseModel):
+    """Response from intent detection.
+
+    This class represents the response from an intent detection operation,
+    containing the predicted intent and associated metadata.
+
+    Attributes:
+        intent: The predicted intent name
+        confidence: Confidence score for the prediction
+        metadata: Additional metadata about the prediction
+    """
+
+    intent: str = Field(..., description="The predicted intent name")
+    confidence: float = Field(..., description="Confidence score for the prediction")
+    metadata: Dict[str, Any] = Field(
+        default_factory=dict, description="Additional metadata about the prediction"
+    )
+
+
+class SlotResponse(BaseModel):
+    """Response from slot filling or verification.
+
+    This class represents the response from a slot filling or verification operation,
+    containing the slot name, value, confidence, and any additional metadata.
+
+    Attributes:
+        slot: The slot name
+        value: The extracted or verified value
+        confidence: Confidence score for the extraction/verification
+        metadata: Additional metadata about the slot
+    """
+
+    slot: str = Field(..., description="The slot name")
+    value: str = Field(..., description="The extracted or verified value")
+    confidence: float = Field(
+        ..., description="Confidence score for the extraction/verification"
+    )
+    metadata: Dict[str, Any] = Field(
+        default_factory=dict, description="Additional metadata about the slot"
+    )
+
+
+class VerificationResponse(BaseModel):
+    """Response from slot verification.
+
+    This class represents the response from a slot verification operation,
+    containing the slot name, verification result, reason, and any additional metadata.
+
+    Attributes:
+        slot: The slot name
+        verified: Whether the slot value is verified (True/False)
+        reason: Reason for the verification result
+        metadata: Additional metadata about the verification
+    """
+
+    slot: str = Field(..., description="The slot name")
+    verified: bool = Field(..., description="Whether the slot value is verified")
+    reason: str = Field(..., description="Reason for the verification result")
+    metadata: Dict[str, Any] = Field(
+        default_factory=dict, description="Additional metadata about the verification"
+    )
 
 
 class BaseNLU(ABC):
@@ -39,7 +103,7 @@ class BaseNLU(ABC):
         intents: Dict[str, List[Dict[str, Any]]],
         chat_history_str: str,
         model_config: Dict[str, Any],
-    ) -> str:
+    ) -> IntentResponse:
         """Predict intent from input text.
 
         Analyzes the input text to determine the most likely intent based on
@@ -52,7 +116,7 @@ class BaseNLU(ABC):
             model_config: Configuration parameters for the language model
 
         Returns:
-            The predicted intent name as a string
+            IntentResponse containing the predicted intent and metadata
 
         Raises:
             NotImplementedError: If the concrete class does not implement this method

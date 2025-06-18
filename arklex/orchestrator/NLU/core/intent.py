@@ -11,13 +11,14 @@ The module includes:
 - Integration with language models and APIs
 """
 
-import logging
 from typing import Dict, List, Any, Optional
 from arklex.orchestrator.NLU.core.base import BaseNLU
 from arklex.orchestrator.NLU.services.model_service import ModelService
 from arklex.orchestrator.NLU.services.api_service import APIClientService
+from arklex.utils.logging_utils import LogContext, LOG_MESSAGES, handle_exceptions
+from arklex.utils.exceptions import ModelError, ValidationError, APIError
 
-logger = logging.getLogger(__name__)
+log_context = LogContext(__name__)
 
 
 class IntentDetector(BaseNLU):
@@ -40,32 +41,145 @@ class IntentDetector(BaseNLU):
     """
 
     def __init__(
-        self, api_url: Optional[str] = None, model_config: Optional[dict] = None
+        self,
+        model_service: ModelService,
+        api_service: Optional[APIClientService] = None,
     ) -> None:
         """Initialize the intent detector.
 
-        Creates a new intent detector instance, optionally configuring it
-        to use a remote API service for intent detection.
+        Args:
+            model_service: Service for local model-based intent detection
+            api_service: Optional service for remote API-based intent detection
+
+        Raises:
+            ValidationError: If model_service is not provided
+        """
+        if not model_service:
+            log_context.error(
+                "Model service is required",
+                extra={"operation": "initialization"},
+            )
+            raise ValidationError(
+                "Model service is required",
+                details={
+                    "service": "IntentDetector",
+                    "operation": "initialization",
+                },
+            )
+        self.model_service = model_service
+        self.api_service = api_service
+        if not api_service:
+            log_context.warning(
+                "Using local model-based intent detection",
+                extra={"operation": "initialization"},
+            )
+        log_context.info(
+            "IntentDetector initialized successfully",
+            extra={
+                "mode": "remote" if api_service else "local",
+                "operation": "initialization",
+            },
+        )
+
+    @handle_exceptions()
+    def _detect_intent_local(
+        self,
+        intents: Dict[str, List[Dict[str, Any]]],
+        chat_history_str: str,
+        model_config: Dict[str, Any],
+    ) -> str:
+        """Detect intent using local model.
 
         Args:
-            api_url: Optional URL for remote API service. If provided,
-                    the detector will use the remote API instead of
-                    local model-based detection.
-            model_config: Optional model configuration dictionary. If not provided,
-                    a default config will be used.
+            intents: Dictionary of available intents
+            chat_history_str: Formatted chat history
+            model_config: Model configuration
 
-        Note:
-            If api_url is not provided, the detector will use local
-            model-based intent detection exclusively.
+        Returns:
+            Predicted intent name
+
+        Raises:
+            ModelError: If intent detection fails
+            ValidationError: If input validation fails
         """
-        if model_config is None:
-            model_config = {
-                "model_type_or_path": "gpt-3.5-turbo",
-                "llm_provider": "openai",
-            }
-        self.model_service = ModelService(model_config)
-        self.api_service = APIClientService(api_url) if api_url else None
+        log_context.info(
+            "Using local model for intent detection",
+            extra={"operation": "intent_detection_local"},
+        )
 
+        # Format input and get mapping
+        prompt, idx2intents_mapping = self.model_service.format_intent_input(
+            intents, chat_history_str
+        )
+        log_context.info(
+            "Intent detection input prepared",
+            extra={
+                "prompt": prompt,
+                "mapping": idx2intents_mapping,
+                "operation": "intent_detection_local",
+            },
+        )
+
+        # Get model response
+        response = self.model_service.get_response(prompt)
+        log_context.info(
+            "Model response received",
+            extra={
+                "prompt": prompt,
+                "raw_response": response,
+                "operation": "intent_detection_local",
+            },
+        )
+
+        # Parse response
+        try:
+            pred_idx, pred_intent = [i.strip() for i in response.split(")")]
+        except ValueError as e:
+            log_context.error(
+                "Invalid response format",
+                extra={
+                    "prompt": prompt,
+                    "raw_response": response,
+                    "error": str(e),
+                    "operation": "intent_detection_local",
+                },
+            )
+            raise ValidationError(
+                "Invalid response format",
+                details={
+                    "prompt": prompt,
+                    "raw_response": response,
+                    "error": str(e),
+                    "operation": "intent_detection_local",
+                },
+            )
+
+        # Validate intent
+        if pred_intent not in idx2intents_mapping.values():
+            log_context.warning(
+                "Predicted intent not in mapping",
+                extra={
+                    "prompt": prompt,
+                    "raw_response": response,
+                    "predicted_intent": pred_intent,
+                    "available_intents": list(idx2intents_mapping.values()),
+                    "operation": "intent_detection_local",
+                },
+            )
+            pred_intent = idx2intents_mapping.get(pred_idx, "others")
+
+        log_context.info(
+            "Intent detection completed",
+            extra={
+                "prompt": prompt,
+                "raw_response": response,
+                "final_predicted_intent": pred_intent,
+                "operation": "intent_detection_local",
+            },
+        )
+        return pred_intent
+
+    @handle_exceptions()
     def _detect_intent_remote(
         self,
         text: str,
@@ -85,45 +199,62 @@ class IntentDetector(BaseNLU):
             Predicted intent name
 
         Raises:
-            ValueError: If API service is not configured
+            ModelError: If intent detection fails
+            ValidationError: If input validation fails
+            APIError: If API request fails
         """
         if not self.api_service:
-            raise ValueError("API service not configured")
+            log_context.error(
+                "API service not configured",
+                extra={"operation": "intent_detection_remote"},
+            )
+            raise ValidationError(
+                "API service not configured",
+                details={"operation": "intent_detection_remote"},
+            )
 
-        logger.info("Using remote API for intent detection")
-        return self.api_service.predict_intent(
-            text, intents, chat_history_str, model_config
+        log_context.info(
+            "Using remote API for intent detection",
+            extra={
+                "text": text,
+                "operation": "intent_detection_remote",
+            },
         )
 
-    def _detect_intent_local(
-        self,
-        intents: Dict[str, List[Dict[str, Any]]],
-        chat_history_str: str,
-        model_config: Dict[str, Any],
-    ) -> str:
-        """Detect intent using local model.
+        try:
+            response = self.api_service.predict_intent(
+                text=text,
+                intents=intents,
+                chat_history_str=chat_history_str,
+                model_config=model_config,
+            )
+            log_context.info(
+                "Intent detection completed",
+                extra={
+                    "predicted_intent": response,
+                    "operation": "intent_detection_remote",
+                },
+            )
+            return response
+        except APIError as e:
+            log_context.error(
+                "Failed to detect intent via API",
+                extra={
+                    "error": str(e),
+                    "text": text,
+                    "operation": "intent_detection_remote",
+                },
+            )
+            raise APIError(
+                "Failed to detect intent via API",
+                details={
+                    "error": str(e),
+                    "text": text,
+                    "operation": "intent_detection_remote",
+                },
+            ) from e
 
-        Args:
-            intents: Dictionary of available intents
-            chat_history_str: Formatted chat history
-            model_config: Model configuration
-
-        Returns:
-            Predicted intent name
-        """
-        logger.info("Using local model for intent detection")
-        prompt, idx2intents_mapping = self.model_service.format_intent_input(
-            intents, chat_history_str
-        )
-
-        response = self.model_service.get_response(prompt)
-        response = response.split(")")[0].strip()
-
-        pred_intent = idx2intents_mapping.get(response.strip(), "others")
-        logger.info(f"Predicted intent: {pred_intent}")
-
-        return pred_intent
-
+    @handle_exceptions()
     def predict_intent(
         self,
         text: str,
@@ -146,20 +277,50 @@ class IntentDetector(BaseNLU):
         Returns:
             The predicted intent name as a string
 
-        Note:
-            The method automatically chooses between local and remote detection
-            based on whether an API service is configured.
+        Raises:
+            ModelError: If intent detection fails
+            ValidationError: If input validation fails
+            APIError: If API request fails
         """
+        log_context.info(
+            "Starting intent prediction",
+            extra={
+                "text": text,
+                "mode": "remote" if self.api_service else "local",
+                "operation": "intent_prediction",
+            },
+        )
+
         try:
             if self.api_service:
-                return self._detect_intent_remote(
+                intent = self._detect_intent_remote(
                     text, intents, chat_history_str, model_config
                 )
-            return self._detect_intent_local(intents, chat_history_str, model_config)
-        except Exception as e:
-            logger.error(f"Error in intent detection: {str(e)}")
-            return "others"
+            else:
+                intent = self._detect_intent_local(
+                    intents, chat_history_str, model_config
+                )
 
+            log_context.info(
+                "Intent prediction completed",
+                extra={
+                    "predicted_intent": intent,
+                    "operation": "intent_prediction",
+                },
+            )
+            return intent
+        except Exception as e:
+            log_context.error(
+                "Intent prediction failed",
+                extra={
+                    "error": str(e),
+                    "text": text,
+                    "operation": "intent_prediction",
+                },
+            )
+            raise
+
+    @handle_exceptions()
     def execute(
         self,
         text: str,
@@ -167,5 +328,23 @@ class IntentDetector(BaseNLU):
         chat_history_str: str,
         model_config: Dict[str, Any],
     ) -> str:
-        """Alias for predict_intent to match expected interface in TaskGraph."""
+        """Execute intent detection.
+
+        This method is an alias for predict_intent, implementing the BaseNLU
+        interface. It provides the same functionality as predict_intent.
+
+        Args:
+            text: Input text to analyze
+            intents: Dictionary of available intents
+            chat_history_str: Formatted chat history
+            model_config: Model configuration
+
+        Returns:
+            Predicted intent name
+
+        Raises:
+            ModelError: If intent detection fails
+            ValidationError: If input validation fails
+            APIError: If API request fails
+        """
         return self.predict_intent(text, intents, chat_history_str, model_config)

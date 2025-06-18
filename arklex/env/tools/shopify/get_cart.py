@@ -10,16 +10,16 @@ This file contains the code for retrieving cart information from Shopify.
 from typing import Any, Dict
 import requests
 import inspect
-import logging
+from arklex.utils.logging_utils import LogContext
 
 from arklex.env.tools.shopify.utils_slots import ShopifyGetCartSlots, ShopifyOutputs
 from arklex.env.tools.shopify.utils_cart import *
 from arklex.env.tools.shopify.utils_nav import *
 from arklex.env.tools.tools import register_tool
-from arklex.exceptions import ToolExecutionError
+from arklex.utils.exceptions import ToolExecutionError
 from arklex.env.tools.shopify._exception_prompt import ShopifyExceptionPrompt
 
-logger = logging.getLogger(__name__)
+log_context = LogContext(__name__)
 
 description = "Get cart information"
 slots = ShopifyGetCartSlots.get_all_slots()

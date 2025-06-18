@@ -44,11 +44,10 @@ Usage:
 import os
 import mysql.connector
 import time
-import logging
 from typing import Dict, Any, Optional, List, Tuple
+from arklex.utils.logging_utils import LogContext
 
-# Configure logging
-logger = logging.getLogger(__name__)
+log_context = LogContext(__name__)
 
 # Timeout in seconds for establishing database connections
 CONNECTION_TIMEOUT: int = int(os.getenv("MYSQL_CONNECTION_TIMEOUT", 10))
@@ -150,7 +149,7 @@ class MySQLPool:
         while time.time() - t0 < CONNECTION_TIMEOUT:
             try:
                 conn = self.pool.get_connection()
-                logger.info(
+                log_context.info(
                     "mysql connection established", extra={"time": time.time() - t0}
                 )
                 return conn

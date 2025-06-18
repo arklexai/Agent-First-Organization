@@ -6,36 +6,54 @@ the BaseSlotFilling interface to provide a unified way of extracting and
 verifying slot values from input text.
 
 The module includes:
-- SlotFiller: Main class for slot filling and verification
+- SlotFiller: Main class for slot filling
 - Support for both local and remote slot filling
 - Integration with language models and APIs
-- Slot value verification and validation
 """
 
-import logging
 from typing import Dict, List, Any, Optional, Tuple
 from arklex.orchestrator.NLU.core.base import BaseSlotFilling
 from arklex.orchestrator.NLU.services.model_service import ModelService
 from arklex.orchestrator.NLU.services.api_service import APIClientService
 from arklex.utils.slot import Slot, Verification
+from arklex.utils.logging_utils import LogContext, handle_exceptions
+from arklex.utils.exceptions import ModelError, ValidationError, APIError
 
-logger = logging.getLogger(__name__)
+log_context = LogContext(__name__)
+
+
+def create_slot_filler(
+    model_service: ModelService,
+    api_service: Optional[APIClientService] = None,
+) -> "SlotFiller":
+    """Create a new SlotFiller instance.
+
+    Args:
+        model_service: Service for local model-based slot filling
+        api_service: Optional service for remote API-based slot filling
+
+    Returns:
+        A new SlotFiller instance
+
+    Raises:
+        ValidationError: If model_service is not provided
+    """
+    return SlotFiller(model_service=model_service, api_service=api_service)
 
 
 class SlotFiller(BaseSlotFilling):
     """Slot filling implementation.
 
-    This class provides functionality for extracting and verifying slot values,
-    supporting both local model-based and remote API-based approaches. It
-    implements the BaseSlotFilling interface and can be configured to use either
-    a local language model or a remote API service.
+    This class provides functionality for extracting and verifying slot values
+    from user input, supporting both local model-based and remote API-based
+    approaches. It implements the BaseSlotFilling interface and can be configured
+    to use either a local language model or a remote API service.
 
     Key features:
     - Dual-mode operation (local/remote)
-    - Slot value extraction and validation
     - Integration with language models
     - Support for chat history context
-    - Verification of extracted values
+    - Slot value extraction and verification
 
     Attributes:
         model_service: Service for local model-based slot filling
@@ -43,112 +61,47 @@ class SlotFiller(BaseSlotFilling):
     """
 
     def __init__(
-        self, api_url: Optional[str] = None, model_config: Optional[dict] = None
+        self,
+        model_service: ModelService,
+        api_service: Optional[APIClientService] = None,
     ) -> None:
         """Initialize the slot filler.
 
-        Creates a new slot filler instance, optionally configuring it
-        to use a remote API service for slot filling and verification.
-
         Args:
-            api_url: Optional URL for remote API service. If provided,
-                    the filler will use the remote API instead of
-                    local model-based slot filling.
-            model_config: Optional model configuration dictionary. If not provided,
-                    a default config will be used.
-
-        Note:
-            If api_url is not provided, the filler will use local
-            model-based slot filling exclusively.
-        """
-        if model_config is None:
-            model_config = {
-                "model_type_or_path": "gpt-3.5-turbo",
-                "llm_provider": "openai",
-            }
-        self.model_service = ModelService(model_config)
-        if api_url is not None and not isinstance(api_url, str):
-            logger.error("api_url must be a string")
-            self.api_service = None
-        else:
-            self.api_service = APIClientService(api_url) if api_url else None
-
-    def _verify_slot_remote(
-        self, slot: Dict[str, Any], chat_history_str: str, model_config: Dict[str, Any]
-    ) -> Tuple[bool, str]:
-        """Verify slot using remote API.
-
-        Args:
-            slot: The slot to verify
-            chat_history_str: Formatted chat history
-            model_config: Model configuration
-
-        Returns:
-            Tuple of (verification_needed, reasoning)
+            model_service: Service for local model-based slot filling
+            api_service: Optional service for remote API-based slot filling
 
         Raises:
-            ValueError: If API service is not configured
+            ValidationError: If model_service is not provided
         """
-        if not self.api_service:
-            raise ValueError("API service not configured")
-
-        logger.info("Using remote API for slot verification")
-        return self.api_service.verify_slot(slot, chat_history_str, model_config)
-
-    def _verify_slot_local(
-        self, slot: Dict[str, Any], chat_history_str: str, model_config: Dict[str, Any]
-    ) -> Tuple[bool, str]:
-        """Verify slot using local model.
-
-        Args:
-            slot: The slot to verify
-            chat_history_str: Formatted chat history
-            model_config: Model configuration
-
-        Returns:
-            Tuple of (verification_needed, reasoning)
-        """
-        logger.info("Using local model for slot verification")
-        prompt = self.model_service.format_verification_input(slot, chat_history_str)
-
-        response = self.model_service.get_response(
-            prompt, model_config, note="slot verification"
+        if not model_service:
+            log_context.error(
+                "Model service is required",
+                extra={"operation": "initialization"},
+            )
+            raise ValidationError(
+                "Model service is required",
+                details={
+                    "service": "SlotFiller",
+                    "operation": "initialization",
+                },
+            )
+        self.model_service = model_service
+        self.api_service = api_service
+        if not api_service:
+            log_context.warning(
+                "Using local model-based slot filling",
+                extra={"operation": "initialization"},
+            )
+        log_context.info(
+            "SlotFiller initialized successfully",
+            extra={
+                "mode": "remote" if api_service else "local",
+                "operation": "initialization",
+            },
         )
 
-        verification_needed, thought = self.model_service.process_verification_response(
-            response
-        )
-        logger.info(f"Verification needed: {verification_needed}, Reason: {thought}")
-
-        return verification_needed, thought
-
-    def _fill_slots_remote(
-        self,
-        slots: List[Slot],
-        context: str,
-        model_config: Dict[str, Any],
-        type: str = "chat",
-    ) -> List[Slot]:
-        """Fill slots using remote API.
-
-        Args:
-            slots: List of slots to fill
-            context: Input context
-            model_config: Model configuration
-            type: Slot filling type
-
-        Returns:
-            List of filled slots
-
-        Raises:
-            ValueError: If API service is not configured
-        """
-        if not self.api_service:
-            raise ValueError("API service not configured")
-
-        logger.info("Using remote API for slot filling")
-        return self.api_service.fill_slots(slots, context, model_config, type)
-
+    @handle_exceptions()
     def _fill_slots_local(
         self,
         slots: List[Slot],
@@ -160,62 +113,381 @@ class SlotFiller(BaseSlotFilling):
 
         Args:
             slots: List of slots to fill
-            context: Input context
+            context: Input context to extract values from
             model_config: Model configuration
-            type: Slot filling type
+            type: Type of slot filling operation (default: "chat")
 
         Returns:
             List of filled slots
+
+        Raises:
+            ModelError: If slot filling fails
+            ValidationError: If input validation fails
         """
-        logger.info("Using local model for slot filling")
-        user_prompt, system_prompt = self.model_service.format_slot_input(
+        log_context.info(
+            "Using local model for slot filling",
+            extra={
+                "slots": [slot.name for slot in slots],
+                "context_length": len(context),
+                "type": type,
+                "operation": "slot_filling_local",
+            },
+        )
+
+        # Format input
+        prompt, system_prompt = self.model_service.format_slot_input(
             slots, context, type
         )
-
-        response = self.model_service.get_response(
-            user_prompt,
-            model_config,
-            system_prompt=system_prompt,
-            response_format="json",
-            note="slot filling",
+        log_context.info(
+            "Slot filling input prepared",
+            extra={
+                "prompt": prompt,
+                "system_prompt": system_prompt,
+                "operation": "slot_filling_local",
+            },
         )
 
-        filled_slots = self.model_service.process_slot_response(response, slots)
-        logger.info(f"Filled slots: {filled_slots}")
+        # Get model response
+        response = self.model_service.get_response(prompt, model_config, system_prompt)
+        log_context.info(
+            "Model response received",
+            extra={
+                "prompt": prompt,
+                "system_prompt": system_prompt,
+                "raw_response": response,
+                "operation": "slot_filling_local",
+            },
+        )
 
-        return filled_slots
+        # Process response
+        try:
+            filled_slots = self.model_service.process_slot_response(response, slots)
+            log_context.info(
+                "Slot filling completed",
+                extra={
+                    "prompt": prompt,
+                    "system_prompt": system_prompt,
+                    "raw_response": response,
+                    "filled_slots": [slot.name for slot in filled_slots],
+                    "operation": "slot_filling_local",
+                },
+            )
+            return filled_slots
+        except Exception as e:
+            log_context.error(
+                "Failed to process slot filling response",
+                extra={
+                    "prompt": prompt,
+                    "system_prompt": system_prompt,
+                    "raw_response": response,
+                    "error": str(e),
+                    "operation": "slot_filling_local",
+                },
+            )
+            raise ModelError(
+                "Failed to process slot filling response",
+                details={
+                    "prompt": prompt,
+                    "system_prompt": system_prompt,
+                    "raw_response": response,
+                    "error": str(e),
+                    "operation": "slot_filling_local",
+                },
+            ) from e
 
-    def verify_slot(
-        self, slot: Dict[str, Any], chat_history_str: str, model_config: Dict[str, Any]
-    ) -> Tuple[bool, str]:
-        """Verify if a slot value needs confirmation.
-
-        Determines whether a slot value requires user confirmation based on
-        confidence level, ambiguity, or other verification criteria. Can operate
-        in either local model-based or remote API-based mode.
+    @handle_exceptions()
+    def _fill_slots_remote(
+        self,
+        slots: List[Slot],
+        context: str,
+        model_config: Dict[str, Any],
+        type: str = "chat",
+    ) -> List[Slot]:
+        """Fill slots using remote API.
 
         Args:
-            slot: The slot to verify, containing extracted value and metadata
-            chat_history_str: Formatted chat history providing conversation context
-            model_config: Configuration parameters for the language model
+            slots: List of slots to fill
+            context: Input context to extract values from
+            model_config: Model configuration
+            type: Type of slot filling operation (default: "chat")
 
         Returns:
-            A tuple containing:
-                - bool: Whether verification is needed
-                - str: Reasoning for the verification decision
+            List of filled slots
 
-        Note:
-            The method automatically chooses between local and remote verification
-            based on whether an API service is configured.
+        Raises:
+            ModelError: If slot filling fails
+            ValidationError: If input validation fails
+            APIError: If API request fails
         """
+        if not self.api_service:
+            log_context.error(
+                "API service not configured",
+                extra={"operation": "slot_filling_remote"},
+            )
+            raise ValidationError(
+                "API service not configured",
+                details={"operation": "slot_filling_remote"},
+            )
+
+        log_context.info(
+            "Using remote API for slot filling",
+            extra={
+                "slots": [slot.name for slot in slots],
+                "context_length": len(context),
+                "type": type,
+                "operation": "slot_filling_remote",
+            },
+        )
+
+        try:
+            filled_slots = self.api_service.fill_slots(
+                slots=slots,
+                context=context,
+                model_config=model_config,
+                type=type,
+            )
+            log_context.info(
+                "Slot filling completed",
+                extra={
+                    "filled_slots": [slot.name for slot in filled_slots],
+                    "operation": "slot_filling_remote",
+                },
+            )
+            return filled_slots
+        except APIError as e:
+            log_context.error(
+                "Failed to fill slots via API",
+                extra={
+                    "error": str(e),
+                    "slots": [slot.name for slot in slots],
+                    "operation": "slot_filling_remote",
+                },
+            )
+            raise APIError(
+                "Failed to fill slots via API",
+                details={
+                    "error": str(e),
+                    "slots": [slot.name for slot in slots],
+                    "operation": "slot_filling_remote",
+                },
+            ) from e
+
+    @handle_exceptions()
+    def _verify_slot_local(
+        self,
+        slot: Dict[str, Any],
+        chat_history_str: str,
+        model_config: Dict[str, Any],
+    ) -> Tuple[bool, str]:
+        """Verify slot value using local model.
+
+        Args:
+            slot: Slot to verify
+            chat_history_str: Formatted chat history
+            model_config: Model configuration
+
+        Returns:
+            Tuple of (is_valid, reason)
+
+        Raises:
+            ModelError: If slot verification fails
+            ValidationError: If input validation fails
+        """
+        log_context.info(
+            "Using local model for slot verification",
+            extra={
+                "slot": slot.get("name"),
+                "operation": "slot_verification_local",
+            },
+        )
+
+        # Format input
+        prompt = self.model_service.format_verification_input(slot, chat_history_str)
+        log_context.info(
+            "Slot verification input prepared",
+            extra={
+                "prompt": prompt,
+                "operation": "slot_verification_local",
+            },
+        )
+
+        # Get model response
+        response = self.model_service.get_response(prompt, model_config)
+        log_context.info(
+            "Model response received",
+            extra={
+                "response": response,
+                "operation": "slot_verification_local",
+            },
+        )
+
+        # Process response
+        try:
+            is_valid, reason = self.model_service.process_verification_response(
+                response
+            )
+            log_context.info(
+                "Slot verification completed",
+                extra={
+                    "is_valid": is_valid,
+                    "reason": reason,
+                    "operation": "slot_verification_local",
+                },
+            )
+            return is_valid, reason
+        except Exception as e:
+            log_context.error(
+                "Failed to process slot verification response",
+                extra={
+                    "error": str(e),
+                    "response": response,
+                    "operation": "slot_verification_local",
+                },
+            )
+            raise ModelError(
+                "Failed to process slot verification response",
+                details={
+                    "error": str(e),
+                    "response": response,
+                    "operation": "slot_verification_local",
+                },
+            ) from e
+
+    @handle_exceptions()
+    def _verify_slot_remote(
+        self,
+        slot: Dict[str, Any],
+        chat_history_str: str,
+        model_config: Dict[str, Any],
+    ) -> Tuple[bool, str]:
+        """Verify slot value using remote API.
+
+        Args:
+            slot: Slot to verify
+            chat_history_str: Formatted chat history
+            model_config: Model configuration
+
+        Returns:
+            Tuple of (is_valid, reason)
+
+        Raises:
+            ModelError: If slot verification fails
+            ValidationError: If input validation fails
+            APIError: If API request fails
+        """
+        if not self.api_service:
+            log_context.error(
+                "API service not configured",
+                extra={"operation": "slot_verification_remote"},
+            )
+            raise ValidationError(
+                "API service not configured",
+                details={"operation": "slot_verification_remote"},
+            )
+
+        log_context.info(
+            "Using remote API for slot verification",
+            extra={
+                "slot": slot.get("name"),
+                "operation": "slot_verification_remote",
+            },
+        )
+
+        try:
+            is_valid, reason = self.api_service.verify_slot(
+                slot=slot,
+                chat_history_str=chat_history_str,
+                model_config=model_config,
+            )
+            log_context.info(
+                "Slot verification completed",
+                extra={
+                    "is_valid": is_valid,
+                    "reason": reason,
+                    "operation": "slot_verification_remote",
+                },
+            )
+            return is_valid, reason
+        except APIError as e:
+            log_context.error(
+                "Failed to verify slot via API",
+                extra={
+                    "error": str(e),
+                    "slot": slot.get("name"),
+                    "operation": "slot_verification_remote",
+                },
+            )
+            raise APIError(
+                "Failed to verify slot via API",
+                details={
+                    "error": str(e),
+                    "slot": slot.get("name"),
+                    "operation": "slot_verification_remote",
+                },
+            ) from e
+
+    @handle_exceptions()
+    def verify_slot(
+        self,
+        slot: Dict[str, Any],
+        chat_history_str: str,
+        model_config: Dict[str, Any],
+    ) -> Tuple[bool, str]:
+        """Verify slot value.
+
+        Args:
+            slot: Slot to verify
+            chat_history_str: Formatted chat history
+            model_config: Model configuration
+
+        Returns:
+            Tuple of (is_valid, reason)
+
+        Raises:
+            ModelError: If slot verification fails
+            ValidationError: If input validation fails
+            APIError: If API request fails
+        """
+        log_context.info(
+            "Starting slot verification",
+            extra={
+                "slot": slot.get("name"),
+                "mode": "remote" if self.api_service else "local",
+                "operation": "slot_verification",
+            },
+        )
+
         try:
             if self.api_service:
-                return self._verify_slot_remote(slot, chat_history_str, model_config)
-            return self._verify_slot_local(slot, chat_history_str, model_config)
-        except Exception as e:
-            logger.error(f"Error in slot verification: {str(e)}")
-            return False, "Error during verification"
+                is_valid, reason = self._verify_slot_remote(
+                    slot, chat_history_str, model_config
+                )
+            else:
+                is_valid, reason = self._verify_slot_local(
+                    slot, chat_history_str, model_config
+                )
 
+            log_context.info(
+                "Slot verification completed",
+                extra={
+                    "is_valid": is_valid,
+                    "reason": reason,
+                    "operation": "slot_verification",
+                },
+            )
+            return is_valid, reason
+        except Exception as e:
+            log_context.error(
+                "Slot verification failed",
+                extra={
+                    "error": str(e),
+                    "slot": slot.get("name"),
+                    "operation": "slot_verification",
+                },
+            )
+            raise
+
+    @handle_exceptions()
     def fill_slots(
         self,
         slots: List[Slot],
@@ -223,53 +495,57 @@ class SlotFiller(BaseSlotFilling):
         model_config: Dict[str, Any],
         type: str = "chat",
     ) -> List[Slot]:
-        """Extract slot values from context.
-
-        Analyzes the input context to extract values for the specified slots,
-        using either a local language model or a remote API service.
+        """Fill slots from input context.
 
         Args:
-            slots: List of slots to fill, each containing slot definition and metadata
+            slots: List of slots to fill
             context: Input context to extract values from
-            model_config: Configuration parameters for the language model
+            model_config: Model configuration
             type: Type of slot filling operation (default: "chat")
 
         Returns:
-            List of filled slots, each containing extracted values and metadata
+            List of filled slots
 
-        Note:
-            The method automatically chooses between local and remote slot filling
-            based on whether an API service is configured.
+        Raises:
+            ModelError: If slot filling fails
+            ValidationError: If input validation fails
+            APIError: If API request fails
         """
+        log_context.info(
+            "Starting slot filling",
+            extra={
+                "slots": [slot.name for slot in slots],
+                "context_length": len(context),
+                "mode": "remote" if self.api_service else "local",
+                "operation": "slot_filling",
+            },
+        )
+
         try:
             if self.api_service:
-                return self._fill_slots_remote(slots, context, model_config, type)
-            return self._fill_slots_local(slots, context, model_config, type)
+                filled_slots = self._fill_slots_remote(
+                    slots, context, model_config, type
+                )
+            else:
+                filled_slots = self._fill_slots_local(
+                    slots, context, model_config, type
+                )
+
+            log_context.info(
+                "Slot filling completed",
+                extra={
+                    "filled_slots": [slot.name for slot in filled_slots],
+                    "operation": "slot_filling",
+                },
+            )
+            return filled_slots
         except Exception as e:
-            logger.error(f"Error in slot filling: {str(e)}")
-            return slots
-
-
-def initialize_slotfillapi(slotsfillapi: str) -> SlotFiller:
-    """Initialize the slot filling API.
-
-    This function creates a new SlotFiller instance, configuring it to use either
-    a remote API service or local model-based slot filling based on the provided
-    API URL.
-
-    Args:
-        slotsfillapi: API endpoint for slot filling. If not a string or empty,
-                     falls back to local model-based slot filling.
-
-    Returns:
-        SlotFiller: Initialized slot filler instance, either API-based or local model-based.
-
-    Note:
-        The function will automatically fall back to local model-based slot filling
-        if the API URL is invalid or not provided.
-    """
-    if not isinstance(slotsfillapi, str) or not slotsfillapi:
-        logger.warning("Using local model-based slot filling")
-        return SlotFiller(None)
-    logger.info(f"Initializing SlotFiller with API URL: {slotsfillapi}")
-    return SlotFiller(slotsfillapi)
+            log_context.error(
+                "Slot filling failed",
+                extra={
+                    "error": str(e),
+                    "slots": [slot.name for slot in slots],
+                    "operation": "slot_filling",
+                },
+            )
+            raise

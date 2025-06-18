@@ -7,6 +7,9 @@ import os
 import pytest
 from unittest.mock import patch, MagicMock
 import sys
+from fastapi.testclient import TestClient
+from arklex.main import app
+from arklex.utils.logging_config import setup_logging
 
 
 # Mock OpenAI API key for testing
@@ -138,3 +141,32 @@ def mock_intent_detector_execute():
             yield
     else:
         yield
+
+
+@pytest.fixture(scope="session")
+def test_client():
+    """Create a test client for the FastAPI application."""
+    return TestClient(app)
+
+
+@pytest.fixture(scope="session", autouse=True)
+def setup_test_logging():
+    """Set up test logging configuration."""
+    # Create a test logs directory
+    test_log_dir = os.path.join(os.getcwd(), "test_logs")
+    os.makedirs(test_log_dir, exist_ok=True)
+
+    # Set up logging for tests
+    setup_logging(log_dir=test_log_dir, log_level="DEBUG", app_name="arklex_test")
+
+
+@pytest.fixture
+def mock_request_id():
+    """Generate a mock request ID for testing."""
+    return "test-request-id-123"
+
+
+@pytest.fixture
+def sample_error_details():
+    """Provide sample error details for testing."""
+    return {"error": "Test error", "context": {"test": "context"}}

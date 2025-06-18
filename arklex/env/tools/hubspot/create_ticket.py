@@ -12,11 +12,13 @@ from hubspot.crm.associations.v4 import AssociationSpec
 from hubspot.crm.tickets.models import SimplePublicObjectInputForCreate
 from typing import Dict, Any, List
 
-from arklex.env.tools.tools import register_tool, logger
+from arklex.env.tools.tools import register_tool
 from arklex.env.tools.hubspot.utils import authenticate_hubspot
-from arklex.exceptions import ToolExecutionError
+from arklex.utils.exceptions import ToolExecutionError
 from arklex.env.tools.hubspot._exception_prompt import HubspotExceptionPrompt
+from arklex.utils.logging_utils import LogContext
 
+log_context = LogContext(__name__)
 
 # Tool description for creating support tickets
 description: str = "Create a ticket for the existing customer when the customer has some problem about the specific product."
@@ -104,12 +106,12 @@ def create_ticket(cus_cid: str, issue: str, **kwargs: Dict[str, Any]) -> str:
             )
             return ticket_id
         except ApiException as e:
-            logger.info("Exception when calling AssociationV4: %s\n" % e)
+            log_context.info("Exception when calling AssociationV4: %s\n" % e)
             raise ToolExecutionError(
                 func_name, HubspotExceptionPrompt.TICKET_CREATION_ERROR_PROMPT
             )
     except ApiException as e:
-        logger.info("Exception when calling Crm.tickets.create: %s\n" % e)
+        log_context.info("Exception when calling Crm.tickets.create: %s\n" % e)
         raise ToolExecutionError(
             func_name, HubspotExceptionPrompt.TICKET_CREATION_ERROR_PROMPT
         )

@@ -32,8 +32,11 @@ from typing import Dict, Any
 
 # Default model configuration settings
 MODEL: Dict[str, Any] = {
-    "model_type_or_path": "gpt-4o",  # Model identifier or path
-    "llm_provider": "openai",  # Language model provider
+    "model_name": "gpt-4o",
+    "model_type_or_path": "gpt-4o",
+    "llm_provider": "openai",
+    "api_key": "your_default_api_key",  # Default API key
+    "endpoint": "https://api.openai.com/v1",  # Default endpoint
     "context": 16000,  # Maximum context window size
     "max_tokens": 4096,  # Maximum tokens for generation
     "tokenizer": "o200k_base",  # Tokenizer configuration

@@ -6,12 +6,12 @@ workers, with validation methods to ensure correct task graph paths and response
 content.
 """
 
-import logging
+from arklex.utils.logging_utils import LogContext
 from typing import Any, Dict, List
 
 from tests.utils.utils import MockOrchestrator, MockResourceInitializer
 
-logger = logging.getLogger(__name__)
+log_context = LogContext(__name__)
 
 
 def _extract_node_path(params: Dict[str, Any]) -> List[str]:

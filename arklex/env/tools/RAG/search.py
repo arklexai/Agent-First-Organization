@@ -16,9 +16,11 @@ from langchain.prompts import PromptTemplate
 from langchain_openai import ChatOpenAI
 from langchain_core.output_parsers import StrOutputParser
 from langchain_community.tools import TavilySearchResults
+from arklex.utils.logging_utils import LogContext
+from arklex.utils.exceptions import SearchError
 
 
-logger: logging.Logger = logging.getLogger(__name__)
+log_context = LogContext(__name__)
 
 
 class SearchEngine:
@@ -63,7 +65,7 @@ class TavilySearchExecutor:
         ret_input: str = ret_input_chain.invoke(
             {"chat_history": state.user_message.history}
         )
-        logger.info(f"Reformulated input for search engine: {ret_input}")
+        log_context.info(f"Reformulated input for search engine: {ret_input}")
         search_results: List[Dict[str, Any]] = self.search_tool.invoke(
             {"query": ret_input}
         )
@@ -74,3 +76,25 @@ class TavilySearchExecutor:
         self, llm_config: LLMConfig, **kwargs: Any
     ) -> "TavilySearchExecutor":
         return TavilySearchExecutor(llm_config, **kwargs)
+
+    def search_documents(self, query: str, **kwargs: Any) -> List[Dict[str, Any]]:
+        """Search for documents matching the query.
+
+        Args:
+            query: Search query
+            **kwargs: Additional search parameters
+
+        Returns:
+            List of matching documents
+
+        Raises:
+            SearchError: If search fails
+        """
+        try:
+            log_context.info(f"Starting search for query: {query}")
+            results = self.search_tool.invoke({"query": query, **kwargs})
+            log_context.info(f"Search completed, found {len(results)} results")
+            return results
+        except Exception as e:
+            log_context.error(f"Search failed: {e}")
+            raise SearchError("Search failed") from e

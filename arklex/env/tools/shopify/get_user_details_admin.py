@@ -27,7 +27,7 @@ from arklex.env.tools.shopify.utils_slots import (
 from arklex.env.tools.shopify.utils_nav import *
 from arklex.env.tools.shopify.utils import authorify_admin
 from arklex.env.tools.shopify._exception_prompt import ShopifyExceptionPrompt
-from arklex.exceptions import ToolExecutionError
+from arklex.utils.exceptions import ToolExecutionError
 
 # Admin API
 import shopify

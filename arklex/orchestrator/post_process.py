@@ -6,12 +6,13 @@ from arklex.env.prompts import load_prompts
 from arklex.env.workers.hitl_worker import HITLWorkerChatFlag
 from arklex.utils.graph_state import MessageState, Params, ResourceRecord
 from arklex.utils.model_provider_config import PROVIDER_MAP
+from arklex.utils.logging_utils import LogContext
 
 from langchain.prompts import PromptTemplate
 from langchain_openai import ChatOpenAI
 from langchain_core.output_parsers import StrOutputParser
 
-logger = logging.getLogger(__name__)
+log_context = LogContext(__name__)
 
 RAG_NODES_STEPS = {
     "FaissRAGWorker": "faiss_retrieve",
@@ -27,7 +28,7 @@ def post_process_response(
     response_links = _extract_links(message_state.response)
     missing_links = response_links - context_links
     if missing_links:
-        logger.info(
+        log_context.info(
             f"Some answer links are NOT present in the context. Missing: {missing_links}"
         )
         message_state.response = _remove_invalid_links(
@@ -54,7 +55,7 @@ def _build_context(message_state: MessageState) -> set:
                             )
                             context_links.update(step_links)
                     except Exception as e:
-                        logger.warning(
+                        log_context.warning(
                             f"Error extracting links from step: {e} — step: {step}"
                         )
     return context_links
@@ -117,6 +118,6 @@ def _rephrase_answer(state: MessageState) -> str:
         }
     )
     final_chain = llm | StrOutputParser()
-    logger.info(f"Prompt: {input_prompt.text}")
+    log_context.info(f"Prompt: {input_prompt.text}")
     answer: str = final_chain.invoke(input_prompt.text)
     return answer

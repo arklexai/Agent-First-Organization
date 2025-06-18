@@ -8,7 +8,6 @@ confidence-scored document retrieval.
 """
 
 import os
-import logging
 from typing import List, Dict, Any, Tuple
 import pickle
 
@@ -27,9 +26,10 @@ from arklex.utils.model_provider_config import (
     PROVIDER_EMBEDDING_MODELS,
 )
 from arklex.env.tools.utils import trace
+from arklex.utils.logging_utils import LogContext
 
 
-logger: logging.Logger = logging.getLogger(__name__)
+log_context = LogContext(__name__)
 
 
 class RetrieveEngine:
@@ -101,7 +101,7 @@ class FaissRetrieverExecutor:
         )
         ret_input_chain = contextualize_q_prompt | self.llm | StrOutputParser()
         ret_input: str = ret_input_chain.invoke({"chat_history": chat_history_str})
-        logger.info(f"Reformulated input for retriever search: {ret_input}")
+        log_context.info(f"Reformulated input for retriever search: {ret_input}")
         docs_and_score: List[Tuple[Document, float]] = self.retrieve_w_score(ret_input)
         retrieved_text: str = ""
         retriever_returns: List[Dict[str, Any]] = []
@@ -122,10 +122,10 @@ class FaissRetrieverExecutor:
     ) -> "FaissRetrieverExecutor":
         document_path: str = os.path.join(database_path, "chunked_documents.pkl")
         index_path: str = os.path.join(database_path, "index")
-        logger.info(f"Loaded documents from {document_path}")
+        log_context.info(f"Loaded documents from {document_path}")
         with open(document_path, "rb") as fread:
             documents: List[Document] = pickle.load(fread)
-        logger.info(f"Loaded {len(documents)} documents")
+        log_context.info(f"Loaded {len(documents)} documents")
 
         return FaissRetrieverExecutor(
             texts=documents, index_path=index_path, llm_config=llm_config

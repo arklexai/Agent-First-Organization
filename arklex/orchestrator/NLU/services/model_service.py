@@ -7,13 +7,27 @@ message formatting, and response processing.
 """
 
 import json
-import logging
 from typing import Dict, Any, Optional, List, Union, Tuple
 from langchain_core.language_models import BaseChatModel
 from langchain_core.messages import HumanMessage, SystemMessage
 from .model_config import ModelConfig
+from arklex.utils.model_config import MODEL
 
-logger = logging.getLogger(__name__)
+from arklex.utils.exceptions import ModelError, ValidationError, APIError
+from arklex.utils.logging_utils import LogContext, LOG_MESSAGES, handle_exceptions
+from arklex.orchestrator.NLU.core.base import (
+    IntentResponse,
+    SlotResponse,
+    VerificationResponse,
+)
+from arklex.orchestrator.NLU.services.api_service import APIClientService
+from arklex.orchestrator.NLU.utils.validators import (
+    validate_intent_response,
+    validate_slot_response,
+    validate_verification_response,
+)
+
+log_context = LogContext(__name__)
 
 
 class ModelService:
@@ -36,20 +50,543 @@ class ModelService:
     def __init__(self, model_config: Dict[str, Any]) -> None:
         """Initialize the model service.
 
-        Creates a new model service instance with the specified configuration
-        and initializes the language model.
-
         Args:
-            model_config: Model configuration dictionary containing:
-                - model_type_or_path: Model identifier
-                - llm_provider: Provider name
+            model_config: Configuration for the language model
 
         Raises:
-            ValueError: If model initialization fails
+            ModelError: If initialization fails
+            ValidationError: If configuration is invalid
         """
         self.model_config = model_config
-        self.model = self._initialize_model()
+        self._validate_config()
+        try:
+            self.api_service = APIClientService(base_url=self.model_config["endpoint"])
+            self.model = self._initialize_model()
+            log_context.info(
+                "ModelService initialized successfully",
+                extra={
+                    "model_name": model_config.get("model_name"),
+                    "operation": "initialization",
+                },
+            )
+        except Exception as e:
+            log_context.error(
+                LOG_MESSAGES["ERROR"]["INITIALIZATION_ERROR"].format(
+                    service="ModelService", error=str(e)
+                ),
+                extra={
+                    "error": str(e),
+                    "service": "ModelService",
+                    "operation": "initialization",
+                },
+            )
+            raise ModelError(
+                "Failed to initialize model service",
+                details={
+                    "error": str(e),
+                    "service": "ModelService",
+                    "operation": "initialization",
+                },
+            )
 
+    def _validate_config(self) -> None:
+        """Validate the model configuration.
+
+        Raises:
+            ValidationError: If the configuration is invalid
+        """
+        required_fields = ["model_name", "model_type_or_path"]
+        missing_fields = [
+            field for field in required_fields if field not in self.model_config
+        ]
+        if missing_fields:
+            log_context.error(
+                "Missing required field",
+                extra={
+                    "missing_fields": missing_fields,
+                    "operation": "config_validation",
+                },
+            )
+            raise ValidationError(
+                "Missing required field",
+                details={
+                    "missing_fields": missing_fields,
+                    "operation": "config_validation",
+                },
+            )
+        # Use default values for api_key and endpoint if not provided
+        if "api_key" not in self.model_config:
+            self.model_config["api_key"] = MODEL["api_key"]
+        if "endpoint" not in self.model_config:
+            self.model_config["endpoint"] = MODEL["endpoint"]
+
+    @handle_exceptions()
+    async def process_text(
+        self, text: str, context: Optional[Dict[str, Any]] = None
+    ) -> Dict[str, Any]:
+        """Process text through the model.
+
+        Args:
+            text: Input text to process
+            context: Optional context information
+
+        Returns:
+            Dict[str, Any]: Processed response from the model
+
+        Raises:
+            ValidationError: If input validation fails
+            ModelError: If model processing fails
+        """
+        if not text:
+            log_context.error(
+                "Text cannot be empty",
+                extra={
+                    "text": text,
+                    "operation": "text_processing",
+                },
+            )
+            raise ValidationError(
+                "Text cannot be empty",
+                details={
+                    "text": text,
+                    "operation": "text_processing",
+                },
+            )
+
+        if not isinstance(text, str):
+            log_context.error(
+                "Invalid input text",
+                extra={
+                    "text": text,
+                    "type": type(text).__name__,
+                    "operation": "text_processing",
+                },
+            )
+            raise ValidationError(
+                "Invalid input text",
+                details={
+                    "text": text,
+                    "type": type(text).__name__,
+                    "operation": "text_processing",
+                },
+            )
+
+        try:
+            response = await self._make_model_request(
+                {
+                    "text": text,
+                    "context": context,
+                    "model": self.model_config["model_name"],
+                }
+            )
+            return response
+        except Exception as e:
+            log_context.error(
+                str(e),
+                extra={
+                    "error": str(e),
+                    "text": text,
+                    "operation": "text_processing",
+                },
+            )
+            raise ModelError(
+                str(e),
+                details={
+                    "error": str(e),
+                    "text": text,
+                    "operation": "text_processing",
+                },
+            )
+
+    async def _make_model_request(
+        self, text: Union[str, Dict[str, Any]]
+    ) -> Dict[str, Any]:
+        """Make a request to the model.
+
+        Args:
+            text: Input text or dictionary to send to the model
+
+        Returns:
+            Dict[str, Any]: Model response
+
+        Raises:
+            ModelError: If the request fails
+        """
+        try:
+            if isinstance(text, dict):
+                prompt = text.get("text", "")
+                context = text.get("context", {})
+                model = text.get("model", self.model_config.get("model_name"))
+                messages = self._format_messages(prompt, context)
+            else:
+                messages = self._format_messages(text)
+
+            response = await self.model.agenerate([messages])
+            return {"result": response.generations[0][0].text}
+        except Exception as e:
+            log_context.error(
+                str(e),
+                extra={
+                    "error": str(e),
+                    "text": text,
+                    "operation": "model_request",
+                },
+            )
+            raise ModelError(
+                str(e),
+                details={
+                    "error": str(e),
+                    "text": text,
+                    "operation": "model_request",
+                },
+            )
+
+    @handle_exceptions()
+    async def predict_intent(self, text: str) -> IntentResponse:
+        """Predict intent from input text.
+
+        Args:
+            text: Input text to predict intent from
+
+        Returns:
+            IntentResponse: Predicted intent and confidence
+
+        Raises:
+            ValidationError: If input validation fails
+            ModelError: If model prediction fails
+        """
+        # Validate input
+        if not text or not isinstance(text, str):
+            log_context.error(
+                "Invalid input text",
+                extra={
+                    "text": text,
+                    "type": type(text).__name__,
+                    "operation": "intent_prediction",
+                },
+            )
+            raise ValidationError(
+                "Invalid input text",
+                details={
+                    "text": text,
+                    "type": type(text).__name__,
+                    "operation": "intent_prediction",
+                },
+            )
+
+        # Get model response
+        response = await self.api_service.get_model_response(
+            prompt=text, response_format="intent"
+        )
+
+        # Validate response
+        if not response or not response.content:
+            log_context.error(
+                "Empty response from model",
+                extra={
+                    "response": response,
+                    "operation": "intent_prediction",
+                },
+            )
+            raise ModelError(
+                "Empty response from model",
+                details={
+                    "response": response,
+                    "operation": "intent_prediction",
+                },
+            )
+
+        # Parse and validate intent response
+        try:
+            intent_data = json.loads(response.content)
+            validated_response = validate_intent_response(intent_data)
+            log_context.info(
+                "Intent prediction successful",
+                extra={
+                    "intent": validated_response.get("intent"),
+                    "confidence": validated_response.get("confidence"),
+                    "operation": "intent_prediction",
+                },
+            )
+            return IntentResponse(**validated_response)
+        except json.JSONDecodeError as e:
+            log_context.error(
+                "Failed to parse model response",
+                extra={
+                    "error": str(e),
+                    "response": response.content,
+                    "operation": "intent_prediction",
+                },
+            )
+            raise ModelError(
+                "Failed to parse model response",
+                details={
+                    "error": str(e),
+                    "response": response.content,
+                    "operation": "intent_prediction",
+                },
+            )
+        except ValidationError as e:
+            log_context.error(
+                "Invalid intent response format",
+                extra={
+                    "error": str(e),
+                    "response": response.content,
+                    "operation": "intent_prediction",
+                },
+            )
+            raise ValidationError(
+                "Invalid intent response format",
+                details={
+                    "error": str(e),
+                    "response": response.content,
+                    "operation": "intent_prediction",
+                },
+            )
+
+    @handle_exceptions()
+    async def fill_slots(self, text: str, intent: str) -> SlotResponse:
+        """Fill slots based on input text and intent.
+
+        Args:
+            text: Input text to extract slots from
+            intent: Intent to use for slot filling
+
+        Returns:
+            SlotResponse: Extracted slots and their values
+
+        Raises:
+            ValidationError: If input validation fails
+            ModelError: If slot filling fails
+        """
+        # Validate inputs
+        if not text or not isinstance(text, str):
+            log_context.error(
+                "Invalid input text",
+                extra={
+                    "text": text,
+                    "type": type(text).__name__,
+                    "operation": "slot_filling",
+                },
+            )
+            raise ValidationError(
+                "Invalid input text",
+                details={
+                    "text": text,
+                    "type": type(text).__name__,
+                    "operation": "slot_filling",
+                },
+            )
+        if not intent or not isinstance(intent, str):
+            log_context.error(
+                "Invalid intent",
+                extra={
+                    "intent": intent,
+                    "type": type(intent).__name__,
+                    "operation": "slot_filling",
+                },
+            )
+            raise ValidationError(
+                "Invalid intent",
+                details={
+                    "intent": intent,
+                    "type": type(intent).__name__,
+                    "operation": "slot_filling",
+                },
+            )
+
+        # Get model response
+        response = await self.api_service.get_model_response(
+            prompt=text, response_format="slots", intent=intent
+        )
+
+        # Validate response
+        if not response or not response.content:
+            log_context.error(
+                "Empty response from model",
+                extra={
+                    "response": response,
+                    "operation": "slot_filling",
+                },
+            )
+            raise ModelError(
+                "Empty response from model",
+                details={
+                    "response": response,
+                    "operation": "slot_filling",
+                },
+            )
+
+        # Parse and validate slot response
+        try:
+            slot_data = json.loads(response.content)
+            validated_response = validate_slot_response(slot_data)
+            log_context.info(
+                "Slot filling successful",
+                extra={
+                    "slots": validated_response.get("slots"),
+                    "operation": "slot_filling",
+                },
+            )
+            return SlotResponse(**validated_response)
+        except json.JSONDecodeError as e:
+            log_context.error(
+                "Failed to parse slot response",
+                extra={
+                    "error": str(e),
+                    "response": response.content,
+                    "operation": "slot_filling",
+                },
+            )
+            raise ModelError(
+                "Failed to parse slot response",
+                details={
+                    "error": str(e),
+                    "response": response.content,
+                    "operation": "slot_filling",
+                },
+            )
+        except ValidationError as e:
+            log_context.error(
+                "Invalid slot response format",
+                extra={
+                    "error": str(e),
+                    "response": response.content,
+                    "operation": "slot_filling",
+                },
+            )
+            raise ValidationError(
+                "Invalid slot response format",
+                details={
+                    "error": str(e),
+                    "response": response.content,
+                    "operation": "slot_filling",
+                },
+            )
+
+    @handle_exceptions()
+    async def verify_slots(
+        self, text: str, slots: Dict[str, Any]
+    ) -> VerificationResponse:
+        """Verify slots against input text.
+
+        Args:
+            text: Input text to verify slots against
+            slots: Dictionary of slots to verify
+
+        Returns:
+            VerificationResponse: Verification results for each slot
+
+        Raises:
+            ValidationError: If input validation fails
+            ModelError: If slot verification fails
+        """
+        # Validate inputs
+        if not text or not isinstance(text, str):
+            log_context.error(
+                "Invalid input text",
+                extra={
+                    "text": text,
+                    "type": type(text).__name__,
+                    "operation": "slot_verification",
+                },
+            )
+            raise ValidationError(
+                "Invalid input text",
+                details={
+                    "text": text,
+                    "type": type(text).__name__,
+                    "operation": "slot_verification",
+                },
+            )
+        if not slots or not isinstance(slots, dict):
+            log_context.error(
+                "Invalid slots",
+                extra={
+                    "slots": slots,
+                    "type": type(slots).__name__,
+                    "operation": "slot_verification",
+                },
+            )
+            raise ValidationError(
+                "Invalid slots",
+                details={
+                    "slots": slots,
+                    "type": type(slots).__name__,
+                    "operation": "slot_verification",
+                },
+            )
+
+        # Get model response
+        response = await self.api_service.get_model_response(
+            prompt=text, response_format="verification", slots=slots
+        )
+
+        # Validate response
+        if not response or not response.content:
+            log_context.error(
+                "Empty response from model",
+                extra={
+                    "response": response,
+                    "operation": "slot_verification",
+                },
+            )
+            raise ModelError(
+                "Empty response from model",
+                details={
+                    "response": response,
+                    "operation": "slot_verification",
+                },
+            )
+
+        # Parse and validate verification response
+        try:
+            verification_data = json.loads(response.content)
+            validated_response = validate_verification_response(verification_data)
+            log_context.info(
+                "Slot verification successful",
+                extra={
+                    "verification": validated_response,
+                    "operation": "slot_verification",
+                },
+            )
+            return VerificationResponse(**validated_response)
+        except json.JSONDecodeError as e:
+            log_context.error(
+                "Failed to parse verification response",
+                extra={
+                    "error": str(e),
+                    "response": response.content,
+                    "operation": "slot_verification",
+                },
+            )
+            raise ModelError(
+                "Failed to parse verification response",
+                details={
+                    "error": str(e),
+                    "response": response.content,
+                    "operation": "slot_verification",
+                },
+            )
+        except ValidationError as e:
+            log_context.error(
+                "Invalid verification response format",
+                extra={
+                    "error": str(e),
+                    "response": response.content,
+                    "operation": "slot_verification",
+                },
+            )
+            raise ValidationError(
+                "Invalid verification response format",
+                details={
+                    "error": str(e),
+                    "response": response.content,
+                    "operation": "slot_verification",
+                },
+            )
+
+    @handle_exceptions()
     def _initialize_model(self) -> BaseChatModel:
         """Initialize the language model.
 
@@ -60,32 +597,36 @@ class ModelService:
             Initialized model instance
 
         Raises:
-            ValueError: If model initialization fails
+            ModelError: If model initialization fails
         """
         try:
             model = ModelConfig.get_model_instance(self.model_config)
             return ModelConfig.configure_response_format(model, self.model_config)
         except Exception as e:
-            logger.error(f"Error initializing model: {str(e)}")
-            raise ValueError(f"Failed to initialize model: {str(e)}")
+            raise ModelError(
+                "Failed to initialize model",
+                details={
+                    "error": str(e),
+                    "model_config": self.model_config,
+                    "operation": "model_initialization",
+                },
+            )
 
     def _format_messages(
-        self, prompt: str, system_prompt: Optional[str] = None
+        self, prompt: str, context: Optional[Dict[str, Any]] = None
     ) -> List[Union[HumanMessage, SystemMessage]]:
-        """Format messages for model input.
-
-        Creates a list of formatted messages for model input, including
-        an optional system prompt and the user prompt.
+        """Format messages for the model.
 
         Args:
             prompt: User prompt to send to the model
-            system_prompt: Optional system prompt for model context
+            context: Optional context information
 
         Returns:
-            List of formatted messages for model input
+            List[Union[HumanMessage, SystemMessage]]: Formatted messages
         """
         messages = []
-        if system_prompt:
+        if context:
+            system_prompt = f"Context: {json.dumps(context)}"
             messages.append(SystemMessage(content=system_prompt))
         messages.append(HumanMessage(content=prompt))
         return messages
@@ -235,11 +776,11 @@ class ModelService:
                 raise ValueError("Empty response from model")
 
             if note:
-                logger.info(f"Model response for {note}: {response.content}")
+                log_context.info(f"Model response for {note}: {response.content}")
 
             return response.content
         except Exception as e:
-            logger.error(f"Error getting model response: {str(e)}")
+            log_context.error(f"Error getting model response: {str(e)}")
             raise ValueError(f"Failed to get model response: {str(e)}")
 
     def get_json_response(
@@ -269,10 +810,10 @@ class ModelService:
             response = self.get_response(prompt, model_config, system_prompt)
             return json.loads(response)
         except json.JSONDecodeError as e:
-            logger.error(f"Error parsing JSON response: {str(e)}")
+            log_context.error(f"Error parsing JSON response: {str(e)}")
             raise ValueError(f"Failed to parse JSON response: {str(e)}")
         except Exception as e:
-            logger.error(f"Error getting JSON response: {str(e)}")
+            log_context.error(f"Error getting JSON response: {str(e)}")
             raise ValueError(f"Failed to get JSON response: {str(e)}")
 
     def format_intent_input(
@@ -324,7 +865,7 @@ Available Intents:
 Chat History:
 {chat_history_str}
 
-Please choose the most appropriate intent by providing only the corresponding number."""
+Please choose the most appropriate intent by providing the corresponding intent number and intent name in the format of 'intent_number) intent_name'."""
 
         return prompt, idx2intents_mapping
 
@@ -431,8 +972,92 @@ Please choose the most appropriate intent by providing only the corresponding nu
 
             return slots
         except json.JSONDecodeError as e:
-            logger.error(f"Error parsing slot filling response: {str(e)}")
+            log_context.error(f"Error parsing slot filling response: {str(e)}")
             raise ValueError(f"Failed to parse slot filling response: {str(e)}")
         except Exception as e:
-            logger.error(f"Error processing slot filling response: {str(e)}")
+            log_context.error(f"Error processing slot filling response: {str(e)}")
             raise ValueError(f"Failed to process slot filling response: {str(e)}")
+
+
+class DummyModelService(ModelService):
+    """A dummy model service for testing purposes.
+
+    This class provides mock implementations of model service methods
+    for use in testing scenarios.
+    """
+
+    def format_slot_input(
+        self, slots: List[Dict[str, Any]], context: str, type: str = "chat"
+    ) -> Tuple[str, str]:
+        """Format slot input for testing.
+
+        Args:
+            slots: List of slot definitions
+            context: Context string
+            type: Type of input format (default: "chat")
+
+        Returns:
+            Tuple[str, str]: Formatted input and context
+        """
+        return super().format_slot_input(slots, context, type)
+
+    def get_response(
+        self,
+        prompt: str,
+        model_config: Optional[Dict[str, Any]] = None,
+        system_prompt: Optional[str] = None,
+        response_format: Optional[str] = None,
+        note: Optional[str] = None,
+    ) -> str:
+        """Get a mock response for testing.
+
+        Args:
+            prompt: Input prompt
+            model_config: Optional model configuration
+            system_prompt: Optional system prompt
+            response_format: Optional response format
+            note: Optional note
+
+        Returns:
+            str: Mock response for testing
+        """
+        return "1) others"
+
+    def process_slot_response(
+        self, response: str, slots: List[Dict[str, Any]]
+    ) -> List[Dict[str, Any]]:
+        """Process mock slot response for testing.
+
+        Args:
+            response: Mock response string
+            slots: List of slot definitions
+
+        Returns:
+            List[Dict[str, Any]]: Processed slot values
+        """
+        return super().process_slot_response(response, slots)
+
+    def format_verification_input(
+        self, slot: Dict[str, Any], chat_history_str: str
+    ) -> Tuple[str, str]:
+        """Format verification input for testing.
+
+        Args:
+            slot: Slot definition
+            chat_history_str: Chat history string
+
+        Returns:
+            Tuple[str, str]: Formatted input and context
+        """
+        return super().format_verification_input(slot, chat_history_str)
+
+    def process_verification_response(self, response: str) -> Tuple[bool, str]:
+        """Process mock verification response for testing.
+
+        Args:
+            response: Mock response string
+
+        Returns:
+            Tuple[bool, str]: Verification result and explanation
+        """
+        return super().process_verification_response(response)
