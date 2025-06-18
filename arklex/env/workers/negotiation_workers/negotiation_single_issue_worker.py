@@ -315,7 +315,7 @@ class NegotiationSingleIssueWorker(BaseWorker):
             
         return state
     
-    def _create_action_graph(self) -> StateGraph:
+    def _create_action_graph(self,tags: Dict[str, Any]) -> StateGraph:
         """Create a processing flow for the negotiation strategy.
         
         Returns:
