@@ -6,6 +6,7 @@ import os
 from tkinter import END
 from typing import Dict, Any, Optional
 from datetime import datetime
+from functools import partial
 from langchain_core.language_models import BaseChatModel
 
 from langgraph.graph import StateGraph, START
@@ -35,8 +36,9 @@ class NegotiationSingleIssueWorker(BaseWorker):
         """Initialize the NegotiationSingleIssueWorker with necessary attributes."""
         super().__init__()
         self.llm: Optional[BaseChatModel] = None
-        self.action_graph = self._create_action_graph()
+        self.action_graph = None  # Will be created in _execute with tags
         self.unit_index = 0
+        self.tags = {}
         self.static_prompt = ""
         self.dynamic_prompt = ""
         # Get absolute path to the directory containing this file
@@ -247,7 +249,7 @@ class NegotiationSingleIssueWorker(BaseWorker):
                 required = False, 
                 verified = True)] 
         
-    def get_response(self, state: MessageState) -> MessageState:
+    def get_response(self, state: MessageState, tags: Dict[str, Any] = {}) -> MessageState:
         """Generate a response based on the current negotiation state.
         
         Args:
@@ -322,9 +324,10 @@ class NegotiationSingleIssueWorker(BaseWorker):
             StateGraph: Graph defining the negotiation workflow
         """
         workflow = StateGraph(MessageState)
-        
+        # Create a partial function with the tags bound
+        negotiation_response_with_tags = partial(self.get_response, tags=tags)
         # Add persuasion strategy node
-        workflow.add_node("negotiation_response", self.get_response)
+        workflow.add_node("negotiation_response", negotiation_response_with_tags)
         
         # Add edges
         workflow.add_edge(START, "negotiation_response")
@@ -341,15 +344,19 @@ class NegotiationSingleIssueWorker(BaseWorker):
             Dict[str, Any]: Updated message state as dictionary
         """
         logger.info("Executing negotiation response worker")
+        
         self.llm = PROVIDER_MAP.get(msg_state.bot_config.llm_config.llm_provider, ChatOpenAI )(model=msg_state.bot_config.llm_config.model_type_or_path)
         # Debug the incoming state
         self.check_and_initialize_slots(msg_state)
+        self.tags = kwargs.get("tags", {})
+        self.action_graph = self._create_action_graph(self.tags)
         graph = self.action_graph.compile()
         result = graph.invoke(msg_state)
         
         # Convert the result back to a MessageState and preserve the response
         response_state = MessageState.model_validate(result)
         logger.info(f"State after graph execution - slots: {response_state.slots}")
+        logger.info(f"State after graph execution - slots: {self.tags.items()}")
             
         return response_state.model_dump()
     
