@@ -58,19 +58,19 @@ class NegotiationSingleIssueWorker(BaseWorker):
         with open(file_path, "r") as f:
             return json.load(f)
 
-    def random_in_last_third(self, max_percieved_marketPrice: float, max_market_price: float, reservationPrice: float) -> float:
+    def random_in_last_third(self, max_perceived_marketPrice: float, max_market_price: float, reservationPrice: float) -> float:
         """Generate a random price in the last third of the price range.
         
         Args:
-            max_percieved_marketPrice: Maximum perceived market price
+            max_perceived_marketPrice: Maximum perceived market price
             max_market_price: Maximum market price
             reservationPrice: Minimum acceptable price
             
         Returns:
             float: Random price within the last third of the range
         """
-        if(max_market_price == reservationPrice and max_percieved_marketPrice > reservationPrice):
-            max_market_price = max_percieved_marketPrice
+        if(max_market_price == reservationPrice and max_perceived_marketPrice > reservationPrice):
+            max_market_price = max_perceived_marketPrice
         # Calculate the range within the first third
         first_third_range = (max_market_price - reservationPrice) // 3
 
@@ -165,7 +165,7 @@ class NegotiationSingleIssueWorker(BaseWorker):
         logger.info("checking and initializing slots")
         config_path = os.path.join(self.current_dir, "negotiation_config", "seller_config.json")
         configs = self.read_json(config_path)
-        required_slots = ["turn", "episode_done", "max_percieved_marketPrice", 
+        required_slots = ["turn", "episode_done", "max_perceived_marketPrice", 
                          "reservation_price", "max_market_price", "current_target"]
         # Check if any required slots are missing
         if not hasattr(state, 'slots'):
@@ -195,15 +195,15 @@ class NegotiationSingleIssueWorker(BaseWorker):
                         required=False,
                         verified=True)]
                 
-                elif slot_name == "max_percieved_marketPrice":
-                    max_percieved_marketPrice = 0
-                    if "max_percieved_marketPrice" in configs['units'][self.unit_index]['parameters']:
-                        max_percieved_marketPrice = configs['units'][self.unit_index]['parameters']['max_percieved_marketPrice'][0]
+                elif slot_name == "max_perceived_marketPrice":
+                    max_perceived_marketPrice = 0
+                    if "max_perceived_marketPrice" in configs['units'][self.unit_index]['parameters']:
+                        max_perceived_marketPrice = configs['units'][self.unit_index]['parameters']['max_perceived_marketPrice'][0]
                     
-                    state.slots["max_percieved_marketPrice"] = [Slot(
-                        name="max_percieved_marketPrice",
+                    state.slots["max_perceived_marketPrice"] = [Slot(
+                        name="max_perceived_marketPrice",
                         type="string",
-                        value=max_percieved_marketPrice,
+                        value=max_perceived_marketPrice,
                         enum=[],
                         description="This is the maximum perceived market price.",
                         prompt="",
@@ -232,20 +232,20 @@ class NegotiationSingleIssueWorker(BaseWorker):
                         required=False,
                         verified=True)]
         
-        max_percieved_marketPrice = parameters["max_percieved_marketPrice"]
+        max_perceived_marketPrice = parameters["max_perceived_marketPrice"]
         max_market_price = parameters["max_market_price"]
         reservation_price = parameters["reservation_price"]
                     
-        self.get_current_target(state, max_percieved_marketPrice, max_market_price, reservation_price)
+        self.get_current_target(state, max_perceived_marketPrice, max_market_price, reservation_price)
         
         return state
     
-    def get_current_target(self, state: MessageState, max_percieved_marketPrice: float, max_market_price: float, reservation_price: float) -> None:
+    def get_current_target(self, state: MessageState, max_perceived_marketPrice: float, max_market_price: float, reservation_price: float) -> None:
         """Calculate and set the current target price.
         
         Args:
             state: Current message state
-            max_percieved_marketPrice: Maximum perceived market price
+            max_perceived_marketPrice: Maximum perceived market price
             max_market_price: Maximum market price
             reservation_price: Reservation price
             
@@ -254,7 +254,7 @@ class NegotiationSingleIssueWorker(BaseWorker):
         """
         
         targ = self.round_num(self.random_in_last_third(
-                max_percieved_marketPrice, 
+                max_perceived_marketPrice, 
                 max_market_price, 
                 reservation_price
             ))

@@ -277,6 +277,7 @@ class TaskGraph(TaskGraphBase):
             add_flow_stack=False,
             additional_args={
                 "tags": node_info["attribute"].get("tags", {}),
+                "parameters": node_info["attribute"].get("parameters", {}),
                 **{
                     k2: v2
                     for k, v in node_info["attribute"]
@@ -412,6 +413,7 @@ class TaskGraph(TaskGraphBase):
                 attributes=node_info["attribute"],
                 additional_args={
                     "tags": node_info["attribute"].get("tags", {}),
+                    "parameters": node_info["attribute"].get("parameters", {}),
                     **{
                         k2: v2
                         for k, v in node_info["attribute"]

@@ -26,7 +26,13 @@
                 "attribute": {
                     "value": "Would you be interested in buying this item?",
                     "task": "Facilitate a negotiation conversation",
-                    "directed": false
+                    "directed": false,
+                    "parameters": {
+                        "unit_index": 0,
+                        "max_perceived_marketPrice": 15000,
+                        "max_market_price": 14000,
+                        "reservation_price": 12500
+                    }
                 }
             }
         ] 
