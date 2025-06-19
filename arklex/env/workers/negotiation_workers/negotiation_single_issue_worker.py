@@ -36,9 +36,9 @@ class NegotiationSingleIssueWorker(BaseWorker):
         """Initialize the NegotiationSingleIssueWorker with necessary attributes."""
         super().__init__()
         self.llm: Optional[BaseChatModel] = None
-        self.action_graph = None  # Will be created in _execute with tags
+        self.action_graph = None  # Will be created in _execute with parameters
         self.unit_index = 0
-        self.tags = {}
+        self.parameters = {}
         self.static_prompt = ""
         self.dynamic_prompt = ""
         # Get absolute path to the directory containing this file
@@ -150,18 +150,18 @@ class NegotiationSingleIssueWorker(BaseWorker):
         logger.info(f"Static prompt: {static_prompt}")
         return static_prompt, dynamic_prompt
     
-    def check_and_initialize_slots(self, state: MessageState, tags: Dict[str, Any] = {}) -> MessageState:
+    def check_and_initialize_slots(self, state: MessageState, parameters: Dict[str, Any] = {}) -> MessageState:
         """Initialize required negotiation slots if they don't exist.
         
         Args:
             state: Current message state
-            tags: Tags containing configuration parameters
+            parameters: parameters containing configuration parameters
             
         Returns:
             MessageState: Updated message state with initialized slots
         """
-        logger.info(f"Tags: {tags}")
-        self.unit_index = tags["unit_index"]
+        logger.info(f"parameters: {parameters}")
+        self.unit_index = parameters["unit_index"]
         logger.info("checking and initializing slots")
         config_path = os.path.join(self.current_dir, "negotiation_config", "seller_config.json")
         configs = self.read_json(config_path)
@@ -232,9 +232,9 @@ class NegotiationSingleIssueWorker(BaseWorker):
                         required=False,
                         verified=True)]
         
-        max_percieved_marketPrice = tags["max_percieved_marketPrice"]
-        max_market_price = tags["max_market_price"]
-        reservation_price = tags["reservation_price"]
+        max_percieved_marketPrice = parameters["max_percieved_marketPrice"]
+        max_market_price = parameters["max_market_price"]
+        reservation_price = parameters["reservation_price"]
                     
         self.get_current_target(state, max_percieved_marketPrice, max_market_price, reservation_price)
         
@@ -245,6 +245,12 @@ class NegotiationSingleIssueWorker(BaseWorker):
         
         Args:
             state: Current message state
+            max_percieved_marketPrice: Maximum perceived market price
+            max_market_price: Maximum market price
+            reservation_price: Reservation price
+            
+        Returns:
+            None
         """
         
         targ = self.round_num(self.random_in_last_third(
@@ -332,7 +338,7 @@ class NegotiationSingleIssueWorker(BaseWorker):
             
         return state
     
-    def _create_action_graph(self,tags: Dict[str, Any]) -> StateGraph:
+    def _create_action_graph(self,parameters: Dict[str, Any]) -> StateGraph:
         """Create a processing flow for the negotiation strategy.
         
         Returns:
@@ -340,9 +346,9 @@ class NegotiationSingleIssueWorker(BaseWorker):
         """
         workflow = StateGraph(MessageState)
 
-        check_and_initialize_slots_with_tags = partial(self.check_and_initialize_slots, tags=tags)
+        check_and_initialize_slots_with_parameters = partial(self.check_and_initialize_slots, parameters=parameters)
       
-        workflow.add_node("negotiation_initialization",check_and_initialize_slots_with_tags)
+        workflow.add_node("negotiation_initialization",check_and_initialize_slots_with_parameters)
         workflow.add_node("negotiation_response", self.get_response)
         
         # Add edges
@@ -365,8 +371,8 @@ class NegotiationSingleIssueWorker(BaseWorker):
         self.llm = PROVIDER_MAP.get(msg_state.bot_config.llm_config.llm_provider, ChatOpenAI )(model=msg_state.bot_config.llm_config.model_type_or_path)
         # Debug the incoming state
         
-        self.tags = kwargs.get("tags", {})
-        self.action_graph = self._create_action_graph(self.tags)
+        self.parameters = kwargs.get("parameters", {})
+        self.action_graph = self._create_action_graph(self.parameters)
         graph = self.action_graph.compile()
         result = graph.invoke(msg_state)
         
