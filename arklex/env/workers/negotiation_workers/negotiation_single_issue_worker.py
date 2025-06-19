@@ -162,7 +162,7 @@ class NegotiationSingleIssueWorker(BaseWorker):
             MessageState: Updated message state with initialized slots
         """
         log_context.info(f"parameters: {parameters}")
-        self.unit_index = parameters["unit_index"]
+        self.unit_index = int(parameters["unit_index"])
         log_context.info("checking and initializing slots")
         required_slots = ["turn", "episode_done", "current_target", "max_perceived_marketPrice", "max_market_price", "reservation_price"]
         # Check if any required slots are missing
