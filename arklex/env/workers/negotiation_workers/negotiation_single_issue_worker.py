@@ -17,9 +17,10 @@ from arklex.utils.graph_state import MessageState
 from arklex.utils.model_config import MODEL
 from arklex.utils.model_provider_config import PROVIDER_MAP
 from arklex.utils.slot import Slot
+from arklex.utils.logging_utils import LogContext
 
 
-logger = logging.getLogger(__name__)
+log_context = LogContext(__name__)
 
 
 @register_worker
@@ -43,8 +44,8 @@ class NegotiationSingleIssueWorker(BaseWorker):
         self.dynamic_prompt = ""
         # Get absolute path to the directory containing this file
         self.current_dir = os.path.dirname(os.path.abspath(__file__))
-        logger.info(f"Current directory: {self.current_dir}")
-        logger.info("NegotiationSingleIssueWorkerSeller initialized successfully")
+        log_context.info(f"Current directory: {self.current_dir}")
+        log_context.info("NegotiationSingleIssueWorkerSeller initialized successfully")
 
     def read_json(self, file_path: str) -> Dict:
         """Read and parse a JSON file.
@@ -130,7 +131,7 @@ class NegotiationSingleIssueWorker(BaseWorker):
         prompts_base_dir = os.path.join(self.current_dir, "negotiation_prompts")
         
         if unit_index == 0:
-            logger.info("Getting prompts for unit1")
+            log_context.info("Getting prompts for unit1")
             static_path = os.path.join(prompts_base_dir, "seller_system_prompt_static.txt")
             dynamic_path = os.path.join(prompts_base_dir, "seller_system_prompt_dynamic_floor.txt")
         elif unit_index == 1:
@@ -143,11 +144,11 @@ class NegotiationSingleIssueWorker(BaseWorker):
             static_path = os.path.join(prompts_base_dir, "ford_seller_system_prompt_static.txt")
             dynamic_path = os.path.join(prompts_base_dir, "ford_seller_system_prompt_dynamic_floor.txt")
         
-        logger.info(f"Looking for prompts at: {static_path} and {dynamic_path}")
+        log_context.info(f"Looking for prompts at: {static_path} and {dynamic_path}")
     
         static_prompt = self.load_prompt(current_target=current_target, message=message, turn=turn, path=static_path, is_dynamic=False, history=history)
         dynamic_prompt = self.load_prompt(current_target=current_target, message=message, turn=turn, path=dynamic_path, is_dynamic=True, history=history)
-        logger.info(f"Static prompt: {static_prompt}")
+        log_context.info(f"Static prompt: {static_prompt}")
         return static_prompt, dynamic_prompt
     
     def check_and_initialize_slots(self, state: MessageState, parameters: Dict[str, Any] = {}) -> MessageState:
@@ -160,13 +161,10 @@ class NegotiationSingleIssueWorker(BaseWorker):
         Returns:
             MessageState: Updated message state with initialized slots
         """
-        logger.info(f"parameters: {parameters}")
+        log_context.info(f"parameters: {parameters}")
         self.unit_index = parameters["unit_index"]
-        logger.info("checking and initializing slots")
-        config_path = os.path.join(self.current_dir, "negotiation_config", "seller_config.json")
-        configs = self.read_json(config_path)
-        required_slots = ["turn", "episode_done", "max_perceived_marketPrice", 
-                         "reservation_price", "max_market_price", "current_target"]
+        log_context.info("checking and initializing slots")
+        required_slots = ["turn", "episode_done", "current_target", "max_perceived_marketPrice", "max_market_price", "reservation_price"]
         # Check if any required slots are missing
         if not hasattr(state, 'slots'):
             state.slots = {}
@@ -196,14 +194,10 @@ class NegotiationSingleIssueWorker(BaseWorker):
                         verified=True)]
                 
                 elif slot_name == "max_perceived_marketPrice":
-                    max_perceived_marketPrice = 0
-                    if "max_perceived_marketPrice" in configs['units'][self.unit_index]['parameters']:
-                        max_perceived_marketPrice = configs['units'][self.unit_index]['parameters']['max_perceived_marketPrice'][0]
-                    
                     state.slots["max_perceived_marketPrice"] = [Slot(
                         name="max_perceived_marketPrice",
                         type="string",
-                        value=max_perceived_marketPrice,
+                        value=parameters["max_perceived_marketPrice"],
                         enum=[],
                         description="This is the maximum perceived market price.",
                         prompt="",
@@ -214,7 +208,7 @@ class NegotiationSingleIssueWorker(BaseWorker):
                     state.slots["reservation_price"] = [Slot(
                         name="reservation_price",
                         type="string",
-                        value=configs['units'][self.unit_index]['parameters']['reservationPrice'][0],
+                        value=parameters["reservation_price"],
                         enum=[],
                         description="This is the reservation price for the negotiation.",
                         prompt="",
@@ -225,18 +219,14 @@ class NegotiationSingleIssueWorker(BaseWorker):
                     state.slots["max_market_price"] = [Slot(
                         name="max_market_price",
                         type="string",
-                        value=configs['units'][self.unit_index]['parameters']['max_marketPrice'][0],
+                        value=parameters["max_marketPrice"],
                         enum=[],
                         description="This is the maximum market price.",
                         prompt="",
                         required=False,
                         verified=True)]
-        
-        max_perceived_marketPrice = parameters["max_perceived_marketPrice"]
-        max_market_price = parameters["max_market_price"]
-        reservation_price = parameters["reservation_price"]
                     
-        self.get_current_target(state, max_perceived_marketPrice, max_market_price, reservation_price)
+        self.get_current_target(state, parameters["max_perceived_marketPrice"], parameters["max_marketPrice"], parameters["reservation_price"])
         
         return state
     
@@ -280,13 +270,13 @@ class NegotiationSingleIssueWorker(BaseWorker):
        
 
         current_turn = state.slots["turn"][0].value
-        logger.info(f"Current turn: {current_turn}")
+        log_context.info(f"Current turn: {current_turn}")
         
         if current_turn == 0: 
-           logger.info(f"FIRST TURN FOR SELLER {current_turn}") 
+           log_context.info(f"FIRST TURN FOR SELLER {current_turn}") 
            state.slots["turn"][0].value += 1
-           logger.info(f"Initial target for seller: {state.slots['current_target'][0].value}") 
-           logger.info(f"Initial target for seller: {state.slots['current_target'][0].value}") 
+           log_context.info(f"Initial target for seller: {state.slots['current_target'][0].value}") 
+           log_context.info(f"Initial target for seller: {state.slots['current_target'][0].value}") 
            static_prompt, dynamic_prompt = self.get_prompts(
                         self.unit_index,
                         state.slots["current_target"][0].value,
@@ -294,13 +284,13 @@ class NegotiationSingleIssueWorker(BaseWorker):
                         state.slots["turn"][0].value,
                         history=state.user_message.history
                     )
-           logger.info(f"Dynamic prompt: {dynamic_prompt}")
+           log_context.info(f"Dynamic prompt: {dynamic_prompt}")
            state.response = self.llm.invoke(dynamic_prompt).content.strip()
-           logger.info(f"Response: {state.response}")
+           log_context.info(f"Response: {state.response}")
 
         elif current_turn == 1:
             state.slots["turn"][0].value += 1
-            logger.info("Responding to user as the seller")
+            log_context.info("Responding to user as the seller")
             generic_prompt = '\nRespond to the user as the seller. Do not give a counteroffer or mention a price in your response.'
             state.response = self.llm.invoke(generic_prompt).content.strip()
         elif current_turn > 4: 
@@ -316,7 +306,7 @@ class NegotiationSingleIssueWorker(BaseWorker):
 
         else: 
             state.slots["turn"][0].value += 1
-            logger.info("Generating response based on current target")
+            log_context.info("Generating response based on current target")
             new_target = (
                 state.slots["current_target"][0].value + state.slots["reservation_price"][0].value
             ) / 2
@@ -331,7 +321,7 @@ class NegotiationSingleIssueWorker(BaseWorker):
             state.response = self.llm.invoke(dynamic_prompt).content.strip()
 
         if(state.slots["turn"][0].value >= 7):
-            logger.info("Episode done")
+            log_context.info("Episode done")
             state.slots["episode_done"][0].value = True
         else:
             state.slots["episode_done"][0].value = False
@@ -366,7 +356,7 @@ class NegotiationSingleIssueWorker(BaseWorker):
         Returns:
             Dict[str, Any]: Updated message state as dictionary
         """
-        logger.info("Executing negotiation response worker")
+        log_context.info("Executing negotiation response worker")
         
         self.llm = PROVIDER_MAP.get(msg_state.bot_config.llm_config.llm_provider, ChatOpenAI )(model=msg_state.bot_config.llm_config.model_type_or_path)
         # Debug the incoming state
@@ -378,7 +368,7 @@ class NegotiationSingleIssueWorker(BaseWorker):
         
         # Convert the result back to a MessageState and preserve the response
         response_state = MessageState.model_validate(result)
-        logger.info(f"State after graph execution - slots: {response_state.slots}")
+        log_context.info(f"State after graph execution - slots: {response_state.slots}")
         
             
         return response_state.model_dump()

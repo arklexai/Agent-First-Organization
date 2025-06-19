@@ -29,8 +29,8 @@
                     "directed": false,
                     "parameters": {
                         "unit_index": 0,
-                        "max_perceived_marketPrice": 15000,
-                        "max_market_price": 14000,
+                        "max_perceived_marketPrice": 0,
+                        "max_marketPrice": 15000,
                         "reservation_price": 12500
                     }
                 }
