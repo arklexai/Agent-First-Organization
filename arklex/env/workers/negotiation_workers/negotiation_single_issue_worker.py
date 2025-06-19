@@ -197,7 +197,7 @@ class NegotiationSingleIssueWorker(BaseWorker):
                     state.slots["max_perceived_marketPrice"] = [Slot(
                         name="max_perceived_marketPrice",
                         type="string",
-                        value=parameters["max_perceived_marketPrice"],
+                        value=int(parameters["max_perceived_marketPrice"]),
                         enum=[],
                         description="This is the maximum perceived market price.",
                         prompt="",
@@ -208,7 +208,7 @@ class NegotiationSingleIssueWorker(BaseWorker):
                     state.slots["reservation_price"] = [Slot(
                         name="reservation_price",
                         type="string",
-                        value=parameters["reservation_price"],
+                        value=int(parameters["reservation_price"]),
                         enum=[],
                         description="This is the reservation price for the negotiation.",
                         prompt="",
@@ -219,14 +219,17 @@ class NegotiationSingleIssueWorker(BaseWorker):
                     state.slots["max_market_price"] = [Slot(
                         name="max_market_price",
                         type="string",
-                        value=parameters["max_marketPrice"],
+                        value=int(parameters["max_marketPrice"]),
                         enum=[],
                         description="This is the maximum market price.",
                         prompt="",
                         required=False,
                         verified=True)]
                     
-        self.get_current_target(state, parameters["max_perceived_marketPrice"], parameters["max_marketPrice"], parameters["reservation_price"])
+        self.get_current_target(state, 
+                               int(parameters["max_perceived_marketPrice"]), 
+                               int(parameters["max_marketPrice"]), 
+                               int(parameters["reservation_price"]))
         
         return state
     
