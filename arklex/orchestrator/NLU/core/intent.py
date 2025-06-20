@@ -112,7 +112,7 @@ class IntentDetector(BaseNLU):
             intents, chat_history_str
         )
         log_context.info(
-            "Intent detection input prepared",
+            f"Intent detection input prepared:\nPrompt: {prompt}\n\nMapping: {idx2intents_mapping}",
             extra={
                 "prompt": prompt,
                 "mapping": idx2intents_mapping,
@@ -123,7 +123,7 @@ class IntentDetector(BaseNLU):
         # Get model response
         response = self.model_service.get_response(prompt)
         log_context.info(
-            "Model response received",
+            f"Model response received:\nResponse: {response}",
             extra={
                 "prompt": prompt,
                 "raw_response": response,
@@ -133,7 +133,7 @@ class IntentDetector(BaseNLU):
 
         # Parse response
         try:
-            pred_idx, pred_intent = [i.strip() for i in response.split(")")]
+            pred_idx, pred_intent = [i.strip() for i in response.split(")", 1)]
         except ValueError as e:
             log_context.error(
                 "Invalid response format",
@@ -157,7 +157,7 @@ class IntentDetector(BaseNLU):
         # Validate intent
         if pred_intent not in idx2intents_mapping.values():
             log_context.warning(
-                "Predicted intent not in mapping",
+                f"Predicted intent not in mapping:\nPredicted intent: {pred_intent}\n\nAvailable intents: {list(idx2intents_mapping.values())}",
                 extra={
                     "prompt": prompt,
                     "raw_response": response,
