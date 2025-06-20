@@ -7,7 +7,6 @@ both streaming and non-streaming response generation, with functionality for han
 message flows and direct responses.
 """
 
-import logging
 from typing import Any, Dict, Optional
 
 from langchain.prompts import PromptTemplate

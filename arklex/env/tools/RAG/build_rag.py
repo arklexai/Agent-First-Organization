@@ -62,7 +62,7 @@ def build_rag(folder_path: str, rag_docs: List[Dict[str, Any]]) -> None:
             elif doc.get("type") == "text":
                 docs.extend(loader.to_crawled_text([source]))
             else:
-                # TODO: how to handle when type is not provided
+                # TODO: Implement type validation and default type handling in document processing
                 raise Exception(
                     "type must be one of [url, file, text] and it must be provided"
                 )

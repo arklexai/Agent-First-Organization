@@ -11,7 +11,7 @@ import argparse
 import logging
 import os
 import uvicorn
-from typing import Any, Dict, List, Tuple, Optional, cast
+from typing import Any, Dict, List, Tuple
 
 from fastapi import FastAPI
 

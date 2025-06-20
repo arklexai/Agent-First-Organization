@@ -10,7 +10,7 @@ from typing import Dict, Any, Optional, List, Tuple
 import httpx
 from arklex.utils.slot import Slot
 from arklex.orchestrator.NLU.utils.validators import validate_intent_response
-from arklex.utils.logging_utils import LogContext, LOG_MESSAGES, handle_exceptions
+from arklex.utils.logging_utils import LogContext, handle_exceptions
 from arklex.utils.exceptions import APIError, ValidationError
 
 log_context = LogContext(__name__)

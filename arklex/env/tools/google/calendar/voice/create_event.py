@@ -7,9 +7,9 @@ from google.oauth2 import service_account
 from arklex.env.tools.tools import register_tool
 import pytz
 from arklex.env.tools.google.calendar.utils import AUTH_ERROR
-import logging
+from arklex.utils.logging_utils import LogContext
 
-logger = logging.getLogger(__name__)
+log_context = LogContext(__name__)
 
 # Scopes required for accessing Google Calendar
 SCOPES = ["https://www.googleapis.com/auth/calendar"]
@@ -92,7 +92,7 @@ def create_event(
 
         # Build the Google Calendar API service
         service = build("calendar", "v3", credentials=credentials)
-    except Exception as e:
+    except Exception:
         return AUTH_ERROR
 
     # Specify the calendar ID (use 'primary' or the specific calendar's ID)
@@ -111,7 +111,7 @@ def create_event(
         # Convert the end time back to ISO 8601 format
         end_time = end_time_obj.isoformat()
 
-    except Exception as e:
+    except Exception:
         return DATETIME_ERROR
 
     try:
@@ -138,13 +138,13 @@ def create_event(
         event = (
             service.events().insert(calendarId=calendar_id, body=final_event).execute()
         )
-        logger.info(f"Event created: {event.get('htmlLink')}")
+        log_context.info(f"Event created: {event.get('htmlLink')}")
 
     except Exception as e:
         return EVENT_CREATION_ERROR.format(error=e)
 
     # return SUCCESS.format(start_time=start_time, email=email)
-    logger.info(
+    log_context.info(
         f"checking for twilio client: {kwargs.get('twilio_client')}, phone_no_to: {kwargs.get('phone_no_to')}, phone_no_from: {kwargs.get('phone_no_from')}"
     )
     if (
@@ -160,5 +160,5 @@ def create_event(
             from_=phone_no_from,
             to=phone_no_to,
         )
-        logger.info(f"Message sent: {message.sid}")
+        log_context.info(f"Message sent: {message.sid}")
     return json.dumps(event)

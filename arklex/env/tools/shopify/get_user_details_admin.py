@@ -114,7 +114,7 @@ def get_user_details_admin(user_id: str, **kwargs: Any) -> str:
                     func_name, ShopifyExceptionPrompt.USER_NOT_FOUND_PROMPT
                 )
 
-    except Exception as e:
+    except Exception:
         raise ToolExecutionError(
             func_name, ShopifyExceptionPrompt.USER_NOT_FOUND_PROMPT
         )

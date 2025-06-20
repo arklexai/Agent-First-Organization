@@ -13,8 +13,8 @@ Key features:
 """
 
 import json
-from typing import Dict, List, Any, Tuple
-from arklex.utils.slot import Slot, Verification
+from typing import Dict, List, Tuple
+from arklex.utils.slot import Slot
 from arklex.utils.logging_utils import LogContext, LOG_MESSAGES
 
 log_context = LogContext(__name__)

@@ -7,7 +7,6 @@ information. The worker supports both streaming and non-streaming responses, usi
 graph to manage the workflow of document retrieval and response generation.
 """
 
-import logging
 from typing import Any, Dict
 
 from langgraph.graph import StateGraph, START

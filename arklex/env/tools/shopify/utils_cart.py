@@ -12,10 +12,8 @@ Module Name: utils_cart
 This file contains the code for operations related to shopping cart.
 """
 
-import json
 import os
 
-import requests
 
 from arklex.env.tools.shopify.utils import *
 

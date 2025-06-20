@@ -11,7 +11,7 @@ The module defines two main abstract base classes:
 """
 
 from abc import ABC, abstractmethod
-from typing import Dict, List, Any, Optional
+from typing import Dict, List, Any
 from pydantic import BaseModel, Field
 
 
@@ -121,7 +121,6 @@ class BaseNLU(ABC):
         Raises:
             NotImplementedError: If the concrete class does not implement this method
         """
-        pass
 
 
 class BaseSlotFilling(ABC):
@@ -163,7 +162,6 @@ class BaseSlotFilling(ABC):
         Raises:
             NotImplementedError: If the concrete class does not implement this method
         """
-        pass
 
     @abstractmethod
     def fill_slots(
@@ -190,4 +188,3 @@ class BaseSlotFilling(ABC):
         Raises:
             NotImplementedError: If the concrete class does not implement this method
         """
-        pass

@@ -1,0 +1,947 @@
+{
+    "nodes": [
+        [
+            "0",
+            {
+                "resource": {
+                    "id": "26bb6634-3bee-417d-ad75-23269ac17bc3",
+                    "name": "MessageWorker"
+                },
+                "attribute": {
+                    "value": "Hello! I'm here to assist you with any customer service inquiries you may have. Whether you need information about our products, services, or policies, or if you need help resolving an issue or completing a transaction, feel free to ask. How can I assist you today?",
+                    "task": "start message",
+                    "directed": false
+                },
+                "type": "start"
+            }
+        ],
+        [
+            "1",
+            {
+                "resource": {
+                    "id": "26bb6634-3bee-417d-ad75-23269ac17bc3",
+                    "name": "MessageWorker"
+                },
+                "attribute": {
+                    "value": "",
+                    "task": "Provide detailed specifications and features about Richtech's robotics products",
+                    "directed": false
+                }
+            }
+        ],
+        [
+            "2",
+            {
+                "resource": {
+                    "id": "26bb6634-3bee-417d-ad75-23269ac17bc3",
+                    "name": "MessageWorker"
+                },
+                "attribute": {
+                    "value": "",
+                    "task": "Offer assistance and guidance for troubleshooting and maintaining Richtech robots",
+                    "directed": false
+                }
+            }
+        ],
+        [
+            "3",
+            {
+                "resource": {
+                    "id": "26bb6634-3bee-417d-ad75-23269ac17bc3",
+                    "name": "MessageWorker"
+                },
+                "attribute": {
+                    "value": "",
+                    "task": "Provide tracking information and updates on the delivery status of purchased robots",
+                    "directed": false
+                }
+            }
+        ],
+        [
+            "4",
+            {
+                "resource": {
+                    "id": "26bb6634-3bee-417d-ad75-23269ac17bc3",
+                    "name": "MessageWorker"
+                },
+                "attribute": {
+                    "value": "",
+                    "task": "Inform users about rental and purchase options for Richtech robotics products",
+                    "directed": false
+                }
+            }
+        ],
+        [
+            "5",
+            {
+                "resource": {
+                    "id": "26bb6634-3bee-417d-ad75-23269ac17bc3",
+                    "name": "MessageWorker"
+                },
+                "attribute": {
+                    "value": "",
+                    "task": "Discuss and facilitate custom robotics solutions for specific business needs",
+                    "directed": false
+                }
+            }
+        ],
+        [
+            "6",
+            {
+                "resource": {
+                    "id": "26bb6634-3bee-417d-ad75-23269ac17bc3",
+                    "name": "MessageWorker"
+                },
+                "attribute": {
+                    "value": "Execute: Execute Provide detailed specifications and features about Richtech's robotics products",
+                    "task": "",
+                    "directed": false
+                }
+            }
+        ],
+        [
+            "7",
+            {
+                "resource": {
+                    "id": "26bb6634-3bee-417d-ad75-23269ac17bc3",
+                    "name": "MessageWorker"
+                },
+                "attribute": {
+                    "value": "Greet the user and ask about the specific issue or need for guidance concerning the Richtech robot.",
+                    "task": "",
+                    "directed": false
+                }
+            }
+        ],
+        [
+            "8",
+            {
+                "resource": {
+                    "id": "26bb6634-3bee-417d-ad75-23269ac17bc3",
+                    "name": "MessageWorker"
+                },
+                "attribute": {
+                    "value": "Use RAGWorker to access internal documents and provide information or troubleshooting steps related to the user's described issue or need.",
+                    "task": "",
+                    "directed": false
+                }
+            }
+        ],
+        [
+            "9",
+            {
+                "resource": {
+                    "id": "26bb6634-3bee-417d-ad75-23269ac17bc3",
+                    "name": "MessageWorker"
+                },
+                "attribute": {
+                    "value": "Ask the user if the provided information was helpful or if they require further assistance.",
+                    "task": "",
+                    "directed": false
+                }
+            }
+        ],
+        [
+            "10",
+            {
+                "resource": {
+                    "id": "26bb6634-3bee-417d-ad75-23269ac17bc3",
+                    "name": "MessageWorker"
+                },
+                "attribute": {
+                    "value": "If the user requires further assistance, offer additional troubleshooting steps or escalate the issue if necessary.",
+                    "task": "",
+                    "directed": false
+                }
+            }
+        ],
+        [
+            "11",
+            {
+                "resource": {
+                    "id": "26bb6634-3bee-417d-ad75-23269ac17bc3",
+                    "name": "MessageWorker"
+                },
+                "attribute": {
+                    "value": "Confirm resolution of the issue or provide guidance on the next steps and close the interaction with a polite farewell.",
+                    "task": "",
+                    "directed": false
+                }
+            }
+        ],
+        [
+            "12",
+            {
+                "resource": {
+                    "id": "26bb6634-3bee-417d-ad75-23269ac17bc3",
+                    "name": "MessageWorker"
+                },
+                "attribute": {
+                    "value": "Use the RAGWorker to retrieve delivery status information from the company's internal documentation.",
+                    "task": "",
+                    "directed": false
+                }
+            }
+        ],
+        [
+            "13",
+            {
+                "resource": {
+                    "id": "26bb6634-3bee-417d-ad75-23269ac17bc3",
+                    "name": "MessageWorker"
+                },
+                "attribute": {
+                    "value": "Ask the user for order details, such as order number or email, to locate the specific purchase information.",
+                    "task": "",
+                    "directed": false
+                }
+            }
+        ],
+        [
+            "14",
+            {
+                "resource": {
+                    "id": "26bb6634-3bee-417d-ad75-23269ac17bc3",
+                    "name": "MessageWorker"
+                },
+                "attribute": {
+                    "value": "Provide the user with the current tracking information and expected delivery status using the MessageWorker.",
+                    "task": "",
+                    "directed": false
+                }
+            }
+        ],
+        [
+            "15",
+            {
+                "resource": {
+                    "id": "26bb6634-3bee-417d-ad75-23269ac17bc3",
+                    "name": "MessageWorker"
+                },
+                "attribute": {
+                    "value": "Inquire if the user has any additional questions or needs further assistance regarding the delivery.",
+                    "task": "",
+                    "directed": false
+                }
+            }
+        ],
+        [
+            "16",
+            {
+                "resource": {
+                    "id": "26bb6634-3bee-417d-ad75-23269ac17bc3",
+                    "name": "MessageWorker"
+                },
+                "attribute": {
+                    "value": "Offer further help or direct the user to other resources if they need more assistance.",
+                    "task": "",
+                    "directed": false
+                }
+            }
+        ],
+        [
+            "17",
+            {
+                "resource": {
+                    "id": "26bb6634-3bee-417d-ad75-23269ac17bc3",
+                    "name": "MessageWorker"
+                },
+                "attribute": {
+                    "value": "Greet the user and ask how you can assist them with Richtech robotics products.",
+                    "task": "",
+                    "directed": false
+                }
+            }
+        ],
+        [
+            "18",
+            {
+                "resource": {
+                    "id": "26bb6634-3bee-417d-ad75-23269ac17bc3",
+                    "name": "MessageWorker"
+                },
+                "attribute": {
+                    "value": "Inquire whether the user is interested in rental or purchase options for Richtech robotics products.",
+                    "task": "",
+                    "directed": false
+                }
+            }
+        ],
+        [
+            "19",
+            {
+                "resource": {
+                    "id": "26bb6634-3bee-417d-ad75-23269ac17bc3",
+                    "name": "MessageWorker"
+                },
+                "attribute": {
+                    "value": "Use RAGWorker to provide information about the rental options including terms, conditions, and pricing.",
+                    "task": "",
+                    "directed": false
+                }
+            }
+        ],
+        [
+            "20",
+            {
+                "resource": {
+                    "id": "26bb6634-3bee-417d-ad75-23269ac17bc3",
+                    "name": "MessageWorker"
+                },
+                "attribute": {
+                    "value": "Use RAGWorker to provide information about the purchase options including available products, specifications, and prices.",
+                    "task": "",
+                    "directed": false
+                }
+            }
+        ],
+        [
+            "21",
+            {
+                "resource": {
+                    "id": "26bb6634-3bee-417d-ad75-23269ac17bc3",
+                    "name": "MessageWorker"
+                },
+                "attribute": {
+                    "value": "Ask the user if they need further assistance or have any additional questions regarding the rental or purchase options.",
+                    "task": "",
+                    "directed": false
+                }
+            }
+        ],
+        [
+            "22",
+            {
+                "resource": {
+                    "id": "26bb6634-3bee-417d-ad75-23269ac17bc3",
+                    "name": "MessageWorker"
+                },
+                "attribute": {
+                    "value": "Provide guidance on how to proceed with their chosen option, whether it's moving forward with a rental agreement or making a purchase.",
+                    "task": "",
+                    "directed": false
+                }
+            }
+        ],
+        [
+            "23",
+            {
+                "resource": {
+                    "id": "26bb6634-3bee-417d-ad75-23269ac17bc3",
+                    "name": "MessageWorker"
+                },
+                "attribute": {
+                    "value": "Initiate conversation by asking about the specific business needs or challenges the user is facing that may require a custom robotics solution.",
+                    "task": "",
+                    "directed": false
+                }
+            }
+        ],
+        [
+            "24",
+            {
+                "resource": {
+                    "id": "26bb6634-3bee-417d-ad75-23269ac17bc3",
+                    "name": "MessageWorker"
+                },
+                "attribute": {
+                    "value": "Use RAGWorker to provide information on available custom robotics offerings and solutions the company provides, based on the user's described needs.",
+                    "task": "",
+                    "directed": false
+                }
+            }
+        ],
+        [
+            "25",
+            {
+                "resource": {
+                    "id": "26bb6634-3bee-417d-ad75-23269ac17bc3",
+                    "name": "MessageWorker"
+                },
+                "attribute": {
+                    "value": "Ask the user if they have any specific requirements or preferences for the robotics solution (e.g., budget, capabilities, integration with existing systems).",
+                    "task": "",
+                    "directed": false
+                }
+            }
+        ],
+        [
+            "26",
+            {
+                "resource": {
+                    "id": "26bb6634-3bee-417d-ad75-23269ac17bc3",
+                    "name": "MessageWorker"
+                },
+                "attribute": {
+                    "value": "Facilitate a discussion to clarify details about the user's requirements and use MessageWorker to respond with predefined responses tailored to their input.",
+                    "task": "",
+                    "directed": false
+                }
+            }
+        ],
+        [
+            "27",
+            {
+                "resource": {
+                    "id": "26bb6634-3bee-417d-ad75-23269ac17bc3",
+                    "name": "MessageWorker"
+                },
+                "attribute": {
+                    "value": "Offer to connect the user with a specialist or schedule a consultation for more personalized assistance if needed.",
+                    "task": "",
+                    "directed": false
+                }
+            }
+        ]
+    ],
+    "edges": [
+        [
+            "0",
+            "1",
+            {
+                "intent": "User inquires about provide detailed specifications and features about richtech's robotics products",
+                "attribute": {
+                    "weight": 1,
+                    "pred": true,
+                    "definition": "",
+                    "sample_utterances": []
+                }
+            }
+        ],
+        [
+            "0",
+            "2",
+            {
+                "intent": "User inquires about offer assistance and guidance for troubleshooting and maintaining richtech robots",
+                "attribute": {
+                    "weight": 1,
+                    "pred": true,
+                    "definition": "",
+                    "sample_utterances": []
+                }
+            }
+        ],
+        [
+            "0",
+            "3",
+            {
+                "intent": "User inquires about provide tracking information and updates on the delivery status of purchased robots",
+                "attribute": {
+                    "weight": 1,
+                    "pred": true,
+                    "definition": "",
+                    "sample_utterances": []
+                }
+            }
+        ],
+        [
+            "0",
+            "4",
+            {
+                "intent": "User inquires about inform users about rental and purchase options for richtech robotics products",
+                "attribute": {
+                    "weight": 1,
+                    "pred": true,
+                    "definition": "",
+                    "sample_utterances": []
+                }
+            }
+        ],
+        [
+            "0",
+            "5",
+            {
+                "intent": "User inquires about discuss and facilitate custom robotics solutions for specific business needs",
+                "attribute": {
+                    "weight": 1,
+                    "pred": true,
+                    "definition": "",
+                    "sample_utterances": []
+                }
+            }
+        ],
+        [
+            "1",
+            "6",
+            {
+                "intent": null,
+                "attribute": {
+                    "weight": 1,
+                    "pred": false,
+                    "definition": "",
+                    "sample_utterances": []
+                }
+            }
+        ],
+        [
+            "2",
+            "7",
+            {
+                "intent": null,
+                "attribute": {
+                    "weight": 1,
+                    "pred": false,
+                    "definition": "",
+                    "sample_utterances": []
+                }
+            }
+        ],
+        [
+            "7",
+            "8",
+            {
+                "intent": null,
+                "attribute": {
+                    "weight": 1,
+                    "pred": false,
+                    "definition": "",
+                    "sample_utterances": []
+                }
+            }
+        ],
+        [
+            "8",
+            "9",
+            {
+                "intent": null,
+                "attribute": {
+                    "weight": 1,
+                    "pred": false,
+                    "definition": "",
+                    "sample_utterances": []
+                }
+            }
+        ],
+        [
+            "9",
+            "10",
+            {
+                "intent": null,
+                "attribute": {
+                    "weight": 1,
+                    "pred": false,
+                    "definition": "",
+                    "sample_utterances": []
+                }
+            }
+        ],
+        [
+            "10",
+            "11",
+            {
+                "intent": null,
+                "attribute": {
+                    "weight": 1,
+                    "pred": false,
+                    "definition": "",
+                    "sample_utterances": []
+                }
+            }
+        ],
+        [
+            "3",
+            "12",
+            {
+                "intent": null,
+                "attribute": {
+                    "weight": 1,
+                    "pred": false,
+                    "definition": "",
+                    "sample_utterances": []
+                }
+            }
+        ],
+        [
+            "12",
+            "13",
+            {
+                "intent": null,
+                "attribute": {
+                    "weight": 1,
+                    "pred": false,
+                    "definition": "",
+                    "sample_utterances": []
+                }
+            }
+        ],
+        [
+            "13",
+            "14",
+            {
+                "intent": null,
+                "attribute": {
+                    "weight": 1,
+                    "pred": false,
+                    "definition": "",
+                    "sample_utterances": []
+                }
+            }
+        ],
+        [
+            "14",
+            "15",
+            {
+                "intent": null,
+                "attribute": {
+                    "weight": 1,
+                    "pred": false,
+                    "definition": "",
+                    "sample_utterances": []
+                }
+            }
+        ],
+        [
+            "15",
+            "16",
+            {
+                "intent": null,
+                "attribute": {
+                    "weight": 1,
+                    "pred": false,
+                    "definition": "",
+                    "sample_utterances": []
+                }
+            }
+        ],
+        [
+            "4",
+            "17",
+            {
+                "intent": null,
+                "attribute": {
+                    "weight": 1,
+                    "pred": false,
+                    "definition": "",
+                    "sample_utterances": []
+                }
+            }
+        ],
+        [
+            "17",
+            "18",
+            {
+                "intent": null,
+                "attribute": {
+                    "weight": 1,
+                    "pred": false,
+                    "definition": "",
+                    "sample_utterances": []
+                }
+            }
+        ],
+        [
+            "18",
+            "19",
+            {
+                "intent": null,
+                "attribute": {
+                    "weight": 1,
+                    "pred": false,
+                    "definition": "",
+                    "sample_utterances": []
+                }
+            }
+        ],
+        [
+            "19",
+            "20",
+            {
+                "intent": null,
+                "attribute": {
+                    "weight": 1,
+                    "pred": false,
+                    "definition": "",
+                    "sample_utterances": []
+                }
+            }
+        ],
+        [
+            "20",
+            "21",
+            {
+                "intent": null,
+                "attribute": {
+                    "weight": 1,
+                    "pred": false,
+                    "definition": "",
+                    "sample_utterances": []
+                }
+            }
+        ],
+        [
+            "21",
+            "22",
+            {
+                "intent": null,
+                "attribute": {
+                    "weight": 1,
+                    "pred": false,
+                    "definition": "",
+                    "sample_utterances": []
+                }
+            }
+        ],
+        [
+            "5",
+            "23",
+            {
+                "intent": null,
+                "attribute": {
+                    "weight": 1,
+                    "pred": false,
+                    "definition": "",
+                    "sample_utterances": []
+                }
+            }
+        ],
+        [
+            "23",
+            "24",
+            {
+                "intent": null,
+                "attribute": {
+                    "weight": 1,
+                    "pred": false,
+                    "definition": "",
+                    "sample_utterances": []
+                }
+            }
+        ],
+        [
+            "24",
+            "25",
+            {
+                "intent": null,
+                "attribute": {
+                    "weight": 1,
+                    "pred": false,
+                    "definition": "",
+                    "sample_utterances": []
+                }
+            }
+        ],
+        [
+            "25",
+            "26",
+            {
+                "intent": null,
+                "attribute": {
+                    "weight": 1,
+                    "pred": false,
+                    "definition": "",
+                    "sample_utterances": []
+                }
+            }
+        ],
+        [
+            "26",
+            "27",
+            {
+                "intent": null,
+                "attribute": {
+                    "weight": 1,
+                    "pred": false,
+                    "definition": "",
+                    "sample_utterances": []
+                }
+            }
+        ],
+        [
+            null,
+            "16",
+            {
+                "intent": null,
+                "attribute": {
+                    "weight": 1,
+                    "pred": false,
+                    "definition": "",
+                    "sample_utterances": []
+                }
+            }
+        ],
+        [
+            null,
+            "6",
+            {
+                "intent": null,
+                "attribute": {
+                    "weight": 1,
+                    "pred": false,
+                    "definition": "",
+                    "sample_utterances": []
+                }
+            }
+        ],
+        [
+            null,
+            "22",
+            {
+                "intent": null,
+                "attribute": {
+                    "weight": 1,
+                    "pred": false,
+                    "definition": "",
+                    "sample_utterances": []
+                }
+            }
+        ],
+        [
+            null,
+            "11",
+            {
+                "intent": null,
+                "attribute": {
+                    "weight": 1,
+                    "pred": false,
+                    "definition": "",
+                    "sample_utterances": []
+                }
+            }
+        ],
+        [
+            null,
+            "27",
+            {
+                "intent": null,
+                "attribute": {
+                    "weight": 1,
+                    "pred": false,
+                    "definition": "",
+                    "sample_utterances": []
+                }
+            }
+        ]
+    ],
+    "role": "customer service assistant",
+    "user_objective": "The customer service assistant helps users with customer service inquiries. It can provide information about products, services, and policies, as well as help users resolve issues and complete transactions.",
+    "builder_objective": "The customer service assistant helps to request customer's contact information.",
+    "domain": "robotics and automation",
+    "intro": "Richtech Robotics's headquarter is in Las Vegas; the other office is in Austin. Richtech Robotics provide worker robots (ADAM, ARM, ACE), delivery robots (Matradee, Matradee X, Matradee L, Richie), cleaning robots (DUST-E SX, DUST-E MX) and multipurpose robots (skylark). Their products are intended for business purposes, but not for home purpose; the ADAM robot is available for purchase and rental for multiple purposes. This robot bartender makes tea, coffee and cocktails. Richtech Robotics also operate the world's first robot milk tea shop, ClouTea, in Las Vegas (www.cloutea.com), where all milk tea beverages are prepared by the ADAM robot. The delivery time will be one month for the delivery robot, 2 weeks for standard ADAM, and two months for commercial cleaning robot. ",
+    "task_docs": [
+        {
+            "source": "https://www.richtechrobotics.com/",
+            "type": "url",
+            "num": 20
+        }
+    ],
+    "rag_docs": [
+        {
+            "source": "https://www.richtechrobotics.com/",
+            "type": "url",
+            "num": 20
+        }
+    ],
+    "tasks": [
+        {
+            "name": "Provide detailed specifications and features about Richtech's robotics products",
+            "steps": [
+                {
+                    "description": "Execute: Execute Provide detailed specifications and features about Richtech's robotics products"
+                }
+            ]
+        },
+        {
+            "name": "Offer assistance and guidance for troubleshooting and maintaining Richtech robots",
+            "steps": [
+                {
+                    "description": "Greet the user and ask about the specific issue or need for guidance concerning the Richtech robot."
+                },
+                {
+                    "description": "Use RAGWorker to access internal documents and provide information or troubleshooting steps related to the user's described issue or need."
+                },
+                {
+                    "description": "Ask the user if the provided information was helpful or if they require further assistance."
+                },
+                {
+                    "description": "If the user requires further assistance, offer additional troubleshooting steps or escalate the issue if necessary."
+                },
+                {
+                    "description": "Confirm resolution of the issue or provide guidance on the next steps and close the interaction with a polite farewell."
+                }
+            ]
+        },
+        {
+            "name": "Provide tracking information and updates on the delivery status of purchased robots",
+            "steps": [
+                {
+                    "description": "Use the RAGWorker to retrieve delivery status information from the company's internal documentation."
+                },
+                {
+                    "description": "Ask the user for order details, such as order number or email, to locate the specific purchase information."
+                },
+                {
+                    "description": "Provide the user with the current tracking information and expected delivery status using the MessageWorker."
+                },
+                {
+                    "description": "Inquire if the user has any additional questions or needs further assistance regarding the delivery."
+                },
+                {
+                    "description": "Offer further help or direct the user to other resources if they need more assistance."
+                }
+            ]
+        },
+        {
+            "name": "Inform users about rental and purchase options for Richtech robotics products",
+            "steps": [
+                {
+                    "description": "Greet the user and ask how you can assist them with Richtech robotics products."
+                },
+                {
+                    "description": "Inquire whether the user is interested in rental or purchase options for Richtech robotics products."
+                },
+                {
+                    "description": "Use RAGWorker to provide information about the rental options including terms, conditions, and pricing."
+                },
+                {
+                    "description": "Use RAGWorker to provide information about the purchase options including available products, specifications, and prices."
+                },
+                {
+                    "description": "Ask the user if they need further assistance or have any additional questions regarding the rental or purchase options."
+                },
+                {
+                    "description": "Provide guidance on how to proceed with their chosen option, whether it's moving forward with a rental agreement or making a purchase."
+                }
+            ]
+        },
+        {
+            "name": "Discuss and facilitate custom robotics solutions for specific business needs",
+            "steps": [
+                {
+                    "description": "Initiate conversation by asking about the specific business needs or challenges the user is facing that may require a custom robotics solution."
+                },
+                {
+                    "description": "Use RAGWorker to provide information on available custom robotics offerings and solutions the company provides, based on the user's described needs."
+                },
+                {
+                    "description": "Ask the user if they have any specific requirements or preferences for the robotics solution (e.g., budget, capabilities, integration with existing systems)."
+                },
+                {
+                    "description": "Facilitate a discussion to clarify details about the user's requirements and use MessageWorker to respond with predefined responses tailored to their input."
+                },
+                {
+                    "description": "Offer to connect the user with a specialist or schedule a consultation for more personalized assistance if needed."
+                }
+            ]
+        }
+    ],
+    "workers": [
+        {
+            "id": "FaissRAGWorker",
+            "name": "FaissRAGWorker",
+            "path": "faiss_rag_worker.py"
+        },
+        {
+            "id": "26bb6634-3bee-417d-ad75-23269ac17bc3",
+            "name": "MessageWorker",
+            "path": "message_worker.py"
+        },
+        {
+            "id": "9c15af81-04b3-443e-be04-a3522124b905",
+            "name": "SearchWorker",
+            "path": "search_worker.py"
+        }
+    ],
+    "tools": [],
+    "nluapi": "",
+    "slotfillapi": ""
+}

@@ -8,7 +8,7 @@ This file contains the code for cancelling orders using the Shopify Admin API.
 """
 
 import json
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict
 
 import shopify
 from arklex.utils.logging_utils import LogContext
@@ -21,7 +21,6 @@ from arklex.env.tools.shopify.utils_slots import ShopifyCancelOrderSlots, Shopif
 
 from arklex.env.tools.tools import register_tool
 from arklex.utils.exceptions import ToolExecutionError
-from arklex.env.tools.shopify._exception_prompt import ShopifyExceptionPrompt
 
 log_context = LogContext(__name__)
 

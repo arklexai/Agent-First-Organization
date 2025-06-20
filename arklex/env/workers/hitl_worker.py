@@ -12,7 +12,6 @@ from arklex.env.workers.worker import BaseWorker, register_worker
 from arklex.orchestrator.NLU.core.slot import SlotFiller
 from arklex.utils.graph_state import MessageState, StatusEnum
 from arklex.env.workers.utils.chat_client import ChatClient
-from arklex.utils.slot import Slot
 from arklex.utils.logging_utils import LogContext
 
 log_context = LogContext(__name__)
@@ -261,8 +260,7 @@ class HITLWorkerChatFlag(HITLWorker):
     mode: str = "chat"
 
     def verify_literal(self, state: MessageState) -> Tuple[bool, str]:
-        """[TODO] Need to implement for orchestrator message as well
-        (as of 2025-02-20)
+        """TODO: Implement orchestrator message handling for HITL worker
         This method is to check the message from the user, since in the NLU, we already determine that the user wants to chat with the human in the loop.
 
         Args:

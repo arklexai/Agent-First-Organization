@@ -7,7 +7,6 @@ non-streaming responses. It integrates with Milvus for efficient similarity sear
 retrieval of relevant documents.
 """
 
-import logging
 from functools import partial
 from typing import Any, Dict, Optional
 from langgraph.graph import StateGraph, START

@@ -5,11 +5,10 @@ worker initialization, tool management, and slot filling integration.
 """
 
 import importlib
-import logging
 import os
 import uuid
 from functools import partial
-from typing import Any, Callable, Dict, List, Optional, Union, Tuple, cast
+from typing import Any, Callable, Dict, List, Optional, Union, Tuple
 
 from arklex.env.planner.react_planner import DefaultPlanner, ReactPlanner
 from arklex.env.tools.tools import Tool
@@ -17,7 +16,6 @@ from arklex.env.workers.worker import BaseWorker
 from arklex.orchestrator.NLU.core.slot import SlotFiller
 from arklex.utils.graph_state import MessageState, NodeInfo, Params
 from arklex.utils.logging_utils import LogContext
-from arklex.utils.exceptions import EnvironmentError
 from arklex.orchestrator.NLU.services.model_service import (
     DummyModelService,
     ModelService,

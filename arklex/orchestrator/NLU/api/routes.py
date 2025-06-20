@@ -13,11 +13,11 @@ The module includes:
 """
 
 from typing import Dict, List, Any
-from fastapi import FastAPI, Response, APIRouter, Depends, HTTPException
+from fastapi import FastAPI, Response, APIRouter, Depends
 from arklex.utils.slot import Slot, Verification
 from arklex.orchestrator.NLU.services.model_service import ModelService
 from arklex.utils.logging_utils import LogContext, handle_exceptions, LOG_MESSAGES
-from arklex.utils.exceptions import ModelError, ValidationError, APIError
+from arklex.utils.exceptions import ModelError, ValidationError
 from arklex.orchestrator.NLU.core.base import (
     IntentResponse,
     SlotResponse,

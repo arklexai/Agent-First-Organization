@@ -33,5 +33,5 @@ errors = [REFRESH_TOKEN_ERROR]
 def get_order() -> str:
     try:
         return authenticate()
-    except Exception as e:
+    except Exception:
         return REFRESH_TOKEN_ERROR

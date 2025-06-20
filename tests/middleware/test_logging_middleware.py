@@ -36,7 +36,7 @@ def test_middleware_logs_request_start(app_with_middleware, caplog):
     """Test that middleware logs request start."""
     with caplog.at_level("INFO"):
         client = TestClient(app_with_middleware)
-        response = client.get("/test")
+        client.get("/test")
         assert "Request started" in caplog.text
         assert "method" in caplog.text
         assert "url" in caplog.text
@@ -46,7 +46,7 @@ def test_middleware_logs_request_completion(app_with_middleware, caplog):
     """Test that middleware logs request completion."""
     with caplog.at_level("INFO"):
         client = TestClient(app_with_middleware)
-        response = client.get("/test")
+        client.get("/test")
         assert "Request completed" in caplog.text
         assert "status_code" in caplog.text
         assert "process_time" in caplog.text

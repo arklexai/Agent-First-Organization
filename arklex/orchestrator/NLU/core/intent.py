@@ -15,8 +15,8 @@ from typing import Dict, List, Any, Optional
 from arklex.orchestrator.NLU.core.base import BaseNLU
 from arklex.orchestrator.NLU.services.model_service import ModelService
 from arklex.orchestrator.NLU.services.api_service import APIClientService
-from arklex.utils.logging_utils import LogContext, LOG_MESSAGES, handle_exceptions
-from arklex.utils.exceptions import ModelError, ValidationError, APIError
+from arklex.utils.logging_utils import LogContext, handle_exceptions
+from arklex.utils.exceptions import ValidationError, APIError
 
 log_context = LogContext(__name__)
 

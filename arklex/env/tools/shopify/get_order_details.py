@@ -141,7 +141,7 @@ def get_order_details(
                     )
                 response_text += "\n"
         return response_text
-    except Exception as e:
+    except Exception:
         raise ToolExecutionError(
             func_name, ShopifyExceptionPrompt.ORDERS_NOT_FOUND_PROMPT
         )

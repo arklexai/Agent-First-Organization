@@ -4,7 +4,6 @@ Tool for scheduling meetings via HubSpot in the Arklex framework.
 This module provides a tool implementation for scheduling meetings with customer representatives using the HubSpot API. It handles slot extraction, time parsing, and meeting creation, and is designed for integration with the Arklex tool system.
 """
 
-import ast
 import inspect
 import json
 from datetime import datetime, timedelta

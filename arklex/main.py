@@ -7,6 +7,7 @@ This module initializes the FastAPI application and configures:
 - CORS
 """
 
+from contextlib import asynccontextmanager
 from fastapi import FastAPI, Request
 from fastapi.responses import JSONResponse
 from fastapi.middleware.cors import CORSMiddleware
@@ -14,11 +15,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from arklex.utils.logging_utils import LogContext
 from arklex.utils.exceptions import (
     ArklexError,
-    ValidationError,
     AuthenticationError,
-    APIError,
-    ModelError,
-    DatabaseError,
     ResourceNotFoundError,
     RateLimitError,
     RetryableError,
@@ -28,8 +25,24 @@ from arklex.middleware.logging_middleware import RequestLoggingMiddleware
 # Initialize logging with JSON formatting
 log_context = LogContext(__name__)
 
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    """Lifespan context manager for FastAPI application."""
+    # Startup
+    log_context.info("Application startup")
+    yield
+    # Shutdown
+    log_context.info("Application shutdown")
+
+
 # Create FastAPI app
-app = FastAPI(title="Arklex API", description="Arklex API Service", version="1.0.0")
+app = FastAPI(
+    title="Arklex API",
+    description="Arklex API Service",
+    version="1.0.0",
+    lifespan=lifespan,
+)
 
 # Add CORS middleware
 app.add_middleware(
@@ -146,17 +159,3 @@ async def health_check() -> dict[str, str]:
 from arklex.orchestrator.NLU.api.routes import router as nlu_router
 
 app.include_router(nlu_router, prefix="/api/nlu", tags=["NLU"])
-
-
-# Startup event
-@app.on_event("startup")
-async def startup_event() -> None:
-    """Handle application startup."""
-    log_context.info("Application startup")
-
-
-# Shutdown event
-@app.on_event("shutdown")
-async def shutdown_event() -> None:
-    """Handle application shutdown."""
-    log_context.info("Application shutdown")

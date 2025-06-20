@@ -11,7 +11,6 @@ from abc import ABC, abstractmethod
 from typing import Any, Dict, List, Optional, Tuple, Generator
 import contextlib
 from unittest.mock import patch
-import os
 
 from arklex.env.env import Environment
 from arklex.orchestrator.orchestrator import AgentOrg
@@ -431,7 +430,6 @@ class MockOrchestrator(ABC):
             params (Dict[str, Any]): Parameters to validate.
         """
         # NOTE: change the assert to check the result
-        pass
 
     def run_single_test(self, test_case: Dict[str, Any]) -> None:
         """Run a single test case.

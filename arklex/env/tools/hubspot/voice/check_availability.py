@@ -1,12 +1,12 @@
 from datetime import datetime
 import pytz
 from hubspot import HubSpot
-import logging
 from typing import Any
+from arklex.utils.logging_utils import LogContext
 
-from arklex.env.tools.tools import logger, register_tool
+from arklex.env.tools.tools import register_tool
 
-logger = logging.getLogger(__name__)
+log_context = LogContext(__name__)
 
 description = (
     "Check the availability of the company representative from Husbspot calendar"
@@ -48,7 +48,7 @@ def check_availability(
     timezone: str, duration: int, start_time: str, **kwargs: Any
 ) -> str:
     slug = kwargs.get("slug")
-    logger.info(
+    log_context.info(
         f"Getting availability for {slug} in {timezone} for {duration} meeting at {start_time}"
     )
     meeting_duration_ms = 3600000
@@ -63,7 +63,7 @@ def check_availability(
     tz = pytz.timezone(timezone)
     start_time_obj = datetime.fromisoformat(start_time)
     start_time_obj = tz.localize(start_time_obj)
-    logger.info(f"start_time_obj: {start_time_obj}")
+    log_context.info(f"start_time_obj: {start_time_obj}")
     try:
         api_client = HubSpot(access_token=kwargs.get("access_token"))
         res = api_client.api_request(
@@ -76,10 +76,10 @@ def check_availability(
         )
         res = res.json()
     except Exception as e:
-        logger.error(f"Error getting availability: {e}")
+        log_context.error(f"Error getting availability: {e}")
         return "error: could not get availability"
 
-    logger.info(f"Availability: {res}")
+    log_context.info(f"Availability: {res}")
     if res.get("status") == "error":
         return "error: could not get availability"
 
@@ -123,8 +123,7 @@ def check_availability(
             month_offset += 1
 
         except Exception as e:
-            logger.error(f"Error getting availability: {e}")
-            logger.exception(e)
+            log_context.error(f"Error getting availability: {e}", exc_info=True)
             raise e
 
     if alternate_times_on_same_day:

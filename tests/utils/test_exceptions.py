@@ -1,7 +1,7 @@
 """Tests for the custom exceptions module."""
 
 import pytest
-from typing import Dict, Any, Optional
+from typing import Dict, Any
 from arklex.utils.exceptions import (
     ArklexError,
     AuthenticationError,

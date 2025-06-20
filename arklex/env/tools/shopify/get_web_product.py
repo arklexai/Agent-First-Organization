@@ -16,7 +16,6 @@ This file contains the code for retrieving product information using the Shopify
 
 import json
 from typing import Any, Dict, List
-import logging
 import inspect
 
 import shopify
@@ -137,7 +136,7 @@ def get_web_product(web_product_id: str, **kwargs: Any) -> str:
             response_text += "\n"
 
             return response_text
-    except Exception as e:
+    except Exception:
         raise ToolExecutionError(
             func_name, ShopifyExceptionPrompt.PRODUCT_NOT_FOUND_PROMPT
         )

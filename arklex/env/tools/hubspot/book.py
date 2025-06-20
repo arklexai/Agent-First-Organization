@@ -1,11 +1,11 @@
 from datetime import datetime
 import pytz
 from hubspot import HubSpot
-import logging
 from typing import Any
 from arklex.env.tools.tools import register_tool
+from arklex.utils.logging_utils import LogContext
 
-logger = logging.getLogger(__name__)
+log_context = LogContext(__name__)
 
 description = "Schedule a meeting for the customer with the specific representative."
 
@@ -71,7 +71,7 @@ def book(
     slug = kwargs.get("slug")
     api_client = HubSpot(access_token=kwargs.get("access_token"))
 
-    logger.info(
+    log_context.info(
         f"Booking a meeting for {first_name} {last_name} with {slug} at {start_time} for {duration} minutes in {timezone} timezone."
     )
 
@@ -82,7 +82,7 @@ def book(
         start_time_obj = datetime.fromisoformat(start_time)
         start_time_obj = tz.localize(start_time_obj)
         start_timestamp_ms = int(start_time_obj.timestamp() * 1000)
-        logger.info(
+        log_context.info(
             f"Start time: {start_time_obj}, start timestamp: {start_timestamp_ms}"
         )
     except ValueError:
@@ -106,7 +106,7 @@ def book(
     )
 
     res = res.json()
-    logger.info(f"Meeting book response: {res}")
+    log_context.info(f"Meeting book response: {res}")
     if res.get("status") == "error":
         return "error: " + res.get("message")
     return "The meeting has been booked successfully"

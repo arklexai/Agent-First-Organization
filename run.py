@@ -9,7 +9,6 @@ and logging.
 
 import argparse
 import json
-import logging
 import os
 import time
 from typing import Any, Dict, List, Tuple
@@ -89,7 +88,9 @@ if __name__ == "__main__":
     args = parser.parse_args()
 
     # Set up environment variables and model configuration
-    os.environ["DATA_DIR"] = args.input_dir
+    # Use absolute path to ensure RAG files can be found
+    input_dir_abs = os.path.abspath(args.input_dir)
+    os.environ["DATA_DIR"] = input_dir_abs
     model: Dict[str, str] = {
         "model_name": args.model,
         "model_type_or_path": args.model,
@@ -100,7 +101,7 @@ if __name__ == "__main__":
 
     # Load task graph configuration and initialize environment
     config: Dict[str, Any] = json.load(
-        open(os.path.join(args.input_dir, "taskgraph.json"))
+        open(os.path.join(input_dir_abs, "taskgraph.json"))
     )
     config["model"] = model
 

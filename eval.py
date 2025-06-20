@@ -9,7 +9,7 @@ task completion metrics, and generating labeled conversation data for analysis.
 import os
 import json
 import argparse
-from typing import Any, Dict, List, Tuple, Optional, cast
+from typing import Any, Dict, List, Tuple, Optional
 
 from arklex.evaluation.simulate_first_pass_convos import simulate_conversations
 from arklex.evaluation.extract_conversation_info import extract_task_completion_metrics

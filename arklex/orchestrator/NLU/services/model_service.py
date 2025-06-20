@@ -13,7 +13,7 @@ from langchain_core.messages import HumanMessage, SystemMessage
 from .model_config import ModelConfig
 from arklex.utils.model_config import MODEL
 
-from arklex.utils.exceptions import ModelError, ValidationError, APIError
+from arklex.utils.exceptions import ModelError, ValidationError
 from arklex.utils.logging_utils import LogContext, LOG_MESSAGES, handle_exceptions
 from arklex.orchestrator.NLU.core.base import (
     IntentResponse,
@@ -216,7 +216,7 @@ class ModelService:
             if isinstance(text, dict):
                 prompt = text.get("text", "")
                 context = text.get("context", {})
-                model = text.get("model", self.model_config.get("model_name"))
+                text.get("model", self.model_config.get("model_name"))
                 messages = self._format_messages(prompt, context)
             else:
                 messages = self._format_messages(text)
@@ -761,7 +761,7 @@ class ModelService:
         """
         try:
             # Use instance model_config if none provided
-            config = model_config if model_config is not None else self.model_config
+            model_config if model_config is not None else self.model_config
 
             # Format messages with system prompt if provided
             messages = []

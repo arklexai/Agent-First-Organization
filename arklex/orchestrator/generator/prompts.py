@@ -57,7 +57,10 @@ Usage:
 """
 
 # Task Generation Prompt Template
-generate_tasks_sys_prompt = """The builder plans to create a chatbot designed to fulfill user's objectives. Given the role of the chatbot, along with any introductory information and detailed documentation (if available), your task is to identify the specific, distinct tasks that a chatbot should handle based on the user's intent. You are also given a list of existing tasks with user's intent. You must not return tasks that deal the same existing user's intent. All tasks should not overlap or depend on each other and must address different aspects of the user's goals. Ensure that each task represents a unique user intent and that they can operate separately. Moreover, you are given the instructions that you must follow. Return the response in JSON format.
+generate_tasks_sys_prompt = """The builder plans to create a chatbot designed to fulfill user's objectives. 
+Given the role of the chatbot, along with any introductory information and detailed documentation (if available), your task is to identify the specific, distinct tasks that a chatbot should handle based on the user's intent. You are also given a list of existing tasks with user's intent. You must not return tasks that deal the same existing user's intent. All tasks should not overlap or depend on each other and must address different aspects of the user's goals. Ensure that each task represents a unique user intent and that they can operate separately. Moreover, you are given the instructions that you must follow.
+
+Return the response in JSON format with only the high-level tasks. Do not break down tasks into steps at this stage.
 
 For Example:
 
@@ -141,39 +144,6 @@ Answer:
     {{
         "intent": "User ask for billing and payment support",
         "task": "Provide help in billing and payment support"
-    }}
-]
-```
-
-
-Reasoning Process:
-Thought 1: Understand the general responsibilities of the assistant type.
-Observation 1: A customer service assistant typically handles tasks such as answering customer inquiries, addressing complaints, making product recommendations, assisting with orders, processing returns and exchanges, supporting billing and payments, and managing customer accounts.
-
-Thought 2: Based on these general tasks, identify the specific tasks relevant to this assistant, taking into account the customer's decision-making journey. Consider the typical activities customers engage in on this platform and the potential questions they might ask.
-Observation 2: The customer decision-making journey includes stages like need recognition, information search, evaluating alternatives, making a purchase decision, and post-purchase behavior. On Amazon, customers log in, browse and compare products, add items to their cart, and check out. They also track orders, manage returns, and leave reviews. Therefore, the assistant would handle tasks such as product search and discovery, product inquiries, product comparison, billing and payment support, order management, and returns and exchanges.
-
-Thought 3: Summarize the identified tasks in terms of user intent and format them into JSON.
-Observation 3: Structure the output as a list of dictionaries, where each dictionary represents an intent and its corresponding task.
-
-Answer:
-```json
-[
-    {{
-        "intent": "User has product inquiry",
-        "task": "Provide help in product inquiry"
-    }},
-    {{
-        "intent": "User want to compare different products",
-        "task": "Provide help in product comparison"
-    }},
-    {{
-        "intent": "User want to manage orders",
-        "task": "Provide help in order management"
-    }},
-    {{
-        "intent": "User has request in returns and exchanges",
-        "task": "Provide help in Returns and Exchanges"
     }}
 ]
 ```
@@ -721,3 +691,17 @@ Tasks:
 {user_tasks}
 Reasoning Process:
 """
+
+
+class PromptManager:
+    """Manages prompt templates for task generation."""
+
+    def __init__(self) -> None:
+        """Initialize the prompt manager."""
+        self.generate_tasks_sys_prompt = generate_tasks_sys_prompt
+        self.generate_reusable_tasks_sys_prompt = generate_reusable_tasks_sys_prompt
+        self.check_best_practice_sys_prompt = check_best_practice_sys_prompt
+        self.generate_best_practice_sys_prompt = generate_best_practice_sys_prompt
+        self.embed_resources_sys_prompt = embed_resources_sys_prompt
+        self.embed_builder_obj_sys_prompt = embed_builder_obj_sys_prompt
+        self.task_intents_prediction_prompt = task_intents_prediction_prompt

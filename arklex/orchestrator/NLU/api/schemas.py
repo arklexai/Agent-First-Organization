@@ -11,7 +11,7 @@ The module includes:
 - Field validation and documentation
 """
 
-from typing import Dict, List, Any, Optional
+from typing import Dict, List, Any
 from pydantic import BaseModel, Field
 
 

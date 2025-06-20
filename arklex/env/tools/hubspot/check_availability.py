@@ -4,11 +4,9 @@ Tool for checking representative availability via HubSpot in the Arklex framewor
 This module implements a tool for checking the availability of representatives using the HubSpot API. It supports slot extraction, time zone handling, and provides available meeting times for integration with the Arklex tool system.
 """
 
-import inspect
 import json
-import logging
 from datetime import datetime
-from typing import Dict, Any, List, Optional, Union, Tuple, Set
+from typing import Dict, Any, List, Optional, Tuple, Set
 
 import hubspot
 import pytz

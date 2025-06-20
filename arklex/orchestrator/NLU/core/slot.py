@@ -15,7 +15,7 @@ from typing import Dict, List, Any, Optional, Tuple
 from arklex.orchestrator.NLU.core.base import BaseSlotFilling
 from arklex.orchestrator.NLU.services.model_service import ModelService
 from arklex.orchestrator.NLU.services.api_service import APIClientService
-from arklex.utils.slot import Slot, Verification
+from arklex.utils.slot import Slot
 from arklex.utils.logging_utils import LogContext, handle_exceptions
 from arklex.utils.exceptions import ModelError, ValidationError, APIError
 

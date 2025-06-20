@@ -30,7 +30,6 @@ class Logic_Test(unittest.TestCase):
     @classmethod
     def tearDownClass(cls) -> None:
         """Method to tear down the test fixture. Run AFTER the test methods."""
-        pass
 
     def _get_api_bot_response(
         self, user_text: str, history: List[Dict[str, str]], params: Dict[str, Any]

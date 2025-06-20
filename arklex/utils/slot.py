@@ -40,7 +40,6 @@ Usage:
 
 from typing import Any, Dict, List, Optional, Tuple, Type, Union
 from arklex.utils.logging_utils import LogContext
-from arklex.utils.exceptions import ValidationError
 
 from pydantic import BaseModel, Field, create_model
 

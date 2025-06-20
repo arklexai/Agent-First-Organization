@@ -116,7 +116,7 @@ def get_products(product_ids: List[str], **kwargs: Any) -> str:
                     response_text += f"Variant name: {variant.get('displayName', 'None')}, Variant ID: {variant.get('id', 'None')}, Price: {variant.get('price', 'None')}, Inventory Quantity: {variant.get('inventoryQuantity', 'None')}\n"
                 response_text += "\n"
             return response_text
-    except Exception as e:
+    except Exception:
         raise ToolExecutionError(
             func_name, ShopifyExceptionPrompt.PRODUCTS_NOT_FOUND_PROMPT
         )

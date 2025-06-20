@@ -1,14 +1,14 @@
 from datetime import datetime
 from googleapiclient.discovery import build
 from google.oauth2 import service_account
-import logging
 from typing import Any
 import pytz
 
 from arklex.env.tools.google.calendar.utils import AUTH_ERROR
 from arklex.env.tools.tools import register_tool
+from arklex.utils.logging_utils import LogContext
 
-logger = logging.getLogger(__name__)
+log_context = LogContext(__name__)
 
 # Scopes required for accessing Google Calendar
 SCOPES = ["https://www.googleapis.com/auth/calendar"]
@@ -62,7 +62,7 @@ def free_busy(time_min: str, time_max: str, timezone: str, **kwargs: Any) -> str
 
         # Build the Google Calendar API service
         service = build("calendar", "v3", credentials=credentials)
-    except Exception as e:
+    except Exception:
         return AUTH_ERROR
 
     # Build the Google Calendar API service
@@ -75,9 +75,9 @@ def free_busy(time_min: str, time_max: str, timezone: str, **kwargs: Any) -> str
         "timeZone": timezone,
         "items": [{"id": delegated_user}],
     }
-    logger.info(f"free_busy request: {body}")
+    log_context.info(f"free_busy request: {body}")
     res = service.freebusy().query(body=body).execute()
-    logger.info(f"free_busy response: {res}")
+    log_context.info(f"free_busy response: {res}")
 
     # res = {'kind': 'calendar#freeBusy', 'timeMin': '2025-02-07T18:00:00.000Z', 'timeMax': '2025-02-07T18:30:00.000Z', 'calendars': {'lucylu@arklex.ai': {'busy': [{'start': '2025-02-07T18:00:00Z', 'end': '2025-02-07T18:30:00Z'}]}}}
     # busy_times = res["calendars"][delegated_user]["busy"]

@@ -1,5 +1,4 @@
 import requests
-from arklex.env.tools.shopify.auth_utils import get_access_token
 from arklex.utils.exceptions import AuthenticationError
 
 SHOPIFY_ADMIN_AUTH_ERROR_MSG = "Missing some or all required Shopify admin authentication parameters: shop_url, api_version, admin_token. Please set up 'fixed_args' in the config file. For example, {'name': <unique name of the tool>, 'fixed_args': {'admin_token': <shopify_access_token>, 'shop_url': <shopify_shop_url>, 'api_version': <Shopify API version>}}"
