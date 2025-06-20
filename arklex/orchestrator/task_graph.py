@@ -101,7 +101,9 @@ class TaskGraphBase:
 
     def get_start_node(self) -> Optional[str]:
         for node in self.graph.nodes.data():
-            if node[1].get("type", "") == "start" or node[1].get("attribute", {}).get("start", False):
+            if node[1].get("type", "") == "start" or node[1].get("attribute", {}).get(
+                "start", False
+            ):
                 return node[0]
         return None
 
@@ -191,7 +193,9 @@ class TaskGraph(TaskGraphBase):
         edges: List[Tuple[str, str, Dict[str, Any]]] = self.product_kwargs["edges"]
         # convert the intent into lowercase
         for edge in edges:
-            edge[2]["intent"] = edge[2]["intent"].lower()
+            edge[2]["intent"] = (
+                edge[2]["intent"].lower() if edge[2]["intent"] else "none"
+            )
         self.graph.add_nodes_from(nodes)
         self.graph.add_edges_from(edges)
 
@@ -439,7 +443,7 @@ class TaskGraph(TaskGraphBase):
         """
         node_status: Dict[str, StatusEnum] = params.taskgraph.node_status
         status: StatusEnum = node_status.get(curr_node, StatusEnum.COMPLETE)
-        
+
         if status == StatusEnum.INCOMPLETE:
             log_context.info(
                 "no local or global intent found, the current node is not complete"
@@ -703,7 +707,7 @@ class TaskGraph(TaskGraphBase):
         allow_global_intent_switch: bool = inputs["allow_global_intent_switch"]
         params.taskgraph.nlu_records = []
 
-        if self.text == '<start>':
+        if self.text == "<start>":
             curr_node: str = self.start_node
             params.taskgraph.curr_node = curr_node
             node_info: NodeInfo
