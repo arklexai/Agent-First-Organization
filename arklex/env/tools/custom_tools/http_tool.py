@@ -27,6 +27,27 @@ def http_tool(**kwargs: Dict[str, Any]) -> str:
     func_name: str = inspect.currentframe().f_code.co_name
     try:
         params: HTTPParams = HTTPParams(**kwargs)
+        slots = kwargs.get("slots")  # This should be a list of Slot objects or dicts
+        log_context.info(f"Slots: {slots}")
+        if slots:
+            # Build a dict from slot names and values
+            slot_body = {}
+            for slot in slots:
+                # Handle both Slot objects and dictionaries
+                if hasattr(slot, 'name') and hasattr(slot, 'value'):
+                    # Slot object (Pydantic model)
+                    if slot.value is not None:
+                        slot_body[slot.name] = slot.value
+                elif isinstance(slot, dict):
+                    # Dictionary format
+                    if slot.get("value") is not None:
+                        slot_body[slot["name"]] = slot.get("value")
+            
+            # Merge with any existing params.body (params.body takes precedence if keys overlap)
+            if params.body:
+                slot_body.update(params.body)
+            params.body = slot_body
+
         log_context.info(
             f"Making a {params.method} request to {params.endpoint}, with body: {params.body} and params: {params.params}"
         )

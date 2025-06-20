@@ -252,6 +252,7 @@ class Tool:
         Returns:
             MessageState: The updated message state after tool execution.
         """
+        response = ""  # Initialize as empty string
         slot_verification: bool = False
         reason: str = ""
 
@@ -280,8 +281,10 @@ class Tool:
                     # check whether it verified or not
                     verification_needed: bool
                     thought: str
-                    verification_needed, thought = self.slotfiller.verify_needed(
-                        slot, chat_history_str, self.llm_config
+                    verification_needed, thought = self.slotfiller.verify_slot(
+                        slot.model_dump(),
+                        chat_history_str,
+                        self.llm_config
                     )
                     if verification_needed:
                         response: str = slot.prompt + "The reason is: " + thought
@@ -290,6 +293,7 @@ class Tool:
                         break
                     else:
                         slot.verified = True
+                        log_context.info(f"Slot '{slot.name}' verified successfully")
                 # if there is no extracted slots values, then should prompt the user to fill the slot
                 if not slot.value and slot.required:
                     response = slot.prompt
@@ -361,7 +365,7 @@ class Tool:
                     "role": "tool",
                     "tool_call_id": call_id,
                     "name": self.name,
-                    "content": response,
+                    "content": str(response),
                 }
             )
             state.status = (
@@ -369,7 +373,7 @@ class Tool:
             )
 
         state.trajectory[-1][-1].input = slots
-        state.trajectory[-1][-1].output = response
+        state.trajectory[-1][-1].output = str(response)
 
         if tool_success:
             # Tool execution success
@@ -377,28 +381,39 @@ class Tool:
                 log_context.info(
                     "Tool exeuction COMPLETE, and the output is stored in response"
                 )
-                state.response = response
+                state.response = str(response)
             else:
                 log_context.info(
                     "Tool execution COMPLETE, and the output is stored in message flow"
                 )
                 state.message_flow = (
                     state.message_flow
-                    + f"Context from {self.name} tool execution: {response}\n"
+                    + f"Context from {self.name} tool execution: {str(response)}\n"
                 )
         else:
             # Tool execution failed
             if slot_verification:
                 log_context.info("Tool execution INCOMPLETE due to slot verification")
-                state.message_flow = f"Context from {self.name} tool execution: {response}\n Focus on the '{reason}' to generate the verification request in response please and make sure the request appear in the response."
+                state.message_flow = f"Context from {self.name} tool execution: {str(response)}\n Focus on the '{reason}' to generate the verification request in response please and make sure the request appear in the response."
             else:
                 log_context.info(
                     "Tool execution INCOMPLETE due to tool execution failure"
                 )
-                state.message_flow = (
-                    state.message_flow
-                    + f"Context from {self.name} tool execution: {response}\n"
-                )
+                # Make it clear that the LLM should ask the user for missing information
+                missing_slots = [slot.name for slot in slots if slot.required and not slot.value]
+                if missing_slots:
+                    slot_questions = [slot.prompt for slot in slots if slot.required and not slot.value]
+                    questions_text = " ".join(slot_questions)
+                    state.message_flow = (
+                        state.message_flow
+                        + f"IMPORTANT: The tool cannot proceed without required information. You MUST ask the user for: {questions_text}\n"
+                        + f"Do NOT provide any facts or information until you have collected this required information from the user.\n"
+                    )
+                else:
+                    state.message_flow = (
+                        state.message_flow
+                        + f"Context from {self.name} tool execution: {str(response)}\n"
+                    )
         state.slots[self.name] = slots
         return state
 
