@@ -268,8 +268,31 @@ class TaskGraphFormatter:
         # Nested graph node
         if self._allow_nested_graph and tasks:
             nested_graph_node_id = str(node_id_counter)
-            # Simple logic to point to the first task
-            nested_graph_value = all_task_node_ids[0]
+
+            # Find all nodes that are the target of an edge from the main graph start node
+            main_graph_targets = {edge[1] for edge in edges if edge[0] == start_node_id}
+
+            # Subgraph start nodes: task nodes that are not the main graph start node and not directly targeted by the main graph start node
+            subgraph_start_nodes = [
+                node_id
+                for node_id in all_task_node_ids
+                if node_id != start_node_id and node_id not in main_graph_targets
+            ]
+
+            # Fallback: if all task nodes are main graph targets, just use the first task node that is not the start node
+            if not subgraph_start_nodes:
+                subgraph_start_nodes = [
+                    node_id for node_id in all_task_node_ids if node_id != start_node_id
+                ]
+
+            # Use the first valid subgraph start node
+            if subgraph_start_nodes:
+                nested_graph_value = subgraph_start_nodes[0]
+            else:
+                nested_graph_value = (
+                    all_task_node_ids[0] if all_task_node_ids else start_node_id
+                )
+
             nodes.append(
                 [
                     nested_graph_node_id,
