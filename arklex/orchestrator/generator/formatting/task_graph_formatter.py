@@ -251,7 +251,7 @@ class TaskGraphFormatter:
                     [
                         task_node_id,
                         node_lookup[first_step_id],
-                        {"intent": "has_step", "weight": 1},
+                        {"intent": None, "weight": 1},
                     ]
                 )
                 for i in range(len(steps) - 1):
@@ -261,7 +261,7 @@ class TaskGraphFormatter:
                         [
                             node_lookup[current_step_id],
                             node_lookup[next_step_id],
-                            {"intent": "next_step", "weight": 1},
+                            {"intent": None, "weight": 1},
                         ]
                     )
 
@@ -562,7 +562,7 @@ class TaskGraphFormatter:
                 start_node_id,
                 nested_graph_node_id,
                 {
-                    "intent": "Navigate to nested graph",
+                    "intent": None,
                     "attribute": {
                         "weight": 1,
                         "pred": True,
