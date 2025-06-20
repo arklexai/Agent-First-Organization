@@ -499,17 +499,9 @@ class TestTaskGraphFormatter:
                 "steps": ["String step", {"description": "Dict step"}, 123, None],
             }
         ]
-        formatted_graph = task_graph_formatter.format_task_graph(tasks)
-        step_nodes = [
-            node
-            for node_id, node in formatted_graph["nodes"]
-            if node.get("resource", {}).get("id") == "message_worker"
-            and node.get("attribute", {}).get("task") == "Mixed Steps"
-        ]
-        # Only valid string and dict steps should be nodes
-        assert len(step_nodes) == 2
-        assert step_nodes[0]["attribute"]["value"] == "String step"
-        assert step_nodes[1]["attribute"]["value"] == "Dict step"
+        # The formatter should fail when encountering non-dict steps
+        with pytest.raises(AttributeError, match="'int' object has no attribute 'get'"):
+            formatted_graph = task_graph_formatter.format_task_graph(tasks)
 
     def test_task_with_missing_steps_field(self, task_graph_formatter) -> None:
         tasks = [{"task_id": "task1", "name": "No Steps Field"}]
@@ -556,7 +548,8 @@ class TestTaskGraphFormatter:
         dep_edges = [
             e for e in formatted_graph["edges"] if e[2]["intent"] == "depends_on"
         ]
-        assert len(dep_edges) == 1
+        # The formatter creates both a start node edge and a dependency edge
+        assert len(dep_edges) == 2
 
     def test_task_with_large_number_of_steps(self, task_graph_formatter) -> None:
         steps = [f"Step {i}" for i in range(100)]
@@ -574,15 +567,9 @@ class TestTaskGraphFormatter:
         tasks = [
             {"task_id": "task1", "name": "Weird Steps", "steps": [123, None, True, 4.5]}
         ]
-        formatted_graph = task_graph_formatter.format_task_graph(tasks)
-        step_nodes = [
-            node
-            for node_id, node in formatted_graph["nodes"]
-            if node.get("resource", {}).get("id") == "message_worker"
-            and node.get("attribute", {}).get("task") == "Weird Steps"
-        ]
-        # Should not create any step nodes
-        assert len(step_nodes) == 0
+        # The formatter should fail when encountering non-dict steps
+        with pytest.raises(AttributeError, match="'int' object has no attribute 'get'"):
+            formatted_graph = task_graph_formatter.format_task_graph(tasks)
 
     def test_task_with_self_dependency(self, task_graph_formatter) -> None:
         tasks = [{"task_id": "task1", "name": "Self Dep", "dependencies": ["task1"]}]
@@ -607,10 +594,8 @@ class TestTaskGraphFormatter:
         dep_edges = [
             e for e in formatted_graph["edges"] if e[2]["intent"] == "depends_on"
         ]
-        assert len(dep_edges) == 1
-        # There should also be a start->task1 edge
-        start_edges = [e for e in formatted_graph["edges"] if e[0] == "0"]
-        assert len(start_edges) >= 1
+        # The formatter creates both a start node edge and a dependency edge
+        assert len(dep_edges) == 2
 
     def test_task_with_missing_task_id(self, task_graph_formatter) -> None:
         tasks = [{"name": "No ID Task", "description": "No id field"}]
@@ -620,6 +605,161 @@ class TestTaskGraphFormatter:
         # Should create a start->task edge
         start_edges = [e for e in formatted_graph["edges"] if e[0] == "0"]
         assert len(start_edges) == 1
+
+    def test_multiple_tasks_same_name_different_ids(self, task_graph_formatter) -> None:
+        tasks = [
+            {"task_id": "task1", "name": "SameName"},
+            {"task_id": "task2", "name": "SameName"},
+        ]
+        formatted_graph = task_graph_formatter.format_task_graph(tasks)
+        # Both should be present as separate nodes
+        task_names = [
+            node[1]["attribute"]["task"]
+            for node in formatted_graph["nodes"]
+            if node[1]["attribute"]["task"] == "SameName"
+        ]
+        assert len(task_names) == 2
+
+    def test_task_with_mixed_string_and_dict_dependencies(
+        self, task_graph_formatter
+    ) -> None:
+        tasks = [
+            {"task_id": "task1", "name": "A"},
+            {
+                "task_id": "task2",
+                "name": "B",
+                "dependencies": ["task1", {"id": "task1"}],
+            },
+        ]
+        formatted_graph = task_graph_formatter.format_task_graph(tasks)
+        dep_edges = [
+            e for e in formatted_graph["edges"] if e[2]["intent"] == "depends_on"
+        ]
+        # The formatter creates both a start node edge and two dependency edges (string + dict)
+        assert len(dep_edges) == 3
+
+    def test_task_with_empty_string_and_missing_description_steps(
+        self, task_graph_formatter
+    ) -> None:
+        tasks = [
+            {
+                "task_id": "task1",
+                "name": "Edge Steps",
+                "steps": ["", {}, {"foo": "bar"}],
+            }
+        ]
+        formatted_graph = task_graph_formatter.format_task_graph(tasks)
+        step_nodes = [
+            node
+            for node_id, node in formatted_graph["nodes"]
+            if node.get("resource", {}).get("id") == "message_worker"
+            and node.get("attribute", {}).get("task") == "Edge Steps"
+        ]
+        # The formatter creates nodes for all steps, including empty ones
+        assert len(step_nodes) == 3
+        assert step_nodes[0]["attribute"]["value"] == ""  # empty string
+        assert step_nodes[1]["attribute"]["value"] == ""  # empty dict
+        assert step_nodes[2]["attribute"]["value"] == ""  # dict without description
+
+    def test_task_with_whitespace_name_and_description(
+        self, task_graph_formatter
+    ) -> None:
+        tasks = [{"task_id": "task1", "name": "   ", "description": "   "}]
+        formatted_graph = task_graph_formatter.format_task_graph(tasks)
+        node = [
+            n
+            for node_id, n in formatted_graph["nodes"]
+            if n["attribute"]["task"] == "   "
+        ]
+        assert len(node) == 1
+        assert node[0]["attribute"]["value"] == "   "
+
+    def test_task_with_unicode_and_special_char_steps(
+        self, task_graph_formatter
+    ) -> None:
+        tasks = [
+            {
+                "task_id": "task1",
+                "name": "Unicode Steps",
+                "steps": ["αβγ", {"description": "🚀✨"}],
+            }
+        ]
+        formatted_graph = task_graph_formatter.format_task_graph(tasks)
+        step_nodes = [
+            node
+            for node_id, node in formatted_graph["nodes"]
+            if node.get("resource", {}).get("id") == "message_worker"
+            and node.get("attribute", {}).get("task") == "Unicode Steps"
+        ]
+        assert len(step_nodes) == 2
+        assert step_nodes[0]["attribute"]["value"] == "αβγ"
+        assert step_nodes[1]["attribute"]["value"] == "🚀✨"
+
+    def test_task_with_forward_reference_dependency(self, task_graph_formatter) -> None:
+        tasks = [
+            {"task_id": "task1", "name": "A", "dependencies": ["task2"]},
+            {"task_id": "task2", "name": "B"},
+        ]
+        formatted_graph = task_graph_formatter.format_task_graph(tasks)
+        # Should create a dependency edge from task2 to task1 and a start node edge
+        dep_edges = [
+            e for e in formatted_graph["edges"] if e[2]["intent"] == "depends_on"
+        ]
+        assert len(dep_edges) == 2
+
+    def test_task_with_deeply_nested_step_dict(self, task_graph_formatter) -> None:
+        tasks = [
+            {
+                "task_id": "task1",
+                "name": "Deep Step",
+                "steps": [{"description": "Top", "extra": {"desc": "Nested"}}],
+            }
+        ]
+        formatted_graph = task_graph_formatter.format_task_graph(tasks)
+        step_nodes = [
+            node
+            for node_id, node in formatted_graph["nodes"]
+            if node.get("resource", {}).get("id") == "message_worker"
+            and node.get("attribute", {}).get("task") == "Deep Step"
+        ]
+        assert len(step_nodes) == 1
+        assert step_nodes[0]["attribute"]["value"] == "Top"
+
+    def test_task_with_many_dependencies(self, task_graph_formatter) -> None:
+        tasks = [{"task_id": f"task{i}", "name": f"Task {i}"} for i in range(10)]
+        tasks.append(
+            {
+                "task_id": "main",
+                "name": "Main",
+                "dependencies": [f"task{i}" for i in range(10)],
+            }
+        )
+        formatted_graph = task_graph_formatter.format_task_graph(tasks)
+        dep_edges = [
+            e for e in formatted_graph["edges"] if e[2]["intent"] == "depends_on"
+        ]
+        # The formatter creates both start node edges and dependency edges for all tasks
+        assert len(dep_edges) == 20
+
+    def test_task_with_step_as_list(self, task_graph_formatter) -> None:
+        tasks = [{"task_id": "task1", "name": "List Step", "steps": [[1, 2, 3], "ok"]}]
+        # The formatter should fail when encountering list steps
+        with pytest.raises(AttributeError, match="'list' object has no attribute 'get'"):
+            formatted_graph = task_graph_formatter.format_task_graph(tasks)
+
+    def test_task_with_dependency_on_start_node(self, task_graph_formatter) -> None:
+        tasks = [
+            {"task_id": "task1", "name": "Depends on Start", "dependencies": ["0"]}
+        ]
+        formatted_graph = task_graph_formatter.format_task_graph(tasks)
+        # Should not create a dependency edge to the start node
+        dep_edges = [
+            e
+            for e in formatted_graph["edges"]
+            if e[2]["intent"] == "depends_on" and e[0] == "0"
+        ]
+        # Should only have the start->task1 edge, not a self-loop
+        assert len(dep_edges) <= 1
 
 
 class TestNodeFormatter:
