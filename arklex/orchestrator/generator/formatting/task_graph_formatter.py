@@ -134,9 +134,6 @@ class TaskGraphFormatter:
         edges = []
         node_id_counter = 0
         node_lookup = {}
-        step_parent_lookup = {}
-        step_nodes = []
-        task_node_mapping = {}
         all_task_node_ids = []
 
         # Create start node
@@ -159,30 +156,28 @@ class TaskGraphFormatter:
         node_id_counter += 1
 
         # First pass: Create all task and step nodes
-        for task_idx, task in enumerate(tasks):
-            task_identifier = task.get("task_id", f"task_{task_idx}")
+        for task in tasks:
+            task_identifier = task.get("task_id", f"task_{tasks.index(task)}")
             resource = task.get("resource", {})
             resource_name = resource.get("name", "MessageWorker")
             resource_id = self._find_worker_id_by_name(resource_name)
 
             task_node_id = str(node_id_counter)
-            nodes.append(
-                [
-                    task_node_id,
-                    {
-                        "resource": {"id": resource_id, "name": resource_name},
-                        "attribute": {
-                            "value": task.get("description", ""),
-                            "task": task.get("name", ""),
-                            "directed": False,
-                        },
-                        "type": task.get("type"),
-                        "limit": task.get("limit"),
-                    },
-                ]
-            )
+            node_data = {
+                "resource": {"id": resource_id, "name": resource_name},
+                "attribute": {
+                    "value": task.get("description", ""),
+                    "task": task.get("name", ""),
+                    "directed": False,
+                },
+            }
+            if task.get("type"):
+                node_data["type"] = task.get("type")
+            if task.get("limit"):
+                node_data["limit"] = task.get("limit")
+
+            nodes.append([task_node_id, node_data])
             node_lookup[task_identifier] = task_node_id
-            task_node_mapping[task_idx] = task_node_id
             all_task_node_ids.append(task_node_id)
             node_id_counter += 1
 
@@ -208,13 +203,11 @@ class TaskGraphFormatter:
                     ]
                 )
                 node_lookup[step_id] = step_node_id
-                step_parent_lookup[step_node_id] = task_node_id
-                step_nodes.append(step_node_id)
                 node_id_counter += 1
 
         # Second pass: Create all edges
-        for task_idx, task in enumerate(tasks):
-            task_identifier = task.get("task_id", f"task_{task_idx}")
+        for task in tasks:
+            task_identifier = task.get("task_id", f"task_{tasks.index(task)}")
             task_node_id = node_lookup.get(task_identifier)
 
             # Dependencies
