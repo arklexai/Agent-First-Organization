@@ -133,250 +133,165 @@ class TaskGraphFormatter:
         nodes = []
         edges = []
         node_id_counter = 0
-        node_lookup = {}  # task_id/step_id -> node_id (str)
-        step_parent_lookup = {}  # step node_id -> parent task node_id
-        step_nodes = []
-        task_node_mapping = {}  # task index -> node_id
-
-        # Create start node first
-        message_worker_id = self._find_worker_id_by_name("MessageWorker")
-        start_node = {
-            "resource": {
-                "id": message_worker_id,
-                "name": "MessageWorker",
-            },
-            "attribute": {
-                "value": "Hello! I'm here to assist you with any customer service inquiries you may have. Whether you need information about our products, services, or policies, or if you need help resolving an issue or completing a transaction, feel free to ask. How can I assist you today?",
-                "task": "start message",
-                "directed": False,
-            },
-            "type": "start",
-        }
-        nodes.append([str(node_id_counter), start_node])
-        start_node_id = str(node_id_counter)
-        node_id_counter += 1
-
-        # Create all task nodes and collect their IDs
-        task_node_mapping = {}
         node_lookup = {}
         step_parent_lookup = {}
         step_nodes = []
+        task_node_mapping = {}
         all_task_node_ids = []
-        nested_graph_node_id = None
 
-        if tasks:
-            for task_idx, task in enumerate(tasks):
-                resource = task.get("resource", {})
-                resource_name = resource.get("name", "MessageWorker")
-                resource_id = self._find_worker_id_by_name(resource_name)
-                node = {
-                    "resource": {
-                        "id": resource_id,
-                        "name": resource_name,
-                    },
+        # Create start node
+        start_node_id = str(node_id_counter)
+        message_worker_id = self._find_worker_id_by_name("MessageWorker")
+        nodes.append(
+            [
+                start_node_id,
+                {
+                    "resource": {"id": message_worker_id, "name": "MessageWorker"},
                     "attribute": {
-                        "value": task.get("description", ""),
-                        "task": task.get("name", ""),
+                        "value": "Hello! I'm here to assist you with any customer service inquiries.",
+                        "task": "start message",
                         "directed": False,
                     },
-                }
-                if "limit" in task:
-                    node["limit"] = task["limit"]
-                if "type" in task:
-                    node["type"] = task["type"]
-                nodes.append([str(node_id_counter), node])
-                all_task_node_ids.append(str(node_id_counter))
-                task_identifier = task.get("task_id", f"task_{task_idx}")
-                node_lookup[task_identifier] = str(node_id_counter)
-                task_node_mapping[task_idx] = str(node_id_counter)
-                node_id_counter += 1
-
-            # Only create nested graph node if allow_nested_graph is True
-            if self._allow_nested_graph:
-                # Find all nodes that are the target of an edge from the main graph start node
-                main_graph_targets = set()
-                for task_idx, task in enumerate(tasks):
-                    dependencies = task.get("dependencies", [])
-                    if not dependencies:
-                        main_graph_targets.add(task_node_mapping[task_idx])
-
-                # Subgraph start nodes: task nodes that are not the main graph start node and not directly targeted by the main graph start node
-                subgraph_start_nodes = [
-                    node_id
-                    for node_id in all_task_node_ids
-                    if node_id != start_node_id and node_id not in main_graph_targets
-                ]
-                # Fallback: if all task nodes are main graph targets, just use the first task node that is not the start node
-                if not subgraph_start_nodes:
-                    subgraph_start_nodes = [
-                        node_id
-                        for node_id in all_task_node_ids
-                        if node_id != start_node_id
-                    ]
-                # Use the first valid subgraph start node
-                nested_graph_value = (
-                    subgraph_start_nodes[0]
-                    if subgraph_start_nodes
-                    else all_task_node_ids[0]
-                )
-
-                # Now create the nested graph node, value set to a true subgraph start node
-                nested_graph_node = {
-                    "resource": {
-                        "id": "nested_graph",
-                        "name": "NestedGraph",
-                    },
-                    "attribute": {
-                        "value": nested_graph_value,
-                        "task": "TBD",
-                        "directed": True,
-                    },
-                    "limit": 1,
-                }
-                nested_graph_node_id = str(node_id_counter)
-                nodes.append([nested_graph_node_id, nested_graph_node])
-                node_id_counter += 1
-        else:
-            start_node_id = None
-            nested_graph_node_id = None
-            node_id_counter = 0
-
-        # Create nodes for steps
-        for task_idx, task in enumerate(tasks):
-            steps = task.get("steps", [])
-            task_identifier = task.get("task_id", f"task_{task_idx}")
-
-            for idx, step in enumerate(steps):
-                step_id = f"{task_identifier}_step{idx}"
-                resource = step.get("resource", {})
-
-                if isinstance(resource, str):
-                    resource_id = self._find_worker_id_by_name(resource)
-                    resource_name = resource
-                else:
-                    resource_name = resource.get("name", "MessageWorker")
-                    resource_id = self._find_worker_id_by_name(resource_name)
-
-                step_node = {
-                    "resource": {
-                        "id": resource_id,
-                        "name": resource_name,
-                    },
-                    "attribute": {
-                        "value": step.get("description", step.get("value", "")),
-                        "task": step.get("name", step.get("task", "")),
-                        "directed": False,
-                    },
-                }
-                nodes.append([str(node_id_counter), step_node])
-                node_lookup[step_id] = str(node_id_counter)
-                step_parent_lookup[str(node_id_counter)] = task_node_mapping[task_idx]
-                step_nodes.append(
-                    (str(node_id_counter), step_id, task_node_mapping[task_idx])
-                )
-                node_id_counter += 1
-
-        # Create edges for dependencies (task-to-task)
-        for task_idx, task in enumerate(tasks):
-            this_node_id = task_node_mapping[task_idx]
-            task_identifier = task.get("task_id", f"task_{task_idx}")
-            dependencies = task.get("dependencies", [])
-            if dependencies:
-                for dep in dependencies:
-                    if dep in node_lookup:
-                        edge_data = {
-                            "intent": "depends_on",
-                            "attribute": {
-                                "weight": 1,
-                                "pred": True,
-                                "definition": f"{task.get('name', '')} depends on {dep}",
-                                "sample_utterances": [],
-                            },
-                        }
-                        edges.append([node_lookup[dep], this_node_id, edge_data])
-            elif start_node_id is not None:
-                edge_data = {
-                    "intent": f"User inquires about {task.get('name', '').lower()}",
-                    "attribute": {
-                        "weight": 1,
-                        "pred": True,
-                        "definition": "",
-                        "sample_utterances": [],
-                    },
-                }
-                edges.append([start_node_id, this_node_id, edge_data])
-
-        # Create edges for task-to-step
-        for task_idx, task in enumerate(tasks):
-            steps = task.get("steps", [])
-            if not steps:
-                continue
-
-            task_identifier = task.get("task_id", f"task_{task_idx}")
-
-            first_step_node_id = node_lookup[f"{task_identifier}_step0"]
-            edge_data = {
-                "intent": None,
-                "attribute": {
-                    "weight": 1,
-                    "pred": False,
-                    "definition": "",
-                    "sample_utterances": [],
+                    "type": "start",
                 },
-            }
-            edges.append([task_node_mapping[task_idx], first_step_node_id, edge_data])
-
-            for i in range(len(steps) - 1):
-                current_step_id = f"{task_identifier}_step{i}"
-                next_step_id = f"{task_identifier}_step{i + 1}"
-                current_step_node_id = node_lookup[current_step_id]
-                next_step_node_id = node_lookup[next_step_id]
-
-                edge_data = {
-                    "intent": None,
-                    "attribute": {
-                        "weight": 1,
-                        "pred": False,
-                        "definition": "",
-                        "sample_utterances": [],
-                    },
-                }
-                edges.append([current_step_node_id, next_step_node_id, edge_data])
-
-        # Add edges from nested_graph to leaf nodes
-        if tasks:
-            all_node_ids = set(str(n[0]) for n in nodes)
-            source_node_ids = set(str(e[0]) for e in edges)
-            leaf_node_ids = [
-                nid
-                for nid in all_node_ids
-                if nid not in source_node_ids and nid != nested_graph_node_id
             ]
+        )
+        node_id_counter += 1
 
-            if not leaf_node_ids:
-                task_node_ids = [
-                    nid
-                    for nid in all_node_ids
-                    if nid not in (start_node_id, nested_graph_node_id)
-                ]
-                if len(task_node_ids) == 1:
-                    leaf_node_ids = task_node_ids
+        # First pass: Create all task and step nodes
+        for task_idx, task in enumerate(tasks):
+            task_identifier = task.get("task_id", f"task_{task_idx}")
+            resource = task.get("resource", {})
+            resource_name = resource.get("name", "MessageWorker")
+            resource_id = self._find_worker_id_by_name(resource_name)
 
-            for leaf_id in leaf_node_ids:
-                nested_graph_to_leaf_edge = [
-                    nested_graph_node_id,
-                    leaf_id,
+            task_node_id = str(node_id_counter)
+            nodes.append(
+                [
+                    task_node_id,
                     {
-                        "intent": None,
+                        "resource": {"id": resource_id, "name": resource_name},
                         "attribute": {
-                            "weight": 1,
-                            "pred": False,
-                            "definition": "",
-                            "sample_utterances": [],
+                            "value": task.get("description", ""),
+                            "task": task.get("name", ""),
+                            "directed": False,
                         },
+                        "type": task.get("type"),
+                        "limit": task.get("limit"),
                     },
                 ]
-                edges.append(nested_graph_to_leaf_edge)
+            )
+            node_lookup[task_identifier] = task_node_id
+            task_node_mapping[task_idx] = task_node_id
+            all_task_node_ids.append(task_node_id)
+            node_id_counter += 1
+
+            for step_idx, step in enumerate(task.get("steps", [])):
+                step_id = f"{task_identifier}_step{step_idx}"
+                step_node_id = str(node_id_counter)
+                nodes.append(
+                    [
+                        step_node_id,
+                        {
+                            "resource": {
+                                "id": "message_worker",
+                                "name": "MessageWorker",
+                            },
+                            "attribute": {
+                                "value": step
+                                if isinstance(step, str)
+                                else step.get("description", ""),
+                                "task": task.get("name", ""),
+                                "directed": False,
+                            },
+                        },
+                    ]
+                )
+                node_lookup[step_id] = step_node_id
+                step_parent_lookup[step_node_id] = task_node_id
+                step_nodes.append(step_node_id)
+                node_id_counter += 1
+
+        # Second pass: Create all edges
+        for task_idx, task in enumerate(tasks):
+            task_identifier = task.get("task_id", f"task_{task_idx}")
+            task_node_id = node_lookup.get(task_identifier)
+
+            # Dependencies
+            dependencies = task.get("dependencies", [])
+            if not dependencies:
+                edges.append(
+                    [
+                        start_node_id,
+                        task_node_id,
+                        {
+                            "intent": self._default_intent,
+                            "weight": self._default_weight,
+                        },
+                    ]
+                )
+            else:
+                for dep in dependencies:
+                    dep_id = dep if isinstance(dep, str) else dep.get("id")
+                    target_node_id = node_lookup.get(dep_id)
+                    if target_node_id:
+                        edges.append(
+                            [
+                                target_node_id,
+                                task_node_id,
+                                {
+                                    "intent": self._default_intent,
+                                    "weight": self._default_weight,
+                                },
+                            ]
+                        )
+                    else:
+                        log_context.warning(
+                            f"Could not find target node for dependency '{dep_id}'"
+                        )
+
+            # Steps
+            steps = task.get("steps", [])
+            if steps:
+                first_step_id = f"{task_identifier}_step0"
+                edges.append(
+                    [
+                        task_node_id,
+                        node_lookup[first_step_id],
+                        {"intent": "has_step", "weight": 1},
+                    ]
+                )
+                for i in range(len(steps) - 1):
+                    current_step_id = f"{task_identifier}_step{i}"
+                    next_step_id = f"{task_identifier}_step{i + 1}"
+                    edges.append(
+                        [
+                            node_lookup[current_step_id],
+                            node_lookup[next_step_id],
+                            {"intent": "next_step", "weight": 1},
+                        ]
+                    )
+
+        # Nested graph node
+        if self._allow_nested_graph and tasks:
+            nested_graph_node_id = str(node_id_counter)
+            # Simple logic to point to the first task
+            nested_graph_value = all_task_node_ids[0]
+            nodes.append(
+                [
+                    nested_graph_node_id,
+                    {
+                        "resource": {"id": "nested_graph", "name": "NestedGraph"},
+                        "attribute": {
+                            "value": nested_graph_value,
+                            "task": "TBD",
+                            "directed": True,
+                        },
+                        "limit": 1,
+                    },
+                ]
+            )
+            node_id_counter += 1
 
         graph = {
             "nodes": nodes,

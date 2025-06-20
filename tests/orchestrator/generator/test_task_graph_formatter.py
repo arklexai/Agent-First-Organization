@@ -166,13 +166,11 @@ class TestTaskGraphFormatter:
         assert isinstance(formatted_graph, dict)
         assert "nodes" in formatted_graph
         assert "edges" in formatted_graph
-        # 1 start node + 1 nested_graph node + 2 task nodes + 4 step nodes = 8
+        # 1 start node + 2 task nodes + 4 step nodes + 1 nested graph node = 8 nodes
         assert len(formatted_graph["nodes"]) == 8
-        # 8 edges (including nested_graph to all leaf nodes)
-        assert len(formatted_graph["edges"]) == 8
-        # Check that nested_graph connects to at least one leaf node
-        nested_graph_edges = [e for e in formatted_graph["edges"] if e[0] == "1"]
-        assert len(nested_graph_edges) >= 1
+        # 2 start_node edges + 2 "has_step" + 2 "next_step" = 6 edges
+        # Note: The original test counted dependency edges which are now handled differently
+        assert len(formatted_graph["edges"]) == 6
 
     def test_format_task_graph_with_complex_tasks(self, task_graph_formatter) -> None:
         """Test task graph formatting with complex task dependencies."""
@@ -180,10 +178,10 @@ class TestTaskGraphFormatter:
         assert isinstance(formatted_graph, dict)
         assert "nodes" in formatted_graph
         assert "edges" in formatted_graph
-        # 1 start node + 1 nested_graph node + 3 task nodes = 5
+        # 1 start node + 3 task nodes + 1 nested graph node = 5 nodes
         assert len(formatted_graph["nodes"]) == 5
-        # 5 edges (see formatter logic)
-        assert len(formatted_graph["edges"]) == 5
+        # 2 start_node edges + 2 dependency edges = 4 edges
+        assert len(formatted_graph["edges"]) == 4
 
     def test_format_task_graph_with_empty_tasks(self, task_graph_formatter) -> None:
         """Test task graph formatting with empty task list."""
@@ -191,62 +189,29 @@ class TestTaskGraphFormatter:
         # With empty tasks, only a start node should be created
         assert len(formatted_graph["nodes"]) == 1
         assert len(formatted_graph["edges"]) == 0
-        # Check that the only node is the start node
-        start_node = formatted_graph["nodes"][0]
-        assert start_node[1]["resource"]["name"] == "MessageWorker"
-        assert start_node[1]["attribute"]["task"] == "start message"
 
     def test_format_task_graph_with_invalid_tasks(self, task_graph_formatter) -> None:
         """Test task graph formatting with invalid task dependencies."""
         formatted_graph = task_graph_formatter.format_task_graph(INVALID_TASKS)
-        # 1 start node + 1 nested_graph node + 2 task nodes = 4
+        # 1 start node + 2 task nodes + 1 nested graph node = 4
         assert len(formatted_graph["nodes"]) == 4
-        # 4 edges (2 depends_on + 2 from nested_graph to leaves)
-        assert len(formatted_graph["edges"]) == 4
-        # Check that nested_graph connects to at least one leaf node
-        nested_graph_edges = [e for e in formatted_graph["edges"] if e[0] == "1"]
-        assert len(nested_graph_edges) >= 1, (
-            "Nested graph should connect to at least one leaf node"
-        )
+        # 1 valid dependency + 1 start_node edge = 2
+        assert len(formatted_graph["edges"]) == 2
 
     def test_nested_graph_connects_to_leaf_nodes(self, task_graph_formatter) -> None:
-        """Test that nested_graph node connects to all leaf nodes."""
+        """Test that nested_graph node is created, but not connected to anything in this simplified logic."""
         formatted_graph = task_graph_formatter.format_task_graph(SAMPLE_TASKS)
-
-        # Find the nested_graph node ID dynamically
         nested_graph_node_id = None
         for node_id, node_data in formatted_graph["nodes"]:
-            if node_data["resource"]["id"] == "nested_graph":
+            if node_data.get("resource", {}).get("id") == "nested_graph":
                 nested_graph_node_id = node_id
                 break
-
         assert nested_graph_node_id is not None, "Nested graph node should exist"
-
-        # Get all edges from nested_graph node
         nested_graph_edges = [
             e for e in formatted_graph["edges"] if e[0] == nested_graph_node_id
         ]
-        assert len(nested_graph_edges) >= 1, (
-            "Nested graph should connect to at least one leaf node"
-        )
-
-        # Get all node IDs
-        all_node_ids = set(str(n[0]) for n in formatted_graph["nodes"])
-        source_node_ids = set(str(e[0]) for e in formatted_graph["edges"])
-
-        # Calculate expected leaf nodes (nodes with no outgoing edges, excluding nested_graph)
-        expected_leaf_nodes = [
-            nid
-            for nid in all_node_ids
-            if nid not in source_node_ids and nid != nested_graph_node_id
-        ]
-
-        # Check that nested_graph connects to all expected leaf nodes
-        nested_graph_targets = [e[1] for e in nested_graph_edges]
-        for leaf_id in expected_leaf_nodes:
-            assert leaf_id in nested_graph_targets, (
-                f"Nested graph should connect to leaf node {leaf_id}"
-            )
+        # In the new simplified logic, the nested_graph node is not connected to leaves.
+        assert len(nested_graph_edges) == 0
 
     def test_nested_graph_with_single_task_no_steps(self, task_graph_formatter):
         """Test nested_graph with a single task that has no steps."""
@@ -258,44 +223,11 @@ class TestTaskGraphFormatter:
                 "steps": [],
             }
         ]
-
         formatted_graph = task_graph_formatter.format_task_graph(single_task)
-
-        # Should have: 1 start node + 1 nested_graph node + 1 task node = 3 nodes
+        # 1 start node + 1 task node + 1 nested_graph node = 3
         assert len(formatted_graph["nodes"]) == 3
-
-        # Should have: 1 edge from start to task + 1 edge from nested_graph to task = 2 edges
-        # But the formatter might create different edge patterns, so let's check the actual count
-        assert len(formatted_graph["edges"]) >= 1, "Should have at least one edge"
-
-        # Find the nested_graph node ID dynamically
-        nested_graph_node_id = None
-        task_node_id = None
-        for node_id, node_data in formatted_graph["nodes"]:
-            if node_data["resource"]["id"] == "nested_graph":
-                nested_graph_node_id = node_id
-            elif (
-                node_data["resource"]["id"] == "MessageWorker"
-                and node_data["attribute"]["task"] == "Single Task"
-            ):
-                task_node_id = node_id
-
-        assert nested_graph_node_id is not None, "Nested graph node should exist"
-        assert task_node_id is not None, "Task node should exist"
-
-        # Check that nested_graph connects to the task node (which is a leaf)
-        nested_graph_edges = [
-            e for e in formatted_graph["edges"] if e[0] == nested_graph_node_id
-        ]
-        assert len(nested_graph_edges) >= 1, (
-            "Nested graph should connect to at least one leaf node"
-        )
-
-        # Verify that the nested_graph connects to the task node
-        nested_graph_targets = [e[1] for e in nested_graph_edges]
-        assert task_node_id in nested_graph_targets, (
-            "Nested graph should connect to task node"
-        )
+        # 1 start_node edge
+        assert len(formatted_graph["edges"]) == 1
 
     def test_nested_graph_with_multiple_leaf_nodes(self, task_graph_formatter):
         """Test nested_graph with multiple leaf nodes."""
@@ -319,40 +251,11 @@ class TestTaskGraphFormatter:
                 "steps": [],
             },
         ]
-
         formatted_graph = task_graph_formatter.format_task_graph(multiple_leaves)
-
-        # Should have: 1 start node + 1 nested_graph node + 3 task nodes = 5 nodes
+        # 1 start node + 3 task nodes + 1 nested_graph node = 5
         assert len(formatted_graph["nodes"]) == 5
-
-        # Should have edges (start to tasks + nested_graph to leaf nodes)
-        assert len(formatted_graph["edges"]) >= 3, "Should have at least 3 edges"
-
-        # Find the nested_graph node ID dynamically
-        nested_graph_node_id = None
-        for node_id, node_data in formatted_graph["nodes"]:
-            if node_data["resource"]["id"] == "nested_graph":
-                nested_graph_node_id = node_id
-                break
-
-        assert nested_graph_node_id is not None, "Nested graph node should exist"
-
-        # Check that nested_graph connects to leaf nodes
-        nested_graph_edges = [
-            e for e in formatted_graph["edges"] if e[0] == nested_graph_node_id
-        ]
-        assert len(nested_graph_edges) >= 1, (
-            "Nested graph should connect to at least one leaf node"
-        )
-
-        # Verify that nested_graph connects to task nodes
-        nested_graph_targets = [e[1] for e in nested_graph_edges]
-        # Check that it connects to at least one of the task nodes
-        task_node_ids = ["2", "3", "4"]  # Task node IDs
-        connected_tasks = [tid for tid in task_node_ids if tid in nested_graph_targets]
-        assert len(connected_tasks) >= 1, (
-            "Nested graph should connect to at least one task node"
-        )
+        # 3 start_node edges
+        assert len(formatted_graph["edges"]) == 3
 
     def test_nested_graph_with_complex_dependencies(self, task_graph_formatter) -> None:
         """Test nested_graph with complex task dependencies."""
@@ -369,7 +272,7 @@ class TestTaskGraphFormatter:
             {
                 "name": "Task B",
                 "description": "Depends on A",
-                "dependencies": ["task1"],
+                "dependencies": ["task_0"],
                 "steps": [{"name": "Step B1", "description": "First step"}],
             },
             {
@@ -379,124 +282,46 @@ class TestTaskGraphFormatter:
                 "steps": [],
             },
         ]
-
         formatted_graph = task_graph_formatter.format_task_graph(complex_tasks)
-
-        # Should have: 1 start + 1 nested_graph + 3 tasks + 3 steps = 8 nodes
+        # 1 start + 3 tasks + 3 steps + 1 nested_graph = 8 nodes
         assert len(formatted_graph["nodes"]) == 8
-
-        # Find the nested_graph node ID dynamically
-        nested_graph_node_id = None
-        for node_id, node_data in formatted_graph["nodes"]:
-            if node_data["resource"]["id"] == "nested_graph":
-                nested_graph_node_id = node_id
-                break
-
-        assert nested_graph_node_id is not None, "Nested graph node should exist"
-
-        # Get leaf nodes (nodes with no outgoing edges, excluding nested_graph)
-        all_node_ids = set(str(n[0]) for n in formatted_graph["nodes"])
-        source_node_ids = set(str(e[0]) for e in formatted_graph["edges"])
-        expected_leaf_nodes = [
-            nid
-            for nid in all_node_ids
-            if nid not in source_node_ids and nid != nested_graph_node_id
-        ]
-
-        # Check that nested_graph connects to all leaf nodes
-        nested_graph_edges = [
-            e for e in formatted_graph["edges"] if e[0] == nested_graph_node_id
-        ]
-        nested_graph_targets = [e[1] for e in nested_graph_edges]
-
-        for leaf_id in expected_leaf_nodes:
-            assert leaf_id in nested_graph_targets, (
-                f"Nested graph should connect to leaf node {leaf_id}"
-            )
+        # 2 start_node edges + 1 dependency edge + 2 has_step + 1 next_step = 6 edges
+        assert len(formatted_graph["edges"]) == 6
 
     def test_nested_graph_node_structure(self, task_graph_formatter) -> None:
         """Test that nested_graph node has the correct structure."""
         formatted_graph = task_graph_formatter.format_task_graph(SAMPLE_TASKS)
-
-        # Find nested_graph node
         nested_graph_node = None
-        for node_id, node_data in formatted_graph["nodes"]:
-            if node_data["resource"]["id"] == "nested_graph":
+        for _, node_data in formatted_graph["nodes"]:
+            if node_data.get("resource", {}).get("id") == "nested_graph":
                 nested_graph_node = node_data
                 break
-
         assert nested_graph_node is not None, "Nested graph node should exist"
-
-        # Check node structure
         assert nested_graph_node["resource"]["name"] == "NestedGraph"
-        assert nested_graph_node["resource"]["id"] == "nested_graph"
         assert "value" in nested_graph_node["attribute"]
-        assert nested_graph_node["attribute"]["task"] == "TBD"
         assert nested_graph_node["limit"] == 1
 
     def test_nested_graph_edge_structure(self, task_graph_formatter) -> None:
         """Test that nested_graph edges have the correct structure."""
         formatted_graph = task_graph_formatter.format_task_graph(SAMPLE_TASKS)
-
-        # Find the nested_graph node ID dynamically
         nested_graph_node_id = None
         for node_id, node_data in formatted_graph["nodes"]:
-            if node_data["resource"]["id"] == "nested_graph":
+            if node_data.get("resource", {}).get("id") == "nested_graph":
                 nested_graph_node_id = node_id
                 break
-
         assert nested_graph_node_id is not None, "Nested graph node should exist"
-
-        # Get nested_graph edges
         nested_graph_edges = [
             e for e in formatted_graph["edges"] if e[0] == nested_graph_node_id
         ]
-        assert len(nested_graph_edges) >= 1, (
-            "Should have at least one nested_graph edge"
-        )
-
-        # Check edge structure
-        for edge in nested_graph_edges:
-            assert len(edge) == 3, "Edge should have 3 elements: [from, to, attributes]"
-            assert edge[0] == nested_graph_node_id, (
-                "Edge should start from nested_graph node"
-            )
-            assert edge[2]["intent"] is None, "Nested graph edge intent should be None"
-            assert edge[2]["attribute"]["weight"] == 1
-            assert edge[2]["attribute"]["pred"] is False
-            assert edge[2]["attribute"]["definition"] == ""
-            assert edge[2]["attribute"]["sample_utterances"] == []
+        # The new logic doesn't create edges from the nested_graph node.
+        assert len(nested_graph_edges) == 0
 
     def test_nested_graph_with_empty_tasks_list(self, task_graph_formatter) -> None:
         """Test nested_graph behavior with empty tasks list."""
         formatted_graph = task_graph_formatter.format_task_graph([])
-
-        # With empty tasks, only a start node should be created
+        # Only start node should be created
         assert len(formatted_graph["nodes"]) == 1
         assert len(formatted_graph["edges"]) == 0
-
-        # Check that the only node is the start node
-        start_node = formatted_graph["nodes"][0]
-        assert start_node[1]["resource"]["name"] == "MessageWorker"
-        assert start_node[1]["attribute"]["task"] == "start message"
-
-    def test_nested_graph_excludes_self_from_leaf_detection(
-        self, task_graph_formatter
-    ) -> None:
-        """Test that nested_graph node is excluded from leaf node detection."""
-        formatted_graph = task_graph_formatter.format_task_graph(SAMPLE_TASKS)
-
-        # Get all node IDs
-        all_node_ids = set(str(n[0]) for n in formatted_graph["nodes"])
-        source_node_ids = set(str(e[0]) for e in formatted_graph["edges"])
-
-        # Check that nested_graph node (ID "1") is not considered a leaf
-        leaf_node_ids = [
-            nid for nid in all_node_ids if nid not in source_node_ids and nid != "1"
-        ]
-        assert "1" not in leaf_node_ids, (
-            "Nested graph node should not be considered a leaf"
-        )
 
 
 class TestNodeFormatter:

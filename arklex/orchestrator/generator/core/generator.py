@@ -478,7 +478,7 @@ class Generator:
                             zip(self.tasks, hitl_result)
                         ):
                             if original_task.get("name") != edited_task.get(
-                                "task_name"
+                                "name"
                             ) or len(original_task.get("steps", [])) != len(
                                 edited_task.get("steps", [])
                             ):
@@ -499,11 +499,11 @@ class Generator:
 
                         if best_practices and best_practice_idx < len(best_practices):
                             log_context.info(
-                                f"  🔗 Pairing task {idx_t + 1}/{len(hitl_result)}: {task.get('task_name', 'Unknown')}"
+                                f"  🔗 Pairing task {idx_t + 1}/{len(hitl_result)}: {task.get('name', 'Unknown')}"
                             )
                             # Convert task format for finetune_best_practice
                             task_for_finetune = {
-                                "name": task.get("task_name", ""),
+                                "name": task.get("name", ""),
                                 "steps": [
                                     {"description": step}
                                     for step in task.get("steps", [])
@@ -532,7 +532,7 @@ class Generator:
                     for task in hitl_result:
                         finetuned_tasks.append(
                             {
-                                "name": task.get("task_name", ""),
+                                "name": task.get("name", ""),
                                 "steps": [
                                     {"description": step}
                                     for step in task.get("steps", [])

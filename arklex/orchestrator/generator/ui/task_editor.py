@@ -4,6 +4,7 @@ This module provides the TaskEditor class that handles the UI for editing
 task definitions.
 """
 
+from typing import List, Dict, Any
 
 from arklex.utils.logging_utils import LogContext
 
@@ -36,11 +37,11 @@ class TaskEditorApp(App):
         update_tasks(): Updates the tasks list from the tree structure
     """
 
-    def __init__(self, tasks):
+    def __init__(self, tasks: List[Dict[str, Any]]) -> None:
         """Initialize the TaskEditorApp instance.
 
         Args:
-            tasks (list): List of task dictionaries containing task names and steps
+            tasks (List[Dict[str, Any]]): List of task dictionaries containing task names and steps
         """
         super().__init__()
         self.tasks = tasks
@@ -91,12 +92,12 @@ class TaskEditorApp(App):
         """
         selected_node = event.node
 
-        def handle_modal_result(result, node):
+        def handle_modal_result(result: str, node: TreeNode) -> None:
             """Handle the result from the input modal.
 
             Args:
-                result: The result from the modal input
-                node: The tree node being edited
+                result (str): The result from the modal input
+                node (TreeNode): The tree node being edited
             """
             if result is not None:  # Check if the user submitted a valid result
                 node.set_label(result)  # Update the tree node's label
@@ -113,7 +114,7 @@ class TaskEditorApp(App):
             )
         )
 
-    async def on_key(self, event):
+    async def on_key(self, event) -> None:
         """Process keyboard input.
 
         Handles keyboard shortcuts for adding nodes ('a'), deleting nodes ('d'),
@@ -131,7 +132,7 @@ class TaskEditorApp(App):
         elif event.key == "s":
             self.exit(self.tasks)
 
-    async def action_add_node(self, node: TreeNode):
+    async def action_add_node(self, node: TreeNode) -> None:
         """Add new nodes to the tree.
 
         Determines whether to add a task or step based on the selected node and
@@ -155,12 +156,12 @@ class TaskEditorApp(App):
                 node = node.parent
                 title = f"Add new task under '{node.label.plain}'"
 
-        def handle_modal_result(result, node):
+        def handle_modal_result(result: str, node: TreeNode) -> None:
             """Handle the result from the input modal for adding nodes.
 
             Args:
-                result: The result from the modal input
-                node: The tree node to add the new item to
+                result (str): The result from the modal input
+                node (TreeNode): The tree node to add the new item to
             """
             if result is not None:  # Check if the user submitted a valid result
                 if leaf:
@@ -189,7 +190,7 @@ class TaskEditorApp(App):
         self.push_screen(modal)
         return modal.result
 
-    async def update_tasks(self):
+    async def update_tasks(self) -> None:
         """Update the tasks list from the tree structure.
 
         Synchronizes the internal tasks list with the current state of the tree widget,
@@ -199,7 +200,16 @@ class TaskEditorApp(App):
         for task_node in self.task_tree.root.children:
             task_name = task_node.label.plain
             steps = [step.label.plain for step in task_node.children]
-            self.tasks.append({"task_name": task_name, "steps": steps})
+            self.tasks.append({"name": task_name, "steps": steps})
 
         log_message = f"Updated Tasks: {self.tasks}"
         log_context.debug(log_message)
+
+    def run(self) -> List[Dict[str, Any]]:
+        """Run the task editor app.
+
+        Returns:
+            List[Dict[str, Any]]: The updated tasks list
+        """
+        super().run()
+        return self.tasks
