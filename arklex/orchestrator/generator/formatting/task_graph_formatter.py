@@ -184,13 +184,18 @@ class TaskGraphFormatter:
             for step_idx, step in enumerate(task.get("steps", [])):
                 step_id = f"{task_identifier}_step{step_idx}"
                 step_node_id = str(node_id_counter)
+
+                # Use the task's resource for all steps, or default to MessageWorker
+                step_worker_name = resource_name if resource_name else "MessageWorker"
+                step_worker_id = self._find_worker_id_by_name(step_worker_name)
+
                 nodes.append(
                     [
                         step_node_id,
                         {
                             "resource": {
-                                "id": "message_worker",
-                                "name": "MessageWorker",
+                                "id": step_worker_id,
+                                "name": step_worker_name,
                             },
                             "attribute": {
                                 "value": step
