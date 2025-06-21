@@ -158,16 +158,18 @@ class Generator:
             resource_initializer = DefaultResourceInitializer()
         self.resource_initializer = resource_initializer
 
-        # Ensure workers are in the correct format
-        self.workers = [
-            worker
-            for worker in self.product_kwargs.get("workers", [])
-            if isinstance(worker, dict)
-            and "id" in worker
-            and "name" in worker
-            and "path" in worker
-        ]
-
+        # Restore original worker assignment logic
+        raw_workers = self.product_kwargs.get("workers", [])
+        self.workers = []
+        for worker in raw_workers:
+            if isinstance(worker, dict):
+                worker_id = worker.get("id", "")
+                worker_name = worker.get("name", "")
+                worker_path = worker.get("path", "")
+                if worker_id and worker_name and worker_path:
+                    self.workers.append(
+                        {"id": worker_id, "name": worker_name, "path": worker_path}
+                    )
         # Initialize tools
         self.tools = resource_initializer.init_tools(
             self.product_kwargs.get("tools", [])
