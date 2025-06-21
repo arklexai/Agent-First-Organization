@@ -167,68 +167,102 @@ class BestPracticeManager:
                 log_context.warning("No steps found in task for resource pairing")
                 return practice
 
-            # Create resources dictionary from all_resources if available
-            resources = {}
+            # Create a list of available resources for round-robin assignment
+            available_resources = []
+
+            # Add workers
+            if self._workers:
+                for worker in self._workers:
+                    if isinstance(worker, dict) and "name" in worker:
+                        available_resources.append(
+                            {
+                                "name": worker["name"],
+                                "description": worker.get(
+                                    "description", f"{worker['name']} worker"
+                                ),
+                                "type": "worker",
+                            }
+                        )
+
+            # Add tools
+            if self._tools:
+                for tool in self._tools:
+                    if isinstance(tool, dict) and "name" in tool:
+                        available_resources.append(
+                            {
+                                "name": tool["name"],
+                                "description": tool.get(
+                                    "description", f"{tool['name']} tool"
+                                ),
+                                "type": "tool",
+                            }
+                        )
+
+            # Add nested_graph if available in all_resources
             if self._all_resources:
                 for resource in self._all_resources:
-                    if isinstance(resource, dict) and "name" in resource:
-                        resources[resource["name"]] = resource.get(
-                            "description", f"{resource['name']} resource"
-                        )
-            else:
-                # Fallback to workers and tools if all_resources not available
-                if self._workers:
-                    for worker in self._workers:
-                        if isinstance(worker, dict) and "name" in worker:
-                            resources[worker["name"]] = worker.get(
-                                "description", f"{worker['name']} worker"
-                            )
-                if self._tools:
-                    for tool in self._tools:
-                        if isinstance(tool, dict) and "name" in tool:
-                            resources[tool["name"]] = tool.get(
-                                "description", f"{tool['name']} tool"
-                            )
+                    if (
+                        isinstance(resource, dict)
+                        and resource.get("type") == "nested_graph"
+                    ):
+                        available_resources.append(resource)
 
             # If no resources from config, use default ones
-            if not resources:
-                resources = {
-                    "MessageWorker": "The worker responsible for interacting with the user with predefined responses",
-                    "RAGWorker": "Answer the user's questions based on the company's internal documentations, such as the policies, FAQs, and product information",
-                    "ProductWorker": "Access the company's database to retrieve information about products, such as availability, pricing, and specifications",
-                    "UserProfileWorker": "Access the company's database to retrieve information about the user's preferences and history",
+            if not available_resources:
+                available_resources = [
+                    {
+                        "name": "MessageWorker",
+                        "description": "The worker responsible for interacting with the user with predefined responses",
+                        "type": "worker",
+                    },
+                    {
+                        "name": "FaissRAGWorker",
+                        "description": "Answer the user's questions based on the company's internal documentations, such as the policies, FAQs, and product information",
+                        "type": "worker",
+                    },
+                    {
+                        "name": "SearchWorker",
+                        "description": "Search for information from external sources and databases",
+                        "type": "worker",
+                    },
+                ]
+
+            # Use round-robin assignment to ensure all resource types are used
+            resource_index = 0
+            refined_steps = []
+
+            for step in steps:
+                # Get step description
+                step_description = step.get("description", "")
+                if isinstance(step, str):
+                    step_description = step
+
+                # Assign resource in round-robin fashion
+                assigned_resource = available_resources[
+                    resource_index % len(available_resources)
+                ]
+                resource_index += 1
+
+                # Create refined step with resource assignment
+                refined_step = {
+                    "task": step_description,
+                    "description": step_description,
+                    "step_id": step.get("step_id", f"step_{len(refined_steps) + 1}"),
+                    "required_fields": step.get("required_fields", []),
+                    "resource": {
+                        "name": assigned_resource["name"],
+                        "description": assigned_resource["description"],
+                        "type": assigned_resource.get("type", "worker"),
+                    },
                 }
+                refined_steps.append(refined_step)
 
-            # Format the best practice for the prompt
-            best_practice_json = json.dumps(steps, indent=2)
-            resources_json = json.dumps(resources, indent=2)
-
-            # Use the embed_resources_sys_prompt to pair steps with resources
-            prompt = self.prompt_manager.embed_resources_sys_prompt.format(
-                best_practice=best_practice_json, resources=resources_json
+            # Update the practice with the refined steps
+            practice["steps"] = refined_steps
+            log_context.info(
+                f"Successfully refined practice with resource mappings using {len(available_resources)} resources"
             )
-
-            # Generate the response
-            response = self.model.invoke(prompt)
-            if hasattr(response, "content"):
-                response_text = response.content
-            else:
-                response_text = str(response)
-
-            # Parse the JSON response
-            json_start = response_text.find("[")
-            json_end = response_text.rfind("]") + 1
-            if json_start >= 0 and json_end > json_start:
-                json_str = response_text[json_start:json_end]
-                refined_steps = json.loads(json_str)
-
-                # Update the practice with the refined steps
-                practice["steps"] = refined_steps
-                log_context.info("Successfully refined practice with resource mappings")
-                return practice
-            else:
-                log_context.warning("Could not parse resource mapping response")
-                return practice
+            return practice
 
         except Exception as e:
             log_context.error(f"Error refining practice: {str(e)}")
@@ -383,26 +417,21 @@ class BestPracticeManager:
                 log_context.warning(
                     f"Step {i + 1} has invalid or missing description: {description}"
                 )
-                # Provide a default description instead of raising an exception
-                step["description"] = f"Execute step {step['step_id']}"
-            else:
-                # Check if description is empty or only whitespace
-                stripped_description = description.strip()
-                if not stripped_description:
-                    log_context.warning(
-                        f"Step {i + 1} has empty or whitespace-only description"
-                    )
-                    # Provide a default description instead of raising an exception
-                    step["description"] = f"Execute step {step['step_id']}"
-                else:
-                    # Use the stripped description
-                    step["description"] = stripped_description
+                # Set a default description if missing
+                if not description:
+                    description = f"Step {i + 1}"
+                elif not isinstance(description, str):
+                    description = str(description)
+
+            # Update step with validated description
+            step["description"] = description
 
             # Ensure required_fields exists
             if "required_fields" not in step:
                 step["required_fields"] = []
 
             optimized_steps.append(step)
+
         return optimized_steps
 
     def _convert_to_dict(self, practice_def: BestPractice) -> Dict[str, Any]:
