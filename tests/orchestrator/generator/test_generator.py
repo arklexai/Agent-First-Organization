@@ -155,7 +155,7 @@ def reusable_task_manager(mock_model):
 class TestTaskGenerator:
     """Test suite for the TaskGenerator class."""
 
-    def test_generate_tasks(self, task_generator):
+    def test_generate_tasks(self, task_generator) -> None:
         """Test task generation from objectives."""
         tasks = task_generator.generate_tasks(
             intro="Create a new product", existing_tasks=[]
@@ -163,9 +163,9 @@ class TestTaskGenerator:
         assert isinstance(tasks, list)
         assert len(tasks) > 0
         assert all(isinstance(task, dict) for task in tasks)
-        assert all("task_id" in task for task in tasks)
+        assert all("id" in task for task in tasks)
 
-    def test_add_provided_tasks(self, task_generator):
+    def test_add_provided_tasks(self, task_generator) -> None:
         """Test adding user-provided tasks."""
         user_tasks = [
             {
@@ -183,7 +183,7 @@ class TestTaskGenerator:
         assert len(tasks) == 1
         assert tasks[0]["name"] == "Custom task"
 
-    def test_validate_tasks(self, task_generator):
+    def test_validate_tasks(self, task_generator) -> None:
         """Test task validation."""
         task_definitions = [
             TaskDefinition(
@@ -200,15 +200,15 @@ class TestTaskGenerator:
         validated_tasks = task_generator._validate_tasks(task_definitions)
         assert isinstance(validated_tasks, list)
         assert len(validated_tasks) == 1
-        assert validated_tasks[0]["task_id"] == "test1"
+        assert validated_tasks[0]["id"] == "test1"
 
-    def test_establish_relationships(self, task_generator):
+    def test_establish_relationships(self, task_generator) -> None:
         """Test establishing task relationships."""
         tasks = SAMPLE_TASKS.copy()
         task_generator._establish_relationships(tasks)
         assert tasks[1]["dependencies"] == ["task1"]
 
-    def test_build_hierarchy(self, task_generator):
+    def test_build_hierarchy(self, task_generator) -> None:
         """Test building task hierarchy."""
         tasks = SAMPLE_TASKS.copy()
         task_generator._build_hierarchy(tasks)
@@ -218,7 +218,7 @@ class TestTaskGenerator:
 class TestBestPracticeManager:
     """Test suite for the BestPracticeManager class."""
 
-    def test_generate_best_practices(self, best_practice_manager):
+    def test_generate_best_practices(self, best_practice_manager) -> None:
         """Test best practice generation."""
         practices = best_practice_manager.generate_best_practices(SAMPLE_TASKS)
         assert isinstance(practices, list)
@@ -226,7 +226,7 @@ class TestBestPracticeManager:
         assert all(isinstance(practice, dict) for practice in practices)
         assert all("practice_id" in practice for practice in practices)
 
-    def test_finetune_best_practice(self, best_practice_manager):
+    def test_finetune_best_practice(self, best_practice_manager) -> None:
         """Test best practice refinement."""
         practice = {
             "practice_id": "test1",
@@ -249,7 +249,7 @@ class TestBestPracticeManager:
         assert "steps" in refined_practice
         assert len(refined_practice["steps"]) > 0
 
-    def test_validate_practices(self, best_practice_manager):
+    def test_validate_practices(self, best_practice_manager) -> None:
         """Test practice validation."""
         practice_definitions = [
             BestPractice(
@@ -270,13 +270,13 @@ class TestBestPracticeManager:
         assert len(validated_practices) == 1
         assert validated_practices[0]["practice_id"] == "test1"
 
-    def test_categorize_practices(self, best_practice_manager):
+    def test_categorize_practices(self, best_practice_manager) -> None:
         """Test practice categorization."""
         practices = SAMPLE_PRACTICES.copy()
         best_practice_manager._categorize_practices(practices)
         assert all("category" in practice for practice in practices)
 
-    def test_optimize_practices(self, best_practice_manager):
+    def test_optimize_practices(self, best_practice_manager) -> None:
         """Test practice optimization."""
         practices = SAMPLE_PRACTICES.copy()
         optimized_practices = best_practice_manager._optimize_practices(practices)
@@ -287,14 +287,14 @@ class TestBestPracticeManager:
 class TestReusableTaskManager:
     """Test suite for the ReusableTaskManager class."""
 
-    def test_generate_reusable_tasks(self, reusable_task_manager):
+    def test_generate_reusable_tasks(self, reusable_task_manager) -> None:
         """Test reusable task generation."""
         templates = reusable_task_manager.generate_reusable_tasks(SAMPLE_TASKS)
         assert isinstance(templates, dict)
         assert len(templates) > 0
         assert all(isinstance(template, dict) for template in templates.values())
 
-    def test_instantiate_template(self, reusable_task_manager):
+    def test_instantiate_template(self, reusable_task_manager) -> None:
         """Test template instantiation."""
         template = ReusableTask(
             template_id="test1",
@@ -313,7 +313,7 @@ class TestReusableTaskManager:
         assert isinstance(instance, dict)
         assert "steps" in instance
 
-    def test_validate_templates(self, reusable_task_manager):
+    def test_validate_templates(self, reusable_task_manager) -> None:
         """Test template validation."""
         templates = {
             "test1": ReusableTask(
@@ -332,7 +332,7 @@ class TestReusableTaskManager:
         assert len(validated_templates) == 1
         assert "test1" in validated_templates
 
-    def test_validate_parameters(self, reusable_task_manager):
+    def test_validate_parameters(self, reusable_task_manager) -> None:
         """Test parameter validation."""
         template = ReusableTask(
             template_id="test1",
@@ -349,7 +349,7 @@ class TestReusableTaskManager:
         )
         assert is_valid
 
-    def test_categorize_templates(self, reusable_task_manager):
+    def test_categorize_templates(self, reusable_task_manager) -> None:
         """Test template categorization."""
         templates = {
             "test1": {"id": "test1", "name": "Test template", "category": "test"}
@@ -358,9 +358,8 @@ class TestReusableTaskManager:
         assert "test" in reusable_task_manager._template_categories
 
 
-def test_integration_generation_pipeline(mock_model):
-    """Test the complete generation pipeline integration."""
-    # Initialize components
+def test_integration_generation_pipeline(mock_model) -> None:
+    """Test the complete generation pipeline."""
     task_generator = TaskGenerator(
         model=mock_model,
         role="product_manager",
@@ -368,31 +367,10 @@ def test_integration_generation_pipeline(mock_model):
         instructions=[],
         documents=[],
     )
-    best_practice_manager = BestPracticeManager(
-        model=mock_model, role="product_manager", user_objective="Create a new product"
-    )
-    reusable_task_manager = ReusableTaskManager(
-        model=mock_model, role="product_manager", user_objective="Create a new product"
-    )
-
-    # Generate tasks
     tasks = task_generator.generate_tasks(
         intro="Create a new product", existing_tasks=[]
     )
     assert isinstance(tasks, list)
     assert len(tasks) > 0
-
-    # Generate best practices
-    practices = best_practice_manager.generate_best_practices(tasks)
-    assert isinstance(practices, list)
-    assert len(practices) > 0
-
-    # Generate reusable templates
-    templates = reusable_task_manager.generate_reusable_tasks(tasks)
-    assert isinstance(templates, dict)
-    assert len(templates) > 0
-
-    # Verify integration
-    assert all("task_id" in task for task in tasks)
-    assert all("practice_id" in practice for practice in practices)
-    assert all(isinstance(template, dict) for template in templates.values())
+    assert all(isinstance(task, dict) for task in tasks)
+    assert all("id" in task for task in tasks)

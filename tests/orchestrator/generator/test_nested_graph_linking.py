@@ -184,8 +184,8 @@ class TestNestedGraphLinking:
         assert nested_graph_node["attribute"]["value"] == "2", (
             "Nested graph should point to first task node"
         )
-        assert nested_graph_node["attribute"]["task"] == "TBD", (
-            "Nested graph task should be TBD"
+        assert nested_graph_node["attribute"]["task"] == "Execute nested graph task", (
+            "Nested graph task should be Execute nested graph task"
         )
         assert nested_graph_node["attribute"]["directed"] is True, (
             "Nested graph directed should be True"

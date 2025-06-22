@@ -1,12 +1,12 @@
 import pytest
-from unittest.mock import Mock, patch
+from unittest.mock import Mock, MagicMock, patch
 from arklex.orchestrator.generator.core.generator import Generator
 from arklex.env.env import BaseResourceInitializer, DefaultResourceInitializer
 
 
 @pytest.fixture
 def mock_model():
-    model = Mock()
+    model = MagicMock()
     return model
 
 
@@ -50,22 +50,23 @@ def test_generator_generate_calls_components(minimal_config, mock_model) -> None
         patch.object(gen, "_initialize_task_graph_formatter") as tgf_patch,
         patch("arklex.orchestrator.generator.core.generator.UI_AVAILABLE", False),
     ):
-        doc_loader = Mock()
+        doc_loader = MagicMock()
         doc_loader.load_task_document.return_value = "docs"
         doc_loader.load_instructions.return_value = "instructions"
         doc_loader_patch.return_value = doc_loader
-        task_gen = Mock()
+        task_gen = MagicMock()
         task_gen.add_provided_tasks.return_value = []
         task_gen.generate_tasks.return_value = []
         task_gen_patch.return_value = task_gen
-        bpm = Mock()
+        bpm = MagicMock()
         bpm.generate_best_practices.return_value = []
         bpm_patch.return_value = bpm
-        rtm = Mock()
+        rtm = MagicMock()
         rtm.generate_reusable_tasks.return_value = {}
         rtm_patch.return_value = rtm
-        tgf = Mock()
+        tgf = MagicMock()
         tgf.format_task_graph.return_value = {"nodes": [], "edges": []}
+        tgf.ensure_nested_graph_connectivity.return_value = {"nodes": [], "edges": []}
         tgf_patch.return_value = tgf
         result = gen.generate()
         assert isinstance(result, dict)
@@ -119,7 +120,7 @@ def test_generator_document_instruction_type_conversion(
 
     # Mock the document loader to return lists
     with patch.object(gen, "_initialize_document_loader") as doc_loader_patch:
-        doc_loader = Mock()
+        doc_loader = MagicMock()
         doc_loader.load_task_document.side_effect = [
             "Document 1 content",
             "Document 2 content",
@@ -138,21 +139,25 @@ def test_generator_document_instruction_type_conversion(
             patch.object(gen, "_initialize_task_graph_formatter") as tgf_patch,
             patch("arklex.orchestrator.generator.core.generator.UI_AVAILABLE", False),
         ):
-            task_gen = Mock()
+            task_gen = MagicMock()
             task_gen.add_provided_tasks.return_value = []
             task_gen.generate_tasks.return_value = []
             task_gen_patch.return_value = task_gen
 
-            bpm = Mock()
+            bpm = MagicMock()
             bpm.generate_best_practices.return_value = []
             bpm_patch.return_value = bpm
 
-            rtm = Mock()
+            rtm = MagicMock()
             rtm.generate_reusable_tasks.return_value = {}
             rtm_patch.return_value = rtm
 
-            tgf = Mock()
+            tgf = MagicMock()
             tgf.format_task_graph.return_value = {"nodes": [], "edges": []}
+            tgf.ensure_nested_graph_connectivity.return_value = {
+                "nodes": [],
+                "edges": [],
+            }
             tgf_patch.return_value = tgf
 
             # Call generate to trigger the type conversion
