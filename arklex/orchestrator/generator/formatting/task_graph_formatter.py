@@ -555,59 +555,6 @@ class TaskGraphFormatter:
                                     ]
                                 )
 
-        # Create nested graph nodes for tasks that need them
-        if self._allow_nested_graph and tasks:
-            for task_idx, task in enumerate(tasks):
-                # Check if this task should have a nested graph node
-                task_identifier = task.get("id", f"task_{task_idx}")
-                task_node_id = node_lookup.get(task_identifier)
-
-                if task_node_id:
-                    # Create nested graph node for all tasks when allow_nested_graph is True
-                    nested_graph_node_id = str(
-                        len(edges)
-                        + len(all_task_node_ids)
-                        + len(nested_graph_nodes)
-                        + 1
-                    )  # Use a unique ID
-
-                    # Get task name for the nested graph
-                    task_name = task.get("name", f"nested task {task_idx + 1}")
-
-                    # Create nested graph node
-                    nested_graph_nodes.append(
-                        [
-                            nested_graph_node_id,
-                            {
-                                "resource": {
-                                    "id": "nested_graph",
-                                    "name": self.DEFAULT_NESTED_GRAPH,
-                                },
-                                "attribute": {
-                                    "value": task_node_id,  # Point to the task node
-                                    "task": f"Execute {task_name}",
-                                    "directed": True,
-                                },
-                                "limit": 1,
-                            },
-                        ]
-                    )
-
-                    # Add edge from start node to nested graph node
-                    edges.append(
-                        [
-                            start_node_id,
-                            nested_graph_node_id,
-                            self._create_edge_attributes(
-                                intent=None,
-                                weight=1,
-                                pred=False,
-                                definition="",
-                                sample_utterances=[],
-                            ),
-                        ]
-                    )
-
         return edges, nested_graph_nodes
 
     def link_main_graph_to_nested_graph(
