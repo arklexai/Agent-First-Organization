@@ -197,10 +197,15 @@ class TaskGraphFormatter:
                 elif isinstance(value, list):
                     node_data["attribute"]["value"] = ", ".join(str(v) for v in value)
 
-        # Build the complete task graph with all required sections
-        task_graph = {
-            "nodes": all_nodes,
+        # Add nested graph nodes to the main nodes list
+        nodes.extend(nested_graph_nodes)
+
+        reusable_tasks = {}  # Define reusable_tasks, can be passed in later
+
+        graph = {
+            "nodes": nodes,
             "edges": edges,
+            "tasks": tasks,  # Include tasks for connectivity logic
             "role": self._role,
             "user_objective": self._user_objective,
             "builder_objective": self._builder_objective,
@@ -208,14 +213,15 @@ class TaskGraphFormatter:
             "intro": self._intro,
             "task_docs": self._task_docs,
             "rag_docs": self._rag_docs,
-            "tasks": tasks,
             "workers": self._workers,
             "tools": self._tools,
             "nluapi": self._nluapi,
             "slotfillapi": self._slotfillapi,
+            "reusable_tasks": reusable_tasks,
         }
 
-        return task_graph
+        # Ensure nested graphs are connected correctly as sequential steps
+        return self.ensure_nested_graph_connectivity(graph)
 
     def _format_nodes(self, tasks: List[Dict]) -> Tuple[List, Dict, List]:
         """Create nodes for start, tasks, and steps with worker assignments.
@@ -557,275 +563,73 @@ class TaskGraphFormatter:
 
         return edges, nested_graph_nodes
 
-    def link_main_graph_to_nested_graph(
-        self, main_graph: Dict[str, Any], nested_graph: Dict[str, Any]
-    ) -> Dict[str, Any]:
-        """Link main graph to nested graph and establish proper connectivity.
-
-        Args:
-            main_graph (Dict[str, Any]): Main graph structure
-            nested_graph (Dict[str, Any]): Nested graph structure to link
-
-        Returns:
-            Dict[str, Any]: Combined graph with proper connectivity between main and nested graphs
-        """
-        # Create a copy of the main graph to avoid modifying the original
-        combined_graph = {
-            "nodes": main_graph.get("nodes", []).copy(),
-            "edges": main_graph.get("edges", []).copy(),
-            "role": main_graph.get("role", ""),
-            "user_objective": main_graph.get("user_objective", ""),
-            "builder_objective": main_graph.get("builder_objective", ""),
-            "domain": main_graph.get("domain", ""),
-            "intro": main_graph.get("intro", ""),
-            "task_docs": main_graph.get("task_docs", []),
-            "rag_docs": main_graph.get("rag_docs", []),
-            "tasks": main_graph.get("tasks", []),
-            "workers": main_graph.get("workers", []),
-            "tools": main_graph.get("tools", []),
-            "nluapi": main_graph.get("nluapi", ""),
-            "slotfillapi": main_graph.get("slotfillapi", ""),
-        }
-
-        # Find the main graph's start node id (usually node '0')
-        start_node_id = None
-        for node_id, node_data in combined_graph["nodes"]:
-            if node_data.get("resource", {}).get("id") == self.DEFAULT_MESSAGE_WORKER:
-                start_node_id = node_id
-                break
-
-        # Find the nested graph node in the main graph
-        nested_graph_node_id = None
-        for node_id, node_data in combined_graph["nodes"]:
-            if node_data.get("resource", {}).get("id") == "nested_graph":
-                nested_graph_node_id = node_id
-                break
-
-        if nested_graph_node_id is None:
-            # If no nested graph node exists, create one
-            node_id_counter = len(combined_graph["nodes"])
-            nested_graph_node = {
-                "resource": {
-                    "id": "nested_graph",
-                    "name": self.DEFAULT_NESTED_GRAPH,
-                },
-                "attribute": {
-                    "value": "placeholder",  # Will be updated to first task node
-                    "task": "Execute nested graph task",
-                    "directed": True,
-                },
-                "limit": 1,
-            }
-            combined_graph["nodes"].append([str(node_id_counter), nested_graph_node])
-            nested_graph_node_id = str(node_id_counter)
-
-        # Get nested graph nodes and edges
-        nested_nodes = nested_graph.get("nodes", [])
-        nested_edges = nested_graph.get("edges", [])
-
-        # Find the start node of the nested graph (node 0 or the first node)
-        nested_start_node_id = None
-        for node_id, node_data in nested_nodes:
-            if node_id == start_node_id:
-                nested_start_node_id = node_id
-                break
-        if nested_start_node_id is None and nested_nodes:
-            nested_start_node_id = nested_nodes[0][0]
-
-        # Update the nested graph node's value to point to the nested graph start
-        # But only if it's not pointing to the main graph start node
-        if nested_start_node_id and nested_start_node_id != start_node_id:
-            for node_id, node_data in combined_graph["nodes"]:
-                if node_id == nested_graph_node_id:
-                    node_data["attribute"]["value"] = nested_start_node_id
-                    node_data["attribute"]["task"] = "Execute nested graph task"
-                    node_data["attribute"]["directed"] = True
-                    break
-        else:
-            # If no valid nested start found, point to first task node
-            # Extract task node IDs from main graph nodes
-            all_task_node_ids = [node_id for node_id, _ in combined_graph["nodes"]]
-            main_task_node_ids = [
-                node_id
-                for node_id, node_data in combined_graph["nodes"]
-                if (
-                    node_data.get("resource", {}).get("id")
-                    in [
-                        self.DEFAULT_MESSAGE_WORKER,
-                        self.DEFAULT_RAG_WORKER,
-                        self.DEFAULT_SEARCH_WORKER,
-                    ]
-                    and node_id not in (start_node_id, nested_graph_node_id)
-                )
-            ]
-            if main_task_node_ids:
-                first_task_node_id = main_task_node_ids[0]
-                for node_id, node_data in combined_graph["nodes"]:
-                    if node_id == nested_graph_node_id:
-                        node_data["attribute"]["value"] = first_task_node_id
-                        node_data["attribute"]["task"] = "Execute nested graph task"
-                        node_data["attribute"]["directed"] = True
-                        break
-
-        # Remove any existing edges from nested_graph to node 0 (main graph start node)
-        combined_graph["edges"] = [
-            edge
-            for edge in combined_graph["edges"]
-            if not (edge[0] == nested_graph_node_id and edge[1] == start_node_id)
-        ]
-
-        # Find subgraph start nodes (nodes with no incoming edges in the nested graph)
-        nested_node_ids = {node_id for node_id, _ in nested_nodes}
-        nested_target_node_ids = {edge[1] for edge in nested_edges}
-        subgraph_start_nodes = [
-            node_id
-            for node_id in nested_node_ids
-            if node_id not in nested_target_node_ids
-        ]
-
-        # Exclude the main graph's start node from subgraph start nodes
-        subgraph_start_nodes = [
-            node_id for node_id in subgraph_start_nodes if node_id != start_node_id
-        ]
-
-        # If no clear start nodes found, use all nodes that are not the nested graph node or main graph start node
-        if not subgraph_start_nodes:
-            subgraph_start_nodes = [
-                node_id
-                for node_id in nested_node_ids
-                if node_id != nested_graph_node_id and node_id != start_node_id
-            ]
-
-        # Add edges from the nested graph to each subgraph start node (excluding main graph start node)
-        for start_id in subgraph_start_nodes:
-            nested_graph_to_start_edge = [
-                nested_graph_node_id,
-                start_id,
-                self._create_edge_attributes(
-                    intent=None,
-                    weight=1,
-                    pred=False,
-                    definition=f"Nested graph connects to subgraph start node {start_id}",
-                    sample_utterances=[],
-                ),
-            ]
-            combined_graph["edges"].append(nested_graph_to_start_edge)
-
-        return combined_graph
-
     def ensure_nested_graph_connectivity(self, graph: Dict[str, Any]) -> Dict[str, Any]:
-        """Ensure nested graph has proper incoming and outgoing connections.
+        """Ensures that all nested graph nodes are properly connected as sequential steps.
+
+        This method finds all 'NestedGraph' nodes and connects them to the
+        next step within their own task, preventing incorrect fan-out connections
+        to leaf nodes.
 
         Args:
-            graph (Dict[str, Any]): Graph structure to validate and fix
+            graph (Dict[str, Any]): The graph structure.
 
         Returns:
-            Dict[str, Any]: Graph with proper nested graph connectivity
+            Dict[str, Any]: The graph with corrected nested graph connectivity.
         """
-        # Create a copy to avoid modifying the original
-        fixed_graph = {
-            "nodes": graph.get("nodes", []).copy(),
-            "edges": graph.get("edges", []).copy(),
-            "role": graph.get("role", ""),
-            "user_objective": graph.get("user_objective", ""),
-            "builder_objective": graph.get("builder_objective", ""),
-            "domain": graph.get("domain", ""),
-            "intro": graph.get("intro", ""),
-            "task_docs": graph.get("task_docs", []),
-            "rag_docs": graph.get("rag_docs", []),
-            "tasks": graph.get("tasks", []),
-            "workers": graph.get("workers", []),
-            "tools": graph.get("tools", []),
-            "nluapi": graph.get("nluapi", ""),
-            "slotfillapi": graph.get("slotfillapi", ""),
-        }
+        nodes = graph.get("nodes", [])
+        edges = graph.get("edges", [])
+        tasks = graph.get("tasks", [])
+        node_lookup = {node_data[0]: node_data[1] for node_data in nodes}
+        # Create a reverse lookup from node ID to task_id
+        node_to_task_map = {}
+        for task in tasks:
+            task_id = task.get("id")
+            for i in range(len(task.get("steps", []))):
+                step_node_id = f"{task_id}_step{i}"
+                node_to_task_map[step_node_id] = task_id
 
-        # Find the nested graph node
-        nested_graph_node_id = None
-        start_node_id = None
-
-        for node_id, node_data in fixed_graph["nodes"]:
-            if node_data.get("resource", {}).get("id") == "nested_graph":
-                nested_graph_node_id = node_id
-            elif node_data.get("resource", {}).get("id") == self.DEFAULT_MESSAGE_WORKER:
-                start_node_id = node_id
-
-        if nested_graph_node_id is None:
-            # No nested graph node found, return original graph
-            return fixed_graph
-
-        # Get all node IDs and edge information
-        all_node_ids = {node_id for node_id, _ in fixed_graph["nodes"]}
-        source_node_ids = {edge[0] for edge in fixed_graph["edges"]}
-        target_node_ids = {edge[1] for edge in fixed_graph["edges"]}
-
-        # Remove any edges from nested_graph to node 0
-        fixed_graph["edges"] = [
-            edge
-            for edge in fixed_graph["edges"]
-            if not (edge[0] == nested_graph_node_id and edge[1] == start_node_id)
+        nested_graph_nodes = [
+            (node_id, node_data)
+            for node_id, node_data in node_lookup.items()
+            if node_data.get("resource", {}).get("name") == self.DEFAULT_NESTED_GRAPH
         ]
 
-        # Find leaf nodes (nodes with no outgoing edges, excluding nested_graph)
-        leaf_node_ids = [
-            node_id
-            for node_id in all_node_ids
-            if node_id not in source_node_ids and node_id != nested_graph_node_id
-        ]
+        for ng_node_id, ng_node_data in nested_graph_nodes:
+            # Find which task this nested_graph node belongs to
+            task_id = node_to_task_map.get(ng_node_id)
+            if not task_id:
+                continue
 
-        # If no leaf nodes found, use task nodes as fallback
-        if not leaf_node_ids:
-            task_node_ids = [
-                node_id
-                for node_id in all_node_ids
-                if node_id not in (start_node_id, nested_graph_node_id)
-            ]
-            if len(task_node_ids) == 1:
-                leaf_node_ids = task_node_ids
+            # Find the corresponding task and the index of the nested_graph step
+            task = next((t for t in tasks if t.get("id") == task_id), None)
+            if not task:
+                continue
 
-        # Ensure nested graph has incoming edges from main graph
-        nested_graph_has_incoming = any(
-            edge[1] == nested_graph_node_id for edge in fixed_graph["edges"]
-        )
+            steps = task.get("steps", [])
+            step_index = -1
+            for i, step in enumerate(steps):
+                step_node_id = f"{task_id}_step{i}"
+                if step_node_id == ng_node_id:
+                    step_index = i
+                    break
 
-        if not nested_graph_has_incoming and start_node_id:
-            # Add edge from start node to nested graph
-            start_to_nested_edge = [
-                start_node_id,
-                nested_graph_node_id,
-                self._create_edge_attributes(
-                    intent=None,
-                    weight=1,
-                    pred=True,
-                    definition="Start node connects to nested graph",
-                    sample_utterances=[],
-                ),
-            ]
-            fixed_graph["edges"].append(start_to_nested_edge)
+            # If it's not the last step, connect it to the next one
+            if 0 <= step_index < len(steps) - 1:
+                next_step_node_id = f"{task_id}_step{step_index + 1}"
 
-        # Ensure nested graph has outgoing edges to leaf nodes
-        nested_graph_outgoing = [
-            edge for edge in fixed_graph["edges"] if edge[0] == nested_graph_node_id
-        ]
+                # Set the value attribute
+                ng_node_data["attribute"]["value"] = next_step_node_id
 
-        # Remove existing nested graph outgoing edges
-        fixed_graph["edges"] = [
-            edge for edge in fixed_graph["edges"] if edge[0] != nested_graph_node_id
-        ]
+                # Create the edge
+                edges.append(
+                    [
+                        ng_node_id,
+                        next_step_node_id,
+                        self._create_edge_attributes(
+                            definition=f"Continue to next step from nested graph"
+                        ),
+                    ]
+                )
 
-        # Add edges from nested graph to all leaf nodes
-        for leaf_id in leaf_node_ids:
-            nested_graph_to_leaf_edge = [
-                nested_graph_node_id,
-                leaf_id,
-                self._create_edge_attributes(
-                    intent=None,
-                    weight=1,
-                    pred=False,
-                    definition=f"Nested graph connects to leaf node {leaf_id}",
-                    sample_utterances=[],
-                ),
-            ]
-            fixed_graph["edges"].append(nested_graph_to_leaf_edge)
-
-        return fixed_graph
+        graph["edges"] = edges
+        return graph
