@@ -555,72 +555,58 @@ class TaskGraphFormatter:
                                     ]
                                 )
 
-        # Nested graph node - create only one for the entire graph
+        # Create nested graph nodes for tasks that need them
         if self._allow_nested_graph and tasks:
-            nested_graph_node_id = str(
-                len(edges) + len(all_task_node_ids) + 1
-            )  # Use a unique ID
+            for task_idx, task in enumerate(tasks):
+                # Check if this task should have a nested graph node
+                task_identifier = task.get("id", f"task_{task_idx}")
+                task_node_id = node_lookup.get(task_identifier)
 
-            # Find all nodes that are the target of an edge from the main graph start node
-            main_graph_targets = {edge[1] for edge in edges if edge[0] == start_node_id}
+                if task_node_id:
+                    # Create nested graph node for all tasks when allow_nested_graph is True
+                    nested_graph_node_id = str(
+                        len(edges)
+                        + len(all_task_node_ids)
+                        + len(nested_graph_nodes)
+                        + 1
+                    )  # Use a unique ID
 
-            # Subgraph start nodes: task nodes that are not the main graph start node and not directly targeted by the main graph start node
-            subgraph_start_nodes = [
-                node_id
-                for node_id in all_task_node_ids
-                if node_id != start_node_id and node_id not in main_graph_targets
-            ]
+                    # Get task name for the nested graph
+                    task_name = task.get("name", f"nested task {task_idx + 1}")
 
-            # Fallback: if all task nodes are main graph targets, just use the first task node that is not the start node
-            if not subgraph_start_nodes:
-                subgraph_start_nodes = [
-                    node_id for node_id in all_task_node_ids if node_id != start_node_id
-                ]
+                    # Create nested graph node
+                    nested_graph_nodes.append(
+                        [
+                            nested_graph_node_id,
+                            {
+                                "resource": {
+                                    "id": "nested_graph",
+                                    "name": self.DEFAULT_NESTED_GRAPH,
+                                },
+                                "attribute": {
+                                    "value": task_node_id,  # Point to the task node
+                                    "task": f"Execute {task_name}",
+                                    "directed": True,
+                                },
+                                "limit": 1,
+                            },
+                        ]
+                    )
 
-            # Use the first valid subgraph start node
-            if subgraph_start_nodes:
-                nested_graph_value = subgraph_start_nodes[0]
-            else:
-                nested_graph_value = (
-                    all_task_node_ids[0] if all_task_node_ids else start_node_id
-                )
-
-            # Get a task name for the nested graph (use the first task)
-            task_name = tasks[0].get("name", "nested task") if tasks else "nested task"
-
-            # Create nested graph node
-            nested_graph_nodes.append(
-                [
-                    nested_graph_node_id,
-                    {
-                        "resource": {
-                            "id": "nested_graph",
-                            "name": self.DEFAULT_NESTED_GRAPH,
-                        },
-                        "attribute": {
-                            "value": nested_graph_value,
-                            "task": f"Execute {task_name}",
-                            "directed": True,
-                        },
-                        "limit": 1,
-                    },
-                ]
-            )
-
-            # Add edge from start node to nested graph node
-            edges.append(
-                [
-                    start_node_id,
-                    nested_graph_node_id,
-                    self._create_edge_attributes(
-                        intent=None,
-                        weight=1,
-                        pred=False,
-                        definition="",
-                        sample_utterances=[],
-                    ),
-                ]
-            )
+                    # Add edge from start node to nested graph node
+                    edges.append(
+                        [
+                            start_node_id,
+                            nested_graph_node_id,
+                            self._create_edge_attributes(
+                                intent=None,
+                                weight=1,
+                                pred=False,
+                                definition="",
+                                sample_utterances=[],
+                            ),
+                        ]
+                    )
 
         return edges, nested_graph_nodes
 
