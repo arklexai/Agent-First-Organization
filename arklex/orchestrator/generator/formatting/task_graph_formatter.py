@@ -515,18 +515,38 @@ class TaskGraphFormatter:
                     # This handles dependencies between tasks.
                     for dep in dependencies:
                         dep_id = dep if isinstance(dep, str) else dep.get("id")
-                        target_node_id = node_lookup.get(dep_id)
-                        if target_node_id:
+
+                        # Find the source task from the list of tasks
+                        source_task = next(
+                            (t for t in tasks if t.get("id") == dep_id), None
+                        )
+
+                        if source_task:
+                            source_steps = source_task.get("steps", [])
+                            if source_steps:
+                                # Dependency should come from the last step of the source task
+                                last_step_identifier = (
+                                    f"{dep_id}_step{len(source_steps) - 1}"
+                                )
+                                source_node_id = node_lookup.get(last_step_identifier)
+                            else:
+                                # If no steps, dependency is from the task node itself
+                                source_node_id = node_lookup.get(dep_id)
+                        else:
+                            # Fallback to original logic if source task not found
+                            source_node_id = node_lookup.get(dep_id)
+
+                        if source_node_id:
                             edges.append(
                                 [
-                                    target_node_id,
+                                    source_node_id,
                                     task_node_id,
                                     self._create_edge_attributes(),
                                 ]
                             )
                         else:
                             log_context.warning(
-                                f"Could not find target node for dependency '{dep_id}'"
+                                f"Could not find source node for dependency '{dep_id}'"
                             )
 
         # Steps
