@@ -56,6 +56,34 @@ Usage:
     )
 """
 
+from typing import Any
+
+# Intent Generation Prompt Template
+generate_intents_sys_prompt = """
+Your task is to generate a user-facing intent for a given task.
+The intent should be a concise and clear description of what the user wants to achieve.
+Base the intent on the task's name and description.
+
+Here are some examples:
+- Task Name: "Provide product specifications"
+  - Intent: "User inquires about product specifications"
+- Task Name: "Process a return"
+  - Intent: "User wants to process a return"
+- Task Name: "Schedule a demo"
+  - Intent: "User wants to schedule a product demonstration"
+
+Now, generate an intent for the following task:
+Task Name: {task_name}
+Task Description: {task_description}
+
+Return the response in JSON format, like this:
+```json
+{{
+    "intent": "Generated intent goes here"
+}}
+```
+"""
+
 # Task Generation Prompt Template
 generate_tasks_sys_prompt = """The builder plans to create a chatbot designed to fulfill user's objectives. 
 Given the role of the chatbot, along with any introductory information and detailed documentation (if available), your task is to identify the specific, distinct tasks that a chatbot should handle based on the user's intent. You are also given a list of existing tasks with user's intent. You must not return tasks that deal the same existing user's intent. All tasks should not overlap or depend on each other and must address different aspects of the user's goals. Ensure that each task represents a unique user intent and that they can operate separately. Moreover, you are given the instructions that you must follow.
@@ -705,3 +733,31 @@ class PromptManager:
         self.embed_resources_sys_prompt = embed_resources_sys_prompt
         self.embed_builder_obj_sys_prompt = embed_builder_obj_sys_prompt
         self.task_intents_prediction_prompt = task_intents_prediction_prompt
+        self.prompts = {
+            "generate_tasks": generate_tasks_sys_prompt,
+            "generate_reusable_tasks": generate_reusable_tasks_sys_prompt,
+            "check_best_practice": check_best_practice_sys_prompt,
+            "generate_intents": generate_intents_sys_prompt,
+            "generate_best_practice": generate_best_practice_sys_prompt,
+            "embed_resources": embed_resources_sys_prompt,
+            "embed_builder_obj": embed_builder_obj_sys_prompt,
+        }
+
+    def get_prompt(self, name: str, **kwargs: Any) -> str:
+        """
+        Get a formatted prompt by name.
+
+        Args:
+            name (str): The name of the prompt template.
+            **kwargs: The arguments to format the prompt with.
+
+        Returns:
+            str: The formatted prompt.
+
+        Raises:
+            ValueError: If the prompt name is not found.
+        """
+        prompt_template = self.prompts.get(name)
+        if prompt_template is None:
+            raise ValueError(f"Prompt template '{name}' not found.")
+        return prompt_template.format(**kwargs)
