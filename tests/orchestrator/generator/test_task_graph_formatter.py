@@ -166,10 +166,10 @@ class TestTaskGraphFormatter:
         assert isinstance(formatted_graph, dict)
         assert "nodes" in formatted_graph
         assert "edges" in formatted_graph
-        # 1 start node + 2 task nodes + 4 step nodes + 1 nested graph node = 8 nodes
-        assert len(formatted_graph["nodes"]) == 8
-        # Current implementation creates 6 edges (not 7)
-        assert len(formatted_graph["edges"]) == 6
+        # 1 start node + 2 task nodes + 4 step nodes + 2 nested graph nodes (one per task) = 9 nodes
+        assert len(formatted_graph["nodes"]) == 9
+        # Current implementation creates 7 edges (start->task1, task1->step2, step2->step3, task4->step5, step5->step6, start->nested1, start->nested2)
+        assert len(formatted_graph["edges"]) == 7
 
     def test_format_task_graph_with_complex_tasks(self, task_graph_formatter) -> None:
         """Test task graph formatting with complex task dependencies."""
@@ -177,10 +177,10 @@ class TestTaskGraphFormatter:
         assert isinstance(formatted_graph, dict)
         assert "nodes" in formatted_graph
         assert "edges" in formatted_graph
-        # 1 start node + 3 task nodes (duplicates) + 1 nested graph node = 8 nodes
-        assert len(formatted_graph["nodes"]) == 8
-        # Current implementation creates 5 edges
-        assert len(formatted_graph["edges"]) == 5
+        # 1 start node + 3 task nodes (duplicates) + 3 nested graph nodes (one per task) = 10 nodes
+        assert len(formatted_graph["nodes"]) == 10
+        # Current implementation creates 7 edges (start->task1, task1->task2, task2->task3, start->nested1, start->nested2, start->nested3)
+        assert len(formatted_graph["edges"]) == 7
 
     def test_format_task_graph_with_empty_tasks(self, task_graph_formatter) -> None:
         """Test task graph formatting with empty task list."""
@@ -192,10 +192,10 @@ class TestTaskGraphFormatter:
     def test_format_task_graph_with_invalid_tasks(self, task_graph_formatter) -> None:
         """Test task graph formatting with invalid task dependencies."""
         formatted_graph = task_graph_formatter.format_task_graph(INVALID_TASKS)
-        # 1 start node + 2 task nodes (duplicates) + 1 nested graph node = 6 nodes
-        assert len(formatted_graph["nodes"]) == 6
-        # Current implementation creates 3 edges
-        assert len(formatted_graph["edges"]) == 3
+        # 1 start node + 2 task nodes (duplicates) + 2 nested graph nodes (one per task) = 7 nodes
+        assert len(formatted_graph["nodes"]) == 7
+        # Current implementation creates 4 edges (task1->task2, task3->task4, start->nested1, start->nested2)
+        assert len(formatted_graph["edges"]) == 4
 
     def test_task_with_missing_name(self, task_graph_formatter) -> None:
         """Test that a task without a name field is handled gracefully."""
@@ -303,11 +303,11 @@ class TestTaskGraphFormatter:
         ]
         formatted_graph = task_graph_formatter.format_task_graph(tasks)
 
-        # 1 start + 3 tasks + 1 nested_graph = 5 nodes
-        assert len(formatted_graph["nodes"]) == 5
+        # 1 start + 3 tasks + 3 nested_graph nodes (one per task) = 7 nodes
+        assert len(formatted_graph["nodes"]) == 7
 
-        # 1 start->task1 + 1 nested graph edge = 2 edges (dependencies not handled)
-        assert len(formatted_graph["edges"]) == 2
+        # 1 start->task1 + 3 nested graph edges = 4 edges (dependencies not handled)
+        assert len(formatted_graph["edges"]) == 4
 
     def test_nested_graph_connects_to_leaf_nodes(self, task_graph_formatter) -> None:
         """Test that nested_graph node is created, but not connected to anything in this simplified logic."""
@@ -372,8 +372,8 @@ class TestTaskGraphFormatter:
             },
         ]
         formatted_graph = task_graph_formatter.format_task_graph(multiple_leaves)
-        # 1 start node + 3 task nodes (duplicates) + 1 nested_graph node = 8 nodes
-        assert len(formatted_graph["nodes"]) == 8
+        # 1 start node + 3 task nodes (duplicates) + 3 nested_graph nodes (one per task) = 10 nodes
+        assert len(formatted_graph["nodes"]) == 10
 
     def test_nested_graph_with_complex_dependencies(self, task_graph_formatter) -> None:
         """Test nested_graph with complex task dependencies."""
@@ -401,10 +401,10 @@ class TestTaskGraphFormatter:
             },
         ]
         formatted_graph = task_graph_formatter.format_task_graph(complex_tasks)
-        # 1 start + 3 tasks + 3 steps + 1 nested_graph = 9 nodes (with duplicates)
-        assert len(formatted_graph["nodes"]) == 9
-        # Current implementation creates 8 edges
-        assert len(formatted_graph["edges"]) == 8
+        # 1 start + 3 tasks + 3 steps + 3 nested_graph nodes (one per task) = 11 nodes (with duplicates)
+        assert len(formatted_graph["nodes"]) == 11
+        # Current implementation creates 10 edges (start->task1, task1->step4, start->task6, task1->step2, step2->step3, task4->step5, task6->step7, start->nested1, start->nested2, start->nested3)
+        assert len(formatted_graph["edges"]) == 10
 
     def test_nested_graph_node_structure(self, task_graph_formatter) -> None:
         """Test that nested_graph node has the correct structure."""
@@ -501,8 +501,8 @@ class TestTaskGraphFormatter:
             {"task_id": "task2", "name": "B", "dependencies": ["task1"]},
         ]
         formatted_graph = task_graph_formatter.format_task_graph(tasks)
-        # Should not crash, should create 4 nodes (start, task1, task2, nested_graph)
-        assert len(formatted_graph["nodes"]) == 4
+        # Should not crash, should create 5 nodes (start, task1, task2, 2 nested_graph nodes)
+        assert len(formatted_graph["nodes"]) == 5
         # Should create only start node edges (dependencies not handled)
         dep_edges = [
             e for e in formatted_graph["edges"] if e[2]["intent"] == "depends_on"
