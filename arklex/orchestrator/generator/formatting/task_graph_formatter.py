@@ -711,9 +711,10 @@ class TaskGraphFormatter:
         else:
             # If no valid nested start found, point to first task node
             # Extract task node IDs from main graph nodes
+            all_task_node_ids = [node_id for node_id, _ in combined_graph["nodes"]]
             main_task_node_ids = [
                 node_id
-                for node_id in all_task_node_ids
+                for node_id, node_data in combined_graph["nodes"]
                 if (
                     node_data.get("resource", {}).get("id")
                     in [
@@ -725,10 +726,10 @@ class TaskGraphFormatter:
                 )
             ]
             if main_task_node_ids:
-                first_task_id = main_task_node_ids[0]
+                first_task_node_id = main_task_node_ids[0]
                 for node_id, node_data in combined_graph["nodes"]:
                     if node_id == nested_graph_node_id:
-                        node_data["attribute"]["value"] = first_task_id
+                        node_data["attribute"]["value"] = first_task_node_id
                         node_data["attribute"]["task"] = "Execute nested graph task"
                         node_data["attribute"]["directed"] = True
                         break
