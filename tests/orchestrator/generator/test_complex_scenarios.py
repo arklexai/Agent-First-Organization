@@ -1,11 +1,13 @@
-"""Complex scenario tests for advanced task generation and optimization.
+"""Tests for complex scenarios in task generation and optimization.
 
-These tests cover complex scenarios including advanced task generation,
+This module provides comprehensive tests for advanced task generation,
 optimization strategies, nested workflows, and sophisticated resource allocation.
 """
 
-import pytest
 import json
+from typing import Dict
+
+import pytest
 
 from arklex.orchestrator.generator.formatting.task_graph_formatter import (
     TaskGraphFormatter,
@@ -22,12 +24,12 @@ from tests.orchestrator.generator.test_mock_models import (
 )
 
 
-# --- Fixtures for common mocks and configs ---
+# --- Fixtures ---
 
 
 @pytest.fixture
-def advanced_config() -> dict:
-    """Advanced configuration for complex scenarios."""
+def advanced_config() -> Dict:
+    """Create advanced configuration for complex scenarios."""
     return {
         "role": "Advanced Customer Service Assistant",
         "user_objective": "Provide comprehensive customer support with AI-powered insights",
@@ -89,7 +91,7 @@ def advanced_config() -> dict:
 
 @pytest.fixture
 def always_valid_mock_model() -> MockLanguageModelWithCustomResponses:
-    """A mock model that always returns a valid, non-empty task list."""
+    """Create a mock model that always returns valid, non-empty task list."""
     model = create_mock_model_for_task_generation()
     valid_task = '[{"id": "task_1", "name": "Test Task", "description": "A test task", "steps": [{"description": "Step 1"}]}]'
     model.generate = lambda messages: type("Mock", (), {"content": valid_task})()
@@ -98,15 +100,16 @@ def always_valid_mock_model() -> MockLanguageModelWithCustomResponses:
 
 
 @pytest.fixture
-def patched_advanced_config(advanced_config):
-    """Advanced config with tools patched to avoid import errors."""
-    advanced_config["tools"] = []
-    return advanced_config
+def patched_advanced_config(advanced_config: Dict) -> Dict:
+    """Create advanced config with tools patched to avoid import errors."""
+    config = advanced_config.copy()
+    config["tools"] = []
+    return config
 
 
 @pytest.fixture
 def ai_powered_mock_model() -> MockLanguageModelWithCustomResponses:
-    """A mock model configured for AI-powered task generation scenarios."""
+    """Create a mock model configured for AI-powered task generation scenarios."""
     ai_model = MockLanguageModelWithCustomResponses()
     ai_model.add_response(
         "AI-powered",
@@ -136,6 +139,60 @@ def ai_powered_mock_model() -> MockLanguageModelWithCustomResponses:
     return ai_model
 
 
+@pytest.fixture
+def optimization_config() -> Dict:
+    """Create configuration for optimization testing."""
+    return {
+        "role": "Optimization System",
+        "user_objective": "Optimize task execution and resource allocation",
+        "workers": [{"name": "DataWorker"}, {"name": "AnalyticsWorker"}],
+        "tools": [{"name": "DataTool"}, {"name": "AnalyticsTool"}],
+    }
+
+
+@pytest.fixture
+def optimization_mock_model() -> MockLanguageModelWithCustomResponses:
+    """Create a mock model for optimization testing."""
+    return create_mock_model_for_best_practices()
+
+
+@pytest.fixture
+def ai_pipeline_mock_model() -> MockLanguageModelWithCustomResponses:
+    """Create a mock model for AI pipeline integration testing."""
+    ai_model = create_mock_model_for_task_generation()
+    ai_model.add_response(
+        "task",
+        """[
+            {
+                "task": "AI Customer Analytics",
+                "intent": "AI-powered customer analysis",
+                "description": "Analyze customer behavior using AI algorithms"
+            },
+            {
+                "task": "Predictive Engine",
+                "intent": "Predictive recommendations",
+                "description": "Generate predictive recommendations for customers"
+            }
+        ]""",
+    )
+    ai_model.add_response(
+        "default",
+        """[
+            {
+                "task": "AI Customer Analytics",
+                "intent": "AI-powered customer analysis",
+                "description": "Analyze customer behavior using AI algorithms"
+            },
+            {
+                "task": "Predictive Engine",
+                "intent": "Predictive recommendations",
+                "description": "Generate predictive recommendations for customers"
+            }
+        ]""",
+    )
+    return ai_model
+
+
 # --- Test Classes ---
 
 
@@ -143,7 +200,9 @@ class TestAdvancedTaskGeneration:
     """Test advanced task generation scenarios."""
 
     def test_multi_layered_task_generation(
-        self, patched_advanced_config, always_valid_mock_model
+        self,
+        patched_advanced_config: Dict,
+        always_valid_mock_model: MockLanguageModelWithCustomResponses,
     ) -> None:
         """Test generation of multi-layered task hierarchies."""
         generator = TaskGenerator(
@@ -162,7 +221,9 @@ class TestAdvancedTaskGeneration:
                     assert dep in task_ids
 
     def test_ai_powered_task_generation(
-        self, patched_advanced_config, ai_powered_mock_model
+        self,
+        patched_advanced_config: Dict,
+        ai_powered_mock_model: MockLanguageModelWithCustomResponses,
     ) -> None:
         """Test AI-powered task generation with advanced features."""
         generator = TaskGenerator(
@@ -180,7 +241,7 @@ class TestAdvancedTaskGeneration:
             any(keyword in name for keyword in ai_keywords) for name in task_names
         )
 
-    def test_complex_dependency_chains(self, advanced_config) -> None:
+    def test_complex_dependency_chains(self, advanced_config: Dict) -> None:
         """Test complex dependency chain resolution."""
         formatter = TaskGraphFormatter(
             role=advanced_config["role"],
@@ -224,7 +285,9 @@ class TestAdvancedTaskGeneration:
         assert len(result["edges"]) >= 3
 
     def test_adaptive_task_generation(
-        self, patched_advanced_config, always_valid_mock_model
+        self,
+        patched_advanced_config: Dict,
+        always_valid_mock_model: MockLanguageModelWithCustomResponses,
     ) -> None:
         """Test adaptive task generation with changing objectives."""
         generator = TaskGenerator(
@@ -248,25 +311,18 @@ class TestAdvancedTaskGeneration:
 class TestAdvancedOptimization:
     """Test advanced optimization strategies."""
 
-    @pytest.fixture
-    def optimization_config(self) -> dict:
-        """Configuration for optimization testing."""
-        return {
-            "role": "Optimization System",
-            "user_objective": "Optimize task execution and resource allocation",
-            "workers": [{"name": "DataWorker"}, {"name": "AnalyticsWorker"}],
-            "tools": [{"name": "DataTool"}, {"name": "AnalyticsTool"}],
-        }
-
-    def test_resource_optimization(self, optimization_config) -> None:
+    def test_resource_optimization(
+        self,
+        optimization_config: Dict,
+        optimization_mock_model: MockLanguageModelWithCustomResponses,
+    ) -> None:
         """Test resource optimization in practice generation."""
-        mock_model = create_mock_model_for_best_practices()
         practice_manager = BestPracticeManager(
-            model=mock_model,
+            model=optimization_mock_model,
             role="Data Processing System",
             user_objective="Optimize data processing workflows",
-            workers=[{"name": "DataWorker"}, {"name": "AnalyticsWorker"}],
-            tools=[{"name": "DataTool"}, {"name": "AnalyticsTool"}],
+            workers=optimization_config["workers"],
+            tools=optimization_config["tools"],
         )
         task_with_resources = [
             {
@@ -282,11 +338,14 @@ class TestAdvancedOptimization:
         practices = practice_manager.generate_best_practices(task_with_resources)
         assert isinstance(practices, list)
 
-    def test_performance_optimization(self, optimization_config) -> None:
+    def test_performance_optimization(
+        self,
+        optimization_config: Dict,
+        optimization_mock_model: MockLanguageModelWithCustomResponses,
+    ) -> None:
         """Test performance optimization strategies."""
-        mock_model = create_mock_model_for_best_practices()
         practice_manager = BestPracticeManager(
-            model=mock_model,
+            model=optimization_mock_model,
             role=optimization_config["role"],
             user_objective=optimization_config["user_objective"],
             workers=optimization_config["workers"],
@@ -303,11 +362,14 @@ class TestAdvancedOptimization:
         practices = practice_manager.generate_best_practices(performance_tasks)
         assert isinstance(practices, list)
 
-    def test_multi_objective_optimization(self, optimization_config) -> None:
+    def test_multi_objective_optimization(
+        self,
+        optimization_config: Dict,
+        optimization_mock_model: MockLanguageModelWithCustomResponses,
+    ) -> None:
         """Test multi-objective optimization scenarios."""
-        mock_model = create_mock_model_for_best_practices()
         practice_manager = BestPracticeManager(
-            model=mock_model,
+            model=optimization_mock_model,
             role=optimization_config["role"],
             user_objective=optimization_config["user_objective"],
             workers=optimization_config["workers"],
@@ -328,7 +390,7 @@ class TestAdvancedOptimization:
 class TestNestedWorkflowScenarios:
     """Test nested workflow scenarios."""
 
-    def test_deep_nested_workflows(self, advanced_config) -> None:
+    def test_deep_nested_workflows(self, advanced_config: Dict) -> None:
         """Test deeply nested workflow structures."""
         formatter = TaskGraphFormatter(
             role=advanced_config["role"],
@@ -352,7 +414,7 @@ class TestNestedWorkflowScenarios:
         assert "edges" in result
         assert len(result["nodes"]) > 0
 
-    def test_parallel_nested_workflows(self, advanced_config) -> None:
+    def test_parallel_nested_workflows(self, advanced_config: Dict) -> None:
         """Test parallel nested workflow execution."""
         formatter = TaskGraphFormatter(
             role=advanced_config["role"],
@@ -385,40 +447,12 @@ class TestAdvancedIntegrationScenarios:
     """Test advanced integration scenarios."""
 
     def test_full_ai_pipeline_integration(
-        self, patched_advanced_config, always_valid_mock_model
+        self,
+        patched_advanced_config: Dict,
+        always_valid_mock_model: MockLanguageModelWithCustomResponses,
+        ai_pipeline_mock_model: MockLanguageModelWithCustomResponses,
     ) -> None:
         """Test full AI pipeline integration with comprehensive mock model."""
-        ai_model = create_mock_model_for_task_generation()
-        ai_model.add_response(
-            "task",
-            """[
-                {
-                    "task": "AI Customer Analytics",
-                    "intent": "AI-powered customer analysis",
-                    "description": "Analyze customer behavior using AI algorithms"
-                },
-                {
-                    "task": "Predictive Engine",
-                    "intent": "Predictive recommendations",
-                    "description": "Generate predictive recommendations for customers"
-                }
-            ]""",
-        )
-        ai_model.add_response(
-            "default",
-            """[
-                {
-                    "task": "AI Customer Analytics",
-                    "intent": "AI-powered customer analysis",
-                    "description": "Analyze customer behavior using AI algorithms"
-                },
-                {
-                    "task": "Predictive Engine",
-                    "intent": "Predictive recommendations",
-                    "description": "Generate predictive recommendations for customers"
-                }
-            ]""",
-        )
         generator = Generator(
             config=patched_advanced_config,
             model=always_valid_mock_model,
@@ -433,7 +467,9 @@ class TestAdvancedIntegrationScenarios:
         assert len(task_graph["tasks"]) > 0
 
     def test_scalable_architecture_integration(
-        self, patched_advanced_config, always_valid_mock_model
+        self,
+        patched_advanced_config: Dict,
+        always_valid_mock_model: MockLanguageModelWithCustomResponses,
     ) -> None:
         """Test scalable architecture integration."""
         scalable_config = patched_advanced_config.copy()
@@ -457,7 +493,9 @@ class TestAdvancedIntegrationScenarios:
         assert len(task_graph["tasks"]) > 0
 
     def test_real_time_processing_integration(
-        self, patched_advanced_config, always_valid_mock_model
+        self,
+        patched_advanced_config: Dict,
+        always_valid_mock_model: MockLanguageModelWithCustomResponses,
     ) -> None:
         """Test real-time processing integration."""
         realtime_config = patched_advanced_config.copy()

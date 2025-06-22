@@ -1,7 +1,7 @@
-"""Error scenario tests for edge cases and error conditions in the generator module.
+"""Tests for error scenarios and edge cases in the generator module.
 
-These tests cover various error conditions and edge cases to ensure
-the generator components handle errors gracefully and provide appropriate
+This module provides comprehensive tests for various error conditions and edge cases
+to ensure the generator components handle errors gracefully and provide appropriate
 error messages and fallback behavior.
 """
 
@@ -21,23 +21,23 @@ from tests.orchestrator.generator.test_mock_models import (
 )
 
 
-# --- Fixtures for common mocks and configs ---
+# --- Fixtures ---
 
 
 @pytest.fixture
-def error_prone_model():
-    """A mock model that simulates various error conditions."""
+def error_prone_model() -> MockLanguageModelWithErrors:
+    """Create a mock model that simulates various error conditions."""
     return MockLanguageModelWithErrors(error_type="timeout", error_rate=1.0)
 
 
 @pytest.fixture
-def custom_response_model():
-    """A mock model with custom responses for testing."""
+def custom_response_model() -> MockLanguageModelWithCustomResponses:
+    """Create a mock model with custom responses for testing."""
     return MockLanguageModelWithCustomResponses()
 
 
 @pytest.fixture
-def basic_formatter():
+def basic_formatter() -> TaskGraphFormatter:
     """Create a basic formatter for testing."""
     return TaskGraphFormatter(
         role="Test Role", user_objective="Test Objective", model=None
@@ -45,7 +45,9 @@ def basic_formatter():
 
 
 @pytest.fixture
-def basic_task_generator(custom_response_model):
+def basic_task_generator(
+    custom_response_model: MockLanguageModelWithCustomResponses,
+) -> TaskGenerator:
     """Create a basic task generator for testing."""
     return TaskGenerator(
         model=custom_response_model,
@@ -57,7 +59,9 @@ def basic_task_generator(custom_response_model):
 
 
 @pytest.fixture
-def basic_practice_manager(custom_response_model):
+def basic_practice_manager(
+    custom_response_model: MockLanguageModelWithCustomResponses,
+) -> BestPracticeManager:
     """Create a basic practice manager for testing."""
     return BestPracticeManager(
         model=custom_response_model,
@@ -69,7 +73,7 @@ def basic_practice_manager(custom_response_model):
 
 
 @pytest.fixture
-def basic_prompt_manager():
+def basic_prompt_manager() -> PromptManager:
     """Create a prompt manager for testing."""
     return PromptManager()
 
@@ -80,7 +84,9 @@ def basic_prompt_manager():
 class TestTaskGraphFormatterErrorScenarios:
     """Test error scenarios in the TaskGraphFormatter."""
 
-    def test_format_task_graph_with_empty_tasks(self, basic_formatter) -> None:
+    def test_format_task_graph_with_empty_tasks(
+        self, basic_formatter: TaskGraphFormatter
+    ) -> None:
         """Test formatting with empty tasks list."""
         result = basic_formatter.format_task_graph([])
         assert "nodes" in result
@@ -89,7 +95,7 @@ class TestTaskGraphFormatterErrorScenarios:
         assert len(result["edges"]) == 0
 
     def test_format_task_graph_with_invalid_task_structure(
-        self, basic_formatter
+        self, basic_formatter: TaskGraphFormatter
     ) -> None:
         """Test formatting with invalid task structures."""
         invalid_tasks = [
@@ -120,7 +126,7 @@ class TestTaskGraphFormatterErrorScenarios:
         assert len(result["nodes"]) > 0
 
     def test_format_task_graph_with_circular_dependencies(
-        self, basic_formatter
+        self, basic_formatter: TaskGraphFormatter
     ) -> None:
         """Test formatting with circular dependencies."""
         circular_tasks = [
@@ -144,7 +150,9 @@ class TestTaskGraphFormatterErrorScenarios:
         assert "edges" in result
         assert len(result["nodes"]) > 0
 
-    def test_format_task_graph_with_missing_dependencies(self, basic_formatter) -> None:
+    def test_format_task_graph_with_missing_dependencies(
+        self, basic_formatter: TaskGraphFormatter
+    ) -> None:
         """Test formatting with missing dependencies."""
         tasks_with_missing_deps = [
             {
@@ -160,7 +168,9 @@ class TestTaskGraphFormatterErrorScenarios:
         assert "edges" in result
         assert len(result["nodes"]) > 0
 
-    def test_format_task_graph_with_llm_errors(self, error_prone_model) -> None:
+    def test_format_task_graph_with_llm_errors(
+        self, error_prone_model: MockLanguageModelWithErrors
+    ) -> None:
         """Test formatting when LLM calls fail."""
         formatter = TaskGraphFormatter(
             role="Test Role", user_objective="Test Objective", model=error_prone_model
@@ -179,7 +189,7 @@ class TestTaskGraphFormatterErrorScenarios:
         assert len(result["nodes"]) > 0
 
     def test_format_task_graph_with_invalid_worker_config(
-        self, basic_formatter
+        self, basic_formatter: TaskGraphFormatter
     ) -> None:
         """Test formatting with invalid worker configuration."""
         tasks = [
@@ -197,7 +207,7 @@ class TestTaskGraphFormatterErrorScenarios:
         assert len(result["nodes"]) > 0
 
     def test_format_task_graph_with_unicode_and_special_chars(
-        self, basic_formatter
+        self, basic_formatter: TaskGraphFormatter
     ) -> None:
         """Test formatting with Unicode and special characters."""
         unicode_tasks = [
@@ -216,7 +226,9 @@ class TestTaskGraphFormatterErrorScenarios:
         assert "edges" in result
         assert len(result["nodes"]) > 0
 
-    def test_format_task_graph_with_very_large_tasks(self, basic_formatter) -> None:
+    def test_format_task_graph_with_very_large_tasks(
+        self, basic_formatter: TaskGraphFormatter
+    ) -> None:
         """Test formatting with very large task sets."""
         large_tasks = []
         for i in range(1000):  # 1000 tasks
@@ -235,7 +247,9 @@ class TestTaskGraphFormatterErrorScenarios:
         assert "edges" in result
         assert len(result["nodes"]) > 0
 
-    def test_format_task_graph_with_deep_nesting(self, basic_formatter) -> None:
+    def test_format_task_graph_with_deep_nesting(
+        self, basic_formatter: TaskGraphFormatter
+    ) -> None:
         """Test formatting with deeply nested step structures."""
         nested_tasks = [
             {
@@ -261,7 +275,9 @@ class TestTaskGraphFormatterErrorScenarios:
 class TestTaskGeneratorErrorScenarios:
     """Test error scenarios in the TaskGenerator."""
 
-    def test_generate_tasks_with_invalid_intro(self, basic_task_generator) -> None:
+    def test_generate_tasks_with_invalid_intro(
+        self, basic_task_generator: TaskGenerator
+    ) -> None:
         """Test task generation with invalid introduction."""
         result = basic_task_generator.generate_tasks(None)
         assert isinstance(result, list)
@@ -271,7 +287,9 @@ class TestTaskGeneratorErrorScenarios:
         result = basic_task_generator.generate_tasks(long_intro)
         assert isinstance(result, list)
 
-    def test_generate_tasks_with_llm_errors(self, error_prone_model) -> None:
+    def test_generate_tasks_with_llm_errors(
+        self, error_prone_model: MockLanguageModelWithErrors
+    ) -> None:
         """Test task generation when LLM calls fail."""
         generator = TaskGenerator(
             model=error_prone_model,
@@ -283,7 +301,9 @@ class TestTaskGeneratorErrorScenarios:
         result = generator.generate_tasks("Test intro")
         assert isinstance(result, list)
 
-    def test_add_provided_tasks_with_invalid_tasks(self, basic_task_generator) -> None:
+    def test_add_provided_tasks_with_invalid_tasks(
+        self, basic_task_generator: TaskGenerator
+    ) -> None:
         """Test adding invalid user-provided tasks."""
         invalid_tasks = [
             {},  # Empty task
@@ -294,7 +314,9 @@ class TestTaskGeneratorErrorScenarios:
         result = basic_task_generator.add_provided_tasks(invalid_tasks, "Test intro")
         assert isinstance(result, list)
 
-    def test_validate_tasks_with_invalid_structures(self, basic_task_generator) -> None:
+    def test_validate_tasks_with_invalid_structures(
+        self, basic_task_generator: TaskGenerator
+    ) -> None:
         """Test validation with invalid task structures."""
         invalid_tasks = [
             {
@@ -312,7 +334,7 @@ class TestTaskGeneratorErrorScenarios:
         assert isinstance(result, list)
 
     def test_establish_relationships_with_circular_deps(
-        self, basic_task_generator
+        self, basic_task_generator: TaskGenerator
     ) -> None:
         """Test establishing relationships with circular dependencies."""
         circular_tasks = [
@@ -332,7 +354,9 @@ class TestTaskGeneratorErrorScenarios:
         basic_task_generator._establish_relationships(circular_tasks)
         assert True  # Should not raise exception
 
-    def test_build_hierarchy_with_invalid_tasks(self, basic_task_generator) -> None:
+    def test_build_hierarchy_with_invalid_tasks(
+        self, basic_task_generator: TaskGenerator
+    ) -> None:
         """Test building hierarchy with invalid tasks."""
         invalid_tasks = [
             {"id": "task1", "name": "Task 1"},  # Missing required fields
@@ -345,7 +369,7 @@ class TestBestPracticeManagerErrorScenarios:
     """Test error scenarios in the BestPracticeManager."""
 
     def test_generate_best_practices_with_invalid_tasks(
-        self, basic_practice_manager
+        self, basic_practice_manager: BestPracticeManager
     ) -> None:
         """Test generating practices with invalid tasks."""
         invalid_tasks = [
@@ -356,7 +380,9 @@ class TestBestPracticeManagerErrorScenarios:
         result = basic_practice_manager.generate_best_practices(invalid_tasks)
         assert isinstance(result, list)
 
-    def test_generate_best_practices_with_llm_errors(self, error_prone_model) -> None:
+    def test_generate_best_practices_with_llm_errors(
+        self, error_prone_model: MockLanguageModelWithErrors
+    ) -> None:
         """Test generating practices when LLM calls fail."""
         manager = BestPracticeManager(
             model=error_prone_model, role="Test Role", user_objective="Test Objective"
@@ -373,7 +399,7 @@ class TestBestPracticeManagerErrorScenarios:
         assert isinstance(result, list)
 
     def test_finetune_best_practice_with_invalid_practice(
-        self, basic_practice_manager
+        self, basic_practice_manager: BestPracticeManager
     ) -> None:
         """Test finetuning with invalid practice."""
         invalid_practice = {
@@ -390,7 +416,7 @@ class TestBestPracticeManagerErrorScenarios:
         assert isinstance(result, dict)
 
     def test_validate_practices_with_invalid_structures(
-        self, basic_practice_manager
+        self, basic_practice_manager: BestPracticeManager
     ) -> None:
         """Test validation with invalid practice structures."""
         from arklex.orchestrator.generator.tasks.best_practice_manager import (
@@ -423,7 +449,7 @@ class TestBestPracticeManagerErrorScenarios:
         assert isinstance(result, list)
 
     def test_optimize_practices_with_invalid_steps(
-        self, basic_practice_manager
+        self, basic_practice_manager: BestPracticeManager
     ) -> None:
         """Test optimization with invalid step structures."""
         practices_with_invalid_steps = [
@@ -448,17 +474,23 @@ class TestBestPracticeManagerErrorScenarios:
 class TestPromptManagerErrorScenarios:
     """Test error scenarios in the PromptManager."""
 
-    def test_get_prompt_with_nonexistent_name(self, basic_prompt_manager) -> None:
+    def test_get_prompt_with_nonexistent_name(
+        self, basic_prompt_manager: PromptManager
+    ) -> None:
         """Test getting a prompt with nonexistent name."""
         with pytest.raises(ValueError, match="Prompt template 'nonexistent' not found"):
             basic_prompt_manager.get_prompt("nonexistent")
 
-    def test_get_prompt_with_invalid_kwargs(self, basic_prompt_manager) -> None:
+    def test_get_prompt_with_invalid_kwargs(
+        self, basic_prompt_manager: PromptManager
+    ) -> None:
         """Test getting a prompt with invalid keyword arguments."""
         with pytest.raises(KeyError):
             basic_prompt_manager.get_prompt("generate_tasks")  # Missing required kwargs
 
-    def test_get_prompt_with_none_values(self, basic_prompt_manager) -> None:
+    def test_get_prompt_with_none_values(
+        self, basic_prompt_manager: PromptManager
+    ) -> None:
         """Test getting a prompt with None values."""
         result = basic_prompt_manager.get_prompt(
             "generate_tasks",
@@ -512,7 +544,9 @@ class TestIntegrationErrorScenarios:
         assert "edges" in result
         assert len(result["nodes"]) > 0
 
-    def test_error_propagation_across_components(self, error_prone_model) -> None:
+    def test_error_propagation_across_components(
+        self, error_prone_model: MockLanguageModelWithErrors
+    ) -> None:
         """Test that errors propagate correctly across components."""
         task_gen = TaskGenerator(
             model=error_prone_model,

@@ -4,8 +4,13 @@ This module provides mock implementations of language models that can be used
 in tests to simulate LLM responses without requiring actual API calls.
 """
 
+import random
 from typing import Any, List, Optional
+
 from unittest.mock import Mock
+
+
+# --- Mock Classes ---
 
 
 class MockLanguageModel:
@@ -175,8 +180,6 @@ class MockLanguageModelWithErrors:
             prompt = ""
 
         # Simulate error based on error_rate
-        import random
-
         if random.random() < self.error_rate:
             if self.error_type == "timeout":
                 raise TimeoutError("Request timed out")
@@ -184,6 +187,8 @@ class MockLanguageModelWithErrors:
                 raise ValueError("Invalid response format")
             elif self.error_type == "api_error":
                 raise Exception("API service unavailable")
+            elif self.error_type == "rate_limit":
+                raise Exception("Rate limit exceeded")
             else:
                 raise Exception(f"Unknown error: {self.error_type}")
 
@@ -205,8 +210,6 @@ class MockLanguageModelWithErrors:
         self.call_count += 1
 
         # Simulate error based on error_rate
-        import random
-
         if random.random() < self.error_rate:
             if self.error_type == "timeout":
                 raise TimeoutError("Request timed out")
@@ -320,7 +323,9 @@ class MockLanguageModelWithCustomResponses:
         return mock_response
 
 
-# Factory functions for creating mock models
+# --- Factory Functions ---
+
+
 def create_mock_model_for_task_generation() -> MockLanguageModelWithCustomResponses:
     """Create a mock model specifically for task generation tests."""
     model = MockLanguageModelWithCustomResponses()
