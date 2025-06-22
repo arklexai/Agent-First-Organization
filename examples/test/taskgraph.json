@@ -24,8 +24,8 @@
                     "name": "MessageWorker"
                 },
                 "attribute": {
-                    "value": "User want to know more about robotic product specifications",
-                    "task": "Provide detailed product specifications and features",
+                    "value": "User inquires about product specifications",
+                    "task": "Provide detailed product specifications and technical information",
                     "directed": false
                 }
             }
@@ -38,8 +38,8 @@
                     "name": "FaissRAGWorker"
                 },
                 "attribute": {
-                    "value": "Execute: Execute Provide detailed product specifications and features",
-                    "task": "Provide detailed product specifications and features",
+                    "value": "Execute: Execute Provide detailed product specifications and technical information",
+                    "task": "Provide detailed product specifications and technical information",
                     "directed": false
                 }
             }
@@ -52,8 +52,8 @@
                     "name": "MessageWorker"
                 },
                 "attribute": {
-                    "value": "User need assistance with order tracking for robotics products",
-                    "task": "Assist in tracking the status of an order for purchased or rented robotics products",
+                    "value": "User seeks assistance with robot maintenance",
+                    "task": "Offer support for robot maintenance and troubleshooting",
                     "directed": false
                 }
             }
@@ -66,8 +66,8 @@
                     "name": "FaissRAGWorker"
                 },
                 "attribute": {
-                    "value": "Greet the user and ask for the order number or other necessary details to identify the order they want to track.",
-                    "task": "Assist in tracking the status of an order for purchased or rented robotics products",
+                    "value": "Greet the user and ask them to describe the issue they are experiencing or the support they need for their robot.",
+                    "task": "Offer support for robot maintenance and troubleshooting",
                     "directed": false
                 }
             }
@@ -80,8 +80,8 @@
                     "name": "MessageWorker"
                 },
                 "attribute": {
-                    "value": "Use RAGWorker to check the status of the order based on the provided order number or details, referencing the company's internal documentation.",
-                    "task": "Assist in tracking the status of an order for purchased or rented robotics products",
+                    "value": "Use RAGWorker to access internal documentation and provide detailed troubleshooting steps or solutions for the reported issue.",
+                    "task": "Offer support for robot maintenance and troubleshooting",
                     "directed": false
                 }
             }
@@ -94,8 +94,8 @@
                     "name": "SearchWorker"
                 },
                 "attribute": {
-                    "value": "Share the status of the order with the user and provide any additional relevant information, such as estimated delivery or pickup time.",
-                    "task": "Assist in tracking the status of an order for purchased or rented robotics products",
+                    "value": "Ask the user if they need further assistance or if the provided solutions resolved their issue.",
+                    "task": "Offer support for robot maintenance and troubleshooting",
                     "directed": false
                 }
             }
@@ -109,7 +109,7 @@
                 },
                 "attribute": {
                     "value": "8",
-                    "task": "Assist in tracking the status of an order for purchased or rented robotics products",
+                    "task": "Offer support for robot maintenance and troubleshooting",
                     "directed": false
                 }
             }
@@ -122,8 +122,8 @@
                     "name": "FaissRAGWorker"
                 },
                 "attribute": {
-                    "value": "Conclude the interaction with a polite message, offering further help if needed.",
-                    "task": "Assist in tracking the status of an order for purchased or rented robotics products",
+                    "value": "Confirm resolution with the user or guide them on how to contact customer support for further assistance.",
+                    "task": "Offer support for robot maintenance and troubleshooting",
                     "directed": false
                 }
             }
@@ -136,8 +136,8 @@
                     "name": "MessageWorker"
                 },
                 "attribute": {
-                    "value": "User interested in rental options for ADAM robot",
-                    "task": "Provide information on rental terms and conditions for ADAM robot",
+                    "value": "User wants to schedule a demo or consultation",
+                    "task": "Facilitate scheduling of product demos or business consultations",
                     "directed": false
                 }
             }
@@ -150,8 +150,8 @@
                     "name": "FaissRAGWorker"
                 },
                 "attribute": {
-                    "value": "Execute: Execute Provide information on rental terms and conditions for ADAM robot",
-                    "task": "Provide information on rental terms and conditions for ADAM robot",
+                    "value": "Greet the user and inquire about their interest in scheduling a product demo or business consultation.",
+                    "task": "Facilitate scheduling of product demos or business consultations",
                     "directed": false
                 }
             }
@@ -164,8 +164,8 @@
                     "name": "MessageWorker"
                 },
                 "attribute": {
-                    "value": "User want to schedule a demo or consultation",
-                    "task": "Help in scheduling a product demo or consultation with a specialist",
+                    "value": "Ask the user for preferred dates and times for scheduling the demo or consultation.",
+                    "task": "Facilitate scheduling of product demos or business consultations",
                     "directed": false
                 }
             }
@@ -174,12 +174,12 @@
             "12",
             {
                 "resource": {
-                    "id": "FaissRAGWorker",
-                    "name": "FaissRAGWorker"
+                    "id": "9c15af81-04b3-443e-be04-a3522124b905",
+                    "name": "SearchWorker"
                 },
                 "attribute": {
-                    "value": "Greet the user and ask if they're interested in scheduling a product demo or consultation.",
-                    "task": "Help in scheduling a product demo or consultation with a specialist",
+                    "value": "Confirm the availability of the requested schedule using internal resources or documentation.",
+                    "task": "Facilitate scheduling of product demos or business consultations",
                     "directed": false
                 }
             }
@@ -188,12 +188,12 @@
             "13",
             {
                 "resource": {
-                    "id": "26bb6634-3bee-417d-ad75-23269ac17bc3",
-                    "name": "MessageWorker"
+                    "id": "nested_graph",
+                    "name": "NestedGraph"
                 },
                 "attribute": {
-                    "value": "Inquire about the specific product or service the user is interested in for the demo or consultation.",
-                    "task": "Help in scheduling a product demo or consultation with a specialist",
+                    "value": "14",
+                    "task": "Facilitate scheduling of product demos or business consultations",
                     "directed": false
                 }
             }
@@ -202,12 +202,12 @@
             "14",
             {
                 "resource": {
-                    "id": "9c15af81-04b3-443e-be04-a3522124b905",
-                    "name": "SearchWorker"
+                    "id": "FaissRAGWorker",
+                    "name": "FaissRAGWorker"
                 },
                 "attribute": {
-                    "value": "Ask the user for their preferred date and time for the demo or consultation.",
-                    "task": "Help in scheduling a product demo or consultation with a specialist",
+                    "value": "Provide any additional information the user needs to prepare for the demo or consultation, and offer further assistance if needed.",
+                    "task": "Facilitate scheduling of product demos or business consultations",
                     "directed": false
                 }
             }
@@ -216,12 +216,12 @@
             "15",
             {
                 "resource": {
-                    "id": "nested_graph",
-                    "name": "NestedGraph"
+                    "id": "26bb6634-3bee-417d-ad75-23269ac17bc3",
+                    "name": "MessageWorker"
                 },
                 "attribute": {
-                    "value": "16",
-                    "task": "Help in scheduling a product demo or consultation with a specialist",
+                    "value": "User wants to learn about ClouTea operations",
+                    "task": "Inform users about ClouTea operations and experience",
                     "directed": false
                 }
             }
@@ -234,8 +234,8 @@
                     "name": "FaissRAGWorker"
                 },
                 "attribute": {
-                    "value": "Confirm the date and time with the user and provide any additional details about the demo or consultation.",
-                    "task": "Help in scheduling a product demo or consultation with a specialist",
+                    "value": "Welcome the user and ask how you can assist them regarding ClouTea operations or experiences.",
+                    "task": "Inform users about ClouTea operations and experience",
                     "directed": false
                 }
             }
@@ -248,8 +248,8 @@
                     "name": "MessageWorker"
                 },
                 "attribute": {
-                    "value": "Ask if the user needs further assistance or has any additional questions.",
-                    "task": "Help in scheduling a product demo or consultation with a specialist",
+                    "value": "If the user asks about specific operations or experiences, use the RAGWorker to retrieve detailed information from internal documents, including policies, FAQs, and product information.",
+                    "task": "Inform users about ClouTea operations and experience",
                     "directed": false
                 }
             }
@@ -258,12 +258,12 @@
             "18",
             {
                 "resource": {
-                    "id": "26bb6634-3bee-417d-ad75-23269ac17bc3",
-                    "name": "MessageWorker"
+                    "id": "9c15af81-04b3-443e-be04-a3522124b905",
+                    "name": "SearchWorker"
                 },
                 "attribute": {
-                    "value": "User need information on ClouTea location and offerings",
-                    "task": "Provide details about ClouTea location, menu, and robot-made beverages",
+                    "value": "Provide the user with the relevant information or clarification about their inquiry regarding ClouTea.",
+                    "task": "Inform users about ClouTea operations and experience",
                     "directed": false
                 }
             }
@@ -272,12 +272,12 @@
             "19",
             {
                 "resource": {
-                    "id": "FaissRAGWorker",
-                    "name": "FaissRAGWorker"
+                    "id": "nested_graph",
+                    "name": "NestedGraph"
                 },
                 "attribute": {
-                    "value": "Ask the user what specific information they would like to know about ClouTea, such as location, menu, or robot-made beverages.",
-                    "task": "Provide details about ClouTea location, menu, and robot-made beverages",
+                    "value": "20",
+                    "task": "Inform users about ClouTea operations and experience",
                     "directed": false
                 }
             }
@@ -286,12 +286,12 @@
             "20",
             {
                 "resource": {
-                    "id": "26bb6634-3bee-417d-ad75-23269ac17bc3",
-                    "name": "MessageWorker"
+                    "id": "FaissRAGWorker",
+                    "name": "FaissRAGWorker"
                 },
                 "attribute": {
-                    "value": "Use RAGWorker to retrieve detailed information from the company's internal documentation regarding the user's request (e.g., address for location, details of the menu, or specifics about robot-made beverages).",
-                    "task": "Provide details about ClouTea location, menu, and robot-made beverages",
+                    "value": "If the user has no more questions, thank them for their inquiry and offer assistance in the future if needed.",
+                    "task": "Inform users about ClouTea operations and experience",
                     "directed": false
                 }
             }
@@ -300,12 +300,12 @@
             "21",
             {
                 "resource": {
-                    "id": "9c15af81-04b3-443e-be04-a3522124b905",
-                    "name": "SearchWorker"
+                    "id": "26bb6634-3bee-417d-ad75-23269ac17bc3",
+                    "name": "MessageWorker"
                 },
                 "attribute": {
-                    "value": "Provide the user with the requested information and ask if they need anything else related to ClouTea.",
-                    "task": "Provide details about ClouTea location, menu, and robot-made beverages",
+                    "value": "User asks about delivery timelines and logistics",
+                    "task": "Provide information on delivery timelines and logistics",
                     "directed": false
                 }
             }
@@ -314,12 +314,12 @@
             "22",
             {
                 "resource": {
-                    "id": "nested_graph",
-                    "name": "NestedGraph"
+                    "id": "FaissRAGWorker",
+                    "name": "FaissRAGWorker"
                 },
                 "attribute": {
-                    "value": "23",
-                    "task": "Provide details about ClouTea location, menu, and robot-made beverages",
+                    "value": "Acknowledge the user\u2019s request and ask for the order number or destination for more precise information.",
+                    "task": "Provide information on delivery timelines and logistics",
                     "directed": false
                 }
             }
@@ -328,18 +328,60 @@
             "23",
             {
                 "resource": {
-                    "id": "FaissRAGWorker",
-                    "name": "FaissRAGWorker"
+                    "id": "26bb6634-3bee-417d-ad75-23269ac17bc3",
+                    "name": "MessageWorker"
                 },
                 "attribute": {
-                    "value": "Conclude the interaction by thanking the user and offering additional help if necessary.",
-                    "task": "Provide details about ClouTea location, menu, and robot-made beverages",
+                    "value": "Use RAGWorker to search for specific delivery timelines and logistics information from internal documentation based on the provided order number or destination.",
+                    "task": "Provide information on delivery timelines and logistics",
                     "directed": false
                 }
             }
         ],
         [
-            "29",
+            "24",
+            {
+                "resource": {
+                    "id": "9c15af81-04b3-443e-be04-a3522124b905",
+                    "name": "SearchWorker"
+                },
+                "attribute": {
+                    "value": "Present the user with the relevant delivery timeline and logistics information.",
+                    "task": "Provide information on delivery timelines and logistics",
+                    "directed": false
+                }
+            }
+        ],
+        [
+            "25",
+            {
+                "resource": {
+                    "id": "nested_graph",
+                    "name": "NestedGraph"
+                },
+                "attribute": {
+                    "value": "26",
+                    "task": "Provide information on delivery timelines and logistics",
+                    "directed": false
+                }
+            }
+        ],
+        [
+            "26",
+            {
+                "resource": {
+                    "id": "FaissRAGWorker",
+                    "name": "FaissRAGWorker"
+                },
+                "attribute": {
+                    "value": "Address any further questions or provide a message that directs the user to available customer support for more complex inquiries.",
+                    "task": "Provide information on delivery timelines and logistics",
+                    "directed": false
+                }
+            }
+        ],
+        [
+            "32",
             {
                 "resource": {
                     "id": "nested_graph",
@@ -347,7 +389,67 @@
                 },
                 "attribute": {
                     "value": "1",
-                    "task": "Execute Provide detailed product specifications and features",
+                    "task": "Execute Provide detailed product specifications and technical information",
+                    "directed": true
+                },
+                "limit": 1
+            }
+        ],
+        [
+            "34",
+            {
+                "resource": {
+                    "id": "nested_graph",
+                    "name": "NestedGraph"
+                },
+                "attribute": {
+                    "value": "1",
+                    "task": "Execute Offer support for robot maintenance and troubleshooting",
+                    "directed": true
+                },
+                "limit": 1
+            }
+        ],
+        [
+            "36",
+            {
+                "resource": {
+                    "id": "nested_graph",
+                    "name": "NestedGraph"
+                },
+                "attribute": {
+                    "value": "1",
+                    "task": "Execute Facilitate scheduling of product demos or business consultations",
+                    "directed": true
+                },
+                "limit": 1
+            }
+        ],
+        [
+            "38",
+            {
+                "resource": {
+                    "id": "nested_graph",
+                    "name": "NestedGraph"
+                },
+                "attribute": {
+                    "value": "1",
+                    "task": "Execute Inform users about ClouTea operations and experience",
+                    "directed": true
+                },
+                "limit": 1
+            }
+        ],
+        [
+            "40",
+            {
+                "resource": {
+                    "id": "nested_graph",
+                    "name": "NestedGraph"
+                },
+                "attribute": {
+                    "value": "1",
+                    "task": "Execute Provide information on delivery timelines and logistics",
                     "directed": true
                 },
                 "limit": 1
@@ -359,7 +461,7 @@
             "0",
             "1",
             {
-                "intent": "User inquires about detailed robotic product specifications and features",
+                "intent": "User seeks detailed product specifications and technical information",
                 "attribute": {
                     "weight": 1,
                     "pred": true,
@@ -372,7 +474,7 @@
             "0",
             "3",
             {
-                "intent": "User needs assistance with tracking the status of an order for purchased or rented robotics products",
+                "intent": "User seeks assistance with robot maintenance and troubleshooting",
                 "attribute": {
                     "weight": 1,
                     "pred": true,
@@ -385,7 +487,7 @@
             "0",
             "9",
             {
-                "intent": "User inquires about rental terms and conditions for ADAM robot",
+                "intent": "User wants to schedule a product demo or business consultation",
                 "attribute": {
                     "weight": 1,
                     "pred": true,
@@ -396,9 +498,9 @@
         ],
         [
             "0",
-            "11",
+            "15",
             {
-                "intent": "User wants to schedule a product demo or consultation with a specialist",
+                "intent": "User wants information about ClouTea operations and experience",
                 "attribute": {
                     "weight": 1,
                     "pred": true,
@@ -409,9 +511,9 @@
         ],
         [
             "0",
-            "18",
+            "21",
             {
-                "intent": "User inquires about ClouTea's location, menu, and robot-made beverages",
+                "intent": "User inquires about delivery timelines and logistics",
                 "attribute": {
                     "weight": 1,
                     "pred": true,
@@ -512,6 +614,19 @@
             }
         ],
         [
+            "10",
+            "11",
+            {
+                "intent": null,
+                "attribute": {
+                    "weight": 1,
+                    "pred": false,
+                    "definition": "",
+                    "sample_utterances": []
+                }
+            }
+        ],
+        [
             "11",
             "12",
             {
@@ -551,19 +666,6 @@
             }
         ],
         [
-            "14",
-            "15",
-            {
-                "intent": null,
-                "attribute": {
-                    "weight": 1,
-                    "pred": false,
-                    "definition": "",
-                    "sample_utterances": []
-                }
-            }
-        ],
-        [
             "15",
             "16",
             {
@@ -579,6 +681,19 @@
         [
             "16",
             "17",
+            {
+                "intent": null,
+                "attribute": {
+                    "weight": 1,
+                    "pred": false,
+                    "definition": "",
+                    "sample_utterances": []
+                }
+            }
+        ],
+        [
+            "17",
+            "18",
             {
                 "intent": null,
                 "attribute": {
@@ -616,19 +731,6 @@
             }
         ],
         [
-            "20",
-            "21",
-            {
-                "intent": null,
-                "attribute": {
-                    "weight": 1,
-                    "pred": false,
-                    "definition": "",
-                    "sample_utterances": []
-                }
-            }
-        ],
-        [
             "21",
             "22",
             {
@@ -655,8 +757,8 @@
             }
         ],
         [
-            "0",
-            "29",
+            "23",
+            "24",
             {
                 "intent": null,
                 "attribute": {
@@ -668,33 +770,124 @@
             }
         ],
         [
-            "29",
-            "2",
+            "24",
+            "25",
             {
                 "intent": null,
                 "attribute": {
                     "weight": 1,
                     "pred": false,
-                    "definition": "Nested graph connects to leaf node 2",
+                    "definition": "",
                     "sample_utterances": []
                 }
             }
         ],
         [
-            "29",
-            "10",
+            "25",
+            "26",
             {
                 "intent": null,
                 "attribute": {
                     "weight": 1,
                     "pred": false,
-                    "definition": "Nested graph connects to leaf node 10",
+                    "definition": "",
                     "sample_utterances": []
                 }
             }
         ],
         [
-            "29",
+            "0",
+            "32",
+            {
+                "intent": null,
+                "attribute": {
+                    "weight": 1,
+                    "pred": false,
+                    "definition": "",
+                    "sample_utterances": []
+                }
+            }
+        ],
+        [
+            "0",
+            "34",
+            {
+                "intent": null,
+                "attribute": {
+                    "weight": 1,
+                    "pred": false,
+                    "definition": "",
+                    "sample_utterances": []
+                }
+            }
+        ],
+        [
+            "0",
+            "36",
+            {
+                "intent": null,
+                "attribute": {
+                    "weight": 1,
+                    "pred": false,
+                    "definition": "",
+                    "sample_utterances": []
+                }
+            }
+        ],
+        [
+            "0",
+            "38",
+            {
+                "intent": null,
+                "attribute": {
+                    "weight": 1,
+                    "pred": false,
+                    "definition": "",
+                    "sample_utterances": []
+                }
+            }
+        ],
+        [
+            "0",
+            "40",
+            {
+                "intent": null,
+                "attribute": {
+                    "weight": 1,
+                    "pred": false,
+                    "definition": "",
+                    "sample_utterances": []
+                }
+            }
+        ],
+        [
+            "40",
+            "26",
+            {
+                "intent": null,
+                "attribute": {
+                    "weight": 1,
+                    "pred": false,
+                    "definition": "Nested graph connects to leaf node 26",
+                    "sample_utterances": []
+                }
+            }
+        ],
+        [
+            "40",
+            "36",
+            {
+                "intent": null,
+                "attribute": {
+                    "weight": 1,
+                    "pred": false,
+                    "definition": "Nested graph connects to leaf node 36",
+                    "sample_utterances": []
+                }
+            }
+        ],
+        [
+            "40",
             "8",
             {
                 "intent": null,
@@ -707,27 +900,79 @@
             }
         ],
         [
-            "29",
-            "17",
+            "40",
+            "34",
             {
                 "intent": null,
                 "attribute": {
                     "weight": 1,
                     "pred": false,
-                    "definition": "Nested graph connects to leaf node 17",
+                    "definition": "Nested graph connects to leaf node 34",
                     "sample_utterances": []
                 }
             }
         ],
         [
-            "29",
-            "23",
+            "40",
+            "14",
             {
                 "intent": null,
                 "attribute": {
                     "weight": 1,
                     "pred": false,
-                    "definition": "Nested graph connects to leaf node 23",
+                    "definition": "Nested graph connects to leaf node 14",
+                    "sample_utterances": []
+                }
+            }
+        ],
+        [
+            "40",
+            "32",
+            {
+                "intent": null,
+                "attribute": {
+                    "weight": 1,
+                    "pred": false,
+                    "definition": "Nested graph connects to leaf node 32",
+                    "sample_utterances": []
+                }
+            }
+        ],
+        [
+            "40",
+            "20",
+            {
+                "intent": null,
+                "attribute": {
+                    "weight": 1,
+                    "pred": false,
+                    "definition": "Nested graph connects to leaf node 20",
+                    "sample_utterances": []
+                }
+            }
+        ],
+        [
+            "40",
+            "38",
+            {
+                "intent": null,
+                "attribute": {
+                    "weight": 1,
+                    "pred": false,
+                    "definition": "Nested graph connects to leaf node 38",
+                    "sample_utterances": []
+                }
+            }
+        ],
+        [
+            "40",
+            "2",
+            {
+                "intent": null,
+                "attribute": {
+                    "weight": 1,
+                    "pred": false,
+                    "definition": "Nested graph connects to leaf node 2",
                     "sample_utterances": []
                 }
             }
@@ -759,19 +1004,19 @@
     "tasks": [
         {
             "id": "task_1",
-            "name": "Provide detailed product specifications and features",
-            "description": "User want to know more about robotic product specifications",
+            "name": "Provide detailed product specifications and technical information",
+            "description": "User inquires about product specifications",
             "steps": [
                 {
                     "task": {
-                        "task": "Execute Provide detailed product specifications and features",
-                        "description": "Execute: Execute Provide detailed product specifications and features",
+                        "task": "Execute Provide detailed product specifications and technical information",
+                        "description": "Execute: Execute Provide detailed product specifications and technical information",
                         "step_id": "step_1",
                         "required_fields": []
                     },
                     "description": {
-                        "task": "Execute Provide detailed product specifications and features",
-                        "description": "Execute: Execute Provide detailed product specifications and features",
+                        "task": "Execute Provide detailed product specifications and technical information",
+                        "description": "Execute: Execute Provide detailed product specifications and technical information",
                         "step_id": "step_1",
                         "required_fields": []
                     },
@@ -789,23 +1034,23 @@
             "estimated_duration": "1 hour",
             "priority": 3,
             "level": 0,
-            "intent": "User inquires about detailed robotic product specifications and features"
+            "intent": "User seeks detailed product specifications and technical information"
         },
         {
             "id": "task_2",
-            "name": "Assist in tracking the status of an order for purchased or rented robotics products",
-            "description": "User need assistance with order tracking for robotics products",
+            "name": "Offer support for robot maintenance and troubleshooting",
+            "description": "User seeks assistance with robot maintenance",
             "steps": [
                 {
                     "task": {
-                        "task": "Greet the user and ask for the order number or other necessary details to identify the order they want to track.",
-                        "description": "Greet the user and ask for the order number or other necessary details to identify the order they want to track.",
+                        "task": "Greet the user and ask them to describe the issue they are experiencing or the support they need for their robot.",
+                        "description": "Greet the user and ask them to describe the issue they are experiencing or the support they need for their robot.",
                         "step_id": "step_1",
                         "required_fields": []
                     },
                     "description": {
-                        "task": "Greet the user and ask for the order number or other necessary details to identify the order they want to track.",
-                        "description": "Greet the user and ask for the order number or other necessary details to identify the order they want to track.",
+                        "task": "Greet the user and ask them to describe the issue they are experiencing or the support they need for their robot.",
+                        "description": "Greet the user and ask them to describe the issue they are experiencing or the support they need for their robot.",
                         "step_id": "step_1",
                         "required_fields": []
                     },
@@ -819,14 +1064,14 @@
                 },
                 {
                     "task": {
-                        "task": "Use RAGWorker to check the status of the order based on the provided order number or details, referencing the company's internal documentation.",
-                        "description": "Use RAGWorker to check the status of the order based on the provided order number or details, referencing the company's internal documentation.",
+                        "task": "Use RAGWorker to access internal documentation and provide detailed troubleshooting steps or solutions for the reported issue.",
+                        "description": "Use RAGWorker to access internal documentation and provide detailed troubleshooting steps or solutions for the reported issue.",
                         "step_id": "step_2",
                         "required_fields": []
                     },
                     "description": {
-                        "task": "Use RAGWorker to check the status of the order based on the provided order number or details, referencing the company's internal documentation.",
-                        "description": "Use RAGWorker to check the status of the order based on the provided order number or details, referencing the company's internal documentation.",
+                        "task": "Use RAGWorker to access internal documentation and provide detailed troubleshooting steps or solutions for the reported issue.",
+                        "description": "Use RAGWorker to access internal documentation and provide detailed troubleshooting steps or solutions for the reported issue.",
                         "step_id": "step_2",
                         "required_fields": []
                     },
@@ -840,14 +1085,14 @@
                 },
                 {
                     "task": {
-                        "task": "Share the status of the order with the user and provide any additional relevant information, such as estimated delivery or pickup time.",
-                        "description": "Share the status of the order with the user and provide any additional relevant information, such as estimated delivery or pickup time.",
+                        "task": "Ask the user if they need further assistance or if the provided solutions resolved their issue.",
+                        "description": "Ask the user if they need further assistance or if the provided solutions resolved their issue.",
                         "step_id": "step_3",
                         "required_fields": []
                     },
                     "description": {
-                        "task": "Share the status of the order with the user and provide any additional relevant information, such as estimated delivery or pickup time.",
-                        "description": "Share the status of the order with the user and provide any additional relevant information, such as estimated delivery or pickup time.",
+                        "task": "Ask the user if they need further assistance or if the provided solutions resolved their issue.",
+                        "description": "Ask the user if they need further assistance or if the provided solutions resolved their issue.",
                         "step_id": "step_3",
                         "required_fields": []
                     },
@@ -861,14 +1106,14 @@
                 },
                 {
                     "task": {
-                        "task": "Inquire if the user has any other questions or requires further assistance related to the order.",
-                        "description": "Inquire if the user has any other questions or requires further assistance related to the order.",
+                        "task": "If the user requires more help, provide additional troubleshooting steps or escalate the issue to customer support if necessary.",
+                        "description": "If the user requires more help, provide additional troubleshooting steps or escalate the issue to customer support if necessary.",
                         "step_id": "step_4",
                         "required_fields": []
                     },
                     "description": {
-                        "task": "Inquire if the user has any other questions or requires further assistance related to the order.",
-                        "description": "Inquire if the user has any other questions or requires further assistance related to the order.",
+                        "task": "If the user requires more help, provide additional troubleshooting steps or escalate the issue to customer support if necessary.",
+                        "description": "If the user requires more help, provide additional troubleshooting steps or escalate the issue to customer support if necessary.",
                         "step_id": "step_4",
                         "required_fields": []
                     },
@@ -882,14 +1127,14 @@
                 },
                 {
                     "task": {
-                        "task": "Conclude the interaction with a polite message, offering further help if needed.",
-                        "description": "Conclude the interaction with a polite message, offering further help if needed.",
+                        "task": "Confirm resolution with the user or guide them on how to contact customer support for further assistance.",
+                        "description": "Confirm resolution with the user or guide them on how to contact customer support for further assistance.",
                         "step_id": "step_5",
                         "required_fields": []
                     },
                     "description": {
-                        "task": "Conclude the interaction with a polite message, offering further help if needed.",
-                        "description": "Conclude the interaction with a polite message, offering further help if needed.",
+                        "task": "Confirm resolution with the user or guide them on how to contact customer support for further assistance.",
+                        "description": "Confirm resolution with the user or guide them on how to contact customer support for further assistance.",
                         "step_id": "step_5",
                         "required_fields": []
                     },
@@ -907,27 +1152,111 @@
             "estimated_duration": "1 hour",
             "priority": 3,
             "level": 0,
-            "intent": "User needs assistance with tracking the status of an order for purchased or rented robotics products"
+            "intent": "User seeks assistance with robot maintenance and troubleshooting"
         },
         {
             "id": "task_3",
-            "name": "Provide information on rental terms and conditions for ADAM robot",
-            "description": "User interested in rental options for ADAM robot",
+            "name": "Facilitate scheduling of product demos or business consultations",
+            "description": "User wants to schedule a demo or consultation",
             "steps": [
                 {
                     "task": {
-                        "task": "Execute Provide information on rental terms and conditions for ADAM robot",
-                        "description": "Execute: Execute Provide information on rental terms and conditions for ADAM robot",
+                        "task": "Greet the user and inquire about their interest in scheduling a product demo or business consultation.",
+                        "description": "Greet the user and inquire about their interest in scheduling a product demo or business consultation.",
                         "step_id": "step_1",
                         "required_fields": []
                     },
                     "description": {
-                        "task": "Execute Provide information on rental terms and conditions for ADAM robot",
-                        "description": "Execute: Execute Provide information on rental terms and conditions for ADAM robot",
+                        "task": "Greet the user and inquire about their interest in scheduling a product demo or business consultation.",
+                        "description": "Greet the user and inquire about their interest in scheduling a product demo or business consultation.",
                         "step_id": "step_1",
                         "required_fields": []
                     },
                     "step_id": "step_1",
+                    "required_fields": [],
+                    "resource": {
+                        "name": "FaissRAGWorker",
+                        "description": "FaissRAGWorker worker",
+                        "type": "worker"
+                    }
+                },
+                {
+                    "task": {
+                        "task": "Ask the user for preferred dates and times for scheduling the demo or consultation.",
+                        "description": "Ask the user for preferred dates and times for scheduling the demo or consultation.",
+                        "step_id": "step_2",
+                        "required_fields": []
+                    },
+                    "description": {
+                        "task": "Ask the user for preferred dates and times for scheduling the demo or consultation.",
+                        "description": "Ask the user for preferred dates and times for scheduling the demo or consultation.",
+                        "step_id": "step_2",
+                        "required_fields": []
+                    },
+                    "step_id": "step_2",
+                    "required_fields": [],
+                    "resource": {
+                        "name": "MessageWorker",
+                        "description": "MessageWorker worker",
+                        "type": "worker"
+                    }
+                },
+                {
+                    "task": {
+                        "task": "Confirm the availability of the requested schedule using internal resources or documentation.",
+                        "description": "Confirm the availability of the requested schedule using internal resources or documentation.",
+                        "step_id": "step_3",
+                        "required_fields": []
+                    },
+                    "description": {
+                        "task": "Confirm the availability of the requested schedule using internal resources or documentation.",
+                        "description": "Confirm the availability of the requested schedule using internal resources or documentation.",
+                        "step_id": "step_3",
+                        "required_fields": []
+                    },
+                    "step_id": "step_3",
+                    "required_fields": [],
+                    "resource": {
+                        "name": "SearchWorker",
+                        "description": "SearchWorker worker",
+                        "type": "worker"
+                    }
+                },
+                {
+                    "task": {
+                        "task": "If available, confirm the scheduling with the user and provide them with the details. If not, suggest alternative times.",
+                        "description": "If available, confirm the scheduling with the user and provide them with the details. If not, suggest alternative times.",
+                        "step_id": "step_4",
+                        "required_fields": []
+                    },
+                    "description": {
+                        "task": "If available, confirm the scheduling with the user and provide them with the details. If not, suggest alternative times.",
+                        "description": "If available, confirm the scheduling with the user and provide them with the details. If not, suggest alternative times.",
+                        "step_id": "step_4",
+                        "required_fields": []
+                    },
+                    "step_id": "step_4",
+                    "required_fields": [],
+                    "resource": {
+                        "name": "NestedGraph",
+                        "description": "A reusable task graph component that can be instantiated with different parameters",
+                        "type": "nested_graph"
+                    }
+                },
+                {
+                    "task": {
+                        "task": "Provide any additional information the user needs to prepare for the demo or consultation, and offer further assistance if needed.",
+                        "description": "Provide any additional information the user needs to prepare for the demo or consultation, and offer further assistance if needed.",
+                        "step_id": "step_5",
+                        "required_fields": []
+                    },
+                    "description": {
+                        "task": "Provide any additional information the user needs to prepare for the demo or consultation, and offer further assistance if needed.",
+                        "description": "Provide any additional information the user needs to prepare for the demo or consultation, and offer further assistance if needed.",
+                        "step_id": "step_5",
+                        "required_fields": []
+                    },
+                    "step_id": "step_5",
                     "required_fields": [],
                     "resource": {
                         "name": "FaissRAGWorker",
@@ -941,23 +1270,23 @@
             "estimated_duration": "1 hour",
             "priority": 3,
             "level": 0,
-            "intent": "User inquires about rental terms and conditions for ADAM robot"
+            "intent": "User wants to schedule a product demo or business consultation"
         },
         {
             "id": "task_4",
-            "name": "Help in scheduling a product demo or consultation with a specialist",
-            "description": "User want to schedule a demo or consultation",
+            "name": "Inform users about ClouTea operations and experience",
+            "description": "User wants to learn about ClouTea operations",
             "steps": [
                 {
                     "task": {
-                        "task": "Greet the user and ask if they're interested in scheduling a product demo or consultation.",
-                        "description": "Greet the user and ask if they're interested in scheduling a product demo or consultation.",
+                        "task": "Welcome the user and ask how you can assist them regarding ClouTea operations or experiences.",
+                        "description": "Welcome the user and ask how you can assist them regarding ClouTea operations or experiences.",
                         "step_id": "step_1",
                         "required_fields": []
                     },
                     "description": {
-                        "task": "Greet the user and ask if they're interested in scheduling a product demo or consultation.",
-                        "description": "Greet the user and ask if they're interested in scheduling a product demo or consultation.",
+                        "task": "Welcome the user and ask how you can assist them regarding ClouTea operations or experiences.",
+                        "description": "Welcome the user and ask how you can assist them regarding ClouTea operations or experiences.",
                         "step_id": "step_1",
                         "required_fields": []
                     },
@@ -971,14 +1300,14 @@
                 },
                 {
                     "task": {
-                        "task": "Inquire about the specific product or service the user is interested in for the demo or consultation.",
-                        "description": "Inquire about the specific product or service the user is interested in for the demo or consultation.",
+                        "task": "If the user asks about specific operations or experiences, use the RAGWorker to retrieve detailed information from internal documents, including policies, FAQs, and product information.",
+                        "description": "If the user asks about specific operations or experiences, use the RAGWorker to retrieve detailed information from internal documents, including policies, FAQs, and product information.",
                         "step_id": "step_2",
                         "required_fields": []
                     },
                     "description": {
-                        "task": "Inquire about the specific product or service the user is interested in for the demo or consultation.",
-                        "description": "Inquire about the specific product or service the user is interested in for the demo or consultation.",
+                        "task": "If the user asks about specific operations or experiences, use the RAGWorker to retrieve detailed information from internal documents, including policies, FAQs, and product information.",
+                        "description": "If the user asks about specific operations or experiences, use the RAGWorker to retrieve detailed information from internal documents, including policies, FAQs, and product information.",
                         "step_id": "step_2",
                         "required_fields": []
                     },
@@ -992,14 +1321,14 @@
                 },
                 {
                     "task": {
-                        "task": "Ask the user for their preferred date and time for the demo or consultation.",
-                        "description": "Ask the user for their preferred date and time for the demo or consultation.",
+                        "task": "Provide the user with the relevant information or clarification about their inquiry regarding ClouTea.",
+                        "description": "Provide the user with the relevant information or clarification about their inquiry regarding ClouTea.",
                         "step_id": "step_3",
                         "required_fields": []
                     },
                     "description": {
-                        "task": "Ask the user for their preferred date and time for the demo or consultation.",
-                        "description": "Ask the user for their preferred date and time for the demo or consultation.",
+                        "task": "Provide the user with the relevant information or clarification about their inquiry regarding ClouTea.",
+                        "description": "Provide the user with the relevant information or clarification about their inquiry regarding ClouTea.",
                         "step_id": "step_3",
                         "required_fields": []
                     },
@@ -1013,14 +1342,14 @@
                 },
                 {
                     "task": {
-                        "task": "Check availability for the requested date and time using internal resources.",
-                        "description": "Check availability for the requested date and time using internal resources.",
+                        "task": "Ask the user if they have any further questions or need more information.",
+                        "description": "Ask the user if they have any further questions or need more information.",
                         "step_id": "step_4",
                         "required_fields": []
                     },
                     "description": {
-                        "task": "Check availability for the requested date and time using internal resources.",
-                        "description": "Check availability for the requested date and time using internal resources.",
+                        "task": "Ask the user if they have any further questions or need more information.",
+                        "description": "Ask the user if they have any further questions or need more information.",
                         "step_id": "step_4",
                         "required_fields": []
                     },
@@ -1034,14 +1363,14 @@
                 },
                 {
                     "task": {
-                        "task": "Confirm the date and time with the user and provide any additional details about the demo or consultation.",
-                        "description": "Confirm the date and time with the user and provide any additional details about the demo or consultation.",
+                        "task": "If the user has no more questions, thank them for their inquiry and offer assistance in the future if needed.",
+                        "description": "If the user has no more questions, thank them for their inquiry and offer assistance in the future if needed.",
                         "step_id": "step_5",
                         "required_fields": []
                     },
                     "description": {
-                        "task": "Confirm the date and time with the user and provide any additional details about the demo or consultation.",
-                        "description": "Confirm the date and time with the user and provide any additional details about the demo or consultation.",
+                        "task": "If the user has no more questions, thank them for their inquiry and offer assistance in the future if needed.",
+                        "description": "If the user has no more questions, thank them for their inquiry and offer assistance in the future if needed.",
                         "step_id": "step_5",
                         "required_fields": []
                     },
@@ -1052,27 +1381,6 @@
                         "description": "FaissRAGWorker worker",
                         "type": "worker"
                     }
-                },
-                {
-                    "task": {
-                        "task": "Ask if the user needs further assistance or has any additional questions.",
-                        "description": "Ask if the user needs further assistance or has any additional questions.",
-                        "step_id": "step_6",
-                        "required_fields": []
-                    },
-                    "description": {
-                        "task": "Ask if the user needs further assistance or has any additional questions.",
-                        "description": "Ask if the user needs further assistance or has any additional questions.",
-                        "step_id": "step_6",
-                        "required_fields": []
-                    },
-                    "step_id": "step_6",
-                    "required_fields": [],
-                    "resource": {
-                        "name": "MessageWorker",
-                        "description": "MessageWorker worker",
-                        "type": "worker"
-                    }
                 }
             ],
             "dependencies": [],
@@ -1080,23 +1388,23 @@
             "estimated_duration": "1 hour",
             "priority": 3,
             "level": 0,
-            "intent": "User wants to schedule a product demo or consultation with a specialist"
+            "intent": "User wants information about ClouTea operations and experience"
         },
         {
             "id": "task_5",
-            "name": "Provide details about ClouTea location, menu, and robot-made beverages",
-            "description": "User need information on ClouTea location and offerings",
+            "name": "Provide information on delivery timelines and logistics",
+            "description": "User asks about delivery timelines and logistics",
             "steps": [
                 {
                     "task": {
-                        "task": "Ask the user what specific information they would like to know about ClouTea, such as location, menu, or robot-made beverages.",
-                        "description": "Ask the user what specific information they would like to know about ClouTea, such as location, menu, or robot-made beverages.",
+                        "task": "Acknowledge the user\u2019s request and ask for the order number or destination for more precise information.",
+                        "description": "Acknowledge the user\u2019s request and ask for the order number or destination for more precise information.",
                         "step_id": "step_1",
                         "required_fields": []
                     },
                     "description": {
-                        "task": "Ask the user what specific information they would like to know about ClouTea, such as location, menu, or robot-made beverages.",
-                        "description": "Ask the user what specific information they would like to know about ClouTea, such as location, menu, or robot-made beverages.",
+                        "task": "Acknowledge the user\u2019s request and ask for the order number or destination for more precise information.",
+                        "description": "Acknowledge the user\u2019s request and ask for the order number or destination for more precise information.",
                         "step_id": "step_1",
                         "required_fields": []
                     },
@@ -1110,14 +1418,14 @@
                 },
                 {
                     "task": {
-                        "task": "Use RAGWorker to retrieve detailed information from the company's internal documentation regarding the user's request (e.g., address for location, details of the menu, or specifics about robot-made beverages).",
-                        "description": "Use RAGWorker to retrieve detailed information from the company's internal documentation regarding the user's request (e.g., address for location, details of the menu, or specifics about robot-made beverages).",
+                        "task": "Use RAGWorker to search for specific delivery timelines and logistics information from internal documentation based on the provided order number or destination.",
+                        "description": "Use RAGWorker to search for specific delivery timelines and logistics information from internal documentation based on the provided order number or destination.",
                         "step_id": "step_2",
                         "required_fields": []
                     },
                     "description": {
-                        "task": "Use RAGWorker to retrieve detailed information from the company's internal documentation regarding the user's request (e.g., address for location, details of the menu, or specifics about robot-made beverages).",
-                        "description": "Use RAGWorker to retrieve detailed information from the company's internal documentation regarding the user's request (e.g., address for location, details of the menu, or specifics about robot-made beverages).",
+                        "task": "Use RAGWorker to search for specific delivery timelines and logistics information from internal documentation based on the provided order number or destination.",
+                        "description": "Use RAGWorker to search for specific delivery timelines and logistics information from internal documentation based on the provided order number or destination.",
                         "step_id": "step_2",
                         "required_fields": []
                     },
@@ -1131,14 +1439,14 @@
                 },
                 {
                     "task": {
-                        "task": "Provide the user with the requested information and ask if they need anything else related to ClouTea.",
-                        "description": "Provide the user with the requested information and ask if they need anything else related to ClouTea.",
+                        "task": "Present the user with the relevant delivery timeline and logistics information.",
+                        "description": "Present the user with the relevant delivery timeline and logistics information.",
                         "step_id": "step_3",
                         "required_fields": []
                     },
                     "description": {
-                        "task": "Provide the user with the requested information and ask if they need anything else related to ClouTea.",
-                        "description": "Provide the user with the requested information and ask if they need anything else related to ClouTea.",
+                        "task": "Present the user with the relevant delivery timeline and logistics information.",
+                        "description": "Present the user with the relevant delivery timeline and logistics information.",
                         "step_id": "step_3",
                         "required_fields": []
                     },
@@ -1152,14 +1460,14 @@
                 },
                 {
                     "task": {
-                        "task": "If the user has further inquiries or needs clarification, continue the interaction using the appropriate resources to provide assistance.",
-                        "description": "If the user has further inquiries or needs clarification, continue the interaction using the appropriate resources to provide assistance.",
+                        "task": "Ask the user if they need further assistance or additional information regarding their delivery.",
+                        "description": "Ask the user if they need further assistance or additional information regarding their delivery.",
                         "step_id": "step_4",
                         "required_fields": []
                     },
                     "description": {
-                        "task": "If the user has further inquiries or needs clarification, continue the interaction using the appropriate resources to provide assistance.",
-                        "description": "If the user has further inquiries or needs clarification, continue the interaction using the appropriate resources to provide assistance.",
+                        "task": "Ask the user if they need further assistance or additional information regarding their delivery.",
+                        "description": "Ask the user if they need further assistance or additional information regarding their delivery.",
                         "step_id": "step_4",
                         "required_fields": []
                     },
@@ -1173,14 +1481,14 @@
                 },
                 {
                     "task": {
-                        "task": "Conclude the interaction by thanking the user and offering additional help if necessary.",
-                        "description": "Conclude the interaction by thanking the user and offering additional help if necessary.",
+                        "task": "Address any further questions or provide a message that directs the user to available customer support for more complex inquiries.",
+                        "description": "Address any further questions or provide a message that directs the user to available customer support for more complex inquiries.",
                         "step_id": "step_5",
                         "required_fields": []
                     },
                     "description": {
-                        "task": "Conclude the interaction by thanking the user and offering additional help if necessary.",
-                        "description": "Conclude the interaction by thanking the user and offering additional help if necessary.",
+                        "task": "Address any further questions or provide a message that directs the user to available customer support for more complex inquiries.",
+                        "description": "Address any further questions or provide a message that directs the user to available customer support for more complex inquiries.",
                         "step_id": "step_5",
                         "required_fields": []
                     },
@@ -1198,7 +1506,7 @@
             "estimated_duration": "1 hour",
             "priority": 3,
             "level": 0,
-            "intent": "User inquires about ClouTea's location, menu, and robot-made beverages"
+            "intent": "User inquires about delivery timelines and logistics"
         }
     ],
     "workers": [
@@ -1224,12 +1532,12 @@
     "reusable_tasks": {
         "template_1": {
             "template_id": "template_1",
-            "name": "Provide detailed product specifications and features",
-            "description": "User want to know more about robotic product specifications",
+            "name": "Provide detailed product specifications and technical information",
+            "description": "User inquires about product specifications",
             "steps": [
                 {
-                    "task": "Execute Provide detailed product specifications and features",
-                    "description": "Execute: Execute Provide detailed product specifications and features",
+                    "task": "Execute Provide detailed product specifications and technical information",
+                    "description": "Execute: Execute Provide detailed product specifications and technical information",
                     "step_id": "step_1",
                     "required_fields": []
                 }
@@ -1241,36 +1549,36 @@
         },
         "template_2": {
             "template_id": "template_2",
-            "name": "Assist in tracking the status of an order for purchased or rented robotics products",
-            "description": "User need assistance with order tracking for robotics products",
+            "name": "Offer support for robot maintenance and troubleshooting",
+            "description": "User seeks assistance with robot maintenance",
             "steps": [
                 {
-                    "task": "Greet the user and ask for the order number or other necessary details to identify the order they want to track.",
-                    "description": "Greet the user and ask for the order number or other necessary details to identify the order they want to track.",
+                    "task": "Greet the user and ask them to describe the issue they are experiencing or the support they need for their robot.",
+                    "description": "Greet the user and ask them to describe the issue they are experiencing or the support they need for their robot.",
                     "step_id": "step_1",
                     "required_fields": []
                 },
                 {
-                    "task": "Use RAGWorker to check the status of the order based on the provided order number or details, referencing the company's internal documentation.",
-                    "description": "Use RAGWorker to check the status of the order based on the provided order number or details, referencing the company's internal documentation.",
+                    "task": "Use RAGWorker to access internal documentation and provide detailed troubleshooting steps or solutions for the reported issue.",
+                    "description": "Use RAGWorker to access internal documentation and provide detailed troubleshooting steps or solutions for the reported issue.",
                     "step_id": "step_2",
                     "required_fields": []
                 },
                 {
-                    "task": "Share the status of the order with the user and provide any additional relevant information, such as estimated delivery or pickup time.",
-                    "description": "Share the status of the order with the user and provide any additional relevant information, such as estimated delivery or pickup time.",
+                    "task": "Ask the user if they need further assistance or if the provided solutions resolved their issue.",
+                    "description": "Ask the user if they need further assistance or if the provided solutions resolved their issue.",
                     "step_id": "step_3",
                     "required_fields": []
                 },
                 {
-                    "task": "Inquire if the user has any other questions or requires further assistance related to the order.",
-                    "description": "Inquire if the user has any other questions or requires further assistance related to the order.",
+                    "task": "If the user requires more help, provide additional troubleshooting steps or escalate the issue to customer support if necessary.",
+                    "description": "If the user requires more help, provide additional troubleshooting steps or escalate the issue to customer support if necessary.",
                     "step_id": "step_4",
                     "required_fields": []
                 },
                 {
-                    "task": "Conclude the interaction with a polite message, offering further help if needed.",
-                    "description": "Conclude the interaction with a polite message, offering further help if needed.",
+                    "task": "Confirm resolution with the user or guide them on how to contact customer support for further assistance.",
+                    "description": "Confirm resolution with the user or guide them on how to contact customer support for further assistance.",
                     "step_id": "step_5",
                     "required_fields": []
                 }
@@ -1282,13 +1590,37 @@
         },
         "template_3": {
             "template_id": "template_3",
-            "name": "Provide information on rental terms and conditions for ADAM robot",
-            "description": "User interested in rental options for ADAM robot",
+            "name": "Facilitate scheduling of product demos or business consultations",
+            "description": "User wants to schedule a demo or consultation",
             "steps": [
                 {
-                    "task": "Execute Provide information on rental terms and conditions for ADAM robot",
-                    "description": "Execute: Execute Provide information on rental terms and conditions for ADAM robot",
+                    "task": "Greet the user and inquire about their interest in scheduling a product demo or business consultation.",
+                    "description": "Greet the user and inquire about their interest in scheduling a product demo or business consultation.",
                     "step_id": "step_1",
+                    "required_fields": []
+                },
+                {
+                    "task": "Ask the user for preferred dates and times for scheduling the demo or consultation.",
+                    "description": "Ask the user for preferred dates and times for scheduling the demo or consultation.",
+                    "step_id": "step_2",
+                    "required_fields": []
+                },
+                {
+                    "task": "Confirm the availability of the requested schedule using internal resources or documentation.",
+                    "description": "Confirm the availability of the requested schedule using internal resources or documentation.",
+                    "step_id": "step_3",
+                    "required_fields": []
+                },
+                {
+                    "task": "If available, confirm the scheduling with the user and provide them with the details. If not, suggest alternative times.",
+                    "description": "If available, confirm the scheduling with the user and provide them with the details. If not, suggest alternative times.",
+                    "step_id": "step_4",
+                    "required_fields": []
+                },
+                {
+                    "task": "Provide any additional information the user needs to prepare for the demo or consultation, and offer further assistance if needed.",
+                    "description": "Provide any additional information the user needs to prepare for the demo or consultation, and offer further assistance if needed.",
+                    "step_id": "step_5",
                     "required_fields": []
                 }
             ],
@@ -1299,43 +1631,37 @@
         },
         "template_4": {
             "template_id": "template_4",
-            "name": "Help in scheduling a product demo or consultation with a specialist",
-            "description": "User want to schedule a demo or consultation",
+            "name": "Inform users about ClouTea operations and experience",
+            "description": "User wants to learn about ClouTea operations",
             "steps": [
                 {
-                    "task": "Greet the user and ask if they're interested in scheduling a product demo or consultation.",
-                    "description": "Greet the user and ask if they're interested in scheduling a product demo or consultation.",
+                    "task": "Welcome the user and ask how you can assist them regarding ClouTea operations or experiences.",
+                    "description": "Welcome the user and ask how you can assist them regarding ClouTea operations or experiences.",
                     "step_id": "step_1",
                     "required_fields": []
                 },
                 {
-                    "task": "Inquire about the specific product or service the user is interested in for the demo or consultation.",
-                    "description": "Inquire about the specific product or service the user is interested in for the demo or consultation.",
+                    "task": "If the user asks about specific operations or experiences, use the RAGWorker to retrieve detailed information from internal documents, including policies, FAQs, and product information.",
+                    "description": "If the user asks about specific operations or experiences, use the RAGWorker to retrieve detailed information from internal documents, including policies, FAQs, and product information.",
                     "step_id": "step_2",
                     "required_fields": []
                 },
                 {
-                    "task": "Ask the user for their preferred date and time for the demo or consultation.",
-                    "description": "Ask the user for their preferred date and time for the demo or consultation.",
+                    "task": "Provide the user with the relevant information or clarification about their inquiry regarding ClouTea.",
+                    "description": "Provide the user with the relevant information or clarification about their inquiry regarding ClouTea.",
                     "step_id": "step_3",
                     "required_fields": []
                 },
                 {
-                    "task": "Check availability for the requested date and time using internal resources.",
-                    "description": "Check availability for the requested date and time using internal resources.",
+                    "task": "Ask the user if they have any further questions or need more information.",
+                    "description": "Ask the user if they have any further questions or need more information.",
                     "step_id": "step_4",
                     "required_fields": []
                 },
                 {
-                    "task": "Confirm the date and time with the user and provide any additional details about the demo or consultation.",
-                    "description": "Confirm the date and time with the user and provide any additional details about the demo or consultation.",
+                    "task": "If the user has no more questions, thank them for their inquiry and offer assistance in the future if needed.",
+                    "description": "If the user has no more questions, thank them for their inquiry and offer assistance in the future if needed.",
                     "step_id": "step_5",
-                    "required_fields": []
-                },
-                {
-                    "task": "Ask if the user needs further assistance or has any additional questions.",
-                    "description": "Ask if the user needs further assistance or has any additional questions.",
-                    "step_id": "step_6",
                     "required_fields": []
                 }
             ],
@@ -1346,36 +1672,36 @@
         },
         "template_5": {
             "template_id": "template_5",
-            "name": "Provide details about ClouTea location, menu, and robot-made beverages",
-            "description": "User need information on ClouTea location and offerings",
+            "name": "Provide information on delivery timelines and logistics",
+            "description": "User asks about delivery timelines and logistics",
             "steps": [
                 {
-                    "task": "Ask the user what specific information they would like to know about ClouTea, such as location, menu, or robot-made beverages.",
-                    "description": "Ask the user what specific information they would like to know about ClouTea, such as location, menu, or robot-made beverages.",
+                    "task": "Acknowledge the user\u2019s request and ask for the order number or destination for more precise information.",
+                    "description": "Acknowledge the user\u2019s request and ask for the order number or destination for more precise information.",
                     "step_id": "step_1",
                     "required_fields": []
                 },
                 {
-                    "task": "Use RAGWorker to retrieve detailed information from the company's internal documentation regarding the user's request (e.g., address for location, details of the menu, or specifics about robot-made beverages).",
-                    "description": "Use RAGWorker to retrieve detailed information from the company's internal documentation regarding the user's request (e.g., address for location, details of the menu, or specifics about robot-made beverages).",
+                    "task": "Use RAGWorker to search for specific delivery timelines and logistics information from internal documentation based on the provided order number or destination.",
+                    "description": "Use RAGWorker to search for specific delivery timelines and logistics information from internal documentation based on the provided order number or destination.",
                     "step_id": "step_2",
                     "required_fields": []
                 },
                 {
-                    "task": "Provide the user with the requested information and ask if they need anything else related to ClouTea.",
-                    "description": "Provide the user with the requested information and ask if they need anything else related to ClouTea.",
+                    "task": "Present the user with the relevant delivery timeline and logistics information.",
+                    "description": "Present the user with the relevant delivery timeline and logistics information.",
                     "step_id": "step_3",
                     "required_fields": []
                 },
                 {
-                    "task": "If the user has further inquiries or needs clarification, continue the interaction using the appropriate resources to provide assistance.",
-                    "description": "If the user has further inquiries or needs clarification, continue the interaction using the appropriate resources to provide assistance.",
+                    "task": "Ask the user if they need further assistance or additional information regarding their delivery.",
+                    "description": "Ask the user if they need further assistance or additional information regarding their delivery.",
                     "step_id": "step_4",
                     "required_fields": []
                 },
                 {
-                    "task": "Conclude the interaction by thanking the user and offering additional help if necessary.",
-                    "description": "Conclude the interaction by thanking the user and offering additional help if necessary.",
+                    "task": "Address any further questions or provide a message that directs the user to available customer support for more complex inquiries.",
+                    "description": "Address any further questions or provide a message that directs the user to available customer support for more complex inquiries.",
                     "step_id": "step_5",
                     "required_fields": []
                 }
