@@ -7,7 +7,6 @@ both streaming and non-streaming response generation, with functionality for han
 message flows and direct responses.
 """
 
-import logging
 from typing import Any, Dict, Optional
 
 from langchain.prompts import PromptTemplate
@@ -20,7 +19,7 @@ from arklex.env.prompts import load_prompts
 from arklex.env.tools.utils import trace
 from arklex.env.workers.worker import BaseWorker, register_worker
 from arklex.types import EventType, StreamType
-from arklex.utils.graph_state import MessageState, StatusEnum
+from arklex.utils.graph_state import MessageState
 from arklex.utils.model_provider_config import PROVIDER_MAP
 from arklex.utils.logging_utils import LogContext
 
@@ -51,7 +50,6 @@ class MessageWorker(BaseWorker):
         if direct_response:
             state.message_flow = ""
             state.response = orch_msg_content
-            state.status = StatusEnum.COMPLETE
             return state
 
         prompts: Dict[str, str] = load_prompts(state.bot_config)
@@ -102,7 +100,6 @@ class MessageWorker(BaseWorker):
         if direct_response:
             state.message_flow = ""
             state.response = orch_msg_content
-            state.status = StatusEnum.COMPLETE
             return state
 
         prompts: Dict[str, str] = load_prompts(state.bot_config)
@@ -157,7 +154,6 @@ class MessageWorker(BaseWorker):
         if direct_response:
             state.message_flow = ""
             state.response = orch_msg_content
-            state.status = StatusEnum.COMPLETE
             return state
 
         prompts = load_prompts(state.bot_config)
