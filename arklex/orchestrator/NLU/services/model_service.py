@@ -1010,7 +1010,7 @@ Please choose the most appropriate intent by providing the corresponding intent 
 
     def format_verification_input(
         self, slot: Dict[str, Any], chat_history_str: str
-    ) -> Tuple[str, str]:
+    ) -> str:
         """Format input for slot verification.
 
         Creates a prompt for the model to verify if a slot value is correct and valid.
@@ -1026,11 +1026,6 @@ Please choose the most appropriate intent by providing the corresponding intent 
         slot_value = slot.get("value", "")
         slot_description = slot.get("description", "")
 
-        system_prompt = (
-            "You are a slot verification assistant. Your task is to verify if "
-            "the provided slot value is correct and valid based on the given context."
-        )
-
         user_prompt = f"""Based on the chat history below, please verify if the slot value is correct and valid.
 
 Chat History:
@@ -1045,7 +1040,7 @@ Please respond with "YES" if the slot value is correct and valid, or "NO" follow
 
 Response:"""
 
-        return user_prompt, system_prompt
+        return user_prompt
 
 
 class DummyModelService(ModelService):
