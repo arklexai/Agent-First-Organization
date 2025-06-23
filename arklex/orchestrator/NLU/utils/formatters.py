@@ -207,7 +207,7 @@ Slot:
 Chat History:
 {chat_history_str}
 
-Please provide your response in JSON format:
+Please provide your response in JSON format Only without any markdown formatting or code blocks:
 {{
     "verification_needed": true/false,
     "thought": "reasoning for the decision"

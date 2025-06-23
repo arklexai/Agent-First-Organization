@@ -921,16 +921,24 @@ Please choose the most appropriate intent by providing the corresponding intent 
         system_prompt = (
             "You are a slot filling assistant. Your task is to extract specific "
             "information from the given context based on the slot definitions. "
-            "Return the extracted values in JSON format."
+            "You must return the extracted values in valid JSON format only. "
+            "Do not include any markdown formatting, explanations, or additional text. "
+            "Return only the JSON object."
         )
 
         user_prompt = (
             f"Context:\n{context}\n\n"
             f"Slot definitions:\n" + "\n".join(slot_definitions) + "\n\n"
             "Please extract the values for the defined slots from the context. "
-            "Return the results in JSON format with slot names as keys and "
+            "Return ONLY a valid JSON object with slot names as keys and "
             "extracted values as values. If a slot value cannot be found, "
-            "set its value to null."
+            "set its value to null.\n\n"
+            "Example response format:\n"
+            "{\n"
+            '  "slot_name1": "extracted_value",\n'
+            '  "slot_name2": null\n'
+            "}\n\n"
+            "JSON response:"
         )
 
         return user_prompt, system_prompt
@@ -953,8 +961,27 @@ Please choose the most appropriate intent by providing the corresponding intent 
             ValueError: If response parsing fails
         """
         try:
+            # Handle empty or whitespace-only responses
+            if not response or not response.strip():
+                log_context.warning("Empty response received from model, setting all slot values to None")
+                # Set all slot values to None for empty responses
+                for slot in slots:
+                    if isinstance(slot, dict):
+                        slot["value"] = None
+                    else:
+                        setattr(slot, "value", None)
+                return slots
+
+            # Try to extract JSON from the response if it's wrapped in markdown
+            response_clean = response.strip()
+            if response_clean.startswith("```json"):
+                response_clean = response_clean[7:]
+            if response_clean.endswith("```"):
+                response_clean = response_clean[:-3]
+            response_clean = response_clean.strip()
+
             # Parse the JSON response
-            extracted_values = json.loads(response)
+            extracted_values = json.loads(response_clean)
 
             # Update slot values
             for slot in slots:
@@ -975,10 +1002,24 @@ Please choose the most appropriate intent by providing the corresponding intent 
             return slots
         except json.JSONDecodeError as e:
             log_context.error(f"Error parsing slot filling response: {str(e)}")
-            raise ValueError(f"Failed to parse slot filling response: {str(e)}")
+            log_context.error(f"Raw response: {repr(response)}")
+            # Set all slot values to None for parsing errors
+            for slot in slots:
+                if isinstance(slot, dict):
+                    slot["value"] = None
+                else:
+                    setattr(slot, "value", None)
+            return slots
         except Exception as e:
             log_context.error(f"Error processing slot filling response: {str(e)}")
-            raise ValueError(f"Failed to process slot filling response: {str(e)}")
+            log_context.error(f"Raw response: {repr(response)}")
+            # Set all slot values to None for other errors
+            for slot in slots:
+                if isinstance(slot, dict):
+                    slot["value"] = None
+                else:
+                    setattr(slot, "value", None)
+            return slots
 
     def format_verification_input(
         self, slot: Dict[str, Any], chat_history_str: str
@@ -1009,30 +1050,15 @@ Please choose the most appropriate intent by providing the corresponding intent 
         """
         try:
             # Parse JSON response from formatters
+            log_context.info(f"Verification response: {response}")
             response_data = json.loads(response)
             verification_needed = response_data.get("verification_needed", True)
-            thought = response_data.get("thought", "No reasoning provided")
+            thought = response_data.get("thought", "No reasoning progivided")
             return verification_needed, thought
-        except json.JSONDecodeError:
-            # Fallback to simple YES/NO parsing if JSON fails
-            response_lower = response.strip().lower()
-            
-            # Check if response indicates verification is needed
-            if response_lower.startswith("no"):
-                # Extract the reason from the response
-                reason = response.strip()
-                if ":" in reason:
-                    reason = reason.split(":", 1)[1].strip()
-                elif len(reason) > 2:
-                    reason = reason[2:].strip()
-                else:
-                    reason = "Value needs verification"
-                return True, reason
-            elif response_lower.startswith("yes"):
-                return False, "Value is correct and valid"
-            else:
-                # Default to needing verification if response is unclear
-                return True, f"Unclear response: {response.strip()}"
+        except json.JSONDecodeError as e:
+            log_context.error(f"Error parsing verification response: {str(e)}")
+            # Default to needing verification if JSON parsing fails
+            return True, f"Failed to parse verification response: {str(e)}"
 
 
 class DummyModelService(ModelService):
