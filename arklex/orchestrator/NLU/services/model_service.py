@@ -918,27 +918,21 @@ Please choose the most appropriate intent by providing the corresponding intent 
                 if enum_values:
                     slot_def += f"\n  Possible values: {', '.join(enum_values)}"
             slot_definitions.append(slot_def)
+        
+        # Create the prompts
         system_prompt = (
             "You are a slot filling assistant. Your task is to extract specific "
             "information from the given context based on the slot definitions. "
-            "You must return the extracted values in valid JSON format only. "
-            "Do not include any markdown formatting, explanations, or additional text. "
-            "Return only the JSON object."
+            "Return the extracted values in JSON format."
         )
 
         user_prompt = (
             f"Context:\n{context}\n\n"
             f"Slot definitions:\n" + "\n".join(slot_definitions) + "\n\n"
             "Please extract the values for the defined slots from the context. "
-            "Return ONLY a valid JSON object with slot names as keys and "
+            "Return the results in JSON format with slot names as keys and "
             "extracted values as values. If a slot value cannot be found, "
-            "set its value to null.\n\n"
-            "Example response format:\n"
-            "{\n"
-            '  "slot_name1": "extracted_value",\n'
-            '  "slot_name2": null\n'
-            "}\n\n"
-            "JSON response:"
+            "set its value to null."
         )
 
         return user_prompt, system_prompt
@@ -961,27 +955,8 @@ Please choose the most appropriate intent by providing the corresponding intent 
             ValueError: If response parsing fails
         """
         try:
-            # Handle empty or whitespace-only responses
-            if not response or not response.strip():
-                log_context.warning("Empty response received from model, setting all slot values to None")
-                # Set all slot values to None for empty responses
-                for slot in slots:
-                    if isinstance(slot, dict):
-                        slot["value"] = None
-                    else:
-                        setattr(slot, "value", None)
-                return slots
-
-            # Try to extract JSON from the response if it's wrapped in markdown
-            response_clean = response.strip()
-            if response_clean.startswith("```json"):
-                response_clean = response_clean[7:]
-            if response_clean.endswith("```"):
-                response_clean = response_clean[:-3]
-            response_clean = response_clean.strip()
-
             # Parse the JSON response
-            extracted_values = json.loads(response_clean)
+            extracted_values = json.loads(response)
 
             # Update slot values
             for slot in slots:
@@ -1002,24 +977,10 @@ Please choose the most appropriate intent by providing the corresponding intent 
             return slots
         except json.JSONDecodeError as e:
             log_context.error(f"Error parsing slot filling response: {str(e)}")
-            log_context.error(f"Raw response: {repr(response)}")
-            # Set all slot values to None for parsing errors
-            for slot in slots:
-                if isinstance(slot, dict):
-                    slot["value"] = None
-                else:
-                    setattr(slot, "value", None)
-            return slots
+            raise ValueError(f"Failed to parse slot filling response: {str(e)}")
         except Exception as e:
             log_context.error(f"Error processing slot filling response: {str(e)}")
-            log_context.error(f"Raw response: {repr(response)}")
-            # Set all slot values to None for other errors
-            for slot in slots:
-                if isinstance(slot, dict):
-                    slot["value"] = None
-                else:
-                    setattr(slot, "value", None)
-            return slots
+            raise ValueError(f"Failed to process slot filling response: {str(e)}")
 
     def format_verification_input(
         self, slot: Dict[str, Any], chat_history_str: str
