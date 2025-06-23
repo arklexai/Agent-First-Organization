@@ -20,6 +20,7 @@ from arklex.orchestrator.NLU.services.model_service import (
     DummyModelService,
     ModelService,
 )
+from arklex.orchestrator.NLU.services.api_service import APIClientService
 
 log_context = LogContext(__name__)
 
@@ -204,9 +205,10 @@ class Environment:
             SlotFiller: Initialized slot filler instance, either API-based or local model-based.
         """
         if isinstance(slotsfillapi, str) and slotsfillapi:
-            return SlotFiller(slotsfillapi)
+            api_service = APIClientService(base_url=slotsfillapi)
+            return SlotFiller(model_service=self.model_service, api_service=api_service)
         else:
-            return SlotFiller(self.model_service)
+            return SlotFiller(model_service=self.model_service)
 
     def step(
         self, id: str, message_state: MessageState, params: Params, node_info: NodeInfo

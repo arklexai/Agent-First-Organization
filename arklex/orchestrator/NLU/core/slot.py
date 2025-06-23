@@ -302,17 +302,18 @@ class SlotFiller(BaseSlotFilling):
         )
 
         # Format input
-        prompt = self.model_service.format_verification_input(slot, chat_history_str)
+        user_prompt, system_prompt = self.model_service.format_verification_input(slot, chat_history_str)
         log_context.info(
             "Slot verification input prepared",
             extra={
-                "prompt": prompt,
+                "user_prompt": user_prompt,
+                "system_prompt": system_prompt,
                 "operation": "slot_verification_local",
             },
         )
 
         # Get model response
-        response = self.model_service.get_response(prompt, model_config)
+        response = self.model_service.get_response(user_prompt, model_config, system_prompt)
         log_context.info(
             "Model response received",
             extra={

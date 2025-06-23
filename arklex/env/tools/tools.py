@@ -17,7 +17,8 @@ from arklex.orchestrator.NLU.core.slot import SlotFiller
 from arklex.utils.utils import format_chat_history
 from arklex.utils.exceptions import ToolExecutionError, AuthenticationError
 from arklex.utils.logging_utils import LogContext
-
+from arklex.orchestrator.NLU.services.model_service import ModelService
+from arklex.orchestrator.NLU.services.api_service import APIClientService
 log_context = LogContext(__name__)
 
 PYTHON_TO_JSON_SCHEMA = {
@@ -155,13 +156,13 @@ class Tool:
             },
         }
 
-    def init_slotfiller(self, slotfiller_api: str) -> None:
+    def init_slotfiller(self, slotfiller_api: SlotFiller) -> None:
         """Initialize the slot filler for this tool.
 
         Args:
             slotfiller_api: API endpoint for slot filling
         """
-        self.slotfiller = SlotFiller(slotfiller_api)
+        self.slotfiller = slotfiller_api
 
     def _init_slots(self, state: MessageState) -> None:
         """Initialize slots with default values from the message state.
@@ -209,6 +210,7 @@ class Tool:
         """
         slot_verification: bool = False
         reason: str = ""
+        response: str = ""  # Initialize response variable
         # if this tool has been called before, then load the previous slots status
         if state.slots.get(self.name):
             self.slots = state.slots[self.name]
@@ -234,8 +236,8 @@ class Tool:
                     # check whether it verified or not
                     verification_needed: bool
                     thought: str
-                    verification_needed, thought = self.slotfiller.verify_needed(
-                        slot, chat_history_str, self.llm_config
+                    verification_needed, thought = self.slotfiller.verify_slot(
+                        slot.model_dump(), chat_history_str, self.llm_config
                     )
                     if verification_needed:
                         response: str = slot.prompt + "The reason is: " + thought
@@ -250,6 +252,11 @@ class Tool:
                     break
 
             state.status = StatusEnum.INCOMPLETE
+
+        # Re-check if any required slots are still missing after verification
+        missing_required = any(
+            not (slot.value and slot.verified) for slot in slots if slot.required
+        )
 
         # if all required slots are filled and verified, then execute the function
         tool_success: bool = False

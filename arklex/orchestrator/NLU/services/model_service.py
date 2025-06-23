@@ -771,7 +771,7 @@ class ModelService:
 
             # Get response from model
             response = self.model.invoke(messages)
-
+            log_context.info(f"Model response: {response}")
             if not response or not response.content:
                 raise ValueError("Empty response from model")
 
@@ -928,7 +928,7 @@ Please choose the most appropriate intent by providing the corresponding intent 
             "Please extract the values for the defined slots from the context. "
             "Return the results in JSON format with slot names as keys and "
             "extracted values as values. If a slot value cannot be found, "
-            "set its value to null."
+            "set its value to null. Return ONLY the JSON object without any markdown formatting or code blocks."
         )
 
         return user_prompt, system_prompt
@@ -977,6 +977,75 @@ Please choose the most appropriate intent by providing the corresponding intent 
         except Exception as e:
             log_context.error(f"Error processing slot filling response: {str(e)}")
             raise ValueError(f"Failed to process slot filling response: {str(e)}")
+
+    def process_verification_response(self, response: str) -> Tuple[bool, str]:
+        """Process the model's response for slot verification.
+
+        Parses the model's response to determine if verification is needed.
+
+        Args:
+            response: Model's response for verification
+
+        Returns:
+            Tuple[bool, str]: (verification_needed, reason)
+        """
+        response_lower = response.strip().lower()
+        
+        # Check if response indicates verification is needed
+        if response_lower.startswith("no"):
+            # Extract the reason from the response
+            reason = response.strip()
+            if ":" in reason:
+                reason = reason.split(":", 1)[1].strip()
+            elif len(reason) > 2:
+                reason = reason[2:].strip()
+            else:
+                reason = "Value needs verification"
+            return True, reason
+        elif response_lower.startswith("yes"):
+            return False, "Value is correct and valid"
+        else:
+            # Default to needing verification if response is unclear
+            return True, f"Unclear response: {response.strip()}"
+
+    def format_verification_input(
+        self, slot: Dict[str, Any], chat_history_str: str
+    ) -> Tuple[str, str]:
+        """Format input for slot verification.
+
+        Creates a prompt for the model to verify if a slot value is correct and valid.
+
+        Args:
+            slot: Slot definition with value to verify
+            chat_history_str: Chat history context
+
+        Returns:
+            Tuple[str, str]: (user_prompt, system_prompt)
+        """
+        slot_name = slot.get("name", "")
+        slot_value = slot.get("value", "")
+        slot_description = slot.get("description", "")
+
+        system_prompt = (
+            "You are a slot verification assistant. Your task is to verify if "
+            "the provided slot value is correct and valid based on the given context."
+        )
+
+        user_prompt = f"""Based on the chat history below, please verify if the slot value is correct and valid.
+
+Chat History:
+{chat_history_str}
+
+Slot Information:
+- Name: {slot_name}
+- Description: {slot_description}
+- Current Value: {slot_value}
+
+Please respond with "YES" if the slot value is correct and valid, or "NO" followed by a brief explanation if it needs verification or correction.
+
+Response:"""
+
+        return user_prompt, system_prompt
 
 
 class DummyModelService(ModelService):
