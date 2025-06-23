@@ -20,7 +20,7 @@ from arklex.env.prompts import load_prompts
 from arklex.env.tools.utils import trace
 from arklex.env.workers.worker import BaseWorker, register_worker
 from arklex.types import EventType, StreamType
-from arklex.utils.graph_state import MessageState
+from arklex.utils.graph_state import MessageState, StatusEnum
 from arklex.utils.model_provider_config import PROVIDER_MAP
 from arklex.utils.logging_utils import LogContext
 
@@ -51,6 +51,7 @@ class MessageWorker(BaseWorker):
         if direct_response:
             state.message_flow = ""
             state.response = orch_msg_content
+            state.status = StatusEnum.COMPLETE
             return state
 
         prompts: Dict[str, str] = load_prompts(state.bot_config)
@@ -83,6 +84,7 @@ class MessageWorker(BaseWorker):
 
         state.message_flow = ""
         state.response = answer
+        state.status = StatusEnum.COMPLETE  # Explicitly set to COMPLETE after first message
         state = trace(input=answer, state=state)
         return state
 
@@ -101,6 +103,7 @@ class MessageWorker(BaseWorker):
         if direct_response:
             state.message_flow = ""
             state.response = orch_msg_content
+            state.status = StatusEnum.COMPLETE
             return state
 
         prompts: Dict[str, str] = load_prompts(state.bot_config)
@@ -138,6 +141,7 @@ class MessageWorker(BaseWorker):
 
         state.message_flow = ""
         state.response = answer
+        state.status = StatusEnum.COMPLETE  # Explicitly set to COMPLETE after first message
         return state
 
     def speech_stream_generator(self, state: MessageState) -> MessageState:
@@ -155,6 +159,7 @@ class MessageWorker(BaseWorker):
         if direct_response:
             state.message_flow = ""
             state.response = orch_msg_content
+            state.status = StatusEnum.COMPLETE
             return state
 
         prompts = load_prompts(state.bot_config)
@@ -192,6 +197,7 @@ class MessageWorker(BaseWorker):
 
         state.message_flow = ""
         state.response = answer
+        state.status = StatusEnum.COMPLETE  # Explicitly set to COMPLETE after first message
         return state
 
     def choose_generator(self, state: MessageState) -> str:
