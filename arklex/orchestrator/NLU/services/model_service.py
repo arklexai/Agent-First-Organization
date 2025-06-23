@@ -889,12 +889,50 @@ Please choose the most appropriate intent by providing the corresponding intent 
         Returns:
             Tuple of (user_prompt, system_prompt)
         """
-        user_prompt = format_slot_input_formatter(slots, context, type)
+        # Format slot definitions
+        slot_definitions = []
+        for slot in slots:
+            # Handle both dict and Pydantic model inputs
+            if isinstance(slot, dict):
+                slot_name = slot.get("name", "")
+                slot_type = slot.get("type", "string")
+                description = slot.get("description", "")
+                required = "required" if slot.get("required", False) else "optional"
+                items = slot.get("items", {})
+            else:
+                slot_name = getattr(slot, "name", "")
+                slot_type = getattr(slot, "type", "string")
+                description = getattr(slot, "description", "")
+                required = (
+                    "required" if getattr(slot, "required", False) else "optional"
+                )
+                items = getattr(slot, "items", {})
+
+            slot_def = f"- {slot_name} ({slot_type}, {required}): {description}"
+            if items:
+                enum_values = (
+                    items.get("enum", [])
+                    if isinstance(items, dict)
+                    else getattr(items, "enum", [])
+                )
+                if enum_values:
+                    slot_def += f"\n  Possible values: {', '.join(enum_values)}"
+            slot_definitions.append(slot_def)
         system_prompt = (
             "You are a slot filling assistant. Your task is to extract specific "
             "information from the given context based on the slot definitions. "
             "Return the extracted values in JSON format."
         )
+
+        user_prompt = (
+            f"Context:\n{context}\n\n"
+            f"Slot definitions:\n" + "\n".join(slot_definitions) + "\n\n"
+            "Please extract the values for the defined slots from the context. "
+            "Return the results in JSON format with slot names as keys and "
+            "extracted values as values. If a slot value cannot be found, "
+            "set its value to null."
+        )
+
         return user_prompt, system_prompt
 
     def process_slot_response(
