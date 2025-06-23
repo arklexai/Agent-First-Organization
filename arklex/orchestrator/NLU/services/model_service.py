@@ -26,6 +26,10 @@ from arklex.orchestrator.NLU.utils.validators import (
     validate_slot_response,
     validate_verification_response,
 )
+from arklex.orchestrator.NLU.utils.formatters import (
+    format_slot_input as format_slot_input_formatter,
+    format_verification_input as format_verification_input_formatter,
+)
 
 log_context = LogContext(__name__)
 
@@ -885,52 +889,12 @@ Please choose the most appropriate intent by providing the corresponding intent 
         Returns:
             Tuple of (user_prompt, system_prompt)
         """
-        # Format slot definitions
-        slot_definitions = []
-        for slot in slots:
-            # Handle both dict and Pydantic model inputs
-            if isinstance(slot, dict):
-                slot_name = slot.get("name", "")
-                slot_type = slot.get("type", "string")
-                description = slot.get("description", "")
-                required = "required" if slot.get("required", False) else "optional"
-                items = slot.get("items", {})
-            else:
-                slot_name = getattr(slot, "name", "")
-                slot_type = getattr(slot, "type", "string")
-                description = getattr(slot, "description", "")
-                required = (
-                    "required" if getattr(slot, "required", False) else "optional"
-                )
-                items = getattr(slot, "items", {})
-
-            slot_def = f"- {slot_name} ({slot_type}, {required}): {description}"
-            if items:
-                enum_values = (
-                    items.get("enum", [])
-                    if isinstance(items, dict)
-                    else getattr(items, "enum", [])
-                )
-                if enum_values:
-                    slot_def += f"\n  Possible values: {', '.join(enum_values)}"
-            slot_definitions.append(slot_def)
-
-        # Create the prompts
+        user_prompt = format_slot_input_formatter(slots, context, type)
         system_prompt = (
             "You are a slot filling assistant. Your task is to extract specific "
             "information from the given context based on the slot definitions. "
             "Return the extracted values in JSON format."
         )
-
-        user_prompt = (
-            f"Context:\n{context}\n\n"
-            f"Slot definitions:\n" + "\n".join(slot_definitions) + "\n\n"
-            "Please extract the values for the defined slots from the context. "
-            "Return the results in JSON format with slot names as keys and "
-            "extracted values as values. If a slot value cannot be found, "
-            "set its value to null. Return ONLY the JSON object without any markdown formatting or code blocks."
-        )
-
         return user_prompt, system_prompt
 
     def process_slot_response(
@@ -978,36 +942,6 @@ Please choose the most appropriate intent by providing the corresponding intent 
             log_context.error(f"Error processing slot filling response: {str(e)}")
             raise ValueError(f"Failed to process slot filling response: {str(e)}")
 
-    def process_verification_response(self, response: str) -> Tuple[bool, str]:
-        """Process the model's response for slot verification.
-
-        Parses the model's response to determine if verification is needed.
-
-        Args:
-            response: Model's response for verification
-
-        Returns:
-            Tuple[bool, str]: (verification_needed, reason)
-        """
-        response_lower = response.strip().lower()
-        
-        # Check if response indicates verification is needed
-        if response_lower.startswith("no"):
-            # Extract the reason from the response
-            reason = response.strip()
-            if ":" in reason:
-                reason = reason.split(":", 1)[1].strip()
-            elif len(reason) > 2:
-                reason = reason[2:].strip()
-            else:
-                reason = "Value needs verification"
-            return True, reason
-        elif response_lower.startswith("yes"):
-            return False, "Value is correct and valid"
-        else:
-            # Default to needing verification if response is unclear
-            return True, f"Unclear response: {response.strip()}"
-
     def format_verification_input(
         self, slot: Dict[str, Any], chat_history_str: str
     ) -> str:
@@ -1020,27 +954,47 @@ Please choose the most appropriate intent by providing the corresponding intent 
             chat_history_str: Chat history context
 
         Returns:
-            Tuple[str, str]: (user_prompt, system_prompt)
+            str: Formatted verification prompt
         """
-        slot_name = slot.get("name", "")
-        slot_value = slot.get("value", "")
-        slot_description = slot.get("description", "")
+        return format_verification_input_formatter(slot, chat_history_str)
 
-        user_prompt = f"""Based on the chat history below, please verify if the slot value is correct and valid.
+    def process_verification_response(self, response: str) -> Tuple[bool, str]:
+        """Process the model's response for slot verification.
 
-Chat History:
-{chat_history_str}
+        Parses the model's response to determine if verification is needed.
 
-Slot Information:
-- Name: {slot_name}
-- Description: {slot_description}
-- Current Value: {slot_value}
+        Args:
+            response: Model's response for verification
 
-Please respond with "YES" if the slot value is correct and valid, or "NO" followed by a brief explanation if it needs verification or correction.
-
-Response:"""
-
-        return user_prompt
+        Returns:
+            Tuple[bool, str]: (verification_needed, reason)
+        """
+        try:
+            # Parse JSON response from formatters
+            response_data = json.loads(response)
+            verification_needed = response_data.get("verification_needed", True)
+            thought = response_data.get("thought", "No reasoning provided")
+            return verification_needed, thought
+        except json.JSONDecodeError:
+            # Fallback to simple YES/NO parsing if JSON fails
+            response_lower = response.strip().lower()
+            
+            # Check if response indicates verification is needed
+            if response_lower.startswith("no"):
+                # Extract the reason from the response
+                reason = response.strip()
+                if ":" in reason:
+                    reason = reason.split(":", 1)[1].strip()
+                elif len(reason) > 2:
+                    reason = reason[2:].strip()
+                else:
+                    reason = "Value needs verification"
+                return True, reason
+            elif response_lower.startswith("yes"):
+                return False, "Value is correct and valid"
+            else:
+                # Default to needing verification if response is unclear
+                return True, f"Unclear response: {response.strip()}"
 
 
 class DummyModelService(ModelService):
