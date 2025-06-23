@@ -1,9 +1,7 @@
-import logging
 import re
 from typing import Any
 
 from arklex.env.prompts import load_prompts
-from arklex.env.workers.hitl_worker import HITLWorkerChatFlag
 from arklex.utils.graph_state import MessageState, Params, ResourceRecord
 from arklex.utils.model_provider_config import PROVIDER_MAP
 from arklex.utils.logging_utils import LogContext

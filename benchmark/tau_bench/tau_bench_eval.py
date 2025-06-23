@@ -301,7 +301,7 @@ if __name__ == "__main__":
 
     MODEL["model_type_or_path"] = args.model
     log_level: int = getattr(logging, args.log_level.upper(), logging.INFO)
-    logger: logging.Logger = log_context.get_logger(
+    logger_instance: logging.Logger = log_context.get_logger(
         log_level=log_level,
         filename=os.path.join(root_dir, "logs", "tau_bench_eval.log"),
     )

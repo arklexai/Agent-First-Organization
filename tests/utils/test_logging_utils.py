@@ -3,7 +3,6 @@
 import pytest
 import logging
 import string
-from typing import Dict, Any
 from arklex.utils.logging_utils import (
     LogContext,
     handle_exceptions,
@@ -14,7 +13,7 @@ from arklex.utils.exceptions import ArklexError, RetryableError
 import tenacity
 
 
-# Helper to ensure logger propagates and is at correct level for caplog
+# Helper to ensure log_context propagates and is at correct level for caplog
 def get_test_context(name="test", base_context=None):
     log_context = LogContext(name, level="INFO", base_context=base_context)
     log_context.setLevel(logging.DEBUG)
@@ -32,7 +31,7 @@ def test_log_context_with_data(caplog):
     context = get_test_context(base_context={"base": "value"})
     context.info("Test message", extra="data")
     assert any("Test message" in r.getMessage() for r in caplog.records)
-    # Context is not in the plain message, but we can check the logger name
+    # Context is not in the plain message, but we can check the log_context name
     assert any(r.name == "test" for r in caplog.records)
 
 

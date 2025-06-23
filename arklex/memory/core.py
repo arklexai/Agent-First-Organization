@@ -11,7 +11,7 @@ and generating personalized intents from user interactions.
 
 import asyncio
 import re
-from typing import List, Tuple, Optional, Dict
+from typing import List, Tuple, Optional
 from functools import lru_cache
 
 import numpy as np
@@ -20,7 +20,6 @@ from sklearn.metrics.pairwise import cosine_similarity
 
 from arklex.memory.prompts import intro, final_examples, output_instructions
 from arklex.utils.graph_state import ResourceRecord, LLMConfig
-from arklex.utils.model_config import MODEL
 from arklex.utils.model_provider_config import (
     PROVIDER_MAP,
     PROVIDER_EMBEDDINGS,

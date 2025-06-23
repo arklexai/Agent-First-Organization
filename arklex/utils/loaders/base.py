@@ -60,7 +60,6 @@ class Loader(ABC):
 
     def __init__(self) -> None:
         """Initialize the Loader instance."""
-        pass
 
     @staticmethod
     def save(filepath: str, data: Any) -> None:

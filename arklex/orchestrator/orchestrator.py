@@ -51,14 +51,12 @@ Usage:
     })
 """
 
-import asyncio
 import copy
 import janus
 import json
-import logging
 import time
 from dotenv import load_dotenv
-from langchain.chat_models import ChatOpenAI
+from langchain_openai.chat_models import ChatOpenAI
 from typing import Any, Dict, Tuple, List, Optional, Union
 from arklex.env.nested_graph.nested_graph import NESTED_GRAPH_ID, NestedGraph
 from arklex.env.env import Environment
@@ -84,11 +82,9 @@ from arklex.utils.graph_state import (
 
 from arklex.utils.utils import format_chat_history
 from arklex.utils.model_config import MODEL
-from arklex.memory import ShortTermMemory
 from arklex.utils.model_provider_config import PROVIDER_MAP
 from langchain_core.runnables import RunnableLambda
 from arklex.utils.logging_utils import LogContext
-from arklex.utils.exceptions import OrchestratorError
 
 
 load_dotenv()
@@ -520,17 +516,18 @@ Answer with only 'yes' or 'no'"""
 
         # found_records, relevant_records = stm.retrieve_records(text)
 
-        # logger.info(f"Found Records: {found_records}")
+        # log_context.info(f"Found Records: {found_records}")
         # if found_records:
-        #     logger.info(
-        #         f"Relevant Records: {[r.personalized_intent for r in relevant_records]}"
+        #     log_context.info(
+        #         f"Relevant Records: {[r.personalized_intent for r in relevant_records]}",
+        #         extra={"context": {"records": relevant_records}},
         #     )
 
         # found_intent, relevant_intent = stm.retrieve_intent(text)
 
-        # logger.info(f"Found Intent: {found_intent}")
+        # log_context.info(f"Found Intent: {found_intent}")
         # if found_intent:
-        #     logger.info(f"Relevant Intent: {relevant_intent}")
+        #     log_context.info(f"Relevant Intent: {relevant_intent}")
 
         # if found_records:
         #     message_state.relevant_records = relevant_records
@@ -538,7 +535,7 @@ Answer with only 'yes' or 'no'"""
             self.task_graph.postprocess_node
         )
 
-        # TODO: when planner is re-implemented, execute/break the loop based on whether the planner should be used (bot config).
+        # TODO: Implement planner-based loop control based on bot configuration
         msg_counter = 0
 
         n_node_performed = 0

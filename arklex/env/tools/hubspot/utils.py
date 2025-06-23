@@ -6,18 +6,15 @@ This module provides helper functions for authenticating HubSpot API requests wi
 
 from typing import Dict, Any
 from arklex.utils.exceptions import AuthenticationError
-import json
 import os
-import time
 from datetime import datetime, timedelta
-from typing import Optional
 import requests
 from arklex.utils.mysql import mysql_pool
 from qa_bot_resource.types import ResourceAuthGroup
 from pydantic import BaseModel
-import logging
+from arklex.utils.logging_utils import LogContext
 
-logger = logging.getLogger(__name__)
+log_context = LogContext(__name__)
 # Error message for missing HubSpot authentication parameters
 HUBSPOT_AUTH_ERROR: str = "Missing some or all required hubspot authentication parameters: access_token. Please set up 'fixed_args' in the config file. For example, {'name': <unique name of the tool>, 'fixed_args': {'access_token': <hubspot_access_token>}"
 
@@ -74,7 +71,7 @@ def refresh_token_if_needed(
     Raises:
         HubspotNotIntegratedError: If HubSpot is not integrated for the bot
     """
-    logger.info(
+    log_context.info(
         f"Refreshing HubSpot auth tokens for bot {bot_id} version {bot_version}"
     )
     hubspot_client_id = os.getenv("HUBSPOT_CLIENT_ID")
@@ -95,7 +92,7 @@ def refresh_token_if_needed(
         except ValueError:
             # If expiry time is invalid, proceed with refresh
             pass
-        logger.info(f"hubspot token is expired, refreshing it")
+        log_context.info(f"hubspot token is expired, refreshing it")
         # Token is expired, refresh it
         token_refresh_url = "https://api.hubapi.com/oauth/v1/token"
         req_body = {

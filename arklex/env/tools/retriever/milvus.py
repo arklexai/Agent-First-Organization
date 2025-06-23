@@ -1,9 +1,11 @@
-import logging
+"""Milvus retriever tool."""
+
 from typing import Any
+from arklex.utils.logging_utils import LogContext
 from arklex.env.tools.tools import register_tool
 from arklex.env.tools.RAG.retrievers.milvus_retriever import MilvusRetriever
 
-logger = logging.getLogger(__name__)
+log_context = LogContext(__name__)
 
 
 description = "Retrieve relevant inforamtion required to answer an user's question. example: product price, product details, things for sale, company information, etc."
@@ -28,7 +30,7 @@ def retriever(query: str, **kwargs: Any) -> str:
     collection_name = kwargs.get("collection_name")
     bot_id = kwargs.get("bot_id")
     version = kwargs.get("version")
-    logger.info(
+    log_context.info(
         f"Retrieving from collection {collection_name} for bot {bot_id} version {version} with query {query}"
     )
     with MilvusRetriever() as retriever:

@@ -11,7 +11,6 @@ This module provides centralized logging configuration, including:
 
 import logging
 import logging.handlers
-import os
 import json
 import socket
 import platform
@@ -198,17 +197,17 @@ def setup_logging(
         max_bytes: Maximum bytes for log rotation.
         include_hostname: Whether to include hostname in log records.
     """
-    root_logger = logging.getLogger()
+    root_log_context = logging.getLogger()
     # Remove all existing handlers
-    for handler in list(root_logger.handlers):
-        root_logger.removeHandler(handler)
+    for handler in list(root_log_context.handlers):
+        root_log_context.removeHandler(handler)
 
     # Convert string log level to integer if needed
     if isinstance(log_level, str):
         log_level = LOG_LEVELS.get(log_level.upper(), DEFAULT_LOG_LEVEL)
 
-    # Set root logger level
-    root_logger.setLevel(log_level)
+    # Set root log_context level
+    root_log_context.setLevel(log_level)
 
     # Create formatter
     if use_json:
@@ -220,7 +219,7 @@ def setup_logging(
     console_handler = logging.StreamHandler()
     console_handler.setFormatter(formatter)
     console_handler.addFilter(RequestIdFilter())
-    root_logger.addHandler(console_handler)
+    root_log_context.addHandler(console_handler)
 
     # Create file handler if log directory is provided
     if log_dir:
@@ -235,9 +234,9 @@ def setup_logging(
         )
         file_handler.setFormatter(formatter)
         file_handler.addFilter(RequestIdFilter())
-        root_logger.addHandler(file_handler)
+        root_log_context.addHandler(file_handler)
 
     # Set module-specific log levels
     for module_name, module_level in MODULE_LOG_LEVELS.items():
-        module_logger = logging.getLogger(module_name)
-        module_logger.setLevel(module_level)
+        module_log_context = logging.getLogger(module_name)
+        module_log_context.setLevel(module_level)

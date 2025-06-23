@@ -7,7 +7,7 @@ from pathlib import Path
 from typing import Generator
 
 from arklex.utils.logging_utils import LogContext, RequestIdFilter, ContextFilter
-from arklex.utils.logging_config import setup_logging, MAX_BYTES
+from arklex.utils.logging_config import setup_logging
 
 log_context = LogContext(__name__)
 
@@ -27,23 +27,21 @@ def temp_log_dir(tmp_path: Path) -> Generator[str, None, None]:
     yield str(log_dir)
 
 
-def test_get_logger() -> None:
-    """Test getting a logger instance."""
-    log_context = LogContext("test_logger")
-    assert isinstance(log_context, LogContext)
-    assert log_context.name == "test_logger"
-    assert log_context.propagate
+def test_get_log_context() -> None:
+    """Test getting a log_context instance."""
+    log_context = LogContext("test_log_context")
+    assert log_context.name == "test_log_context"
     assert len(log_context.handlers) == 1
 
 
-def test_get_logger_with_level() -> None:
-    """Test getting a logger with a specific level."""
+def test_get_log_context_with_level() -> None:
+    """Test getting a log_context with a specific level."""
     log_context = LogContext("test_level", level="DEBUG")
     assert log_context.level == logging.DEBUG
 
 
-def test_get_logger_with_format() -> None:
-    """Test getting a logger with a custom format."""
+def test_get_log_context_with_format() -> None:
+    """Test getting a log_context with a custom format."""
     custom_format = "%(levelname)s - %(message)s"
     log_context = LogContext("test_format", log_format=custom_format)
     assert log_context.handlers[0].formatter._fmt == custom_format
@@ -56,9 +54,9 @@ def test_setup_logging(temp_log_dir: str) -> None:
         temp_log_dir: Path to temporary directory for log files.
     """
     setup_logging(log_level="DEBUG", log_dir=temp_log_dir)
-    root_logger = logging.getLogger()
-    assert root_logger.level == logging.DEBUG
-    assert len(root_logger.handlers) == 2  # Console and file handlers
+    root_log_context = logging.getLogger()
+    assert root_log_context.level == logging.DEBUG
+    assert len(root_log_context.handlers) == 2  # Console and file handlers
 
 
 def test_request_id_filter() -> None:
@@ -92,28 +90,28 @@ def test_context_filter_no_context() -> None:
     assert record.context == {}
 
 
-def test_logger_with_filters() -> None:
-    """Test logger with filters."""
+def test_log_context_with_filters() -> None:
+    """Test log_context with filters."""
     log_context = LogContext("test_filters")
     assert any(isinstance(f, RequestIdFilter) for f in log_context.handlers[0].filters)
     assert any(isinstance(f, ContextFilter) for f in log_context.handlers[0].filters)
 
 
-def test_logger_handlers() -> None:
-    """Test logger handlers."""
+def test_log_context_handlers() -> None:
+    """Test log_context handlers."""
     log_context = LogContext("test_handlers")
     assert len(log_context.handlers) == 1
     assert isinstance(log_context.handlers[0], logging.StreamHandler)
 
 
-def test_logger_propagation() -> None:
-    """Test logger propagation."""
+def test_log_context_propagation() -> None:
+    """Test log_context propagation."""
     log_context = LogContext("test_propagation")
     assert log_context.propagate
 
 
-def test_logger_level_inheritance() -> None:
-    """Test logger level inheritance."""
+def test_log_context_level_inheritance() -> None:
+    """Test log_context level inheritance."""
     parent = LogContext("parent", level="DEBUG")
     child = LogContext("parent.child")
     assert child.level == logging.NOTSET
@@ -122,8 +120,8 @@ def test_logger_level_inheritance() -> None:
     assert child.parent.level == parent.level
 
 
-def test_logger_format_inheritance() -> None:
-    """Test logger format inheritance."""
+def test_log_context_format_inheritance() -> None:
+    """Test log_context format inheritance."""
     custom_format = "%(levelname)s - %(message)s"
     parent = LogContext("parent", log_format=custom_format)
     child = LogContext("parent.child")
@@ -173,17 +171,19 @@ def test_log_rotation(temp_log_dir: str) -> None:
     # Use a smaller max_bytes for testing to ensure rotation occurs
     test_max_bytes = 512
     setup_logging(log_dir=temp_log_dir, max_bytes=test_max_bytes)
-    logger = logging.getLogger()  # Use root logger to ensure file handler is attached
+    log_context = (
+        logging.getLogger()
+    )  # Use root log_context to ensure file handler is attached
 
     # Ensure all handlers are at INFO level
-    for handler in logger.handlers:
+    for handler in log_context.handlers:
         handler.setLevel(logging.INFO)
 
     # Write logs until rotation occurs (with a safety cap)
     max_attempts = 1000
     for i in range(max_attempts):
-        logger.info("Test log message %d %s", i, "X" * 100)
-        for handler in logger.handlers:
+        log_context.info("Test log message %d %s", i, "X" * 100)
+        for handler in log_context.handlers:
             if isinstance(handler, logging.handlers.RotatingFileHandler):
                 handler.flush()
                 if hasattr(handler, "stream") and hasattr(handler.stream, "fileno"):
@@ -203,7 +203,7 @@ def test_log_rotation(temp_log_dir: str) -> None:
     assert len(log_files) > 1, "Expected multiple log files after rotation"
 
     # Clean up handlers
-    for handler in logger.handlers:
+    for handler in log_context.handlers:
         handler.flush()
         if hasattr(handler, "close"):
             handler.close()
@@ -211,24 +211,24 @@ def test_log_rotation(temp_log_dir: str) -> None:
 
 def test_log_levels() -> None:
     """Test different log levels."""
-    logger = LogContext("test_levels", level="INFO")
+    log_context = LogContext("test_levels", level="INFO")
 
     # Test each log level
-    logger.debug("Debug message")
-    logger.info("Info message")
-    logger.warning("Warning message")
-    logger.error("Error message")
-    logger.critical("Critical message")
+    log_context.debug("Debug message")
+    log_context.info("Info message")
+    log_context.warning("Warning message")
+    log_context.error("Error message")
+    log_context.critical("Critical message")
 
-    # Verify that the logger has the correct level
-    assert logger.level == logging.INFO
+    # Verify that the log_context has the correct level
+    assert log_context.level == logging.INFO
 
 
 def test_log_format() -> None:
     """Test custom log format."""
     custom_format = "%(levelname)s - %(message)s"
-    logger = LogContext("test_format", log_format=custom_format)
-    logger.info("Test message")
+    log_context = LogContext("test_format", log_format=custom_format)
+    log_context.info("Test message")
 
     # Verify that the format was applied
-    assert logger.handlers[0].formatter._fmt == custom_format
+    assert log_context.handlers[0].formatter._fmt == custom_format

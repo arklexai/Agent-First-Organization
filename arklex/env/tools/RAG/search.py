@@ -6,7 +6,6 @@ class for executing searches and processing results. The module supports context
 query reformulation and result processing for integration with the RAG system.
 """
 
-import logging
 from typing import List, Dict, Any
 
 from arklex.utils.model_provider_config import PROVIDER_MAP

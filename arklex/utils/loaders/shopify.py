@@ -66,7 +66,6 @@ class ShopifyLoader(Loader):
 
     def __init__(self) -> None:
         """Initialize the ShopifyLoader instance."""
-        pass
 
     def load(self) -> List[Document]:
         """Load product data from Shopify's GraphQL API.

@@ -1,7 +1,7 @@
 import pytest
-from unittest.mock import patch, MagicMock
+from unittest.mock import patch
 from arklex.orchestrator.NLU.services.api_service import APIClientService
-from arklex.utils.exceptions import ValidationError, APIError
+from arklex.utils.exceptions import APIError
 
 
 @pytest.fixture

@@ -19,11 +19,7 @@ Key Features:
 - Chat history formatting and truncation
 """
 
-import os
-import sys
 import json
-import logging
-from logging.handlers import RotatingFileHandler
 from typing import List, Dict, Any, Optional
 
 import tiktoken

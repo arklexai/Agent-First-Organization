@@ -6,7 +6,6 @@ results. The worker uses a state graph to manage the workflow of search operatio
 response generation, integrating with the framework's tool generation system.
 """
 
-import logging
 from typing import Any, Dict
 
 from langgraph.graph import StateGraph, START

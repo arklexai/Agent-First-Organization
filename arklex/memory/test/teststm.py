@@ -279,7 +279,7 @@ def run_test_case(
 
 def test_shopify_intent() -> None:
     # Initialize test state
-    state = init_test_state()
+    init_test_state()
 
     # Define test case labels
     test_case_labels = {

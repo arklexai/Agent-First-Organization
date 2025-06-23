@@ -44,7 +44,7 @@ Usage:
     )
 """
 
-from typing import Dict, Any, Union
+from typing import Dict
 from dataclasses import dataclass
 
 

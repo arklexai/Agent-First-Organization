@@ -7,7 +7,13 @@ and the MilvusRetrieverExecutor class for executing retrieval tasks. The module 
 document embedding, vector storage, and similarity search with metadata filtering.
 """
 
+# TODO: Add type annotations and docstrings to all methods
+# TODO: Implement multi-tag support for document retrieval
+# TODO: Add token counting for RAG document processing
+
 # TODO(christian): add annotations to the code
+# NOTE: Only support one tag for now
+## TODO: get num_tokens for functions inside milvus_retriever.py and retriever_document.py (with classmethod RetrieverDocument.faq_retreiver_doc); influence token migrations
 
 import time
 import os

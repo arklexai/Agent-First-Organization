@@ -99,5 +99,5 @@ def get_order(
 
         pageInfo: Dict[str, Any] = response["lineItems"]["pageInfo"]
         return response, pageInfo
-    except Exception as e:
+    except Exception:
         return ORDERS_NOT_FOUND

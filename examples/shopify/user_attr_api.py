@@ -175,7 +175,7 @@ def get_products(kwargs: Dict[str, Any]) -> Union[List[Dict[str, Any]], Dict[str
                     {"id": product.get("id", "None"), "attribute": response_text}
                 )
             return response_list
-    except Exception as e:
+    except Exception:
         return PRODUCTS_NOT_FOUND
 
 
@@ -184,7 +184,7 @@ def get_users_route() -> Union[List[Dict[str, Any]], Dict[str, str]]:
     users: List[Dict[str, Any]] = []
     try:
         response: Union[List[Dict[str, Any]], str] = get_users(kwargs)
-    except AuthenticationError as e:
+    except AuthenticationError:
         return {
             "error": "Missing some or all required Shopify admin authentication parameters: shop_url, api_version, admin_token."
         }, 401

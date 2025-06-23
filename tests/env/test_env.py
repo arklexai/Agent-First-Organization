@@ -1,4 +1,3 @@
-import pytest
 from arklex.env.env import Environment
 from arklex.orchestrator.NLU.services.model_service import DummyModelService
 

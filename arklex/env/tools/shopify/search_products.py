@@ -138,7 +138,7 @@ def search_products(product_query: str, **kwargs: Any) -> str:
                     func_name, ShopifyExceptionPrompt.PRODUCT_SEARCH_ERROR_PROMPT
                 )
 
-    except Exception as e:
+    except Exception:
         raise ToolExecutionError(
             func_name, ShopifyExceptionPrompt.PRODUCT_SEARCH_ERROR_PROMPT
         )

@@ -11,14 +11,12 @@ and profile-to-goal matching.
 import random
 import requests
 import copy
-from typing import List, Dict, Any, Tuple, Optional, Union
+from typing import List, Dict, Any, Tuple
 from arklex.evaluation.get_documents import load_docs
 from arklex.evaluation.chatgpt_utils import chatgpt_chatbot
 from arklex.env.env import Env
-from arklex.orchestrator.NLU.nlu import SlotFilling
 from arklex.env.tools.tools import Tool
 from arklex.orchestrator.NLU.core.slot import SlotFiller
-from arklex.utils.slot import Slot
 from arklex.utils.logging_utils import LogContext
 
 ATTR_TO_PROFILE: str = "Convert the following list user attributes in to a text description of a customer profile for the following company:\n{company_summary}\nThe user attributes are here:\n{user_attr}"
@@ -134,9 +132,7 @@ def build_profile(
                     random_index: int = random.choice(range(len(user_profiles[key])))
                     user_profile[key] = user_profiles[key][random_index]
             # based on the user's profile, select the attribute
-            strategy: str = (
-                "react"  ## TODO: temporary strategy, need to set in the config later
-            )
+            strategy: str = "react"  # TODO: Move strategy configuration to config file
             attributes, matched_attribute_to_goal = pick_attributes(
                 user_profile,
                 augmented_attributes,
@@ -681,7 +677,7 @@ def get_label(attribute, config):
                 }
             ]
             break
-        except Exception as e:
+        except Exception:
             attempt += 1
 
     return label, valid

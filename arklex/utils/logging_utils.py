@@ -7,9 +7,8 @@ and error handling utilities to ensure consistent logging across the application
 import asyncio
 import functools
 import logging
-import inspect
 import traceback
-from typing import Any, Callable, Dict, Optional, Type, Union, List
+from typing import Any, Callable, Dict, Optional, Type, Union
 from tenacity import (
     retry,
     stop_after_attempt,
@@ -91,57 +90,55 @@ class LogContext:
     def __init__(
         self,
         name: str,
-        level: str = "INFO",
+        level: Optional[str] = None,
         base_context: Optional[Dict[str, Any]] = None,
         log_format: Optional[str] = None,
     ):
-        self.logger = logging.getLogger(name)
-        if "." in name:
-            self.logger.setLevel(logging.NOTSET)
-        else:
-            self.logger.setLevel(getattr(logging, level))
-        self.logger.propagate = True
+        self.log_context = logging.getLogger(name)
+        # Set the log level only if explicitly provided
+        if level is not None:
+            self.log_context.setLevel(getattr(logging, level))
+        self.log_context.propagate = True
         self.base_context = base_context or {}
         handler = self._get_console_handler(log_format)
         handler.addFilter(RequestIdFilter())
         handler.addFilter(ContextFilter(self.base_context))
-        self.logger.addHandler(handler)
+        self.log_context.addHandler(handler)
 
     def __enter__(self) -> logging.Logger:
         """Enter context."""
-        return self.logger
+        return self.log_context
 
     def __exit__(self, exc_type, exc_val, exc_tb) -> None:
         """Exit context."""
-        pass
 
     @property
     def name(self):
-        return self.logger.name
+        return self.log_context.name
 
     @property
     def level(self):
-        return self.logger.level
+        return self.log_context.level
 
     @property
     def handlers(self):
-        return self.logger.handlers
+        return self.log_context.handlers
 
     @property
     def propagate(self):
-        return self.logger.propagate
+        return self.log_context.propagate
 
     @propagate.setter
     def propagate(self, value):
-        self.logger.propagate = value
+        self.log_context.propagate = value
 
     @property
     def parent(self) -> Optional["LogContext"]:
-        if self.logger.parent:
-            parent_level = self.logger.parent.level
+        if self.log_context.parent:
+            parent_level = self.log_context.parent.level
             if isinstance(parent_level, int):
                 parent_level = logging.getLevelName(parent_level)
-            return LogContext(self.logger.parent.name, level=parent_level)
+            return LogContext(self.log_context.parent.name, level=parent_level)
         return None
 
     def _get_console_handler(
@@ -154,11 +151,11 @@ class LogContext:
         return handler
 
     def setLevel(self, level: Union[str, int]) -> None:
-        """Set the log level for the logger."""
+        """Set the log level for the log_context."""
         if isinstance(level, str):
-            self.logger.setLevel(getattr(logging, level))
+            self.log_context.setLevel(getattr(logging, level))
         else:
-            self.logger.setLevel(level)
+            self.log_context.setLevel(level)
 
     def _merge_extra(self, context: Optional[Dict[str, Any]], kwargs: dict) -> dict:
         # Merge context and any extra fields from kwargs into a single extra dict
@@ -176,27 +173,35 @@ class LogContext:
     def info(
         self, message: str, context: Optional[Dict[str, Any]] = None, **kwargs: Any
     ) -> None:
-        self.logger.info(message, extra=self._merge_extra(context, kwargs), **kwargs)
+        self.log_context.info(
+            message, extra=self._merge_extra(context, kwargs), **kwargs
+        )
 
     def debug(
         self, message: str, context: Optional[Dict[str, Any]] = None, **kwargs: Any
     ) -> None:
-        self.logger.debug(message, extra=self._merge_extra(context, kwargs), **kwargs)
+        self.log_context.debug(
+            message, extra=self._merge_extra(context, kwargs), **kwargs
+        )
 
     def warning(
         self, message: str, context: Optional[Dict[str, Any]] = None, **kwargs: Any
     ) -> None:
-        self.logger.warning(message, extra=self._merge_extra(context, kwargs), **kwargs)
+        self.log_context.warning(
+            message, extra=self._merge_extra(context, kwargs), **kwargs
+        )
 
     def error(
         self, message: str, context: Optional[Dict[str, Any]] = None, **kwargs: Any
     ) -> None:
-        self.logger.error(message, extra=self._merge_extra(context, kwargs), **kwargs)
+        self.log_context.error(
+            message, extra=self._merge_extra(context, kwargs), **kwargs
+        )
 
     def critical(
         self, message: str, context: Optional[Dict[str, Any]] = None, **kwargs: Any
     ) -> None:
-        self.logger.critical(
+        self.log_context.critical(
             message, extra=self._merge_extra(context, kwargs), **kwargs
         )
 
@@ -225,7 +230,7 @@ def handle_exceptions(
     Returns:
         Decorated function
     """
-    logger = logging.getLogger("arklex")
+    log_context = logging.getLogger("arklex")
 
     def decorator(func: Callable) -> Callable:
         @functools.wraps(func)
@@ -244,7 +249,7 @@ def handle_exceptions(
                 if include_stack_trace:
                     context["stack_trace"] = traceback.format_exc()
 
-                logger.log(
+                log_context.log(
                     getattr(logging, log_level.upper(), logging.ERROR),
                     LOG_MESSAGES["ERROR"]["UNEXPECTED_ERROR"].format(
                         function=func.__name__, error=str(e)
@@ -279,7 +284,7 @@ def handle_exceptions(
                 if include_stack_trace:
                     context["stack_trace"] = traceback.format_exc()
 
-                logger.log(
+                log_context.log(
                     getattr(logging, log_level.upper(), logging.ERROR),
                     LOG_MESSAGES["ERROR"]["UNEXPECTED_ERROR"].format(
                         function=func.__name__, error=str(e)
@@ -323,7 +328,7 @@ def with_retry(
     Returns:
         Decorated function
     """
-    logger = logging.getLogger("arklex")
+    log_context = logging.getLogger("arklex")
 
     def decorator(func: Callable) -> Callable:
         @retry(
@@ -348,7 +353,7 @@ def with_retry(
                     if include_stack_trace:
                         context["stack_trace"] = traceback.format_exc()
 
-                    logger.warning(
+                    log_context.warning(
                         LOG_MESSAGES["WARNING"]["RETRY_ATTEMPT"].format(
                             attempt=getattr(e, "attempt", 0),
                             max_attempts=max_attempts,
@@ -380,7 +385,7 @@ def with_retry(
                     if include_stack_trace:
                         context["stack_trace"] = traceback.format_exc()
 
-                    logger.warning(
+                    log_context.warning(
                         LOG_MESSAGES["WARNING"]["RETRY_ATTEMPT"].format(
                             attempt=getattr(e, "attempt", 0),
                             max_attempts=max_attempts,

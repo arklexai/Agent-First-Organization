@@ -1,11 +1,11 @@
 from datetime import datetime
 import pytz
 from hubspot import HubSpot
-import logging
 from typing import Any
 from arklex.env.tools.tools import register_tool
+from arklex.utils.logging_utils import LogContext
 
-logger = logging.getLogger(__name__)
+log_context = LogContext(__name__)
 
 description = (
     "List the availability of the company representative from Husbspot calendar"
@@ -37,7 +37,9 @@ errors = []
 @register_tool(description, slots, outputs, lambda x: x not in errors)
 def list_availability(timezone: str, duration: int, **kwargs: Any) -> str:
     slug = kwargs.get("slug")
-    logger.info(f"Getting availability for {slug} in {timezone} for {duration} meeting")
+    log_context.info(
+        f"Getting availability for {slug} in {timezone} for {duration} meeting"
+    )
     meeting_duration_ms = 3600000
     if duration == 15:
         meeting_duration_ms = 15 * 60 * 1000
@@ -59,10 +61,10 @@ def list_availability(timezone: str, duration: int, **kwargs: Any) -> str:
             }
         )
         res = res.json()
-        logger.info(f"Availability response: {res}")
+        log_context.info(f"Availability response: {res}")
     except Exception as e:
-        logger.exception(e)
-        logger.error(f"Error getting availability: {e}")
+        log_context.exception(e)
+        log_context.error(f"Error getting availability: {e}")
         return "error: could not get availability"
 
     available_times = ""
@@ -78,8 +80,8 @@ def list_availability(timezone: str, duration: int, **kwargs: Any) -> str:
             avail_time_str = avail_time_user.strftime("%Y-%m-%d %H:%M:%S %Z")
             available_times += f"{avail_time_str}\n"
     except Exception as e:
-        logger.exception(e)
-        logger.error(f"Error parsing availability: {e}")
+        log_context.exception(e)
+        log_context.error(f"Error parsing availability: {e}")
         return "error: could not parse availability"
 
     return f"Here are the available times for a {duration} minute meetings:\n{available_times}"

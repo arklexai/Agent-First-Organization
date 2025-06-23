@@ -4,7 +4,7 @@ import pytest
 from typing import Dict, Any
 from unittest.mock import AsyncMock, MagicMock, patch
 
-from arklex.utils.exceptions import ValidationError, ModelError
+from arklex.utils.exceptions import ValidationError
 from arklex.orchestrator.NLU.services.model_service import ModelService
 
 

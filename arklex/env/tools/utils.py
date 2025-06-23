@@ -8,7 +8,7 @@ provide flexible response generation capabilities.
 """
 
 import inspect
-from typing import Dict, Any, List, Optional, Union, TypeVar, Generic
+from typing import Dict, Any, Optional
 
 from langchain.prompts import PromptTemplate
 from langchain_core.output_parsers import StrOutputParser
@@ -29,15 +29,14 @@ def get_prompt_template(state: MessageState, prompt_key: str) -> PromptTemplate:
     prompts: Dict[str, str] = load_prompts(state.bot_config)
 
     if state.stream_type == StreamType.SPEECH:
+        # Use speech prompts, but fall back to regular prompts for Chinese
+        # since Chinese speech prompts are not available yet
         if state.bot_config.language == "CN":
-            # no speech prompts for Chinese yet
-            # TODO(Vishruth): add speech prompts for Chinese
             return PromptTemplate.from_template(prompts[prompt_key])
         else:
             return PromptTemplate.from_template(prompts[prompt_key + "_speech"])
-
-    # the regular text prompts are used for both text stream and text without stream
-    return PromptTemplate.from_template(prompts[prompt_key])
+    else:
+        return PromptTemplate.from_template(prompts[prompt_key])
 
 
 class ToolGenerator:
@@ -97,7 +96,7 @@ class ToolGenerator:
         log_context.info(
             f"Retrieved texts (from retriever/search engine to generator): {message_flow[:50]} ..."
         )
-        
+
         # generate answer based on the retrieved texts
         prompt: PromptTemplate = get_prompt_template(state, "context_generator_prompt")
         input_prompt: Any = prompt.invoke(
