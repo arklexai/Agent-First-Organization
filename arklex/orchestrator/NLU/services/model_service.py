@@ -771,7 +771,7 @@ class ModelService:
 
             # Get response from model
             response = self.model.invoke(messages)
-            log_context.info(f"Model response: {response}")
+
             if not response or not response.content:
                 raise ValueError("Empty response from model")
 
