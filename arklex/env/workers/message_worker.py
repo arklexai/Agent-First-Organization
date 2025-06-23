@@ -84,7 +84,6 @@ class MessageWorker(BaseWorker):
 
         state.message_flow = ""
         state.response = answer
-        state.status = StatusEnum.COMPLETE  # Explicitly set to COMPLETE after first message
         state = trace(input=answer, state=state)
         return state
 
@@ -141,7 +140,6 @@ class MessageWorker(BaseWorker):
 
         state.message_flow = ""
         state.response = answer
-        state.status = StatusEnum.COMPLETE  # Explicitly set to COMPLETE after first message
         return state
 
     def speech_stream_generator(self, state: MessageState) -> MessageState:
@@ -197,7 +195,6 @@ class MessageWorker(BaseWorker):
 
         state.message_flow = ""
         state.response = answer
-        state.status = StatusEnum.COMPLETE  # Explicitly set to COMPLETE after first message
         return state
 
     def choose_generator(self, state: MessageState) -> str:
