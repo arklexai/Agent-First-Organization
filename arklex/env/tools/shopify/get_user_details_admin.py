@@ -111,10 +111,12 @@ def get_user_details_admin(user_id: str, **kwargs: Any) -> str:
                 return json.dumps(data)
             else:
                 raise ToolExecutionError(
-                    func_name, ShopifyExceptionPrompt.USER_NOT_FOUND_PROMPT
+                    func_name,
+                    extra_message=ShopifyExceptionPrompt.USER_NOT_FOUND_PROMPT,
                 )
 
     except Exception:
         raise ToolExecutionError(
-            func_name, ShopifyExceptionPrompt.USER_NOT_FOUND_PROMPT
+            func_name,
+            extra_message=ShopifyExceptionPrompt.USER_NOT_FOUND_PROMPT,
         )

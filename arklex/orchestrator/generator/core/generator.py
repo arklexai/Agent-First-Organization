@@ -35,6 +35,7 @@ user objectives, documentation, and configuration settings.
 """
 
 import os
+import json
 from datetime import datetime
 from typing import Optional, Dict, List, Any, Union
 from pathlib import Path
@@ -47,6 +48,7 @@ from arklex.orchestrator.generator.tasks import (
 )
 from arklex.orchestrator.generator.docs import DocumentLoader
 from arklex.orchestrator.generator.formatting import TaskGraphFormatter
+from arklex.orchestrator.generator.prompts import PromptManager
 from arklex.utils.logging_utils import LogContext
 
 # Make UI components optional to avoid dependency issues
@@ -158,7 +160,7 @@ class Generator:
             resource_initializer = DefaultResourceInitializer()
         self.resource_initializer = resource_initializer
 
-        # Convert workers to old format
+        # Restore original worker assignment logic
         raw_workers = self.product_kwargs.get("workers", [])
         self.workers = []
         for worker in raw_workers:
@@ -170,7 +172,6 @@ class Generator:
                     self.workers.append(
                         {"id": worker_id, "name": worker_name, "path": worker_path}
                     )
-
         # Initialize tools
         self.tools = resource_initializer.init_tools(
             self.product_kwargs.get("tools", [])
@@ -321,6 +322,7 @@ class Generator:
                 nluapi=self.nluapi,
                 slotfillapi=self.slotfillapi,
                 allow_nested_graph=self.allow_nested_graph,
+                model=self.model,
             )
         return self._task_graph_formatter
 
@@ -426,12 +428,16 @@ class Generator:
 
         # Add tasks provided by users
         if self.user_tasks:
-            log_context.info(f"📋 Adding {len(self.user_tasks)} user-provided tasks...")
-            provided_tasks = task_generator.add_provided_tasks(
+            log_context.info(
+                f"📋 Processing {len(self.user_tasks)} original tasks to add steps..."
+            )
+            processed_tasks = task_generator.add_provided_tasks(
                 self.user_tasks, self.intro
             )
-            self.tasks.extend(provided_tasks)
-            log_context.info(f"✅ Added {len(provided_tasks)} user tasks")
+            self.tasks.extend(processed_tasks)
+            log_context.info(
+                f"✅ Processed {len(processed_tasks)} original tasks with steps"
+            )
 
         # Generate additional tasks
         log_context.info("🤖 Generating additional tasks using AI...")
@@ -478,7 +484,7 @@ class Generator:
                             zip(self.tasks, hitl_result)
                         ):
                             if original_task.get("name") != edited_task.get(
-                                "task_name"
+                                "name"
                             ) or len(original_task.get("steps", [])) != len(
                                 edited_task.get("steps", [])
                             ):
@@ -499,11 +505,11 @@ class Generator:
 
                         if best_practices and best_practice_idx < len(best_practices):
                             log_context.info(
-                                f"  🔗 Pairing task {idx_t + 1}/{len(hitl_result)}: {task.get('task_name', 'Unknown')}"
+                                f"  🔗 Pairing task {idx_t + 1}/{len(hitl_result)}: {task.get('name', 'Unknown')}"
                             )
                             # Convert task format for finetune_best_practice
                             task_for_finetune = {
-                                "name": task.get("task_name", ""),
+                                "name": task.get("name", ""),
                                 "steps": [
                                     {"description": step}
                                     for step in task.get("steps", [])
@@ -525,20 +531,42 @@ class Generator:
                     )
                 else:
                     log_context.info(
-                        "  ⏭️ No user changes detected - skipping finetune_best_practice"
+                        "  ⏭️ No user changes detected - applying resource pairing to original tasks"
                     )
-                    # Convert hitl_result back to the expected format
-                    finetuned_tasks = []
-                    for task in hitl_result:
-                        finetuned_tasks.append(
-                            {
-                                "name": task.get("task_name", ""),
+                    # Apply resource pairing to original tasks even when no changes detected
+                    processed_tasks = []
+                    for idx_t, task in enumerate(self.tasks):
+                        # Find a matching best practice if available
+                        best_practice_idx = (
+                            min(idx_t, len(best_practices) - 1) if best_practices else 0
+                        )
+
+                        if best_practices and best_practice_idx < len(best_practices):
+                            log_context.info(
+                                f"  🔗 Pairing task {idx_t + 1}/{len(self.tasks)}: {task.get('name', 'Unknown')}"
+                            )
+                            # Convert task format for finetune_best_practice
+                            task_for_finetune = {
+                                "name": task.get("name", ""),
                                 "steps": [
                                     {"description": step}
                                     for step in task.get("steps", [])
                                 ],
                             }
-                        )
+                            refined_task = best_practice_manager.finetune_best_practice(
+                                best_practices[best_practice_idx], task_for_finetune
+                            )
+                            # Update the task with the refined steps that include resource mappings
+                            task["steps"] = refined_task.get(
+                                "steps", task.get("steps", [])
+                            )
+
+                        processed_tasks.append(task)
+
+                    finetuned_tasks = processed_tasks
+                    log_context.info(
+                        f"✅ Applied resource pairing to {len(processed_tasks)} original tasks"
+                    )
 
                 log_context.info("✅ Task editor completed")
             except Exception as e:
@@ -563,7 +591,61 @@ class Generator:
             finetuned_tasks = processed_tasks
             log_context.info(f"✅ Paired {len(finetuned_tasks)} tasks with resources")
 
-        # Step 6: Format the final task graph
+        # Step 6: Predict intents for tasks before formatting
+        log_context.info("🔮 Predicting intents for tasks...")
+        prompt_manager = PromptManager()
+        for task in finetuned_tasks:
+            task_name = task.get("name")
+            task_description = task.get(
+                "description", ""
+            )  # Some tasks might not have a description
+            if task_name:
+                try:
+                    # Create prompt to generate intent
+                    prompt = prompt_manager.get_prompt(
+                        "generate_intents",
+                        task_name=task_name,
+                        task_description=task_description,
+                    )
+                    # Get intent from model
+                    response = self.model.invoke(prompt)
+                    # The response content should be a string containing JSON
+                    response_content = (
+                        response.content
+                        if hasattr(response, "content")
+                        else str(response)
+                    )
+
+                    try:
+                        # Find the start and end of the JSON block
+                        json_start = response_content.find("{")
+                        json_end = response_content.rfind("}") + 1
+                        if json_start != -1 and json_end != 0:
+                            json_str = response_content[json_start:json_end]
+                            intent_data = json.loads(json_str)
+                            predicted_intent = intent_data.get("intent")
+                        else:
+                            predicted_intent = None
+                    except json.JSONDecodeError:
+                        predicted_intent = None  # Could not parse, so fallback
+
+                    if predicted_intent:
+                        task["intent"] = predicted_intent
+                        log_context.info(
+                            f"  Predicted intent for '{task_name}': '{predicted_intent}'"
+                        )
+                    else:
+                        task["intent"] = f"User inquires about {task_name.lower()}"
+
+                except Exception as e:
+                    log_context.error(
+                        f"Error predicting intent for task '{task_name}': {str(e)}"
+                    )
+                    # Fallback intent generation
+                    task["intent"] = f"User inquires about {task_name.lower()}"
+        log_context.info("✅ Intent prediction complete.")
+
+        # Step 7: Format the final task graph
         log_context.info("📊 Formatting final task graph...")
         log_context.info("  🔧 Initializing task graph formatter...")
         task_graph_formatter = self._initialize_task_graph_formatter()
@@ -572,8 +654,15 @@ class Generator:
         # Format the final task graph with finetuned tasks (including resource mappings)
         task_graph = task_graph_formatter.format_task_graph(finetuned_tasks)
 
+        # Ensure nested graph connectivity if enabled
+        if self.allow_nested_graph:
+            log_context.info("🔗 Ensuring nested graph connectivity...")
+            task_graph = task_graph_formatter.ensure_nested_graph_connectivity(
+                task_graph
+            )
+            log_context.info("✅ Nested graph connectivity ensured")
+
         # Add reusable tasks to the task graph output
-        # Only add the nested_graph reusable component if allow_nested_graph is True
         if self.allow_nested_graph:
             nested_graph_reusable = {
                 "resource": {"id": "nested_graph", "name": "NestedGraph"},
@@ -590,11 +679,11 @@ class Generator:
                 f"📦 Added {len(self.reusable_tasks)} reusable tasks to graph"
             )
 
-        log_context.info("🎉 Task graph generation completed successfully")
+        log_context.info("✅ Task graph generated successfully!")
         return task_graph
 
     def save_task_graph(self, task_graph: Dict[str, Any]) -> str:
-        """Save the task graph to a file.
+        """Save the generated task graph to a file.
 
         Args:
             task_graph (Dict[str, Any]): The task graph to save
@@ -604,7 +693,6 @@ class Generator:
         """
         import functools
         import collections.abc
-        import json
 
         def sanitize(obj):
             if isinstance(obj, (str, int, float, bool)) or obj is None:

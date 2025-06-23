@@ -100,13 +100,14 @@ def return_products(return_order_id: str, **kwargs: Any) -> str:
                 if not fulfillment_items:
                     raise ToolExecutionError(
                         func_name,
-                        ShopifyExceptionPrompt.NO_FULFILLMENT_FOUND_ERROR_PROMPT,
+                        extra_message=ShopifyExceptionPrompt.NO_FULFILLMENT_FOUND_ERROR_PROMPT,
                     )
                 log_context.info(f"Found {len(fulfillment_items)} fulfillment items.")
             except Exception as e:
                 log_context.error(f"Error parsing response: {e}")
                 raise ToolExecutionError(
-                    func_name, ShopifyExceptionPrompt.PRODUCT_RETURN_ERROR_PROMPT
+                    func_name,
+                    extra_message=ShopifyExceptionPrompt.PRODUCT_RETURN_ERROR_PROMPT,
                 )
 
             # Submit the return request
@@ -142,15 +143,18 @@ def return_products(return_order_id: str, **kwargs: Any) -> str:
                     )
                 else:
                     raise ToolExecutionError(
-                        func_name, ShopifyExceptionPrompt.PRODUCT_RETURN_ERROR_PROMPT
+                        func_name,
+                        extra_message=ShopifyExceptionPrompt.PRODUCT_RETURN_ERROR_PROMPT,
                     )
             except Exception as e:
                 log_context.error(f"Error parsing response: {e}")
                 raise ToolExecutionError(
-                    func_name, ShopifyExceptionPrompt.PRODUCT_RETURN_ERROR_PROMPT
+                    func_name,
+                    extra_message=ShopifyExceptionPrompt.PRODUCT_RETURN_ERROR_PROMPT,
                 )
 
     except Exception:
         raise ToolExecutionError(
-            func_name, ShopifyExceptionPrompt.PRODUCT_RETURN_ERROR_PROMPT
+            func_name,
+            extra_message=ShopifyExceptionPrompt.PRODUCT_RETURN_ERROR_PROMPT,
         )

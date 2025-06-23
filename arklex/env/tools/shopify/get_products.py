@@ -100,7 +100,8 @@ def get_products(product_ids: List[str], **kwargs: Any) -> str:
             response = result["nodes"]
             if len(response) == 0:
                 raise ToolExecutionError(
-                    func_name, ShopifyExceptionPrompt.PRODUCTS_NOT_FOUND_PROMPT
+                    func_name,
+                    extra_message=ShopifyExceptionPrompt.PRODUCTS_NOT_FOUND_PROMPT,
                 )
             response_text = ""
             for product in response:
@@ -118,5 +119,6 @@ def get_products(product_ids: List[str], **kwargs: Any) -> str:
             return response_text
     except Exception:
         raise ToolExecutionError(
-            func_name, ShopifyExceptionPrompt.PRODUCTS_NOT_FOUND_PROMPT
+            func_name,
+            extra_message=ShopifyExceptionPrompt.PRODUCTS_NOT_FOUND_PROMPT,
         )

@@ -26,6 +26,10 @@ from arklex.orchestrator.NLU.utils.validators import (
     validate_slot_response,
     validate_verification_response,
 )
+from arklex.orchestrator.NLU.utils.formatters import (
+    format_slot_input as format_slot_input_formatter,
+    format_verification_input as format_verification_input_formatter,
+)
 
 log_context = LogContext(__name__)
 
@@ -914,7 +918,7 @@ Please choose the most appropriate intent by providing the corresponding intent 
                 if enum_values:
                     slot_def += f"\n  Possible values: {', '.join(enum_values)}"
             slot_definitions.append(slot_def)
-
+        
         # Create the prompts
         system_prompt = (
             "You are a slot filling assistant. Your task is to extract specific "
@@ -977,6 +981,45 @@ Please choose the most appropriate intent by providing the corresponding intent 
         except Exception as e:
             log_context.error(f"Error processing slot filling response: {str(e)}")
             raise ValueError(f"Failed to process slot filling response: {str(e)}")
+
+    def format_verification_input(
+        self, slot: Dict[str, Any], chat_history_str: str
+    ) -> str:
+        """Format input for slot verification.
+
+        Creates a prompt for the model to verify if a slot value is correct and valid.
+
+        Args:
+            slot: Slot definition with value to verify
+            chat_history_str: Chat history context
+
+        Returns:
+            str: Formatted verification prompt
+        """
+        return format_verification_input_formatter(slot, chat_history_str)
+
+    def process_verification_response(self, response: str) -> Tuple[bool, str]:
+        """Process the model's response for slot verification.
+
+        Parses the model's response to determine if verification is needed.
+
+        Args:
+            response: Model's response for verification
+
+        Returns:
+            Tuple[bool, str]: (verification_needed, reason)
+        """
+        try:
+            # Parse JSON response from formatters
+            log_context.info(f"Verification response: {response}")
+            response_data = json.loads(response)
+            verification_needed = response_data.get("verification_needed", True)
+            thought = response_data.get("thought", "No reasoning progivided")
+            return verification_needed, thought
+        except json.JSONDecodeError as e:
+            log_context.error(f"Error parsing verification response: {str(e)}")
+            # Default to needing verification if JSON parsing fails
+            return True, f"Failed to parse verification response: {str(e)}"
 
 
 class DummyModelService(ModelService):

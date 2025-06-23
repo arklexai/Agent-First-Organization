@@ -186,7 +186,8 @@ class TaskGenerator:
         """Add user-provided tasks to the task set.
 
         This method processes and validates user-provided tasks, ensuring they
-        meet the required format and quality standards.
+        meet the required format and quality standards. If tasks don't have steps,
+        it will generate steps for them.
 
         Args:
             user_tasks (List[Dict[str, Any]]): List of user-provided tasks
@@ -198,6 +199,36 @@ class TaskGenerator:
         processed_tasks: List[Dict[str, Any]] = []
         for task in user_tasks:
             try:
+                # Check if this is a simple task description without steps
+                if "task" in task and not task.get("steps"):
+                    # This is a simple task description, need to add steps
+                    task_name = task.get("task", "")
+                    task_intent = task.get("intent", "")
+
+                    # Check if task needs breakdown
+                    needs_breakdown = self._check_task_breakdown_original(
+                        task_name, task_intent
+                    )
+
+                    if needs_breakdown:
+                        # Generate detailed steps
+                        steps = self._generate_task_steps_original(
+                            task_name, task_intent
+                        )
+                        task["steps"] = steps
+                        log_context.info(
+                            f"Generated {len(steps)} steps for task: {task_name}"
+                        )
+                    else:
+                        # Task is actionable, create a simple step
+                        task["steps"] = [{"task": f"Execute {task_name}"}]
+                        log_context.info(f"Created simple step for task: {task_name}")
+
+                    # Add name field if not present
+                    if not task.get("name"):
+                        task["name"] = task_name
+
+                # Now create task definition with steps
                 task_def = TaskDefinition(
                     task_id=task.get("id", ""),
                     name=task.get("name", ""),
@@ -329,9 +360,6 @@ class TaskGenerator:
             else:
                 response_text = str(response)
 
-            # Parse the JSON response
-            import json
-
             json_start = response_text.find("[")
             json_end = response_text.rfind("]") + 1
             if json_start >= 0 and json_end > json_start:
@@ -341,7 +369,6 @@ class TaskGenerator:
             else:
                 log_context.warning("Could not parse high-level tasks response")
                 return []
-
         except Exception as e:
             log_context.error(f"Error generating high-level tasks: {e}")
             return []
@@ -359,10 +386,10 @@ class TaskGenerator:
             bool: True if task needs breakdown, False if it's already actionable
         """
         # Create a proper resource list for the check
-        resources = "MessageWorker: The worker responsible for interacting with the user with predefined responses, RAGWorker: Answer the user's questions based on the company's internal documentations, such as the policies, FAQs, and product information"
-
         prompt = self.prompt_manager.check_best_practice_sys_prompt.format(
-            task=task_name, level=1, resources=resources
+            task=task_name,
+            level=1,
+            resources="MessageWorker: The worker responsible for interacting with the user with predefined responses, RAGWorker: Answer the user's questions based on the company's internal documentations, such as the policies, FAQs, and product information",
         )
 
         try:
@@ -371,9 +398,6 @@ class TaskGenerator:
                 response_text = response.content
             else:
                 response_text = str(response)
-
-            # Parse the JSON response
-            import json
 
             json_start = response_text.find("{")
             json_end = response_text.rfind("}") + 1
@@ -406,15 +430,11 @@ class TaskGenerator:
         Returns:
             List[Dict[str, Any]]: List of steps for the task
         """
-        # Create proper background and resources for the prompt
-        background = f"The builder wants to create a chatbot - {self.role}. {self.user_objective}"
-        resources = "MessageWorker: The worker responsible for interacting with the user with predefined responses, RAGWorker: Answer the user's questions based on the company's internal documentations, such as the policies, FAQs, and product information"
-
         prompt = self.prompt_manager.generate_best_practice_sys_prompt.format(
             role=self.role,
             u_objective=self.user_objective,
             task=task_name,
-            resources=resources,
+            resources="MessageWorker: The worker responsible for interacting with the user with predefined responses, RAGWorker: Answer the user's questions based on the company's internal documentations, such as the policies, FAQs, and product information",
             instructions=self.instructions,
             example_conversations="",
         )
@@ -425,9 +445,6 @@ class TaskGenerator:
                 response_text = response.content
             else:
                 response_text = str(response)
-
-            # Parse the JSON response
-            import json
 
             json_start = response_text.find("[")
             json_end = response_text.rfind("]") + 1
@@ -650,7 +667,6 @@ class TaskGenerator:
         """
         return {
             "id": task_def.task_id,
-            "task_id": task_def.task_id,
             "name": task_def.name,
             "description": task_def.description,
             "steps": task_def.steps,

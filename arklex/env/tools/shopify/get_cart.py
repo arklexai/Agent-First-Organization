@@ -97,7 +97,8 @@ def get_cart(cart_id: str, **kwargs: Any) -> str:
         cart_data = response["data"]["cart"]
         if not cart_data:
             raise ToolExecutionError(
-                func_name, ShopifyExceptionPrompt.CART_NOT_FOUND_ERROR_PROMPT
+                func_name,
+                extra_message=ShopifyExceptionPrompt.CART_NOT_FOUND_ERROR_PROMPT,
             )
         response_text = ""
         response_text += f"Checkout URL: {cart_data['checkoutUrl']}\n"
@@ -110,5 +111,6 @@ def get_cart(cart_id: str, **kwargs: Any) -> str:
         return response_text
     else:
         raise ToolExecutionError(
-            func_name, ShopifyExceptionPrompt.CART_NOT_FOUND_ERROR_PROMPT
+            func_name,
+            extra_message=ShopifyExceptionPrompt.CART_NOT_FOUND_ERROR_PROMPT,
         )

@@ -11,6 +11,12 @@ import copy
 from types import MappingProxyType
 
 
+class ExceptionPrompt:
+    """Base class for exception prompts."""
+
+    pass
+
+
 class ArklexError(Exception):
     """Base exception class for all Arklex errors.
 
@@ -261,7 +267,7 @@ class ToolExecutionError(ArklexError):
     def __init__(
         self,
         tool_name: str,
-        message: str,
+        message: Optional[str] = None,
         details: Optional[Dict[str, Any]] = None,
         extra_message: Optional[str] = None,
     ) -> None:
@@ -279,6 +285,7 @@ class ToolExecutionError(ArklexError):
             500,
             details,
         )
+        self.extra_message = extra_message
 
 
 class UserFacingError(ArklexError):
