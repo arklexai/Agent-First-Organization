@@ -7,7 +7,7 @@ from typing import Any, Dict, List, Union
 from fastapi import FastAPI
 
 from arklex.env.tools.shopify.utils import authorify_admin
-from arklex.exceptions import AuthenticationError
+from arklex.utils.exceptions import AuthenticationError
 
 USER_NOT_FOUND_ERROR: str = "error: No user found"
 PRODUCTS_NOT_FOUND: str = "error: No products found"

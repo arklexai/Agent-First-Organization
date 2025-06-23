@@ -11,7 +11,7 @@ from arklex.env.tools.google.calendar.utils import AUTH_ERROR
 from arklex.env.tools.google.calendar._exception_prompt import (
     GoogleCalendarExceptionPrompt,
 )
-from arklex.exceptions import AuthenticationError, ToolExecutionError
+from arklex.utils.exceptions import AuthenticationError, ToolExecutionError
 
 # Scopes required for accessing Google Calendar
 SCOPES: List[str] = ["https://www.googleapis.com/auth/calendar"]

@@ -918,12 +918,12 @@ Please choose the most appropriate intent by providing the corresponding intent 
                 if enum_values:
                     slot_def += f"\n  Possible values: {', '.join(enum_values)}"
             slot_definitions.append(slot_def)
-        
+
         # Create the prompts
         system_prompt = (
             "You are a slot filling assistant. Your task is to extract specific "
             "information from the given context based on the slot definitions. "
-            "Return the extracted values in JSON format."
+            "Return the extracted values in JSON format only without any markdown formatting or code blocks."
         )
 
         user_prompt = (
