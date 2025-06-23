@@ -143,5 +143,6 @@ def get_order_details(
         return response_text
     except Exception:
         raise ToolExecutionError(
-            func_name, ShopifyExceptionPrompt.ORDERS_NOT_FOUND_PROMPT
+            func_name,
+            extra_message=ShopifyExceptionPrompt.ORDERS_NOT_FOUND_PROMPT,
         )

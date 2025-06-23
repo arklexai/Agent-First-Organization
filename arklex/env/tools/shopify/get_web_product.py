@@ -116,7 +116,8 @@ def get_web_product(web_product_id: str, **kwargs: Any) -> str:
             response: List[Dict[str, Any]] = result["nodes"]
             if len(response) == 0:
                 raise ToolExecutionError(
-                    func_name, ShopifyExceptionPrompt.PRODUCT_NOT_FOUND_PROMPT
+                    func_name,
+                    extra_message=ShopifyExceptionPrompt.PRODUCT_NOT_FOUND_PROMPT,
                 )
             product: Dict[str, Any] = response[0]
             response_text = ""
@@ -138,5 +139,6 @@ def get_web_product(web_product_id: str, **kwargs: Any) -> str:
             return response_text
     except Exception:
         raise ToolExecutionError(
-            func_name, ShopifyExceptionPrompt.PRODUCT_NOT_FOUND_PROMPT
+            func_name,
+            extra_message=ShopifyExceptionPrompt.PRODUCT_NOT_FOUND_PROMPT,
         )

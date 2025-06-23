@@ -67,9 +67,11 @@ def find_user_id_by_email(user_email: str, **kwargs: Any) -> str:
             return user_id
         else:
             raise ToolExecutionError(
-                func_name, ShopifyExceptionPrompt.MULTIPLE_USERS_SAME_EMAIL_ERROR_PROMPT
+                func_name,
+                extra_message=ShopifyExceptionPrompt.MULTIPLE_USERS_SAME_EMAIL_ERROR_PROMPT,
             )
     except Exception:
         raise ToolExecutionError(
-            func_name, ShopifyExceptionPrompt.USER_NOT_FOUND_ERROR_PROMPT
+            func_name,
+            extra_message=ShopifyExceptionPrompt.USER_NOT_FOUND_ERROR_PROMPT,
         )
