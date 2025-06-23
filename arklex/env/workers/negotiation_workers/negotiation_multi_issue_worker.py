@@ -13,7 +13,7 @@ from langchain_openai import ChatOpenAI
 from langchain_core.language_models import BaseChatModel
 
 from arklex.env.workers.worker import BaseWorker, register_worker
-from arklex.utils.graph_state import MessageState, Slot
+from arklex.utils.graph_state import MessageState, Slot, StatusEnum
 from arklex.utils.model_config import MODEL
 from arklex.utils.model_provider_config import PROVIDER_MAP
 
@@ -643,4 +643,8 @@ class NegotiationMultiIssueWorker(BaseWorker):
             response_state.slots["episode_done"][0].value = True
         
         logger.info(f"State after graph execution - slots: {response_state.slots}")
+        
+        # Set status to STAY to keep the negotiation worker active for ongoing conversation
+        response_state.status = StatusEnum.STAY
+        
         return response_state.model_dump()

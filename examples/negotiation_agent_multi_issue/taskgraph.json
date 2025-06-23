@@ -24,7 +24,7 @@
                     "name": "NegotiationMultiIssueWorker"
                 },
                 "attribute": {
-                    "value": "Would you be interested in discussing the car's features and negotiating a deal?",
+                    "value": "Would you be interested in discussing your offer package?",
                     "task": "Facilitate a multi-issue negotiation conversation",
                     "directed": false
                 }
