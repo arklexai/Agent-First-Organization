@@ -315,6 +315,9 @@ class Tool:
                 # Always include the slot value, even if None
                 kwargs[slot.name] = slot.value if slot.value is not None else ""
 
+            # Always include the slots list for tools that need it (convert to dict for JSON serialization)
+            kwargs["slots"] = [slot.model_dump() if hasattr(slot, 'model_dump') else slot for slot in slots]
+
             combined_kwargs: Dict[str, Any] = {
                 **kwargs,
                 **fixed_args,
