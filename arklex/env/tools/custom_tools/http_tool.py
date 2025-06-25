@@ -14,26 +14,26 @@ from arklex.utils.exceptions import ToolExecutionError
 from arklex.utils.logging_utils import LogContext
 
 log_context = LogContext(__name__)
-slots = [
-    {
-        "name": "cat breed",
-        "type": "str",
-        "description": "Type of cat breed",
-        "prompt": "hello, how are you?",
-        "required": True,
-    },
-    {
-        "name": "cat age",
-        "type": "int",
-        "description": "Age of the cat",
-        "prompt": "what is the age of the cat?",
-        "required": True,
-    }
-]
+# slots = [
+#     {
+#         "name": "cat breed",
+#         "type": "str",
+#         "description": "Type of cat breed",
+#         "prompt": "hello, how are you?",
+#         "required": True,
+#     },
+#     {
+#         "name": "cat age",
+#         "type": "int",
+#         "description": "Age of the cat",
+#         "prompt": "what is the age of the cat?",
+#         "required": True,
+#     }
+# ]
 
 @register_tool(
     desc="Make HTTP requests to external APIs and handle responses",
-    slots=slots,
+    slots=[],
     outputs=["response"],
     isResponse=False,
 )
@@ -47,18 +47,15 @@ def http_tool(**kwargs: Dict[str, Any]) -> str:
         if slots:
             # Process slots based on their target
             for slot in slots:
-                # Handle both Slot objects and dictionaries
                 slot_name = None
                 slot_value = None
                 slot_target = None
                 
                 if hasattr(slot, 'name') and hasattr(slot, 'value'):
-                    # Slot object (Pydantic model)
                     slot_name = slot.name
                     slot_value = slot.value
                     slot_target = getattr(slot, 'target', None)
                 elif isinstance(slot, dict):
-                    # Dictionary format
                     slot_name = slot.get("name")
                     slot_value = slot.get("value")
                     slot_target = slot.get("target")
@@ -76,7 +73,21 @@ def http_tool(**kwargs: Dict[str, Any]) -> str:
                             params.body = {}
                         params.body[slot_name] = slot_value
                         log_context.info(f"Added slot '{slot_name}' with value '{slot_value}' to body")
-                    # If target is None, ignore the slot
+        
+        # Remove any {{}} placeholders from params and body
+        def remove_placeholders(data_dict):
+            if not data_dict:
+                return
+            keys_to_remove = []
+            for key, value in data_dict.items():
+                if isinstance(value, str) and value.startswith('{{') and value.endswith('}}'):
+                    keys_to_remove.append(key)
+                    log_context.info(f"Removing placeholder '{key}' with value '{value}'")
+            for key in keys_to_remove:
+                del data_dict[key]
+        
+        remove_placeholders(params.params)
+        remove_placeholders(params.body)
 
         log_context.info(
             f"Making a {params.method} request to {params.endpoint}, with body: {params.body} and params: {params.params}"

@@ -918,6 +918,9 @@ Please choose the most appropriate intent by providing the corresponding intent 
         system_prompt = (
             "You are a slot filling assistant. Your task is to extract specific "
             "information from the given context based on the slot definitions. "
+            "Extract values for all slots when the information is present in the context, "
+            "regardless of whether they are required or optional. "
+            "Only set a slot to null if the information is truly not mentioned. "
             "Return the extracted values in JSON format only without any markdown formatting or code blocks."
         )
 
@@ -925,9 +928,10 @@ Please choose the most appropriate intent by providing the corresponding intent 
             f"Context:\n{context}\n\n"
             f"Slot definitions:\n" + "\n".join(slot_definitions) + "\n\n"
             "Please extract the values for the defined slots from the context. "
+            "Extract values whenever the information is mentioned, whether the slot is required or optional. "
+            "Set to null only if the information is not present in the context. "
             "Return the results in JSON format with slot names as keys and "
-            "extracted values as values. If a slot value cannot be found, "
-            "set its value to null."
+            "extracted values as values."
         )
 
         return user_prompt, system_prompt
