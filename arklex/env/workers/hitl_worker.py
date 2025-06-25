@@ -281,9 +281,7 @@ class HITLWorkerChatFlag(HITLWorker):
             if not need_hitl:
                 return self.fallback(state)
 
-            state.response = (
-                "[[sending confirmation : this should not show up for user]]"
-            )
+            state.message_flow = message
             state.metadata.hitl = "live"
             state.status = StatusEnum.STAY
 
