@@ -646,6 +646,8 @@ class ReactPlanner(DefaultPlanner):
                     messages.extend(new_messages)
                     msg_history.extend(new_messages)
 
+        # If we reach here, we've exhausted max_num_steps without finding RESPOND_ACTION
+        # Return the last action and response
         return msg_history, action.name, env_response.observation
 
     def step(self, action: Action, msg_state: MessageState) -> EnvResponse:

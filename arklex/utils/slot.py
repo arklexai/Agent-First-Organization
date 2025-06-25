@@ -257,7 +257,7 @@ def format_slotfiller_output(slots: List[Slot], response: Any) -> List[Slot]:
     log_context.info(f"filled_slots: {response}")
     filled_slots = response.model_dump()
     for slot in slots:
-        slot.value = filled_slots[slot.name]
+        slot.value = filled_slots.get(slot.name, None)
     return slots
 
 
@@ -272,9 +272,16 @@ def format_slot_output(slots: List[Slot], response: Any) -> List[Slot]:
         List of formatted slots
     """
     updated_slots = []
-    for slot in slots:
-        if slot.name in response:
-            slot.value = response[slot.name]
+    # If response has a 'slots' key, use that list
+    if isinstance(response, dict) and "slots" in response:
+        slot_dict = {item["name"]: item["value"] for item in response["slots"]}
+        for slot in slots:
+            slot.value = slot_dict.get(slot.name, None)
+            updated_slots.append(slot)
+    # If response is a dict with slot names as keys
+    elif isinstance(response, dict):
+        for slot in slots:
+            slot.value = response.get(slot.name, None)
             updated_slots.append(slot)
     return updated_slots
 

@@ -22,12 +22,12 @@ from arklex.evaluation.chatgpt_utils import (
 def get_edges_and_counts(data: List[Dict[str, Any]]) -> Dict[tuple[str, str], int]:
     edge_counts: Dict[tuple[str, str], int] = {}
     for convo in data:
-        convo = filter_convo(convo)
-        for i in range(len(convo)):
-            if convo[i]["role"] == "assistant":
+        filtered_convo = filter_convo(convo["convo"])
+        for i in range(len(filtered_convo)):
+            if filtered_convo[i]["role"] == "assistant":
                 continue
-            prev_intent: str = "start" if i == 0 else convo[i - 2]["intent"]
-            current_intent: str = convo[i]["intent"]
+            prev_intent: str = "start" if i == 0 else filtered_convo[i - 2]["intent"]
+            current_intent: str = filtered_convo[i]["intent"]
             edge_counts[(prev_intent, current_intent)] = (
                 edge_counts.get((prev_intent, current_intent), 0) + 1
             )

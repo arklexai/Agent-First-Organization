@@ -9,6 +9,7 @@ document types (web, file, text) with appropriate processing methods.
 import os
 import sys
 import json
+import pickle
 from os.path import dirname, abspath
 from typing import List, Dict, Any, Optional
 
@@ -52,14 +53,16 @@ def load_docs(
     """
     if document_dir is not None:
         try:
-            if "rag_docs" not in doc_config:
-                if "task_docs" not in doc_config:
-                    raise ValueError(
-                        "The config json file must have a key 'rag_docs' or 'task_docs' with a list of documents to load."
-                    )
-            else:
+            if "rag_docs" in doc_config:
+                rag_docs: List[Dict[str, Any]] = doc_config["rag_docs"]
+                filename: str = "rag_documents.pkl"
+            elif "task_docs" in doc_config:
                 rag_docs: List[Dict[str, Any]] = doc_config["task_docs"]
                 filename: str = "task_documents.pkl"
+            else:
+                raise ValueError(
+                    "The config json file must have a key 'rag_docs' or 'task_docs' with a list of documents to load."
+                )
             filepath: str = os.path.join(document_dir, filename)
             total_num_docs: int = sum(
                 [doc.get("num") if doc.get("num") else 1 for doc in rag_docs]

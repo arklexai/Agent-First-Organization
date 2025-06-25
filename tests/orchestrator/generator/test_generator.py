@@ -198,14 +198,85 @@ def reusable_template() -> ReusableTask:
     )
 
 
+@pytest.fixture
+def sample_tasks_dict() -> List[Dict]:
+    """Sample tasks as dicts for reusable task manager tests."""
+    return [
+        {
+            "task_id": "task1",
+            "name": "Gather product details",
+            "description": "Collect all required product information",
+            "steps": [
+                {
+                    "task": "Get product name",
+                    "description": "Get the name of the product.",
+                },
+                {
+                    "task": "Get product description",
+                    "description": "Get the description of the product.",
+                },
+            ],
+            "dependencies": [],
+            "required_resources": ["Product form"],
+            "estimated_duration": "30 minutes",
+            "priority": 1,
+        },
+        {
+            "task_id": "task2",
+            "name": "Set product pricing",
+            "description": "Determine product pricing strategy",
+            "steps": [
+                {
+                    "task": "Research market prices",
+                    "description": "Research market prices to determine the best pricing strategy.",
+                },
+                {
+                    "task": "Set final price",
+                    "description": "Set the final price based on the research.",
+                },
+            ],
+            "dependencies": ["task1"],
+            "required_resources": ["Pricing guide"],
+            "estimated_duration": "45 minutes",
+            "priority": 2,
+        },
+    ]
+
+
+@pytest.fixture
+def sample_practices_dict() -> List[Dict]:
+    """Sample best practices as dicts for best practice manager tests."""
+    return [
+        {
+            "practice_id": "practice1",
+            "name": "Product validation",
+            "description": "Validate product information before submission",
+            "steps": [
+                {
+                    "task": "Check required fields",
+                    "description": "Check all required fields are filled out.",
+                },
+                {
+                    "task": "Verify data format",
+                    "description": "Verify the data format is correct.",
+                },
+            ],
+            "rationale": "Ensure data quality",
+            "examples": ["Product name validation", "Price format check"],
+            "priority": 1,
+            "category": "validation",
+        }
+    ]
+
+
 # --- Test Classes ---
 
 
 class TestTaskGenerator:
-    """Test suite for the TaskGenerator class."""
+    """Test TaskGenerator core logic and validation."""
 
     def test_generate_tasks(self, task_generator: TaskGenerator) -> None:
-        """Test task generation from objectives."""
+        """Should generate a list of tasks from objectives."""
         tasks = task_generator.generate_tasks(
             intro="Create a new product", existing_tasks=[]
         )
@@ -215,7 +286,7 @@ class TestTaskGenerator:
         assert all("id" in task for task in tasks)
 
     def test_add_provided_tasks(self, task_generator: TaskGenerator) -> None:
-        """Test adding user-provided tasks."""
+        """Should add user-provided tasks to the task list."""
         user_tasks = [
             {
                 "name": "Custom task",
@@ -233,7 +304,7 @@ class TestTaskGenerator:
         assert tasks[0]["name"] == "Custom task"
 
     def test_validate_tasks(self, task_generator: TaskGenerator) -> None:
-        """Test task validation."""
+        """Should validate and convert TaskDefinition objects to dicts."""
         task_definitions = [
             TaskDefinition(
                 task_id="test1",
@@ -252,30 +323,30 @@ class TestTaskGenerator:
         assert validated_tasks[0]["id"] == "test1"
 
     def test_establish_relationships(
-        self, task_generator: TaskGenerator, sample_tasks: List[Dict]
+        self, task_generator: TaskGenerator, sample_tasks_dict: List[Dict]
     ) -> None:
-        """Test establishing task relationships."""
-        tasks = sample_tasks.copy()
+        """Should establish dependencies between tasks."""
+        tasks = [dict(t) for t in sample_tasks_dict]
         task_generator._establish_relationships(tasks)
         assert tasks[1]["dependencies"] == ["task1"]
 
     def test_build_hierarchy(
-        self, task_generator: TaskGenerator, sample_tasks: List[Dict]
+        self, task_generator: TaskGenerator, sample_tasks_dict: List[Dict]
     ) -> None:
-        """Test building task hierarchy."""
-        tasks = sample_tasks.copy()
+        """Should build hierarchy levels for tasks."""
+        tasks = [dict(t) for t in sample_tasks_dict]
         task_generator._build_hierarchy(tasks)
         assert all("level" in task for task in tasks)
 
 
 class TestBestPracticeManager:
-    """Test suite for the BestPracticeManager class."""
+    """Test BestPracticeManager core logic and validation."""
 
     def test_generate_best_practices(
-        self, best_practice_manager: BestPracticeManager, sample_tasks: List[Dict]
+        self, best_practice_manager: BestPracticeManager, sample_tasks_dict: List[Dict]
     ) -> None:
-        """Test best practice generation."""
-        practices = best_practice_manager.generate_best_practices(sample_tasks)
+        """Should generate best practices from tasks."""
+        practices = best_practice_manager.generate_best_practices(sample_tasks_dict)
         assert isinstance(practices, list)
         assert len(practices) > 0
         assert all(isinstance(practice, dict) for practice in practices)
@@ -284,78 +355,70 @@ class TestBestPracticeManager:
     def test_finetune_best_practice(
         self, best_practice_manager: BestPracticeManager
     ) -> None:
-        """Test best practice refinement."""
-        practice = BestPractice(
-            practice_id="test1",
-            name="Test Practice",
-            description="Test Description",
-            steps=[
+        """Should refine a best practice with a new task."""
+        practice = {
+            "practice_id": "test1",
+            "name": "Test Practice",
+            "description": "Test Description",
+            "steps": [
                 {"task": "Original step", "description": "Original step description"}
             ],
-            rationale="Test Rationale",
-            examples=[],
-            priority=3,
-            category="test",
-        )
+            "rationale": "Test Rationale",
+            "examples": [],
+            "priority": 3,
+            "category": "test",
+        }
         task = {
             "name": "Test Task",
             "steps": [{"task": "New step", "description": "New step description"}],
         }
         refined_practice = best_practice_manager.finetune_best_practice(practice, task)
-        assert isinstance(refined_practice, BestPractice)
-        assert hasattr(refined_practice, "steps")
-        assert len(refined_practice.steps) > 0
+        assert isinstance(refined_practice, dict)
+        assert "steps" in refined_practice
+        assert len(refined_practice["steps"]) > 0
 
-    def test_validate_practices(
-        self,
-        best_practice_manager: BestPracticeManager,
-        sample_practices: List[BestPractice],
-    ) -> None:
-        """Test best practice validation."""
+    def test_validate_practices(self, best_practice_manager, sample_practices) -> None:
+        """Should validate and convert BestPractice objects to dicts."""
         validated = best_practice_manager._validate_practices(sample_practices)
         assert isinstance(validated, list)
         assert len(validated) == 1
         assert validated[0]["practice_id"] == "practice1"
 
     def test_categorize_practices(
-        self,
-        best_practice_manager: BestPracticeManager,
-        sample_practices: List[BestPractice],
+        self, best_practice_manager, sample_practices_dict
     ) -> None:
-        """Test best practice categorization."""
-        dict_practices = [dataclasses.asdict(p) for p in sample_practices]
+        """Should categorize best practices by category."""
+        dict_practices = [dict(p) for p in sample_practices_dict]
         best_practice_manager._categorize_practices(dict_practices)
         assert isinstance(best_practice_manager._practice_categories, dict)
         assert "validation" in best_practice_manager._practice_categories
 
     def test_optimize_practices(
-        self,
-        best_practice_manager: BestPracticeManager,
-        sample_practices: List[BestPractice],
+        self, best_practice_manager, sample_practices_dict
     ) -> None:
-        """Test best practice optimization."""
-        dict_practices = [dataclasses.asdict(p) for p in sample_practices]
+        """Should optimize best practices."""
+        dict_practices = [dict(p) for p in sample_practices_dict]
         optimized = best_practice_manager._optimize_practices(dict_practices)
         assert isinstance(optimized, list)
         assert len(optimized) == 1
 
 
 class TestReusableTaskManager:
-    """Test suite for the ReusableTaskManager class."""
+    """Test ReusableTaskManager core logic and validation."""
 
     def test_generate_reusable_tasks(
-        self, reusable_task_manager: ReusableTaskManager, sample_tasks: List[Dict]
+        self, reusable_task_manager, sample_tasks_dict
     ) -> None:
-        """Test reusable task generation."""
-        reusable = reusable_task_manager.generate_reusable_tasks(sample_tasks)
-        assert isinstance(reusable, dict)
+        """Should generate reusable task templates from tasks."""
+        templates = reusable_task_manager.generate_reusable_tasks(sample_tasks_dict)
+        assert isinstance(templates, dict)
+        assert len(templates) > 0
+        assert all(isinstance(template, dict) for template in templates.values())
 
     def test_instantiate_template(
-        self,
-        reusable_task_manager: ReusableTaskManager,
-        reusable_template: ReusableTask,
+        self, reusable_task_manager, reusable_template
     ) -> None:
-        """Test instantiating a reusable task template."""
+        """Should instantiate a reusable task template."""
         reusable_task_manager._templates[reusable_template.template_id] = (
             reusable_template
         )
@@ -366,42 +429,31 @@ class TestReusableTaskManager:
         assert isinstance(instantiated, dict)
         assert instantiated["template_id"] == "tmpl1"
 
-    def test_validate_templates(
-        self,
-        reusable_task_manager: ReusableTaskManager,
-        reusable_template: ReusableTask,
-    ) -> None:
-        """Test reusable task template validation."""
+    def test_validate_templates(self, reusable_task_manager, reusable_template) -> None:
+        """Should validate reusable task templates."""
         templates = {reusable_template.template_id: reusable_template}
         validated = reusable_task_manager._validate_templates(templates)
         assert isinstance(validated, dict)
         assert "tmpl1" in validated
 
     def test_validate_parameters(
-        self,
-        reusable_task_manager: ReusableTaskManager,
-        reusable_template: ReusableTask,
+        self, reusable_task_manager, reusable_template
     ) -> None:
-        """Test reusable task template parameter validation."""
+        """Should validate parameters for reusable task templates."""
         params = {"param1": "value1", "param2": "value2"}
         valid = reusable_task_manager._validate_parameters(reusable_template, params)
         assert valid is True
 
     def test_categorize_templates(
-        self,
-        reusable_task_manager: ReusableTaskManager,
-        reusable_template: ReusableTask,
+        self, reusable_task_manager, reusable_template
     ) -> None:
-        """Test reusable task template categorization."""
+        """Should categorize reusable task templates by category."""
         templates = {
             reusable_template.template_id: dataclasses.asdict(reusable_template)
         }
         reusable_task_manager._categorize_templates(templates)
         assert isinstance(reusable_task_manager._template_categories, dict)
         assert "test" in reusable_task_manager._template_categories
-
-
-# --- Integration Test ---
 
 
 def test_integration_generation_pipeline(always_valid_mock_model: Mock) -> None:

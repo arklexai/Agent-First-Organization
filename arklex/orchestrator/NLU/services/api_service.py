@@ -262,14 +262,14 @@ class APIClientService:
             "Predicting slots",
             extra={
                 "text": text,
-                "slots": [slot.to_dict() for slot in slots],
+                "slots": [slot.model_dump() for slot in slots],
                 "operation": "slot_prediction",
             },
         )
 
         data = {
             "text": text,
-            "slots": [slot.to_dict() for slot in slots],
+            "slots": [slot.model_dump() for slot in slots],
             "model_config": model_config,
         }
         response = self._make_request("/slotfill/predict", HTTP_METHOD_POST, data)
@@ -277,7 +277,7 @@ class APIClientService:
         log_context.info(
             "Slot prediction successful",
             extra={
-                "slots": [slot.to_dict() for slot in result],
+                "slots": [slot.model_dump() for slot in result],
                 "operation": "slot_prediction",
             },
         )
@@ -309,14 +309,14 @@ class APIClientService:
             "Verifying slots",
             extra={
                 "text": text,
-                "slots": [slot.to_dict() for slot in slots],
+                "slots": [slot.model_dump() for slot in slots],
                 "operation": "slot_verification",
             },
         )
 
         data = {
             "text": text,
-            "slots": [slot.to_dict() for slot in slots],
+            "slots": [slot.model_dump() for slot in slots],
             "model_config": model_config,
         }
         response = self._make_request("/slotfill/verify", HTTP_METHOD_POST, data)

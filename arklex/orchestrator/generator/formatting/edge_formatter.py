@@ -145,6 +145,10 @@ class EdgeFormatter:
         Returns:
             bool: True if edge is valid
         """
+        # Handle None values
+        if source is None or target is None:
+            return False
+
         # Handle string inputs
         if isinstance(source, str):
             source_id = source

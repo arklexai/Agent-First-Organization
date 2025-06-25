@@ -163,7 +163,11 @@ async def verify_slots(
 
 @app.post("/nlu/predict")
 @handle_exceptions()
-def predict_intent(data: Dict[str, Any], res: Response) -> Dict[str, str]:
+def predict_intent(
+    data: Dict[str, Any],
+    res: Response,
+    model_service: ModelService = Depends(get_model_service),
+) -> Dict[str, str]:
     """Predict intent from input text.
 
     This endpoint processes a request to detect the intent from input text,
@@ -178,6 +182,7 @@ def predict_intent(data: Dict[str, Any], res: Response) -> Dict[str, str]:
             - chat_history_str: Formatted chat history
             - model: Model configuration
         res: FastAPI response object for status code handling
+        model_service: Model service instance
 
     Returns:
         Dictionary containing:
@@ -193,7 +198,6 @@ def predict_intent(data: Dict[str, Any], res: Response) -> Dict[str, str]:
         intents = data["intents"]
         chat_history_str = data["chat_history_str"]
         model_config = data["model"]
-
         log_context.info(
             "Processing intent prediction request",
             extra={
@@ -202,15 +206,12 @@ def predict_intent(data: Dict[str, Any], res: Response) -> Dict[str, str]:
                 "operation": "intent_prediction",
             },
         )
-
         prompt, idx2intents_mapping = model_service.format_intent_input(
             intents, chat_history_str
         )
-
         response = model_service.get_model_response(
             prompt, model_config, note="intent detection"
         )
-
         pred_intent = idx2intents_mapping.get(response.strip(), "others")
         log_context.info(
             "Intent prediction successful",
@@ -249,7 +250,11 @@ def predict_intent(data: Dict[str, Any], res: Response) -> Dict[str, str]:
 
 @app.post("/slotfill/predict")
 @handle_exceptions()
-def predict_slots(data: Dict[str, Any], res: Response) -> List[Slot]:
+def predict_slots(
+    data: Dict[str, Any],
+    res: Response,
+    model_service: ModelService = Depends(get_model_service),
+) -> List[Slot]:
     """Fill slots from input context.
 
     This endpoint processes a request to fill slots from input context,
@@ -264,6 +269,7 @@ def predict_slots(data: Dict[str, Any], res: Response) -> List[Slot]:
             - model: Model configuration
             - type: Type of slot filling operation (default: "chat")
         res: FastAPI response object for status code handling
+        model_service: Model service instance
 
     Returns:
         List of filled slots, each containing extracted values and metadata
@@ -278,7 +284,6 @@ def predict_slots(data: Dict[str, Any], res: Response) -> List[Slot]:
         context = data["context"]
         model_config = data["model"]
         type = data.get("type", "chat")
-
         log_context.info(
             "Processing slot filling request",
             extra={
@@ -288,16 +293,10 @@ def predict_slots(data: Dict[str, Any], res: Response) -> List[Slot]:
                 "operation": "slot_filling",
             },
         )
-
-        # Format input for slot filling
         prompt = model_service.format_slot_input(slots, context, type)
-
-        # Get model response
         response = model_service.get_model_response(
             prompt, model_config, response_format="json", note="slot filling"
         )
-
-        # Process response and update slots
         filled_slots = model_service.process_slot_response(response, slots)
         log_context.info(
             "Slot filling successful",
@@ -336,7 +335,11 @@ def predict_slots(data: Dict[str, Any], res: Response) -> List[Slot]:
 
 @app.post("/slotfill/verify")
 @handle_exceptions()
-def verify_slot(data: Dict[str, Any], res: Response) -> Verification:
+def verify_slot(
+    data: Dict[str, Any],
+    res: Response,
+    model_service: ModelService = Depends(get_model_service),
+) -> Verification:
     """Verify if slot value needs confirmation.
 
     This endpoint processes a request to verify a slot value,
@@ -350,6 +353,7 @@ def verify_slot(data: Dict[str, Any], res: Response) -> Verification:
             - chat_history_str: Formatted chat history
             - model: Model configuration
         res: FastAPI response object for status code handling
+        model_service: Model service instance
 
     Returns:
         Verification result containing:
@@ -365,7 +369,6 @@ def verify_slot(data: Dict[str, Any], res: Response) -> Verification:
         slot = data["slot"]
         chat_history_str = data["chat_history_str"]
         model_config = data["model"]
-
         log_context.info(
             "Processing slot verification request",
             extra={
@@ -373,16 +376,10 @@ def verify_slot(data: Dict[str, Any], res: Response) -> Verification:
                 "operation": "slot_verification",
             },
         )
-
-        # Format input for verification
         prompt = model_service.format_verification_input(slot, chat_history_str)
-
-        # Get model response
         response = model_service.get_model_response(
             prompt, model_config, note="slot verification"
         )
-
-        # Process response
         verification = model_service.process_verification_response(response)
         log_context.info(
             "Slot verification successful",

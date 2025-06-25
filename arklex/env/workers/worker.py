@@ -8,7 +8,7 @@ workers that handle different types of tasks and operations within the system.
 
 from abc import ABC, abstractmethod
 from typing import Any, Dict, Optional, Type, TypeVar
-from arklex.utils.graph_state import MessageState, StatusEnum
+from arklex.utils.graph_state import MessageState, StatusEnum, ResourceRecord
 from arklex.utils.logging_utils import LogContext
 import traceback
 
@@ -93,11 +93,23 @@ class BaseWorker(ABC):
         try:
             response_return: Dict[str, Any] = self._execute(msg_state, **kwargs)
             response_state: MessageState = MessageState.model_validate(response_return)
-            response_state.trajectory[-1][-1].output = (
-                response_state.response
+
+            # Create a new ResourceRecord for this execution
+            new_record = ResourceRecord(
+                info={"worker": self.__class__.__name__},
+                intent="worker_execution",
+                output=response_state.response
                 if response_state.response
-                else response_state.message_flow
+                else response_state.message_flow,
             )
+
+            # Preserve the original trajectory and add the new record
+            if msg_state.trajectory is not None:
+                response_state.trajectory = msg_state.trajectory.copy()
+            else:
+                response_state.trajectory = []
+            response_state.trajectory.append([new_record])
+
             if response_state.status == StatusEnum.INCOMPLETE:
                 response_state.status = StatusEnum.COMPLETE
             return response_state

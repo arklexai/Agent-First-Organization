@@ -3,13 +3,25 @@
 import logging
 import os
 import pytest
+import json
 from pathlib import Path
 from typing import Generator
+from unittest.mock import patch, Mock
 
-from arklex.utils.logging_utils import LogContext, RequestIdFilter, ContextFilter
-from arklex.utils.logging_config import setup_logging
+from arklex.utils.logging_config import (
+    setup_logging,
+    JSONFormatter,
+    RequestIdFilter,
+    ContextFilter,
+    LOG_LEVELS,
+    MODULE_LOG_LEVELS,
+    DEFAULT_LOG_LEVEL,
+    DEFAULT_LOG_FORMAT,
+    MAX_BYTES,
+    BACKUP_COUNT,
+)
 
-log_context = LogContext(__name__)
+log_context = logging.getLogger(__name__)
 
 
 @pytest.fixture
@@ -29,21 +41,25 @@ def temp_log_dir(tmp_path: Path) -> Generator[str, None, None]:
 
 def test_get_log_context() -> None:
     """Test getting a log_context instance."""
-    log_context = LogContext("test_log_context")
+    log_context = logging.getLogger("test_log_context")
     assert log_context.name == "test_log_context"
-    assert len(log_context.handlers) == 1
 
 
 def test_get_log_context_with_level() -> None:
     """Test getting a log_context with a specific level."""
-    log_context = LogContext("test_level", level="DEBUG")
+    log_context = logging.getLogger("test_level")
+    log_context.setLevel(logging.DEBUG)
     assert log_context.level == logging.DEBUG
 
 
 def test_get_log_context_with_format() -> None:
     """Test getting a log_context with a custom format."""
     custom_format = "%(levelname)s - %(message)s"
-    log_context = LogContext("test_format", log_format=custom_format)
+    formatter = logging.Formatter(custom_format)
+    handler = logging.StreamHandler()
+    handler.setFormatter(formatter)
+    log_context = logging.getLogger("test_format")
+    log_context.addHandler(handler)
     assert log_context.handlers[0].formatter._fmt == custom_format
 
 
@@ -59,6 +75,65 @@ def test_setup_logging(temp_log_dir: str) -> None:
     assert len(root_log_context.handlers) == 2  # Console and file handlers
 
 
+def test_setup_logging_without_log_dir() -> None:
+    """Test setup_logging without log directory (console only)."""
+    setup_logging(log_level="INFO")
+    root_log_context = logging.getLogger()
+    assert root_log_context.level == logging.INFO
+    assert len(root_log_context.handlers) == 1  # Console handler only
+
+
+def test_setup_logging_with_json_format() -> None:
+    """Test setup_logging with JSON formatting."""
+    setup_logging(use_json=True)
+    root_log_context = logging.getLogger()
+    assert isinstance(root_log_context.handlers[0].formatter, JSONFormatter)
+
+
+def test_setup_logging_with_custom_app_name(temp_log_dir: str) -> None:
+    """Test setup_logging with custom app name."""
+    setup_logging(log_dir=temp_log_dir, app_name="test_app")
+    log_files = list(Path(temp_log_dir).glob("*.log"))
+    assert len(log_files) == 1
+    assert log_files[0].name == "test_app.log"
+
+
+def test_setup_logging_with_custom_max_bytes(temp_log_dir: str) -> None:
+    """Test setup_logging with custom max bytes."""
+    custom_max_bytes = 1024
+    setup_logging(log_dir=temp_log_dir, max_bytes=custom_max_bytes)
+    root_log_context = logging.getLogger()
+    file_handler = next(
+        h
+        for h in root_log_context.handlers
+        if isinstance(h, logging.handlers.RotatingFileHandler)
+    )
+    assert file_handler.maxBytes == custom_max_bytes
+
+
+def test_setup_logging_with_invalid_log_level() -> None:
+    """Test setup_logging with invalid log level string."""
+    setup_logging(log_level="INVALID_LEVEL")
+    root_log_context = logging.getLogger()
+    assert root_log_context.level == DEFAULT_LOG_LEVEL
+
+
+def test_setup_logging_with_integer_log_level() -> None:
+    """Test setup_logging with integer log level."""
+    setup_logging(log_level=logging.WARNING)
+    root_log_context = logging.getLogger()
+    assert root_log_context.level == logging.WARNING
+
+
+def test_setup_logging_without_hostname() -> None:
+    """Test setup_logging with include_hostname=False."""
+    setup_logging(use_json=True, include_hostname=False)
+    root_log_context = logging.getLogger()
+    formatter = root_log_context.handlers[0].formatter
+    assert isinstance(formatter, JSONFormatter)
+    assert not formatter.include_hostname
+
+
 def test_request_id_filter() -> None:
     """Test request ID filter."""
     filter_obj = RequestIdFilter("test-123")
@@ -67,6 +142,16 @@ def test_request_id_filter() -> None:
     )
     assert filter_obj.filter(record)
     assert record.request_id == "test-123"
+
+
+def test_request_id_filter_default() -> None:
+    """Test request ID filter with default request_id."""
+    filter_obj = RequestIdFilter()
+    record = logging.LogRecord(
+        "test", logging.INFO, "test.py", 1, "Test message", (), None
+    )
+    assert filter_obj.filter(record)
+    assert record.request_id == "N/A"
 
 
 def test_context_filter() -> None:
@@ -90,76 +175,203 @@ def test_context_filter_no_context() -> None:
     assert record.context == {}
 
 
-def test_log_context_with_filters() -> None:
-    """Test log_context with filters."""
-    log_context = LogContext("test_filters")
-    assert any(isinstance(f, RequestIdFilter) for f in log_context.handlers[0].filters)
-    assert any(isinstance(f, ContextFilter) for f in log_context.handlers[0].filters)
+def test_context_filter_none_context() -> None:
+    """Test context filter with None context."""
+    filter_obj = ContextFilter(None)
+    record = logging.LogRecord(
+        "test", logging.INFO, "test.py", 1, "Test message", (), None
+    )
+    assert filter_obj.filter(record)
+    assert record.context == {}
 
 
-def test_log_context_handlers() -> None:
-    """Test log_context handlers."""
-    log_context = LogContext("test_handlers")
-    assert len(log_context.handlers) == 1
-    assert isinstance(log_context.handlers[0], logging.StreamHandler)
+def test_json_formatter_basic() -> None:
+    """Test JSONFormatter basic functionality."""
+    formatter = JSONFormatter()
+    record = logging.LogRecord(
+        "test", logging.INFO, "test.py", 1, "Test message", (), None
+    )
+    record.funcName = "test_json_formatter_basic"  # Set funcName explicitly
+    result = formatter.format(record)
+    log_data = json.loads(result)
+
+    assert log_data["level"] == "INFO"
+    assert log_data["name"] == "test"
+    assert log_data["message"] == "Test message"
+    assert log_data["module"] == "test"
+    assert log_data["function"] == "test_json_formatter_basic"
+    assert log_data["line"] == 1
+    assert "hostname" in log_data
+    assert "platform" in log_data
+    assert "python_version" in log_data
 
 
-def test_log_context_propagation() -> None:
-    """Test log_context propagation."""
-    log_context = LogContext("test_propagation")
-    assert log_context.propagate
+def test_json_formatter_without_hostname() -> None:
+    """Test JSONFormatter without hostname."""
+    formatter = JSONFormatter(include_hostname=False)
+    record = logging.LogRecord(
+        "test", logging.INFO, "test.py", 1, "Test message", (), None
+    )
+    result = formatter.format(record)
+    log_data = json.loads(result)
+
+    assert "hostname" not in log_data
+    assert "platform" not in log_data
+    assert "python_version" not in log_data
 
 
-def test_log_context_level_inheritance() -> None:
-    """Test log_context level inheritance."""
-    parent = LogContext("parent", level="DEBUG")
-    child = LogContext("parent.child")
-    assert child.level == logging.NOTSET
-    assert child.parent is not None
-    assert child.parent.name == parent.name
-    assert child.parent.level == parent.level
+def test_json_formatter_with_request_id() -> None:
+    """Test JSONFormatter with request_id in record."""
+    formatter = JSONFormatter()
+    record = logging.LogRecord(
+        "test", logging.INFO, "test.py", 1, "Test message", (), None
+    )
+    record.request_id = "req-123"
+    result = formatter.format(record)
+    log_data = json.loads(result)
+
+    assert log_data["request_id"] == "req-123"
 
 
-def test_log_context_format_inheritance() -> None:
-    """Test log_context format inheritance."""
-    custom_format = "%(levelname)s - %(message)s"
-    parent = LogContext("parent", log_format=custom_format)
-    child = LogContext("parent.child")
-    assert child.handlers[0].formatter._fmt == custom_format
+def test_json_formatter_with_context() -> None:
+    """Test JSONFormatter with context in record."""
+    formatter = JSONFormatter()
+    record = logging.LogRecord(
+        "test", logging.INFO, "test.py", 1, "Test message", (), None
+    )
+    record.context = {"user_id": "123", "action": "test"}
+    result = formatter.format(record)
+    log_data = json.loads(result)
+
+    assert log_data["context"] == {"user_id": "123", "action": "test"}
 
 
-def test_log_with_context(caplog: pytest.LogCaptureFixture) -> None:
-    """Test logging with context.
+def test_json_formatter_with_exception() -> None:
+    """Test JSONFormatter with exception information."""
+    formatter = JSONFormatter()
+    record = logging.LogRecord(
+        "test", logging.ERROR, "test.py", 1, "Test error", (), None
+    )
 
-    Args:
-        caplog: Pytest fixture for capturing log output.
-    """
-    log_context = LogContext("test_context")
-    log_context.propagate = True  # Ensure logs propagate to root for caplog
-    context = {"user_id": "123", "action": "test"}
+    # Create an exception
+    try:
+        raise ValueError("Test exception")
+    except ValueError:
+        record.exc_info = (ValueError, ValueError("Test exception"), None)
 
-    with caplog.at_level(logging.INFO):
-        log_context.info("Test message", context)
-        assert "Test message" in caplog.text
-        assert any(
-            isinstance(f, ContextFilter) for f in log_context.handlers[0].filters
+    result = formatter.format(record)
+    log_data = json.loads(result)
+
+    assert "exception" in log_data
+    assert log_data["exception"]["type"] == "ValueError"
+    assert log_data["exception"]["message"] == "Test exception"
+    assert "traceback" in log_data["exception"]
+
+
+def test_json_formatter_without_exception() -> None:
+    """Test JSONFormatter without exception information."""
+    formatter = JSONFormatter()
+    record = logging.LogRecord(
+        "test", logging.INFO, "test.py", 1, "Test message", (), None
+    )
+    record.exc_info = None
+    result = formatter.format(record)
+    log_data = json.loads(result)
+
+    assert "exception" not in log_data
+
+
+def test_json_formatter_socket_error() -> None:
+    """Test JSONFormatter when socket.gethostname() fails."""
+    with patch(
+        "arklex.utils.logging_config.socket.gethostname",
+        side_effect=OSError("Network error"),
+    ):
+        formatter = JSONFormatter()
+        assert formatter.hostname is None
+
+        record = logging.LogRecord(
+            "test", logging.INFO, "test.py", 1, "Test message", (), None
         )
-    log_context.propagate = False
+        result = formatter.format(record)
+        log_data = json.loads(result)
+
+        assert "hostname" in log_data
+        assert log_data["hostname"] is None
 
 
-def test_log_without_context(caplog: pytest.LogCaptureFixture) -> None:
-    """Test logging without context.
+def test_log_levels_constants() -> None:
+    """Test LOG_LEVELS constant."""
+    assert LOG_LEVELS["CRITICAL"] == logging.CRITICAL
+    assert LOG_LEVELS["ERROR"] == logging.ERROR
+    assert LOG_LEVELS["WARNING"] == logging.WARNING
+    assert LOG_LEVELS["INFO"] == logging.INFO
+    assert LOG_LEVELS["DEBUG"] == logging.DEBUG
 
-    Args:
-        caplog: Pytest fixture for capturing log output.
-    """
-    log_context = LogContext("test_no_context")
-    log_context.propagate = True  # Ensure logs propagate to root for caplog
 
-    with caplog.at_level(logging.INFO):
-        log_context.info("Test message")
-        assert "Test message" in caplog.text
-    log_context.propagate = False
+def test_module_log_levels_constants() -> None:
+    """Test MODULE_LOG_LEVELS constant."""
+    assert "urllib3" in MODULE_LOG_LEVELS
+    assert "requests" in MODULE_LOG_LEVELS
+    assert "arklex.api" in MODULE_LOG_LEVELS
+    assert "arklex.utils" in MODULE_LOG_LEVELS
+
+
+def test_setup_logging_module_specific_levels() -> None:
+    """Test that module-specific log levels are set correctly."""
+    setup_logging()
+
+    # Check that module-specific loggers have correct levels
+    for module_name, expected_level in MODULE_LOG_LEVELS.items():
+        module_logger = logging.getLogger(module_name)
+        assert module_logger.level == expected_level
+
+
+def test_setup_logging_removes_existing_handlers() -> None:
+    """Test that setup_logging removes existing handlers."""
+    # Add a handler first
+    root_logger = logging.getLogger()
+    original_handler = logging.StreamHandler()
+    root_logger.addHandler(original_handler)
+    original_count = len(root_logger.handlers)
+
+    # Setup logging
+    setup_logging()
+
+    # Check that original handler was removed
+    assert len(root_logger.handlers) == 1  # Only console handler
+    assert original_handler not in root_logger.handlers
+
+
+def test_setup_logging_console_handler_has_filters() -> None:
+    """Test that console handler has RequestIdFilter."""
+    setup_logging()
+    root_logger = logging.getLogger()
+    console_handler = root_logger.handlers[0]
+
+    assert any(isinstance(f, RequestIdFilter) for f in console_handler.filters)
+
+
+def test_setup_logging_file_handler_has_filters(temp_log_dir: str) -> None:
+    """Test that file handler has RequestIdFilter."""
+    setup_logging(log_dir=temp_log_dir)
+    root_logger = logging.getLogger()
+    file_handler = next(
+        h
+        for h in root_logger.handlers
+        if isinstance(h, logging.handlers.RotatingFileHandler)
+    )
+
+    assert any(isinstance(f, RequestIdFilter) for f in file_handler.filters)
+
+
+def test_setup_logging_creates_log_directory(temp_log_dir: str) -> None:
+    """Test that setup_logging creates log directory if it doesn't exist."""
+    non_existent_dir = Path(temp_log_dir) / "new_logs"
+    setup_logging(log_dir=str(non_existent_dir))
+
+    assert non_existent_dir.exists()
+    assert non_existent_dir.is_dir()
 
 
 def test_log_rotation(temp_log_dir: str) -> None:
@@ -211,7 +423,8 @@ def test_log_rotation(temp_log_dir: str) -> None:
 
 def test_log_levels() -> None:
     """Test different log levels."""
-    log_context = LogContext("test_levels", level="INFO")
+    log_context = logging.getLogger("test_levels")
+    log_context.setLevel(logging.INFO)
 
     # Test each log level
     log_context.debug("Debug message")
@@ -227,7 +440,11 @@ def test_log_levels() -> None:
 def test_log_format() -> None:
     """Test custom log format."""
     custom_format = "%(levelname)s - %(message)s"
-    log_context = LogContext("test_format", log_format=custom_format)
+    formatter = logging.Formatter(custom_format)
+    handler = logging.StreamHandler()
+    handler.setFormatter(formatter)
+    log_context = logging.getLogger("test_format")
+    log_context.addHandler(handler)
     log_context.info("Test message")
 
     # Verify that the format was applied

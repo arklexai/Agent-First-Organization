@@ -124,7 +124,12 @@ class JSONFormatter(logging.Formatter):
         """
         super().__init__()
         self.include_hostname = include_hostname
-        self.hostname = socket.gethostname() if include_hostname else None
+        self.hostname = None
+        if include_hostname:
+            try:
+                self.hostname = socket.gethostname()
+            except Exception:
+                pass
 
     def format(self, record: logging.LogRecord) -> str:
         """Format the log record as JSON.
