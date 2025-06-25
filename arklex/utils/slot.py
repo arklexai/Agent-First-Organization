@@ -124,6 +124,7 @@ class Slot(BaseModel):
     required: bool = Field(default=False)
     verified: bool = Field(default=False)
     items: Dict | None = None
+    target: str | None = None
 
 
 class SlotInput(BaseModel):

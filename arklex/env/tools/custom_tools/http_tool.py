@@ -14,11 +14,26 @@ from arklex.utils.exceptions import ToolExecutionError
 from arklex.utils.logging_utils import LogContext
 
 log_context = LogContext(__name__)
-
+slots = [
+    {
+        "name": "cat breed",
+        "type": "str",
+        "description": "Type of cat breed",
+        "prompt": "hello, how are you?",
+        "required": True,
+    },
+    {
+        "name": "cat age",
+        "type": "int",
+        "description": "Age of the cat",
+        "prompt": "what is the age of the cat?",
+        "required": True,
+    }
+]
 
 @register_tool(
     desc="Make HTTP requests to external APIs and handle responses",
-    slots=[],
+    slots=slots,
     outputs=["response"],
     isResponse=False,
 )
@@ -30,23 +45,38 @@ def http_tool(**kwargs: Dict[str, Any]) -> str:
         slots = kwargs.get("slots")  # This should be a list of Slot objects or dicts
         log_context.info(f"Slots: {slots}")
         if slots:
-            # Build a dict from slot names and values
-            slot_body = {}
+            # Process slots based on their target
             for slot in slots:
                 # Handle both Slot objects and dictionaries
+                slot_name = None
+                slot_value = None
+                slot_target = None
+                
                 if hasattr(slot, 'name') and hasattr(slot, 'value'):
                     # Slot object (Pydantic model)
-                    if slot.value is not None:
-                        slot_body[slot.name] = slot.value
+                    slot_name = slot.name
+                    slot_value = slot.value
+                    slot_target = getattr(slot, 'target', None)
                 elif isinstance(slot, dict):
                     # Dictionary format
-                    if slot.get("value") is not None:
-                        slot_body[slot["name"]] = slot.get("value")
-            
-            # Merge with any existing params.body (params.body takes precedence if keys overlap)
-            if params.body:
-                slot_body.update(params.body)
-            params.body = slot_body
+                    slot_name = slot.get("name")
+                    slot_value = slot.get("value")
+                    slot_target = slot.get("target")
+                
+                if slot_name and slot_value is not None and slot_target:
+                    if slot_target == "params":
+                        # Add to params
+                        if not params.params:
+                            params.params = {}
+                        params.params[slot_name] = slot_value
+                        log_context.info(f"Added slot '{slot_name}' with value '{slot_value}' to params")
+                    elif slot_target == "body":
+                        # Add to body
+                        if not params.body:
+                            params.body = {}
+                        params.body[slot_name] = slot_value
+                        log_context.info(f"Added slot '{slot_name}' with value '{slot_value}' to body")
+                    # If target is None, ignore the slot
 
         log_context.info(
             f"Making a {params.method} request to {params.endpoint}, with body: {params.body} and params: {params.params}"
