@@ -10,7 +10,7 @@ import os
 from datetime import datetime, timedelta
 import requests
 from arklex.utils.mysql import mysql_pool
-from qa_bot_resource.types import ResourceAuthGroup
+from arklex.env.tools.types import ResourceAuthGroup
 from pydantic import BaseModel
 from arklex.utils.logging_utils import LogContext
 
