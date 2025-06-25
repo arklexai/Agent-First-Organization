@@ -257,11 +257,27 @@ class Tool:
         slot_verification: bool = False
         reason: str = ""
         response: str = ""  # Initialize response variable
-        # if this tool has been called before, then load the previous slots status
+        
+        # Check if we need to reset slots for a new node
+        # If this tool has been called before, check if the current slots are different
+        # from the previously stored slots (indicating a different node)
         if state.slots.get(self.name):
-            self.slots = state.slots[self.name]
+            previous_slots = state.slots[self.name]
+            current_slot_names = {slot.name for slot in self.slots}
+            previous_slot_names = {slot.name for slot in previous_slots}
+            
+            # If the slot configurations are different, reset to current node's slots
+            if current_slot_names != previous_slot_names:
+                log_context.info(f"Slot configuration changed from {previous_slot_names} to {current_slot_names}, resetting slots")
+                # Reset slots to the current node's configuration
+                state.slots[self.name] = self.slots.copy()
+            else:
+                # Load previous slots if they're from the same node
+                self.slots = state.slots[self.name]
         else:
-            state.slots[self.name] = self.slots
+            # First time calling this tool, store the current slots
+            state.slots[self.name] = self.slots.copy()
+            
         # init slot values saved in default slots
         self._init_slots(state)
         # do slotfilling
