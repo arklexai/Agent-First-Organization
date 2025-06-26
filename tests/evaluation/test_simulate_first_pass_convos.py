@@ -119,6 +119,27 @@ class TestSimulateFirstPassConvos:
         # Assert
         assert result == ""
 
+    def test_join_messages_with_bot_follow_up(self) -> None:
+        """Test join_messages function with bot_follow_up messages that should be skipped."""
+        # Setup
+        messages: List[Dict[str, str]] = [
+            {"role": "user", "content": "Hello"},
+            {"role": "bot_follow_up", "content": "This should be skipped"},
+            {"role": "assistant", "content": "Hi there!"},
+            {"role": "bot_follow_up", "content": "This should also be skipped"},
+            {"role": "user", "content": "How are you?"},
+        ]
+
+        # Execute
+        result = join_messages(messages)
+
+        # Assert
+        assert "user: Hello" in result
+        assert "bot_follow_up: This should be skipped" not in result
+        assert "assistant: Hi there!" in result
+        assert "bot_follow_up: This should also be skipped" not in result
+        assert "user: How are you?" in result
+
     @patch(
         "arklex.evaluation.simulate_first_pass_convos.chatgpt_chatbot",
         return_value="dummy",
@@ -449,3 +470,178 @@ class TestSimulateFirstPassConvos:
         )
         assert len(conversations) == 2
         assert isinstance(errors, list)
+
+    @patch("arklex.evaluation.simulate_first_pass_convos.conversation")
+    @patch("arklex.evaluation.simulate_first_pass_convos.flip_hist")
+    @patch("arklex.evaluation.simulate_first_pass_convos.filter_convo")
+    def test_generate_conversations_with_thread_pool(
+        self, mock_filter_convo: Mock, mock_flip_hist: Mock, mock_conversation: Mock
+    ) -> None:
+        """Test generate_conversations function with ThreadPoolExecutor logic."""
+        # Setup
+        model_api = "http://test.api"
+        profiles = ["profile1", "profile2"]
+        goals = ["goal1", "goal2"]
+        attributes_list = [{"attr1": "val1"}, {"attr2": "val2"}]
+        system_inputs = [{"sys1": "val1"}, {"sys2": "val2"}]
+        summary = "Test summary"
+        model_params = {"param1": "val1"}
+        synthetic_data_params = {"max_turns": 5}
+        env_config = {"client": Mock()}
+
+        # Mock conversation return values
+        mock_conversation.side_effect = [
+            ([{"role": "user", "content": "test1"}], True),
+            ([{"role": "user", "content": "test2"}], False),
+        ]
+
+        # Mock filter_convo and flip_hist
+        mock_filter_convo.return_value = [{"role": "user", "content": "filtered"}]
+        mock_flip_hist.return_value = [{"role": "assistant", "content": "flipped"}]
+
+        # Execute
+        result = generate_conversations(
+            model_api,
+            profiles,
+            goals,
+            attributes_list,
+            system_inputs,
+            summary,
+            model_params,
+            synthetic_data_params,
+            env_config,
+        )
+
+        # Assert
+        assert len(result) == 2
+        assert result[0]["id"] == 0
+        assert result[0]["profile"] == "profile1"
+        assert result[0]["goal"] == "goal1"
+        assert result[0]["goal_completion"] is True
+        assert result[1]["id"] == 1
+        assert result[1]["profile"] == "profile2"
+        assert result[1]["goal"] == "goal2"
+        assert result[1]["goal_completion"] is False
+
+        # Verify conversation was called for each input combination
+        assert mock_conversation.call_count == 2
+        assert mock_filter_convo.call_count == 2
+        assert mock_flip_hist.call_count == 2
+
+    @patch("arklex.evaluation.simulate_first_pass_convos.build_profile")
+    @patch("arklex.evaluation.simulate_first_pass_convos.generate_conversations")
+    @patch("builtins.open", new_callable=mock_open)
+    @patch("os.makedirs")
+    @patch("json.dump")
+    def test_simulate_conversations_first_pass_task(
+        self,
+        mock_json_dump: Mock,
+        mock_makedirs: Mock,
+        mock_file: Mock,
+        mock_generate_conversations: Mock,
+        mock_build_profile: Mock,
+    ) -> None:
+        """Test simulate_conversations function with first_pass task."""
+        # Setup
+        model_api = "http://test.api"
+        model_params = {"param1": "val1"}
+        synthetic_data_params = {"num_convos": 2}
+        config = {
+            "task": "first_pass",
+            "output_dir": "/test/output",
+            "intro": "Test intro",
+            "workers": ["worker1"],
+            "tools": ["tool1"],
+            "client": Mock(),
+        }
+
+        # Mock build_profile return values
+        mock_build_profile.return_value = (
+            ["profile1", "profile2"],
+            ["goal1", "goal2"],
+            [{"attr1": "val1"}, {"attr2": "val2"}],
+            [{"sys1": "val1"}, {"sys2": "val2"}],
+            ["label1", "label2"],
+        )
+
+        # Mock generate_conversations return value
+        mock_generate_conversations.return_value = [
+            {"id": 0, "convo": [{"role": "user", "content": "test"}]},
+            {"id": 1, "convo": [{"role": "assistant", "content": "response"}]},
+        ]
+
+        # Execute
+        conversations, goals = simulate_conversations(
+            model_api, model_params, synthetic_data_params, config
+        )
+
+        # Assert
+        assert len(conversations) == 2
+        assert goals == ["goal1", "goal2"]
+
+        # Verify build_profile was called
+        mock_build_profile.assert_called_once_with(synthetic_data_params, config)
+
+        # Verify directory creation and file saving
+        mock_makedirs.assert_called_once_with(
+            "/test/output/simulate_data", exist_ok=True
+        )
+        assert mock_json_dump.call_count == 5  # 5 files saved
+
+    @patch("arklex.evaluation.simulate_first_pass_convos.generate_conversations")
+    @patch(
+        "builtins.open", new_callable=mock_open, read_data='["profile1", "profile2"]'
+    )
+    @patch("json.load")
+    def test_simulate_conversations_simulate_conv_only_task(
+        self,
+        mock_json_load: Mock,
+        mock_file: Mock,
+        mock_generate_conversations: Mock,
+    ) -> None:
+        """Test simulate_conversations function with simulate_conv_only task."""
+        # Setup
+        model_api = "http://test.api"
+        model_params = {"param1": "val1"}
+        synthetic_data_params = {"num_convos": 2}
+        config = {
+            "task": "simulate_conv_only",
+            "output_dir": "/test/output",
+            "intro": "Test intro",
+            "workers": ["worker1"],
+            "tools": ["tool1"],
+            "client": Mock(),
+        }
+
+        # Mock json.load return values for different files
+        mock_json_load.side_effect = [
+            ["profile1", "profile2"],  # profiles.json
+            ["goal1", "goal2"],  # goals.json
+            [{"attr1": "val1"}, {"attr2": "val2"}],  # attributes_list.json
+            [{"sys1": "val1"}, {"sys2": "val2"}],  # system_inputs.json
+            ["label1", "label2"],  # labels_list.json
+        ]
+
+        # Mock generate_conversations return value
+        mock_generate_conversations.return_value = [
+            {"id": 0, "convo": [{"role": "user", "content": "test"}]},
+            {"id": 1, "convo": [{"role": "assistant", "content": "response"}]},
+        ]
+
+        # Execute
+        conversations, goals = simulate_conversations(
+            model_api, model_params, synthetic_data_params, config
+        )
+
+        # Assert
+        assert len(conversations) == 2
+        assert goals == ["goal1", "goal2"]
+
+        # Verify json.load was called 5 times (for 5 files)
+        assert mock_json_load.call_count == 5
+
+        # Verify generate_conversations was called with loaded data
+        mock_generate_conversations.assert_called_once()
+        call_args = mock_generate_conversations.call_args
+        assert call_args[0][1] == ["profile1", "profile2"]  # profiles
+        assert call_args[0][2] == ["goal1", "goal2"]  # goals

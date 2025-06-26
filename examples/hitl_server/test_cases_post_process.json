@@ -1,0 +1,54 @@
+[
+    {
+        "test_id": 1,
+        "category": "no_live_chat",
+        "user_utterance": "Where can I find more information about robot rentals?",
+        "expect_live_chat": false
+      },
+      {
+        "test_id": 2,
+        "category": "no_live_chat",
+        "user_utterance": "What is the estimated tariff cost for ADAM?",
+        "expect_live_chat": false
+      },
+      {
+          "test_id": 3,
+          "category": "no_live_chat",
+          "user_utterance": "What kind of AI model does ADAM use to do his job?",
+          "expect_live_chat": false
+        },
+      {
+        "test_id": 4,
+        "category": "no_live_chat_not_relevant",
+        "user_utterance": "IKikkkkkiikkkkkkikkk7kikikikkki",
+        "expect_live_chat": false,
+        "expect_log_message": "User's question is not relevant. Skipping live chat initiation."
+    },
+    {
+        "test_id": 5,
+        "category": "no_live_chat_not_relevant",
+        "user_utterance": "CHAT GPT IS THE BEST ROBOT",
+        "expect_live_chat": false,
+        "expect_log_message": "User's question is not relevant. Skipping live chat initiation."
+    },
+    {
+      "test_id": 6,
+      "category": "live_chat_triggered",
+      "user_utterance": "Where are the robots manufactured?",
+      "expect_live_chat": true
+    },
+      {
+        "test_id": 7,
+        "category": "live_chat_triggered",
+        "user_utterance": "How much would a Medbot cost",
+        "expect_live_chat": true
+      },
+      {
+        "test_id": 8,
+        "category": "live_chat_triggered",
+        "user_utterance":  "Is Medbot certified for use in assisted living facilities with HIPAA considerations?",
+        "expect_live_chat": true
+      }
+    
+  ]
+  

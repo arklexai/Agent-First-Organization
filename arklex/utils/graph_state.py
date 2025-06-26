@@ -211,6 +211,7 @@ class Metadata(BaseModel):
         turn_id (int): Current turn number in the conversation.
         hitl (Optional[str]): Human-in-the-loop intervention status.
         timing (Timing): Timing information for the session.
+        attempts (Optional[int]): Number of attempts for HITL MC logic.
     """
 
     # TODO: May need to initialize the metadata(i.e. chat_id, turn_id) based on the conversation database
@@ -218,6 +219,7 @@ class Metadata(BaseModel):
     turn_id: int = 0
     hitl: Optional[str] = Field(default=None)
     timing: Timing = Field(default_factory=Timing)
+    attempts: Optional[int] = None
 
 
 class MessageState(BaseModel):

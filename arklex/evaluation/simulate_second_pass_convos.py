@@ -121,7 +121,7 @@ def get_labeled_convos(
     return convos
 
 
-if __name__ == "__main__":
+def main():
     with open("temp_files/p1_sample_convos_labeled.json") as f:
         data: List[Dict[str, Any]] = json.load(f)
 
@@ -142,3 +142,7 @@ if __name__ == "__main__":
 
     with open("files/p2_sample_convos.json", "w") as f:
         json.dump(labeled_convos, f, indent=5)
+
+
+if __name__ == "__main__":
+    main()

@@ -141,16 +141,16 @@ class ModelService:
             ValidationError: If input validation fails
             ModelError: If model processing fails
         """
-        if not text:
+        if not text or not text.strip():
             log_context.error(
-                "Text cannot be empty",
+                "Text cannot be empty or whitespace-only",
                 extra={
                     "text": text,
                     "operation": "text_processing",
                 },
             )
             raise ValidationError(
-                "Text cannot be empty",
+                "Text cannot be empty or whitespace-only",
                 details={
                     "text": text,
                     "operation": "text_processing",

@@ -756,12 +756,6 @@ So the taskgraph to handle these two cases is shown below:
       "fixed_args": { "access_token": "<access_token>" }
     },
     {
-      "id": "1437160f-6036-4fc9-99db-0e45afabd03c",
-      "name": "find_owner_by_owner_id",
-      "path": "hubspot.find_owner_by_owner_id",
-      "fixed_args": { "access_token": "<access_token>" }
-    },
-    {
       "id": "11860b97-dfcf-4f1d-9e44-8767c50fd371",
       "name": "find_owner_id_by_contact_id",
       "path": "hubspot.find_owner_id_by_contact_id",

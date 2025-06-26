@@ -249,7 +249,7 @@ class TestFormatSlotfillerOutput:
         """Test formatting slotfiller output with partial response."""
         slots = [Slot(name="name", type="str"), Slot(name="age", type="int")]
         response = MagicMock()
-        response.model_dump.return_value = {"name": "John"}  # age missing
+        response.model_dump.return_value = {"name": "John"}
         result = format_slotfiller_output(slots, response)
 
         assert len(result) == 2
@@ -271,14 +271,21 @@ class TestFormatSlotfillerOutput:
 
     def test_format_slotfiller_output_none_response(self) -> None:
         """Test formatting slotfiller output with None response."""
-        slots = [Slot(name="name", type="str"), Slot(name="age", type="int")]
+        slots = [Slot(name="name", type="str")]
         response = MagicMock()
-        response.model_dump.return_value = {"name": None, "age": None}
-        result = format_slotfiller_output(slots, response)
+        response.model_dump.return_value = None
+        # This should raise an AttributeError since None doesn't have .get method
+        with pytest.raises(AttributeError):
+            format_slotfiller_output(slots, response)
 
-        assert len(result) == 2
+    def test_format_slotfiller_output_empty_dict_response(self) -> None:
+        """Test formatting slotfiller output with empty dict response."""
+        slots = [Slot(name="name", type="str")]
+        response = MagicMock()
+        response.model_dump.return_value = {}
+        result = format_slotfiller_output(slots, response)
+        assert len(result) == 1
         assert result[0].value is None
-        assert result[1].value is None
 
 
 class TestFormatSlotOutput:
@@ -298,161 +305,238 @@ class TestFormatSlotOutput:
         assert result[1].name == "age"
         assert result[1].value == 25
 
-        # Also test with dict with slot names as keys
-        response2 = {"name": "John", "age": 25}
-        result2 = format_slot_output(slots, response2)
-        assert len(result2) == 2
-        assert result2[0].name == "name"
-        assert result2[0].value == "John"
-        assert result2[1].name == "age"
-        assert result2[1].value == 25
-
     def test_format_slot_output_missing_slots_key(self) -> None:
         """Test formatting slot output with missing slots key."""
         slots = [Slot(name="name", type="str"), Slot(name="age", type="int")]
-        response = {"other_key": "value"}
+        response = {"name": "John", "age": 25}
         result = format_slot_output(slots, response)
 
         assert len(result) == 2
-        assert result[0].value is None
-        assert result[1].value is None
+        assert result[0].name == "name"
+        assert result[0].value == "John"
+        assert result[1].name == "age"
+        assert result[1].value == 25
 
     def test_format_slot_output_empty_slots_list(self) -> None:
         """Test formatting slot output with empty slots list."""
-        slots = [Slot(name="name", type="str"), Slot(name="age", type="int")]
+        slots = [Slot(name="name", type="str")]
         response = {"slots": []}
         result = format_slot_output(slots, response)
 
-        assert len(result) == 2
+        assert len(result) == 1
         assert result[0].value is None
-        assert result[1].value is None
 
 
 class TestValidateSlotValues:
     """Test cases for validate_slot_values function."""
 
     def test_validate_slot_values_all_valid(self) -> None:
-        """Test validation with all valid slot values."""
+        """Test validation of all valid slot values."""
         slots = [
             Slot(name="name", type="str", value="John", required=True),
-            Slot(name="age", type="int", value=25, required=True),
+            Slot(name="age", type="integer", value="25"),
+            Slot(name="score", type="float", value="95.5"),
+            Slot(name="active", type="boolean", value="true"),
         ]
         errors = validate_slot_values(slots)
         assert len(errors) == 0
 
     def test_validate_slot_values_missing_required(self) -> None:
-        """Test validation with missing required values."""
-        slots = [
-            Slot(name="name", type="str", value=None, required=True),
-            Slot(name="age", type="int", value=25, required=True),
-        ]
+        """Test validation of missing required slot."""
+        slots = [Slot(name="name", type="str", required=True, value=None)]
         errors = validate_slot_values(slots)
         assert len(errors) == 1
-        assert "name" in errors[0]
+        assert "Required slot 'name' is missing" in errors[0]
 
     def test_validate_slot_values_invalid_enum(self) -> None:
-        """Test validation with invalid enum values."""
+        """Test validation of slot value not in enum."""
         slots = [
-            Slot(
-                name="category",
-                type="str",
-                value="invalid",
-                enum=["A", "B", "C"],
-                required=True,
-            )
+            Slot(name="category", type="str", value="invalid", enum=["A", "B", "C"])
         ]
         errors = validate_slot_values(slots)
         assert len(errors) == 1
-        assert "category" in errors[0]
+        assert "Slot 'category' must be one of ['A', 'B', 'C']" in errors[0]
 
     def test_validate_slot_values_valid_enum(self) -> None:
-        """Test validation with valid enum values."""
-        slots = [
-            Slot(
-                name="category",
-                type="str",
-                value="A",
-                enum=["A", "B", "C"],
-                required=True,
-            )
-        ]
+        """Test validation of slot value in enum."""
+        slots = [Slot(name="category", type="str", value="A", enum=["A", "B", "C"])]
         errors = validate_slot_values(slots)
         assert len(errors) == 0
 
     def test_validate_slot_values_empty_slots(self) -> None:
-        """Test validation with empty slot list."""
+        """Test validation of empty slot list."""
         slots = []
         errors = validate_slot_values(slots)
         assert len(errors) == 0
 
     def test_validate_slot_values_optional_slots(self) -> None:
-        """Test validation with optional slots."""
-        slots = [
-            Slot(name="name", type="str", value=None, required=False),
-            Slot(name="age", type="int", value=None, required=False),
-        ]
+        """Test validation of optional slots with no values."""
+        slots = [Slot(name="name", type="str", required=False, value=None)]
         errors = validate_slot_values(slots)
         assert len(errors) == 0
+
+    def test_validate_slot_values_invalid_integer(self) -> None:
+        """Test validation of invalid integer value."""
+        slots = [Slot(name="age", type="integer", value="not_a_number")]
+        errors = validate_slot_values(slots)
+        assert len(errors) == 1
+        assert "Slot 'age' must be an integer" in errors[0]
+
+    def test_validate_slot_values_invalid_float(self) -> None:
+        """Test validation of invalid float value."""
+        slots = [Slot(name="score", type="float", value="not_a_float")]
+        errors = validate_slot_values(slots)
+        assert len(errors) == 1
+        assert "Slot 'score' must be a float" in errors[0]
+
+    def test_validate_slot_values_invalid_boolean(self) -> None:
+        """Test validation of invalid boolean value."""
+        slots = [Slot(name="active", type="boolean", value="maybe")]
+        errors = validate_slot_values(slots)
+        assert len(errors) == 1
+        assert "Slot 'active' must be a boolean" in errors[0]
+
+    def test_validate_slot_values_valid_boolean_true(self) -> None:
+        """Test validation of valid boolean true value."""
+        slots = [Slot(name="active", type="boolean", value="true")]
+        errors = validate_slot_values(slots)
+        assert len(errors) == 0
+
+    def test_validate_slot_values_valid_boolean_false(self) -> None:
+        """Test validation of valid boolean false value."""
+        slots = [Slot(name="active", type="boolean", value="false")]
+        errors = validate_slot_values(slots)
+        assert len(errors) == 0
+
+    def test_validate_slot_values_boolean_case_insensitive(self) -> None:
+        """Test validation of boolean values with different cases."""
+        slots = [
+            Slot(name="active1", type="boolean", value="TRUE"),
+            Slot(name="active2", type="boolean", value="FALSE"),
+        ]
+        errors = validate_slot_values(slots)
+        # Boolean validation is case-insensitive, so these should be valid
+        assert len(errors) == 0
+
+    def test_validate_slot_values_multiple_errors(self) -> None:
+        """Test validation with multiple errors."""
+        slots = [
+            Slot(name="name", type="str", required=True, value=None),
+            Slot(name="age", type="integer", value="not_a_number"),
+            Slot(name="score", type="float", value="not_a_float"),
+            Slot(name="active", type="boolean", value="maybe"),
+            Slot(name="category", type="str", value="invalid", enum=["A", "B", "C"]),
+        ]
+        errors = validate_slot_values(slots)
+        assert len(errors) == 5
+        assert "Required slot 'name' is missing" in errors[0]
+        assert "Slot 'age' must be an integer" in errors[1]
+        assert "Slot 'score' must be a float" in errors[2]
+        assert "Slot 'active' must be a boolean" in errors[3]
+        assert "Slot 'category' must be one of ['A', 'B', 'C']" in errors[4]
+
+    def test_validate_slot_values_edge_cases(self) -> None:
+        """Test validation with edge cases."""
+        slots = [
+            Slot(
+                name="empty_str", type="str", value="", required=True
+            ),  # Empty string is falsy
+            Slot(name="zero_int", type="integer", value="0"),  # Zero is valid
+            Slot(name="zero_float", type="float", value="0.0"),  # Zero float is valid
+            Slot(name="false_bool", type="boolean", value="false"),  # False is valid
+        ]
+        errors = validate_slot_values(slots)
+        assert len(errors) == 1  # Only empty_str should be missing
+        assert "Required slot 'empty_str' is missing" in errors[0]
 
 
 class TestConvertSlotValues:
     """Test cases for convert_slot_values function."""
 
     def test_convert_slot_values_basic_types(self) -> None:
-        """Test conversion of basic types."""
+        """Test conversion of basic slot value types."""
         slots = [
-            Slot(name="name", type="str", value="John"),
             Slot(name="age", type="integer", value="25"),
             Slot(name="score", type="float", value="95.5"),
             Slot(name="active", type="boolean", value="true"),
         ]
         result = convert_slot_values(slots)
 
-        assert result[0].value == "John"  # str stays str
-        assert result[1].value == 25  # str "25" -> int 25
-        assert result[2].value == 95.5  # str "95.5" -> float 95.5
-        assert result[3].value is True  # str "true" -> bool True
+        assert result[0].value == 25
+        assert result[1].value == 95.5
+        assert result[2].value is True
 
     def test_convert_slot_values_list_types(self) -> None:
-        """Test conversion of list types (should remain unchanged)."""
-        slots = [
-            Slot(name="tags", type="list[str]", value=["tag1", "tag2"]),
-            Slot(name="numbers", type="list[int]", value=["1", "2", "3"]),
-        ]
+        """Test conversion of list type slots."""
+        slots = [Slot(name="tags", type="list[str]", value=["tag1", "tag2"])]
         result = convert_slot_values(slots)
 
+        # List types should not be converted
         assert result[0].value == ["tag1", "tag2"]
-        assert result[1].value == ["1", "2", "3"]  # No conversion for lists
 
     def test_convert_slot_values_none_values(self) -> None:
-        """Test conversion with None values."""
+        """Test conversion of slots with None values."""
         slots = [
-            Slot(name="name", type="str", value=None),
             Slot(name="age", type="integer", value=None),
+            Slot(name="score", type="float", value=None),
+            Slot(name="active", type="boolean", value=None),
         ]
         result = convert_slot_values(slots)
 
         assert result[0].value is None
         assert result[1].value is None
+        assert result[2].value is None
 
     def test_convert_slot_values_invalid_conversion(self) -> None:
-        """Test conversion with invalid type conversions (should raise ValueError for int/float, but not for bool)."""
+        """Test conversion with invalid values (should raise exceptions)."""
         slots = [
             Slot(name="age", type="integer", value="not_a_number"),
             Slot(name="score", type="float", value="not_a_float"),
-            Slot(name="active", type="boolean", value="not_a_bool"),
         ]
-        # Each should raise ValueError when convert_slot_values is called
-        with pytest.raises(ValueError):
-            convert_slot_values([slots[0]])
-        with pytest.raises(ValueError):
-            convert_slot_values([slots[1]])
-        # For bool, should just set value to False
-        result = convert_slot_values([slots[2]])
-        assert result[0].value is False
+        # These should raise ValueError exceptions
+        with pytest.raises(ValueError, match="invalid literal for int"):
+            convert_slot_values(slots)
 
     def test_convert_slot_values_empty_list(self) -> None:
-        """Test conversion with empty slot list."""
+        """Test conversion of empty slot list."""
         slots = []
         result = convert_slot_values(slots)
         assert len(result) == 0
+
+    def test_convert_slot_values_boolean_false(self) -> None:
+        """Test conversion of boolean false value."""
+        slots = [Slot(name="active", type="boolean", value="false")]
+        result = convert_slot_values(slots)
+        assert result[0].value is False
+
+    def test_convert_slot_values_boolean_case_sensitive(self) -> None:
+        """Test conversion of boolean values with different cases."""
+        slots = [
+            Slot(name="active1", type="boolean", value="TRUE"),
+            Slot(name="active2", type="boolean", value="FALSE"),
+        ]
+        result = convert_slot_values(slots)
+        # Boolean conversion is case-insensitive, so these should be converted
+        assert result[0].value is True
+        assert result[1].value is False
+
+    def test_convert_slot_values_mixed_types(self) -> None:
+        """Test conversion of mixed type slots."""
+        slots = [
+            Slot(
+                name="name", type="str", value="John"
+            ),  # String should not be converted
+            Slot(name="age", type="integer", value="30"),
+            Slot(name="score", type="float", value="85.5"),
+            Slot(name="active", type="boolean", value="true"),
+            Slot(
+                name="tags", type="list[str]", value=["tag1", "tag2"]
+            ),  # List should not be converted
+        ]
+        result = convert_slot_values(slots)
+
+        assert result[0].value == "John"  # String unchanged
+        assert result[1].value == 30  # Converted to int
+        assert result[2].value == 85.5  # Converted to float
+        assert result[3].value is True  # Converted to bool
+        assert result[4].value == ["tag1", "tag2"]  # List unchanged

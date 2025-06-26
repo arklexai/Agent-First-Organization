@@ -164,6 +164,17 @@ class Tool:
         """
         self.slotfiller = slotfiller_api
 
+    def init_default_slots(self, default_slots: List[Slot]) -> None:
+        """Initializes the default slots as provided and returns a dictionary of slots which have been populated."""
+        populated_slots: Dict[str:Any] = {}
+        for default_slot in default_slots:
+            populated_slots[default_slot.name] = default_slot.value
+            for slot in self.slots:
+                if slot.name == default_slot.name:
+                    slot.value = default_slot.value
+                    slot.verified = True
+        return populated_slots
+
     def _init_slots(self, state: MessageState) -> None:
         """Initialize slots with default values from the message state.
 
@@ -177,13 +188,7 @@ class Tool:
         log_context.info(f"Default slots are: {default_slots}")
         if not default_slots:
             return
-        response: Dict[str, Any] = {}
-        for default_slot in default_slots:
-            response[default_slot.name] = default_slot.value
-            for slot in self.slots:
-                if slot.name == default_slot.name and default_slot.value:
-                    slot.value = default_slot.value
-                    slot.verified = True
+        response: Dict[str, Any] = self.init_default_slots(default_slots)
         state.function_calling_trajectory.append(
             {
                 "role": "tool",
@@ -466,9 +471,16 @@ class Tool:
         parameters = {
             "type": "object",
             "properties": {},
-            "required": [slot.name for slot in self.slots if slot.required],
+            "required": [
+                slot.name
+                for slot in self.slots
+                if slot.required and not (slot.verified and slot.value)
+            ],
         }
         for slot in self.slots:
+            # If the default slots have been populated and verified, then don't show the slot in the tool definition
+            if slot.verified and slot.value:
+                continue
             if slot.items:
                 parameters["properties"][slot.name] = {
                     "type": "array",

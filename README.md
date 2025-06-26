@@ -63,7 +63,7 @@ Watch the tutorial on [YouTube](https://youtu.be/y1P2Ethvy0I) to learn how to bu
 
 * Create a chatbot config file similar to `customer_service_config.json`.
 * Define chatbot parameters, including role, objectives, domain, introduction, and relevant documents.
-* Specify tasks, workers, and tools to enhance chatbot functionality.
+* Specify tasks, workers, tools, and settings to enhance chatbot functionality.
 * Workers and tools should be pre-defined in arklex/env/workers and arklex/env/tools, respectively.
 
 ### Create Taskgraph and Initialize Worker

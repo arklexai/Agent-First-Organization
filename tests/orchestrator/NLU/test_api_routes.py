@@ -4,6 +4,7 @@ from fastapi import FastAPI
 from fastapi.testclient import TestClient
 from arklex.utils.exceptions import ValidationError
 import arklex.orchestrator.NLU.api.routes as routes
+from unittest.mock import AsyncMock
 
 
 def test_import_routes_module() -> None:
@@ -398,3 +399,131 @@ def test_predict_intent_app_with_others_fallback() -> None:
         response = client.post("/nlu/predict", json=data)
         assert response.status_code == 200
         assert response.json()["intent"] == "others"
+
+
+def test_router_fill_slots_with_client() -> None:
+    """Test the router /fill_slots endpoint using TestClient."""
+    app = create_test_app()
+    app.include_router(routes.router)
+    client = TestClient(app)
+    with patch("arklex.orchestrator.NLU.api.routes.ModelService") as MockModelService:
+        mock_service = MockModelService.return_value
+        # SlotResponse expects 'slot' and 'value' fields
+        mock_service.fill_slots = AsyncMock(
+            return_value={"slot": "user", "value": "John", "confidence": 0.8}
+        )
+        response = client.post(
+            "/fill_slots", params={"text": "my name is John", "intent": "greet"}
+        )
+        assert response.status_code == 200
+        assert response.json()["slot"] == "user"
+        assert response.json()["value"] == "John"
+
+
+def test_router_verify_slots_with_client() -> None:
+    """Test the router /verify_slots endpoint using TestClient."""
+    app = create_test_app()
+    app.include_router(routes.router)
+    client = TestClient(app)
+    with patch("arklex.orchestrator.NLU.api.routes.ModelService") as MockModelService:
+        mock_service = MockModelService.return_value
+        # VerificationResponse expects 'slot' and 'reason' fields
+        mock_service.verify_slots = AsyncMock(
+            return_value={
+                "slot": "user",
+                "reason": "valid",
+                "verified": True,
+                "confidence": 0.8,
+            }
+        )
+        response = client.post(
+            "/verify_slots",
+            params={"text": "my name is John"},
+            json={"slots": {"user": "John"}},
+        )
+        assert response.status_code == 200
+        assert response.json()["slot"] == "user"
+        assert response.json()["reason"] == "valid"
+        assert response.json()["verified"] is True
+
+
+def test_router_predict_intent_with_client() -> None:
+    """Test the router /predict_intent endpoint using TestClient."""
+    app = create_test_app()
+    app.include_router(routes.router)
+    client = TestClient(app)
+    with patch("arklex.orchestrator.NLU.api.routes.ModelService") as MockModelService:
+        mock_service = MockModelService.return_value
+        # IntentResponse expects 'intent' and 'confidence' fields
+        mock_service.predict_intent = AsyncMock(
+            return_value={"intent": "greet", "confidence": 0.9}
+        )
+        response = client.post("/predict_intent", params={"text": "hello"})
+        assert response.status_code == 200
+        assert response.json()["intent"] == "greet"
+        assert response.json()["confidence"] == 0.9
+
+
+# Improve the exception handling test for get_model_service
+@pytest.mark.asyncio
+async def test_get_model_service_exception_with_model_error() -> None:
+    """Test get_model_service when ModelService raises an exception, ensuring ModelError is raised."""
+    with patch("arklex.orchestrator.NLU.api.routes.ModelService") as MockModelService:
+        MockModelService.side_effect = Exception("Model initialization failed")
+        # Mock the LOG_MESSAGES to avoid KeyError
+        with patch(
+            "arklex.orchestrator.NLU.api.routes.LOG_MESSAGES",
+            {"MODEL_INIT_ERROR": "Model initialization error"},
+        ):
+            from arklex.orchestrator.NLU.api.routes import get_model_service
+            from arklex.utils.exceptions import ModelError
+
+            with pytest.raises(ModelError) as exc_info:
+                await get_model_service()
+
+            assert "Failed to initialize model service" in str(exc_info.value)
+            assert exc_info.value.details["error"] == "Model initialization failed"
+            assert exc_info.value.details["operation"] == "initialization"
+
+
+# Test router endpoints with exceptions
+@pytest.mark.asyncio
+async def test_router_predict_intent_exception() -> None:
+    """Test the router /predict_intent endpoint when ModelService raises an exception."""
+    from arklex.orchestrator.NLU.api.routes import (
+        predict_intent as router_predict_intent,
+    )
+
+    with patch("arklex.orchestrator.NLU.api.routes.ModelService") as MockModelService:
+        mock_service = MockModelService.return_value
+        mock_service.predict_intent = AsyncMock(side_effect=Exception("Model error"))
+
+        with pytest.raises(Exception):
+            await router_predict_intent("hello", mock_service)
+
+
+@pytest.mark.asyncio
+async def test_router_fill_slots_exception() -> None:
+    """Test the router /fill_slots endpoint when ModelService raises an exception."""
+    from arklex.orchestrator.NLU.api.routes import fill_slots as router_fill_slots
+
+    with patch("arklex.orchestrator.NLU.api.routes.ModelService") as MockModelService:
+        mock_service = MockModelService.return_value
+        mock_service.fill_slots = AsyncMock(side_effect=Exception("Model error"))
+
+        with pytest.raises(Exception):
+            await router_fill_slots("my name is John", "greet", mock_service)
+
+
+@pytest.mark.asyncio
+async def test_router_verify_slots_exception() -> None:
+    """Test the router /verify_slots endpoint when ModelService raises an exception."""
+    from arklex.orchestrator.NLU.api.routes import verify_slots as router_verify_slots
+
+    with patch("arklex.orchestrator.NLU.api.routes.ModelService") as MockModelService:
+        mock_service = MockModelService.return_value
+        mock_service.verify_slots = AsyncMock(side_effect=Exception("Model error"))
+
+        slots = {"user": "John"}
+        with pytest.raises(Exception):
+            await router_verify_slots("my name is John", slots, mock_service)

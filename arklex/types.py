@@ -47,8 +47,10 @@ class StreamType(str, Enum):
     TEXT = "text"
     # SPEECH is used to denote speech streams
     SPEECH = "speech"
-    # Non-stream types
-    NON_STREAM = ""
+    # OPENAI_REALTIME_AUDIO is used to denote OpenAI real-time audio streams
+    OPENAI_REALTIME_AUDIO = "openai_realtime_audio"
+    # NON_STREAM is used to denote non-stream types
+    NON_STREAM = "non_stream"
 
 
 class EventType(str, Enum):

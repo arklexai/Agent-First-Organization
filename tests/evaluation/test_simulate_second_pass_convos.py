@@ -280,3 +280,36 @@ class TestSimulateSecondPassConvos:
         assert len(result) > 0
         assert mock_chatgpt.call_count == 2
         assert mock_query_chatbot.call_count == 2
+
+    @patch("builtins.open")
+    @patch("json.dump")
+    @patch("arklex.evaluation.simulate_second_pass_convos.get_labeled_convos")
+    @patch("json.load")
+    def test_main_execution_block_with_file_operations(
+        self,
+        mock_json_load: Mock,
+        mock_get_labeled_convos: Mock,
+        mock_json_dump: Mock,
+        mock_open: Mock,
+    ) -> None:
+        """Test the main execution block including file read/write operations."""
+        # Setup mock data
+        mock_data = [{"conversation": [{"role": "user", "content": "Hello"}]}]
+        mock_config = {"intro": "Test company", "client": Mock()}
+        mock_labeled_convos = [[{"role": "user", "content": "Hello"}]]
+
+        # Mock file operations
+        mock_file_context = Mock()
+        mock_open.return_value.__enter__.return_value = mock_file_context
+        mock_json_load.side_effect = [mock_data, mock_config]
+        mock_get_labeled_convos.return_value = mock_labeled_convos
+
+        # Import the module and call main()
+        import arklex.evaluation.simulate_second_pass_convos as module
+
+        module.main()
+
+        # Assert file operations were called correctly
+        assert mock_open.call_count >= 3  # 2 reads, 1 write
+        assert mock_json_load.call_count == 2  # Two files loaded
+        assert mock_json_dump.call_count == 1  # One file written

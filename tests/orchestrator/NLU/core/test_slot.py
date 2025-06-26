@@ -663,7 +663,7 @@ class TestSlotFillerFillSlots:
     def test_fill_slots_with_custom_type(
         self, mock_model_service: ModelService, model_config: Dict[str, Any]
     ) -> None:
-        """Test fill_slots with custom type.
+        """Test fill_slots with custom type parameter.
 
         Args:
             mock_model_service: Mock model service instance.
@@ -682,7 +682,7 @@ class TestSlotFillerFillSlots:
                 required=False,
                 verified=False,
                 items=None,
-            ),
+            )
         ]
         context = "Hello, my name is John"
 
@@ -703,14 +703,138 @@ class TestSlotFillerFillSlots:
                 required=False,
                 verified=False,
                 items=None,
-            ),
+            )
         ]
 
-        result = slot_filler.fill_slots(slots, context, model_config, "custom")
+        result = slot_filler.fill_slots(slots, context, model_config, type="custom")
 
         assert len(result) == 1
         assert result[0].name == "user_name"
         assert result[0].value == "John"
+
+        # Verify the custom type was passed to format_slot_input
         mock_model_service.format_slot_input.assert_called_once_with(
             slots, context, "custom"
         )
+
+    def test_fill_slots_remote_without_api_service(
+        self, mock_model_service: ModelService, model_config: Dict[str, Any]
+    ) -> None:
+        """Test _fill_slots_remote when API service is not configured.
+
+        Args:
+            mock_model_service: Mock model service instance.
+            model_config: Model configuration.
+        """
+        slot_filler = SlotFiller(mock_model_service)  # No API service
+
+        slots = [
+            Slot(
+                name="user_name",
+                type="str",
+                value=None,
+                enum=[],
+                description="User's name",
+                prompt="",
+                required=False,
+                verified=False,
+                items=None,
+            )
+        ]
+        context = "Hello, my name is John"
+
+        with pytest.raises(ValidationError) as exc_info:
+            slot_filler._fill_slots_remote(slots, context, model_config)
+
+        assert "API service not configured" in str(exc_info.value)
+
+    def test_verify_slot_remote_without_api_service(
+        self, mock_model_service: ModelService, model_config: Dict[str, Any]
+    ) -> None:
+        """Test _verify_slot_remote when API service is not configured.
+
+        Args:
+            mock_model_service: Mock model service instance.
+            model_config: Model configuration.
+        """
+        slot_filler = SlotFiller(mock_model_service)  # No API service
+
+        slot = {
+            "name": "user_name",
+            "type": "str",
+            "value": "John",
+            "description": "User's name",
+        }
+        chat_history_str = "Hello, my name is John"
+
+        with pytest.raises(ValidationError) as exc_info:
+            slot_filler._verify_slot_remote(slot, chat_history_str, model_config)
+
+        assert "API service not configured" in str(exc_info.value)
+
+    def test_verify_slot_exception_handling(
+        self, mock_model_service: ModelService, model_config: Dict[str, Any]
+    ) -> None:
+        """Test verify_slot exception handling.
+
+        Args:
+            mock_model_service: Mock model service instance.
+            model_config: Model configuration.
+        """
+        from arklex.utils.exceptions import ArklexError
+
+        slot_filler = SlotFiller(mock_model_service)
+
+        slot = {
+            "name": "user_name",
+            "type": "str",
+            "value": "John",
+            "description": "User's name",
+        }
+        chat_history_str = "Hello, my name is John"
+
+        # Mock _verify_slot_local to raise an exception
+        with patch.object(slot_filler, "_verify_slot_local") as mock_verify:
+            mock_verify.side_effect = Exception("Test error")
+
+            with pytest.raises(ArklexError) as exc_info:
+                slot_filler.verify_slot(slot, chat_history_str, model_config)
+
+            assert "Operation failed in verify_slot" in str(exc_info.value)
+
+    def test_fill_slots_exception_handling(
+        self, mock_model_service: ModelService, model_config: Dict[str, Any]
+    ) -> None:
+        """Test fill_slots exception handling.
+
+        Args:
+            mock_model_service: Mock model service instance.
+            model_config: Model configuration.
+        """
+        from arklex.utils.exceptions import ArklexError
+
+        slot_filler = SlotFiller(mock_model_service)
+
+        slots = [
+            Slot(
+                name="user_name",
+                type="str",
+                value=None,
+                enum=[],
+                description="User's name",
+                prompt="",
+                required=False,
+                verified=False,
+                items=None,
+            )
+        ]
+        context = "Hello, my name is John"
+
+        # Mock _fill_slots_local to raise an exception
+        with patch.object(slot_filler, "_fill_slots_local") as mock_fill:
+            mock_fill.side_effect = Exception("Test error")
+
+            with pytest.raises(ArklexError) as exc_info:
+                slot_filler.fill_slots(slots, context, model_config)
+
+            assert "Operation failed in fill_slots" in str(exc_info.value)

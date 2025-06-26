@@ -175,5 +175,6 @@
         }
     ],
     "nluapi": "",
-    "slotfillapi": ""
+    "slotfillapi": "",
+    "settings": {"hitl_proposal": true}
 }

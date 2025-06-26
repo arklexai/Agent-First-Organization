@@ -536,6 +536,224 @@ class TestDocumentLoader:
         is_valid = document_loader._validate_instruction_document(invalid_doc)
         assert is_valid == expected
 
+    def test_load_document_without_read_text_method_fallback(
+        self, sample_document: Dict
+    ) -> None:
+        """Test load_document when Path doesn't have read_text method."""
+        with tempfile.NamedTemporaryFile(mode="w", suffix=".json", delete=False) as f:
+            json.dump(sample_document, f)
+            temp_path = f.name
+
+        try:
+            # Create a Path-like object without read_text method
+            class NoReadTextPath:
+                def __init__(self, path):
+                    self.path = path
+
+                def exists(self):
+                    return True
+
+                def __str__(self):
+                    return self.path
+
+                def __fspath__(self):
+                    return self.path
+
+            doc_path = NoReadTextPath(temp_path)
+            loader = DocumentLoader(
+                cache_dir=Path("/tmp/cache"), validate_documents=False
+            )
+
+            # This should use the fallback open() method
+            result = loader.load_document(doc_path)
+            assert result == sample_document
+        finally:
+            import os
+
+            os.unlink(temp_path)
+
+    def test_load_document_validation_failure(self) -> None:
+        """Test load_document when validation fails."""
+        from arklex.orchestrator.generator.docs.document_loader import DocumentLoader
+
+        # Create a document that's missing required fields
+        invalid_document = {"sections": []}  # Missing "title" field
+
+        with tempfile.NamedTemporaryFile(mode="w", suffix=".json", delete=False) as f:
+            json.dump(invalid_document, f)
+            temp_path = f.name
+
+        try:
+            loader = DocumentLoader(
+                cache_dir=Path("/tmp/cache"), validate_documents=True
+            )
+            # The loader has validation enabled by default, so this should fail
+            with pytest.raises(ValueError, match="Invalid document structure"):
+                loader.load_document(Path(temp_path))
+        finally:
+            import os
+
+            os.unlink(temp_path)
+
+    def test_load_task_document_url_with_extension(self, sample_task_doc: Dict) -> None:
+        """Test load_task_document with URL that has an extension."""
+        mock_response = MagicMock()
+        mock_response.text = json.dumps(sample_task_doc)
+        mock_response.raise_for_status.return_value = None
+
+        with (
+            patch("requests.get", return_value=mock_response),
+            patch("pathlib.Path.exists", return_value=True),
+            patch("pathlib.Path.read_text", return_value=json.dumps(sample_task_doc)),
+            patch("builtins.open", create=True) as mock_open,
+            patch("os.path.join", return_value="/tmp/cache/url_abc123.json"),
+            patch("os.path.splitext", return_value=(".json", ".json")),
+            patch("hashlib.md5") as mock_md5,
+        ):
+            mock_md5.return_value.hexdigest.return_value = "abc123"
+
+            loader = DocumentLoader(cache_dir=Path("/tmp/cache"))
+            result = loader.load_task_document("https://example.com/doc.json")
+
+            assert result == sample_task_doc
+            mock_open.assert_called()
+
+    def test_load_task_document_url_without_extension(
+        self, sample_task_doc: Dict
+    ) -> None:
+        """Test load_task_document with URL that doesn't have an extension."""
+        mock_response = MagicMock()
+        mock_response.text = json.dumps(sample_task_doc)
+        mock_response.raise_for_status.return_value = None
+
+        with (
+            patch("requests.get", return_value=mock_response),
+            patch("pathlib.Path.exists", return_value=True),
+            patch("pathlib.Path.read_text", return_value=json.dumps(sample_task_doc)),
+            patch("builtins.open", create=True) as mock_open,
+            patch("os.path.join", return_value="/tmp/cache/url_abc123.html"),
+            patch("os.path.splitext", return_value=("", "")),
+            patch("hashlib.md5") as mock_md5,
+        ):
+            mock_md5.return_value.hexdigest.return_value = "abc123"
+
+            loader = DocumentLoader(cache_dir=Path("/tmp/cache"))
+            result = loader.load_task_document("https://example.com/doc")
+
+            assert result == sample_task_doc
+            mock_open.assert_called()
+
+    def test_load_task_document_string_path_conversion(
+        self, sample_task_doc: Dict
+    ) -> None:
+        """Test load_task_document with string path that gets converted to Path."""
+        with (
+            patch("pathlib.Path.exists", return_value=True),
+            patch("pathlib.Path.read_text", return_value=json.dumps(sample_task_doc)),
+        ):
+            loader = DocumentLoader(cache_dir=Path("/tmp/cache"))
+            result = loader.load_task_document("/path/to/document.json")
+
+            assert result == sample_task_doc
+
+    def test_load_task_document_without_read_text_method_fallback(
+        self, sample_task_doc: Dict
+    ) -> None:
+        """Test load_task_document when Path doesn't have read_text method."""
+        with tempfile.NamedTemporaryFile(mode="w", suffix=".json", delete=False) as f:
+            json.dump(sample_task_doc, f)
+            temp_path = f.name
+
+        try:
+            # Create a Path-like object without read_text method
+            class NoReadTextPath:
+                def __init__(self, path):
+                    self.path = path
+
+                def exists(self):
+                    return True
+
+                def __str__(self):
+                    return self.path
+
+                def __fspath__(self):
+                    return self.path
+
+            doc_path = NoReadTextPath(temp_path)
+            loader = DocumentLoader(cache_dir=Path("/tmp/cache"))
+
+            # This should use the fallback open() method
+            result = loader.load_task_document(doc_path)
+            assert result == sample_task_doc
+        finally:
+            import os
+
+            os.unlink(temp_path)
+
+    def test_load_instruction_document_cached(
+        self, document_loader: DocumentLoader, sample_instruction_doc: Dict
+    ) -> None:
+        """Test load_instruction_document when document is already cached."""
+        # First, cache the document
+        doc_path = Path("/tmp/test_instruction.json")
+        document_loader.cache_document(doc_path, sample_instruction_doc)
+
+        # Now load it - should return from cache without file operations
+        with patch("pathlib.Path.exists") as mock_exists:
+            mock_exists.return_value = False  # File doesn't exist, but should use cache
+
+            result = document_loader.load_instruction_document(doc_path)
+            assert result == sample_instruction_doc
+            mock_exists.assert_not_called()
+
+    def test_load_instruction_document_file_not_found(
+        self, document_loader: DocumentLoader
+    ) -> None:
+        """Test load_instruction_document when file doesn't exist."""
+        doc_path = Path("/nonexistent/instruction.json")
+
+        # Mock the file to not exist, but also mock the JSON loading to return invalid structure
+        # so we get the FileNotFoundError instead of the validation error
+        with (
+            patch("pathlib.Path.exists", return_value=False),
+        ):
+            with pytest.raises(FileNotFoundError, match="Document not found"):
+                document_loader.load_instruction_document(doc_path)
+
+    def test_load_instruction_document_without_read_text_method_fallback(
+        self, sample_instruction_doc: Dict
+    ) -> None:
+        """Test load_instruction_document when Path doesn't have read_text method."""
+        with tempfile.NamedTemporaryFile(mode="w", suffix=".json", delete=False) as f:
+            json.dump(sample_instruction_doc, f)
+            temp_path = f.name
+
+        try:
+            # Create a Path-like object without read_text method
+            class NoReadTextPath:
+                def __init__(self, path):
+                    self.path = path
+
+                def exists(self):
+                    return True
+
+                def __str__(self):
+                    return self.path
+
+                def __fspath__(self):
+                    return self.path
+
+            doc_path = NoReadTextPath(temp_path)
+            loader = DocumentLoader(cache_dir=Path("/tmp/cache"))
+
+            # This should use the fallback open() method
+            result = loader.load_instruction_document(doc_path)
+            assert result == sample_instruction_doc
+        finally:
+            import os
+
+            os.unlink(temp_path)
+
 
 class TestDocumentProcessor:
     """Test suite for the DocumentProcessor class."""

@@ -26,99 +26,224 @@ from arklex.utils.graph_state import (
 from arklex.types import StreamType
 
 
-class TestReactPlanner:
-    """Test cases for ReactPlanner class."""
-
-    @pytest.fixture
-    def mock_tools_map(self) -> Dict[str, Any]:
-        """Create a mock tools map for testing."""
-        return {
-            1: {
-                "info": {
-                    "type": "function",
-                    "function": {
-                        "name": "test_tool",
-                        "description": "A test tool for testing",
-                        "parameters": {
-                            "properties": {
-                                "param1": {
-                                    "type": "string",
-                                    "description": "First parameter",
-                                },
-                                "param2": {
-                                    "type": "integer",
-                                    "description": "Second parameter",
-                                },
+@pytest.fixture
+def mock_tools_map() -> Dict[str, Any]:
+    """Create a mock tools map for testing."""
+    return {
+        1: {
+            "info": {
+                "type": "function",
+                "function": {
+                    "name": "test_tool",
+                    "description": "A test tool for testing",
+                    "parameters": {
+                        "properties": {
+                            "param1": {
+                                "type": "string",
+                                "description": "First parameter",
                             },
-                            "required": ["param1"],
+                            "param2": {
+                                "type": "integer",
+                                "description": "Second parameter",
+                            },
                         },
+                        "required": ["param1"],
                     },
                 },
-                "output": [{"name": "result", "description": "Tool result"}],
-                "fixed_args": {},
-                "execute": Mock(
-                    return_value=Mock(func=Mock(return_value="tool_result"))
-                ),
-            }
+            },
+            "output": [{"name": "result", "description": "Tool result"}],
+            "fixed_args": {},
+            "execute": Mock(return_value=Mock(func=Mock(return_value="tool_result"))),
+        }
+    }
+
+
+@pytest.fixture
+def mock_workers_map() -> Dict[str, Any]:
+    """Create a mock workers map for testing."""
+    return {
+        "test_worker": {
+            "description": "A test worker for testing",
+            "execute": Mock(
+                return_value=Mock(execute=Mock(return_value="worker_result"))
+            ),
+        },
+        "MessageWorker": {
+            "description": "Message worker that should be filtered out",
+            "execute": Mock(
+                return_value=Mock(execute=Mock(return_value="message_result"))
+            ),
+        },
+    }
+
+
+@pytest.fixture
+def mock_name2id() -> Dict[str, int]:
+    """Create a mock name2id mapping for testing."""
+    return {"test_tool": 1, "test_worker": 2, "MessageWorker": 3}
+
+
+@pytest.fixture
+def mock_llm_config() -> LLMConfig:
+    """Create a mock LLM config for testing."""
+    return LLMConfig(model_type_or_path="gpt-3.5-turbo", llm_provider="openai")
+
+
+@pytest.fixture
+def mock_message_state() -> MessageState:
+    """Create a mock message state for testing."""
+    return MessageState(
+        user_message=ConvoMessage(
+            history="Previous conversation", message="Hello, how can you help me?"
+        ),
+        orchestrator_message=OrchestratorMessage(
+            message="User greeting", attribute={"task": "greeting"}
+        ),
+        response="",
+        is_stream=False,
+        stream_type=StreamType.NON_STREAM,
+    )
+
+
+@pytest.fixture
+def mock_msg_history() -> List[Dict[str, Any]]:
+    """Create a mock message history for testing."""
+    return [
+        {"role": "user", "content": "Hello"},
+        {"role": "assistant", "content": "Hi there!"},
+    ]
+
+
+@pytest.fixture
+def react_planner(mock_tools_map, mock_workers_map, mock_name2id) -> ReactPlanner:
+    """Create a ReactPlanner instance for testing."""
+    return ReactPlanner(mock_tools_map, mock_workers_map, mock_name2id)
+
+
+@pytest.fixture
+def mock_llm():
+    """Create a mock LLM for testing."""
+    return Mock()
+
+
+@pytest.fixture
+def mock_prompt_template():
+    """Create a mock prompt template for testing."""
+    template = Mock()
+    template.invoke.return_value = Mock(text="System prompt")
+    template.format.return_value = "formatted_prompt"
+    return template
+
+
+@pytest.fixture
+def mock_retriever():
+    """Create a mock retriever for testing."""
+    retriever = Mock()
+    mock_vectorstore = Mock()
+    mock_vectorstore.similarity_search_with_score.return_value = [
+        (Mock(metadata={"resource_name": "test_resource"}), 0.8)
+    ]
+    retriever.vectorstore = mock_vectorstore
+    return retriever
+
+
+@pytest.fixture
+def mock_faiss():
+    """Create a mock FAISS for testing."""
+    return Mock()
+
+
+@pytest.fixture
+def mock_provider_map():
+    """Create a mock provider map for testing."""
+    return Mock()
+
+
+@pytest.fixture
+def mock_chat_openai():
+    """Create a mock ChatOpenAI for testing."""
+    return Mock()
+
+
+@pytest.fixture
+def mock_embedding_models():
+    """Create a mock embedding models for testing."""
+    models = MagicMock()
+    models.__getitem__.return_value = "text-embedding-ada-002"
+    return models
+
+
+@pytest.fixture
+def mock_provider_embeddings():
+    """Create a mock provider embeddings for testing."""
+    return Mock()
+
+
+@pytest.fixture
+def mock_openai_embeddings():
+    """Create a mock OpenAI embeddings for testing."""
+    return Mock()
+
+
+@pytest.fixture
+def mock_aimessage_to_dict():
+    """Create a mock aimessage_to_dict for testing."""
+    return Mock()
+
+
+@pytest.fixture
+def patched_sample_config(
+    mock_llm,
+    mock_prompt_template,
+    mock_retriever,
+    mock_faiss,
+    mock_provider_map,
+    mock_chat_openai,
+    mock_embedding_models,
+    mock_provider_embeddings,
+    mock_openai_embeddings,
+    mock_aimessage_to_dict,
+):
+    """Create a comprehensive patched configuration for testing."""
+    with (
+        patch("arklex.env.planner.react_planner.PROVIDER_MAP", mock_provider_map),
+        patch("arklex.env.planner.react_planner.ChatOpenAI", mock_chat_openai),
+        patch(
+            "arklex.env.planner.react_planner.PROVIDER_EMBEDDING_MODELS",
+            mock_embedding_models,
+        ),
+        patch(
+            "arklex.env.planner.react_planner.PROVIDER_EMBEDDINGS",
+            mock_provider_embeddings,
+        ),
+        patch(
+            "arklex.env.planner.react_planner.OpenAIEmbeddings", mock_openai_embeddings
+        ),
+        patch("arklex.env.planner.react_planner.FAISS", mock_faiss),
+        patch(
+            "arklex.env.planner.react_planner.PromptTemplate",
+            return_value=mock_prompt_template,
+        ),
+        patch(
+            "arklex.env.planner.react_planner.aimessage_to_dict", mock_aimessage_to_dict
+        ),
+    ):
+        yield {
+            "mock_llm": mock_llm,
+            "mock_prompt_template": mock_prompt_template,
+            "mock_retriever": mock_retriever,
+            "mock_faiss": mock_faiss,
+            "mock_provider_map": mock_provider_map,
+            "mock_chat_openai": mock_chat_openai,
+            "mock_embedding_models": mock_embedding_models,
+            "mock_provider_embeddings": mock_provider_embeddings,
+            "mock_openai_embeddings": mock_openai_embeddings,
+            "mock_aimessage_to_dict": mock_aimessage_to_dict,
         }
 
-    @pytest.fixture
-    def mock_workers_map(self) -> Dict[str, Any]:
-        """Create a mock workers map for testing."""
-        return {
-            "test_worker": {
-                "description": "A test worker for testing",
-                "execute": Mock(
-                    return_value=Mock(execute=Mock(return_value="worker_result"))
-                ),
-            },
-            "MessageWorker": {
-                "description": "Message worker that should be filtered out",
-                "execute": Mock(
-                    return_value=Mock(execute=Mock(return_value="message_result"))
-                ),
-            },
-        }
 
-    @pytest.fixture
-    def mock_name2id(self) -> Dict[str, int]:
-        """Create a mock name2id mapping for testing."""
-        return {"test_tool": 1, "test_worker": 2, "MessageWorker": 3}
-
-    @pytest.fixture
-    def mock_llm_config(self) -> LLMConfig:
-        """Create a mock LLM config for testing."""
-        return LLMConfig(model_type_or_path="gpt-3.5-turbo", llm_provider="openai")
-
-    @pytest.fixture
-    def mock_message_state(self) -> MessageState:
-        """Create a mock message state for testing."""
-        return MessageState(
-            user_message=ConvoMessage(
-                history="Previous conversation", message="Hello, how can you help me?"
-            ),
-            orchestrator_message=OrchestratorMessage(
-                message="User greeting", attribute={"task": "greeting"}
-            ),
-            response="",
-            is_stream=False,
-            stream_type=StreamType.NON_STREAM,
-        )
-
-    @pytest.fixture
-    def mock_msg_history(self) -> List[Dict[str, Any]]:
-        """Create a mock message history for testing."""
-        return [
-            {"role": "user", "content": "Hello"},
-            {"role": "assistant", "content": "Hi there!"},
-        ]
-
-    @pytest.fixture
-    def react_planner(
-        self, mock_tools_map, mock_workers_map, mock_name2id
-    ) -> ReactPlanner:
-        """Create a ReactPlanner instance for testing."""
-        return ReactPlanner(mock_tools_map, mock_workers_map, mock_name2id)
+class TestReactPlanner:
+    """Test cases for ReactPlanner class."""
 
     def test_react_planner_initialization(
         self, mock_tools_map, mock_workers_map, mock_name2id
@@ -405,58 +530,39 @@ class TestReactPlanner:
         assert isinstance(response, EnvResponse)
         assert "Error: Worker error" in response.observation
 
-    @patch("arklex.env.planner.react_planner.PROVIDER_MAP")
-    @patch("arklex.env.planner.react_planner.ChatOpenAI")
     def test_set_llm_config_and_build_resource_library(
-        self, mock_chat_openai, mock_provider_map, react_planner, mock_llm_config
+        self, react_planner, mock_llm_config, patched_sample_config
     ) -> None:
         """Test set_llm_config_and_build_resource_library method."""
-        mock_llm = Mock()
-        mock_chat_openai.return_value = mock_llm
-        mock_provider_map.get.return_value = Mock(return_value=mock_llm)
+        config = patched_sample_config
+        mock_llm = config["mock_llm"]
+        config["mock_chat_openai"].return_value = mock_llm
+        config["mock_provider_map"].get.return_value = Mock(return_value=mock_llm)
+        config["mock_provider_embeddings"].get.return_value = Mock(return_value=Mock())
+        config["mock_openai_embeddings"].return_value = Mock()
+        config["mock_faiss"].from_documents.return_value = Mock(
+            as_retriever=Mock(return_value=Mock())
+        )
 
-        # Mock embedding model and FAISS
-        with (
-            patch(
-                "arklex.env.planner.react_planner.PROVIDER_EMBEDDING_MODELS"
-            ) as mock_embedding_models,
-            patch(
-                "arklex.env.planner.react_planner.PROVIDER_EMBEDDINGS"
-            ) as mock_provider_embeddings,
-            patch(
-                "arklex.env.planner.react_planner.OpenAIEmbeddings"
-            ) as mock_openai_embeddings,
-            patch("arklex.env.planner.react_planner.FAISS") as mock_faiss,
-        ):
-            mock_embedding_models.__getitem__.return_value = "text-embedding-ada-002"
-            mock_provider_embeddings.get.return_value = Mock(return_value=Mock())
-            mock_openai_embeddings.return_value = Mock()
-            mock_faiss.from_documents.return_value = Mock(
-                as_retriever=Mock(return_value=Mock())
-            )
+        react_planner.set_llm_config_and_build_resource_library(mock_llm_config)
 
-            react_planner.set_llm_config_and_build_resource_library(mock_llm_config)
+        assert react_planner.llm_config == mock_llm_config
+        assert react_planner.resource_rag_docs_created is True
 
-            assert react_planner.llm_config == mock_llm_config
-            assert react_planner.resource_rag_docs_created is True
-
-    @patch("arklex.env.planner.react_planner.PLANNER_SUMMARIZE_TRAJECTORY_PROMPT")
-    @patch("arklex.env.planner.react_planner.PromptTemplate")
     def test_get_planning_trajectory_summary(
         self,
-        mock_prompt_template,
-        mock_prompt,
         react_planner,
         mock_message_state,
         mock_msg_history,
+        patched_sample_config,
     ) -> None:
         """Test _get_planning_trajectory_summary method."""
-        mock_prompt_template.from_template.return_value = Mock(
-            invoke=Mock(return_value=Mock(text="System prompt"))
-        )
-
-        mock_llm = Mock()
-        mock_llm.invoke.return_value = Mock(content="Trajectory summary")
+        config = patched_sample_config
+        mock_llm = config["mock_llm"]
+        mock_llm.invoke.return_value = Mock()
+        config["mock_aimessage_to_dict"].return_value = {
+            "content": "Trajectory summary"
+        }
         react_planner.llm = mock_llm
         react_planner.llm_provider = "openai"
         react_planner.system_role = "system"
@@ -468,15 +574,12 @@ class TestReactPlanner:
         assert summary == "Trajectory summary"
         mock_llm.invoke.assert_called_once()
 
-    @patch("arklex.env.planner.react_planner.FAISS")
-    def test_retrieve_resource_signatures(self, mock_faiss, react_planner) -> None:
+    def test_retrieve_resource_signatures(
+        self, react_planner, patched_sample_config
+    ) -> None:
         """Test _retrieve_resource_signatures method."""
-        # Mock the retriever
-        mock_retriever = Mock()
-        mock_retriever.vectorstore.similarity_search_with_score.return_value = [
-            (Mock(metadata={"resource_name": "test_resource"}), 0.8)
-        ]
-        react_planner.retriever = mock_retriever
+        config = patched_sample_config
+        react_planner.retriever = config["mock_retriever"]
         react_planner.guaranteed_retrieval_docs = [
             Mock(metadata={"resource_name": RESPOND_ACTION_NAME})
         ]
@@ -489,34 +592,29 @@ class TestReactPlanner:
         )
 
         assert len(docs) == 2  # 1 retrieved + 1 guaranteed
-        mock_retriever.vectorstore.similarity_search_with_score.assert_called_once()
+        config[
+            "mock_retriever"
+        ].vectorstore.similarity_search_with_score.assert_called_once()
 
-    @patch("arklex.env.planner.react_planner.PLANNER_REACT_INSTRUCTION_FEW_SHOT")
-    @patch("arklex.env.planner.react_planner.PromptTemplate")
     def test_plan_method(
         self,
-        mock_prompt_template,
-        mock_prompt,
         react_planner,
         mock_message_state,
         mock_msg_history,
+        patched_sample_config,
     ) -> None:
         """Test plan method."""
-        # Mock all the dependencies
-        mock_prompt_template.from_template.return_value = Mock(
-            invoke=Mock(return_value=Mock(text="System prompt"))
-        )
-
-        mock_llm = Mock()
-        mock_llm.invoke.return_value = Mock(
-            content='Action:\n{"name": "test_tool", "arguments": {"param": "value"}}'
-        )
+        config = patched_sample_config
+        mock_llm = config["mock_llm"]
+        mock_llm.invoke.return_value = Mock()
+        config["mock_aimessage_to_dict"].return_value = {
+            "content": 'Action:\n{"name": "test_tool", "arguments": {"param": "value"}}'
+        }
         react_planner.llm = mock_llm
         react_planner.llm_provider = "openai"
         react_planner.system_role = "system"
         react_planner.resource_rag_docs_created = True
 
-        # Mock the trajectory summary and retrieval methods
         with (
             patch.object(
                 react_planner, "_get_planning_trajectory_summary"
@@ -545,20 +643,20 @@ class TestReactPlanner:
             assert len(msg_history) > 2  # Should have added new messages
 
     def test_plan_method_with_respond_action(
-        self, react_planner, mock_message_state, mock_msg_history
+        self, react_planner, mock_message_state, mock_msg_history, patched_sample_config
     ) -> None:
         """Test plan method that returns RESPOND_ACTION."""
-        # Mock LLM to return RESPOND_ACTION
-        mock_llm = Mock()
-        mock_llm.invoke.return_value = Mock(
-            content=f'Action:\n{{"name": "{RESPOND_ACTION_NAME}", "arguments": {{"content": "Hello!"}}}}'
-        )
+        config = patched_sample_config
+        mock_llm = config["mock_llm"]
+        mock_llm.invoke.return_value = Mock()
+        config["mock_aimessage_to_dict"].return_value = {
+            "content": f'Action:\n{{"name": "{RESPOND_ACTION_NAME}", "arguments": {{"content": "Hello!"}}}}'
+        }
         react_planner.llm = mock_llm
         react_planner.llm_provider = "openai"
         react_planner.system_role = "system"
         react_planner.resource_rag_docs_created = True
 
-        # Mock the trajectory summary and retrieval methods
         with (
             patch.object(
                 react_planner, "_get_planning_trajectory_summary"
@@ -570,9 +668,6 @@ class TestReactPlanner:
                 react_planner, "_retrieve_resource_signatures"
             ) as mock_retrieve,
             patch.object(react_planner, "step") as mock_step,
-            patch(
-                "arklex.env.planner.react_planner.PromptTemplate"
-            ) as mock_prompt_template,
         ):
             mock_summary.return_value = "Test trajectory"
             mock_retrievals.return_value = 3
@@ -585,9 +680,6 @@ class TestReactPlanner:
                 )
             ]
             mock_step.return_value = EnvResponse(observation="Hello!")
-            mock_prompt_template.from_template.return_value = Mock(
-                invoke=Mock(return_value=Mock(text="System prompt"))
-            )
 
             msg_history, action_name, response = react_planner.plan(
                 mock_message_state, mock_msg_history, max_num_steps=1
@@ -600,7 +692,6 @@ class TestReactPlanner:
         self, react_planner, mock_message_state, mock_msg_history
     ) -> None:
         """Test execute method."""
-        # Mock the plan method
         with patch.object(react_planner, "plan") as mock_plan:
             mock_plan.return_value = (mock_msg_history, "test_action", "test_response")
 
@@ -668,6 +759,219 @@ class TestReactPlanner:
         assert NUM_STEPS_TO_NUM_RETRIEVALS(5) == 8
         assert NUM_STEPS_TO_NUM_RETRIEVALS(10) == 13
 
+    def test_get_planning_trajectory_summary_with_anthropic_provider(
+        self,
+        react_planner,
+        mock_message_state,
+        mock_msg_history,
+        patched_sample_config,
+    ) -> None:
+        """Test _get_planning_trajectory_summary with anthropic provider."""
+        config = patched_sample_config
+        react_planner.llm_provider = "anthropic"
+        mock_llm = config["mock_llm"]
+        mock_response = Mock()
+        mock_response.content = "Test response"
+        mock_llm.invoke.return_value = mock_response
+        config["mock_aimessage_to_dict"].return_value = {"content": "Test response"}
+        react_planner.llm = mock_llm
+
+        result = react_planner._get_planning_trajectory_summary(
+            mock_message_state, mock_msg_history
+        )
+
+        assert result == "Test response"
+        mock_llm.invoke.assert_called_once()
+        call_args = mock_llm.invoke.call_args[0][0]
+        assert len(call_args) == 2
+        assert call_args[0]["role"] == "system"
+        assert call_args[1]["role"] == "user"
+
+    def test_get_planning_trajectory_summary_with_exception(
+        self,
+        react_planner,
+        mock_message_state,
+        mock_msg_history,
+        patched_sample_config,
+    ) -> None:
+        """Test _get_planning_trajectory_summary with exception handling."""
+        config = patched_sample_config
+        mock_llm = config["mock_llm"]
+        mock_llm.invoke.side_effect = Exception("LLM Error")
+
+        with pytest.raises(Exception):
+            react_planner._get_planning_trajectory_summary(
+                mock_message_state, mock_msg_history
+            )
+
+    def test_retrieve_resource_signatures_with_user_message_and_task(
+        self, react_planner, patched_sample_config
+    ) -> None:
+        """Test _retrieve_resource_signatures with user message and task."""
+        config = patched_sample_config
+        react_planner.retriever = config["mock_retriever"]
+        react_planner.guaranteed_retrieval_docs = []
+
+        with patch.object(
+            react_planner, "_parse_trajectory_summary_to_steps"
+        ) as mock_parse:
+            mock_parse.return_value = ["step1", "step2"]
+
+            result = react_planner._retrieve_resource_signatures(
+                1, "test summary", "Test user message", "Test task"
+            )
+
+            assert len(result) == 1
+            config[
+                "mock_retriever"
+            ].vectorstore.similarity_search_with_score.assert_called_once()
+
+    def test_retrieve_resource_signatures_with_guaranteed_retrieval_docs(
+        self, react_planner, patched_sample_config
+    ) -> None:
+        """Test _retrieve_resource_signatures with guaranteed retrieval docs."""
+        config = patched_sample_config
+        guaranteed_doc = Mock()
+        guaranteed_doc.metadata = {"resource_name": "guaranteed_resource"}
+        react_planner.guaranteed_retrieval_docs = [guaranteed_doc]
+        react_planner.retriever = config["mock_retriever"]
+        config[
+            "mock_retriever"
+        ].vectorstore.similarity_search_with_score.return_value = []
+
+        with patch.object(
+            react_planner, "_parse_trajectory_summary_to_steps"
+        ) as mock_parse:
+            mock_parse.return_value = []
+
+            result = react_planner._retrieve_resource_signatures(1, "test summary")
+
+            assert len(result) == 1
+            assert result[0] == guaranteed_doc
+
+    def test_retrieve_resource_signatures_with_duplicate_guaranteed_docs(
+        self, react_planner, patched_sample_config
+    ) -> None:
+        """Test _retrieve_resource_signatures with duplicate guaranteed docs."""
+        config = patched_sample_config
+        guaranteed_doc = Mock()
+        guaranteed_doc.metadata = {"resource_name": "guaranteed_resource"}
+        react_planner.guaranteed_retrieval_docs = [guaranteed_doc]
+        react_planner.retriever = config["mock_retriever"]
+
+        retrieved_doc = Mock()
+        retrieved_doc.metadata = {"resource_name": "guaranteed_resource"}
+        config[
+            "mock_retriever"
+        ].vectorstore.similarity_search_with_score.return_value = [(retrieved_doc, 0.8)]
+
+        with patch.object(
+            react_planner, "_parse_trajectory_summary_to_steps"
+        ) as mock_parse:
+            mock_parse.return_value = []
+
+            result = react_planner._retrieve_resource_signatures(1, "test summary")
+
+            assert len(result) == 1
+            assert result[0] == retrieved_doc
+
+    def test_plan_with_empty_signature_docs(
+        self, react_planner, mock_message_state, mock_msg_history, patched_sample_config
+    ) -> None:
+        """Test plan method with empty signature docs."""
+        config = patched_sample_config
+        mock_llm = config["mock_llm"]
+        mock_response = Mock()
+        mock_response.content = "Test response"
+        mock_llm.invoke.return_value = mock_response
+        config["mock_aimessage_to_dict"].return_value = {"content": "Test response"}
+        react_planner.llm = mock_llm
+        react_planner.llm_provider = "openai"
+        react_planner.system_role = "system"
+        react_planner.resource_rag_docs_created = True
+
+        with (
+            patch.object(
+                react_planner, "_get_planning_trajectory_summary"
+            ) as mock_get_summary,
+            patch.object(react_planner, "_get_num_resource_retrievals") as mock_get_num,
+            patch.object(
+                react_planner, "_retrieve_resource_signatures"
+            ) as mock_retrieve,
+            patch.object(react_planner, "_parse_response_action_to_json") as mock_parse,
+            patch.object(
+                react_planner, "message_to_actions"
+            ) as mock_message_to_actions,
+            patch.object(react_planner, "step") as mock_step,
+        ):
+            mock_get_summary.return_value = "Test summary"
+            mock_get_num.return_value = 5
+            mock_retrieve.return_value = []
+            mock_parse.return_value = {
+                "name": RESPOND_ACTION_NAME,
+                "arguments": {"content": "response"},
+            }
+            mock_message_to_actions.return_value = [
+                Action(name=RESPOND_ACTION_NAME, kwargs={"content": "response"})
+            ]
+            mock_step.return_value = EnvResponse(observation="test observation")
+
+            result = react_planner.plan(mock_message_state, mock_msg_history)
+
+            assert len(result) == 3
+            assert isinstance(result[0], list)
+            assert isinstance(result[1], str)
+            assert isinstance(result[2], str)
+
+    def test_plan_with_use_few_shot_prompt(
+        self, react_planner, mock_message_state, mock_msg_history, patched_sample_config
+    ) -> None:
+        """Test plan method with USE_FEW_SHOT_REACT_PROMPT."""
+        config = patched_sample_config
+        mock_llm = config["mock_llm"]
+        mock_response = Mock()
+        mock_response.content = "Test response"
+        mock_llm.invoke.return_value = mock_response
+        config["mock_aimessage_to_dict"].return_value = {"content": "Test response"}
+        react_planner.llm = mock_llm
+        react_planner.llm_provider = "openai"
+        react_planner.system_role = "system"
+        react_planner.resource_rag_docs_created = True
+
+        with (
+            patch("arklex.env.planner.react_planner.USE_FEW_SHOT_REACT_PROMPT", True),
+            patch.object(
+                react_planner, "_get_planning_trajectory_summary"
+            ) as mock_get_summary,
+            patch.object(react_planner, "_get_num_resource_retrievals") as mock_get_num,
+            patch.object(
+                react_planner, "_retrieve_resource_signatures"
+            ) as mock_retrieve,
+            patch.object(react_planner, "_parse_response_action_to_json") as mock_parse,
+            patch.object(
+                react_planner, "message_to_actions"
+            ) as mock_message_to_actions,
+            patch.object(react_planner, "step") as mock_step,
+        ):
+            mock_get_summary.return_value = "Test summary"
+            mock_get_num.return_value = 5
+            mock_retrieve.return_value = []
+            mock_parse.return_value = {
+                "name": RESPOND_ACTION_NAME,
+                "arguments": {"content": "response"},
+            }
+            mock_message_to_actions.return_value = [
+                Action(name=RESPOND_ACTION_NAME, kwargs={"content": "response"})
+            ]
+            mock_step.return_value = EnvResponse(observation="test observation")
+
+            result = react_planner.plan(mock_message_state, mock_msg_history)
+
+            assert len(result) == 3
+            assert isinstance(result[0], list)
+            assert isinstance(result[1], str)
+            assert isinstance(result[2], str)
+
 
 class TestReactPlannerIntegration:
     """Integration tests for ReactPlanner."""
@@ -710,8 +1014,11 @@ class TestReactPlannerIntegration:
 
         return ReactPlanner(tools_map, workers_map, name2id)
 
-    def test_full_planning_workflow(self, integration_planner) -> None:
+    def test_full_planning_workflow(
+        self, integration_planner, patched_sample_config
+    ) -> None:
         """Test a complete planning workflow."""
+        config = patched_sample_config
         msg_state = MessageState(
             user_message=ConvoMessage(history="", message="Calculate 2 + 2"),
             orchestrator_message=OrchestratorMessage(
@@ -724,31 +1031,23 @@ class TestReactPlannerIntegration:
 
         msg_history = []
 
-        # Mock the LLM responses
         with (
-            patch.object(integration_planner, "llm") as mock_llm,
+            patch.object(integration_planner, "llm", config["mock_llm"]),
             patch.object(
                 integration_planner, "_get_planning_trajectory_summary"
             ) as mock_summary,
             patch.object(
                 integration_planner, "_retrieve_resource_signatures"
             ) as mock_retrieve,
-            patch(
-                "arklex.env.planner.react_planner.PromptTemplate"
-            ) as mock_prompt_template,
         ):
             mock_summary.return_value = "- Use calculator to compute the result"
             mock_retrieve.return_value = [
                 Mock(metadata={"resource_name": "calculator", "json_signature": {}})
             ]
-            mock_prompt_template.from_template.return_value = Mock(
-                invoke=Mock(return_value=Mock(text="System prompt"))
-            )
-
-            # Mock LLM to return calculator action
-            mock_llm.invoke.return_value = Mock(
-                content='Action:\n{"name": "calculator", "arguments": {"expression": "2 + 2"}}'
-            )
+            config["mock_llm"].invoke.return_value = Mock()
+            config["mock_aimessage_to_dict"].return_value = {
+                "content": 'Action:\n{"name": "calculator", "arguments": {"expression": "2 + 2"}}'
+            }
 
             msg_history, action_name, response = integration_planner.plan(
                 msg_state, msg_history, max_num_steps=1

@@ -10,6 +10,7 @@ from typing import Dict, Any, List, Callable
 
 from arklex.env.tools.tools import register_tool, Tool
 from arklex.utils.exceptions import ToolExecutionError
+from arklex.utils.exceptions import AuthenticationError
 from arklex.utils.graph_state import MessageState
 
 
@@ -183,6 +184,7 @@ class TestTools:
             conversation_id="test-conversation",
             slots={},
             function_calling_trajectory=[],
+            trajectory=[[{"info": {}}]],  # Use valid dict with required 'info' field
         )
         # This should not raise an exception
         tool._init_slots(state)
@@ -372,3 +374,794 @@ class TestTools:
         assert len(tool.slots) == 2
         assert tool.output == ["result"]
         assert tool.isResponse is False
+
+    def test_init_default_slots(self) -> None:
+        """Test init_default_slots method."""
+
+        def test_function(param1: str) -> str:
+            return f"Result: {param1}"
+
+        tool = Tool(
+            func=test_function,
+            name="test_tool",
+            description="Test tool",
+            slots=[{"name": "param1", "type": "str"}],
+            outputs=["result"],
+            isResponse=False,
+        )
+
+        from arklex.utils.slot import Slot
+
+        default_slots = [Slot(name="param1", value="default_value", type="str")]
+
+        populated_slots = tool.init_default_slots(default_slots)
+
+        assert populated_slots["param1"] == "default_value"
+        assert tool.slots[0].value == "default_value"
+        assert tool.slots[0].verified is True
+
+    def test_init_default_slots_no_matching_slots(self) -> None:
+        """Test init_default_slots method when no slots match."""
+
+        def test_function(param1: str) -> str:
+            return f"Result: {param1}"
+
+        tool = Tool(
+            func=test_function,
+            name="test_tool",
+            description="Test tool",
+            slots=[{"name": "param1", "type": "str"}],
+            outputs=["result"],
+            isResponse=False,
+        )
+
+        from arklex.utils.slot import Slot
+
+        default_slots = [
+            Slot(name="different_param", value="default_value", type="str")
+        ]
+
+        populated_slots = tool.init_default_slots(default_slots)
+
+        assert populated_slots["different_param"] == "default_value"
+        assert tool.slots[0].value is None  # Should not be affected
+
+    def test_init_slots_with_default_slots(self) -> None:
+        """Test _init_slots method with default slots in state."""
+
+        def test_function(param1: str) -> str:
+            return f"Result: {param1}"
+
+        tool = Tool(
+            func=test_function,
+            name="test_tool",
+            description="Test tool",
+            slots=[{"name": "param1", "type": "str"}],
+            outputs=["result"],
+            isResponse=False,
+        )
+
+        from arklex.utils.slot import Slot
+
+        default_slots = [Slot(name="param1", value="default_value", type="str")]
+
+        state = MessageState(
+            message_id="test-id",
+            user_id="test-user",
+            conversation_id="test-conversation",
+            slots={"default_slots": default_slots},
+            function_calling_trajectory=[],
+            trajectory=[[{"info": {}}]],  # Use valid dict with required 'info' field
+        )
+
+        with patch.object(tool, "init_default_slots") as mock_init_default:
+            mock_init_default.return_value = {"param1": "default_value"}
+            tool._init_slots(state)
+
+            mock_init_default.assert_called_once_with(default_slots)
+            assert len(state.function_calling_trajectory) == 1
+            assert state.function_calling_trajectory[0]["name"] == "default_slots"
+
+    def test_init_slots_without_default_slots(self) -> None:
+        """Test _init_slots method without default slots in state."""
+
+        def test_function(param1: str) -> str:
+            return f"Result: {param1}"
+
+        tool = Tool(
+            func=test_function,
+            name="test_tool",
+            description="Test tool",
+            slots=[{"name": "param1", "type": "str"}],
+            outputs=["result"],
+            isResponse=False,
+        )
+
+        state = MessageState(
+            message_id="test-id",
+            user_id="test-user",
+            conversation_id="test-conversation",
+            slots={},
+            function_calling_trajectory=[],
+            trajectory=[[{"info": {}}]],  # Use valid dict with required 'info' field
+        )
+
+        tool._init_slots(state)
+        assert len(state.function_calling_trajectory) == 0
+
+    def test_execute_method(self) -> None:
+        """Test execute method."""
+
+        def test_function(param1: str) -> str:
+            return f"Result: {param1}"
+
+        tool = Tool(
+            func=test_function,
+            name="test_tool",
+            description="Test tool",
+            slots=[{"name": "param1", "type": "str"}],
+            outputs=["result"],
+            isResponse=False,
+        )
+
+        state = MessageState(
+            message_id="test-id",
+            user_id="test-user",
+            conversation_id="test-conversation",
+            slots={},
+            function_calling_trajectory=[],
+            trajectory=[[{"info": {}}]],  # Use valid dict with required 'info' field
+        )
+
+        # Mock bot_config.llm_config
+        state.bot_config = Mock()
+        state.bot_config.llm_config = Mock()
+        state.bot_config.llm_config.model_dump.return_value = {"model": "test"}
+
+        with patch.object(tool, "_execute") as mock_execute:
+            mock_execute.return_value = state
+            result = tool.execute(state, param1="test_value")
+
+            mock_execute.assert_called_once_with(state, param1="test_value")
+            assert result == state
+            assert tool.llm_config == {"model": "test"}
+
+    def test_to_openai_tool_def_with_verified_slots(self) -> None:
+        """Test to_openai_tool_def method with verified slots."""
+
+        def test_function(param1: str, param2: int) -> str:
+            return f"Result: {param1}, {param2}"
+
+        tool = Tool(
+            func=test_function,
+            name="test_tool",
+            description="Test tool",
+            slots=[
+                {"name": "param1", "type": "str", "required": True},
+                {"name": "param2", "type": "int", "required": False},
+            ],
+            outputs=["result"],
+            isResponse=False,
+        )
+
+        # Set one slot as verified and populated
+        tool.slots[0].verified = True
+        tool.slots[0].value = "test_value"
+
+        tool_def = tool.to_openai_tool_def()
+
+        assert tool_def["type"] == "function"
+        assert tool_def["name"] == "test_tool"
+        assert tool_def["description"] == "Test tool"
+        assert (
+            "param1" not in tool_def["parameters"]["properties"]
+        )  # Should be excluded
+        assert "param2" in tool_def["parameters"]["properties"]  # Should be included
+        # The required list should be empty because param1 is verified and param2 is not required
+        assert (
+            tool_def["parameters"]["required"] == []
+        )  # Only unverified required slots should be present
+
+    def test_to_openai_tool_def_with_items(self) -> None:
+        """Test to_openai_tool_def method with slots that have items."""
+
+        def test_function(param1: str, param2: list) -> str:
+            return f"Result: {param1}, {param2}"
+
+        tool = Tool(
+            func=test_function,
+            name="test_tool",
+            description="Test tool",
+            slots=[
+                {"name": "param1", "type": "str", "required": True},
+                {
+                    "name": "param2",
+                    "type": "list",
+                    "items": {"type": "string"},
+                    "required": False,
+                },
+            ],
+            outputs=["result"],
+            isResponse=False,
+        )
+
+        tool_def = tool.to_openai_tool_def()
+
+        assert tool_def["parameters"]["properties"]["param2"]["type"] == "array"
+        assert tool_def["parameters"]["properties"]["param2"]["items"] == {
+            "type": "string"
+        }
+
+    def test_to_openai_tool_def_all_slots_verified(self) -> None:
+        """Test to_openai_tool_def method when all slots are verified."""
+
+        def test_function(param1: str) -> str:
+            return f"Result: {param1}"
+
+        tool = Tool(
+            func=test_function,
+            name="test_tool",
+            description="Test tool",
+            slots=[{"name": "param1", "type": "str", "required": True}],
+            outputs=["result"],
+            isResponse=False,
+        )
+
+        # Set all slots as verified and populated
+        tool.slots[0].verified = True
+        tool.slots[0].value = "test_value"
+
+        tool_def = tool.to_openai_tool_def()
+
+        assert tool_def["parameters"]["properties"] == {}
+        assert tool_def["parameters"]["required"] == []
+
+    def test_str_and_repr_methods(self) -> None:
+        """Test __str__ and __repr__ methods."""
+
+        def test_function(param1: str) -> str:
+            return f"Result: {param1}"
+
+        tool = Tool(
+            func=test_function,
+            name="test_tool",
+            description="Test tool",
+            slots=[{"name": "param1", "type": "str"}],
+            outputs=["result"],
+            isResponse=False,
+        )
+
+        assert str(tool) == "Tool"
+        assert repr(tool) == "Tool"
+
+    def test_execute_with_slotfilling_success(self) -> None:
+        """Test _execute method with successful slot filling and tool execution."""
+
+        def test_function(param1: str) -> str:
+            return f"Result: {param1}"
+
+        tool = Tool(
+            func=test_function,
+            name="test_tool",
+            description="Test tool",
+            slots=[{"name": "param1", "type": "str", "required": True}],
+            outputs=["result"],
+            isResponse=False,
+        )
+
+        # Mock slotfiller
+        mock_slotfiller = Mock()
+        tool.slotfiller = mock_slotfiller
+
+        # Mock slots that are filled and verified
+        from arklex.utils.slot import Slot
+
+        filled_slots = [
+            Slot(
+                name="param1",
+                value="test_value",
+                type="str",
+                verified=True,
+                required=True,
+            )
+        ]
+        mock_slotfiller.fill_slots.return_value = filled_slots
+
+        state = MessageState(
+            message_id="test-id",
+            user_id="test-user",
+            conversation_id="test-conversation",
+            slots={},
+            function_calling_trajectory=[],
+            trajectory=[[{"info": {}}]],  # Use valid dict with required 'info' field
+        )
+
+        with patch.object(tool, "_init_slots"):
+            result = tool._execute(state)
+
+            assert result.status.value == "complete"
+            assert (
+                len(result.function_calling_trajectory) == 2
+            )  # tool call + tool response
+            assert (
+                result.message_flow
+                == "Context from test_tool tool execution: Result: test_value\n"
+            )
+
+    def test_execute_with_slotfilling_missing_required(self) -> None:
+        """Test _execute method with missing required slots."""
+
+        def test_function(param1: str) -> str:
+            return f"Result: {param1}"
+
+        tool = Tool(
+            func=test_function,
+            name="test_tool",
+            description="Test tool",
+            slots=[
+                {
+                    "name": "param1",
+                    "type": "str",
+                    "required": True,
+                    "prompt": "Please provide param1",
+                }
+            ],
+            outputs=["result"],
+            isResponse=False,
+        )
+
+        # Mock slotfiller
+        mock_slotfiller = Mock()
+        tool.slotfiller = mock_slotfiller
+
+        # Mock slots that are missing values
+        from arklex.utils.slot import Slot
+
+        empty_slots = [
+            Slot(
+                name="param1",
+                value=None,
+                type="str",
+                verified=False,
+                required=True,
+                prompt="Please provide param1",
+            )
+        ]
+        mock_slotfiller.fill_slots.return_value = empty_slots
+
+        state = MessageState(
+            message_id="test-id",
+            user_id="test-user",
+            conversation_id="test-conversation",
+            slots={},
+            function_calling_trajectory=[],
+            trajectory=[[{"info": {}}]],  # Use valid dict with required 'info' field
+        )
+
+        with patch.object(tool, "_init_slots"):
+            result = tool._execute(state)
+
+            assert result.status.value == "incomplete"
+            assert (
+                result.message_flow
+                == "Context from test_tool tool execution: Please provide param1\n"
+            )
+
+    def test_execute_with_slot_verification_needed(self) -> None:
+        """Test _execute method when slot verification is needed."""
+
+        def test_function(param1: str) -> str:
+            return f"Result: {param1}"
+
+        tool = Tool(
+            func=test_function,
+            name="test_tool",
+            description="Test tool",
+            slots=[
+                {
+                    "name": "param1",
+                    "type": "str",
+                    "required": True,
+                    "prompt": "Please confirm param1",
+                }
+            ],
+            outputs=["result"],
+            isResponse=False,
+        )
+
+        # Mock slotfiller
+        mock_slotfiller = Mock()
+        tool.slotfiller = mock_slotfiller
+
+        # Mock slots that need verification
+        from arklex.utils.slot import Slot
+
+        unverified_slots = [
+            Slot(
+                name="param1",
+                value="test_value",
+                type="str",
+                verified=False,
+                required=True,
+                prompt="Please confirm param1",
+            )
+        ]
+        mock_slotfiller.fill_slots.return_value = unverified_slots
+        mock_slotfiller.verify_slot.return_value = (True, "Please confirm this value")
+
+        state = MessageState(
+            message_id="test-id",
+            user_id="test-user",
+            conversation_id="test-conversation",
+            slots={},
+            function_calling_trajectory=[],
+            trajectory=[[{"info": {}}]],  # Use valid dict with required 'info' field
+        )
+
+        with patch.object(tool, "_init_slots"):
+            result = tool._execute(state)
+
+            assert result.status.value == "incomplete"
+            assert (
+                "Please confirm param1The reason is: Please confirm this value"
+                in result.message_flow
+            )
+
+    def test_execute_with_tool_execution_error(self) -> None:
+        """Test _execute method when tool execution raises an error."""
+
+        def test_function(param1: str) -> str:
+            raise ToolExecutionError(
+                "Tool execution failed", extra_message="Custom error message"
+            )
+
+        tool = Tool(
+            func=test_function,
+            name="test_tool",
+            description="Test tool",
+            slots=[{"name": "param1", "type": "str", "required": True}],
+            outputs=["result"],
+            isResponse=False,
+        )
+
+        # Mock slotfiller
+        mock_slotfiller = Mock()
+        tool.slotfiller = mock_slotfiller
+
+        # Mock slots that are filled and verified
+        from arklex.utils.slot import Slot
+
+        filled_slots = [
+            Slot(
+                name="param1",
+                value="test_value",
+                type="str",
+                verified=True,
+                required=True,
+            )
+        ]
+        mock_slotfiller.fill_slots.return_value = filled_slots
+
+        state = MessageState(
+            message_id="test-id",
+            user_id="test-user",
+            conversation_id="test-conversation",
+            slots={},
+            function_calling_trajectory=[],
+            trajectory=[[{"info": {}}]],  # Use valid dict with required 'info' field
+        )
+
+        with patch.object(tool, "_init_slots"):
+            result = tool._execute(state)
+
+            assert result.status.value == "incomplete"
+            assert "Custom error message" in result.message_flow
+
+    def test_execute_with_authentication_error(self) -> None:
+        """Test _execute method when tool execution raises an authentication error."""
+
+        def test_function(param1: str) -> str:
+            raise AuthenticationError("Authentication failed")
+
+        tool = Tool(
+            func=test_function,
+            name="test_tool",
+            description="Test tool",
+            slots=[{"name": "param1", "type": "str", "required": True}],
+            outputs=["result"],
+            isResponse=False,
+        )
+
+        # Mock slotfiller
+        mock_slotfiller = Mock()
+        tool.slotfiller = mock_slotfiller
+
+        # Mock slots that are filled and verified
+        from arklex.utils.slot import Slot
+
+        filled_slots = [
+            Slot(
+                name="param1",
+                value="test_value",
+                type="str",
+                verified=True,
+                required=True,
+            )
+        ]
+        mock_slotfiller.fill_slots.return_value = filled_slots
+
+        state = MessageState(
+            message_id="test-id",
+            user_id="test-user",
+            conversation_id="test-conversation",
+            slots={},
+            function_calling_trajectory=[],
+            trajectory=[[{"info": {}}]],  # Use valid dict with required 'info' field
+        )
+
+        with patch.object(tool, "_init_slots"):
+            result = tool._execute(state)
+
+            assert result.status.value == "incomplete"
+            assert "Authentication failed" in result.message_flow
+
+    def test_execute_with_general_exception(self) -> None:
+        """Test _execute method when tool execution raises a general exception."""
+
+        def test_function(param1: str) -> str:
+            raise ValueError("General error")
+
+        tool = Tool(
+            func=test_function,
+            name="test_tool",
+            description="Test tool",
+            slots=[{"name": "param1", "type": "str", "required": True}],
+            outputs=["result"],
+            isResponse=False,
+        )
+
+        # Mock slotfiller
+        mock_slotfiller = Mock()
+        tool.slotfiller = mock_slotfiller
+
+        # Mock slots that are filled and verified
+        from arklex.utils.slot import Slot
+
+        filled_slots = [
+            Slot(
+                name="param1",
+                value="test_value",
+                type="str",
+                verified=True,
+                required=True,
+            )
+        ]
+        mock_slotfiller.fill_slots.return_value = filled_slots
+
+        state = MessageState(
+            message_id="test-id",
+            user_id="test-user",
+            conversation_id="test-conversation",
+            slots={},
+            function_calling_trajectory=[],
+            trajectory=[[{"info": {}}]],  # Use valid dict with required 'info' field
+        )
+
+        with patch.object(tool, "_init_slots"):
+            result = tool._execute(state)
+
+            assert result.status.value == "incomplete"
+            assert "General error" in result.message_flow
+
+    def test_execute_with_response_tool(self) -> None:
+        """Test _execute method with a response tool."""
+
+        def test_function(param1: str) -> str:
+            return f"Result: {param1}"
+
+        tool = Tool(
+            func=test_function,
+            name="test_tool",
+            description="Test tool",
+            slots=[{"name": "param1", "type": "str", "required": True}],
+            outputs=["result"],
+            isResponse=True,  # This is a response tool
+        )
+
+        # Mock slotfiller
+        mock_slotfiller = Mock()
+        tool.slotfiller = mock_slotfiller
+
+        # Mock slots that are filled and verified
+        from arklex.utils.slot import Slot
+
+        filled_slots = [
+            Slot(
+                name="param1",
+                value="test_value",
+                type="str",
+                verified=True,
+                required=True,
+            )
+        ]
+        mock_slotfiller.fill_slots.return_value = filled_slots
+
+        state = MessageState(
+            message_id="test-id",
+            user_id="test-user",
+            conversation_id="test-conversation",
+            slots={},
+            function_calling_trajectory=[],
+            trajectory=[[{"info": {}}]],  # Use valid dict with required 'info' field
+        )
+
+        with patch.object(tool, "_init_slots"):
+            result = tool._execute(state)
+
+            assert result.status.value == "complete"
+            assert result.response == "Result: test_value"
+
+    def test_execute_with_existing_slots_in_state(self) -> None:
+        """Test _execute method when slots already exist in state."""
+
+        def test_function(param1: str) -> str:
+            return f"Result: {param1}"
+
+        tool = Tool(
+            func=test_function,
+            name="test_tool",
+            description="Test tool",
+            slots=[{"name": "param1", "type": "str", "required": True}],
+            outputs=["result"],
+            isResponse=False,
+        )
+
+        # Mock slotfiller
+        mock_slotfiller = Mock()
+        tool.slotfiller = mock_slotfiller
+
+        # Mock slots that are filled and verified
+        from arklex.utils.slot import Slot
+
+        existing_slots = [
+            Slot(
+                name="param1",
+                value="existing_value",
+                type="str",
+                verified=True,
+                required=True,
+            )
+        ]
+        mock_slotfiller.fill_slots.return_value = existing_slots
+
+        state = MessageState(
+            message_id="test-id",
+            user_id="test-user",
+            conversation_id="test-conversation",
+            slots={"test_tool": existing_slots},  # Slots already exist
+            function_calling_trajectory=[],
+            trajectory=[[{"info": {}}]],  # Use valid dict with required 'info' field
+        )
+
+        with patch.object(tool, "_init_slots"):
+            result = tool._execute(state)
+
+            assert result.status.value == "complete"
+            assert (
+                result.message_flow
+                == "Context from test_tool tool execution: Result: existing_value\n"
+            )
+
+    def test_execute_with_required_function_arguments(self) -> None:
+        """Test _execute method with function that has required arguments not in slots."""
+
+        def test_function(param1: str, required_arg: str) -> str:
+            return f"Result: {param1}, {required_arg}"
+
+        tool = Tool(
+            func=test_function,
+            name="test_tool",
+            description="Test tool",
+            slots=[{"name": "param1", "type": "str", "required": True}],
+            outputs=["result"],
+            isResponse=False,
+        )
+
+        # Mock slotfiller
+        mock_slotfiller = Mock()
+        tool.slotfiller = mock_slotfiller
+
+        # Mock slots that are filled and verified
+        from arklex.utils.slot import Slot
+
+        filled_slots = [
+            Slot(
+                name="param1",
+                value="test_value",
+                type="str",
+                verified=True,
+                required=True,
+            )
+        ]
+        mock_slotfiller.fill_slots.return_value = filled_slots
+
+        state = MessageState(
+            message_id="test-id",
+            user_id="test-user",
+            conversation_id="test-conversation",
+            slots={},
+            function_calling_trajectory=[],
+            trajectory=[[{"info": {}}]],  # Use valid dict with required 'info' field
+        )
+
+        with patch.object(tool, "_init_slots"):
+            result = tool._execute(state)
+
+            assert result.status.value == "incomplete"
+            # Should fail due to missing required_arg
+            assert (
+                "missing 1 required positional argument: 'required_arg'"
+                in result.message_flow
+            )
+
+    def test_execute_with_slot_verification_not_needed(self) -> None:
+        """Test _execute method when slot verification returns False (not needed)."""
+
+        def test_function(param1: str) -> str:
+            return f"Result: {param1}"
+
+        tool = Tool(
+            func=test_function,
+            name="test_tool",
+            description="Test tool",
+            slots=[
+                {
+                    "name": "param1",
+                    "type": "str",
+                    "required": True,
+                    "prompt": "Please confirm param1",
+                }
+            ],
+            outputs=["result"],
+            isResponse=False,
+        )
+
+        # Mock slotfiller
+        mock_slotfiller = Mock()
+        tool.slotfiller = mock_slotfiller
+
+        # Mock slots that need verification
+        from arklex.utils.slot import Slot
+
+        unverified_slots = [
+            Slot(
+                name="param1",
+                value="test_value",
+                type="str",
+                verified=False,
+                required=True,
+                prompt="Please confirm param1",
+            )
+        ]
+        mock_slotfiller.fill_slots.return_value = unverified_slots
+        # This time verification is NOT needed (returns False)
+        mock_slotfiller.verify_slot.return_value = (False, "Slot is valid")
+
+        state = MessageState(
+            message_id="test-id",
+            user_id="test-user",
+            conversation_id="test-conversation",
+            slots={},
+            function_calling_trajectory=[],
+            trajectory=[[{"info": {}}]],  # Use valid dict with required 'info' field
+        )
+
+        with patch.object(tool, "_init_slots"):
+            result = tool._execute(state)
+
+            assert result.status.value == "complete"
+            # The slot should be marked as verified and the function should execute successfully
+            assert (
+                result.message_flow
+                == "Context from test_tool tool execution: Result: test_value\n"
+            )

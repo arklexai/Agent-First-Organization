@@ -18,7 +18,7 @@ description = "Get the busy times of the the company from the Google Calendar"
 slots = [
     {
         "name": "time_min",
-        "type": "string",
+        "type": "str",
         "description": "The start of the time range to check for. It includes the hour, as the date alone is not sufficient. The format should be 'YYYY-MM-DDTHH:MM:SS'. Today is {today}.".format(
             today=datetime.now().isoformat()
         ),
@@ -27,7 +27,7 @@ slots = [
     },
     {
         "name": "time_max",
-        "type": "string",
+        "type": "str",
         "description": "The end of the time range to check for. It includes the hour, as the date alone is not sufficient. The format should be 'YYYY-MM-DDTHH:MM:SS'. Today is {today}.".format(
             today=datetime.now().isoformat()
         ),
@@ -36,7 +36,7 @@ slots = [
     },
     {
         "name": "timezone",
-        "type": "string",
+        "type": "str",
         "enum": pytz.common_timezones,
         "description": "The timezone of the user. For example, 'America/New_York'.",
         "prompt": "Could you please provide your timezone or where are you now?",

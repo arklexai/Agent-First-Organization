@@ -237,7 +237,10 @@ def filter_convo(
             new_turn: Dict[str, Any] = {}
             for key in turn.keys():
                 if key == "content":
-                    new_turn[key] = turn[key][:idx]
+                    if idx == -1:
+                        new_turn[key] = turn[key]
+                    else:
+                        new_turn[key] = turn[key][:idx]
                 else:
                     new_turn[key] = turn[key]
             filtered_convo.append(new_turn)
@@ -314,7 +317,7 @@ def generate_goals(
     return goals
 
 
-if __name__ == "__main__":
+def main() -> None:
     from get_documents import get_all_documents, filter_documents
 
     documents = get_all_documents()
@@ -322,3 +325,7 @@ if __name__ == "__main__":
     client = create_client()
     params = {"num_goals": 1}
     print(generate_goals(documents, params, client))
+
+
+if __name__ == "__main__":
+    main()

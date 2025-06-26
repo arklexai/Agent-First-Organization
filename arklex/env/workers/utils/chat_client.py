@@ -199,6 +199,15 @@ class ChatClient:
             case "wo":
                 await self.send_message(message)
                 await self.send_message("QUIT")
+                await self.writer.drain()
+                # report progress to the user
+                print("Disconnecting from server...")
+                # close the stream writer
+                self.writer.close()
+                # wait for the tcp connection to close
+                await self.writer.wait_closed()
+                # report progress to the user
+                print("Done.")
                 return None
 
             case _:

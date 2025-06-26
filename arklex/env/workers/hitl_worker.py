@@ -36,15 +36,15 @@ class HITLWorker(BaseWorker):
 
     slot_fill_api: Optional[SlotFiller] = None
 
-    # def __init__(self, server_ip: str, server_port: int, name: str):
     def __init__(self, **kwargs: Any) -> None:
-        """Initialize the HITL worker.
-
-        Args:
-            **kwargs: Keyword arguments for initializing the worker
-        """
-        super().__init__(**kwargs)
-
+        # Initialize attributes from kwargs
+        self.name = kwargs.get("name")
+        self.server_ip = kwargs.get("server_ip")
+        self.server_port = kwargs.get("server_port")
+        self.mode = kwargs.get("mode", self.mode)
+        self.params = kwargs.get("params", self.params)
+        self.verifier = kwargs.get("verifier", self.verifier)
+        self.slot_fill_api = kwargs.get("slot_fill_api", self.slot_fill_api)
         self.action_graph: StateGraph = self._create_action_graph()
 
     def verify_literal(self, state: MessageState) -> Tuple[bool, str]:
@@ -178,6 +178,10 @@ class HITLWorker(BaseWorker):
         result: MessageState = graph.invoke(state)
         return result
 
+    def error(self, state: MessageState) -> MessageState:
+        state.status = StatusEnum.INCOMPLETE
+        return state
+
 
 @register_worker
 class HITLWorkerTestChat(HITLWorker):
@@ -198,13 +202,17 @@ class HITLWorkerTestChat(HITLWorker):
     mode: str = "chat"
 
     def __init__(self, **kwargs: Any) -> None:
-        super().__init__(**kwargs)
-        self.server_ip: Optional[str] = kwargs.get("server_ip")
-        self.server_port: Optional[int] = kwargs.get("server_port")
-        self.name: Optional[str] = kwargs.get("name")
-
+        # Initialize attributes from kwargs
+        self.name = kwargs.get("name")
+        self.server_ip = kwargs.get("server_ip")
+        self.server_port = kwargs.get("server_port")
+        self.mode = kwargs.get("mode", self.mode)
+        self.params = kwargs.get("params", self.params)
+        self.verifier = kwargs.get("verifier", self.verifier)
+        self.slot_fill_api = kwargs.get("slot_fill_api", self.slot_fill_api)
         if not self.server_ip or not self.server_port:
             raise ValueError("Server IP and Port are required")
+        self.action_graph: StateGraph = self._create_action_graph()
 
     def verify_literal(self, message: str) -> bool:
         return "chat" in message
@@ -235,10 +243,17 @@ class HITLWorkerTestMC(HITLWorker):
     }
 
     def __init__(self, **kwargs: Any) -> None:
-        super().__init__(**kwargs)
-        self.server_ip: Optional[str] = kwargs.get("server_ip")
-        self.server_port: Optional[int] = kwargs.get("server_port")
-        self.name: Optional[str] = kwargs.get("name")
+        # Initialize attributes from kwargs
+        self.name = kwargs.get("name")
+        self.server_ip = kwargs.get("server_ip")
+        self.server_port = kwargs.get("server_port")
+        self.mode = kwargs.get("mode", self.mode)
+        self.params = kwargs.get("params", self.params)
+        self.verifier = kwargs.get("verifier", self.verifier)
+        self.slot_fill_api = kwargs.get("slot_fill_api", self.slot_fill_api)
+        if not self.server_ip or not self.server_port:
+            raise ValueError("Server IP and Port are required")
+        self.action_graph: StateGraph = self._create_action_graph()
 
     def verify_literal(self, message: str) -> bool:
         return "buy" in message
@@ -281,9 +296,7 @@ class HITLWorkerChatFlag(HITLWorker):
             if not need_hitl:
                 return self.fallback(state)
 
-            state.response = (
-                "[[sending confirmation : this should not show up for user]]"
-            )
+            state.message_flow = message
             state.metadata.hitl = "live"
             state.status = StatusEnum.STAY
 
