@@ -14,22 +14,6 @@ from arklex.utils.exceptions import ToolExecutionError
 from arklex.utils.logging_utils import LogContext
 
 log_context = LogContext(__name__)
-# slots = [
-#     {
-#         "name": "cat breed",
-#         "type": "str",
-#         "description": "Type of cat breed",
-#         "prompt": "hello, how are you?",
-#         "required": True,
-#     },
-#     {
-#         "name": "cat age",
-#         "type": "int",
-#         "description": "Age of the cat",
-#         "prompt": "what is the age of the cat?",
-#         "required": True,
-#     }
-# ]
 
 @register_tool(
     desc="Make HTTP requests to external APIs and handle responses",
@@ -42,7 +26,7 @@ def http_tool(**kwargs: Dict[str, Any]) -> str:
     func_name: str = inspect.currentframe().f_code.co_name
     try:
         params: HTTPParams = HTTPParams(**kwargs)
-        slots = kwargs.get("slots")  # This should be a list of Slot objects or dicts
+        slots = kwargs.get("slots")
         log_context.info(f"Slots: {slots}")
         if slots:
             # Process slots based on their target
@@ -74,7 +58,7 @@ def http_tool(**kwargs: Dict[str, Any]) -> str:
                         params.body[slot_name] = slot_value
                         log_context.info(f"Added slot '{slot_name}' with value '{slot_value}' to body")
         
-        # Remove any {{}} placeholders from params and body
+        # Remove any {{}} placeholders from params and body as these are optional parameters
         def remove_placeholders(data_dict):
             if not data_dict:
                 return
