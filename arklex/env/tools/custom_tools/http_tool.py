@@ -27,7 +27,7 @@ def http_tool(**kwargs: Dict[str, Any]) -> str:
     try:
         params: HTTPParams = HTTPParams(**kwargs)
         slots = kwargs.get("slots")
-        log_context.info(f"Slots: {slots}")
+        log_context.info(f"HTTPTool execution called with args: {kwargs}")
         if slots:
             # Process slots based on their target
             for slot in slots:
