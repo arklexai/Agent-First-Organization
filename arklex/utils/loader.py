@@ -7,33 +7,34 @@ file formats and provides utilities for handling different types of content sour
 ensuring consistent processing and storage of loaded content.
 """
 
-import time
-from pathlib import Path
-from typing import List
-import requests
+import base64
+import contextlib
+import os
 import pickle
+import time
 import uuid
 from enum import Enum
-import os
-
-from webdriver_manager.chrome import ChromeDriverManager
-from selenium import webdriver
-from bs4 import BeautifulSoup
+from pathlib import Path
 from urllib.parse import urljoin
+
 import networkx as nx
+import requests
+from bs4 import BeautifulSoup
 from langchain.text_splitter import RecursiveCharacterTextSplitter
-from langchain_core.documents import Document
-from mistralai import Mistral
 from langchain_community.document_loaders import (
     PyPDFLoader,
-    UnstructuredWordDocumentLoader,
+    TextLoader,
     UnstructuredExcelLoader,
     UnstructuredMarkdownLoader,
-    TextLoader,
     UnstructuredPowerPointLoader,
+    UnstructuredWordDocumentLoader,
 )
-import base64
+from langchain_core.documents import Document
+from mistralai import Mistral
+from selenium import webdriver
 from selenium.webdriver.chrome.service import Service
+from webdriver_manager.chrome import ChromeDriverManager
+
 from arklex.utils.logging_utils import LogContext
 
 log_context = LogContext(__name__)
@@ -80,7 +81,7 @@ class CrawledObject(DocObject):
         id: str,
         source: str,
         content: str,
-        metadata: dict = {},
+        metadata: dict | None = None,
         is_chunk: bool = False,
         is_error: bool = False,
         error_message: str | None = None,
@@ -88,7 +89,7 @@ class CrawledObject(DocObject):
     ) -> None:
         super().__init__(id, source)
         self.content = content
-        self.metadata = metadata
+        self.metadata = metadata or {}
         self.is_chunk = is_chunk
         self.is_error = is_error
         self.error_message = error_message
@@ -124,7 +125,7 @@ class Loader:
     def __init__(self) -> None:
         pass
 
-    def to_crawled_url_objs(self, url_list: List[str]) -> List[CrawledObject]:
+    def to_crawled_url_objs(self, url_list: list[str]) -> list[CrawledObject]:
         """Convert a list of URLs to CrawledObject instances.
 
         This function takes a list of URLs and converts them into CrawledObject instances
@@ -140,7 +141,7 @@ class Loader:
         crawled_url_objs = self.crawl_urls(url_objs)
         return crawled_url_objs
 
-    def crawl_urls(self, url_objects: list[DocObject]) -> List[CrawledObject]:
+    def crawl_urls(self, url_objects: list[DocObject]) -> list[CrawledObject]:
         """Crawl a list of URLs and extract their content.
 
         This function uses Selenium WebDriver to crawl a list of URLs and extract their
@@ -180,7 +181,7 @@ class Loader:
         )
         return docs
 
-    def _crawl_with_selenium(self, url_objects: list[DocObject]) -> List[CrawledObject]:
+    def _crawl_with_selenium(self, url_objects: list[DocObject]) -> list[CrawledObject]:
         """Crawl URLs using Selenium WebDriver with enhanced stealth options."""
         options = webdriver.ChromeOptions()
         options.add_argument("--no-sandbox")
@@ -238,7 +239,7 @@ class Loader:
                 for url_obj in url_objects
             ]
 
-        docs: List[CrawledObject] = []
+        docs: list[CrawledObject] = []
         start_time = time.time()
         max_time_per_url = 30  # Maximum 30 seconds per URL
         successful_crawls = 0
@@ -312,10 +313,8 @@ class Loader:
                 except Exception as err:
                     # Close driver on error
                     if driver:
-                        try:
+                        with contextlib.suppress(Exception):
                             driver.quit()
-                        except:
-                            pass
 
                     # If this is the last retry attempt, log as failed
                     if retry_attempt == max_retries - 1:
@@ -358,7 +357,7 @@ class Loader:
         )
         return docs
 
-    def _crawl_with_requests(self, url_objects: list[DocObject]) -> List[CrawledObject]:
+    def _crawl_with_requests(self, url_objects: list[DocObject]) -> list[CrawledObject]:
         """Fallback crawling using requests library."""
         headers = {
             "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
@@ -369,7 +368,7 @@ class Loader:
             "Upgrade-Insecure-Requests": "1",
         }
 
-        docs: List[CrawledObject] = []
+        docs: list[CrawledObject] = []
         successful_crawls = 0
 
         for i, url_obj in enumerate(url_objects, 1):
@@ -431,7 +430,7 @@ class Loader:
 
     def _create_mock_content_from_urls(
         self, url_objects: list[DocObject]
-    ) -> List[CrawledObject]:
+    ) -> list[CrawledObject]:
         """Create mock content from URLs when web crawling fails completely.
 
         This method generates basic content based on the URL structure to ensure
@@ -443,7 +442,7 @@ class Loader:
         Returns:
             List[CrawledObject]: List of CrawledObject instances with mock content.
         """
-        docs: List[CrawledObject] = []
+        docs: list[CrawledObject] = []
 
         for url_obj in url_objects:
             url = url_obj.source
@@ -519,7 +518,7 @@ class Loader:
             source_type=SourceType.WEB,
         )
 
-    def get_all_urls(self, base_url: str, max_num: int) -> List[str]:
+    def get_all_urls(self, base_url: str, max_num: int) -> list[str]:
         """Get all URLs from a base URL up to a maximum number.
 
         This function performs a breadth-first search of URLs starting from a base URL,
@@ -580,7 +579,7 @@ class Loader:
         )
         return sorted(urls_visited[:max_num])
 
-    def get_outsource_urls(self, curr_url: str, base_url: str) -> List[str]:
+    def get_outsource_urls(self, curr_url: str, base_url: str) -> list[str]:
         """Get outsource URLs from a given URL.
 
         This function extracts URLs from a webpage that point to external resources.
@@ -596,7 +595,7 @@ class Loader:
         headers = {
             "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/14.0.3 Safari/605.1.15"
         }
-        new_urls = list()
+        new_urls = []
         try:
             response = requests.get(curr_url, headers=headers, timeout=10)
             # Check if the request was successful
@@ -634,18 +633,16 @@ class Loader:
             bool: True if the URL is valid and belongs to the base URL, False otherwise.
         """
         kw_list = [".pdf", ".jpg", ".png", ".docx", ".xlsx", ".pptx", ".zip", ".jpeg"]
-        if (
+        return (
             full_url.startswith(base_url)
             and full_url
             and not any(kw in full_url for kw in kw_list)
             and full_url != base_url
-        ):
-            return True
-        return False
+        )
 
     def get_candidates_websites(
-        self, urls: List[CrawledObject], top_k: int
-    ) -> List[CrawledObject]:
+        self, urls: list[CrawledObject], top_k: int
+    ) -> list[CrawledObject]:
         """Get candidate websites based on content relevance.
 
         This function analyzes the content of crawled URLs and selects the most
@@ -689,7 +686,7 @@ class Loader:
         urls_cleaned = [CrawledObject.from_dict(doc) for doc in urls_candidates if doc]
         return urls_cleaned
 
-    def to_crawled_text(self, text_list: List[str]) -> List[CrawledObject]:
+    def to_crawled_text(self, text_list: list[str]) -> list[CrawledObject]:
         """Convert a list of text strings to CrawledObject instances.
 
         This function creates CrawledObject instances from a list of text strings,
@@ -713,7 +710,7 @@ class Loader:
             crawled_local_objs.append(crawled_obj)
         return crawled_local_objs
 
-    def to_crawled_local_objs(self, file_list: List[str]) -> List[CrawledObject]:
+    def to_crawled_local_objs(self, file_list: list[str]) -> list[CrawledObject]:
         """Convert a list of local files to CrawledObject instances.
 
         This function processes local files and creates CrawledObject instances
@@ -758,13 +755,14 @@ class Loader:
                 # Call the Mistral API to extract data.
                 client = Mistral(api_key=MISTRAL_API_KEY)
                 if file_type in ["pdf", "pptx", "ppt"]:
-                    uploaded_doc = client.files.upload(
-                        file={
-                            "file_name": file_name,
-                            "content": open(file_path, "rb"),
-                        },
-                        purpose="ocr",
-                    )
+                    with open(file_path, "rb") as file_content:
+                        uploaded_doc = client.files.upload(
+                            file={
+                                "file_name": file_name,
+                                "content": file_content,
+                            },
+                            purpose="ocr",
+                        )
                     signed_url = client.files.get_signed_url(file_id=uploaded_doc.id)
                     ocr_response = client.ocr.process(
                         model="mistral-ocr-latest",
@@ -798,7 +796,8 @@ class Loader:
             elif file_type == "html":
                 # TODO : Consider replacing this logic with the Unstructured HTML Loader.
                 # Would need to be done in crawl_urls too.
-                html = open(file_path, "r", encoding="utf-8").read()
+                with open(file_path, encoding="utf-8") as f:
+                    html = f.read()
                 soup = BeautifulSoup(html, "html.parser")
 
                 text_list = []
@@ -870,7 +869,7 @@ class Loader:
             )
 
     @staticmethod
-    def save(file_path: str, docs: List[CrawledObject]) -> None:
+    def save(file_path: str, docs: list[CrawledObject]) -> None:
         """Save a list of CrawledObject instances to a file.
 
         This function serializes and saves CrawledObject instances to a file
@@ -884,7 +883,7 @@ class Loader:
             pickle.dump(docs, f)
 
     @classmethod
-    def chunk(cls, doc_objs: List[CrawledObject]) -> List[CrawledObject]:
+    def chunk(cls, doc_objs: list[CrawledObject]) -> list[CrawledObject]:
         """Split documents into smaller chunks.
 
         This function splits large documents into smaller, more manageable chunks

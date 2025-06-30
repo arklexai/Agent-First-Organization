@@ -1,9 +1,9 @@
 # Go to the parent folder of this file (calendar), then Run python -m unittest test.py to test the code in this file.
-import unittest
 import json
-import sys
 import os
-from typing import Any, Dict, List, Tuple
+import sys
+import unittest
+from typing import Any
 
 from arklex.env.env import Env
 from arklex.orchestrator.orchestrator import AgentOrg
@@ -15,8 +15,8 @@ print(sys.path)
 
 class Logic_Test(unittest.TestCase):
     file_path: str = "test_cases.json"
-    with open(file_path, "r", encoding="UTF-8") as f:
-        TEST_CASES: List[Dict[str, Any]] = json.load(f)
+    with open(file_path, encoding="UTF-8") as f:
+        TEST_CASES: list[dict[str, Any]] = json.load(f)
 
     @classmethod
     def setUpClass(cls) -> None:
@@ -24,8 +24,8 @@ class Logic_Test(unittest.TestCase):
         cls.user_prefix: str = "user"
         cls.worker_prefix: str = "assistant"
         file_path: str = "taskgraph.json"
-        with open(file_path, "r", encoding="UTF-8") as f:
-            cls.config: Dict[str, Any] = json.load(f)
+        with open(file_path, encoding="UTF-8") as f:
+            cls.config: dict[str, Any] = json.load(f)
         cls.env: Env = Env(
             tools=cls.config.get("tools", []),
             workers=cls.config.get("workers", []),
@@ -37,24 +37,24 @@ class Logic_Test(unittest.TestCase):
         """Method to tear down the test fixture. Run AFTER the test methods."""
 
     def _get_api_bot_response(
-        self, user_text: str, history: List[Dict[str, str]], params: Dict[str, Any]
-    ) -> Tuple[str, Dict[str, Any]]:
-        data: Dict[str, Any] = {
+        self, user_text: str, history: list[dict[str, str]], params: dict[str, Any]
+    ) -> tuple[str, dict[str, Any]]:
+        data: dict[str, Any] = {
             "text": user_text,
             "chat_history": history,
             "parameters": params,
         }
         orchestrator = AgentOrg(config=self.config, env=self.env)
-        result: Dict[str, Any] = orchestrator.get_response(data)
+        result: dict[str, Any] = orchestrator.get_response(data)
 
         return result["answer"], result["parameters"]
 
     def test_Unittest0(self) -> None:
         print("\n=============Unit Test 0=============")
         print(f"{self.TEST_CASES[0]['description']}")
-        history: List[Dict[str, str]] = []
-        params: Dict[str, Any] = {}
-        nodes: List[str] = []
+        history: list[dict[str, str]] = []
+        params: dict[str, Any] = {}
+        nodes: list[str] = []
         for node in self.config["nodes"]:
             if node[1].get("type", "") == "start":
                 start_message: str = node[1]["attribute"]["value"]
@@ -75,9 +75,9 @@ class Logic_Test(unittest.TestCase):
     def test_Unittest1(self) -> None:
         print("\n=============Unit Test 1=============")
         print(f"{self.TEST_CASES[1]['description']}")
-        history: List[Dict[str, str]] = []
-        params: Dict[str, Any] = {}
-        nodes: List[str] = []
+        history: list[dict[str, str]] = []
+        params: dict[str, Any] = {}
+        nodes: list[str] = []
         for node in self.config["nodes"]:
             if node[1].get("type", "") == "start":
                 start_message: str = node[1]["attribute"]["value"]

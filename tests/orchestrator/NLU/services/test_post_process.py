@@ -1,25 +1,27 @@
+from unittest.mock import Mock, patch
+
 import pytest
-from unittest.mock import Mock, patch, MagicMock
+
 from arklex.orchestrator.post_process import (
-    post_process_response,
+    RAG_NODES_STEPS,
+    TRIGGER_LIVE_CHAT_PROMPT,
     _build_context,
+    _extract_confidence_from_nested_dict,
     _extract_links,
     _extract_links_from_nested_dict,
+    _include_resource,
+    _is_question_relevant,
+    _live_chat_verifier,
     _remove_invalid_links,
     _rephrase_answer,
-    _include_resource,
-    RAG_NODES_STEPS,
-    _live_chat_verifier,
-    _extract_confidence_from_nested_dict,
-    _is_question_relevant,
+    post_process_response,
     should_trigger_handoff,
-    TRIGGER_LIVE_CHAT_PROMPT,
 )
-from arklex.utils.graph_state import MessageState, Params, ResourceRecord, Metadata
+from arklex.utils.graph_state import MessageState, Metadata, Params, ResourceRecord
 
 
 @pytest.fixture
-def mock_message_state():
+def mock_message_state() -> Mock:
     state = Mock(spec=MessageState)
     state.user_message = Mock()
     state.response = (
@@ -35,12 +37,12 @@ def mock_message_state():
 
 
 @pytest.fixture
-def mock_params():
+def mock_params() -> Mock:
     return Mock(spec=Params)
 
 
 @pytest.fixture
-def mock_resource_record():
+def mock_resource_record() -> Mock:
     resource = Mock(spec=ResourceRecord)
     resource.output = "Resource output with https://resource.com"
     resource.info = {"id": "test_resource"}
@@ -52,7 +54,7 @@ class TestPostProcessResponse:
     """Test the post_process_response function."""
 
     def test_post_process_response_no_missing_links(
-        self, mock_message_state, mock_params
+        self, mock_message_state: Mock, mock_params: Mock
     ) -> None:
         """Test post_process_response when no links are missing."""
         mock_message_state.trajectory = []
@@ -73,7 +75,7 @@ class TestPostProcessResponse:
             assert result.response == mock_message_state.response  # No changes
 
     def test_post_process_response_with_missing_links(
-        self, mock_message_state, mock_params
+        self, mock_message_state: Mock, mock_params: Mock
     ) -> None:
         """Test post_process_response when links are missing."""
         mock_message_state.trajectory = []
@@ -102,7 +104,7 @@ class TestPostProcessResponse:
             assert result.response == "Rephrased response"
 
     def test_post_process_response_with_missing_links_no_hitl(
-        self, mock_message_state, mock_params
+        self, mock_message_state: Mock, mock_params: Mock
     ) -> None:
         """Test post_process_response when links are missing and HITL is not available."""
         mock_message_state.trajectory = []
@@ -139,7 +141,7 @@ class TestPostProcessResponse:
 class TestBuildContext:
     """Test the _build_context function."""
 
-    def test_build_context_basic(self, mock_message_state) -> None:
+    def test_build_context_basic(self, mock_message_state: Mock) -> None:
         """Test _build_context with basic trajectory."""
         resource = Mock(spec=ResourceRecord)
         resource.output = "Output with https://resource.com"
@@ -161,7 +163,7 @@ class TestBuildContext:
 
             assert "https://resource.com" in result
 
-    def test_build_context_with_rag_node(self, mock_message_state) -> None:
+    def test_build_context_with_rag_node(self, mock_message_state: Mock) -> None:
         """Test _build_context with RAG node."""
         resource = Mock(spec=ResourceRecord)
         resource.output = "Output with https://resource.com"
@@ -190,7 +192,9 @@ class TestBuildContext:
             assert "https://resource.com" in result
             assert "https://rag.com" in result
 
-    def test_build_context_with_rag_node_exception(self, mock_message_state) -> None:
+    def test_build_context_with_rag_node_exception(
+        self, mock_message_state: Mock
+    ) -> None:
         """Test _build_context with RAG node that raises exception."""
         resource = Mock(spec=ResourceRecord)
         resource.output = "Output with https://resource.com"
@@ -209,14 +213,16 @@ class TestBuildContext:
             ),
             patch(
                 "arklex.orchestrator.post_process._extract_links_from_nested_dict",
-                side_effect=Exception("Test error"),
+                side_effect=Exception("Test exception"),
             ),
         ):
             result = _build_context(mock_message_state)
 
             assert "https://resource.com" in result
 
-    def test_build_context_with_context_generate_flag(self, mock_message_state):
+    def test_build_context_with_context_generate_flag(
+        self, mock_message_state: Mock
+    ) -> None:
         """Test _build_context with resource that has context_generate flag."""
         resource = Mock(spec=ResourceRecord)
         resource.output = "Output with https://resource.com"
@@ -415,7 +421,7 @@ class TestRemoveInvalidLinks:
 class TestRephraseAnswer:
     """Test the _rephrase_answer function."""
 
-    def test_rephrase_answer(self, mock_message_state) -> None:
+    def test_rephrase_answer(self, mock_message_state: Mock) -> None:
         """Test _rephrase_answer function."""
         mock_message_state.bot_config.llm_config.llm_provider = "openai"
         mock_message_state.bot_config.llm_config.model_type_or_path = "gpt-3.5-turbo"
@@ -426,9 +432,7 @@ class TestRephraseAnswer:
             patch(
                 "arklex.orchestrator.post_process.PromptTemplate"
             ) as mock_prompt_template,
-            patch(
-                "arklex.orchestrator.post_process.StrOutputParser"
-            ) as mock_str_parser,
+            patch("arklex.orchestrator.post_process.StrOutputParser"),
         ):
             # Create a mock LLM that supports the pipe operator
             mock_llm = Mock()
@@ -457,7 +461,9 @@ class TestRephraseAnswer:
 class TestIncludeResource:
     """Test the _include_resource function."""
 
-    def test_include_resource_no_context_generate(self, mock_resource_record) -> None:
+    def test_include_resource_no_context_generate(
+        self, mock_resource_record: Mock
+    ) -> None:
         """Test _include_resource when no context_generate flag is present."""
         mock_resource_record.steps = [{"step": "data"}]
 
@@ -465,7 +471,9 @@ class TestIncludeResource:
 
         assert result is True
 
-    def test_include_resource_with_context_generate(self, mock_resource_record) -> None:
+    def test_include_resource_with_context_generate(
+        self, mock_resource_record: Mock
+    ) -> None:
         """Test _include_resource when context_generate flag is present."""
         mock_resource_record.steps = [{"context_generate": True}]
 
@@ -473,7 +481,7 @@ class TestIncludeResource:
 
         assert result is False
 
-    def test_include_resource_mixed_steps(self, mock_resource_record) -> None:
+    def test_include_resource_mixed_steps(self, mock_resource_record: Mock) -> None:
         """Test _include_resource with mixed steps."""
         mock_resource_record.steps = [
             {"step": "data"},
@@ -485,7 +493,7 @@ class TestIncludeResource:
 
         assert result is False
 
-    def test_include_resource_empty_steps(self, mock_resource_record) -> None:
+    def test_include_resource_empty_steps(self, mock_resource_record: Mock) -> None:
         """Test _include_resource with empty steps."""
         mock_resource_record.steps = []
 
@@ -514,7 +522,7 @@ class TestLiveChatVerifier:
     """Test the _live_chat_verifier function."""
 
     def test_live_chat_verifier_with_valid_links(
-        self, mock_message_state, mock_params
+        self, mock_message_state: Mock, mock_params: Mock
     ) -> None:
         """Test _live_chat_verifier when response has valid links."""
         mock_message_state.response = "Check this link: https://example.com"
@@ -529,7 +537,7 @@ class TestLiveChatVerifier:
         assert mock_message_state.response == "Check this link: https://example.com"
 
     def test_live_chat_verifier_question_not_relevant(
-        self, mock_message_state, mock_params
+        self, mock_message_state: Mock, mock_params: Mock
     ) -> None:
         """Test _live_chat_verifier when question is not relevant."""
         mock_message_state.response = "I don't know the answer"
@@ -550,7 +558,7 @@ class TestLiveChatVerifier:
         assert mock_message_state.response == "I don't know the answer"
 
     def test_live_chat_verifier_high_confidence(
-        self, mock_message_state, mock_params
+        self, mock_message_state: Mock, mock_params: Mock
     ) -> None:
         """Test _live_chat_verifier when RAG confidence is high."""
         mock_message_state.response = "I don't know the answer"
@@ -585,7 +593,7 @@ class TestLiveChatVerifier:
         assert mock_message_state.response == "I don't know the answer"
 
     def test_live_chat_verifier_low_confidence_trigger_handoff(
-        self, mock_message_state, mock_params
+        self, mock_message_state: Mock, mock_params: Mock
     ) -> None:
         """Test _live_chat_verifier when confidence is low and should trigger handoff."""
         mock_message_state.response = "I don't know the answer"
@@ -620,7 +628,7 @@ class TestLiveChatVerifier:
         assert mock_message_state.response == TRIGGER_LIVE_CHAT_PROMPT
 
     def test_live_chat_verifier_low_confidence_no_handoff(
-        self, mock_message_state, mock_params
+        self, mock_message_state: Mock, mock_params: Mock
     ) -> None:
         """Test _live_chat_verifier when confidence is low but should not trigger handoff."""
         mock_message_state.response = "I don't know the answer"
@@ -655,7 +663,7 @@ class TestLiveChatVerifier:
         assert mock_message_state.response == "I don't know the answer"
 
     def test_live_chat_verifier_zero_division_error(
-        self, mock_message_state, mock_params
+        self, mock_message_state: Mock, mock_params: Mock
     ) -> None:
         """Test _live_chat_verifier when num_of_docs is 0 (zero division error)."""
         mock_message_state.response = "I don't know the answer"
@@ -690,7 +698,7 @@ class TestLiveChatVerifier:
         assert mock_message_state.response == TRIGGER_LIVE_CHAT_PROMPT
 
     def test_live_chat_verifier_insufficient_trajectory(
-        self, mock_message_state, mock_params
+        self, mock_message_state: Mock, mock_params: Mock
     ) -> None:
         """Test _live_chat_verifier when trajectory has less than 2 groups."""
         mock_message_state.response = "I don't know the answer"
@@ -704,18 +712,14 @@ class TestLiveChatVerifier:
                 "arklex.orchestrator.post_process._is_question_relevant",
                 return_value=True,
             ),
-            patch(
-                "arklex.orchestrator.post_process.should_trigger_handoff",
-                return_value=True,
-            ),
         ):
             _live_chat_verifier(mock_message_state, mock_params)
 
-        # Should NOT trigger live chat when trajectory is insufficient
+        # Should not trigger live chat when trajectory is insufficient
         assert mock_message_state.response == "I don't know the answer"
 
     def test_live_chat_verifier_rag_step_exception(
-        self, mock_message_state, mock_params
+        self, mock_message_state: Mock, mock_params: Mock
     ) -> None:
         """Test _live_chat_verifier when RAG step processing raises exception."""
         mock_message_state.response = "I don't know the answer"
@@ -737,28 +741,31 @@ class TestLiveChatVerifier:
             ),
             patch(
                 "arklex.orchestrator.post_process._extract_confidence_from_nested_dict",
-                side_effect=Exception("Test error"),
+                side_effect=Exception("Test exception"),
             ),
             patch(
                 "arklex.orchestrator.post_process.should_trigger_handoff",
-                return_value=True,
+                return_value=False,
             ),
         ):
             _live_chat_verifier(mock_message_state, mock_params)
 
-        # Should trigger live chat when RAG step processing fails
-        assert mock_message_state.response == TRIGGER_LIVE_CHAT_PROMPT
+        # Should not trigger live chat when exception occurs
+        assert mock_message_state.response == "I don't know the answer"
 
     def test_live_chat_verifier_milvus_worker(
-        self, mock_message_state, mock_params
+        self, mock_message_state: Mock, mock_params: Mock
     ) -> None:
         """Test _live_chat_verifier with milvus_rag_worker."""
         mock_message_state.response = "I don't know the answer"
         mock_message_state.trajectory = [[], []]  # At least 2 trajectory groups
+
         resource = Mock(spec=ResourceRecord)
         resource.info = {"id": "milvus_rag_worker"}
-        resource.steps = [{"milvus_retrieve": {"confidence": 50.0}}]
+        resource.steps = [{"milvus_retrieve": {"confidence": 0.1}}]
+
         mock_message_state.trajectory[-2] = [resource]
+
         with (
             patch(
                 "arklex.orchestrator.post_process._extract_links", return_value=set()
@@ -769,7 +776,7 @@ class TestLiveChatVerifier:
             ),
             patch(
                 "arklex.orchestrator.post_process._extract_confidence_from_nested_dict",
-                return_value=(50.0, 1),
+                return_value=(0.1, 1),
             ),
             patch(
                 "arklex.orchestrator.post_process.should_trigger_handoff",
@@ -777,7 +784,8 @@ class TestLiveChatVerifier:
             ),
         ):
             _live_chat_verifier(mock_message_state, mock_params)
-        # Should trigger live chat when confidence is not high enough for milvus
+
+        # Should trigger live chat when confidence is low
         assert mock_message_state.response == TRIGGER_LIVE_CHAT_PROMPT
 
 
@@ -857,7 +865,7 @@ class TestIsQuestionRelevant:
     """Test the _is_question_relevant function."""
 
     def test_is_question_relevant_with_nlu_records_no_intent_false(
-        self, mock_params
+        self, mock_params: Mock
     ) -> None:
         mock_params.taskgraph = Mock()
         mock_params.taskgraph.nlu_records = [{"no_intent": False}]
@@ -865,7 +873,7 @@ class TestIsQuestionRelevant:
         assert result is True
 
     def test_is_question_relevant_with_nlu_records_no_intent_true(
-        self, mock_params
+        self, mock_params: Mock
     ) -> None:
         mock_params.taskgraph = Mock()
         mock_params.taskgraph.nlu_records = [{"no_intent": True}]
@@ -873,20 +881,22 @@ class TestIsQuestionRelevant:
         assert result is False
 
     def test_is_question_relevant_with_nlu_records_no_intent_missing(
-        self, mock_params
+        self, mock_params: Mock
     ) -> None:
         mock_params.taskgraph = Mock()
         mock_params.taskgraph.nlu_records = [{"other": "value"}]
         result = _is_question_relevant(mock_params)
         assert result is True
 
-    def test_is_question_relevant_without_nlu_records(self, mock_params) -> None:
+    def test_is_question_relevant_without_nlu_records(self, mock_params: Mock) -> None:
         mock_params.taskgraph = Mock()
         mock_params.taskgraph.nlu_records = []
         result = _is_question_relevant(mock_params)
         assert not result
 
-    def test_is_question_relevant_with_none_nlu_records(self, mock_params) -> None:
+    def test_is_question_relevant_with_none_nlu_records(
+        self, mock_params: Mock
+    ) -> None:
         mock_params.taskgraph = Mock()
         mock_params.taskgraph.nlu_records = None
         result = _is_question_relevant(mock_params)
@@ -896,7 +906,9 @@ class TestIsQuestionRelevant:
 class TestShouldTriggerHandoff:
     """Test the should_trigger_handoff function."""
 
-    def test_should_trigger_handoff_yes_response(self, mock_message_state) -> None:
+    def test_should_trigger_handoff_yes_response(
+        self, mock_message_state: Mock
+    ) -> None:
         """Test should_trigger_handoff when LLM responds with 'YES'."""
         mock_message_state.response = "I don't know the answer"
         mock_message_state.bot_config.llm_config.llm_provider = "openai"
@@ -915,7 +927,7 @@ class TestShouldTriggerHandoff:
             result = should_trigger_handoff(mock_message_state)
             assert result is True
 
-    def test_should_trigger_handoff_no_response(self, mock_message_state) -> None:
+    def test_should_trigger_handoff_no_response(self, mock_message_state: Mock) -> None:
         """Test should_trigger_handoff when LLM responds with 'NO'."""
         mock_message_state.response = "I can help you with that"
         mock_message_state.bot_config.llm_config.llm_provider = "openai"
@@ -934,7 +946,9 @@ class TestShouldTriggerHandoff:
             result = should_trigger_handoff(mock_message_state)
             assert result is False
 
-    def test_should_trigger_handoff_yes_lowercase(self, mock_message_state) -> None:
+    def test_should_trigger_handoff_yes_lowercase(
+        self, mock_message_state: Mock
+    ) -> None:
         """Test should_trigger_handoff when LLM responds with 'yes' (lowercase)."""
         mock_message_state.response = "I don't know the answer"
         mock_message_state.bot_config.llm_config.llm_provider = "openai"
@@ -954,7 +968,7 @@ class TestShouldTriggerHandoff:
             assert result is True
 
     def test_should_trigger_handoff_yes_with_whitespace(
-        self, mock_message_state
+        self, mock_message_state: Mock
     ) -> None:
         """Test should_trigger_handoff when LLM responds with ' YES ' (with whitespace)."""
         mock_message_state.response = "I don't know the answer"
@@ -974,7 +988,9 @@ class TestShouldTriggerHandoff:
             result = should_trigger_handoff(mock_message_state)
             assert result is True
 
-    def test_should_trigger_handoff_other_response(self, mock_message_state) -> None:
+    def test_should_trigger_handoff_other_response(
+        self, mock_message_state: Mock
+    ) -> None:
         """Test should_trigger_handoff when LLM responds with something other than YES/NO."""
         mock_message_state.response = "I don't know the answer"
         mock_message_state.bot_config.llm_config.llm_provider = "openai"
@@ -994,7 +1010,7 @@ class TestShouldTriggerHandoff:
             assert result is False
 
     def test_should_trigger_handoff_uses_default_provider(
-        self, mock_message_state
+        self, mock_message_state: Mock
     ) -> None:
         """Test should_trigger_handoff when using default provider (ChatOpenAI)."""
         mock_message_state.response = "I don't know the answer"

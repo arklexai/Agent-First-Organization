@@ -44,7 +44,7 @@ class Message(BaseModel):
     content: str
     obj: dict[str, Any] | None = None
 
-    def model_dump(self, **kwargs) -> dict[str, Any]:
+    def model_dump(self, **kwargs: object) -> dict[str, Any]:
         if self.obj is not None:
             return super().model_dump(**kwargs)
         return {"role": self.role, "content": self.content}
@@ -333,10 +333,7 @@ class ChatModel(GeneralModel):
     ) -> list[dict[str, str]]:
         msgs: list[dict[str, str]] = []
         for msg in messages:
-            if msg.obj is not None:
-                content = json.dumps(msg.obj)
-            else:
-                content = msg.content
+            content = json.dumps(msg.obj) if msg.obj is not None else msg.content
             msgs.append({"role": msg.role.value, "content": content})
         return msgs
 

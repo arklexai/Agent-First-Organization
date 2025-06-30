@@ -1,10 +1,12 @@
 """End call tool for Twilio integration."""
 
-import time
 import threading
-from typing import Any
-from arklex.env.tools.tools import register_tool
+import time
+from typing import TypedDict
+
 from twilio.rest import Client as TwilioClient
+
+from arklex.env.tools.tools import register_tool
 from arklex.utils.logging_utils import LogContext
 
 log_context = LogContext(__name__)
@@ -16,6 +18,15 @@ slots = []
 outputs = []
 
 errors = []
+
+
+class EndCallKwargs(TypedDict, total=False):
+    """Type definition for kwargs used in end_call function."""
+
+    sid: str
+    auth_token: str
+    call_sid: str
+    response_played_event: threading.Event
 
 
 def _end_call_thread(
@@ -31,7 +42,7 @@ def _end_call_thread(
             f"Ending call with call_sid: {call_sid}. Waiting for response to be played"
         )
         response_played_event.wait(timeout=100)
-        log_context.info(f"Response played. Ending call")
+        log_context.info("Response played. Ending call")
         call = twilio_client.calls(call_sid).update(status="completed")
         log_context.info(f"Call end response: {call}")
     except Exception as e:
@@ -40,7 +51,7 @@ def _end_call_thread(
 
 
 @register_tool(description, slots, outputs, lambda x: x not in errors)
-def end_call(**kwargs: Any) -> str:
+def end_call(**kwargs: EndCallKwargs) -> str:
     twilio_client = TwilioClient(kwargs.get("sid"), kwargs.get("auth_token"))
     call_sid = kwargs.get("call_sid")
     response_played_event = kwargs.get("response_played_event")

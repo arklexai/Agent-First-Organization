@@ -1,11 +1,20 @@
 """Milvus retriever tool."""
 
-from typing import Any
-from arklex.utils.logging_utils import LogContext
-from arklex.env.tools.tools import register_tool
+from typing import TypedDict
+
 from arklex.env.tools.RAG.retrievers.milvus_retriever import MilvusRetriever
+from arklex.env.tools.tools import register_tool
+from arklex.utils.logging_utils import LogContext
 
 log_context = LogContext(__name__)
+
+
+class RetrieverParams(TypedDict, total=False):
+    """Parameters for the retriever tool."""
+
+    collection_name: str
+    bot_id: str
+    version: str
 
 
 description = "Retrieve relevant inforamtion required to answer an user's question. example: product price, product details, things for sale, company information, etc."
@@ -26,7 +35,7 @@ errors = []
 
 
 @register_tool(description, slots, outputs, lambda x: x not in errors)
-def retriever(query: str, **kwargs: Any) -> str:
+def retriever(query: str, **kwargs: RetrieverParams) -> str:
     collection_name = kwargs.get("collection_name")
     bot_id = kwargs.get("bot_id")
     version = kwargs.get("version")

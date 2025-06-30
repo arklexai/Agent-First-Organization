@@ -20,14 +20,20 @@ Module Name: get_user_id
 This file contains the code for retrieving a user's ID using their refresh token.
 """
 
-from typing import Union, Literal
+from typing import Literal
 
-from arklex.env.tools.tools import register_tool
+from arklex.env.tools.shopify.auth_utils import AUTH_ERROR
 
 # Customer API
-from arklex.env.tools.shopify.utils_slots import ShopifySlots, ShopifyOutputs
-from arklex.env.tools.shopify.utils import *
-from arklex.env.tools.shopify.auth_utils import *
+from arklex.env.tools.shopify.utils_slots import ShopifyOutputs, ShopifySlots
+from arklex.env.tools.tools import register_tool
+
+
+# Placeholder function for undefined get_id (module is inactive)
+def get_id(refresh_token: str) -> str:
+    """Placeholder function for getting user ID (module is inactive)."""
+    return "gid://shopify/Customer/placeholder"
+
 
 description = "Find user id by refresh token. If the user is not found, the function will return an error message."
 slots = [
@@ -45,7 +51,7 @@ errors = [AUTH_ERROR, USER_NOT_FOUND_ERROR]
     outputs,
     lambda x: x not in errors or not x.startswith("error: "),
 )
-def get_user_id(refresh_token: str) -> Union[str, Literal["error: user not found"]]:
+def get_user_id(refresh_token: str) -> str | Literal["error: user not found"]:
     """
     Retrieve a user's ID using their refresh token.
 

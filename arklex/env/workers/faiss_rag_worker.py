@@ -7,17 +7,24 @@ information. The worker supports both streaming and non-streaming responses, usi
 graph to manage the workflow of document retrieval and response generation.
 """
 
-from typing import Any, Dict
+from typing import Any, TypedDict
 
-from langgraph.graph import StateGraph, START
+from langgraph.graph import START, StateGraph
 
+from arklex.env.tools.RAG.retrievers.faiss_retriever import RetrieveEngine
+from arklex.env.tools.utils import ToolGenerator
 from arklex.env.workers.worker import BaseWorker, register_worker
 from arklex.utils.graph_state import MessageState
-from arklex.env.tools.utils import ToolGenerator
-from arklex.env.tools.RAG.retrievers.faiss_retriever import RetrieveEngine
 from arklex.utils.logging_utils import LogContext
 
 log_context = LogContext(__name__)
+
+
+class FaissRAGWorkerKwargs(TypedDict, total=False):
+    """Type definition for kwargs used in FaissRAGWorker._execute method."""
+
+    # Add specific worker parameters as needed
+    pass
 
 
 @register_worker
@@ -53,7 +60,9 @@ class FaissRAGWorker(BaseWorker):
         workflow.add_conditional_edges("retriever", self.choose_tool_generator)
         return workflow
 
-    def _execute(self, msg_state: MessageState, **kwargs: Any) -> Dict[str, Any]:
+    def _execute(
+        self, msg_state: MessageState, **kwargs: FaissRAGWorkerKwargs
+    ) -> dict[str, Any]:
         graph = self.action_graph.compile()
-        result: Dict[str, Any] = graph.invoke(msg_state)
+        result: dict[str, Any] = graph.invoke(msg_state)
         return result

@@ -13,9 +13,10 @@ to test. We need to:
 5. Make UI components thin wrappers around business logic services
 """
 
+from unittest.mock import Mock, patch
+
 import pytest
-from unittest.mock import Mock
-from unittest.mock import patch
+from textual.widgets.tree import TreeNode
 
 # Import the classes directly from the UI module
 
@@ -257,7 +258,7 @@ class TestInputModalUI:
 
         callback_called = False
 
-        def mock_callback(result, node):
+        def mock_callback(result: str, node: TreeNode | None) -> None:
             nonlocal callback_called
             callback_called = True
 
@@ -315,8 +316,8 @@ class TestUIErrorHandling:
 class FakeApp:
     """Fake app for testing purposes."""
 
-    def __init__(self, *args, **kwargs):
+    def __init__(self, *args: object, **kwargs: object) -> None:
         pass
 
-    def run(self):
+    def run(self) -> list:
         return []

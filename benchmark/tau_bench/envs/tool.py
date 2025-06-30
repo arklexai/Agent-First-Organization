@@ -1,12 +1,12 @@
 import abc
-from typing import Any
+from typing import Any, NoReturn
 
 
 class Tool(abc.ABC):
     @staticmethod
-    def invoke(*args, **kwargs):
-        raise NotImplementedError
+    @abc.abstractmethod
+    def invoke(*args: object, **kwargs: object) -> NoReturn: ...
 
     @staticmethod
-    def get_info() -> dict[str, Any]:
-        raise NotImplementedError
+    @abc.abstractmethod
+    def get_info() -> dict[str, Any]: ...

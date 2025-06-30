@@ -1,13 +1,11 @@
-# Copyright Sierra
-
 import json
 import os
-from typing import Any, Dict
+from typing import Any
 
 FOLDER_PATH = os.path.dirname(__file__)
 
 
-def load_data() -> Dict[str, Any]:
+def load_data() -> dict[str, Any]:
     with open(os.path.join(FOLDER_PATH, "flights.json")) as f:
         flight_data = json.load(f)
     with open(os.path.join(FOLDER_PATH, "reservations.json")) as f:

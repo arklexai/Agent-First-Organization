@@ -4,25 +4,19 @@ This module provides comprehensive tests for the task generation, best practices
 and reusable task components of the Arklex framework.
 """
 
-import dataclasses
-from typing import Dict, List
+from unittest.mock import Mock, mock_open, patch
 
 import pytest
-from unittest.mock import Mock
-from unittest.mock import MagicMock
-from unittest.mock import patch
-from unittest.mock import mock_open
 
 from arklex.orchestrator.generator.core.generator import Generator
 from arklex.orchestrator.generator.tasks.best_practice_manager import (
-    BestPracticeManager,
     BestPractice,
+    BestPracticeManager,
 )
 from arklex.orchestrator.generator.tasks.reusable_task_manager import (
-    ReusableTaskManager,
     ReusableTask,
+    ReusableTaskManager,
 )
-
 
 # --- Mock Classes ---
 
@@ -37,14 +31,14 @@ class FakeResponse:
 class FakeGeneration:
     """Mock generation class for testing."""
 
-    def __init__(self):
+    def __init__(self) -> None:
         self.text = '[{"task": "Test", "intent": "Test intent", "description": "Test description", "steps": [{"task": "Step 1", "description": "Test step description"}]}]'
 
 
 class FakeGenerationResponse:
     """Mock generation response class for testing."""
 
-    def __init__(self):
+    def __init__(self) -> None:
         self.generations = [[FakeGeneration()]]
 
 
@@ -74,7 +68,7 @@ def always_valid_mock_model() -> Mock:
 
 
 @pytest.fixture
-def sample_objective() -> Dict:
+def sample_objective() -> dict:
     """Create a sample objective for testing."""
     return {
         "description": "Create a new product in the store",
@@ -84,7 +78,7 @@ def sample_objective() -> Dict:
 
 
 @pytest.fixture
-def sample_tasks() -> List[Dict]:
+def sample_tasks() -> list[dict]:
     """Create sample tasks for testing."""
     return [
         {
@@ -129,7 +123,7 @@ def sample_tasks() -> List[Dict]:
 
 
 @pytest.fixture
-def sample_practices() -> List[BestPractice]:
+def sample_practices() -> list[BestPractice]:
     """Create sample best practices for testing."""
     return [
         BestPractice(
@@ -210,7 +204,7 @@ def reusable_template() -> ReusableTask:
 
 
 @pytest.fixture
-def sample_tasks_dict() -> List[Dict]:
+def sample_tasks_dict() -> list[dict]:
     """Sample tasks as dicts for reusable task manager tests."""
     return [
         {
@@ -255,7 +249,7 @@ def sample_tasks_dict() -> List[Dict]:
 
 
 @pytest.fixture
-def sample_practices_dict() -> List[Dict]:
+def sample_practices_dict() -> list[dict]:
     """Sample best practices as dicts for best practice manager tests."""
     return [
         {
@@ -288,8 +282,8 @@ class TestGenerator:
 
     def test_save_task_graph_with_non_serializable_objects(self) -> None:
         """Test save_task_graph with non-serializable objects like functools.partial and callables."""
-        import functools
         import collections.abc
+        import functools
 
         config = {
             "role": "test_role",
@@ -314,26 +308,28 @@ class TestGenerator:
             "normal_data": {"key": "value"},
         }
 
-        with patch("builtins.open", mock_open()) as mock_file:
-            with patch("json.dump") as mock_json_dump:
-                result = generator.save_task_graph(task_graph)
+        with (
+            patch("builtins.open", mock_open()) as mock_file,
+            patch("json.dump") as mock_json_dump,
+        ):
+            generator.save_task_graph(task_graph)
 
-                # Check that the file was opened and json.dump was called
-                mock_file.assert_called_once()
-                mock_json_dump.assert_called_once()
+            # Check that the file was opened and json.dump was called
+            mock_file.assert_called_once()
+            mock_json_dump.assert_called_once()
 
-                # Check that the sanitized data was passed to json.dump
-                call_args = mock_json_dump.call_args[0]
-                sanitized_data = call_args[0]
+            # Check that the sanitized data was passed to json.dump
+            call_args = mock_json_dump.call_args[0]
+            sanitized_data = call_args[0]
 
-                # Non-serializable objects should be converted to strings
-                assert isinstance(sanitized_data["partial_func"], str)
-                assert "functools.partial" in sanitized_data["partial_func"]
-                assert isinstance(sanitized_data["callable_obj"], str)
-                assert "<function" in sanitized_data["callable_obj"]
-                assert isinstance(sanitized_data["custom_callable"], str)
-                assert "collections.abc.Callable" in sanitized_data["custom_callable"]
-                assert sanitized_data["normal_data"] == {"key": "value"}
+            # Non-serializable objects should be converted to strings
+            assert isinstance(sanitized_data["partial_func"], str)
+            assert "functools.partial" in sanitized_data["partial_func"]
+            assert isinstance(sanitized_data["callable_obj"], str)
+            assert "<function" in sanitized_data["callable_obj"]
+            assert isinstance(sanitized_data["custom_callable"], str)
+            assert "collections.abc.Callable" in sanitized_data["custom_callable"]
+            assert sanitized_data["normal_data"] == {"key": "value"}
 
 
 def test_integration_generation_pipeline(always_valid_mock_model: Mock) -> None:

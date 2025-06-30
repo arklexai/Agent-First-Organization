@@ -4,18 +4,19 @@ Tool for creating support tickets via HubSpot in the Arklex framework.
 This module implements a tool for creating support tickets for customers using the HubSpot API. It handles ticket creation, association with contacts, and is designed for integration with the Arklex tool system.
 """
 
-from datetime import datetime
 import inspect
-import hubspot
-from hubspot.crm.objects.emails import ApiException
-from hubspot.crm.associations.v4 import AssociationSpec
-from hubspot.crm.tickets.models import SimplePublicObjectInputForCreate
-from typing import Dict, Any, List
+from datetime import datetime
+from typing import Any
 
-from arklex.env.tools.tools import register_tool
-from arklex.env.tools.hubspot.utils import authenticate_hubspot
-from arklex.utils.exceptions import ToolExecutionError
+import hubspot
+from hubspot.crm.associations.v4 import AssociationSpec
+from hubspot.crm.objects.emails import ApiException
+from hubspot.crm.tickets.models import SimplePublicObjectInputForCreate
+
 from arklex.env.tools.hubspot._exception_prompt import HubspotExceptionPrompt
+from arklex.env.tools.hubspot.utils import authenticate_hubspot
+from arklex.env.tools.tools import register_tool
+from arklex.utils.exceptions import ToolExecutionError
 from arklex.utils.logging_utils import LogContext
 
 log_context = LogContext(__name__)
@@ -24,7 +25,7 @@ log_context = LogContext(__name__)
 description: str = "Create a ticket for the existing customer when the customer has some problem about the specific product."
 
 # List of required parameters for the tool
-slots: List[Dict[str, Any]] = [
+slots: list[dict[str, Any]] = [
     {
         "name": "cus_cid",
         "type": "str",
@@ -43,7 +44,7 @@ slots: List[Dict[str, Any]] = [
 ]
 
 # List of output parameters for the tool
-outputs: List[Dict[str, Any]] = [
+outputs: list[dict[str, Any]] = [
     {
         "name": "ticket_id",
         "type": "str",
@@ -53,7 +54,7 @@ outputs: List[Dict[str, Any]] = [
 
 
 @register_tool(description, slots, outputs)
-def create_ticket(cus_cid: str, issue: str, **kwargs: Dict[str, Any]) -> str:
+def create_ticket(cus_cid: str, issue: str, **kwargs: dict[str, Any]) -> str:
     """
     Create a support ticket for a customer and associate it with their contact record.
 
@@ -75,7 +76,7 @@ def create_ticket(cus_cid: str, issue: str, **kwargs: Dict[str, Any]) -> str:
 
     timestamp: str = datetime.now().strftime("%Y-%m-%dT%H:%M:%S.%fZ")[:-3] + "Z"
     subject_name: str = "Issue of " + cus_cid + " at " + timestamp
-    ticket_properties: Dict[str, Any] = {
+    ticket_properties: dict[str, Any] = {
         "hs_pipeline_stage": 1,
         "content": issue,
         "subject": subject_name,
@@ -87,31 +88,29 @@ def create_ticket(cus_cid: str, issue: str, **kwargs: Dict[str, Any]) -> str:
         ticket_creation_response: Any = api_client.crm.tickets.basic_api.create(
             simple_public_object_input_for_create=ticket_for_create
         )
-        ticket_creation_response: Dict[str, Any] = ticket_creation_response.to_dict()
+        ticket_creation_response: dict[str, Any] = ticket_creation_response.to_dict()
         ticket_id: str = ticket_creation_response["id"]
-        association_spec: List[AssociationSpec] = [
+        association_spec: list[AssociationSpec] = [
             AssociationSpec(
                 association_category="HUBSPOT_DEFINED", association_type_id=15
             )
         ]
         try:
-            association_creation_response: Any = (
-                api_client.crm.associations.v4.basic_api.create(
-                    object_type="contact",
-                    object_id=cus_cid,
-                    to_object_type="ticket",
-                    to_object_id=ticket_id,
-                    association_spec=association_spec,
-                )
+            api_client.crm.associations.v4.basic_api.create(
+                object_type="contact",
+                object_id=cus_cid,
+                to_object_type="ticket",
+                to_object_id=ticket_id,
+                association_spec=association_spec,
             )
             return ticket_id
         except ApiException as e:
-            log_context.info("Exception when calling AssociationV4: %s\n" % e)
+            log_context.info(f"Exception when calling AssociationV4: {e}\n")
             raise ToolExecutionError(
                 func_name, HubspotExceptionPrompt.TICKET_CREATION_ERROR_PROMPT
-            )
+            ) from e
     except ApiException as e:
-        log_context.info("Exception when calling Crm.tickets.create: %s\n" % e)
+        log_context.info(f"Exception when calling Crm.tickets.create: {e}\n")
         raise ToolExecutionError(
             func_name, HubspotExceptionPrompt.TICKET_CREATION_ERROR_PROMPT
-        )
+        ) from e

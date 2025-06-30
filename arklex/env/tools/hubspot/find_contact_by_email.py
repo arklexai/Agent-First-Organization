@@ -4,20 +4,20 @@ Tool for finding contacts by email via HubSpot in the Arklex framework.
 This module provides a tool for searching and retrieving contact information by email using the HubSpot API. It is designed for use within the Arklex tool system and supports updating communication history.
 """
 
+import inspect
 import json
 from datetime import datetime, timezone
-import inspect
-from typing import Dict, Any, List
+from typing import Any
 
 import hubspot
-from hubspot.crm.objects.emails import PublicObjectSearchRequest, ApiException
-from hubspot.crm.objects.communications.models import SimplePublicObjectInputForCreate
 from hubspot.crm.associations.v4 import AssociationSpec
+from hubspot.crm.objects.communications.models import SimplePublicObjectInputForCreate
+from hubspot.crm.objects.emails import ApiException, PublicObjectSearchRequest
 
-from arklex.env.tools.tools import register_tool
-from arklex.env.tools.hubspot.utils import authenticate_hubspot
-from arklex.utils.exceptions import ToolExecutionError
 from arklex.env.tools.hubspot._exception_prompt import HubspotExceptionPrompt
+from arklex.env.tools.hubspot.utils import authenticate_hubspot
+from arklex.env.tools.tools import register_tool
+from arklex.utils.exceptions import ToolExecutionError
 from arklex.utils.logging_utils import LogContext
 
 log_context = LogContext(__name__)
@@ -26,7 +26,7 @@ log_context = LogContext(__name__)
 description: str = "Find the contacts record by email. If the record is found, the lastmodifieddate of the contact will be updated. If the correspodning record is not found, the function will return an error message."
 
 # List of required parameters for the tool
-slots: List[Dict[str, Any]] = [
+slots: list[dict[str, Any]] = [
     {
         "name": "email",
         "type": "str",
@@ -44,7 +44,7 @@ slots: List[Dict[str, Any]] = [
 ]
 
 # List of output parameters for the tool
-outputs: List[Dict[str, Any]] = [
+outputs: list[dict[str, Any]] = [
     {
         "name": "contact_information",
         "type": "dict",
@@ -54,7 +54,7 @@ outputs: List[Dict[str, Any]] = [
 
 
 @register_tool(description, slots, outputs)
-def find_contact_by_email(email: str, chat: str, **kwargs: Dict[str, Any]) -> str:
+def find_contact_by_email(email: str, chat: str, **kwargs: dict[str, Any]) -> str:
     """
     Find a contact in HubSpot by email and update their communication history.
 
@@ -83,8 +83,8 @@ def find_contact_by_email(email: str, chat: str, **kwargs: Dict[str, Any]) -> st
         contact_search_response: Any = api_client.crm.contacts.search_api.do_search(
             public_object_search_request=public_object_search_request
         )
-        log_context.info("Found contact by email: {}".format(email))
-        contact_search_response: Dict[str, Any] = contact_search_response.to_dict()
+        log_context.info(f"Found contact by email: {email}")
+        contact_search_response: dict[str, Any] = contact_search_response.to_dict()
         if contact_search_response["total"] == 1:
             contact_id: str = contact_search_response["results"][0]["id"]
             communication_data: SimplePublicObjectInputForCreate = (
@@ -97,7 +97,7 @@ def find_contact_by_email(email: str, chat: str, **kwargs: Dict[str, Any]) -> st
                     }
                 )
             )
-            contact_info_properties: Dict[str, Any] = {
+            contact_info_properties: dict[str, Any] = {
                 "contact_id": contact_id,
                 "contact_email": email,
                 "contact_first_name": contact_search_response["results"][0][
@@ -113,29 +113,27 @@ def find_contact_by_email(email: str, chat: str, **kwargs: Dict[str, Any]) -> st
                         communication_data
                     )
                 )
-                communication_creation_response: Dict[str, Any] = (
+                communication_creation_response: dict[str, Any] = (
                     communication_creation_response.to_dict()
                 )
                 communication_id: str = communication_creation_response["id"]
-                association_spec: List[AssociationSpec] = [
+                association_spec: list[AssociationSpec] = [
                     AssociationSpec(
                         association_category="HUBSPOT_DEFINED", association_type_id=82
                     )
                 ]
                 try:
-                    association_creation_response: Any = (
-                        api_client.crm.associations.v4.basic_api.create(
-                            object_type="contact",
-                            object_id=contact_id,
-                            to_object_type="communication",
-                            to_object_id=communication_id,
-                            association_spec=association_spec,
-                        )
+                    api_client.crm.associations.v4.basic_api.create(
+                        object_type="contact",
+                        object_id=contact_id,
+                        to_object_type="communication",
+                        to_object_id=communication_id,
+                        association_spec=association_spec,
                     )
                 except ApiException as e:
-                    log_context.info("Exception when calling AssociationV4: %s\n" % e)
+                    log_context.info(f"Exception when calling AssociationV4: {e}\n")
             except ApiException as e:
-                log_context.info("Exception when calling basic_api: %s\n" % e)
+                log_context.info(f"Exception when calling basic_api: {e}\n")
 
             return json.dumps(contact_info_properties)
         else:
@@ -143,7 +141,7 @@ def find_contact_by_email(email: str, chat: str, **kwargs: Dict[str, Any]) -> st
                 func_name, HubspotExceptionPrompt.USER_NOT_FOUND_PROMPT
             )
     except ApiException as e:
-        log_context.info("Exception when calling search_api: %s\n" % e)
+        log_context.info(f"Exception when calling search_api: {e}\n")
         raise ToolExecutionError(
             func_name, HubspotExceptionPrompt.USER_NOT_FOUND_PROMPT
-        )
+        ) from e

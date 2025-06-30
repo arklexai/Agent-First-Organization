@@ -22,7 +22,7 @@ Usage:
 import argparse
 import json
 import logging
-from typing import Any, Dict
+from typing import Any
 
 from langchain_openai import ChatOpenAI
 
@@ -33,22 +33,18 @@ from arklex.utils.logging_utils import LogContext
 from arklex.utils.model_config import MODEL
 from arklex.utils.model_provider_config import PROVIDER_MAP
 
+# Import the main classes from the new modular structure
+from .core import Generator
+
 # Configure basic logging for debugging
 logging.basicConfig(level=logging.INFO, format="%(levelname)s - %(name)s - %(message)s")
 
 log_context = LogContext(__name__)
 
-# Import the main classes from the new modular structure
-from .core import Generator
-
 # Make UI components optional to avoid dependency issues
 try:
-    from .ui import TaskEditorApp, InputModal
-
-    _UI_AVAILABLE = True
-    _UI_EXPORTS = ["TaskEditorApp", "InputModal"]
+    _UI_EXPORTS = ["TaskEditorApp"]
 except ImportError:
-    _UI_AVAILABLE = False
     _UI_EXPORTS = []
 
 # Export the main classes for backward compatibility
@@ -63,10 +59,10 @@ __all__ = ["Generator", *_UI_EXPORTS]
 # - Graph formatting is in formatting/
 
 
-def load_config(file_path: str) -> Dict[str, Any]:
+def load_config(file_path: str) -> dict[str, Any]:
     """Load configuration from a JSON file."""
     try:
-        with open(file_path, "r") as f:
+        with open(file_path) as f:
             return json.load(f)
     except FileNotFoundError:
         log_context.error(f"Configuration file not found at {file_path}")
@@ -76,7 +72,7 @@ def load_config(file_path: str) -> Dict[str, Any]:
         raise
 
 
-def main():
+def main() -> None:
     """Main function to run the task graph generator."""
     parser = argparse.ArgumentParser(
         description="Generate a task graph from a configuration file."

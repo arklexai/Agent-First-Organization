@@ -5,6 +5,7 @@ ensuring all functionality is properly tested including all language variants an
 """
 
 import pytest
+
 from arklex.env.prompts import BotConfig, load_prompts
 
 
@@ -419,9 +420,9 @@ class TestPromptLanguageDifferences:
         assert len(en_prompts) > len(cn_prompts)
 
         # Check for speech-specific prompts in English
-        speech_prompts = [key for key in en_prompts.keys() if "speech" in key]
+        speech_prompts = [key for key in en_prompts if "speech" in key]
         assert len(speech_prompts) > 0, "English should have speech prompts"
 
         # Chinese should not have speech prompts
-        cn_speech_prompts = [key for key in cn_prompts.keys() if "speech" in key]
+        cn_speech_prompts = [key for key in cn_prompts if "speech" in key]
         assert len(cn_speech_prompts) == 0, "Chinese should not have speech prompts"

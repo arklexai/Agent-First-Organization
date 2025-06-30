@@ -4,7 +4,8 @@ This module provides the NodeFormatter class that handles formatting of task
 nodes in the task graph.
 """
 
-from typing import Dict, Any, List
+from typing import Any
+
 from arklex.utils.logging_utils import LogContext
 
 log_context = LogContext(__name__)
@@ -28,7 +29,7 @@ class NodeFormatter:
         }
         self._default_directed = default_directed
 
-    def format_node(self, task: Dict[str, Any], node_id: str) -> List[Any]:
+    def format_node(self, task: dict[str, Any], node_id: str) -> list[Any]:
         """Format a task node in the old format.
 
         Args:
@@ -55,7 +56,7 @@ class NodeFormatter:
             node_data["type"] = task["type"]
         return [node_id, node_data]
 
-    def format_node_data(self, task: Dict[str, Any]) -> Dict[str, Any]:
+    def format_node_data(self, task: dict[str, Any]) -> dict[str, Any]:
         """Format node data in the old format.
 
         Args:
@@ -73,7 +74,7 @@ class NodeFormatter:
             },
         }
 
-    def format_node_style(self, task: Dict[str, Any]) -> Dict[str, Any]:
+    def format_node_style(self, task: dict[str, Any]) -> dict[str, Any]:
         """Format node style.
 
         Args:
@@ -96,7 +97,7 @@ class NodeFormatter:
             "opacity": 1.0,
         }
 
-    def validate_node(self, node: Dict[str, Any]) -> bool:
+    def validate_node(self, node: dict[str, Any]) -> bool:
         """Validate a node.
 
         Args:
@@ -119,11 +120,11 @@ class NodeFormatter:
                 return False
             if "description" in data and not isinstance(data["description"], str):
                 return False
-            if "priority" in data and not isinstance(data["priority"], (str, int)):
+            if "priority" in data and not isinstance(data["priority"], str | int):
                 return False
         return True
 
-    def _validate_attribute(self, value: Any, attr: str) -> bool:
+    def _validate_attribute(self, value: object, attr: str) -> bool:
         """Validate a node attribute.
 
         Args:

@@ -4,12 +4,14 @@ This module provides the TaskEditor class that handles the UI for editing
 task definitions.
 """
 
-from typing import List, Dict, Any
-from arklex.utils.logging_utils import LogContext
+from typing import Any
 
 from textual.app import App, ComposeResult
-from textual.widgets import Tree, Label
+from textual.events import Key
+from textual.widgets import Label, Tree
 from textual.widgets.tree import TreeNode
+
+from arklex.utils.logging_utils import LogContext
 
 from .input_modal import InputModal
 
@@ -36,7 +38,7 @@ class TaskEditorApp(App):
         update_tasks(): Updates the tasks list from the tree structure
     """
 
-    def __init__(self, tasks: List[Dict[str, Any]]) -> None:
+    def __init__(self, tasks: list[dict[str, Any]]) -> None:
         """Initialize the TaskEditorApp instance.
 
         Args:
@@ -76,7 +78,7 @@ class TaskEditorApp(App):
             "Click on a task or step to edit it. Press 'a' to add new item, 'd' to delete, 's' to save and exit."
         )
 
-    def on_mount(self):
+    def on_mount(self) -> None:
         """Initialize the UI after mounting.
 
         Sets focus to the task tree widget to enable keyboard navigation.
@@ -115,7 +117,7 @@ class TaskEditorApp(App):
             )
         )
 
-    async def on_key(self, event) -> None:
+    async def on_key(self, event: Key) -> None:
         """Process keyboard input.
 
         Handles keyboard shortcuts for adding nodes ('a'), deleting nodes ('d'),
@@ -209,7 +211,7 @@ class TaskEditorApp(App):
         log_message = f"Updated Tasks: {self.tasks}"
         log_context.debug(log_message)
 
-    def run(self) -> List[Dict[str, Any]]:
+    def run(self) -> list[dict[str, Any]]:
         """Run the task editor app.
 
         Returns:

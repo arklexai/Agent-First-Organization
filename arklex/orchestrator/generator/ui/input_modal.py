@@ -4,10 +4,14 @@ This module provides a modal dialog interface for editing task and step descript
 It includes input validation and callback handling for user interactions.
 """
 
+from collections.abc import Callable
+
 from textual.app import ComposeResult
-from textual.widgets import Input, Button, Static
-from textual.containers import Vertical, Horizontal
+from textual.containers import Horizontal, Vertical
 from textual.screen import Screen
+from textual.widgets import Button, Input, Static
+from textual.widgets.tree import TreeNode
+
 from arklex.utils.logging_utils import LogContext
 
 log_context = LogContext(__name__)
@@ -31,7 +35,13 @@ class InputModal(Screen):
         on_button_pressed(): Handles button press events
     """
 
-    def __init__(self, title: str, default: str = "", node=None, callback=None):
+    def __init__(
+        self,
+        title: str,
+        default: str = "",
+        node: TreeNode | None = None,
+        callback: Callable[[str, TreeNode], None] | None = None,
+    ) -> None:
         """Initialize the InputModal instance.
 
         Args:

@@ -1,5 +1,5 @@
 class ShopifySlots:
-    def to_list(baseSlot: dict):
+    def to_list(baseSlot: dict) -> dict:
         slot = baseSlot.copy()
         slot["name"] += "s"
         slot["type"] = f"list[{slot['type']}]"
@@ -7,12 +7,8 @@ class ShopifySlots:
         return slot
 
     @classmethod
-    def get_all_slots(cls):
-        return [
-            slot
-            for slot in cls.__dict__.values()
-            if isinstance(slot, dict) or isinstance(slot, list)
-        ]
+    def get_all_slots(cls) -> list[dict]:
+        return [slot for slot in cls.__dict__.values() if isinstance(slot, dict | list)]
 
     USER_ID = {
         "name": "user_id",

@@ -9,23 +9,32 @@ while maintaining intent control.
 
 import json
 import random
-from typing import List, Dict, Any
-from arklex.evaluation.extract_conversation_info import build_intent_graph
+from typing import Any
+
+import anthropic
+import networkx as nx
+from openai import OpenAI
+
 from arklex.evaluation.chatgpt_utils import (
     chatgpt_chatbot,
-    query_chatbot,
-    flip_hist,
     filter_convo,
+    flip_hist,
+    query_chatbot,
 )
+from arklex.evaluation.extract_conversation_info import build_intent_graph
 
 
 def sampling_paths(
-    start_node: str, graph: Any, path_length: int, max_turns: int, intents: List[str]
-) -> List[str]:
-    children: List[str] = list(graph.successors(start_node))
+    start_node: str,
+    graph: nx.DiGraph,
+    path_length: int,
+    max_turns: int,
+    intents: list[str],
+) -> list[str]:
+    children: list[str] = list(graph.successors(start_node))
     if path_length >= max_turns or len(children) == 0:
         return intents
-    weights: List[float] = []
+    weights: list[float] = []
     for c in children:
         weights.append(graph.get_edge_data(start_node, c)["weight"])
     next_node: str = random.choices(children, weights)[0]
@@ -33,22 +42,22 @@ def sampling_paths(
     return sampling_paths(next_node, graph, path_length + 1, max_turns, intents)
 
 
-def get_paths(G: Any, num_paths: int, max_turns: int) -> List[List[str]]:
-    my_paths: List[List[str]] = []
-    for i in range(num_paths):
-        my_path: List[str] = sampling_paths("start", G, 0, max_turns, ["start"])
+def get_paths(G: nx.DiGraph, num_paths: int, max_turns: int) -> list[list[str]]:
+    my_paths: list[list[str]] = []
+    for _i in range(num_paths):
+        my_path: list[str] = sampling_paths("start", G, 0, max_turns, ["start"])
         my_paths.append(my_path[1:])
     return my_paths
 
 
 def interact(
-    intent_path: List[str],
+    intent_path: list[str],
     summary: str,
     model_api: str,
-    model_params: Dict[str, Any],
-    client: Any,
-) -> List[Dict[str, Any]]:
-    history: List[Dict[str, Any]] = []
+    model_params: dict[str, Any],
+    client: OpenAI | anthropic.Anthropic,
+) -> list[dict[str, Any]]:
+    history: list[dict[str, Any]] = []
     instructional_prompt: str = (
         "Replicate the behavior of a human customer. You are interacting with customer service chatbot for the following company: "
         + summary
@@ -63,7 +72,7 @@ def interact(
         intent: str = intent_path[i]
         output: str = chatgpt_chatbot(history, client)
         history.append({"role": "assistant", "content": output, "intent": intent})
-        response_data: Dict[str, Any] = query_chatbot(
+        response_data: dict[str, Any] = query_chatbot(
             model_api, filter_convo(history), model_params
         )
         answer: str = response_data["answer"]
@@ -84,16 +93,16 @@ def interact(
 
 
 def generate_labeled_convos(
-    intent_paths: List[List[str]],
+    intent_paths: list[list[str]],
     summary: str,
     model_api: str,
-    model_params: Dict[str, Any],
-    client: Any,
-) -> List[List[Dict[str, Any]]]:
-    convos: List[List[Dict[str, Any]]] = []
+    model_params: dict[str, Any],
+    client: OpenAI | anthropic.Anthropic,
+) -> list[list[dict[str, Any]]]:
+    convos: list[list[dict[str, Any]]] = []
     model_params = {}
     for intent_path in intent_paths:
-        convo: List[Dict[str, Any]] = interact(
+        convo: list[dict[str, Any]] = interact(
             intent_path, summary, model_api, model_params, client
         )
         convos.append(flip_hist(filter_convo(convo)))
@@ -101,42 +110,42 @@ def generate_labeled_convos(
 
 
 def get_labeled_convos(
-    first_pass_data: List[Dict[str, Any]],
+    first_pass_data: list[dict[str, Any]],
     model_api: str,
-    synthetic_data_params: Dict[str, Any],
-    model_params: Dict[str, Any],
-    config: Dict[str, Any],
-) -> List[List[Dict[str, Any]]]:
-    intent_graph: Any = build_intent_graph(first_pass_data)
-    intent_paths: List[List[str]] = get_paths(
+    synthetic_data_params: dict[str, Any],
+    model_params: dict[str, Any],
+    config: dict[str, Any],
+) -> list[list[dict[str, Any]]]:
+    intent_graph: nx.DiGraph = build_intent_graph(first_pass_data)
+    intent_paths: list[list[str]] = get_paths(
         intent_graph,
         synthetic_data_params["num_convos"],
         synthetic_data_params["max_turns"],
     )
     summary: str = config["intro"]
-    client: Any = config["client"]
-    convos: List[List[Dict[str, Any]]] = generate_labeled_convos(
+    client: OpenAI | anthropic.Anthropic = config["client"]
+    convos: list[list[dict[str, Any]]] = generate_labeled_convos(
         intent_paths, summary, model_api, model_params, client
     )
     return convos
 
 
-def main():
+def main() -> None:
     with open("temp_files/p1_sample_convos_labeled.json") as f:
-        data: List[Dict[str, Any]] = json.load(f)
+        data: list[dict[str, Any]] = json.load(f)
 
     with open("temp_files/richtech_config.json") as f:
-        config: Dict[str, Any] = json.load(f)
+        config: dict[str, Any] = json.load(f)
 
     model_api: str = "http://adaptation.cs.columbia.edu:55231/qa/richtech/v1alpha1"
-    synthetic_data_params: Dict[str, Any] = {
+    synthetic_data_params: dict[str, Any] = {
         "num_convos": 2,
         "num_goals": 3,
         "max_turns": 10,
     }
-    model_params: Dict[str, Any] = {}
+    model_params: dict[str, Any] = {}
 
-    labeled_convos: List[List[Dict[str, Any]]] = get_labeled_convos(
+    labeled_convos: list[list[dict[str, Any]]] = get_labeled_convos(
         data, model_api, synthetic_data_params, model_params, config
     )
 

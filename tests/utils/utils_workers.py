@@ -6,15 +6,15 @@ workers, with validation methods to ensure correct task graph paths and response
 content.
 """
 
-from arklex.utils.logging_utils import LogContext
-from typing import Any, Dict, List
+from typing import Any
 
+from arklex.utils.logging_utils import LogContext
 from tests.utils.utils import MockOrchestrator, MockResourceInitializer
 
 log_context = LogContext(__name__)
 
 
-def _extract_node_path(params: Dict[str, Any]) -> List[str]:
+def _extract_node_path(params: dict[str, Any]) -> list[str]:
     """Extract the node path from taskgraph parameters, ignoring initial '0' node if present."""
     node_path = [i["node_id"] for i in params.get("taskgraph", {}).get("path", {})]
     if node_path and node_path[0] == "0":
@@ -22,7 +22,7 @@ def _extract_node_path(params: Dict[str, Any]) -> List[str]:
     return node_path
 
 
-def _get_assistant_records(history: List[Dict[str, str]]) -> List[Dict[str, str]]:
+def _get_assistant_records(history: list[dict[str, str]]) -> list[dict[str, str]]:
     """Extract assistant messages from conversation history."""
     return [message for message in history if message["role"] == "assistant"]
 
@@ -39,9 +39,9 @@ class MCWorkerOrchestrator(MockOrchestrator):
 
     def _validate_result(
         self,
-        test_case: Dict[str, Any],
-        history: List[Dict[str, str]],
-        params: Dict[str, Any],
+        test_case: dict[str, Any],
+        history: list[dict[str, str]],
+        params: dict[str, Any],
     ) -> None:
         """Validate the test results for multiple choice workers.
 
@@ -71,7 +71,7 @@ class MCWorkerOrchestrator(MockOrchestrator):
             if message["role"] == "assistant"
         ]
         for i, (actual, expected) in enumerate(
-            zip(assistant_records, expected_records)
+            zip(assistant_records, expected_records, strict=False)
         ):
             assert actual["content"] == expected["content"], (
                 f"Response {i} mismatch:\nExpected: {expected['content']}\nActual: {actual['content']}"
@@ -90,9 +90,9 @@ class MsgWorkerOrchestrator(MockOrchestrator):
 
     def _validate_result(
         self,
-        test_case: Dict[str, Any],
-        history: List[Dict[str, str]],
-        params: Dict[str, Any],
+        test_case: dict[str, Any],
+        history: list[dict[str, str]],
+        params: dict[str, Any],
     ) -> None:
         """Validate the test results for message workers.
 

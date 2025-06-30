@@ -1,14 +1,14 @@
 """Tests for model provider configuration module."""
 
-import pytest
 from unittest.mock import Mock, patch
+
 from arklex.utils.model_provider_config import (
-    get_huggingface_llm,
-    DummyLLM,
     LLM_PROVIDERS,
-    PROVIDER_MAP,
-    PROVIDER_EMBEDDINGS,
     PROVIDER_EMBEDDING_MODELS,
+    PROVIDER_EMBEDDINGS,
+    PROVIDER_MAP,
+    DummyLLM,
+    get_huggingface_llm,
 )
 
 
@@ -95,11 +95,11 @@ class TestModelProviderConfig:
 
     def test_provider_embeddings_values_are_classes(self) -> None:
         """Test that all values in PROVIDER_EMBEDDINGS are classes."""
-        for provider, value in PROVIDER_EMBEDDINGS.items():
+        for _provider, value in PROVIDER_EMBEDDINGS.items():
             assert isinstance(value, type)
 
     def test_provider_embedding_models_values_are_strings(self) -> None:
         """Test that all values in PROVIDER_EMBEDDING_MODELS are strings."""
-        for provider, value in PROVIDER_EMBEDDING_MODELS.items():
+        for _provider, value in PROVIDER_EMBEDDING_MODELS.items():
             assert isinstance(value, str)
             assert len(value) > 0

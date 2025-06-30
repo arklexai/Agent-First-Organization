@@ -1,24 +1,22 @@
 """Tests for logging configuration."""
 
+import json
 import logging
 import os
-import pytest
-import json
+from collections.abc import Generator
 from pathlib import Path
-from typing import Generator
-from unittest.mock import patch, Mock
+from unittest.mock import patch
+
+import pytest
 
 from arklex.utils.logging_config import (
-    setup_logging,
-    JSONFormatter,
-    RequestIdFilter,
-    ContextFilter,
+    DEFAULT_LOG_LEVEL,
     LOG_LEVELS,
     MODULE_LOG_LEVELS,
-    DEFAULT_LOG_LEVEL,
-    DEFAULT_LOG_FORMAT,
-    MAX_BYTES,
-    BACKUP_COUNT,
+    ContextFilter,
+    JSONFormatter,
+    RequestIdFilter,
+    setup_logging,
 )
 
 log_context = logging.getLogger(__name__)
@@ -333,7 +331,6 @@ def test_setup_logging_removes_existing_handlers() -> None:
     root_logger = logging.getLogger()
     original_handler = logging.StreamHandler()
     root_logger.addHandler(original_handler)
-    original_count = len(root_logger.handlers)
 
     # Setup logging
     setup_logging()
@@ -408,7 +405,9 @@ def test_log_rotation(temp_log_dir: str) -> None:
         if len(log_files) > 1:
             break
     else:
-        assert False, f"Log rotation did not occur after {max_attempts} attempts"
+        raise AssertionError(
+            f"Log rotation did not occur after {max_attempts} attempts"
+        )
 
     # Verify that rotation occurred
     log_files = list(Path(temp_log_dir).glob("*.log*"))

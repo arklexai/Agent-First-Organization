@@ -5,17 +5,14 @@ functionality, including path sampling, conversation generation, and labeled con
 creation based on intent paths.
 """
 
-from typing import Dict, Any, List
 from unittest.mock import Mock, patch
 
-import pytest
-
 from arklex.evaluation.simulate_second_pass_convos import (
-    sampling_paths,
-    get_paths,
-    interact,
     generate_labeled_convos,
     get_labeled_convos,
+    get_paths,
+    interact,
+    sampling_paths,
 )
 
 

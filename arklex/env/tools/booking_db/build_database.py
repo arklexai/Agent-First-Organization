@@ -1,8 +1,8 @@
-import sqlite3
 import argparse
-from pathlib import Path
 import os
-from typing import List, Dict, Any
+import sqlite3
+from pathlib import Path
+from typing import Any
 
 
 def build_database(folder_path: str) -> None:
@@ -51,7 +51,7 @@ def build_database(folder_path: str) -> None:
     """)
 
     # Populate sample data
-    shows: List[Dict[str, Any]] = [
+    shows: list[dict[str, Any]] = [
         {
             "show_name": "The Dead, 1904",
             "genre": "Opera",
@@ -164,7 +164,7 @@ def build_database(folder_path: str) -> None:
         },
     ]
 
-    users: List[Dict[str, Any]] = [
+    users: list[dict[str, Any]] = [
         {
             "first_name": "Alice",
             "last_name": "Smith",

@@ -4,9 +4,11 @@ This module contains comprehensive test cases for user profile building function
 including profile generation, attribute conversion, and custom profile handling.
 """
 
-import pytest
+from collections.abc import Generator
+from typing import Any
 from unittest.mock import Mock, patch
-from typing import Dict, Any
+
+import pytest
 
 from arklex.evaluation.build_user_profiles import (
     augment_attributes,
@@ -18,7 +20,7 @@ from arklex.evaluation.build_user_profiles import (
 
 
 @pytest.fixture
-def mock_chatgpt_chatbot():
+def mock_chatgpt_chatbot() -> Generator[Mock, None, None]:
     """Mock chatgpt_chatbot function."""
     with patch("arklex.evaluation.build_user_profiles.chatgpt_chatbot") as mock:
         mock.return_value = "mocked_response"
@@ -26,7 +28,7 @@ def mock_chatgpt_chatbot():
 
 
 @pytest.fixture
-def mock_requests_get():
+def mock_requests_get() -> Generator[Mock, None, None]:
     """Mock requests.get function."""
     with patch("arklex.evaluation.build_user_profiles.requests.get") as mock:
         mock_response = Mock()
@@ -36,7 +38,7 @@ def mock_requests_get():
 
 
 @pytest.fixture
-def mock_environment():
+def mock_environment() -> Generator[Mock, None, None]:
     """Mock Environment class."""
     with patch("arklex.evaluation.build_user_profiles.Environment") as mock:
         mock_instance = Mock()
@@ -51,7 +53,7 @@ def mock_environment():
 
 
 @pytest.fixture
-def mock_slot_filler():
+def mock_slot_filler() -> Generator[Mock, None, None]:
     """Mock SlotFiller class."""
     with patch("arklex.evaluation.build_user_profiles.SlotFiller") as mock:
         mock_instance = Mock()
@@ -61,7 +63,7 @@ def mock_slot_filler():
 
 
 @pytest.fixture
-def mock_find_matched_attribute():
+def mock_find_matched_attribute() -> Generator[Mock, None, None]:
     """Mock find_matched_attribute function."""
     with patch("arklex.evaluation.build_user_profiles.find_matched_attribute") as mock:
         mock.return_value = {"matched": "data"}
@@ -69,7 +71,7 @@ def mock_find_matched_attribute():
 
 
 @pytest.fixture
-def mock_load_docs():
+def mock_load_docs() -> Generator[Mock, None, None]:
     """Mock load_docs function."""
     with patch("arklex.evaluation.build_user_profiles.load_docs") as mock:
         mock.return_value = [{"content": "test content"}]
@@ -77,7 +79,7 @@ def mock_load_docs():
 
 
 @pytest.fixture
-def mock_filter_attributes():
+def mock_filter_attributes() -> Generator[Mock, None, None]:
     """Mock filter_attributes function."""
     with patch("arklex.evaluation.build_user_profiles.filter_attributes") as mock:
         mock.return_value = {
@@ -88,7 +90,7 @@ def mock_filter_attributes():
 
 
 @pytest.fixture
-def mock_augment_attributes():
+def mock_augment_attributes() -> Generator[Mock, None, None]:
     """Mock augment_attributes function."""
     with patch("arklex.evaluation.build_user_profiles.augment_attributes") as mock:
         mock.return_value = {
@@ -99,7 +101,7 @@ def mock_augment_attributes():
 
 
 @pytest.fixture
-def mock_pick_attributes():
+def mock_pick_attributes() -> Generator[Mock, None, None]:
     """Mock pick_attributes function."""
     with patch("arklex.evaluation.build_user_profiles.pick_attributes") as mock:
         mock.return_value = (
@@ -110,7 +112,7 @@ def mock_pick_attributes():
 
 
 @pytest.fixture
-def mock_adapt_goal():
+def mock_adapt_goal() -> Generator[Mock, None, None]:
     """Mock adapt_goal function."""
     with patch("arklex.evaluation.build_user_profiles.adapt_goal") as mock:
         mock.return_value = "adapted_goal"
@@ -118,7 +120,7 @@ def mock_adapt_goal():
 
 
 @pytest.fixture
-def mock_select_system_attributes():
+def mock_select_system_attributes() -> Generator[Mock, None, None]:
     """Mock select_system_attributes function."""
     with patch(
         "arklex.evaluation.build_user_profiles.select_system_attributes"
@@ -128,7 +130,7 @@ def mock_select_system_attributes():
 
 
 @pytest.fixture
-def mock_get_custom_profiles():
+def mock_get_custom_profiles() -> Generator[Mock, None, None]:
     """Mock get_custom_profiles function."""
     with patch("arklex.evaluation.build_user_profiles.get_custom_profiles") as mock:
         mock.return_value = (
@@ -139,7 +141,7 @@ def mock_get_custom_profiles():
 
 
 @pytest.fixture
-def mock_convert_attributes_to_profiles():
+def mock_convert_attributes_to_profiles() -> Generator[Mock, None, None]:
     """Mock convert_attributes_to_profiles function."""
     with patch(
         "arklex.evaluation.build_user_profiles.convert_attributes_to_profiles"
@@ -153,7 +155,7 @@ def mock_convert_attributes_to_profiles():
 
 
 @pytest.fixture
-def always_valid_mock_model():
+def always_valid_mock_model() -> Generator[Mock, None, None]:
     """Fixture that provides a mock model that always returns valid responses."""
     with patch("arklex.evaluation.build_user_profiles.chatgpt_chatbot") as mock:
         mock.return_value = "mocked_response"
@@ -161,7 +163,7 @@ def always_valid_mock_model():
 
 
 @pytest.fixture
-def patched_sample_config():
+def patched_sample_config() -> Generator[None, None, None]:
     """Fixture that provides a patched sample configuration for testing."""
     with (
         patch("arklex.evaluation.build_user_profiles.load_docs") as mock_load_docs,
@@ -203,17 +205,7 @@ def patched_sample_config():
             ["goal1", "goal1"],
             [{"sys": "input"}, {"sys": "input"}],
         )
-
-        yield {
-            "load_docs": mock_load_docs,
-            "filter_attributes": mock_filter,
-            "augment_attributes": mock_augment,
-            "pick_attributes": mock_pick,
-            "adapt_goal": mock_adapt,
-            "select_system_attributes": mock_select,
-            "get_custom_profiles": mock_custom,
-            "convert_attributes_to_profiles": mock_convert,
-        }
+        yield
 
 
 class TestBuildUserProfiles:
@@ -225,7 +217,7 @@ class TestBuildUserProfiles:
     """
 
     @pytest.fixture
-    def mock_config(self) -> Dict[str, Any]:
+    def mock_config(self) -> dict[str, Any]:
         """Create a mock configuration for testing."""
         return {
             "documents_dir": "/test/documents",
@@ -241,26 +233,26 @@ class TestBuildUserProfiles:
                 },
                 "user_profiles": {"profile1": {"values": ["p1"]}},
             },
-            "tools": [{"id": "tool1", "name": "Test Tool"}],
+            "tools": [{"id": "tool1", "name": "Test Tool", "path": "mock_path"}],
             "workers": [{"id": "worker1", "name": "Test Worker"}],
         }
 
     @pytest.fixture
-    def mock_synthetic_params(self) -> Dict[str, int]:
+    def mock_synthetic_params(self) -> dict[str, int]:
         """Create mock synthetic data parameters."""
         return {"num_convos": 2, "num_goals": 3}
 
     @pytest.fixture
     def basic_mock_setup(
         self,
-        mock_load_docs,
-        mock_filter_attributes,
-        mock_augment_attributes,
-        mock_pick_attributes,
-        mock_adapt_goal,
-        mock_select_system_attributes,
-        mock_chatgpt_chatbot,
-    ):
+        mock_load_docs: Mock,
+        mock_filter_attributes: Mock,
+        mock_augment_attributes: Mock,
+        mock_pick_attributes: Mock,
+        mock_adapt_goal: Mock,
+        mock_select_system_attributes: Mock,
+        mock_chatgpt_chatbot: Mock,
+    ) -> dict[str, Mock]:
         """Create basic mock setup for build_profile tests."""
         return {
             "load_docs": mock_load_docs,
@@ -275,14 +267,14 @@ class TestBuildUserProfiles:
     @pytest.fixture
     def custom_profile_mock_setup(
         self,
-        mock_load_docs,
-        mock_filter_attributes,
-        mock_augment_attributes,
-        mock_get_custom_profiles,
-        mock_pick_attributes,
-        mock_adapt_goal,
-        mock_chatgpt_chatbot,
-    ):
+        mock_load_docs: Mock,
+        mock_filter_attributes: Mock,
+        mock_augment_attributes: Mock,
+        mock_get_custom_profiles: Mock,
+        mock_pick_attributes: Mock,
+        mock_adapt_goal: Mock,
+        mock_chatgpt_chatbot: Mock,
+    ) -> dict[str, Mock]:
         """Create mock setup for custom profile tests."""
         return {
             "load_docs": mock_load_docs,
@@ -324,10 +316,10 @@ class TestBuildUserProfiles:
     )
     def test_build_profile_variations(
         self,
-        patched_sample_config,
-        mock_config: Dict[str, Any],
-        mock_synthetic_params: Dict[str, int],
-        test_config: Dict[str, Any],
+        patched_sample_config: None,
+        mock_config: dict[str, Any],
+        mock_synthetic_params: dict[str, int],
+        test_config: dict[str, Any],
         test_name: str,
     ) -> None:
         """Test build_profile with various configurations."""
@@ -344,7 +336,7 @@ class TestBuildUserProfiles:
         assert len(labels) == 2
 
     def test_convert_attributes_to_profile(
-        self, mock_chatgpt_chatbot: Mock, mock_config: Dict[str, Any]
+        self, mock_chatgpt_chatbot: Mock, mock_config: dict[str, Any]
     ) -> None:
         """Test convert_attributes_to_profile function."""
         attributes = {"attr1": "value1", "attr2": "value2"}
@@ -352,7 +344,7 @@ class TestBuildUserProfiles:
         assert result == "mocked_response"
         mock_chatgpt_chatbot.assert_called_once()
 
-    def test_get_custom_profiles(self, mock_config: Dict[str, Any]) -> None:
+    def test_get_custom_profiles(self, mock_config: dict[str, Any]) -> None:
         """Test get_custom_profiles function with API endpoints."""
         mock_config["user_attributes"]["system_attributes"] = {
             "attr1": {"api": "http://test.com/api1"}
@@ -390,9 +382,9 @@ class TestBuildUserProfiles:
 
     def test_build_profile_with_system_inputs_false_and_custom_profile(
         self,
-        patched_sample_config,
-        mock_config: Dict[str, Any],
-        mock_synthetic_params: Dict[str, int],
+        patched_sample_config: None,
+        mock_config: dict[str, Any],
+        mock_synthetic_params: dict[str, int],
     ) -> None:
         """Test build_profile function when system_inputs is False and custom_profile is True."""
         config = mock_config.copy()
@@ -416,9 +408,9 @@ class TestBuildUserProfiles:
 
     def test_build_profile_with_binding_index_mismatch(
         self,
-        patched_sample_config,
-        mock_config: Dict[str, Any],
-        mock_synthetic_params: Dict[str, int],
+        patched_sample_config: None,
+        mock_config: dict[str, Any],
+        mock_synthetic_params: dict[str, int],
     ) -> None:
         """Test build_profile function when binding_index doesn't contain the expected key."""
         config = mock_config.copy()
@@ -445,9 +437,9 @@ class TestBuildUserProfiles:
 
     def test_build_profile_with_commented_get_label(
         self,
-        patched_sample_config,
-        mock_config: Dict[str, Any],
-        mock_synthetic_params: Dict[str, int],
+        patched_sample_config: None,
+        mock_config: dict[str, Any],
+        mock_synthetic_params: dict[str, int],
     ) -> None:
         """Test build_profile function with the commented get_label section."""
         config = mock_config.copy()
@@ -470,9 +462,9 @@ class TestBuildUserProfiles:
 
     def test_build_profile_with_empty_documents_in_custom_mode(
         self,
-        patched_sample_config,
-        mock_config: Dict[str, Any],
-        mock_synthetic_params: Dict[str, int],
+        patched_sample_config: None,
+        mock_config: dict[str, Any],
+        mock_synthetic_params: dict[str, int],
     ) -> None:
         """Test build_profile function with empty documents in custom profile mode."""
         config = mock_config.copy()
@@ -483,18 +475,19 @@ class TestBuildUserProfiles:
             "system_attributes": {"attr1": {"values": ["val1", "val2"]}},
         }
 
-        # Override load_docs to return empty list
-        patched_sample_config["load_docs"].return_value = []
+        # Override load_docs to return empty list using the patched function
+        with patch("arklex.evaluation.build_user_profiles.load_docs") as mock_load_docs:
+            mock_load_docs.return_value = []
 
-        profiles, goals, attributes_list, system_inputs, labels_list = build_profile(
-            mock_synthetic_params, config
-        )
+            profiles, goals, attributes_list, system_inputs, labels_list = (
+                build_profile(mock_synthetic_params, config)
+            )
 
-        assert len(profiles) == 2
-        assert len(goals) == 2
-        assert len(attributes_list) == 2
-        assert len(system_inputs) == 2
-        assert len(labels_list) == 2
+            assert len(profiles) == 2
+            assert len(goals) == 2
+            assert len(attributes_list) == 2
+            assert len(system_inputs) == 2
+            assert len(labels_list) == 2
 
     def test_get_custom_profiles_with_api_and_exception(self) -> None:
         """Test get_custom_profiles function when API call raises an exception."""
@@ -537,7 +530,7 @@ class TestBuildUserProfiles:
                 get_custom_profiles(config)
 
     def test_select_system_attributes_with_non_dict_values(
-        self, mock_synthetic_params: Dict[str, int]
+        self, mock_synthetic_params: dict[str, int]
     ) -> None:
         """Test select_system_attributes function when system attributes are not dictionaries."""
         config = {
@@ -554,7 +547,7 @@ class TestBuildUserProfiles:
             select_system_attributes(config, mock_synthetic_params)
 
     def test_select_system_attributes_with_empty_list(
-        self, mock_synthetic_params: Dict[str, int]
+        self, mock_synthetic_params: dict[str, int]
     ) -> None:
         """Test select_system_attributes function when system attributes list is empty."""
         config = {
@@ -571,7 +564,7 @@ class TestBuildUserProfiles:
             select_system_attributes(config, mock_synthetic_params)
 
     def test_augment_attributes_with_empty_values(
-        self, mock_config: Dict[str, Any]
+        self, mock_config: dict[str, Any]
     ) -> None:
         """Test augment_attributes function when some attributes have empty values."""
         attributes = {
@@ -593,7 +586,7 @@ class TestBuildUserProfiles:
             assert result["attr2"] == ["val3", "val4", "new_val1", "new_val2"]
 
     def test_augment_attributes_with_mixed_generate_values_and_documents(
-        self, mock_config: Dict[str, Any]
+        self, mock_config: dict[str, Any]
     ) -> None:
         """Test augment_attributes function with mixed generate_values and documents."""
         attributes = {
@@ -620,7 +613,7 @@ class TestBuildUserProfiles:
             )  # Should call chatgpt_chatbot only once for attr2
 
     def test_augment_attributes_with_mixed_generate_values_and_no_documents(
-        self, mock_config: Dict[str, Any]
+        self, mock_config: dict[str, Any]
     ) -> None:
         """Test augment_attributes function with mixed generate_values and no documents."""
         attributes = {
@@ -736,7 +729,7 @@ class TestBuildUserProfiles:
         assert result["profile1"] is None
 
     def test_pick_goal_with_llm_based_strategy(
-        self, mock_config: Dict[str, Any]
+        self, mock_config: dict[str, Any]
     ) -> None:
         """Test pick_goal function with llm_based strategy."""
         from arklex.evaluation.build_user_profiles import pick_goal
@@ -754,7 +747,7 @@ class TestBuildUserProfiles:
             assert result == "goal2"
             mock_chatgpt_chatbot.assert_called_once()
 
-    def test_pick_goal_with_react_strategy(self, mock_config: Dict[str, Any]) -> None:
+    def test_pick_goal_with_react_strategy(self, mock_config: dict[str, Any]) -> None:
         """Test pick_goal function with react strategy."""
         from arklex.evaluation.build_user_profiles import pick_goal
 
@@ -797,7 +790,7 @@ class TestBuildUserProfiles:
         assert result["matched_attribute"] == attributes
 
     def test_find_matched_attribute_with_string_input(
-        self, mock_config: Dict[str, Any]
+        self, mock_config: dict[str, Any]
     ) -> None:
         """Test find_matched_attribute function with string input."""
         from arklex.evaluation.build_user_profiles import find_matched_attribute
@@ -829,7 +822,7 @@ class TestBuildUserProfiles:
         with pytest.raises(ValueError, match="Invalid strategy"):
             find_matched_attribute(goal, user_profile_str, strategy="invalid_strategy")
 
-    def test_pick_attributes_react(self, mock_config: Dict[str, Any]) -> None:
+    def test_pick_attributes_react(self, mock_config: dict[str, Any]) -> None:
         """Test pick_attributes_react function."""
         from arklex.evaluation.build_user_profiles import pick_attributes_react
 
@@ -889,7 +882,7 @@ class TestBuildUserProfiles:
                 "attr1": "val2",
             }
 
-    def test_adapt_goal(self, mock_config: Dict[str, Any]) -> None:
+    def test_adapt_goal(self, mock_config: dict[str, Any]) -> None:
         """Test adapt_goal function."""
         from arklex.evaluation.build_user_profiles import adapt_goal
 
@@ -918,7 +911,7 @@ class TestBuildUserProfiles:
                 _fetch_api_data("http://test.com/api", "test_key")
 
     def test_augment_attributes_with_llm_augmentation(
-        self, mock_config: Dict[str, Any]
+        self, mock_config: dict[str, Any]
     ) -> None:
         """Test augment_attributes function with LLM augmentation."""
         from arklex.evaluation.build_user_profiles import augment_attributes
@@ -943,7 +936,7 @@ class TestBuildUserProfiles:
             assert mock_chatgpt_chatbot.call_count == 1
 
     def test_augment_attributes_without_documents(
-        self, mock_config: Dict[str, Any]
+        self, mock_config: dict[str, Any]
     ) -> None:
         """Test augment_attributes function without documents."""
         from arklex.evaluation.build_user_profiles import augment_attributes
@@ -965,7 +958,7 @@ class TestBuildUserProfiles:
             mock_chatgpt_chatbot.assert_called_once()
 
     def test_get_label_successful_tool_selection(
-        self, mock_config: Dict[str, Any]
+        self, mock_config: dict[str, Any]
     ) -> None:
         """Test get_label function with successful tool selection."""
         from arklex.evaluation.build_user_profiles import get_label
@@ -1012,7 +1005,7 @@ class TestBuildUserProfiles:
             assert result[0]["tool_id"] == "tool1"
             assert result[0]["tool_name"] == "Test Tool"
 
-    def test_get_label_with_tool_id_zero(self, mock_config: Dict[str, Any]) -> None:
+    def test_get_label_with_tool_id_zero(self, mock_config: dict[str, Any]) -> None:
         """Test get_label function when tool_id is 0."""
         from arklex.evaluation.build_user_profiles import get_label
 
@@ -1045,7 +1038,7 @@ class TestBuildUserProfiles:
             assert result[0]["tool_id"] == "0"
             assert result[0]["tool_name"] == "No tool"
 
-    def test_get_label_with_retry_logic(self, mock_config: Dict[str, Any]) -> None:
+    def test_get_label_with_retry_logic(self, mock_config: dict[str, Any]) -> None:
         """Test get_label function with retry logic."""
         from arklex.evaluation.build_user_profiles import get_label
 
@@ -1091,7 +1084,7 @@ class TestBuildUserProfiles:
             assert mock_chatgpt_chatbot.call_count == 2
 
     def test_get_label_with_max_retries_exceeded(
-        self, mock_config: Dict[str, Any]
+        self, mock_config: dict[str, Any]
     ) -> None:
         """Test get_label function when max retries are exceeded."""
         from arklex.evaluation.build_user_profiles import get_label
@@ -1169,7 +1162,7 @@ class TestBuildUserProfiles:
         assert result[0] == ""
 
     def test_pick_attributes_with_react_strategy(
-        self, mock_config: Dict[str, Any]
+        self, mock_config: dict[str, Any]
     ) -> None:
         """Test pick_attributes function with react strategy."""
         from arklex.evaluation.build_user_profiles import pick_attributes
@@ -1192,7 +1185,7 @@ class TestBuildUserProfiles:
             assert result_label["goal"] == "goal1"
 
     def test_pick_attributes_with_random_strategy(
-        self, mock_config: Dict[str, Any]
+        self, mock_config: dict[str, Any]
     ) -> None:
         """Test pick_attributes function with random strategy."""
         from arklex.evaluation.build_user_profiles import pick_attributes
@@ -1231,7 +1224,7 @@ class TestBuildUserProfiles:
         assert "attr2" in result_attrs
         assert result_attrs["attr2"] in attributes["attr2"]
 
-    def test_build_tool_list(self, mock_config: Dict[str, Any]) -> None:
+    def test_build_tool_list(self, mock_config: dict[str, Any]) -> None:
         """Test _build_tool_list function."""
         from arklex.evaluation.build_user_profiles import _build_tool_list
 
@@ -1256,7 +1249,7 @@ class TestBuildUserProfiles:
             assert tool_list[1]["tool_id"] == "0"  # No tool option
             assert env == mock_env_instance
 
-    def test_convert_attributes_to_profiles(self, mock_config: Dict[str, Any]) -> None:
+    def test_convert_attributes_to_profiles(self, mock_config: dict[str, Any]) -> None:
         """Test convert_attributes_to_profiles function."""
         from arklex.evaluation.build_user_profiles import convert_attributes_to_profiles
 
@@ -1295,7 +1288,7 @@ class TestBuildUserProfiles:
             _select_random_attributes(attributes, goals)
 
     def test_get_custom_profiles_binding_logic(
-        self, mock_config: Dict[str, Any]
+        self, mock_config: dict[str, Any]
     ) -> None:
         from arklex.evaluation.build_user_profiles import get_custom_profiles
 
@@ -1314,7 +1307,7 @@ class TestBuildUserProfiles:
             assert "profile1" in user_profiles
             assert "attr1" in system_attributes
 
-    def test_build_tool_list_missing_fields(self, mock_config: Dict[str, Any]) -> None:
+    def test_build_tool_list_missing_fields(self, mock_config: dict[str, Any]) -> None:
         from arklex.evaluation.build_user_profiles import _build_tool_list
 
         # Remove 'id' from a tool to trigger error
@@ -1324,7 +1317,7 @@ class TestBuildUserProfiles:
         with pytest.raises(KeyError):
             _build_tool_list(config)
 
-    def test_get_label_all_retries_fail(self, mock_config: Dict[str, Any]) -> None:
+    def test_get_label_all_retries_fail(self, mock_config: dict[str, Any]) -> None:
         from arklex.evaluation.build_user_profiles import get_label
 
         # Patch chatgpt_chatbot to always raise
@@ -1357,7 +1350,7 @@ class TestBuildUserProfiles:
                 assert label[0]["tool_id"] == "0"
                 assert success is True
 
-    def test_get_label_unexpected_exception(self, mock_config: Dict[str, Any]) -> None:
+    def test_get_label_unexpected_exception(self, mock_config: dict[str, Any]) -> None:
         from arklex.evaluation.build_user_profiles import get_label
 
         # Patch chatgpt_chatbot to raise a generic Exception

@@ -1,5 +1,3 @@
-# Copyright Sierra
-
 from .calculate import Calculate
 from .cancel_pending_order import CancelPendingOrder
 from .exchange_delivered_order_items import ExchangeDeliveredOrderItems
@@ -16,7 +14,6 @@ from .modify_user_address import ModifyUserAddress
 from .return_delivered_order_items import ReturnDeliveredOrderItems
 from .think import Think
 from .transfer_to_human_agents import TransferToHumanAgents
-
 
 ALL_TOOLS = [
     Calculate,

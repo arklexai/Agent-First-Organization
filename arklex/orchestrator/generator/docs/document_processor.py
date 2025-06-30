@@ -4,7 +4,7 @@ This module provides the DocumentProcessor class that handles the processing
 and transformation of documents into a format suitable for task generation.
 """
 
-from typing import List, Dict, Any
+from typing import Any
 
 
 class DocumentProcessor:
@@ -21,9 +21,9 @@ class DocumentProcessor:
 
     def __init__(self) -> None:
         """Initialize the DocumentProcessor."""
-        self._processed_documents: Dict[str, Any] = {}
+        self._processed_documents: dict[str, Any] = {}
 
-    def process_document(self, document: Dict[str, Any]) -> Dict[str, Any]:
+    def process_document(self, document: dict[str, Any]) -> dict[str, Any]:
         """Process a document and output 'processed_sections' for test compatibility.
 
         Args:
@@ -42,7 +42,7 @@ class DocumentProcessor:
             processed_doc["processed_sections"].append(processed_section)
         return processed_doc
 
-    def extract_requirements(self, document: Dict[str, Any]) -> List[str]:
+    def extract_requirements(self, document: dict[str, Any]) -> list[str]:
         """Extract requirements from a document.
 
         Args:
@@ -61,7 +61,7 @@ class DocumentProcessor:
                         requirements.extend(section["requirements"])
         return requirements
 
-    def format_for_tasks(self, document: Dict[str, Any]) -> Dict[str, Any]:
+    def format_for_tasks(self, document: dict[str, Any]) -> dict[str, Any]:
         """Format a document for task generation.
 
         Args:
@@ -87,7 +87,7 @@ class DocumentProcessor:
 
         return formatted_doc
 
-    def handle_specific_requirements(self, requirements: List[str]) -> List[str]:
+    def handle_specific_requirements(self, requirements: list[str]) -> list[str]:
         """Handle specific requirements in a standardized way.
 
         Args:
@@ -104,7 +104,7 @@ class DocumentProcessor:
                 processed_reqs.append(processed_req)
         return processed_reqs
 
-    def _process_section(self, section: Dict[str, Any]) -> Dict[str, Any]:
+    def _process_section(self, section: dict[str, Any]) -> dict[str, Any]:
         """Process a document section.
 
         Args:
@@ -132,7 +132,7 @@ class DocumentProcessor:
         # Basic content processing
         return content.strip()
 
-    def _extract_steps(self, section: Dict[str, Any]) -> List[Dict[str, Any]]:
+    def _extract_steps(self, section: dict[str, Any]) -> list[dict[str, Any]]:
         """Extract steps from a section.
 
         Args:

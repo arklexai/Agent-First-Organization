@@ -1,23 +1,20 @@
-# Copyright Sierra
-
 from benchmark.tau_bench.envs.airline.data import load_data
 from benchmark.tau_bench.envs.airline.rules import RULES
 from benchmark.tau_bench.envs.airline.tools import ALL_TOOLS
 from benchmark.tau_bench.envs.airline.wiki import WIKI
 from benchmark.tau_bench.envs.base import Env
-from typing import Optional, Union, List
 from benchmark.tau_bench.envs.user import UserStrategy
 
 
 class MockAirlineDomainEnv(Env):
     def __init__(
         self,
-        user_strategy: Union[str, UserStrategy] = UserStrategy.LLM,
+        user_strategy: str | UserStrategy = UserStrategy.LLM,
         user_model: str = "gpt-4o",
-        user_provider: Optional[str] = None,
+        user_provider: str | None = None,
         task_split: str = "test",
-        task_index: Optional[int] = None,
-    ):
+        task_index: int | None = None,
+    ) -> None:
         match task_split:
             case "test":
                 from benchmark.tau_bench.envs.airline.tasks_test import TASKS as tasks
@@ -34,4 +31,4 @@ class MockAirlineDomainEnv(Env):
             user_provider=user_provider,
             task_index=task_index,
         )
-        self.terminate_tools: List[str] = ["transfer_to_human_agents"]
+        self.terminate_tools: list[str] = ["transfer_to_human_agents"]

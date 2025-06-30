@@ -5,10 +5,9 @@ including nested graph component node identification and path traversal.
 """
 
 from unittest.mock import Mock
+
 from arklex.env.nested_graph.nested_graph import NestedGraph
 from arklex.utils.graph_state import NodeInfo, Params, PathNode
-from unittest.mock import Mock
-from unittest.mock import patch
 
 
 class TestNestedGraph:
@@ -345,7 +344,7 @@ class TestNestedGraph:
         # Execute & Assert - Should raise KeyError
         try:
             result = nested_graph.get_nested_graph_start_node_id()
-            assert False, "Expected KeyError but got result: " + str(result)
+            raise AssertionError("Expected KeyError but got result: " + str(result))
         except KeyError:
             pass  # Expected behavior
 
@@ -359,7 +358,7 @@ class TestNestedGraph:
         # Execute & Assert - Should raise TypeError (not AttributeError)
         try:
             result = nested_graph.get_nested_graph_start_node_id()
-            assert False, "Expected TypeError but got result: " + str(result)
+            raise AssertionError("Expected TypeError but got result: " + str(result))
         except TypeError:
             pass  # Expected behavior
 
@@ -399,7 +398,9 @@ class TestNestedGraph:
         # Execute & Assert - Should raise AttributeError
         try:
             result = NestedGraph.get_nested_graph_component_node(None, is_leaf_func)
-            assert False, "Expected AttributeError but got result: " + str(result)
+            raise AssertionError(
+                "Expected AttributeError but got result: " + str(result)
+            )
         except AttributeError:
             pass  # Expected behavior
 
@@ -450,7 +451,9 @@ class TestNestedGraph:
         # Execute & Assert - Should raise AttributeError when accessing None node
         try:
             result = NestedGraph.get_nested_graph_component_node(params, is_leaf_func)
-            assert False, "Expected AttributeError but got result: " + str(result)
+            raise AssertionError(
+                "Expected AttributeError but got result: " + str(result)
+            )
         except AttributeError:
             pass  # Expected behavior
 
@@ -516,7 +519,7 @@ class TestNestedGraph:
         # Execute & Assert - Should raise IndexError when accessing out of bounds index
         try:
             result = NestedGraph.get_nested_graph_component_node(params, is_leaf_func)
-            assert False, "Expected IndexError but got result: " + str(result)
+            raise AssertionError("Expected IndexError but got result: " + str(result))
         except IndexError:
             pass  # Expected behavior
 
@@ -537,7 +540,9 @@ class TestNestedGraph:
         # Execute & Assert - Should raise AttributeError
         try:
             result = NestedGraph.get_nested_graph_component_node(params, is_leaf_func)
-            assert False, "Expected AttributeError but got result: " + str(result)
+            raise AssertionError(
+                "Expected AttributeError but got result: " + str(result)
+            )
         except AttributeError:
             pass  # Expected behavior
 

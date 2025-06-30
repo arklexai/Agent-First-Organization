@@ -11,17 +11,17 @@ import argparse
 import json
 import os
 import time
-from typing import Any, Dict, List, Tuple
+from pprint import pprint
+from typing import Any
 
 from dotenv import load_dotenv
-from pprint import pprint
 
 from arklex.env.env import Environment
+from arklex.orchestrator.NLU.services.model_service import ModelService
 from arklex.orchestrator.orchestrator import AgentOrg
+from arklex.utils.logging_utils import LogContext
 from arklex.utils.model_config import MODEL
 from arklex.utils.model_provider_config import LLM_PROVIDERS
-from arklex.utils.logging_utils import LogContext
-from arklex.orchestrator.NLU.services.model_service import ModelService
 
 load_dotenv()
 
@@ -29,14 +29,14 @@ log_context = LogContext(__name__)
 
 
 def pprint_with_color(
-    data: Any, color_code: str = "\033[34m"
+    data: object, color_code: str = "\033[34m"
 ) -> None:  # Default to blue
     """Print data with a specified color.
 
     This function prints the provided data with the specified color code.
 
     Args:
-        data (Any): The data to be printed.
+        data (object): The data to be printed.
         color_code (str, optional): The color code to use for printing. Defaults to blue.
     """
     print(color_code, end="")  # Set the color
@@ -45,12 +45,12 @@ def pprint_with_color(
 
 
 def get_api_bot_response(
-    config: Dict[str, Any],
-    history: List[Dict[str, str]],
+    config: dict[str, Any],
+    history: list[dict[str, str]],
     user_text: str,
-    parameters: Dict[str, Any],
+    parameters: dict[str, Any],
     env: Environment,
-) -> Tuple[str, Dict[str, Any], bool]:
+) -> tuple[str, dict[str, Any], bool]:
     """Get a response from the bot based on the provided input.
 
     This function processes the user input and chat history through the orchestrator
@@ -66,13 +66,13 @@ def get_api_bot_response(
     Returns:
         Tuple[str, Dict[str, Any], bool]: A tuple containing the bot's response, updated parameters, and a boolean indicating if human intervention is required.
     """
-    data: Dict[str, Any] = {
+    data: dict[str, Any] = {
         "text": user_text,
         "chat_history": history,
         "parameters": parameters,
     }
     orchestrator = AgentOrg(config=config, env=env)
-    result: Dict[str, Any] = orchestrator.get_response(data)
+    result: dict[str, Any] = orchestrator.get_response(data)
 
     return result["answer"], result["parameters"], result["human_in_the_loop"]
 
@@ -91,7 +91,7 @@ if __name__ == "__main__":
     # Use absolute path to ensure RAG files can be found
     input_dir_abs = os.path.abspath(args.input_dir)
     os.environ["DATA_DIR"] = input_dir_abs
-    model: Dict[str, str] = {
+    model: dict[str, str] = {
         "model_name": args.model,
         "model_type_or_path": args.model,
         "llm_provider": args.llm_provider,
@@ -100,9 +100,8 @@ if __name__ == "__main__":
     }
 
     # Load task graph configuration and initialize environment
-    config: Dict[str, Any] = json.load(
-        open(os.path.join(input_dir_abs, "taskgraph.json"))
-    )
+    with open(os.path.join(input_dir_abs, "taskgraph.json")) as f:
+        config: dict[str, Any] = json.load(f)
     config["model"] = model
 
     # Initialize model service
@@ -118,8 +117,8 @@ if __name__ == "__main__":
     )
 
     # Initialize chat history and parameters
-    history: List[Dict[str, str]] = []
-    params: Dict[str, Any] = {}
+    history: list[dict[str, str]] = []
+    params: dict[str, Any] = {}
     user_prefix: str = "user"
     worker_prefix: str = "assistant"
 

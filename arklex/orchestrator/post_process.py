@@ -1,14 +1,13 @@
 import re
-from typing import Any
+
+from langchain.prompts import PromptTemplate
+from langchain_core.output_parsers import StrOutputParser
+from langchain_openai import ChatOpenAI
 
 from arklex.env.prompts import load_prompts
 from arklex.utils.graph_state import MessageState, Params, ResourceRecord
-from arklex.utils.model_provider_config import PROVIDER_MAP
 from arklex.utils.logging_utils import LogContext
-
-from langchain.prompts import PromptTemplate
-from langchain_openai import ChatOpenAI
-from langchain_core.output_parsers import StrOutputParser
+from arklex.utils.model_provider_config import PROVIDER_MAP
 
 log_context = LogContext(__name__)
 
@@ -112,10 +111,10 @@ def _extract_links(text: str) -> set:
     return {link.rstrip(".,;)!?\"'") for link in all_links}
 
 
-def _extract_links_from_nested_dict(step: Any) -> set:
+def _extract_links_from_nested_dict(step: dict | list | str) -> set:
     links = set()
 
-    def _recurse(val: Any) -> None:
+    def _recurse(val: dict | list | str) -> None:
         if isinstance(val, str):
             links.update(_extract_links(val))
         elif isinstance(val, dict):
@@ -172,7 +171,7 @@ def _live_chat_verifier(message_state: MessageState, params: Params) -> None:
     # check for relevance of the user's question
     if not _is_question_relevant(params):
         log_context.info(
-            f"User's question is not relevant. Skipping live chat initiation."
+            "User's question is not relevant. Skipping live chat initiation."
         )
         return
 
@@ -213,14 +212,14 @@ def _live_chat_verifier(message_state: MessageState, params: Params) -> None:
         message_state.response = TRIGGER_LIVE_CHAT_PROMPT
 
 
-def _extract_confidence_from_nested_dict(step: Any) -> tuple[float, int]:
+def _extract_confidence_from_nested_dict(step: dict | list | str) -> tuple[float, int]:
     confidence = 0.0
     num_of_docs = 0
 
-    def _recurse(val: Any) -> None:
+    def _recurse(val: dict | list | str) -> None:
         if isinstance(val, dict):
             nonlocal confidence, num_of_docs
-            if "confidence" in val and isinstance(val["confidence"], (int, float)):
+            if "confidence" in val and isinstance(val["confidence"], int | float):
                 confidence += val["confidence"]
                 num_of_docs += 1
             for v in val.values():

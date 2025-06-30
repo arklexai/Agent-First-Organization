@@ -6,23 +6,23 @@ utilities for simulating first-pass and second-pass conversations, extracting
 task completion metrics, and generating labeled conversation data for analysis.
 """
 
-import os
-import json
 import argparse
-from typing import Any, Dict, List, Tuple, Optional
+import json
+import os
+from typing import Any
 
-from arklex.evaluation.simulate_first_pass_convos import simulate_conversations
+from arklex.evaluation.chatgpt_utils import create_client
 from arklex.evaluation.extract_conversation_info import extract_task_completion_metrics
+from arklex.evaluation.simulate_first_pass_convos import simulate_conversations
 from arklex.evaluation.simulate_second_pass_convos import get_labeled_convos
 from arklex.utils.model_config import MODEL
 from arklex.utils.model_provider_config import LLM_PROVIDERS
-from arklex.evaluation.chatgpt_utils import create_client
 
 
 def evaluate(
-    config: Dict[str, Any],
-) -> Tuple[
-    List[Dict[str, Any]], List[Dict[str, Any]], Dict[str, Any], List[Dict[str, Any]]
+    config: dict[str, Any],
+) -> tuple[
+    list[dict[str, Any]], list[dict[str, Any]], dict[str, Any], list[dict[str, Any]]
 ]:
     """Evaluate the performance of the Arklex framework based on the provided configuration.
 
@@ -39,15 +39,15 @@ def evaluate(
     """
     task: str = config["task"]
     model_api: str = config["model_api"]
-    model_params: Dict[str, Any] = config["model_params"]
-    synthetic_data_params: Dict[str, Any] = config["synthetic_data_params"]
-    bot_goal: Optional[str] = config.get("builder_objective", None)
+    model_params: dict[str, Any] = config["model_params"]
+    synthetic_data_params: dict[str, Any] = config["synthetic_data_params"]
+    bot_goal: str | None = config.get("builder_objective")
     bot_goal = None if bot_goal == "" else bot_goal
 
-    first_pass_data: List[Dict[str, Any]]
-    goals: List[Dict[str, Any]]
-    goal_metrics: Dict[str, Any]
-    labeled_convos: List[Dict[str, Any]]
+    first_pass_data: list[dict[str, Any]]
+    goals: list[dict[str, Any]]
+    goal_metrics: dict[str, Any]
+    labeled_convos: list[dict[str, Any]]
 
     if task == "first_pass" or task == "simulate_conv_only":
         # first pass
@@ -113,8 +113,10 @@ if __name__ == "__main__":
     if not os.path.exists(args.output_dir):
         os.makedirs(args.output_dir, exist_ok=True)
 
-    config: Dict[str, Any] = json.load(open(args.config))
-    user_attributes: Dict[str, Any] = json.load(open(args.user_attributes))
+    with open(args.config) as f:
+        config: dict[str, Any] = json.load(f)
+    with open(args.user_attributes) as f:
+        user_attributes: dict[str, Any] = json.load(f)
     # if args.testset:
     #     testset = json.load(open(args.testset))
     # else:
@@ -136,10 +138,10 @@ if __name__ == "__main__":
     config["system_inputs"] = args.system_inputs
     config["client"] = client
 
-    first_pass_data: List[Dict[str, Any]]
-    final_convos: List[Dict[str, Any]]
-    goal_metrics: Dict[str, Any]
-    goals: List[Dict[str, Any]]
+    first_pass_data: list[dict[str, Any]]
+    final_convos: list[dict[str, Any]]
+    goal_metrics: dict[str, Any]
+    goals: list[dict[str, Any]]
     first_pass_data, final_convos, goal_metrics, goals = evaluate(config)
 
     with open(os.path.join(args.output_dir, "goals.json"), "w") as f:

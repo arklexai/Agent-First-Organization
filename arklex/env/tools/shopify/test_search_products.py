@@ -1,8 +1,11 @@
-import pytest
 import json
-from unittest.mock import patch, MagicMock
+from collections.abc import Generator
+from unittest.mock import MagicMock, patch
+
+import pytest
+
 from arklex.env.tools.shopify.search_products import search_products
-from arklex.utils.exceptions import ToolExecutionError, AuthenticationError
+from arklex.utils.exceptions import AuthenticationError, ToolExecutionError
 
 # Replace these with your real Shopify credentials for live testing
 SHOP_URL = "yourshop.myshopify.com"
@@ -50,7 +53,7 @@ MOCK_PRODUCTS_RESPONSE = {
 
 
 @pytest.fixture
-def mock_auth():
+def mock_auth() -> dict[str, str]:
     return {
         "shop_url": SHOP_URL,
         "api_version": API_VERSION,
@@ -59,13 +62,13 @@ def mock_auth():
 
 
 @pytest.fixture
-def mock_session():
+def mock_session() -> Generator[MagicMock, None, None]:
     with patch("shopify.Session") as mock:
         yield mock
 
 
 @pytest.fixture
-def mock_graphql():
+def mock_graphql() -> Generator[MagicMock, None, None]:
     with patch("shopify.GraphQL") as mock:
         mock_instance = MagicMock()
         mock.return_value = mock_instance
@@ -73,7 +76,9 @@ def mock_graphql():
         yield mock_instance
 
 
-def test_search_products_success(mock_auth, mock_session, mock_graphql):
+def test_search_products_success(
+    mock_auth: dict[str, str], mock_session: MagicMock, mock_graphql: MagicMock
+) -> None:
     """Test successful product search."""
     kwargs = {
         "product_query": "test",
@@ -96,7 +101,9 @@ def test_search_products_success(mock_auth, mock_session, mock_graphql):
         assert product["currency"] == "USD"
 
 
-def test_search_products_no_query(mock_auth, mock_session, mock_graphql):
+def test_search_products_no_query(
+    mock_auth: dict[str, str], mock_session: MagicMock, mock_graphql: MagicMock
+) -> None:
     """Test product search with no query."""
     kwargs = {
         "shop_url": SHOP_URL,
@@ -114,19 +121,23 @@ def test_search_products_no_query(mock_auth, mock_session, mock_graphql):
         assert len(result_data["products"]) == 1
 
 
-def test_search_products_auth_error(mock_auth):
+def test_search_products_auth_error(mock_auth: dict[str, str]) -> None:
     """Test product search with authentication error."""
     kwargs = {"product_query": "test"}
 
-    with patch(
-        "arklex.env.tools.shopify.utils.authorify_admin",
-        side_effect=AuthenticationError("Auth failed"),
+    with (
+        patch(
+            "arklex.env.tools.shopify.utils.authorify_admin",
+            side_effect=AuthenticationError("Auth failed"),
+        ),
+        pytest.raises(AuthenticationError),
     ):
-        with pytest.raises(AuthenticationError):
-            search_products(**kwargs)
+        search_products(**kwargs)
 
 
-def test_search_products_graphql_error(mock_auth, mock_session):
+def test_search_products_graphql_error(
+    mock_auth: dict[str, str], mock_session: MagicMock
+) -> None:
     """Test product search with GraphQL error."""
     kwargs = {
         "product_query": "test",
@@ -135,13 +146,13 @@ def test_search_products_graphql_error(mock_auth, mock_session):
         "admin_token": ADMIN_TOKEN,
     }
 
-    with patch(
-        "arklex.env.tools.shopify.utils.authorify_admin", return_value=mock_auth
+    with (
+        patch("arklex.env.tools.shopify.utils.authorify_admin", return_value=mock_auth),
+        patch("shopify.GraphQL") as mock,
     ):
-        with patch("shopify.GraphQL") as mock:
-            mock_instance = MagicMock()
-            mock.return_value = mock_instance
-            mock_instance.execute.side_effect = Exception("GraphQL error")
+        mock_instance = MagicMock()
+        mock.return_value = mock_instance
+        mock_instance.execute.side_effect = Exception("GraphQL error")
 
-            with pytest.raises(ToolExecutionError):
-                search_products(**kwargs)
+        with pytest.raises(ToolExecutionError):
+            search_products(**kwargs)

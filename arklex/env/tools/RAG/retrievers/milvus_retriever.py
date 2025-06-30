@@ -7,30 +7,24 @@ and the MilvusRetrieverExecutor class for executing retrieval tasks. The module 
 document embedding, vector storage, and similarity search with metadata filtering.
 """
 
-# TODO: Add type annotations and docstrings to all methods
 # TODO: Implement multi-tag support for document retrieval
 # TODO: Add token counting for RAG document processing
 
-# TODO(christian): add annotations to the code
 # NOTE: Only support one tag for now
-## TODO: get num_tokens for functions inside milvus_retriever.py and retriever_document.py (with classmethod RetrieverDocument.faq_retreiver_doc); influence token migrations
+# TODO: get num_tokens for functions inside milvus_retriever.py and retriever_document.py (with classmethod RetrieverDocument.faq_retreiver_doc); influence token migrations
 
-import time
 import os
-from typing import List
-import numpy as np
+import time
 from collections import defaultdict
 from multiprocessing.pool import Pool
-from pymilvus import Collection, DataType, MilvusClient, connections
 
+import numpy as np
 from langchain.prompts import PromptTemplate
 from langchain_core.output_parsers import StrOutputParser
 from langchain_openai.chat_models import ChatOpenAI
+from pymilvus import Collection, DataType, MilvusClient, connections
 
 from arklex.env.prompts import load_prompts
-from arklex.utils.mysql import mysql_pool
-from arklex.utils.model_provider_config import PROVIDER_MAP
-from arklex.utils.graph_state import MessageState
 from arklex.env.tools.RAG.retrievers.retriever_document import (
     RetrieverDocument,
     RetrieverDocumentType,
@@ -39,7 +33,10 @@ from arklex.env.tools.RAG.retrievers.retriever_document import (
     embed_retriever_document,
 )
 from arklex.env.tools.utils import trace
+from arklex.utils.graph_state import MessageState
 from arklex.utils.logging_utils import LogContext
+from arklex.utils.model_provider_config import PROVIDER_MAP
+from arklex.utils.mysql import mysql_pool
 
 EMBED_DIMENSION = 1536
 MAX_TEXT_LENGTH = 65535
@@ -50,12 +47,16 @@ log_context = LogContext(__name__)
 
 class RetrieveEngine:
     @staticmethod
-    def milvus_retrieve(state: MessageState, tags: dict = {}):
+    def milvus_retrieve(
+        state: MessageState, tags: dict[str, object] | None = None
+    ) -> MessageState:
         # get the input message
         user_message = state.user_message
 
         # Search for the relevant documents
         milvus_retriever = MilvusRetrieverExecutor(state.bot_config)
+        if tags is None:
+            tags = {}
         retrieved_text, retriever_params = milvus_retriever.retrieve(
             user_message.history, tags
         )
@@ -66,19 +67,24 @@ class RetrieveEngine:
 
 
 class MilvusRetriever:
-    def __enter__(self):
+    def __enter__(self) -> "MilvusRetriever":
         self.uri = os.getenv("MILVUS_URI", "")
         self.token = os.getenv("MILVUS_TOKEN", "")
         self.client = MilvusClient(uri=self.uri, token=self.token)
         return self
 
-    def __exit__(self, exc_type, exc_value, traceback):
+    def __exit__(
+        self,
+        exc_type: type[BaseException] | None,
+        exc_value: BaseException | None,
+        traceback: object | None,
+    ) -> None:
         self.client.close()
 
-    def get_bot_uid(self, bot_id: str, version: str):
+    def get_bot_uid(self, bot_id: str, version: str) -> str:
         return f"{bot_id}__{version}"
 
-    def create_collection_with_partition_key(self, collection_name: str):
+    def create_collection_with_partition_key(self, collection_name: str) -> None:
         schema = MilvusClient.create_schema(
             auto_id=False,
             enable_dynamic_field=True,
@@ -119,7 +125,9 @@ class MilvusRetriever:
             collection_name=collection_name, schema=schema, index_params=index_params
         )
 
-    def delete_documents_by_qa_doc_id(self, collection_name: str, qa_doc_id: str):
+    def delete_documents_by_qa_doc_id(
+        self, collection_name: str, qa_doc_id: str
+    ) -> dict[str, object]:
         log_context.info(
             f"Deleting vector db documents by qa_doc_id: {qa_doc_id} from collection: {collection_name}"
         )
@@ -129,8 +137,8 @@ class MilvusRetriever:
         return res
 
     def add_documents_dicts(
-        self, documents: List[dict], collection_name: str, upsert: bool = False
-    ):
+        self, documents: list[dict], collection_name: str, upsert: bool = False
+    ) -> list[dict[str, object]]:
         log_context.info(
             f"Celery sub task for adding {len(documents)} documents to collection: {collection_name}."
         )
@@ -159,7 +167,9 @@ class MilvusRetriever:
                 raise e
         return res
 
-    def update_tag_by_qa_doc_id(self, collection_name: str, qa_doc_id: str, tags: dict):
+    def update_tag_by_qa_doc_id(
+        self, collection_name: str, qa_doc_id: str, tags: dict
+    ) -> dict[str, object]:
         """
         Updates tags for all vector entries associated with a specific qa_doc_id.
 
@@ -225,17 +235,17 @@ class MilvusRetriever:
             )
             raise ValueError(
                 f"Failed to upsert updated vectors with new tags {tags} for qa_doc_id {qa_doc_id}: {e}"
-            )
+            ) from e
 
     def add_documents_parallel(
         self,
         collection_name: str,
         bot_id: str,
         version: str,
-        documents: List[RetrieverDocument],
+        documents: list[RetrieverDocument],
         process_pool: Pool,
         upsert: bool = False,
-    ):
+    ) -> list[dict[str, object]]:
         log_context.info(
             f"Adding {len(documents)} vector db documents to collection '{collection_name}' for bot_id: {bot_id} version: {version}"
         )
@@ -279,9 +289,9 @@ class MilvusRetriever:
         collection_name: str,
         bot_id: str,
         version: str,
-        documents: List[RetrieverDocument],
+        documents: list[RetrieverDocument],
         upsert: bool = False,
-    ):
+    ) -> list[dict[str, object]]:
         log_context.info(
             f"Adding {len(documents)} vector db documents to collection {collection_name} for bot_id: {bot_id} version: {version}"
         )
@@ -319,12 +329,15 @@ class MilvusRetriever:
         bot_id: str,
         version: str,
         query: str,
-        tags: dict = {},
+        tags: dict[str, object] | None = None,
         top_k: int = 4,
-    ) -> List[RetrieverResult]:
+    ) -> list[RetrieverResult]:
         log_context.info(
             f"Retreiver search for query: {query} on collection {collection_name} for bot_id: {bot_id} version: {version}"
         )
+
+        if tags is None:
+            tags = {}
 
         partition_key = self.get_bot_uid(bot_id, version)
         query_embedding = embed(query)
@@ -342,7 +355,7 @@ class MilvusRetriever:
             output_fields=["qa_doc_id", "chunk_id", "qa_doc_type", "metadata", "text"],
         )
 
-        ret_results: List[RetrieverResult] = []
+        ret_results: list[RetrieverResult] = []
         for r in res[0]:
             log_context.info(f"Milvus search result: {r}")
             qa_doc_id = r["entity"]["qa_doc_id"]
@@ -371,7 +384,7 @@ class MilvusRetriever:
         bot_id: str,
         version: str,
         qa_doc_type: RetrieverDocumentType,
-    ) -> List[RetrieverDocument]:
+    ) -> list[RetrieverDocument]:
         connections.connect(
             uri=self.uri,
             token=self.token,
@@ -491,7 +504,7 @@ class MilvusRetriever:
         bot_id: str,
         version: str,
         qa_doc_type: RetrieverDocumentType,
-    ) -> List[dict]:
+    ) -> list[dict]:
         log_context.info(
             f"Getting all qa_doc_ids from collection '{collection_name}' for bot_id: {bot_id}, version: {version}"
         )
@@ -520,23 +533,23 @@ class MilvusRetriever:
 
         return list(qa_doc_ids)
 
-    def has_collection(self, collection_name: str):
+    def has_collection(self, collection_name: str) -> bool:
         return self.client.has_collection(collection_name)
 
-    def load_collection(self, collection_name: str):
+    def load_collection(self, collection_name: str) -> None:
         if self.client.has_collection(collection_name):
             self.client.load_collection(collection_name)
             return
         else:
             raise ValueError(f"Milvus Collection {collection_name} does not exist")
 
-    def release_collection(self, collection_name: str):
+    def release_collection(self, collection_name: str) -> dict[str, object]:
         return self.client.release_collection(collection_name)
 
-    def drop_collection(self, collection_name: str):
+    def drop_collection(self, collection_name: str) -> dict[str, object]:
         return self.client.drop_collection(collection_name)
 
-    def get_all_vectors(self, collection_name: str):
+    def get_all_vectors(self, collection_name: str) -> list[dict[str, object]]:
         connections.connect(
             uri=self.uri,
             token=self.token,
@@ -578,9 +591,9 @@ class MilvusRetriever:
         collection_name: str,
         bot_id: str,
         version: str,
-        vectors: List[dict],
+        vectors: list[dict],
         upsert: bool = False,
-    ):
+    ) -> list[dict[str, object]]:
         log_context.info(
             f"Adding {len(vectors)} vector db documents to institution {collection_name} for bot_id: {bot_id} version: {version}"
         )
@@ -623,17 +636,14 @@ class MilvusRetriever:
             )
         return res
 
-    def is_collection_loaded(self, collection_name: str):
+    def is_collection_loaded(self, collection_name: str) -> bool:
         state = self.client.get_load_state(collection_name)
         print("loaded state: ", state)
-        if state["state"].__str__() == "Loaded":
-            return True
-        else:
-            return False
+        return state["state"].__str__() == "Loaded"
 
     def delete_vectors_by_partition_key(
         self, collection_name: str, bot_id: str, version: str
-    ):
+    ) -> dict[str, object]:
         partition_key = self.get_bot_uid(bot_id, version)
         res = self.client.delete(
             collection_name=collection_name, filter=f"bot_uid=='{partition_key}'"
@@ -651,7 +661,9 @@ class MilvusRetriever:
 
         return res
 
-    def get_vector_count_for_bot(self, collection: str, bot_id: str, version: str):
+    def get_vector_count_for_bot(
+        self, collection: str, bot_id: str, version: str
+    ) -> int:
         res = self.client.query(
             collection_name=collection, filter=f"bot_uid=='{bot_id}__{version}'"
         )
@@ -667,7 +679,7 @@ class MilvusRetriever:
     #     )
     #     return sum([r.get("num_tokens", 0) for r in res])
 
-    def get_collection_size(self, collection_name: str):
+    def get_collection_size(self, collection_name: str) -> int:
         # real time vector count for the collection
         return self.client.query(
             collection_name=collection_name, output_fields=["count(*)"]
@@ -679,7 +691,7 @@ class MilvusRetriever:
         bot_id: str,
         version: str,
         new_collection_name: str,
-    ):
+    ) -> int:
         partition_key = self.get_bot_uid(bot_id, version)
         connections.connect(
             uri=self.uri,
@@ -736,18 +748,18 @@ class MilvusRetriever:
         )
         return count
 
-    def list_collections(self):
+    def list_collections(self) -> list[str]:
         return self.client.list_collections()
 
 
 class MilvusRetrieverExecutor:
-    def __init__(self, bot_config):
+    def __init__(self, bot_config: object) -> None:
         self.bot_config = bot_config
         self.llm = PROVIDER_MAP.get(bot_config.llm_config.llm_provider, ChatOpenAI)(
             model=bot_config.llm_config.model_type_or_path
         )
 
-    def generate_thought(self, retriever_results: List[RetrieverResult]) -> str:
+    def generate_thought(self, retriever_results: list[RetrieverResult]) -> str:
         # post process list of documents into str
         retrieved_str = ""
         for doc in retriever_results:
@@ -758,11 +770,13 @@ class MilvusRetrieverExecutor:
             retrieved_str += "content: " + doc.text + "\n\n"
         return retrieved_str
 
-    def _gaussian_similarity(self, distance, sigma=0.5):
+    def _gaussian_similarity(self, distance: float, sigma: float = 0.5) -> float:
         similarity = np.exp(-(distance**2) / (2 * sigma**2)) * 100
         return round(float(similarity), 2)
 
-    def postprocess(self, retriever_results: List[RetrieverResult]):
+    def postprocess(
+        self, retriever_results: list[RetrieverResult]
+    ) -> dict[str, object]:
         retriever_returns = []
         for doc in retriever_results:
             confidence_score = self._gaussian_similarity(doc.distance)
@@ -778,8 +792,12 @@ class MilvusRetrieverExecutor:
             retriever_returns.append(item)
         return {"retriever": retriever_returns}
 
-    def retrieve(self, chat_history_str, tags: dict = {}):
+    def retrieve(
+        self, chat_history_str: str, tags: dict[str, object] | None = None
+    ) -> tuple[str, dict[str, object]]:
         """Given a chat history, retrieve relevant information from the database."""
+        if tags is None:
+            tags = {}
         st = time.time()
         prompts = load_prompts(self.bot_config)
         contextualize_q_prompt = PromptTemplate.from_template(
@@ -789,7 +807,7 @@ class MilvusRetrieverExecutor:
         ret_input = ret_input_chain.invoke({"chat_history": chat_history_str})
         rit = time.time() - st
 
-        ret_results: List[RetrieverResult] = []
+        ret_results: list[RetrieverResult] = []
         st = time.time()
         milvus_db = mysql_pool.fetchone(
             "SELECT collection_name FROM qa_bot WHERE id=%s AND version=%s",

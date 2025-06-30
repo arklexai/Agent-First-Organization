@@ -1,12 +1,13 @@
 import inspect
 import json
+
 import requests
 from requests.auth import HTTPBasicAuth
 
+from arklex.env.tools.acuity._exception_prompt import AcuityExceptionPrompt
 from arklex.env.tools.acuity.utils import authenticate_acuity
 from arklex.env.tools.tools import register_tool
 from arklex.utils.exceptions import ToolExecutionError
-from arklex.env.tools.acuity._exception_prompt import AcuityExceptionPrompt
 
 description = "Get the available times of the info session based on the specific date"
 slots = [
@@ -37,13 +38,13 @@ CREDENTIAL_NOT_FOUND = "error: missing credential information"
 
 
 @register_tool(description, slots, outputs)
-def get_available_times(date, apt_tid, **kwargs):
+def get_available_times(
+    date: str, apt_tid: str, **kwargs: str | int | float | bool | None
+) -> str:
     func_name = inspect.currentframe().f_code.co_name
     user_id, api_key = authenticate_acuity(kwargs)
 
-    base_url = "https://acuityscheduling.com/api/v1/availability/times?appointmentTypeID={}&date={}".format(
-        apt_tid, date
-    )
+    base_url = f"https://acuityscheduling.com/api/v1/availability/times?appointmentTypeID={apt_tid}&date={date}"
     response = requests.get(base_url, auth=HTTPBasicAuth(user_id, api_key))
 
     if response.status_code == 200:

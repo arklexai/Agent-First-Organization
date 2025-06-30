@@ -5,14 +5,14 @@ framework. It includes test orchestrators for Shopify tools, with validation
 methods to ensure correct task graph paths and node status.
 """
 
-import os
 import json
-from typing import Any, Dict, List
+import os
+from typing import Any
 
-from tests.utils.utils import MockOrchestrator, MockResourceInitializer
 from arklex.orchestrator.NLU.core.slot import SlotFiller
-from arklex.utils.logging_utils import LogContext
 from arklex.orchestrator.NLU.services.model_service import DummyModelService
+from arklex.utils.logging_utils import LogContext
+from tests.utils.utils import MockOrchestrator, MockResourceInitializer
 
 log_context = LogContext(__name__)
 
@@ -25,21 +25,21 @@ class ShopifyToolOrchestrator(MockOrchestrator):
             config_file_path (str): Path to the configuration file.
         """
         fixed_args: str = os.environ.get("SHOPIFY_FIXED_ARGS", "{}")
-        self.fixed_args: Dict[str, Any] = json.loads(fixed_args)
+        self.fixed_args: dict[str, Any] = json.loads(fixed_args)
         super().__init__(config_file_path, self.fixed_args)
         self.resource_initializer = MockResourceInitializer()
 
     def _validate_result(
         self,
-        test_case: Dict[str, Any],
-        history: List[Dict[str, str]],
-        params: Dict[str, Any],
+        test_case: dict[str, Any],
+        history: list[dict[str, str]],
+        params: dict[str, Any],
     ) -> None:
         """Validate the test results for Shopify tools.
 
         This function only checks that the assistant's response is non-empty.
         """
-        assistant_records: List[Dict[str, str]] = [
+        assistant_records: list[dict[str, str]] = [
             message for message in history if message["role"] == "assistant"
         ]
         for record in assistant_records:

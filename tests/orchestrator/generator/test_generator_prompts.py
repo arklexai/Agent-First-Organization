@@ -5,12 +5,10 @@ and prompt template functionality.
 """
 
 import re
-from typing import Set
 
 import pytest
 
 from arklex.orchestrator.generator import prompts
-
 
 # --- Fixtures ---
 
@@ -36,7 +34,7 @@ def prompt_manager() -> prompts.PromptManager:
 
 
 @pytest.fixture
-def sample_prompt_fields() -> Set[str]:
+def sample_prompt_fields() -> set[str]:
     """Get sample fields from a prompt template for testing."""
     template = prompts.generate_tasks_sys_prompt
     return set(re.findall(r"{([a-zA-Z0-9_]+)}", template))

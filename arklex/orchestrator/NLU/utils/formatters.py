@@ -12,11 +12,12 @@ Key features:
 - Response structure formatting
 """
 
-from typing import Dict, List, Any, Tuple
-from arklex.utils.slot import SlotInputList
+from typing import Any
+
+from arklex.utils.slot import Slot, SlotInputList
 
 
-def _format_slot_description(slot: Any) -> str:
+def _format_slot_description(slot: Slot) -> str:
     """Format a single slot description.
 
     Args:
@@ -63,8 +64,8 @@ Please provide the values in JSON format with the following structure:
 
 
 def format_intent_input(
-    intents: Dict[str, List[Dict[str, Any]]], chat_history_str: str
-) -> Tuple[str, Dict[str, str]]:
+    intents: dict[str, list[dict[str, Any]]], chat_history_str: str
+) -> tuple[str, dict[str, str]]:
     """Format input for intent detection.
 
     This function formats the input data for intent detection, creating
@@ -89,7 +90,7 @@ def format_intent_input(
     intents_choice = ""
     definition_str = ""
     exemplars_str = ""
-    idx2intents_mapping: Dict[str, str] = {}
+    idx2intents_mapping: dict[str, str] = {}
     count = 1
 
     for intent_k, intent_v in intents.items():
@@ -174,7 +175,7 @@ def format_slot_input(slots: SlotInputList, context: str, type: str = "chat") ->
     return _format_slot_prompt(context, slot_str)
 
 
-def format_verification_input(slot: Dict[str, Any], chat_history_str: str) -> str:
+def format_verification_input(slot: dict[str, Any], chat_history_str: str) -> str:
     """Format input for slot verification.
 
     This function formats the input data for slot verification, creating

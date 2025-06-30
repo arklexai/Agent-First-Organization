@@ -1,9 +1,9 @@
 import argparse
 import json
+from typing import Any
+
 import shopify
 import uvicorn
-from typing import Any, Dict, List, Union
-
 from fastapi import FastAPI
 
 from arklex.env.tools.shopify.utils import authorify_admin
@@ -15,12 +15,12 @@ PRODUCTS_NOT_FOUND: str = "error: No products found"
 app = FastAPI()
 
 
-def get_users(kwargs: Dict[str, Any]) -> Union[List[Dict[str, Any]], str]:
+def get_users(kwargs: dict[str, Any]) -> list[dict[str, Any]] | str:
     try:
-        auth: Dict[str, str] = authorify_admin(kwargs)
+        auth: dict[str, str] = authorify_admin(kwargs)
     except AuthenticationError as e:
         print("Authentication error: ", e)
-        raise AuthenticationError(e)
+        raise AuthenticationError(e) from e
 
     try:
         with shopify.Session.temp(**auth):
@@ -103,7 +103,7 @@ def get_users(kwargs: Dict[str, Any]) -> Union[List[Dict[str, Any]], str]:
                     }
                 }
             """)
-            data: List[Dict[str, Any]] = json.loads(response)["data"]["customers"][
+            data: list[dict[str, Any]] = json.loads(response)["data"]["customers"][
                 "nodes"
             ]
             return data
@@ -113,9 +113,9 @@ def get_users(kwargs: Dict[str, Any]) -> Union[List[Dict[str, Any]], str]:
         return USER_NOT_FOUND_ERROR
 
 
-def get_products(kwargs: Dict[str, Any]) -> Union[List[Dict[str, Any]], Dict[str, str]]:
+def get_products(kwargs: dict[str, Any]) -> list[dict[str, Any]] | dict[str, str]:
     try:
-        auth: Dict[str, str] = authorify_admin(kwargs)
+        auth: dict[str, str] = authorify_admin(kwargs)
     except Exception as e:
         return {"error": str(e)}
 
@@ -155,10 +155,10 @@ def get_products(kwargs: Dict[str, Any]) -> Union[List[Dict[str, Any]], Dict[str
                     }
                 }
             """)
-            data: List[Dict[str, Any]] = json.loads(response)["data"]["products"][
+            data: list[dict[str, Any]] = json.loads(response)["data"]["products"][
                 "nodes"
             ]
-            response_list: List[Dict[str, Any]] = []
+            response_list: list[dict[str, Any]] = []
             for product in data:
                 response_text: str = ""
                 response_text += f"Product ID: {product.get('id', 'None')}\n"
@@ -180,10 +180,10 @@ def get_products(kwargs: Dict[str, Any]) -> Union[List[Dict[str, Any]], Dict[str
 
 
 @app.get("/users")
-def get_users_route() -> Union[List[Dict[str, Any]], Dict[str, str]]:
-    users: List[Dict[str, Any]] = []
+def get_users_route() -> list[dict[str, Any]] | dict[str, str]:
+    users: list[dict[str, Any]] = []
     try:
-        response: Union[List[Dict[str, Any]], str] = get_users(kwargs)
+        response: list[dict[str, Any]] | str = get_users(kwargs)
     except AuthenticationError:
         return {
             "error": "Missing some or all required Shopify admin authentication parameters: shop_url, api_version, admin_token."
@@ -193,21 +193,21 @@ def get_users_route() -> Union[List[Dict[str, Any]], Dict[str, str]]:
 
     for user in response:
         # attribute = f"Your name is {user['firstName']} {user['lastName']} and your email is {user['email']}. Your phone number is {user['phone']}. You registered at {user['createdAt']}. The last time you entered our store was {user['updatedAt']}. You have {user['numberOfOrders']} orders. You have spent {user['amountSpent']['amount']} {user['amountSpent']['currencyCode']} at our store."
-        attribute: Dict[str, Any] = user
-        single_user: Dict[str, Any] = {"input": user["id"], "attribute": attribute}
+        attribute: dict[str, Any] = user
+        single_user: dict[str, Any] = {"input": user["id"], "attribute": attribute}
         users.append(single_user)
     return users
 
 
 @app.get("/products")
-def get_products_route() -> List[Dict[str, Any]]:
-    products: List[Dict[str, Any]] = []
-    response: Union[List[Dict[str, Any]], Dict[str, str]] = get_products(kwargs)
+def get_products_route() -> list[dict[str, Any]]:
+    products: list[dict[str, Any]] = []
+    response: list[dict[str, Any]] | dict[str, str] = get_products(kwargs)
     for product in response:
         print("============product============")
         print(product)
         # attribute = f"The product is {product['title']}. The description is {product['description']}. The product is in the {product['category']} category."
-        single_product: Dict[str, Any] = {
+        single_product: dict[str, Any] = {
             "input": product["id"],
             "attribute": product["attribute"],
         }
@@ -223,7 +223,7 @@ if __name__ == "__main__":
     parser.add_argument("--port", type=int, default=8001)
     args = parser.parse_args()
 
-    kwargs: Dict[str, str] = {
+    kwargs: dict[str, str] = {
         "shop_url": "<your_shop_url>",
         "api_version": "2024-10",
         "admin_token": "<your_admin_token>",

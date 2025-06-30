@@ -4,13 +4,11 @@ This module tests the conversation analysis utilities including edge counting,
 intent graph building, goal checking, and task completion metrics extraction.
 """
 
-from unittest.mock import patch, MagicMock
-import networkx as nx
-import json
-import importlib.util
 import sys
-import builtins
-from typing import Any
+from unittest.mock import MagicMock, Mock, patch
+
+import networkx as nx
+import pytest
 
 from arklex.evaluation import extract_conversation_info
 
@@ -207,7 +205,7 @@ class TestCheckBotGoal:
     """Test cases for check_bot_goal function."""
 
     @patch("arklex.evaluation.extract_conversation_info.chatgpt_chatbot")
-    def test_check_bot_goal_true_response(self, mock_chatbot) -> None:
+    def test_check_bot_goal_true_response(self, mock_chatbot: Mock) -> None:
         """Test bot goal checking with True response."""
         mock_chatbot.return_value = "True"
         convo = [
@@ -223,7 +221,7 @@ class TestCheckBotGoal:
         mock_chatbot.assert_called_once()
 
     @patch("arklex.evaluation.extract_conversation_info.chatgpt_chatbot")
-    def test_check_bot_goal_false_response(self, mock_chatbot) -> None:
+    def test_check_bot_goal_false_response(self, mock_chatbot: Mock) -> None:
         """Test bot goal checking with False response."""
         mock_chatbot.return_value = "False"
         convo = [
@@ -239,7 +237,7 @@ class TestCheckBotGoal:
         mock_chatbot.assert_called_once()
 
     @patch("arklex.evaluation.extract_conversation_info.chatgpt_chatbot")
-    def test_check_bot_goal_case_insensitive(self, mock_chatbot) -> None:
+    def test_check_bot_goal_case_insensitive(self, mock_chatbot: Mock) -> None:
         """Test bot goal checking with case insensitive response."""
         mock_chatbot.return_value = "true"
         convo = [
@@ -254,7 +252,7 @@ class TestCheckBotGoal:
         assert result is False  # Should be case sensitive
 
     @patch("arklex.evaluation.extract_conversation_info.chatgpt_chatbot")
-    def test_check_bot_goal_empty_conversation(self, mock_chatbot) -> None:
+    def test_check_bot_goal_empty_conversation(self, mock_chatbot: Mock) -> None:
         """Test bot goal checking with empty conversation."""
         mock_chatbot.return_value = "False"
         convo = []
@@ -321,7 +319,9 @@ class TestExtractTaskCompletionMetrics:
     """Test cases for extract_task_completion_metrics function."""
 
     @patch("arklex.evaluation.extract_conversation_info.check_bot_goal")
-    def test_extract_task_completion_metrics_basic(self, mock_check_bot_goal) -> None:
+    def test_extract_task_completion_metrics_basic(
+        self, mock_check_bot_goal: Mock
+    ) -> None:
         """Test extracting task completion metrics with basic data."""
         mock_check_bot_goal.return_value = True
         data = [
@@ -358,7 +358,7 @@ class TestExtractTaskCompletionMetrics:
 
     @patch("arklex.evaluation.extract_conversation_info.check_bot_goal")
     def test_extract_task_completion_metrics_no_bot_goal(
-        self, mock_check_bot_goal
+        self, mock_check_bot_goal: Mock
     ) -> None:
         """Test extracting task completion metrics without bot goal."""
         data = [
@@ -393,7 +393,7 @@ class TestExtractTaskCompletionMetrics:
 
     @patch("arklex.evaluation.extract_conversation_info.check_bot_goal")
     def test_extract_task_completion_metrics_complex_conversation(
-        self, mock_check_bot_goal
+        self, mock_check_bot_goal: Mock
     ) -> None:
         """Test extracting task completion metrics with complex conversation."""
         mock_check_bot_goal.return_value = True
@@ -423,12 +423,10 @@ class TestExtractTaskCompletionMetrics:
         assert result["bot_goal_completion"] == 1.0
 
 
-def test_main_block_coverage(monkeypatch):
+def test_main_block_coverage(monkeypatch: pytest.MonkeyPatch) -> None:
     """Test __main__ block in extract_conversation_info.py (lines 95-99)."""
     # Simple test to cover the main block execution
     # We'll just verify that the main block can be executed without errors
-    import sys
-    import os
 
     # Save original sys.argv
     original_argv = sys.argv.copy()
@@ -438,15 +436,15 @@ def test_main_block_coverage(monkeypatch):
         sys.argv = ["extract_conversation_info.py", "test_data.json"]
 
         # Mock the file operations to avoid actual file I/O
-        def mock_open(*args, **kwargs):
+        def mock_open(*args: object, **kwargs: object) -> object:
             class MockFile:
-                def __enter__(self):
+                def __enter__(self) -> "MockFile":
                     return self
 
-                def __exit__(self, *args):
+                def __exit__(self, *args: object) -> None:
                     pass
 
-                def read(self):
+                def read(self) -> str:
                     return "[]"  # Return empty JSON array
 
             return MockFile()
@@ -454,7 +452,7 @@ def test_main_block_coverage(monkeypatch):
         # Mock print to capture output
         printed_output = []
 
-        def mock_print(*args, **kwargs):
+        def mock_print(*args: object, **kwargs: object) -> None:
             printed_output.append(" ".join(str(arg) for arg in args))
 
         monkeypatch.setattr("builtins.open", mock_open)

@@ -12,17 +12,19 @@ The module includes:
 - Error handling and logging
 """
 
-from typing import Dict, List, Any
-from fastapi import FastAPI, Response, APIRouter, Depends
-from arklex.utils.slot import Slot, Verification
-from arklex.orchestrator.NLU.services.model_service import ModelService
-from arklex.utils.logging_utils import LogContext, handle_exceptions, LOG_MESSAGES
-from arklex.utils.exceptions import ModelError, ValidationError
+from typing import Any
+
+from fastapi import APIRouter, Depends, FastAPI, Response
+
 from arklex.orchestrator.NLU.core.base import (
     IntentResponse,
     SlotResponse,
     VerificationResponse,
 )
+from arklex.orchestrator.NLU.services.model_service import ModelService
+from arklex.utils.exceptions import ModelError, ValidationError
+from arklex.utils.logging_utils import LOG_MESSAGES, LogContext, handle_exceptions
+from arklex.utils.slot import Slot, Verification
 
 log_context = LogContext(__name__)
 app = FastAPI()
@@ -41,21 +43,31 @@ DEFAULT_MODEL_CONFIG = {
 router = APIRouter()
 
 
-@handle_exceptions()
-async def get_model_service() -> ModelService:
-    """Get or create a ModelService instance.
+@router.get("/health")
+async def health_check() -> dict[str, str]:
+    """Health check endpoint."""
+    return {"status": "healthy"}
+
+
+def get_model_service() -> ModelService:
+    """Get model service instance.
 
     Returns:
-        ModelService: Initialized model service instance
+        ModelService: Model service instance
 
     Raises:
         ModelError: If model service initialization fails
     """
     try:
-        return ModelService(model_config=DEFAULT_MODEL_CONFIG)
+        model_service = ModelService(DEFAULT_MODEL_CONFIG)
+        log_context.info(
+            "Model service initialized successfully",
+            extra={"operation": "model_service_initialization"},
+        )
+        return model_service
     except Exception as e:
         log_context.error(
-            LOG_MESSAGES["MODEL_INIT_ERROR"],
+            LOG_MESSAGES["ERROR"]["INITIALIZATION_ERROR"],
             extra={
                 "error": str(e),
                 "operation": "model_service_initialization",
@@ -64,13 +76,17 @@ async def get_model_service() -> ModelService:
         raise ModelError(
             "Failed to initialize model service",
             details={"error": str(e), "operation": "initialization"},
-        )
+        ) from e
+
+
+# Module-level dependency variables to fix B008 errors
+model_service_dependency = Depends(get_model_service)
 
 
 @router.post("/predict_intent", response_model=IntentResponse)
 @handle_exceptions()
 async def predict_intent(
-    text: str, model_service: ModelService = Depends(get_model_service)
+    text: str, model_service: ModelService = model_service_dependency
 ) -> IntentResponse:
     """Predict intent from input text.
 
@@ -100,7 +116,7 @@ async def predict_intent(
 @router.post("/fill_slots", response_model=SlotResponse)
 @handle_exceptions()
 async def fill_slots(
-    text: str, intent: str, model_service: ModelService = Depends(get_model_service)
+    text: str, intent: str, model_service: ModelService = model_service_dependency
 ) -> SlotResponse:
     """Fill slots based on input text and intent.
 
@@ -132,8 +148,8 @@ async def fill_slots(
 @handle_exceptions()
 async def verify_slots(
     text: str,
-    slots: Dict[str, Any],
-    model_service: ModelService = Depends(get_model_service),
+    slots: dict[str, Any],
+    model_service: ModelService = model_service_dependency,
 ) -> VerificationResponse:
     """Verify slots against input text.
 
@@ -163,11 +179,11 @@ async def verify_slots(
 
 @app.post("/nlu/predict")
 @handle_exceptions()
-def predict_intent(
-    data: Dict[str, Any],
+def predict_intent_app(
+    data: dict[str, Any],
     res: Response,
-    model_service: ModelService = Depends(get_model_service),
-) -> Dict[str, str]:
+    model_service: ModelService = model_service_dependency,
+) -> dict[str, str]:
     """Predict intent from input text.
 
     This endpoint processes a request to detect the intent from input text,
@@ -233,7 +249,7 @@ def predict_intent(
         raise ValidationError(
             "Missing required field in request",
             details={"field": str(e), "operation": "intent_prediction"},
-        )
+        ) from e
     except Exception as e:
         log_context.error(
             "Error in intent prediction",
@@ -245,16 +261,16 @@ def predict_intent(
         raise ModelError(
             "Failed to predict intent",
             details={"error": str(e), "operation": "intent_prediction"},
-        )
+        ) from e
 
 
 @app.post("/slotfill/predict")
 @handle_exceptions()
 def predict_slots(
-    data: Dict[str, Any],
+    data: dict[str, Any],
     res: Response,
-    model_service: ModelService = Depends(get_model_service),
-) -> List[Slot]:
+    model_service: ModelService = model_service_dependency,
+) -> list[Slot]:
     """Fill slots from input context.
 
     This endpoint processes a request to fill slots from input context,
@@ -318,7 +334,7 @@ def predict_slots(
         raise ValidationError(
             "Missing required field in request",
             details={"field": str(e), "operation": "slot_filling"},
-        )
+        ) from e
     except Exception as e:
         log_context.error(
             "Error in slot filling",
@@ -330,15 +346,15 @@ def predict_slots(
         raise ModelError(
             "Failed to fill slots",
             details={"error": str(e), "operation": "slot_filling"},
-        )
+        ) from e
 
 
 @app.post("/slotfill/verify")
 @handle_exceptions()
 def verify_slot(
-    data: Dict[str, Any],
+    data: dict[str, Any],
     res: Response,
-    model_service: ModelService = Depends(get_model_service),
+    model_service: ModelService = model_service_dependency,
 ) -> Verification:
     """Verify if slot value needs confirmation.
 
@@ -356,9 +372,7 @@ def verify_slot(
         model_service: Model service instance
 
     Returns:
-        Verification result containing:
-            - verification_needed: Whether verification is needed
-            - thought: Reasoning for the verification decision
+        Verification: Verification result with confidence and metadata
 
     Raises:
         ValidationError: If input validation fails
@@ -366,21 +380,22 @@ def verify_slot(
         APIError: If API interaction fails
     """
     try:
-        slot = data["slot"]
+        slot = Slot(**data["slot"])
         chat_history_str = data["chat_history_str"]
         model_config = data["model"]
         log_context.info(
             "Processing slot verification request",
             extra={
                 "slot": slot,
+                "chat_history": chat_history_str,
                 "operation": "slot_verification",
             },
         )
         prompt = model_service.format_verification_input(slot, chat_history_str)
         response = model_service.get_model_response(
-            prompt, model_config, note="slot verification"
+            prompt, model_config, response_format="json", note="slot verification"
         )
-        verification = model_service.process_verification_response(response)
+        verification = model_service.process_verification_response(response, slot)
         log_context.info(
             "Slot verification successful",
             extra={
@@ -401,7 +416,7 @@ def verify_slot(
         raise ValidationError(
             "Missing required field in request",
             details={"field": str(e), "operation": "slot_verification"},
-        )
+        ) from e
     except Exception as e:
         log_context.error(
             "Error in slot verification",
@@ -413,4 +428,4 @@ def verify_slot(
         raise ModelError(
             "Failed to verify slot",
             details={"error": str(e), "operation": "slot_verification"},
-        )
+        ) from e

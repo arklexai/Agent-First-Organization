@@ -5,8 +5,9 @@ including actions, tasks, rewards, and environment responses. These types
 are used to represent the state and results of benchmark evaluations.
 """
 
+from typing import Any
+
 from pydantic import BaseModel
-from typing import List, Dict, Any, Optional, Union
 
 RESPOND_ACTION_NAME = "respond"
 RESPOND_ACTION_FIELD_NAME = "content"
@@ -24,7 +25,7 @@ class Action(BaseModel):
     """
 
     name: str
-    kwargs: Dict[str, Any]
+    kwargs: dict[str, Any]
 
 
 class Task(BaseModel):
@@ -41,9 +42,9 @@ class Task(BaseModel):
     """
 
     user_id: str
-    actions: List[Action]
+    actions: list[Action]
     instruction: str
-    outputs: List[str]
+    outputs: list[str]
 
 
 class RewardOutputInfo(BaseModel):
@@ -58,7 +59,7 @@ class RewardOutputInfo(BaseModel):
     """
 
     r_outputs: float
-    outputs: Dict[str, bool]
+    outputs: dict[str, bool]
 
 
 class RewardActionInfo(BaseModel):
@@ -89,8 +90,8 @@ class RewardResult(BaseModel):
     """
 
     reward: float
-    info: Union[RewardOutputInfo, RewardActionInfo]
-    actions: List[Action]
+    info: RewardOutputInfo | RewardActionInfo
+    actions: list[Action]
 
 
 class SolveResult(BaseModel):
@@ -107,9 +108,9 @@ class SolveResult(BaseModel):
     """
 
     reward: float
-    messages: List[Dict[str, Any]]
-    info: Dict[str, Any]
-    total_cost: Optional[float] = None
+    messages: list[dict[str, Any]]
+    info: dict[str, Any]
+    total_cost: float | None = None
 
 
 class EnvInfo(BaseModel):
@@ -126,9 +127,9 @@ class EnvInfo(BaseModel):
     """
 
     task: Task
-    source: Optional[str] = None
-    user_cost: Optional[float] = None
-    reward_info: Optional[RewardResult] = None
+    source: str | None = None
+    user_cost: float | None = None
+    reward_info: RewardResult | None = None
 
 
 class EnvResponse(BaseModel):
@@ -181,8 +182,8 @@ class EnvRunResult(BaseModel):
 
     task_id: int
     reward: float
-    info: Dict[str, Any]
-    traj: List[Dict[str, Any]]
+    info: dict[str, Any]
+    traj: list[dict[str, Any]]
     trial: int
 
 
@@ -217,7 +218,7 @@ class RunConfig(BaseModel):
     task_split: str = "test"
     start_index: int = 0
     end_index: int = -1
-    task_ids: Optional[List[int]] = None
+    task_ids: list[int] | None = None
     log_dir: str = "results"
     max_concurrency: int = 1
     seed: int = 10

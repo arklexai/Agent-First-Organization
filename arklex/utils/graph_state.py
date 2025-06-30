@@ -24,7 +24,7 @@ Key Features:
 
 import uuid
 from enum import Enum
-from typing import Any, Dict, List, Optional
+from typing import Any
 
 from pydantic import BaseModel, Field
 
@@ -119,7 +119,7 @@ class OrchestratorMessage(BaseModel):
     """
 
     message: str
-    attribute: Dict[str, Any]
+    attribute: dict[str, Any]
 
 
 ### Task status-related classes
@@ -160,7 +160,7 @@ class Timing(BaseModel):
         taskgraph (Optional[float]): Time taken for task graph processing.
     """
 
-    taskgraph: Optional[float] = None
+    taskgraph: float | None = None
 
 
 class ResourceRecord(BaseModel):
@@ -185,11 +185,11 @@ class ResourceRecord(BaseModel):
         personalized_intent (str): User-specific intent for the resource.
     """
 
-    info: Dict[str, Any]
+    info: dict[str, Any]
     intent: str = Field(default="")
-    input: List[Any] = Field(default_factory=list)
+    input: list[Any] = Field(default_factory=list)
     output: str = Field(default="")
-    steps: List[Any] = Field(default_factory=list)
+    steps: list[Any] = Field(default_factory=list)
     personalized_intent: str = Field(default="")
 
 
@@ -217,9 +217,9 @@ class Metadata(BaseModel):
     # TODO: May need to initialize the metadata(i.e. chat_id, turn_id) based on the conversation database
     chat_id: str = Field(default_factory=lambda: str(uuid.uuid4()))
     turn_id: int = 0
-    hitl: Optional[str] = Field(default=None)
+    hitl: str | None = Field(default=None)
     timing: Timing = Field(default_factory=Timing)
-    attempts: Optional[int] = None
+    attempts: int | None = None
 
 
 class MessageState(BaseModel):
@@ -259,13 +259,13 @@ class MessageState(BaseModel):
     # system configuration
     sys_instruct: str = Field(default="")
     # bot configuration
-    bot_config: Optional[BotConfig] = Field(default=None)
+    bot_config: BotConfig | None = Field(default=None)
     # input message
-    user_message: Optional[ConvoMessage] = Field(default=None)
-    orchestrator_message: Optional[OrchestratorMessage] = Field(default=None)
+    user_message: ConvoMessage | None = Field(default=None)
+    orchestrator_message: OrchestratorMessage | None = Field(default=None)
     # action trajectory
-    function_calling_trajectory: Optional[List[Dict[str, Any]]] = Field(default=None)
-    trajectory: Optional[List[List[ResourceRecord]]] = Field(default=None)
+    function_calling_trajectory: list[dict[str, Any]] | None = Field(default=None)
+    trajectory: list[list[ResourceRecord]] | None = Field(default=None)
     # message flow between different nodes
     message_flow: str = Field(
         description="message flow between different nodes", default=""
@@ -274,16 +274,16 @@ class MessageState(BaseModel):
     response: str = Field(default="")
     # task-related params
     status: StatusEnum = Field(default=StatusEnum.INCOMPLETE)
-    slots: Optional[Dict[str, List[Slot]]] = Field(
+    slots: dict[str, list[Slot]] | None = Field(
         description="record the dialogue states of each action", default=None
     )
-    metadata: Optional[Metadata] = Field(default=None)
+    metadata: Metadata | None = Field(default=None)
     # stream
     is_stream: bool = Field(default=False)
     message_queue: Any = Field(exclude=True, default=None)
-    stream_type: Optional[StreamType] = Field(default=StreamType.NON_STREAM)
+    stream_type: StreamType | None = Field(default=StreamType.NON_STREAM)
     # memory records
-    relevant_records: Optional[List[ResourceRecord]] = Field(default=None)
+    relevant_records: list[ResourceRecord] | None = Field(default=None)
 
 
 class PathNode(BaseModel):
@@ -312,8 +312,8 @@ class PathNode(BaseModel):
     node_id: str
     is_skipped: bool = False
     in_flow_stack: bool = False
-    nested_graph_node_value: Optional[str] = None
-    nested_graph_leaf_jump: Optional[int] = None
+    nested_graph_node_value: str | None = None
+    nested_graph_leaf_jump: int | None = None
     global_intent: str = Field(default="")
 
 
@@ -345,15 +345,15 @@ class Taskgraph(BaseModel):
     """
 
     # Need add global intent
-    dialog_states: Dict[str, List[Slot]] = Field(default_factory=dict)
-    path: List[PathNode] = Field(default_factory=list)
+    dialog_states: dict[str, list[Slot]] = Field(default_factory=dict)
+    path: list[PathNode] = Field(default_factory=list)
     curr_node: str = Field(default="")
     intent: str = Field(default="")
     curr_global_intent: str = Field(default="")
-    node_limit: Dict[str, int] = Field(default_factory=dict)
-    nlu_records: List[Any] = Field(default_factory=list)
-    node_status: Dict[str, StatusEnum] = Field(default_factory=dict)
-    available_global_intents: List[str] = Field(default_factory=list)
+    node_limit: dict[str, int] = Field(default_factory=dict)
+    nlu_records: list[Any] = Field(default_factory=list)
+    node_status: dict[str, StatusEnum] = Field(default_factory=dict)
+    available_global_intents: list[str] = Field(default_factory=list)
 
 
 class Memory(BaseModel):
@@ -372,8 +372,8 @@ class Memory(BaseModel):
         function_calling_trajectory (List[Dict[str, Any]]): Function call history.
     """
 
-    trajectory: List[List[ResourceRecord]] = Field(default_factory=list)
-    function_calling_trajectory: List[Dict[str, Any]] = Field(default_factory=list)
+    trajectory: list[list[ResourceRecord]] = Field(default_factory=list)
+    function_calling_trajectory: list[dict[str, Any]] = Field(default_factory=list)
 
 
 class Params(BaseModel):
@@ -446,15 +446,15 @@ class NodeInfo(BaseModel):
         additional_args (Optional[Dict[str, Any]]): Additional arguments for the node.
     """
 
-    node_id: Optional[str] = Field(default=None)
+    node_id: str | None = Field(default=None)
     type: str = Field(default="")
     resource_id: str = Field(default="")
     resource_name: str = Field(default="")
     can_skipped: bool = Field(default=False)
     is_leaf: bool = Field(default=False)
-    attributes: Dict[str, Any] = Field(default_factory=dict)
-    add_flow_stack: Optional[bool] = Field(default=False)
-    additional_args: Optional[Dict[str, Any]] = Field(default={})
+    attributes: dict[str, Any] = Field(default_factory=dict)
+    add_flow_stack: bool | None = Field(default=False)
+    additional_args: dict[str, Any] | None = Field(default={})
 
 
 class OrchestratorResp(BaseModel):
@@ -479,9 +479,9 @@ class OrchestratorResp(BaseModel):
     """
 
     answer: str = Field(default="")
-    parameters: Dict[str, Any] = Field(default_factory=dict)
-    human_in_the_loop: Optional[str] = Field(default=None)
-    choice_list: Optional[List[str]] = Field(default=[])
+    parameters: dict[str, Any] = Field(default_factory=dict)
+    human_in_the_loop: str | None = Field(default=None)
+    choice_list: list[str] | None = Field(default=[])
 
 
 class HTTPParams(BaseModel):
@@ -508,8 +508,8 @@ class HTTPParams(BaseModel):
 
     endpoint: str
     method: str = Field(default="GET")
-    headers: Dict[str, str] = Field(
+    headers: dict[str, str] = Field(
         default_factory=lambda: {"Content-Type": "application/json"}
     )
-    body: Optional[Any] = Field(default=None)
-    params: Optional[Dict[str, Any]] = Field(default=None)
+    body: Any | None = Field(default=None)
+    params: dict[str, Any] | None = Field(default=None)

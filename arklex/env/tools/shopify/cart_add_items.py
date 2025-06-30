@@ -7,21 +7,32 @@ Module Name: cart_add_items
 This file contains the code for adding items to a shopping cart.
 """
 
-from typing import Any, Dict, List
-
-import json
 import inspect
+import json
+from typing import TypedDict
+
 import requests
 
+from arklex.env.tools.shopify._exception_prompt import ShopifyExceptionPrompt
+from arklex.env.tools.shopify.utils import authorify_storefront
 from arklex.env.tools.shopify.utils_slots import (
     ShopifyCartAddItemsSlots,
     ShopifyOutputs,
 )
-from arklex.env.tools.shopify.utils_cart import *
-from arklex.env.tools.shopify.utils_nav import *
-from arklex.utils.exceptions import ToolExecutionError
 from arklex.env.tools.tools import register_tool
-from arklex.env.tools.shopify._exception_prompt import ShopifyExceptionPrompt
+from arklex.utils.exceptions import ToolExecutionError
+from arklex.utils.logging_utils import LogContext
+
+log_context = LogContext(__name__)
+
+
+class CartAddItemsParams(TypedDict, total=False):
+    """Parameters for the cart add items tool."""
+
+    shop_url: str
+    api_version: str
+    storefront_token: str
+
 
 description = "Add items to user's shopping cart."
 slots = ShopifyCartAddItemsSlots.get_all_slots()
@@ -29,14 +40,16 @@ outputs = [ShopifyOutputs.CART_ADD_ITEMS_DETAILS]
 
 
 @register_tool(description, slots, outputs)
-def cart_add_items(cart_id: str, product_variant_ids: List[str], **kwargs: Any) -> str:
+def cart_add_items(
+    cart_id: str, product_variant_ids: list[str], **kwargs: CartAddItemsParams
+) -> str:
     """
     Add items to a shopping cart.
 
     Args:
         cart_id (str): The ID of the shopping cart.
         product_variant_ids (List[str]): List of product variant IDs to add to the cart.
-        **kwargs (Any): Additional keyword arguments for authentication.
+        **kwargs (CartAddItemsParams): Additional keyword arguments for authentication.
 
     Returns:
         str: A success message with the cart details if successful.
@@ -50,13 +63,13 @@ def cart_add_items(cart_id: str, product_variant_ids: List[str], **kwargs: Any) 
     func_name = inspect.currentframe().f_code.co_name
     auth = authorify_storefront(kwargs)
 
-    variable: Dict[str, Any] = {
+    variable: dict[str, list[dict[str, str | int]]] = {
         "cartId": cart_id,
         "lines": [
             {"merchandiseId": pv_id, "quantity": 1} for pv_id in product_variant_ids
         ],
     }
-    headers: Dict[str, str] = {
+    headers: dict[str, str] = {
         "X-Shopify-Storefront-Access-Token": auth["storefront_token"]
     }
     query = """

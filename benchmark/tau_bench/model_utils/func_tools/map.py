@@ -1,5 +1,6 @@
+from collections.abc import Callable, Iterable
 from concurrent.futures import ThreadPoolExecutor
-from typing import Callable, Iterable, TypeVar, List, Optional
+from typing import TypeVar
 
 T = TypeVar("T")
 U = TypeVar("U")
@@ -8,9 +9,9 @@ U = TypeVar("U")
 def map(
     func: Callable[[T], U],
     iterable: Iterable[T],
-    max_concurrency: Optional[int] = None,
+    max_concurrency: int | None = None,
     use_tqdm: bool = False,
-) -> List[U]:
+) -> list[U]:
     assert max_concurrency is None or max_concurrency > 0
     with ThreadPoolExecutor(max_workers=max_concurrency) as executor:
         if use_tqdm:

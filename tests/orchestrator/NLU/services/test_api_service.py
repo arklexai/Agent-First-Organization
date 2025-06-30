@@ -4,15 +4,17 @@ This module provides comprehensive test coverage for the APIClientService class,
 ensuring all functionality is properly tested including error handling and edge cases.
 """
 
-import pytest
-from unittest.mock import Mock, patch, MagicMock
+from unittest.mock import Mock, patch
+
 import httpx
+import pytest
+
 from arklex.orchestrator.NLU.services.api_service import (
-    APIClientService,
     DEFAULT_TIMEOUT,
     HTTP_METHOD_POST,
+    APIClientService,
 )
-from arklex.utils.exceptions import ValidationError, APIError
+from arklex.utils.exceptions import APIError, ValidationError
 from arklex.utils.slot import Slot
 
 
@@ -56,9 +58,11 @@ class TestAPIClientServiceInitialization:
 
     def test_api_client_service_initialization_client_error(self) -> None:
         """Test initialization when httpx.Client fails."""
-        with patch("httpx.Client", side_effect=Exception("Client error")):
-            with pytest.raises(APIError, match="Failed to initialize API client"):
-                APIClientService("https://api.example.com")
+        with (
+            patch("httpx.Client", side_effect=Exception("Client error")),
+            pytest.raises(APIError, match="Failed to initialize API client"),
+        ):
+            APIClientService("https://api.example.com")
 
 
 class TestAPIClientServiceMakeRequest:
@@ -70,7 +74,7 @@ class TestAPIClientServiceMakeRequest:
         with patch("httpx.Client"):
             return APIClientService("https://api.example.com")
 
-    def test_make_request_success(self, api_service) -> None:
+    def test_make_request_success(self, api_service: APIClientService) -> None:
         """Test successful API request."""
         mock_response = Mock()
         mock_response.status_code = 200
@@ -85,7 +89,7 @@ class TestAPIClientServiceMakeRequest:
             "POST", "https://api.example.com/test", json={"data": "test"}
         )
 
-    def test_make_request_without_data(self, api_service) -> None:
+    def test_make_request_without_data(self, api_service: APIClientService) -> None:
         """Test API request without data."""
         mock_response = Mock()
         mock_response.status_code = 200
@@ -100,7 +104,9 @@ class TestAPIClientServiceMakeRequest:
             "GET", "https://api.example.com/test", json=None
         )
 
-    def test_make_request_strips_endpoint_slash(self, api_service) -> None:
+    def test_make_request_strips_endpoint_slash(
+        self, api_service: APIClientService
+    ) -> None:
         """Test that endpoint leading slash is stripped."""
         mock_response = Mock()
         mock_response.status_code = 200
@@ -114,7 +120,7 @@ class TestAPIClientServiceMakeRequest:
             "GET", "https://api.example.com/test", json=None
         )
 
-    def test_make_request_http_error(self, api_service) -> None:
+    def test_make_request_http_error(self, api_service: APIClientService) -> None:
         """Test API request with HTTP error."""
         http_error = httpx.HTTPError("HTTP Error")
         http_error.response = Mock()
@@ -125,7 +131,9 @@ class TestAPIClientServiceMakeRequest:
         with pytest.raises(APIError, match="API request failed"):
             api_service._make_request("/test", "GET")
 
-    def test_make_request_http_error_no_response(self, api_service) -> None:
+    def test_make_request_http_error_no_response(
+        self, api_service: APIClientService
+    ) -> None:
         """Test API request with HTTP error but no response."""
         http_error = httpx.HTTPError("HTTP Error")
         http_error.response = None
@@ -135,7 +143,7 @@ class TestAPIClientServiceMakeRequest:
         with pytest.raises(APIError, match="API request failed"):
             api_service._make_request("/test", "GET")
 
-    def test_make_request_json_error(self, api_service) -> None:
+    def test_make_request_json_error(self, api_service: APIClientService) -> None:
         """Test API request with JSON parsing error."""
         mock_response = Mock()
         mock_response.status_code = 200
@@ -146,7 +154,9 @@ class TestAPIClientServiceMakeRequest:
         with pytest.raises(APIError, match="API request failed"):
             api_service._make_request("/test", "GET")
 
-    def test_make_request_general_exception(self, api_service) -> None:
+    def test_make_request_general_exception(
+        self, api_service: APIClientService
+    ) -> None:
         """Test API request with general exception."""
         api_service.client.request.side_effect = Exception("General error")
 
@@ -164,7 +174,9 @@ class TestAPIClientServicePredictIntent:
             return APIClientService("https://api.example.com")
 
     @patch("arklex.orchestrator.NLU.services.api_service.validate_intent_response")
-    def test_predict_intent_success(self, mock_validate, api_service) -> None:
+    def test_predict_intent_success(
+        self, mock_validate: Mock, api_service: APIClientService
+    ) -> None:
         """Test successful intent prediction."""
         mock_validate.return_value = "booking_intent"
 
@@ -194,7 +206,9 @@ class TestAPIClientServicePredictIntent:
             )
 
     @patch("arklex.orchestrator.NLU.services.api_service.validate_intent_response")
-    def test_predict_intent_validation_error(self, mock_validate, api_service) -> None:
+    def test_predict_intent_validation_error(
+        self, mock_validate: Mock, api_service: APIClientService
+    ) -> None:
         """Test intent prediction with validation error."""
         mock_validate.side_effect = ValidationError("Invalid response")
 
@@ -206,7 +220,7 @@ class TestAPIClientServicePredictIntent:
                     "test text", {"test_intent": []}, "chat history", {"model": "test"}
                 )
 
-    def test_predict_intent_api_error(self, api_service) -> None:
+    def test_predict_intent_api_error(self, api_service: APIClientService) -> None:
         """Test intent prediction with API error."""
         with patch.object(api_service, "_make_request") as mock_request:
             mock_request.side_effect = APIError("API Error")
@@ -226,7 +240,7 @@ class TestAPIClientServicePredictSlots:
         with patch("httpx.Client"):
             return APIClientService("https://api.example.com")
 
-    def test_predict_slots_success(self, api_service) -> None:
+    def test_predict_slots_success(self, api_service: APIClientService) -> None:
         """Test successful slot prediction."""
         slots = [Slot(name="date", type="string", description="Travel date")]
 
@@ -260,7 +274,7 @@ class TestAPIClientServicePredictSlots:
                 },
             )
 
-    def test_predict_slots_empty_response(self, api_service) -> None:
+    def test_predict_slots_empty_response(self, api_service: APIClientService) -> None:
         """Test slot prediction with empty response."""
         slots = [Slot(name="date", type="string", description="Travel date")]
 
@@ -271,7 +285,9 @@ class TestAPIClientServicePredictSlots:
 
             assert result == []
 
-    def test_predict_slots_missing_slots_key(self, api_service) -> None:
+    def test_predict_slots_missing_slots_key(
+        self, api_service: APIClientService
+    ) -> None:
         """Test slot prediction with missing slots key in response."""
         slots = [Slot(name="date", type="string", description="Travel date")]
 
@@ -282,7 +298,7 @@ class TestAPIClientServicePredictSlots:
 
             assert result == []
 
-    def test_predict_slots_api_error(self, api_service) -> None:
+    def test_predict_slots_api_error(self, api_service: APIClientService) -> None:
         """Test slot prediction with API error."""
         slots = [Slot(name="date", type="string", description="Travel date")]
 
@@ -302,7 +318,7 @@ class TestAPIClientServiceVerifySlots:
         with patch("httpx.Client"):
             return APIClientService("https://api.example.com")
 
-    def test_verify_slots_success(self, api_service) -> None:
+    def test_verify_slots_success(self, api_service: APIClientService) -> None:
         """Test successful slot verification."""
         slots = [
             Slot(
@@ -335,7 +351,9 @@ class TestAPIClientServiceVerifySlots:
                 },
             )
 
-    def test_verify_slots_no_verification_needed(self, api_service) -> None:
+    def test_verify_slots_no_verification_needed(
+        self, api_service: APIClientService
+    ) -> None:
         """Test slot verification when no verification is needed."""
         slots = [
             Slot(
@@ -358,7 +376,7 @@ class TestAPIClientServiceVerifySlots:
 
             assert result == (False, "Date is clear")
 
-    def test_verify_slots_missing_fields(self, api_service) -> None:
+    def test_verify_slots_missing_fields(self, api_service: APIClientService) -> None:
         """Test slot verification with missing fields in response."""
         slots = [
             Slot(
@@ -376,7 +394,7 @@ class TestAPIClientServiceVerifySlots:
 
             assert result == (False, "No need to verify")
 
-    def test_verify_slots_api_error(self, api_service) -> None:
+    def test_verify_slots_api_error(self, api_service: APIClientService) -> None:
         """Test slot verification with API error."""
         slots = [
             Slot(
@@ -403,12 +421,12 @@ class TestAPIClientServiceClose:
         with patch("httpx.Client"):
             return APIClientService("https://api.example.com")
 
-    def test_close_success(self, api_service) -> None:
+    def test_close_success(self, api_service: APIClientService) -> None:
         """Test successful client closure."""
         api_service.close()
         api_service.client.close.assert_called_once()
 
-    def test_close_with_exception(self, api_service) -> None:
+    def test_close_with_exception(self, api_service: APIClientService) -> None:
         """Test client closure with exception."""
         api_service.client.close.side_effect = Exception("Close error")
 

@@ -11,8 +11,8 @@ Key Features:
 - Template categorization and organization
 """
 
-from typing import List, Dict, Any
 from dataclasses import dataclass
+from typing import Any
 
 from arklex.utils.logging_utils import LogContext
 
@@ -37,9 +37,9 @@ class ReusableTask:
     template_id: str
     name: str
     description: str
-    steps: List[Dict[str, Any]]
-    parameters: Dict[str, Any]
-    examples: List[Dict[str, Any]]
+    steps: list[dict[str, Any]]
+    parameters: dict[str, Any]
+    examples: list[dict[str, Any]]
     version: str
     category: str
 
@@ -73,7 +73,7 @@ class ReusableTaskManager:
 
     def __init__(
         self,
-        model: Any,
+        model: object,
         role: str,
         user_objective: str,
     ) -> None:
@@ -87,12 +87,12 @@ class ReusableTaskManager:
         self.model = model
         self.role = role
         self.user_objective = user_objective
-        self._templates: Dict[str, ReusableTask] = {}
-        self._template_categories: Dict[str, List[str]] = {}
+        self._templates: dict[str, ReusableTask] = {}
+        self._template_categories: dict[str, list[str]] = {}
 
     def generate_reusable_tasks(
-        self, tasks: List[Dict[str, Any]]
-    ) -> Dict[str, Dict[str, Any]]:
+        self, tasks: list[dict[str, Any]]
+    ) -> dict[str, dict[str, Any]]:
         """Generate reusable task templates from the given tasks.
 
         This method orchestrates the template generation process by:
@@ -130,8 +130,8 @@ class ReusableTaskManager:
         return validated_templates
 
     def instantiate_template(
-        self, template_id: str, parameters: Dict[str, Any]
-    ) -> Dict[str, Any]:
+        self, template_id: str, parameters: dict[str, Any]
+    ) -> dict[str, Any]:
         """Create a task instance from a template.
 
         This method takes a template and parameters to create a concrete
@@ -160,7 +160,7 @@ class ReusableTaskManager:
             log_context.error(f"Error instantiating template: {str(e)}")
             raise
 
-    def _identify_patterns(self, tasks: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+    def _identify_patterns(self, tasks: list[dict[str, Any]]) -> list[dict[str, Any]]:
         """Identify reusable task patterns.
 
         This method analyzes tasks to identify common patterns that could
@@ -172,7 +172,7 @@ class ReusableTaskManager:
         Returns:
             List[Dict[str, Any]]: List of identified patterns.
         """
-        patterns: List[Dict[str, Any]] = []
+        patterns: list[dict[str, Any]] = []
         for task in tasks:
             # Include tasks with any number of steps, not just those with more than 1
             pattern = {
@@ -185,8 +185,8 @@ class ReusableTaskManager:
         return patterns
 
     def _extract_components(
-        self, patterns: List[Dict[str, Any]]
-    ) -> List[Dict[str, Any]]:
+        self, patterns: list[dict[str, Any]]
+    ) -> list[dict[str, Any]]:
         """Extract common components from patterns.
 
         This method processes identified patterns to extract reusable
@@ -198,9 +198,9 @@ class ReusableTaskManager:
         Returns:
             List[Dict[str, Any]]: List of extracted components.
         """
-        components: List[Dict[str, Any]] = []
+        components: list[dict[str, Any]] = []
         for pattern in patterns:
-            parameters: Dict[str, Any] = {}
+            parameters: dict[str, Any] = {}
             for step in pattern["steps"]:
                 for field in step.get("required_fields", []):
                     if field not in parameters:
@@ -215,8 +215,8 @@ class ReusableTaskManager:
         return components
 
     def _create_templates(
-        self, components: List[Dict[str, Any]]
-    ) -> Dict[str, ReusableTask]:
+        self, components: list[dict[str, Any]]
+    ) -> dict[str, ReusableTask]:
         """Create reusable templates from components.
 
         This method processes components to create reusable task templates
@@ -228,7 +228,7 @@ class ReusableTaskManager:
         Returns:
             Dict[str, ReusableTask]: Dictionary mapping template IDs to ReusableTask objects.
         """
-        templates: Dict[str, ReusableTask] = {}
+        templates: dict[str, ReusableTask] = {}
         for i, component in enumerate(components):
             template = ReusableTask(
                 template_id=f"template_{i + 1}",
@@ -244,8 +244,8 @@ class ReusableTaskManager:
         return templates
 
     def _validate_templates(
-        self, templates: Dict[str, ReusableTask]
-    ) -> Dict[str, Dict[str, Any]]:
+        self, templates: dict[str, ReusableTask]
+    ) -> dict[str, dict[str, Any]]:
         """Validate generated templates.
 
         This method ensures that all templates meet the required format
@@ -268,7 +268,7 @@ class ReusableTaskManager:
                     "category": str
                 }
         """
-        validated_templates: Dict[str, Dict[str, Any]] = {}
+        validated_templates: dict[str, dict[str, Any]] = {}
         for template_id, template in templates.items():
             if self._validate_template(template):
                 validated_templates[template_id] = self._convert_to_dict(template)
@@ -284,7 +284,7 @@ class ReusableTaskManager:
             bool: True if template is valid
         """
         if not template.template_id:
-            log_context.debug(f"Template validation failed: missing template_id")
+            log_context.debug("Template validation failed: missing template_id")
             return False
         if not template.name:
             log_context.debug(
@@ -330,7 +330,7 @@ class ReusableTaskManager:
         return True
 
     def _validate_parameters(
-        self, template: ReusableTask, parameters: Dict[str, Any]
+        self, template: ReusableTask, parameters: dict[str, Any]
     ) -> bool:
         """Validate template parameters.
 
@@ -347,7 +347,7 @@ class ReusableTaskManager:
             if param_type == "string" and not isinstance(parameters[param_name], str):
                 return False
             if param_type == "number" and not isinstance(
-                parameters[param_name], (int, float)
+                parameters[param_name], int | float
             ):
                 return False
             if param_type == "boolean" and not isinstance(parameters[param_name], bool):
@@ -355,8 +355,8 @@ class ReusableTaskManager:
         return True
 
     def _create_instance(
-        self, template: ReusableTask, parameters: Dict[str, Any]
-    ) -> Dict[str, Any]:
+        self, template: ReusableTask, parameters: dict[str, Any]
+    ) -> dict[str, Any]:
         """Create a task instance from a template.
 
         This method takes a template and parameters to create a concrete
@@ -378,7 +378,7 @@ class ReusableTaskManager:
                     "version": str
                 }
         """
-        instance: Dict[str, Any] = {
+        instance: dict[str, Any] = {
             "task_id": f"task_{template.template_id}",
             "name": template.name,
             "description": template.description,
@@ -389,7 +389,7 @@ class ReusableTaskManager:
         }
         return instance
 
-    def _categorize_templates(self, templates: Dict[str, Dict[str, Any]]) -> None:
+    def _categorize_templates(self, templates: dict[str, dict[str, Any]]) -> None:
         """Categorize templates by type.
 
         Args:
@@ -402,7 +402,7 @@ class ReusableTaskManager:
                 self._template_categories[category] = []
             self._template_categories[category].append(template_id)
 
-    def _convert_to_dict(self, template: ReusableTask) -> Dict[str, Any]:
+    def _convert_to_dict(self, template: ReusableTask) -> dict[str, Any]:
         """Convert a ReusableTask object to a dictionary.
 
         Args:

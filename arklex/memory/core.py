@@ -11,30 +11,28 @@ and generating personalized intents from user interactions.
 
 import asyncio
 import re
-from typing import List, Tuple, Optional
-from functools import lru_cache
 
 import numpy as np
 from langchain_openai import ChatOpenAI, OpenAIEmbeddings
+from Levenshtein import ratio
 from sklearn.metrics.pairwise import cosine_similarity
 
-from arklex.memory.prompts import intro, final_examples, output_instructions
-from arklex.utils.graph_state import ResourceRecord, LLMConfig
+from arklex.memory.prompts import final_examples, intro, output_instructions
+from arklex.utils.graph_state import LLMConfig, ResourceRecord
 from arklex.utils.model_provider_config import (
-    PROVIDER_MAP,
-    PROVIDER_EMBEDDINGS,
     PROVIDER_EMBEDDING_MODELS,
+    PROVIDER_EMBEDDINGS,
+    PROVIDER_MAP,
 )
-from Levenshtein import ratio
 
 
 class ShortTermMemory:
     def __init__(
         self,
-        trajectory: List[List[ResourceRecord]],
+        trajectory: list[list[ResourceRecord]],
         chat_history: str,
         llm_config: LLMConfig,
-    ):
+    ) -> None:
         """Initialize the ShortTermMemory instance.
 
         This function initializes the short-term memory with conversation trajectory,
@@ -85,7 +83,6 @@ class ShortTermMemory:
         # Initialize embedding cache
         self._embedding_cache = {}
 
-    @lru_cache(maxsize=1000)
     def _get_embedding(self, text: str) -> np.ndarray:
         """Get embedding for text with caching.
 
@@ -104,7 +101,7 @@ class ShortTermMemory:
             ).reshape(1, -1)
         return self._embedding_cache[text]
 
-    async def _batch_get_embeddings(self, texts: List[str]) -> List[np.ndarray]:
+    async def _batch_get_embeddings(self, texts: list[str]) -> list[np.ndarray]:
         """Get embeddings for multiple texts in parallel.
 
         This function efficiently computes embeddings for multiple texts using
@@ -138,7 +135,7 @@ class ShortTermMemory:
         top_k: int = 3,
         threshold: float = 0.55,
         cosine_threshold: float = 0.7,
-    ) -> Tuple[bool, List[ResourceRecord]]:
+    ) -> tuple[bool, list[ResourceRecord]]:
         """Retrieve relevant records from memory based on a query.
 
         This function searches through the conversation trajectory to find records
@@ -173,11 +170,11 @@ class ShortTermMemory:
         }
 
         # Loop through the trajectory and score the records
-        for turn_idx, turn in enumerate(self.trajectory):
+        for _turn_idx, turn in enumerate(self.trajectory):
             if not turn:  # Skip empty turns
                 continue
 
-            recency_score = (turn_idx + 1) / 5
+            recency_score = (_turn_idx + 1) / 5
             for record in turn:
                 score_components = {
                     "task": 0.0,
@@ -267,7 +264,7 @@ class ShortTermMemory:
 
     def retrieve_intent(
         self, query: str, string_threshold: float = 0.4, cosine_threshold: float = 0.7
-    ) -> Tuple[bool, Optional[str]]:
+    ) -> tuple[bool, str | None]:
         """Retrieve the most relevant intent from memory based on a query.
 
         This function searches through the conversation trajectory to find the intent
@@ -295,7 +292,7 @@ class ShortTermMemory:
         best_intent = None
 
         # Loop through the trajectory and score the records
-        for turn_idx, turn in enumerate(self.trajectory):
+        for _turn_idx, turn in enumerate(self.trajectory):
             for record in turn:
                 if record.personalized_intent:
                     match = re.search(
@@ -331,7 +328,7 @@ class ShortTermMemory:
         else:
             return False, None
 
-    async def personalize(self):
+    async def personalize(self) -> None:
         """Generate personalized intents for records in memory.
 
         This function processes the conversation trajectory to generate personalized
@@ -346,10 +343,10 @@ class ShortTermMemory:
 
         # Loop through the trajectory and score the records
         tasks = []
-        for turn_idx, turn in enumerate(self.trajectory):
+        for _turn_idx, turn in enumerate(self.trajectory):
             # Get corresponding user utterance for this turn
             user_utterance = (
-                user_utterances[turn_idx] if turn_idx < len(user_utterances) else ""
+                user_utterances[_turn_idx] if _turn_idx < len(user_utterances) else ""
             )
             for record in turn:
                 # Check if personalized_intent is already set
@@ -361,7 +358,7 @@ class ShortTermMemory:
 
     async def _set_personalized_intent(
         self, record: ResourceRecord, user_utterance: str
-    ):
+    ) -> None:
         """Set personalized intent for a record.
 
         This function generates and sets a personalized intent for a given record

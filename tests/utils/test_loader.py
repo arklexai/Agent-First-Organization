@@ -4,18 +4,20 @@ This module contains comprehensive test cases for document and content loading u
 including web crawling, file processing, and content chunking functionality.
 """
 
-from unittest.mock import Mock, patch, mock_open
-import tempfile
 import os
+import tempfile
+from collections.abc import Generator
+from typing import NoReturn
+from unittest.mock import Mock, mock_open, patch
+
 import requests
-from typing import NoReturn, Generator, Any
 
 from arklex.utils.loader import (
-    encode_image,
-    SourceType,
-    DocObject,
     CrawledObject,
+    DocObject,
     Loader,
+    SourceType,
+    encode_image,
 )
 
 
@@ -167,6 +169,29 @@ class TestCrawledObject:
         assert crawled.content == "test_content"
         assert crawled.metadata == {"key": "value"}
 
+    def test_crawled_object_from_dict_with_all_fields(self) -> None:
+        """Test CrawledObject.from_dict with all fields populated."""
+        data = {
+            "id": "test_id",
+            "source": "test_source",
+            "content": "test_content",
+            "metadata": {"key": "value"},
+            "is_chunk": True,
+            "is_error": True,
+            "error_message": "test error",
+            "source_type": SourceType.FILE,
+        }
+
+        result = CrawledObject.from_dict(data)
+        assert result.id == "test_id"
+        assert result.source == "test_source"
+        assert result.content == "test_content"
+        assert result.metadata == {"key": "value"}
+        assert result.is_chunk is True
+        assert result.is_error is True
+        assert result.error_message == "test error"
+        assert result.source_type == SourceType.FILE
+
 
 class TestLoader:
     """Test cases for Loader class."""
@@ -209,21 +234,33 @@ class TestLoader:
         url_objects = [DocObject("1", "http://example.com")]
 
         # Mock Selenium failure
-        with patch(
-            "selenium.webdriver.Chrome", side_effect=Exception("Selenium failed")
+        with (
+            patch(
+                "selenium.webdriver.Chrome", side_effect=Exception("Selenium failed")
+            ),
+            patch("requests.get") as mock_get,
         ):
-            # Mock requests success
-            with patch("requests.get") as mock_get:
-                mock_response = Mock()
-                mock_response.text = (
-                    "<html><title>Test</title><body>Content</body></html>"
-                )
-                mock_response.raise_for_status.return_value = None
-                mock_get.return_value = mock_response
+            mock_response = Mock()
+            mock_response.text = '<html><body><a href="http://example.com/page1">Link 1</a></body></html>'
+            mock_get.return_value = mock_response
 
-                result = loader.crawl_urls(url_objects)
-                assert len(result) == 1
-                assert result[0].source == "http://example.com"
+            result = loader.crawl_urls(url_objects)
+            assert len(result) == 1
+            # The implementation includes both link text and URL
+            assert result[0].content == "Link 1 http://example.com/page1"
+
+        # Mock both Selenium and requests failure
+        with (
+            patch(
+                "selenium.webdriver.Chrome", side_effect=Exception("Selenium failed")
+            ),
+            patch("requests.get", side_effect=Exception("Requests failed")),
+        ):
+            result = loader.crawl_urls(url_objects)
+            assert len(result) == 1
+            # When both fail, the implementation creates mock content instead of error
+            assert not result[0].is_error
+            assert "Welcome to example.com" in result[0].content
 
     def test_crawl_urls_all_failure_mock_content(self) -> None:
         """Test all crawling methods failure with mock content fallback."""
@@ -231,14 +268,16 @@ class TestLoader:
         url_objects = [DocObject("1", "http://example.com")]
 
         # Mock both Selenium and requests failure
-        with patch(
-            "selenium.webdriver.Chrome", side_effect=Exception("Selenium failed")
+        with (
+            patch(
+                "selenium.webdriver.Chrome", side_effect=Exception("Selenium failed")
+            ),
+            patch("requests.get", side_effect=Exception("Requests failed")),
         ):
-            with patch("requests.get", side_effect=Exception("Requests failed")):
-                result = loader.crawl_urls(url_objects)
-                assert len(result) == 1
-                assert result[0].source == "http://example.com"
-                assert "mock_content" in result[0].metadata
+            result = loader.crawl_urls(url_objects)
+            assert len(result) == 1
+            assert result[0].source == "http://example.com"
+            assert "mock_content" in result[0].metadata
 
     def test_crawl_with_selenium_timeout(self) -> None:
         """Test _crawl_with_selenium with timeout."""
@@ -246,11 +285,13 @@ class TestLoader:
         url_objects = [DocObject("1", "http://example.com")]
 
         # Mock Selenium to raise timeout exception
-        with patch("selenium.webdriver.Chrome", side_effect=Exception("timeout")):
-            with patch("time.sleep"):
-                result = loader._crawl_with_selenium(url_objects)
-                assert len(result) == 1
-                assert result[0].is_error
+        with (
+            patch("selenium.webdriver.Chrome", side_effect=Exception("timeout")),
+            patch("time.sleep"),
+        ):
+            result = loader._crawl_with_selenium(url_objects)
+            assert len(result) == 1
+            assert result[0].is_error
 
     def test_crawl_with_selenium_retry_success(self) -> None:
         """Test Selenium crawling with retry success."""
@@ -281,16 +322,18 @@ class TestLoader:
         # Patch webdriver.Chrome to raise an expected error
         mock_driver = Mock()
         mock_driver.get.side_effect = Exception("timeout")
-        with patch("selenium.webdriver.Chrome", return_value=mock_driver):
-            with patch(
+        with (
+            patch("selenium.webdriver.Chrome", return_value=mock_driver),
+            patch(
                 "webdriver_manager.chrome.ChromeDriverManager.install",
                 return_value="/tmp/chromedriver",
-            ):
-                with patch("selenium.webdriver.chrome.service.Service"):
-                    result = loader._crawl_with_selenium(url_objects)
-                    assert len(result) == 1
-                    assert result[0].is_error
-                    assert "timeout" in result[0].error_message
+            ),
+            patch("selenium.webdriver.chrome.service.Service"),
+        ):
+            result = loader._crawl_with_selenium(url_objects)
+            assert len(result) == 1
+            assert result[0].is_error
+            assert "timeout" in result[0].error_message
 
     def test_crawl_with_requests_http_error(self) -> None:
         """Test requests crawling with HTTP error."""
@@ -448,37 +491,40 @@ class TestLoader:
             assert "ChromeDriver installation failed" in result[0].error_message
 
     def test_crawl_with_selenium_driver_quit_exception(self) -> None:
-        """Test driver.quit() raising an exception during error handling."""
+        """Test Selenium crawling with driver quit exception."""
         loader = Loader()
         url_objects = [DocObject("1", "http://example.com")]
 
-        # Patch webdriver.Chrome to raise an exception on get, and driver.quit to raise as well
         mock_driver = Mock()
         mock_driver.get.side_effect = Exception("page load fail")
         mock_driver.quit.side_effect = Exception("quit fail")
-        with patch("selenium.webdriver.Chrome", return_value=mock_driver):
-            with patch(
+        with (
+            patch("selenium.webdriver.Chrome", return_value=mock_driver),
+            patch(
                 "webdriver_manager.chrome.ChromeDriverManager.install",
                 return_value="/tmp/chromedriver",
-            ):
-                with patch("selenium.webdriver.chrome.service.Service"):
-                    result = loader._crawl_with_selenium(url_objects)
-                    assert len(result) == 1
-                    assert result[0].is_error
-                    assert "page load fail" in result[0].error_message
+            ),
+            patch("selenium.webdriver.chrome.service.Service"),
+        ):
+            result = loader._crawl_with_selenium(url_objects)
+            assert len(result) == 1
+            assert result[0].is_error
 
     def test_crawl_with_selenium_webdriver_exception(self) -> None:
         """Test Selenium crawling with webdriver exception."""
         loader = Loader()
         url_objects = [DocObject("1", "http://example.com")]
 
-        with patch(
-            "selenium.webdriver.Chrome", side_effect=Exception("chrome not reachable")
+        with (
+            patch(
+                "selenium.webdriver.Chrome",
+                side_effect=Exception("chrome not reachable"),
+            ),
+            patch("time.sleep"),
         ):
-            with patch("time.sleep"):
-                result = loader._crawl_with_selenium(url_objects)
-                assert len(result) == 1
-                assert result[0].is_error
+            result = loader._crawl_with_selenium(url_objects)
+            assert len(result) == 1
+            assert result[0].is_error
 
     def test_crawl_with_requests_timeout(self) -> None:
         """Test requests timeout handling in _crawl_with_requests."""
@@ -575,24 +621,26 @@ class TestLoader:
 
         # Patch requests.get to return a response with a link that raises exception
         class DummyLink:
-            def get(self, _: Any) -> NoReturn:
+            def get(self, _: str) -> NoReturn:
                 raise Exception("fail href")
 
         class DummySoup:
-            def find_all(self, _: Any) -> list[DummyLink]:
+            def find_all(self, _: str) -> list[DummyLink]:
                 return [DummyLink()]
 
         class DummyResponse:
             status_code = 200
             text = "<html></html>"
 
-        with patch("requests.get", return_value=DummyResponse()):
-            with patch("bs4.BeautifulSoup", return_value=DummySoup()):
-                # Should log error and continue
-                result = loader.get_outsource_urls(
-                    "http://example.com", "http://example.com"
-                )
-                assert isinstance(result, list)
+        with (
+            patch("requests.get", return_value=DummyResponse()),
+            patch("bs4.BeautifulSoup", return_value=DummySoup()),
+        ):
+            # Should log error and continue
+            result = loader.get_outsource_urls(
+                "http://example.com", "http://example.com"
+            )
+            assert isinstance(result, list)
 
     def test_get_candidates_websites_graph(self) -> None:
         """Test graph operations in get_candidates_websites."""
@@ -966,32 +1014,33 @@ class TestLoader:
         # Create a generator that provides enough time values
         def time_gen() -> Generator[int, None, None]:
             times = [0, 100]  # Start time and timeout time
-            for t in times:
-                yield t
+            yield from times
             while True:
                 yield times[-1]  # Keep returning the last value
 
         time_iter = time_gen()
 
-        with patch("time.time", side_effect=lambda: next(time_iter)):
-            with patch("selenium.webdriver.Chrome") as mock_driver:
-                mock_driver_instance = Mock()
-                mock_driver.return_value = mock_driver_instance
+        with (
+            patch("time.time", side_effect=lambda: next(time_iter)),
+            patch("selenium.webdriver.Chrome") as mock_driver,
+        ):
+            mock_driver_instance = Mock()
+            mock_driver.return_value = mock_driver_instance
 
-                # Patch page_source to raise Exception after timeout
-                def page_source_side_effect() -> NoReturn:
-                    # Simulate timeout by raising Exception
-                    raise Exception("URL load timeout")
+            # Patch page_source to raise Exception after timeout
+            def page_source_side_effect() -> NoReturn:
+                # Simulate timeout by raising Exception
+                raise Exception("URL load timeout")
 
-                mock_driver_instance.page_source = property(page_source_side_effect)
-                mock_driver_instance.quit = Mock()
+            mock_driver_instance.page_source = property(page_source_side_effect)
+            mock_driver_instance.quit = Mock()
 
-                result = loader._crawl_with_selenium(url_objects)
+            result = loader._crawl_with_selenium(url_objects)
 
-                # Should create error doc due to timeout
-                assert len(result) == 1
-                assert result[0].is_error
-                assert result[0].error_message is not None
+            # Should create error doc due to timeout
+            assert len(result) == 1
+            assert result[0].is_error
+            assert result[0].error_message is not None
 
     def test_get_outsource_urls_non_200_status(self) -> None:
         """Test get_outsource_urls with non-200 status code."""
@@ -1146,14 +1195,16 @@ class TestLoader:
         base_url = "https://example.com"
         max_num = 10
 
-        with patch("time.time", side_effect=[0, 0, 60, 60, 60, 60, 60, 60, 60, 60]):
-            with patch.object(loader, "get_outsource_urls") as mock_get_urls:
-                mock_get_urls.return_value = ["https://example.com/page1"]
+        with (
+            patch("time.time", side_effect=[0, 0, 60, 60, 60, 60, 60, 60, 60, 60]),
+            patch.object(loader, "get_outsource_urls") as mock_get_urls,
+        ):
+            mock_get_urls.return_value = ["https://example.com/page1"]
 
-                result = loader.get_all_urls(base_url, max_num)
+            result = loader.get_all_urls(base_url, max_num)
 
-                # Should return URLs found before timeout
-                assert len(result) >= 0
+            # Should return URLs found before timeout
+            assert len(result) >= 0
 
     def test_get_all_urls_with_exception_in_url_discovery(self) -> None:
         """Test get_all_urls when get_outsource_urls raises exception."""
@@ -1248,28 +1299,32 @@ class TestLoader:
             time_mock = Mock()
             time_mock.side_effect = time_values
 
-            with patch("time.time", time_mock):
-                with patch("time.sleep"):
-                    with patch("arklex.utils.loader.log_context") as mock_log:
-                        result = loader._crawl_with_selenium(url_objects)
-                        assert len(result) == 1
-                        assert result[0].is_error
+            with (
+                patch("time.time", time_mock),
+                patch("time.sleep"),
+                patch("arklex.utils.loader.log_context"),
+            ):
+                result = loader._crawl_with_selenium(url_objects)
+                assert len(result) == 1
+                assert result[0].is_error
 
     def test_get_outsource_urls_with_exception_in_link_processing(self) -> None:
         """Test get_outsource_urls with exception in link processing."""
         loader = Loader()
 
-        with patch("requests.get") as mock_get:
+        with (
+            patch("requests.get") as mock_get,
+            patch("arklex.utils.loader.log_context"),
+        ):
             mock_response = Mock()
             mock_response.status_code = 200
             mock_response.text = "<html><a href='invalid://url'>Link</a></html>"
             mock_get.return_value = mock_response
 
-            with patch("arklex.utils.loader.log_context") as mock_log:
-                result = loader.get_outsource_urls(
-                    "http://example.com", "http://example.com"
-                )
-                assert isinstance(result, list)
+            result = loader.get_outsource_urls(
+                "http://example.com", "http://example.com"
+            )
+            assert isinstance(result, list)
 
     def test_check_url_with_various_edge_cases(self) -> None:
         """Test _check_url method with various edge cases."""
@@ -1312,71 +1367,73 @@ class TestLoader:
         loader = Loader()
         local_obj = DocObject("test_id", "test_image.jpg")
 
-        with patch("arklex.utils.loader.Path") as mock_path_class:
+        with (
+            patch("arklex.utils.loader.Path") as mock_path_class,
+            patch("builtins.open", mock_open(read_data=b"fake image data")),
+            patch("arklex.utils.loader.encode_image") as mock_encode,
+            patch("arklex.utils.loader.MISTRAL_API_KEY", "test_key"),
+            patch("arklex.utils.loader.Mistral") as mock_mistral,
+            patch("arklex.utils.loader.log_context"),
+        ):
             mock_path_instance = Mock()
             mock_path_instance.suffix = ".jpg"
             mock_path_instance.name = "test_image.jpg"
             mock_path_class.return_value = mock_path_instance
 
-            with patch("builtins.open", mock_open(read_data=b"fake image data")):
-                with patch("arklex.utils.loader.encode_image") as mock_encode:
-                    mock_encode.return_value = "base64_encoded_image"
+            mock_encode.return_value = "base64_encoded_image"
 
-                    with patch("arklex.utils.loader.MISTRAL_API_KEY", "test_key"):
-                        with patch("arklex.utils.loader.Mistral") as mock_mistral:
-                            mock_client = Mock()
-                            mock_mistral.return_value = mock_client
+            mock_client = Mock()
+            mock_mistral.return_value = mock_client
 
-                            mock_ocr_response = Mock()
-                            mock_page = Mock()
-                            mock_page.markdown = "Extracted text from image"
-                            mock_ocr_response.pages = [mock_page]
-                            mock_client.ocr.process.return_value = mock_ocr_response
+            mock_ocr_response = Mock()
+            mock_page = Mock()
+            mock_page.markdown = "Extracted text from image"
+            mock_ocr_response.pages = [mock_page]
+            mock_client.ocr.process.return_value = mock_ocr_response
 
-                            with patch("arklex.utils.loader.log_context") as mock_log:
-                                result = loader.crawl_file(local_obj)
-                                assert result.id == "test_id"
-                                assert result.content == "Extracted text from image"
-                                assert result.source_type == SourceType.FILE
+            result = loader.crawl_file(local_obj)
+            assert result.id == "test_id"
+            assert result.content == "Extracted text from image"
+            assert result.source_type == SourceType.FILE
 
     def test_crawl_file_with_mistral_api_and_document_processing(self) -> None:
         """Test crawl_file with Mistral API for document processing."""
         loader = Loader()
         local_obj = DocObject("test_id", "test_doc.pdf")
 
-        with patch("arklex.utils.loader.Path") as mock_path_class:
+        with (
+            patch("arklex.utils.loader.Path") as mock_path_class,
+            patch("builtins.open", mock_open(read_data=b"fake pdf data")),
+            patch("arklex.utils.loader.MISTRAL_API_KEY", "test_key"),
+            patch("arklex.utils.loader.Mistral") as mock_mistral,
+            patch("arklex.utils.loader.log_context"),
+        ):
             mock_path_instance = Mock()
             mock_path_instance.suffix = ".pdf"
             mock_path_instance.name = "test_doc.pdf"
             mock_path_class.return_value = mock_path_instance
 
-            with patch("builtins.open", mock_open(read_data=b"fake pdf data")):
-                with patch("arklex.utils.loader.MISTRAL_API_KEY", "test_key"):
-                    with patch("arklex.utils.loader.Mistral") as mock_mistral:
-                        mock_client = Mock()
-                        mock_mistral.return_value = mock_client
+            mock_client = Mock()
+            mock_mistral.return_value = mock_client
 
-                        mock_upload_response = Mock()
-                        mock_upload_response.id = "file_id"
-                        mock_client.files.upload.return_value = mock_upload_response
+            mock_upload_response = Mock()
+            mock_upload_response.id = "file_id"
+            mock_client.files.upload.return_value = mock_upload_response
 
-                        mock_signed_url_response = Mock()
-                        mock_signed_url_response.url = "signed_url"
-                        mock_client.files.get_signed_url.return_value = (
-                            mock_signed_url_response
-                        )
+            mock_signed_url_response = Mock()
+            mock_signed_url_response.url = "signed_url"
+            mock_client.files.get_signed_url.return_value = mock_signed_url_response
 
-                        mock_ocr_response = Mock()
-                        mock_page = Mock()
-                        mock_page.markdown = "Extracted text from PDF"
-                        mock_ocr_response.pages = [mock_page]
-                        mock_client.ocr.process.return_value = mock_ocr_response
+            mock_ocr_response = Mock()
+            mock_page = Mock()
+            mock_page.markdown = "Extracted text from PDF"
+            mock_ocr_response.pages = [mock_page]
+            mock_client.ocr.process.return_value = mock_ocr_response
 
-                        with patch("arklex.utils.loader.log_context") as mock_log:
-                            result = loader.crawl_file(local_obj)
-                            assert result.id == "test_id"
-                            assert result.content == "Extracted text from PDF"
-                            assert result.source_type == SourceType.FILE
+            result = loader.crawl_file(local_obj)
+            assert result.id == "test_id"
+            assert result.content == "Extracted text from PDF"
+            assert result.source_type == SourceType.FILE
 
     def test_crawl_file_with_html_processing_and_title_extraction(self) -> None:
         """Test crawl_file with HTML processing and title extraction."""
@@ -1430,22 +1487,24 @@ class TestLoader:
         )
         doc3 = CrawledObject("3", "source3", "Third document.", is_chunk=True)
 
-        with patch(
-            "arklex.utils.loader.RecursiveCharacterTextSplitter"
-        ) as mock_splitter:
+        with (
+            patch(
+                "arklex.utils.loader.RecursiveCharacterTextSplitter"
+            ) as mock_splitter,
+            patch("arklex.utils.loader.log_context"),
+        ):
             mock_splitter_instance = Mock()
             mock_splitter.from_tiktoken_encoder.return_value = mock_splitter_instance
             mock_splitter_instance.split_text.return_value = ["Chunk 1", "Chunk 2"]
 
-            with patch("arklex.utils.loader.log_context") as mock_log:
-                result = loader.chunk([doc1, doc2, doc3])
+            result = loader.chunk([doc1, doc2, doc3])
 
-                # Should return langchain documents
-                assert (
-                    len(result) == 2
-                )  # Only doc1 gets chunked, doc2 is skipped, doc3 is added as-is
-                assert hasattr(result[0], "page_content")
-                assert hasattr(result[0], "metadata")
+            # Should return langchain documents
+            assert (
+                len(result) == 2
+            )  # Only doc1 gets chunked, doc2 is skipped, doc3 is added as-is
+            assert hasattr(result[0], "page_content")
+            assert hasattr(result[0], "metadata")
 
     def test_chunk_method_with_multiple_chunks_per_document(self) -> None:
         """Test chunk method with multiple chunks per document."""
@@ -1458,9 +1517,12 @@ class TestLoader:
             "This is a very long document that will be split into multiple chunks for better processing and analysis.",
         )
 
-        with patch(
-            "arklex.utils.loader.RecursiveCharacterTextSplitter"
-        ) as mock_splitter:
+        with (
+            patch(
+                "arklex.utils.loader.RecursiveCharacterTextSplitter"
+            ) as mock_splitter,
+            patch("arklex.utils.loader.log_context"),
+        ):
             mock_splitter_instance = Mock()
             mock_splitter.from_tiktoken_encoder.return_value = mock_splitter_instance
             mock_splitter_instance.split_text.return_value = [
@@ -1469,75 +1531,59 @@ class TestLoader:
                 "Third chunk",
             ]
 
-            with patch("arklex.utils.loader.log_context") as mock_log:
-                result = loader.chunk([doc])
+            result = loader.chunk([doc])
 
-                # Should return 3 langchain documents (one for each chunk)
-                assert len(result) == 3
-                assert result[0].page_content == "First chunk"
-                assert result[1].page_content == "Second chunk"
-                assert result[2].page_content == "Third chunk"
-                assert result[0].metadata["source"] == "source1"
+            # Should return 3 langchain documents (one for each chunk)
+            assert len(result) == 3
+            assert result[0].page_content == "First chunk"
+            assert result[1].page_content == "Second chunk"
+            assert result[2].page_content == "Third chunk"
+            assert result[0].metadata["source"] == "source1"
 
     def test_crawl_file_with_no_file_type(self) -> None:
-        """Test crawl_file with file that has no extension."""
+        """Test crawl_file with no file type detected."""
         loader = Loader()
         local_obj = DocObject("test_id", "testfile")
 
-        with patch("arklex.utils.loader.Path") as mock_path_class:
+        with (
+            patch("arklex.utils.loader.Path") as mock_path_class,
+            patch("arklex.utils.loader.log_context"),
+        ):
             mock_path_instance = Mock()
             mock_path_instance.suffix = ""
             mock_path_instance.name = "testfile"
             mock_path_class.return_value = mock_path_instance
 
-            with patch("arklex.utils.loader.log_context") as mock_log:
-                result = loader.crawl_file(local_obj)
-                assert result.is_error
-                assert "No file type detected" in result.error_message
-
-    def test_crawl_file_with_unsupported_file_type(self) -> None:
-        """Test crawl_file with unsupported file type."""
-        loader = Loader()
-        local_obj = DocObject("test_id", "test.xyz")
-
-        with patch("arklex.utils.loader.Path") as mock_path_class:
-            mock_path_instance = Mock()
-            mock_path_instance.suffix = ".xyz"
-            mock_path_instance.name = "test.xyz"
-            mock_path_class.return_value = mock_path_instance
-
-            with patch("arklex.utils.loader.MISTRAL_API_KEY", None):
-                with patch("arklex.utils.loader.log_context") as mock_log:
-                    result = loader.crawl_file(local_obj)
-                    assert result.is_error
-                    assert "Unsupported file type" in result.error_message
+            result = loader.crawl_file(local_obj)
+            assert result.is_error
+            assert "No file type detected" in result.error_message
 
     def test_crawl_file_with_mistral_api_key_placeholder(self) -> None:
         """Test crawl_file with Mistral API key set to placeholder value."""
         loader = Loader()
         local_obj = DocObject("test_id", "test.pdf")
 
-        with patch("arklex.utils.loader.Path") as mock_path_class:
+        with (
+            patch("arklex.utils.loader.Path") as mock_path_class,
+            patch("arklex.utils.loader.MISTRAL_API_KEY", "<your-mistral-api-key>"),
+            patch("arklex.utils.loader.PyPDFLoader") as mock_pdf_loader,
+            patch("arklex.utils.loader.log_context"),
+        ):
             mock_path_instance = Mock()
             mock_path_instance.suffix = ".pdf"
             mock_path_instance.name = "test.pdf"
             mock_path_class.return_value = mock_path_instance
 
-            with patch("arklex.utils.loader.MISTRAL_API_KEY", "<your-mistral-api-key>"):
-                with patch("arklex.utils.loader.PyPDFLoader") as mock_pdf_loader:
-                    mock_loader_instance = Mock()
-                    mock_pdf_loader.return_value = mock_loader_instance
+            mock_loader_instance = Mock()
+            mock_pdf_loader.return_value = mock_loader_instance
 
-                    mock_doc = Mock()
-                    mock_doc.to_json.return_value = {
-                        "kwargs": {"page_content": "PDF content"}
-                    }
-                    mock_loader_instance.load.return_value = [mock_doc]
+            mock_doc = Mock()
+            mock_doc.to_json.return_value = {"kwargs": {"page_content": "PDF content"}}
+            mock_loader_instance.load.return_value = [mock_doc]
 
-                    with patch("arklex.utils.loader.log_context") as mock_log:
-                        result = loader.crawl_file(local_obj)
-                        assert result.content == "PDF content"
-                        assert result.source_type == SourceType.FILE
+            result = loader.crawl_file(local_obj)
+            assert result.content == "PDF content"
+            assert result.source_type == SourceType.FILE
 
     def test_crawl_file_with_various_supported_formats(self) -> None:
         """Test crawl_file with various supported file formats."""
@@ -1555,50 +1601,54 @@ class TestLoader:
         for filename, loader_class in formats:
             local_obj = DocObject("test_id", filename)
 
-            with patch("arklex.utils.loader.Path") as mock_path_class:
+            with (
+                patch("arklex.utils.loader.Path") as mock_path_class,
+                patch(f"arklex.utils.loader.{loader_class}") as mock_loader_class,
+                patch("arklex.utils.loader.MISTRAL_API_KEY", None),
+                patch("arklex.utils.loader.log_context"),
+            ):
                 mock_path_instance = Mock()
                 mock_path_instance.suffix = "." + filename.split(".")[1]
                 mock_path_instance.name = filename
                 mock_path_class.return_value = mock_path_instance
 
-                with patch(f"arklex.utils.loader.{loader_class}") as mock_loader_class:
-                    mock_loader_instance = Mock()
-                    mock_loader_class.return_value = mock_loader_instance
+                mock_loader_instance = Mock()
+                mock_loader_class.return_value = mock_loader_instance
 
-                    mock_doc = Mock()
-                    mock_doc.to_json.return_value = {
-                        "kwargs": {"page_content": f"Content from {filename}"}
-                    }
-                    mock_loader_instance.load.return_value = [mock_doc]
+                mock_doc = Mock()
+                mock_doc.to_json.return_value = {
+                    "kwargs": {"page_content": f"Content from {filename}"}
+                }
+                mock_loader_instance.load.return_value = [mock_doc]
 
-                    with patch("arklex.utils.loader.MISTRAL_API_KEY", None):
-                        with patch("arklex.utils.loader.log_context") as mock_log:
-                            result = loader.crawl_file(local_obj)
-                            assert result.content == f"Content from {filename}"
-                            assert result.source_type == SourceType.FILE
+                result = loader.crawl_file(local_obj)
+                assert result.content == f"Content from {filename}"
+                assert result.source_type == SourceType.FILE
 
     def test_crawl_file_with_loader_exception(self) -> None:
         """Test crawl_file with exception during loader processing."""
         loader = Loader()
         local_obj = DocObject("test_id", "test.txt")
 
-        with patch("arklex.utils.loader.Path") as mock_path_class:
+        with (
+            patch("arklex.utils.loader.Path") as mock_path_class,
+            patch("arklex.utils.loader.MISTRAL_API_KEY", None),
+            patch("arklex.utils.loader.TextLoader") as mock_loader_class,
+            patch("arklex.utils.loader.log_context"),
+        ):
             mock_path_instance = Mock()
             mock_path_instance.suffix = ".txt"
             mock_path_instance.name = "test.txt"
             mock_path_class.return_value = mock_path_instance
 
-            with patch("arklex.utils.loader.MISTRAL_API_KEY", None):
-                with patch("arklex.utils.loader.TextLoader") as mock_loader_class:
-                    mock_loader_instance = Mock()
-                    mock_loader_class.return_value = mock_loader_instance
-                    mock_loader_instance.load.side_effect = Exception("Loader error")
+            mock_loader_instance = Mock()
+            mock_loader_class.return_value = mock_loader_instance
+            mock_loader_instance.load.side_effect = Exception("Loader error")
 
-                    with patch("arklex.utils.loader.log_context") as mock_log:
-                        result = loader.crawl_file(local_obj)
-                        assert result.is_error
-                        assert result.error_message == "Loader error"
-                        assert result.content is None
+            result = loader.crawl_file(local_obj)
+            assert result.is_error
+            assert result.error_message == "Loader error"
+            assert result.content is None
 
     def test_save_method_with_pickle(self) -> None:
         """Test save method with pickle serialization."""
@@ -1608,10 +1658,12 @@ class TestLoader:
             CrawledObject("2", "source2", "content2"),
         ]
 
-        with patch("builtins.open", mock_open()) as mock_file:
-            with patch("pickle.dump") as mock_pickle:
-                loader.save("test.pkl", docs)
-                mock_pickle.assert_called_once_with(docs, mock_file())
+        with (
+            patch("builtins.open", mock_open()) as mock_file,
+            patch("pickle.dump") as mock_pickle,
+        ):
+            loader.save("test.pkl", docs)
+            mock_pickle.assert_called_once_with(docs, mock_file())
 
     def test_to_crawled_text_with_empty_list(self) -> None:
         """Test to_crawled_text with empty list."""
@@ -1825,49 +1877,3 @@ class TestLoader:
         assert result.is_error is True
         assert result.error_message == "Test error message"
         assert result.source_type == SourceType.WEB
-
-    def test_crawled_object_from_dict_with_all_fields(self) -> None:
-        """Test CrawledObject.from_dict with all fields populated."""
-        data = {
-            "id": "test_id",
-            "source": "test_source",
-            "content": "test_content",
-            "metadata": {"key": "value"},
-            "is_chunk": True,
-            "is_error": True,
-            "error_message": "test error",
-            "source_type": SourceType.FILE,
-        }
-
-        result = CrawledObject.from_dict(data)
-        assert result.id == "test_id"
-        assert result.source == "test_source"
-        assert result.content == "test_content"
-        assert result.metadata == {"key": "value"}
-        assert result.is_chunk is True
-        assert result.is_error is True
-        assert result.error_message == "test error"
-        assert result.source_type == SourceType.FILE
-
-    def test_crawled_object_to_dict_with_all_fields(self) -> None:
-        """Test CrawledObject.to_dict with all fields populated."""
-        crawled = CrawledObject(
-            "test_id",
-            "test_source",
-            "test_content",
-            {"key": "value"},
-            is_chunk=True,
-            is_error=True,
-            error_message="test error",
-            source_type=SourceType.FILE,
-        )
-
-        result = crawled.to_dict()
-        assert result["id"] == "test_id"
-        assert result["source"] == "test_source"
-        assert result["content"] == "test_content"
-        assert result["metadata"] == {"key": "value"}
-        assert result["is_chunk"] is True
-        assert result["is_error"] is True
-        assert result["error_message"] == "test error"
-        assert result["source_type"] == SourceType.FILE

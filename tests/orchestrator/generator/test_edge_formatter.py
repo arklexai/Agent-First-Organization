@@ -4,11 +4,11 @@ This module provides comprehensive tests for the EdgeFormatter class,
 including edge formatting, validation, and style management functionality.
 """
 
-from typing import Dict, Any
+from typing import Any
+
 import pytest
 
 from arklex.orchestrator.generator.formatting.edge_formatter import EdgeFormatter
-
 
 # --- Fixtures ---
 
@@ -26,31 +26,31 @@ def edge_formatter_custom() -> EdgeFormatter:
 
 
 @pytest.fixture
-def sample_source() -> Dict[str, Any]:
+def sample_source() -> dict[str, Any]:
     """Create a sample source task for testing."""
     return {"task_id": "source_1", "id": "source_1", "name": "Source Task"}
 
 
 @pytest.fixture
-def sample_target() -> Dict[str, Any]:
+def sample_target() -> dict[str, Any]:
     """Create a sample target task for testing."""
     return {"task_id": "target_1", "id": "target_1", "name": "Target Task"}
 
 
 @pytest.fixture
-def invalid_source() -> Dict[str, Any]:
+def invalid_source() -> dict[str, Any]:
     """Create an invalid source task (missing ID) for testing."""
     return {"name": "No ID"}
 
 
 @pytest.fixture
-def invalid_target() -> Dict[str, Any]:
+def invalid_target() -> dict[str, Any]:
     """Create an invalid target task (missing ID) for testing."""
     return {"name": "No ID"}
 
 
 @pytest.fixture
-def edge_types() -> Dict[str, str]:
+def edge_types() -> dict[str, str]:
     """Define edge types and their expected colors for testing."""
     return {
         "depends_on": "#ff0000",
@@ -115,8 +115,8 @@ class TestEdgeFormatting:
     def test_format_edge_basic(
         self,
         edge_formatter: EdgeFormatter,
-        sample_source: Dict[str, Any],
-        sample_target: Dict[str, Any],
+        sample_source: dict[str, Any],
+        sample_target: dict[str, Any],
     ) -> None:
         """Test basic edge formatting with valid inputs."""
         result = edge_formatter.format_edge(
@@ -130,8 +130,8 @@ class TestEdgeFormatting:
     def test_format_edge_missing_fields(
         self,
         edge_formatter: EdgeFormatter,
-        sample_source: Dict[str, Any],
-        sample_target: Dict[str, Any],
+        sample_source: dict[str, Any],
+        sample_target: dict[str, Any],
     ) -> None:
         """Test edge formatting with missing optional fields."""
         result = edge_formatter.format_edge(
@@ -145,8 +145,8 @@ class TestEdgeFormatting:
     def test_format_edge_custom_type(
         self,
         edge_formatter_custom: EdgeFormatter,
-        sample_source: Dict[str, Any],
-        sample_target: Dict[str, Any],
+        sample_source: dict[str, Any],
+        sample_target: dict[str, Any],
     ) -> None:
         """Test edge formatting with custom edge type."""
         result = edge_formatter_custom.format_edge(
@@ -160,8 +160,8 @@ class TestEdgeFormatting:
     def test_format_edge_none_source(
         self,
         edge_formatter: EdgeFormatter,
-        sample_source: Dict[str, Any],
-        sample_target: Dict[str, Any],
+        sample_source: dict[str, Any],
+        sample_target: dict[str, Any],
     ) -> None:
         """Test edge formatting with None as source_idx."""
         result = edge_formatter.format_edge(
@@ -175,8 +175,8 @@ class TestEdgeFormatting:
     def test_format_edge_data(
         self,
         edge_formatter: EdgeFormatter,
-        sample_source: Dict[str, Any],
-        sample_target: Dict[str, Any],
+        sample_source: dict[str, Any],
+        sample_target: dict[str, Any],
     ) -> None:
         """Test edge data formatting."""
         result = edge_formatter.format_edge_data(sample_source, sample_target)
@@ -188,8 +188,8 @@ class TestEdgeFormatting:
     def test_format_edge_data_label_fallback(
         self,
         edge_formatter: EdgeFormatter,
-        sample_source: Dict[str, Any],
-        sample_target: Dict[str, Any],
+        sample_source: dict[str, Any],
+        sample_target: dict[str, Any],
     ) -> None:
         """Test edge data formatting with empty label fallback."""
         result = edge_formatter.format_edge_data(sample_source, sample_target, label="")
@@ -198,8 +198,8 @@ class TestEdgeFormatting:
     def test_format_edge_style(
         self,
         edge_formatter: EdgeFormatter,
-        sample_source: Dict[str, Any],
-        sample_target: Dict[str, Any],
+        sample_source: dict[str, Any],
+        sample_target: dict[str, Any],
     ) -> None:
         """Test basic edge style formatting."""
         result = edge_formatter.format_edge_style(sample_source, sample_target)
@@ -210,9 +210,9 @@ class TestEdgeFormatting:
     def test_format_edge_style_types(
         self,
         edge_formatter: EdgeFormatter,
-        sample_source: Dict[str, Any],
-        sample_target: Dict[str, Any],
-        edge_types: Dict[str, str],
+        sample_source: dict[str, Any],
+        sample_target: dict[str, Any],
+        edge_types: dict[str, str],
     ) -> None:
         """Test format_edge_style with different edge types."""
         for edge_type, expected_color in edge_types.items():
@@ -226,8 +226,8 @@ class TestEdgeFormatting:
     def test_format_edge_style_structure(
         self,
         edge_formatter: EdgeFormatter,
-        sample_source: Dict[str, Any],
-        sample_target: Dict[str, Any],
+        sample_source: dict[str, Any],
+        sample_target: dict[str, Any],
         edge_style_properties: list,
     ) -> None:
         """Test the structure of format_edge_style output."""
@@ -248,8 +248,8 @@ class TestEdgeValidation:
     def test_validate_edge_valid_inputs(
         self,
         edge_formatter: EdgeFormatter,
-        sample_source: Dict[str, Any],
-        sample_target: Dict[str, Any],
+        sample_source: dict[str, Any],
+        sample_target: dict[str, Any],
     ) -> None:
         """Test validate_edge with various valid inputs."""
         # Test with dict inputs
@@ -281,8 +281,8 @@ class TestEdgeValidation:
     def test_validate_edge_invalid_source(
         self,
         edge_formatter: EdgeFormatter,
-        invalid_source: Dict[str, Any],
-        sample_target: Dict[str, Any],
+        invalid_source: dict[str, Any],
+        sample_target: dict[str, Any],
     ) -> None:
         """Test validate_edge with invalid source input."""
         assert edge_formatter.validate_edge(invalid_source, sample_target) is False
@@ -290,8 +290,8 @@ class TestEdgeValidation:
     def test_validate_edge_invalid_target(
         self,
         edge_formatter: EdgeFormatter,
-        sample_source: Dict[str, Any],
-        invalid_target: Dict[str, Any],
+        sample_source: dict[str, Any],
+        invalid_target: dict[str, Any],
     ) -> None:
         """Test validate_edge with invalid target input."""
         assert edge_formatter.validate_edge(sample_source, invalid_target) is False
@@ -299,8 +299,8 @@ class TestEdgeValidation:
     def test_validate_edge_invalid_type(
         self,
         edge_formatter: EdgeFormatter,
-        sample_source: Dict[str, Any],
-        sample_target: Dict[str, Any],
+        sample_source: dict[str, Any],
+        sample_target: dict[str, Any],
     ) -> None:
         """Test validate_edge with invalid type input."""
         assert (
@@ -311,8 +311,8 @@ class TestEdgeValidation:
     def test_validate_edge_invalid_weight(
         self,
         edge_formatter: EdgeFormatter,
-        sample_source: Dict[str, Any],
-        sample_target: Dict[str, Any],
+        sample_source: dict[str, Any],
+        sample_target: dict[str, Any],
     ) -> None:
         """Test validate_edge with invalid weight input."""
         assert (
@@ -325,8 +325,8 @@ class TestEdgeValidation:
     def test_validate_edge_invalid_label(
         self,
         edge_formatter: EdgeFormatter,
-        sample_source: Dict[str, Any],
-        sample_target: Dict[str, Any],
+        sample_source: dict[str, Any],
+        sample_target: dict[str, Any],
     ) -> None:
         """Test validate_edge with invalid label input."""
         assert (
@@ -337,8 +337,8 @@ class TestEdgeValidation:
     def test_validate_edge_invalid_metadata(
         self,
         edge_formatter: EdgeFormatter,
-        sample_source: Dict[str, Any],
-        sample_target: Dict[str, Any],
+        sample_source: dict[str, Any],
+        sample_target: dict[str, Any],
     ) -> None:
         """Test validate_edge with invalid metadata input."""
         assert (
@@ -430,8 +430,8 @@ class TestEdgeValidation:
 )
 def test_format_edge_style_types_parametrized(
     edge_formatter: EdgeFormatter,
-    sample_source: Dict[str, Any],
-    sample_target: Dict[str, Any],
+    sample_source: dict[str, Any],
+    sample_target: dict[str, Any],
     etype: str,
     expected_color: str,
 ) -> None:

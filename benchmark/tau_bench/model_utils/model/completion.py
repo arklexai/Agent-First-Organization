@@ -283,7 +283,7 @@ class CompletionModel(GeneralModel):
         if "classification" not in res:
             raise ModelError(f"Invalid response from model: {res}")
         choice = res["classification"]
-        if choice not in decode_map.keys():
+        if choice not in decode_map:
             key = try_classify_recover(s=choice, decode_map=decode_map)
             if key is not None:
                 return decode_map[key]
@@ -556,7 +556,7 @@ def approx_cost_for_datapoint(
 def approx_latency_for_datapoint(
     dp: Datapoint, latency_ms_per_output_token: float
 ) -> float:
-    if isinstance(dp, BinaryClassifyDatapoint) or isinstance(dp, ClassifyDatapoint):
+    if isinstance(dp, BinaryClassifyDatapoint | ClassifyDatapoint):
         approx_response = '{"classification": 0}'
     elif isinstance(dp, ParseDatapoint):
         # this is extremely approximate

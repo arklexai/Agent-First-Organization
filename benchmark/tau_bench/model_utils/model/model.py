@@ -1,6 +1,6 @@
 import abc
 import enum
-from typing import Any, Dict, List, Optional, Type, TypeVar, Union
+from typing import Any, TypeVar
 
 from pydantic import BaseModel
 
@@ -55,9 +55,9 @@ class ClassifyModel(Model):
         self,
         instruction: str,
         text: str,
-        options: List[str],
-        examples: Optional[List[ClassifyDatapoint]] = None,
-        temperature: Optional[float] = None,
+        options: list[str],
+        examples: list[ClassifyDatapoint] | None = None,
+        temperature: float | None = None,
     ) -> int:
         raise NotImplementedError
 
@@ -68,8 +68,8 @@ class BinaryClassifyModel(Model):
         self,
         instruction: str,
         text: str,
-        examples: Optional[List[BinaryClassifyDatapoint]] = None,
-        temperature: Optional[float] = None,
+        examples: list[BinaryClassifyDatapoint] | None = None,
+        temperature: float | None = None,
     ) -> bool:
         raise NotImplementedError
 
@@ -79,10 +79,10 @@ class ParseModel(Model):
     def parse(
         self,
         text: str,
-        typ: Union[Type[T], Dict[str, Any]],
-        examples: Optional[List[ParseDatapoint]] = None,
-        temperature: Optional[float] = None,
-    ) -> Union[T, PartialObj, Dict[str, Any]]:
+        typ: type[T] | dict[str, Any],
+        examples: list[ParseDatapoint] | None = None,
+        temperature: float | None = None,
+    ) -> T | PartialObj | dict[str, Any]:
         raise NotImplementedError
 
 
@@ -92,8 +92,8 @@ class GenerateModel(Model):
         self,
         instruction: str,
         text: str,
-        examples: Optional[List[GenerateDatapoint]] = None,
-        temperature: Optional[float] = None,
+        examples: list[GenerateDatapoint] | None = None,
+        temperature: float | None = None,
     ) -> str:
         raise NotImplementedError
 
@@ -103,11 +103,11 @@ class ParseForceModel(Model):
     def parse_force(
         self,
         instruction: str,
-        typ: Union[Type[T], Dict[str, Any]],
-        text: Optional[str] = None,
-        examples: Optional[List[ParseForceDatapoint]] = None,
-        temperature: Optional[float] = None,
-    ) -> Union[T, Dict[str, Any]]:
+        typ: type[T] | dict[str, Any],
+        text: str | None = None,
+        examples: list[ParseForceDatapoint] | None = None,
+        temperature: float | None = None,
+    ) -> T | dict[str, Any]:
         raise NotImplementedError
 
 
@@ -119,17 +119,17 @@ class ScoreModel(Model):
         text: str,
         min: int,
         max: int,
-        examples: Optional[List[ScoreDatapoint]] = None,
-        temperature: Optional[float] = None,
+        examples: list[ScoreDatapoint] | None = None,
+        temperature: float | None = None,
     ) -> int:
         raise NotImplementedError
 
 
-AnyModel = Union[
-    BinaryClassifyModel,
-    ClassifyModel,
-    ParseForceModel,
-    GenerateModel,
-    ParseModel,
-    ScoreModel,
-]
+AnyModel = (
+    BinaryClassifyModel
+    | ClassifyModel
+    | ParseForceModel
+    | GenerateModel
+    | ParseModel
+    | ScoreModel
+)

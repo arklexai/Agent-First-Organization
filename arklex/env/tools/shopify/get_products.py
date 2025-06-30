@@ -7,23 +7,35 @@ Module Name: get_products
 This file contains the code for retrieving product information from Shopify.
 """
 
-import json
-from typing import Any, List
 import inspect
-import shopify
-from arklex.utils.logging_utils import LogContext
+import json
+from typing import TypedDict
 
-# general GraphQL navigation utilities
-from arklex.env.tools.shopify.utils_nav import *
+import shopify
+
+from arklex.env.tools.shopify._exception_prompt import ShopifyExceptionPrompt
 from arklex.env.tools.shopify.utils import authorify_admin
+from arklex.env.tools.shopify.utils_nav import PAGEINFO_OUTPUTS, cursorify
 
 # ADMIN
 from arklex.env.tools.shopify.utils_slots import ShopifyGetProductsSlots, ShopifyOutputs
 from arklex.env.tools.tools import register_tool
 from arklex.utils.exceptions import ToolExecutionError
-from arklex.env.tools.shopify._exception_prompt import ShopifyExceptionPrompt
+from arklex.utils.logging_utils import LogContext
 
 log_context = LogContext(__name__)
+
+
+class GetProductsParams(TypedDict, total=False):
+    """Parameters for the get products tool."""
+
+    shop_url: str
+    api_version: str
+    admin_token: str
+    limit: str
+    navigate: str
+    pageInfo: str
+
 
 description = (
     "Get the inventory information and description details of multiple products."
@@ -33,13 +45,13 @@ outputs = [ShopifyOutputs.PRODUCTS_DETAILS, *PAGEINFO_OUTPUTS]
 
 
 @register_tool(description, slots, outputs)
-def get_products(product_ids: List[str], **kwargs: Any) -> str:
+def get_products(product_ids: list[str], **kwargs: GetProductsParams) -> str:
     """
     Retrieve detailed information about multiple products from the Shopify store.
 
     Args:
         product_ids (List[str]): List of product IDs to retrieve information for.
-        **kwargs (Any): Additional keyword arguments for pagination and authentication.
+        **kwargs (GetProductsParams): Additional keyword arguments for pagination and authentication.
 
     Returns:
         str: A formatted string containing detailed information about each product, including:
@@ -117,8 +129,8 @@ def get_products(product_ids: List[str], **kwargs: Any) -> str:
                     response_text += f"Variant name: {variant.get('displayName', 'None')}, Variant ID: {variant.get('id', 'None')}, Price: {variant.get('price', 'None')}, Inventory Quantity: {variant.get('inventoryQuantity', 'None')}\n"
                 response_text += "\n"
             return response_text
-    except Exception:
+    except Exception as e:
         raise ToolExecutionError(
             func_name,
             extra_message=ShopifyExceptionPrompt.PRODUCTS_NOT_FOUND_PROMPT,
-        )
+        ) from e

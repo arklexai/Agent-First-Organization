@@ -1,23 +1,22 @@
-# Copyright Sierra
-
 import json
 from copy import deepcopy
-from typing import Any, Dict, List
+from typing import Any
+
 from benchmark.tau_bench.envs.tool import Tool
 
 
 class BookReservation(Tool):
     @staticmethod
     def invoke(
-        data: Dict[str, Any],
+        data: dict[str, Any],
         user_id: str,
         origin: str,
         destination: str,
         flight_type: str,
         cabin: str,
-        flights: List[Dict[str, Any]],
-        passengers: List[Dict[str, Any]],
-        payment_methods: List[Dict[str, Any]],
+        flights: list[dict[str, Any]],
+        passengers: list[dict[str, Any]],
+        payment_methods: list[dict[str, Any]],
         total_baggages: int,
         nonfree_baggages: int,
         insurance: str,
@@ -81,12 +80,15 @@ class BookReservation(Tool):
             amount = payment_method["amount"]
             if payment_id not in user["payment_methods"]:
                 return f"Error: payment method {payment_id} not found"
-            if user["payment_methods"][payment_id]["source"] in [
-                "gift_card",
-                "certificate",
-            ]:
-                if user["payment_methods"][payment_id]["amount"] < amount:
-                    return f"Error: not enough balance in payment method {payment_id}"
+            if (
+                user["payment_methods"][payment_id]["source"]
+                in [
+                    "gift_card",
+                    "certificate",
+                ]
+                and user["payment_methods"][payment_id]["amount"] < amount
+            ):
+                return f"Error: not enough balance in payment method {payment_id}"
         if sum(payment["amount"] for payment in payment_methods) != total_price:
             return f"Error: payment amount does not add up, total price is {total_price}, but paid {sum(payment['amount'] for payment in payment_methods)}"
 
@@ -104,7 +106,7 @@ class BookReservation(Tool):
         return json.dumps(reservation)
 
     @staticmethod
-    def get_info() -> Dict[str, Any]:
+    def get_info() -> dict[str, Any]:
         return {
             "type": "function",
             "function": {

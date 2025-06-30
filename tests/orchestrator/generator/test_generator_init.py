@@ -4,13 +4,14 @@ This module provides comprehensive test coverage for the generator __init__.py m
 ensuring all functionality is properly tested including import handling and UI component availability.
 """
 
+import contextlib
 import importlib
+import importlib.util
 import sys
-from typing import Generator as TypeGenerator
+from collections.abc import Generator as TypeGenerator
 from unittest.mock import MagicMock, patch
 
 import pytest
-
 
 # --- Fixtures ---
 
@@ -124,7 +125,7 @@ class TestUIComponentsAvailability:
         reload_generator_module: TypeGenerator,
     ) -> None:
         """Should provide UI components when textual is installed."""
-        from arklex.orchestrator.generator import TaskEditorApp, InputModal
+        from arklex.orchestrator.generator import InputModal, TaskEditorApp
 
         assert TaskEditorApp is not None
         assert InputModal is not None
@@ -136,7 +137,7 @@ class TestUIComponentsAvailability:
         reload_generator_module: TypeGenerator,
     ) -> None:
         """Should provide placeholder classes when textual is not installed."""
-        from arklex.orchestrator.generator import TaskEditorApp, InputModal
+        from arklex.orchestrator.generator import InputModal, TaskEditorApp
 
         assert TaskEditorApp is not None
         assert InputModal is not None
@@ -154,16 +155,12 @@ class TestUIComponentsAvailability:
         reload_generator_module: TypeGenerator,
     ) -> None:
         """Should raise ImportError when placeholder UI components are instantiated."""
-        from arklex.orchestrator.generator import TaskEditorApp, InputModal
+        from arklex.orchestrator.generator import InputModal, TaskEditorApp
 
-        try:
+        with contextlib.suppress(ImportError, TypeError):
             TaskEditorApp()
-        except (ImportError, TypeError):
-            pass  # Expected behavior
-        try:
+        with contextlib.suppress(ImportError, TypeError):
             InputModal()
-        except (ImportError, TypeError):
-            pass  # Expected behavior
 
     def test_ui_components_import_error_handling(
         self,
@@ -171,7 +168,7 @@ class TestUIComponentsAvailability:
         reload_generator_module: TypeGenerator,
     ) -> None:
         """Should handle ImportError during UI component import."""
-        from arklex.orchestrator.generator import TaskEditorApp, InputModal
+        from arklex.orchestrator.generator import InputModal, TaskEditorApp
 
         assert TaskEditorApp is not None
         assert InputModal is not None
@@ -189,7 +186,7 @@ class TestUIComponentsAvailability:
         reload_generator_module: TypeGenerator,
     ) -> None:
         """Should handle other exceptions during UI component import."""
-        from arklex.orchestrator.generator import TaskEditorApp, InputModal
+        from arklex.orchestrator.generator import InputModal, TaskEditorApp
 
         assert TaskEditorApp is not None
         assert InputModal is not None
@@ -238,7 +235,7 @@ class TestModuleStructure:
 
     def test_module_imports_specialized_modules(self) -> None:
         """Should import all specialized submodules."""
-        from arklex.orchestrator.generator import core, ui, tasks, docs, formatting
+        from arklex.orchestrator.generator import core, docs, formatting, tasks, ui
 
         assert core is not None
         assert ui is not None
@@ -278,8 +275,7 @@ class TestErrorHandling:
         reload_generator_module: TypeGenerator,
     ) -> None:
         """Should gracefully degrade when UI components are not available."""
-        import arklex.orchestrator.generator
-        from arklex.orchestrator.generator import TaskEditorApp, InputModal
+        from arklex.orchestrator.generator import InputModal, TaskEditorApp
 
         assert TaskEditorApp is not None
         assert InputModal is not None
@@ -306,10 +302,10 @@ class TestModuleIntegration:
         from arklex.orchestrator.generator import (
             Generator,
             core,
-            ui,
-            tasks,
             docs,
             formatting,
+            tasks,
+            ui,
         )
 
         assert Generator is not None
@@ -330,9 +326,9 @@ class TestModuleIntegration:
     def test_submodule_imports_work(self) -> None:
         """Should allow submodule imports to work correctly."""
         from arklex.orchestrator.generator.core import Generator
-        from arklex.orchestrator.generator.tasks import task_generator
         from arklex.orchestrator.generator.docs import document_loader
         from arklex.orchestrator.generator.formatting import task_graph_formatter
+        from arklex.orchestrator.generator.tasks import task_generator
 
         assert Generator is not None
         assert task_generator is not None
@@ -526,24 +522,24 @@ class TestModuleIntegration:
 # UI testing is deferred for now. Implement these when UI test infra is ready.
 
 
-def test_ui_component_imports_todo():
+def test_ui_component_imports_todo() -> None:
     """TODO: Cover UI component import branches in generator/__init__.py (66-82)."""
     # This is a stub. Implement UI import and placeholder tests when UI testing is enabled.
     pass
 
 
-def test_ui_component_placeholders_todo():
+def test_ui_component_placeholders_todo() -> None:
     """TODO: Add tests for UI component placeholders when textual is not available."""
     # This test ensures the placeholder classes are properly tested
     # when textual package is not available
     pass
 
 
-def test_specialized_module_imports_coverage():
+def test_specialized_module_imports_coverage() -> None:
     """Test specialized module imports to cover lines 66-82."""
     # This test specifically covers the specialized module imports
     # that are executed at module level
-    from arklex.orchestrator.generator import core, ui, tasks, docs, formatting
+    from arklex.orchestrator.generator import core, docs, formatting, tasks, ui
 
     # Verify all specialized modules are imported
     assert core is not None
@@ -553,7 +549,7 @@ def test_specialized_module_imports_coverage():
     assert formatting is not None
 
 
-def test_all_list_definition_coverage():
+def test_all_list_definition_coverage() -> None:
     """Test __all__ list definition to cover lines 66-82."""
     # This test specifically covers the __all__ list definition
     from arklex.orchestrator.generator import __all__
@@ -576,7 +572,7 @@ def test_all_list_definition_coverage():
             assert component not in __all__
 
 
-def test_module_level_execution_coverage():
+def test_module_level_execution_coverage() -> None:
     """Test module level execution to ensure all lines are covered."""
     # This test ensures that all module level code is executed
     import arklex.orchestrator.generator
@@ -591,18 +587,18 @@ def test_module_level_execution_coverage():
     assert hasattr(arklex.orchestrator.generator, "formatting")
 
 
-def test_ui_components_conditional_inclusion():
+def test_ui_components_conditional_inclusion() -> None:
     """Test conditional inclusion of UI components in __all__."""
     # This test covers the conditional logic for including UI components
     from arklex.orchestrator.generator import __all__
 
-    # Check if UI components are available
-    try:
-        from arklex.orchestrator.generator import TaskEditorApp, InputModal
-
-        ui_available = True
-    except ImportError:
-        ui_available = False
+    # Check if UI components are available using importlib.util.find_spec
+    ui_available = (
+        importlib.util.find_spec("arklex.orchestrator.generator.ui.input_modal")
+        is not None
+        and importlib.util.find_spec("arklex.orchestrator.generator.ui.task_editor")
+        is not None
+    )
 
     # Verify __all__ reflects the availability of UI components
     if ui_available:
@@ -614,7 +610,7 @@ def test_ui_components_conditional_inclusion():
         pass
 
 
-def test_specialized_modules_import_execution():
+def test_specialized_modules_import_execution() -> None:
     """Test that specialized module imports are executed."""
     # This test ensures the specialized module imports are executed
     # and covers the import statements at lines 66-70
@@ -625,7 +621,7 @@ def test_specialized_modules_import_execution():
         del importlib.sys.modules["arklex.orchestrator.generator"]
 
     # Import the module again to execute all lines
-    from arklex.orchestrator.generator import core, ui, tasks, docs, formatting
+    from arklex.orchestrator.generator import core, docs, formatting, tasks, ui
 
     # Verify all modules are properly imported
     assert core is not None
@@ -635,4 +631,3 @@ def test_specialized_modules_import_execution():
     assert formatting is not None
 
     # Restore the module
-    import arklex.orchestrator.generator

@@ -1,21 +1,22 @@
 import inspect
+from typing import Any
+
 import requests
 from requests.auth import HTTPBasicAuth
-from typing import Dict, Any, List
 
 from arklex.env.tools.acuity._exception_prompt import AcuityExceptionPrompt
-from arklex.env.tools.tools import register_tool
 from arklex.env.tools.acuity.utils import authenticate_acuity
+from arklex.env.tools.tools import register_tool
 from arklex.utils.exceptions import ToolExecutionError
 
 # Tool description for retrieving session types
 description: str = "Retrieve the list of all info sessions for users."
 
 # List of required parameters for the tool
-slots: List[Dict[str, Any]] = []
+slots: list[dict[str, Any]] = []
 
 # List of output parameters for the tool
-outputs: List[Dict[str, Any]] = [
+outputs: list[dict[str, Any]] = [
     {
         "name": "sessions",
         "type": "list[dict]",
@@ -25,7 +26,7 @@ outputs: List[Dict[str, Any]] = [
 
 
 @register_tool(description, slots, outputs)
-def get_session_types(**kwargs: Dict[str, Any]) -> str:
+def get_session_types(**kwargs: dict[str, Any]) -> str:
     """
     Retrieve all available information session types from Acuity.
 
@@ -50,7 +51,7 @@ def get_session_types(**kwargs: Dict[str, Any]) -> str:
     )
 
     if response.status_code == 200:
-        data: List[Dict[str, Any]] = response.json()
+        data: list[dict[str, Any]] = response.json()
         response_text: str = "The information below is the details of all info session types. You must include the list of all session names in the following response at least.\n"
 
         for session in data:

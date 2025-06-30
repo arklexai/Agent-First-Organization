@@ -14,12 +14,11 @@ Module Name: cart_update_items
 This file contains the code for updating items in a shopping cart.
 """
 
-from typing import List, Any, Dict, Union, Optional, Tuple
+from typing import Any
 
-from arklex.env.tools.shopify.utils_slots import ShopifySlots
-from arklex.env.tools.shopify.utils_cart import *
-from arklex.env.tools.shopify.utils_nav import *
 from arklex.env.tools.shopify.utils import make_query
+from arklex.env.tools.shopify.utils_cart import cart_headers, cart_url
+from arklex.env.tools.shopify.utils_slots import ShopifySlots
 from arklex.env.tools.tools import register_tool
 
 description = (
@@ -37,8 +36,8 @@ errors = [CART_UPDATE_ITEM_ERROR]
 
 @register_tool(description, slots, outputs, lambda x: x not in errors)
 def cart_update_items(
-    cart_id: str, items: List[Tuple[str, Optional[str], Optional[int]]]
-) -> Union[None, str]:
+    cart_id: str, items: list[tuple[str, str | None, int | None]]
+) -> None | str:
     """
     Update items in a shopping cart by modifying their quantities or merchandise IDs.
 
@@ -68,17 +67,17 @@ def cart_update_items(
         }
         """
 
-        lines: List[Dict[str, Any]] = []
+        lines: list[dict[str, Any]] = []
         for i in items:
-            lineItem: Dict[str, Any] = {"id": i[0]}
+            lineItem: dict[str, Any] = {"id": i[0]}
             if i[1]:
                 lineItem["merchandiseId"] = i[1]
             if i[2]:
                 lineItem["quantity"] = i[2]
             lines.append(lineItem)
 
-        variable: Dict[str, Any] = {"cartId": cart_id, "lines": lines}
+        variable: dict[str, Any] = {"cartId": cart_id, "lines": lines}
         make_query(cart_url, query, variable, cart_headers)
         return None
-    except:
+    except Exception:
         return CART_UPDATE_ITEM_ERROR

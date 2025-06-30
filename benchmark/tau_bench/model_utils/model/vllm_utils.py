@@ -1,4 +1,4 @@
-from typing import Any, Dict
+from typing import Any
 
 import requests
 
@@ -10,9 +10,9 @@ def generate_request(
     prompt: str,
     temperature: float = 0.0,
     force_json: bool = False,
-    **req_body_kwargs: Any,
+    **req_body_kwargs: object,
 ) -> str:
-    args: Dict[str, Any] = {
+    args: dict[str, Any] = {
         "prompt": prompt,
         "temperature": wrap_temperature(temperature),
         "max_tokens": 4096,
@@ -26,7 +26,7 @@ def generate_request(
         json=args,
     )
     res.raise_for_status()
-    json_res: Dict[str, Any] = res.json()
+    json_res: dict[str, Any] = res.json()
     if "text" not in json_res:
         raise ValueError(f"Unexpected response: {json_res}")
     elif len(json_res["text"]) == 0:

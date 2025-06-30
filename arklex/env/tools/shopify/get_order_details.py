@@ -7,33 +7,41 @@ Module Name: get_order_details
 This file contains the code for retrieving detailed order information from Shopify.
 """
 
+import inspect
 import json
-from typing import List, Any
+from typing import TypedDict
 
 import shopify
 
-from arklex.env.tools.tools import register_tool
+from arklex.env.tools.shopify._exception_prompt import ShopifyExceptionPrompt
 from arklex.env.tools.shopify.utils import authorify_admin
 from arklex.env.tools.shopify.utils_slots import (
     ShopifyGetOrderDetailsSlots,
     ShopifyOutputs,
 )
+from arklex.env.tools.tools import register_tool
 from arklex.utils.exceptions import ToolExecutionError
-from arklex.env.tools.shopify._exception_prompt import ShopifyExceptionPrompt
-import inspect
 
 description = "Get the status and details of an order."
 slots = ShopifyGetOrderDetailsSlots.get_all_slots()
 outputs = [ShopifyOutputs.ORDERS_DETAILS]
 
 
+class GetOrderDetailsParams(TypedDict, total=False):
+    """Parameters for the get order details tool."""
+
+    shop_url: str
+    api_version: str
+    admin_token: str
+
+
 @register_tool(description, slots, outputs)
 def get_order_details(
-    order_ids: List[str],
-    order_names: List[str],
+    order_ids: list[str],
+    order_names: list[str],
     user_id: str,
     limit: int = 10,
-    **kwargs: Any,
+    **kwargs: GetOrderDetailsParams,
 ) -> str:
     """
     Retrieve detailed information about orders from the Shopify store.
@@ -43,7 +51,7 @@ def get_order_details(
         order_names (List[str]): List of order names to filter by.
         user_id (str): The customer ID to filter orders by.
         limit (int, optional): Maximum number of orders to return. Defaults to 10.
-        **kwargs (Any): Additional keyword arguments for authentication.
+        **kwargs (GetOrderDetailsParams): Additional keyword arguments for authentication.
 
     Returns:
         str: A formatted string containing detailed information about each order, including:
@@ -141,8 +149,8 @@ def get_order_details(
                     )
                 response_text += "\n"
         return response_text
-    except Exception:
+    except Exception as e:
         raise ToolExecutionError(
             func_name,
             extra_message=ShopifyExceptionPrompt.ORDERS_NOT_FOUND_PROMPT,
-        )
+        ) from e

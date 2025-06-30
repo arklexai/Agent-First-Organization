@@ -1,14 +1,13 @@
-# Copyright Sierra
-
 import json
-from typing import Any, Dict
+from typing import Any
+
 from benchmark.tau_bench.envs.tool import Tool
 
 
 class UpdateReservationBaggages(Tool):
     @staticmethod
     def invoke(
-        data: Dict[str, Any],
+        data: dict[str, Any],
         reservation_id: str,
         total_baggages: int,
         nonfree_baggages: int,
@@ -47,7 +46,7 @@ class UpdateReservationBaggages(Tool):
         return json.dumps(reservation)
 
     @staticmethod
-    def get_info() -> Dict[str, Any]:
+    def get_info() -> dict[str, Any]:
         return {
             "type": "function",
             "function": {

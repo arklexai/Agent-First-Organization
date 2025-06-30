@@ -11,20 +11,21 @@ The module includes:
 - Integration with language models and APIs
 """
 
-from typing import Dict, List, Any, Optional, Tuple
+from typing import Any
+
 from arklex.orchestrator.NLU.core.base import BaseSlotFilling
-from arklex.orchestrator.NLU.services.model_service import ModelService
 from arklex.orchestrator.NLU.services.api_service import APIClientService
-from arklex.utils.slot import Slot
+from arklex.orchestrator.NLU.services.model_service import ModelService
+from arklex.utils.exceptions import APIError, ModelError, ValidationError
 from arklex.utils.logging_utils import LogContext, handle_exceptions
-from arklex.utils.exceptions import ModelError, ValidationError, APIError
+from arklex.utils.slot import Slot
 
 log_context = LogContext(__name__)
 
 
 def create_slot_filler(
     model_service: ModelService,
-    api_service: Optional[APIClientService] = None,
+    api_service: APIClientService | None = None,
 ) -> "SlotFiller":
     """Create a new SlotFiller instance.
 
@@ -63,7 +64,7 @@ class SlotFiller(BaseSlotFilling):
     def __init__(
         self,
         model_service: ModelService,
-        api_service: Optional[APIClientService] = None,
+        api_service: APIClientService | None = None,
     ) -> None:
         """Initialize the slot filler.
 
@@ -104,11 +105,11 @@ class SlotFiller(BaseSlotFilling):
     @handle_exceptions()
     def _fill_slots_local(
         self,
-        slots: List[Slot],
+        slots: list[Slot],
         context: str,
-        model_config: Dict[str, Any],
+        model_config: dict[str, Any],
         type: str = "chat",
-    ) -> List[Slot]:
+    ) -> list[Slot]:
         """Fill slots using local model.
 
         Args:
@@ -198,11 +199,11 @@ class SlotFiller(BaseSlotFilling):
     @handle_exceptions()
     def _fill_slots_remote(
         self,
-        slots: List[Slot],
+        slots: list[Slot],
         context: str,
-        model_config: Dict[str, Any],
+        model_config: dict[str, Any],
         type: str = "chat",
-    ) -> List[Slot]:
+    ) -> list[Slot]:
         """Fill slots using remote API.
 
         Args:
@@ -274,10 +275,10 @@ class SlotFiller(BaseSlotFilling):
     @handle_exceptions()
     def _verify_slot_local(
         self,
-        slot: Dict[str, Any],
+        slot: dict[str, Any],
         chat_history_str: str,
-        model_config: Dict[str, Any],
-    ) -> Tuple[bool, str]:
+        model_config: dict[str, Any],
+    ) -> tuple[bool, str]:
         """Verify slot value using local model.
 
         Args:
@@ -355,10 +356,10 @@ class SlotFiller(BaseSlotFilling):
     @handle_exceptions()
     def _verify_slot_remote(
         self,
-        slot: Dict[str, Any],
+        slot: dict[str, Any],
         chat_history_str: str,
-        model_config: Dict[str, Any],
-    ) -> Tuple[bool, str]:
+        model_config: dict[str, Any],
+    ) -> tuple[bool, str]:
         """Verify slot value using remote API.
 
         Args:
@@ -428,10 +429,10 @@ class SlotFiller(BaseSlotFilling):
     @handle_exceptions()
     def verify_slot(
         self,
-        slot: Dict[str, Any],
+        slot: dict[str, Any],
         chat_history_str: str,
-        model_config: Dict[str, Any],
-    ) -> Tuple[bool, str]:
+        model_config: dict[str, Any],
+    ) -> tuple[bool, str]:
         """Verify slot value.
 
         Args:
@@ -489,11 +490,11 @@ class SlotFiller(BaseSlotFilling):
     @handle_exceptions()
     def fill_slots(
         self,
-        slots: List[Slot],
+        slots: list[Slot],
         context: str,
-        model_config: Dict[str, Any],
+        model_config: dict[str, Any],
         type: str = "chat",
-    ) -> List[Slot]:
+    ) -> list[Slot]:
         """Fill slots from input context.
 
         Args:

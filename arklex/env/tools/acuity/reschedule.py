@@ -1,20 +1,20 @@
-import json
-import requests
 import inspect
-from typing import Dict, Any, List
+import json
+from typing import Any
 
-from arklex.env.tools.acuity._exception_prompt import AcuityExceptionPrompt
-from arklex.utils.exceptions import ToolExecutionError
+import requests
 from requests.auth import HTTPBasicAuth
 
-from arklex.env.tools.tools import register_tool
+from arklex.env.tools.acuity._exception_prompt import AcuityExceptionPrompt
 from arklex.env.tools.acuity.utils import authenticate_acuity
+from arklex.env.tools.tools import register_tool
+from arklex.utils.exceptions import ToolExecutionError
 
 # Tool description for rescheduling appointments
 description: str = "Help the user to reschedule the appointment"
 
 # List of required parameters for the tool
-slots: List[Dict[str, Any]] = [
+slots: list[dict[str, Any]] = [
     {
         "name": "apt_id",
         "type": "str",
@@ -33,7 +33,7 @@ slots: List[Dict[str, Any]] = [
 ]
 
 # List of output parameters for the tool
-outputs: List[Dict[str, Any]] = [
+outputs: list[dict[str, Any]] = [
     {
         "name": "res_apt",
         "type": "list[dict]",
@@ -43,7 +43,7 @@ outputs: List[Dict[str, Any]] = [
 
 
 @register_tool(description, slots, outputs)
-def reschedule(apt_id: str, time: str, **kwargs: Dict[str, Any]) -> str:
+def reschedule(apt_id: str, time: str, **kwargs: dict[str, Any]) -> str:
     """
     Reschedule an existing appointment to a new time.
 
@@ -64,9 +64,9 @@ def reschedule(apt_id: str, time: str, **kwargs: Dict[str, Any]) -> str:
     user_id, api_key = authenticate_acuity(kwargs)
 
     base_url: str = (
-        "https://acuityscheduling.com/api/v1/appointments/{}/reschedule".format(apt_id)
+        f"https://acuityscheduling.com/api/v1/appointments/{apt_id}/reschedule"
     )
-    body: Dict[str, str] = {
+    body: dict[str, str] = {
         "datetime": time,
     }
 
@@ -75,7 +75,7 @@ def reschedule(apt_id: str, time: str, **kwargs: Dict[str, Any]) -> str:
     )
 
     if response.status_code == 200:
-        data: Dict[str, Any] = response.json()
+        data: dict[str, Any] = response.json()
         return json.dumps(data)
     else:
         return ToolExecutionError(func_name, AcuityExceptionPrompt.RESCHEDULE_PROMPT)

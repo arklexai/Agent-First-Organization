@@ -7,19 +7,32 @@ Module Name: get_cart
 This file contains the code for retrieving cart information from Shopify.
 """
 
-from typing import Any, Dict
-import requests
 import inspect
-from arklex.utils.logging_utils import LogContext
+from typing import TypedDict
 
+import requests
+
+from arklex.env.tools.shopify._exception_prompt import ShopifyExceptionPrompt
+from arklex.env.tools.shopify.utils import authorify_storefront
+from arklex.env.tools.shopify.utils_nav import PAGEINFO_OUTPUTS, cursorify
 from arklex.env.tools.shopify.utils_slots import ShopifyGetCartSlots, ShopifyOutputs
-from arklex.env.tools.shopify.utils_cart import *
-from arklex.env.tools.shopify.utils_nav import *
 from arklex.env.tools.tools import register_tool
 from arklex.utils.exceptions import ToolExecutionError
-from arklex.env.tools.shopify._exception_prompt import ShopifyExceptionPrompt
+from arklex.utils.logging_utils import LogContext
 
 log_context = LogContext(__name__)
+
+
+class GetCartParams(TypedDict, total=False):
+    """Parameters for the get cart tool."""
+
+    shop_url: str
+    api_version: str
+    storefront_token: str
+    limit: str
+    navigate: str
+    pageInfo: str
+
 
 description = "Get cart information"
 slots = ShopifyGetCartSlots.get_all_slots()
@@ -27,13 +40,13 @@ outputs = [ShopifyOutputs.GET_CART_DETAILS, *PAGEINFO_OUTPUTS]
 
 
 @register_tool(description, slots, outputs)
-def get_cart(cart_id: str, **kwargs: Any) -> str:
+def get_cart(cart_id: str, **kwargs: GetCartParams) -> str:
     """
     Retrieve detailed information about a shopping cart.
 
     Args:
         cart_id (str): The ID of the cart to retrieve.
-        **kwargs (Any): Additional keyword arguments for pagination and authentication.
+        **kwargs (GetCartParams): Additional keyword arguments for pagination and authentication.
 
     Returns:
         str: A formatted string containing cart information, including:
@@ -51,10 +64,10 @@ def get_cart(cart_id: str, **kwargs: Any) -> str:
         return nav[0]
     auth = authorify_storefront(kwargs)
 
-    variable: Dict[str, str] = {
+    variable: dict[str, str] = {
         "id": cart_id,
     }
-    headers: Dict[str, str] = {
+    headers: dict[str, str] = {
         "X-Shopify-Storefront-Access-Token": auth["storefront_token"]
     }
     query = f"""

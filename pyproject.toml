@@ -52,7 +52,8 @@ dependencies = [
   "pytest-mock>=3.10.0,<4.0.0",
   "pytest-env>=1.0.0,<2.0.0",
   "parsedatetime>=2.6,<3.0",
-  "scikit-learn>=1.7.0,<2.0.0"
+  "scikit-learn>=1.7.0,<2.0.0",
+  "sentence-transformers>=2.2.2,<3.0.0"
 ]
 license = "MIT"
 

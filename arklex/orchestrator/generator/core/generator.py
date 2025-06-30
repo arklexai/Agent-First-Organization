@@ -34,21 +34,21 @@ The Generator orchestrates these components to create a complete task graph base
 user objectives, documentation, and configuration settings.
 """
 
-import os
 import json
+import os
 from datetime import datetime
-from typing import Optional, Dict, List, Any, Union
 from pathlib import Path
+from typing import Any
 
 from arklex.env.env import BaseResourceInitializer, DefaultResourceInitializer
-from arklex.orchestrator.generator.tasks import (
-    TaskGenerator,
-    BestPracticeManager,
-    ReusableTaskManager,
-)
 from arklex.orchestrator.generator.docs import DocumentLoader
 from arklex.orchestrator.generator.formatting import TaskGraphFormatter
 from arklex.orchestrator.generator.prompts import PromptManager
+from arklex.orchestrator.generator.tasks import (
+    BestPracticeManager,
+    ReusableTaskManager,
+    TaskGenerator,
+)
 from arklex.utils.logging_utils import LogContext
 
 # Make UI components optional to avoid dependency issues
@@ -62,9 +62,8 @@ except ImportError:
     class TaskEditorApp:
         """Placeholder class when UI components are not available."""
 
-        def __init__(self, *args, **kwargs) -> None:
-            raise ImportError(
-                "UI components require 'textual' package to be installed")
+        def __init__(self, *args: object, **kwargs: object) -> None:
+            raise ImportError("UI components require 'textual' package to be installed")
 
 
 log_context = LogContext(__name__)
@@ -123,10 +122,10 @@ class Generator:
 
     def __init__(
         self,
-        config: Dict[str, Any],
-        model: Any,
-        output_dir: Optional[str] = None,
-        resource_initializer: Optional[BaseResourceInitializer] = None,
+        config: dict[str, Any],
+        model: object,
+        output_dir: str | None = None,
+        resource_initializer: BaseResourceInitializer | None = None,
         interactable_with_user: bool = True,
         allow_nested_graph: bool = True,
     ) -> None:
@@ -258,8 +257,13 @@ class Generator:
                         }
                     )
 
-            # Add tools
-            for tool in self.tools:
+            # Add tools - handle both list and dictionary formats
+            tools_list = self.tools
+            if isinstance(self.tools, dict):
+                # Convert dictionary to list format for processing
+                tools_list = list(self.tools.values())
+
+            for tool in tools_list:
                 if isinstance(tool, dict) and "name" in tool:
                     all_resources.append(
                         {
@@ -333,8 +337,8 @@ class Generator:
     def _load_multiple_task_documents(
         self,
         doc_loader: DocumentLoader,
-        doc_paths: Union[List[Union[str, Dict[str, Any]]], str, Dict[str, Any]],
-    ) -> List[Any]:
+        doc_paths: list[str | dict[str, Any]] | str | dict[str, Any],
+    ) -> list[Any]:
         """Helper to load multiple task documents and aggregate them as a list.
 
         Args:
@@ -346,8 +350,7 @@ class Generator:
         """
         if isinstance(doc_paths, list):
             sources = [
-                doc["source"] if isinstance(
-                    doc, dict) and "source" in doc else doc
+                doc["source"] if isinstance(doc, dict) and "source" in doc else doc
                 for doc in doc_paths
             ]
             return [doc_loader.load_task_document(src) for src in sources]
@@ -362,8 +365,8 @@ class Generator:
     def _load_multiple_instruction_documents(
         self,
         doc_loader: DocumentLoader,
-        doc_paths: Union[List[Union[str, Dict[str, Any]]], str, Dict[str, Any]],
-    ) -> List[Any]:
+        doc_paths: list[str | dict[str, Any]] | str | dict[str, Any],
+    ) -> list[Any]:
         """Helper to load multiple instruction documents and aggregate them as a list.
 
         Args:
@@ -375,8 +378,7 @@ class Generator:
         """
         if isinstance(doc_paths, list):
             sources = [
-                doc["source"] if isinstance(
-                    doc, dict) and "source" in doc else doc
+                doc["source"] if isinstance(doc, dict) and "source" in doc else doc
                 for doc in doc_paths
             ]
             return [doc_loader.load_instruction_document(src) for src in sources]
@@ -388,7 +390,7 @@ class Generator:
             )
             return [doc_loader.load_instruction_document(src)]
 
-    def generate(self) -> Dict[str, Any]:
+    def generate(self) -> dict[str, Any]:
         """Generate a complete task graph.
 
         This method orchestrates the task graph generation process by:
@@ -407,8 +409,7 @@ class Generator:
         doc_loader = self._initialize_document_loader()
 
         log_context.info("  📄 Loading task documents...")
-        self.documents = self._load_multiple_task_documents(
-            doc_loader, self.task_docs)
+        self.documents = self._load_multiple_task_documents(doc_loader, self.task_docs)
 
         log_context.info("  📋 Loading instruction documents...")
         self.instructions = self._load_multiple_instruction_documents(
@@ -429,8 +430,7 @@ class Generator:
         )
 
         # Step 2: Generate tasks
-        log_context.info(
-            "🎯 Generating tasks from objectives and documentation...")
+        log_context.info("🎯 Generating tasks from objectives and documentation...")
         log_context.info("  🔧 Initializing task generator...")
         task_generator = self._initialize_task_generator()
 
@@ -452,8 +452,7 @@ class Generator:
         log_context.info("  🧠 Analyzing objectives and documentation...")
         generated_tasks = task_generator.generate_tasks(self.intro, self.tasks)
         self.tasks.extend(generated_tasks)
-        log_context.info(
-            f"✅ Generated {len(generated_tasks)} additional tasks")
+        log_context.info(f"✅ Generated {len(generated_tasks)} additional tasks")
         log_context.info(f"📊 Total tasks: {len(self.tasks)}")
 
         # Step 3: Generate reusable tasks if enabled
@@ -465,16 +464,14 @@ class Generator:
             self.reusable_tasks = reusable_task_manager.generate_reusable_tasks(
                 self.tasks
             )
-            log_context.info(
-                f"✅ Generated {len(self.reusable_tasks)} reusable tasks")
+            log_context.info(f"✅ Generated {len(self.reusable_tasks)} reusable tasks")
 
         # Step 4: Generate best practices (but don't apply resource pairing yet)
         log_context.info("📖 Generating best practices for task execution...")
         log_context.info("  🔧 Initializing best practice manager...")
         best_practice_manager = self._initialize_best_practice_manager()
         log_context.info("  🧠 Analyzing tasks for best practices...")
-        best_practices = best_practice_manager.generate_best_practices(
-            self.tasks)
+        best_practices = best_practice_manager.generate_best_practices(self.tasks)
         log_context.info(f"✅ Generated {len(best_practices)} best practices")
 
         # Step 5: Allow user editing through TaskEditor if enabled
@@ -491,8 +488,8 @@ class Generator:
                     if len(hitl_result) != len(self.tasks):
                         tasks_changed = True
                     else:
-                        for i, (original_task, edited_task) in enumerate(
-                            zip(self.tasks, hitl_result)
+                        for _i, (original_task, edited_task) in enumerate(
+                            zip(self.tasks, hitl_result, strict=False)
                         ):
                             if original_task.get("name") != edited_task.get(
                                 "name"
@@ -511,8 +508,7 @@ class Generator:
                     for idx_t, task in enumerate(hitl_result):
                         # Find a matching best practice if available
                         best_practice_idx = (
-                            min(idx_t, len(best_practices) -
-                                1) if best_practices else 0
+                            min(idx_t, len(best_practices) - 1) if best_practices else 0
                         )
 
                         if best_practices and best_practice_idx < len(best_practices):
@@ -550,8 +546,7 @@ class Generator:
                     for idx_t, task in enumerate(self.tasks):
                         # Find a matching best practice if available
                         best_practice_idx = (
-                            min(idx_t, len(best_practices) -
-                                1) if best_practices else 0
+                            min(idx_t, len(best_practices) - 1) if best_practices else 0
                         )
 
                         if best_practices and best_practice_idx < len(best_practices):
@@ -583,8 +578,7 @@ class Generator:
 
                 log_context.info("✅ Task editor completed")
             except Exception as e:
-                log_context.error(
-                    f"❌ Error in human-in-the-loop refinement: {str(e)}")
+                log_context.error(f"❌ Error in human-in-the-loop refinement: {str(e)}")
                 # Fallback to original tasks if UI fails
                 finetuned_tasks = self.tasks.copy()
         else:
@@ -600,12 +594,10 @@ class Generator:
                         best_practices[i], task
                     )
                     # Update the task with the finetuned steps that include resource mappings
-                    task["steps"] = finetuned_task.get(
-                        "steps", task.get("steps", []))
+                    task["steps"] = finetuned_task.get("steps", task.get("steps", []))
                 processed_tasks.append(task)
             finetuned_tasks = processed_tasks
-            log_context.info(
-                f"✅ Paired {len(finetuned_tasks)} tasks with resources")
+            log_context.info(f"✅ Paired {len(finetuned_tasks)} tasks with resources")
 
         # Step 6: Predict intents for tasks before formatting
         log_context.info("🔮 Predicting intents for tasks...")
@@ -698,7 +690,7 @@ class Generator:
         log_context.info("✅ Task graph generated successfully!")
         return task_graph
 
-    def save_task_graph(self, task_graph: Dict[str, Any]) -> str:
+    def save_task_graph(self, task_graph: dict[str, Any]) -> str:
         """Save the generated task graph to a file.
 
         Args:
@@ -707,11 +699,11 @@ class Generator:
         Returns:
             str: Path to the saved task graph file
         """
-        import functools
         import collections.abc
+        import functools
 
-        def sanitize(obj):
-            if isinstance(obj, (str, int, float, bool)) or obj is None:
+        def sanitize(obj: object) -> object:
+            if isinstance(obj, str | int | float | bool) or obj is None:
                 return obj
             elif isinstance(obj, dict):
                 return {k: sanitize(v) for k, v in obj.items()}
@@ -726,19 +718,18 @@ class Generator:
                 log_context.debug(f"Found callable: {obj}")
                 return str(obj)
             else:
-                log_context.debug(
-                    f"Found non-serializable: {obj} (type: {type(obj)})")
+                log_context.debug(f"Found non-serializable: {obj} (type: {type(obj)})")
                 return str(obj)
 
         # Debug logging for non-serializable fields
         for k, v in task_graph.items():
-            if not isinstance(v, (str, int, float, bool, list, dict, type(None))):
+            if not isinstance(v, str | int | float | bool | list | dict | type(None)):
                 log_context.debug(
                     f"Field {k} is non-serializable: {v} (type: {type(v)})"
                 )
 
         sanitized_task_graph = sanitize(task_graph)
-        taskgraph_filepath = os.path.join(self.output_dir, f"taskgraph.json")
+        taskgraph_filepath = os.path.join(self.output_dir, "taskgraph.json")
         with open(taskgraph_filepath, "w") as f:
             json.dump(sanitized_task_graph, f, indent=4)
         return taskgraph_filepath

@@ -14,15 +14,15 @@ Module Name: get_web_product
 This file contains the code for retrieving product information using the Shopify Admin API.
 """
 
-import json
-from typing import Any, Dict, List
 import inspect
+import json
+from typing import TypedDict
 
 import shopify
 
-# general GraphQL navigation utilities
-from arklex.env.tools.shopify.utils_nav import *
+from arklex.env.tools.shopify._exception_prompt import ShopifyExceptionPrompt
 from arklex.env.tools.shopify.utils import authorify_admin
+from arklex.env.tools.shopify.utils_nav import PAGEINFO_OUTPUTS, cursorify
 
 # ADMIN
 from arklex.env.tools.shopify.utils_slots import (
@@ -31,10 +31,21 @@ from arklex.env.tools.shopify.utils_slots import (
 )
 from arklex.env.tools.tools import register_tool
 from arklex.utils.exceptions import ToolExecutionError
-from arklex.env.tools.shopify._exception_prompt import ShopifyExceptionPrompt
 from arklex.utils.logging_utils import LogContext
 
 log_context = LogContext(__name__)
+
+
+class GetWebProductParams(TypedDict, total=False):
+    """Parameters for the get web product tool."""
+
+    shop_url: str
+    api_version: str
+    admin_token: str
+    limit: str
+    navigate: str
+    pageInfo: str
+
 
 description = "Get the inventory information and description details of a product."
 slots = ShopifyGetWebProductSlots.get_all_slots()
@@ -42,14 +53,14 @@ outputs = [ShopifyOutputs.PRODUCTS_DETAILS, *PAGEINFO_OUTPUTS]
 
 
 @register_tool(description, slots, outputs)
-def get_web_product(web_product_id: str, **kwargs: Any) -> str:
+def get_web_product(web_product_id: str, **kwargs: GetWebProductParams) -> str:
     """
     Retrieve detailed information about a specific product using the Shopify Admin API.
 
     Args:
         web_product_id (str): The ID of the product to retrieve information for.
             Can be a full product ID or just the numeric portion.
-        **kwargs (Any): Additional keyword arguments for pagination and authentication.
+        **kwargs (GetWebProductParams): Additional keyword arguments for pagination and authentication.
 
     Returns:
         str: A formatted string containing detailed product information, including:
@@ -112,14 +123,16 @@ def get_web_product(web_product_id: str, **kwargs: Any) -> str:
                     }}
                 }}
             """)
-            result: Dict[str, Any] = json.loads(response)["data"]["products"]
-            response: List[Dict[str, Any]] = result["nodes"]
+            result: dict[str, list[dict[str, str]]] = json.loads(response)["data"][
+                "products"
+            ]
+            response: list[dict[str, str]] = result["nodes"]
             if len(response) == 0:
                 raise ToolExecutionError(
                     func_name,
                     extra_message=ShopifyExceptionPrompt.PRODUCT_NOT_FOUND_PROMPT,
                 )
-            product: Dict[str, Any] = response[0]
+            product: dict[str, str] = response[0]
             response_text = ""
             response_text += f"Product ID: {product.get('id', 'None')}\n"
             response_text += f"Title: {product.get('title', 'None')}\n"
@@ -137,8 +150,8 @@ def get_web_product(web_product_id: str, **kwargs: Any) -> str:
             response_text += "\n"
 
             return response_text
-    except Exception:
+    except Exception as e:
         raise ToolExecutionError(
             func_name,
             extra_message=ShopifyExceptionPrompt.PRODUCT_NOT_FOUND_PROMPT,
-        )
+        ) from e

@@ -1,5 +1,5 @@
 import os
-from typing import Any, Dict, Optional, Union
+from typing import Any
 
 from pydantic import BaseModel
 
@@ -12,7 +12,7 @@ from benchmark.tau_bench.model_utils.model.completion import (
 from benchmark.tau_bench.model_utils.model.utils import approx_num_tokens
 from benchmark.tau_bench.model_utils.model.vllm_utils import generate_request
 
-PRICE_PER_INPUT_TOKEN_MAP: Dict[str, float] = {
+PRICE_PER_INPUT_TOKEN_MAP: dict[str, float] = {
     "Qwen/Qwen2-0.5B-Instruct": 0.0,
     "Qwen/Qwen2-1.5B-Instruct": 0.0,
     "Qwen/Qwen2-7B-Instruct": 0.0,
@@ -25,7 +25,7 @@ PRICE_PER_INPUT_TOKEN_MAP: Dict[str, float] = {
 INPUT_PRICE_PER_TOKEN_FALLBACK: float = 0.0
 
 # TODO: refine this
-CAPABILITY_SCORE_MAP: Dict[str, float] = {
+CAPABILITY_SCORE_MAP: dict[str, float] = {
     "Qwen/Qwen2-0.5B-Instruct": 0.05,
     "Qwen/Qwen2-1.5B-Instruct": 0.07,
     "Qwen/Qwen2-7B-Instruct": 0.2,
@@ -38,11 +38,11 @@ CAPABILITY_SCORE_MAP: Dict[str, float] = {
 CAPABILITY_SCORE_FALLBACK: float = 0.1
 
 # TODO: implement
-LATENCY_MS_PER_OUTPUT_TOKEN_MAP: Dict[str, float] = {}
+LATENCY_MS_PER_OUTPUT_TOKEN_MAP: dict[str, float] = {}
 # TODO: implement
 LATENCY_MS_PER_OUTPUT_TOKEN_FALLBACK: float = 0.0
 
-MAX_CONTEXT_LENGTH_MAP: Dict[str, int] = {
+MAX_CONTEXT_LENGTH_MAP: dict[str, int] = {
     "Qwen/Qwen2-0.5B-Instruct": 32768,
     "Qwen/Qwen2-1.5B-Instruct": 32768,
     "Qwen/Qwen2-7B-Instruct": 131072,
@@ -62,10 +62,10 @@ class VLLMCompletionModel(CompletionModel):
         base_url: str,
         endpoint: str = "generate",
         temperature: float = 0.0,
-        price_per_input_token: Optional[float] = None,
-        capability: Optional[float] = None,
-        latency_ms_per_output_token: Optional[float] = None,
-        max_context_length: Optional[int] = None,
+        price_per_input_token: float | None = None,
+        capability: float | None = None,
+        latency_ms_per_output_token: float | None = None,
+        max_context_length: int | None = None,
     ) -> None:
         self.model: str = model
         self.base_url: str = base_url
@@ -100,9 +100,9 @@ class VLLMCompletionModel(CompletionModel):
     def parse_force_from_prompt(
         self,
         prompt: str,
-        typ: Union[BaseModel, Dict[str, Any]],
-        temperature: Optional[float] = None,
-    ) -> Dict[str, Any]:
+        typ: BaseModel | dict[str, Any],
+        temperature: float | None = None,
+    ) -> dict[str, Any]:
         if temperature is None:
             temperature = self.temperature
         res: str = generate_request(

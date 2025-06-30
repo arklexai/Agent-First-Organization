@@ -4,7 +4,7 @@ This module provides the EdgeFormatter class that handles formatting of
 task graph edges.
 """
 
-from typing import Any, Dict, List, Optional, Union
+from typing import Any
 
 from arklex.utils.logging_utils import LogContext
 
@@ -30,9 +30,9 @@ class EdgeFormatter:
         self,
         source_idx: str,
         target_idx: str,
-        source_task: Dict[str, Any],
-        target_task: Dict[str, Any],
-    ) -> List[Any]:
+        source_task: dict[str, Any],
+        target_task: dict[str, Any],
+    ) -> list[Any]:
         source_name = source_task.get("name", "")
         target_name = target_task.get("name", "")
         edge_data = {
@@ -51,13 +51,13 @@ class EdgeFormatter:
 
     def format_edge_data(
         self,
-        source: Dict[str, Any],
-        target: Dict[str, Any],
+        source: dict[str, Any],
+        target: dict[str, Any],
         type: str = "depends_on",
         weight: float = 1.0,
         label: str = "",
-        metadata: Optional[Dict[str, Any]] = None,
-    ) -> Dict[str, Any]:
+        metadata: dict[str, Any] | None = None,
+    ) -> dict[str, Any]:
         """Format edge data in the old format.
 
         Args:
@@ -83,13 +83,13 @@ class EdgeFormatter:
 
     def format_edge_style(
         self,
-        source: Dict[str, Any],
-        target: Dict[str, Any],
+        source: dict[str, Any],
+        target: dict[str, Any],
         type: str = "depends_on",
         weight: float = 1.0,
         label: str = "",
-        metadata: Optional[Dict[str, Any]] = None,
-    ) -> Dict[str, Any]:
+        metadata: dict[str, Any] | None = None,
+    ) -> dict[str, Any]:
         """Format edge style.
 
         Args:
@@ -125,12 +125,12 @@ class EdgeFormatter:
 
     def validate_edge(
         self,
-        source: Union[str, Dict[str, Any]],
-        target: Union[str, Dict[str, Any]],
+        source: str | dict[str, Any],
+        target: str | dict[str, Any],
         type: str = "depends_on",
         weight: float = 1.0,
         label: str = "",
-        metadata: Optional[Dict[str, Any]] = None,
+        metadata: dict[str, Any] | None = None,
     ) -> bool:
         """Validate an edge.
 
@@ -169,7 +169,7 @@ class EdgeFormatter:
             return False
 
         # Validate weight
-        if not isinstance(weight, (int, float)):
+        if not isinstance(weight, int | float):
             return False
 
         # Validate label
@@ -177,7 +177,4 @@ class EdgeFormatter:
             return False
 
         # Validate metadata if provided
-        if metadata is not None and not isinstance(metadata, dict):
-            return False
-
-        return True
+        return not (metadata is not None and not isinstance(metadata, dict))

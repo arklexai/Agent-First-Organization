@@ -8,29 +8,43 @@ Module Name: search_products
 This file contains the code for searching products in Shopify.
 """
 
-import json
-import shopify
 import inspect
-from typing import Any
+import json
+from typing import TypedDict
+
+import shopify
+from langchain_openai import ChatOpenAI
+
+from arklex.env.tools.shopify._exception_prompt import ShopifyExceptionPrompt
+from arklex.env.tools.shopify.utils import authorify_admin
+from arklex.env.tools.shopify.utils_nav import PAGEINFO_OUTPUTS, cursorify
 
 # general GraphQL navigation utilities
 from arklex.env.tools.shopify.utils_slots import (
-    ShopifySearchProductsSlots,
     ShopifyOutputs,
+    ShopifySearchProductsSlots,
 )
-from arklex.env.tools.shopify.utils_nav import *
-from arklex.env.tools.shopify.utils import authorify_admin
 
 # Admin API
 from arklex.env.tools.tools import register_tool
-
-from arklex.utils.model_provider_config import PROVIDER_MAP
 from arklex.utils.exceptions import ToolExecutionError
-from langchain_openai import ChatOpenAI
-from arklex.env.tools.shopify._exception_prompt import ShopifyExceptionPrompt
 from arklex.utils.logging_utils import LogContext
+from arklex.utils.model_provider_config import PROVIDER_MAP
 
 log_context = LogContext(__name__)
+
+
+class SearchProductsKwargs(TypedDict, total=False):
+    """Type definition for kwargs used in search_products function."""
+
+    limit: str
+    navigate: str
+    pageInfo: dict
+    shop_url: str
+    api_version: str
+    admin_token: str
+    llm_provider: str
+    model_type_or_path: str
 
 
 description = "Search products by string query. If no products are found, the function will return an error message."
@@ -39,13 +53,13 @@ outputs = [ShopifyOutputs.PRODUCT_ID, *PAGEINFO_OUTPUTS]
 
 
 @register_tool(description, slots, outputs, isResponse=True)
-def search_products(product_query: str, **kwargs: Any) -> str:
+def search_products(product_query: str, **kwargs: SearchProductsKwargs) -> str:
     """
     Search for products in the Shopify store based on a query string.
 
     Args:
         product_query (str): The search query string to find products.
-        **kwargs (Any): Additional keyword arguments for pagination, authentication, and LLM configuration.
+        **kwargs: Additional keyword arguments for pagination, authentication, and LLM configuration.
 
     Returns:
         str: A JSON string containing:
@@ -139,8 +153,8 @@ def search_products(product_query: str, **kwargs: Any) -> str:
                     extra_message=ShopifyExceptionPrompt.PRODUCT_SEARCH_ERROR_PROMPT,
                 )
 
-    except Exception:
+    except Exception as e:
         raise ToolExecutionError(
             func_name,
             extra_message=ShopifyExceptionPrompt.PRODUCT_SEARCH_ERROR_PROMPT,
-        )
+        ) from e

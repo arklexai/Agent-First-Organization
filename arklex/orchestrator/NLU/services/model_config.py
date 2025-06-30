@@ -6,8 +6,10 @@ It manages model initialization parameters, provider selection,
 and response format configuration for different language models.
 """
 
-from typing import Dict, Any
+from typing import Any
+
 from langchain_core.language_models import BaseChatModel
+
 from arklex.utils.model_provider_config import PROVIDER_MAP
 
 # Model configuration constants
@@ -36,7 +38,7 @@ class ModelConfig:
     """
 
     @staticmethod
-    def get_model_kwargs(model_config: Dict[str, Any]) -> Dict[str, Any]:
+    def get_model_kwargs(model_config: dict[str, Any]) -> dict[str, Any]:
         """Get model initialization parameters.
 
         Constructs a dictionary of parameters required for model initialization
@@ -56,7 +58,7 @@ class ModelConfig:
         Raises:
             KeyError: If required configuration keys are missing
         """
-        kwargs: Dict[str, Any] = {
+        kwargs: dict[str, Any] = {
             "model": model_config["model_type_or_path"],
             "temperature": DEFAULT_TEMPERATURE,
         }
@@ -67,7 +69,7 @@ class ModelConfig:
         return kwargs
 
     @staticmethod
-    def get_model_instance(model_config: Dict[str, Any]) -> BaseChatModel:
+    def get_model_instance(model_config: dict[str, Any]) -> BaseChatModel:
         """Get model instance based on configuration.
 
         Initializes and returns a language model instance based on the
@@ -95,7 +97,7 @@ class ModelConfig:
     @staticmethod
     def configure_response_format(
         model: BaseChatModel,
-        model_config: Dict[str, Any],
+        model_config: dict[str, Any],
         response_format: str = RESPONSE_FORMAT_TEXT,
     ) -> BaseChatModel:
         """Configure model response format.

@@ -12,18 +12,19 @@ The tests cover:
 - Integration scenarios
 """
 
-from unittest.mock import Mock, patch, MagicMock
-from langchain_core.outputs import Generation
+from typing import Any
+from unittest.mock import MagicMock, Mock, patch
+
 from arklex.env.workers.message_worker import MessageWorker
+from arklex.types import StreamType
 from arklex.utils.graph_state import (
-    MessageState,
     BotConfig,
-    LLMConfig,
     ConvoMessage,
+    LLMConfig,
+    MessageState,
     OrchestratorMessage,
     StatusEnum,
 )
-from arklex.types import StreamType
 
 # Test configuration constants
 VALID_BOT_CONFIG: BotConfig = BotConfig(
@@ -153,9 +154,9 @@ class TestMessageWorkerGenerator:
         msg_state.sys_instruct = "system instruction"
         msg_state.bot_config = VALID_BOT_CONFIG
 
-        result: MessageState = worker.generator(msg_state)
-        assert result.message_flow == ""
-        assert result.response == "direct message"
+        worker.generator(msg_state)
+        assert msg_state.message_flow == ""
+        assert msg_state.response == "direct message"
         # Do not assert trace is called, as direct_response returns early
 
     @patch("arklex.env.workers.message_worker.load_prompts")
@@ -188,7 +189,7 @@ class TestMessageWorkerGenerator:
         msg_state.sys_instruct = "system instruction"
         msg_state.bot_config = VALID_BOT_CONFIG
 
-        result: MessageState = worker.generator(msg_state)
+        worker.generator(msg_state)
         assert mock_trace.called
         mock_trace.assert_called_once()
 
@@ -222,7 +223,7 @@ class TestMessageWorkerGenerator:
         msg_state.sys_instruct = "system instruction"
         msg_state.bot_config = VALID_BOT_CONFIG
 
-        result: MessageState = worker.generator(msg_state)
+        worker.generator(msg_state)
         assert mock_trace.called
         mock_trace.assert_called_once()
 
@@ -256,7 +257,9 @@ class TestMessageWorkerGenerator:
         msg_state.sys_instruct = "system instruction"
         msg_state.bot_config = VALID_BOT_CONFIG
 
-        result: MessageState = worker.generator(msg_state)
+        mock_trace.return_value = msg_state  # Patch trace to avoid NoneType error
+
+        worker.generator(msg_state)
         assert mock_trace.called
         mock_trace.assert_called_once()
 
@@ -291,9 +294,7 @@ class TestMessageWorkerGenerator:
         msg_state.bot_config = VALID_BOT_CONFIG
         mock_trace.return_value = msg_state  # Patch trace to avoid NoneType error
 
-        result: MessageState = worker.generator(msg_state)
-        assert mock_trace.called
-        mock_trace.assert_called_once()
+        worker.generator(msg_state)
         assert mock_trace.called
         mock_trace.assert_called_once()
 
@@ -321,9 +322,9 @@ class TestMessageWorkerTextStreamGenerator:
         msg_state.bot_config = VALID_BOT_CONFIG
         msg_state.message_queue = Mock()
 
-        result: MessageState = worker.text_stream_generator(msg_state)
-        assert result.message_flow == ""
-        assert result.response == "direct message"
+        worker.text_stream_generator(msg_state)
+        assert msg_state.message_flow == ""
+        assert msg_state.response == "direct message"
 
     @patch("arklex.env.workers.message_worker.load_prompts")
     @patch("arklex.env.workers.message_worker.trace")
@@ -356,8 +357,8 @@ class TestMessageWorkerTextStreamGenerator:
         msg_state.bot_config = VALID_BOT_CONFIG
         msg_state.message_queue = Mock()
 
-        result: MessageState = worker.text_stream_generator(msg_state)
-        assert result.response == "Hello World"
+        worker.text_stream_generator(msg_state)
+        assert msg_state.response == "Hello World"
 
     @patch("arklex.env.workers.message_worker.load_prompts")
     @patch("arklex.env.workers.message_worker.trace")
@@ -390,8 +391,8 @@ class TestMessageWorkerTextStreamGenerator:
         msg_state.bot_config = VALID_BOT_CONFIG
         msg_state.message_queue = Mock()
 
-        result: MessageState = worker.text_stream_generator(msg_state)
-        assert result.response == "Generated Response"
+        worker.text_stream_generator(msg_state)
+        assert msg_state.response == "Generated Response"
 
 
 class TestMessageWorkerSpeechStreamGenerator:
@@ -417,9 +418,9 @@ class TestMessageWorkerSpeechStreamGenerator:
         msg_state.bot_config = VALID_BOT_CONFIG
         msg_state.message_queue = Mock()
 
-        result: MessageState = worker.speech_stream_generator(msg_state)
-        assert result.message_flow == ""
-        assert result.response == "direct message"
+        worker.speech_stream_generator(msg_state)
+        assert msg_state.message_flow == ""
+        assert msg_state.response == "direct message"
 
     @patch("arklex.env.workers.message_worker.load_prompts")
     def test_speech_stream_generator_with_message_flow(
@@ -451,8 +452,8 @@ class TestMessageWorkerSpeechStreamGenerator:
         msg_state.bot_config = VALID_BOT_CONFIG
         msg_state.message_queue = Mock()
 
-        result: MessageState = worker.speech_stream_generator(msg_state)
-        assert result.response == "Speech Response"
+        worker.speech_stream_generator(msg_state)
+        assert msg_state.response == "Speech Response"
 
     @patch("arklex.env.workers.message_worker.load_prompts")
     def test_speech_stream_generator_without_message_flow(
@@ -484,8 +485,8 @@ class TestMessageWorkerSpeechStreamGenerator:
         msg_state.bot_config = VALID_BOT_CONFIG
         msg_state.message_queue = Mock()
 
-        result: MessageState = worker.speech_stream_generator(msg_state)
-        assert result.response == "Speech Only"
+        worker.speech_stream_generator(msg_state)
+        assert msg_state.response == "Speech Only"
 
 
 class TestMessageWorkerExecute:
@@ -505,8 +506,7 @@ class TestMessageWorkerExecute:
         msg_state: MessageState = MessageState()
         msg_state.bot_config = VALID_BOT_CONFIG
 
-        result: MessageState = worker.execute(msg_state)
-        assert result is not None
+        worker.execute(msg_state)
         assert worker.llm is not None
         mock_chat_openai.assert_called_once_with(model="gpt-3.5-turbo")
 
@@ -520,8 +520,7 @@ class TestMessageWorkerExecute:
         msg_state: MessageState = MessageState()
         msg_state.bot_config = VALID_BOT_CONFIG
 
-        result: MessageState = worker.execute(msg_state)
-        assert result is not None
+        worker.execute(msg_state)
         assert worker.llm is not None
         mock_custom_llm.assert_called_once_with(model="gpt-3.5-turbo")
 
@@ -541,8 +540,7 @@ class TestMessageWorkerExecute:
         msg_state: MessageState = MessageState()
         msg_state.bot_config = VALID_BOT_CONFIG
 
-        result: MessageState = worker.execute(msg_state)
-        assert result is not None
+        worker.execute(msg_state)
         assert worker.llm is not None
         mock_chat_openai.assert_called_once_with(model="gpt-3.5-turbo")
 
@@ -568,7 +566,7 @@ class TestMessageWorkerExecute:
         # Patch the _execute method to catch the exception and return the expected dict
         original_execute = worker._execute
 
-        def mock_execute(state):
+        def mock_execute(state: MessageState) -> dict[str, Any]:
             try:
                 return original_execute(state)
             except Exception:
@@ -616,7 +614,7 @@ class TestMessageWorkerEdgeCases:
         msg_state.bot_config = VALID_BOT_CONFIG
         mock_trace.return_value = msg_state  # Patch trace to avoid NoneType error
 
-        result: MessageState = worker.generator(msg_state)
+        worker.generator(msg_state)
         assert mock_trace.called
         mock_trace.assert_called_once()
 
@@ -650,8 +648,8 @@ class TestMessageWorkerEdgeCases:
         msg_state.bot_config = VALID_BOT_CONFIG
         msg_state.message_queue = Mock()
 
-        result: MessageState = worker.text_stream_generator(msg_state)
-        assert result.response == ""
+        worker.text_stream_generator(msg_state)
+        assert msg_state.response == ""
 
     @patch("arklex.env.workers.message_worker.load_prompts")
     def test_speech_stream_generator_with_empty_stream(
@@ -683,8 +681,8 @@ class TestMessageWorkerEdgeCases:
         msg_state.bot_config = VALID_BOT_CONFIG
         msg_state.message_queue = Mock()
 
-        result: MessageState = worker.speech_stream_generator(msg_state)
-        assert result.response == ""
+        worker.speech_stream_generator(msg_state)
+        assert msg_state.response == ""
 
 
 class TestMessageWorkerIntegration:
@@ -742,7 +740,6 @@ class TestMessageWorkerIntegration:
         )
 
         # Execute the worker
-        result: MessageState = worker.execute(msg_state)
-        assert result is not None
+        worker.execute(msg_state)
         assert worker.llm is not None
         mock_chat_openai.assert_called_once_with(model="gpt-3.5-turbo")

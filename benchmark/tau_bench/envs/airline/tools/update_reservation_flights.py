@@ -1,18 +1,17 @@
-# Copyright Sierra
-
 import json
 from copy import deepcopy
-from typing import Any, Dict, List
+from typing import Any
+
 from benchmark.tau_bench.envs.tool import Tool
 
 
 class UpdateReservationFlights(Tool):
     @staticmethod
     def invoke(
-        data: Dict[str, Any],
+        data: dict[str, Any],
         reservation_id: str,
         cabin: str,
-        flights: List[Dict[str, Any]],
+        flights: list[dict[str, Any]],
         payment_id: str,
     ) -> str:
         users, reservations = data["users"], data["reservations"]
@@ -88,7 +87,7 @@ class UpdateReservationFlights(Tool):
         return json.dumps(reservation)
 
     @staticmethod
-    def get_info() -> Dict[str, Any]:
+    def get_info() -> dict[str, Any]:
         return {
             "type": "function",
             "function": {

@@ -1,9 +1,17 @@
-from typing import List, Dict, Any, Union
-from ..tools import register_tool
-from .utils import *
-from arklex.utils.logging_utils import LogContext
+import sqlite3
+from typing import Any
 
 import pandas as pd
+
+from arklex.env.tools.booking_db.utils import (
+    LOG_IN_FAILURE,
+    MULTIPLE_SHOWS_MESSAGE,
+    NO_BOOKING_MESSAGE,
+    booking,
+    log_in,
+)
+from arklex.env.tools.tools import register_tool
+from arklex.utils.logging_utils import LogContext
 
 log_context = LogContext(__name__)
 
@@ -20,7 +28,7 @@ log_context = LogContext(__name__)
     ],
     lambda x: x and x not in (LOG_IN_FAILURE, NO_BOOKING_MESSAGE),
 )
-def cancel_booking() -> Union[str, None]:
+def cancel_booking() -> str | None:
     if not log_in():
         return LOG_IN_FAILURE
 
@@ -36,7 +44,7 @@ def cancel_booking() -> Union[str, None]:
         b.user_id = ?
     """
     cursor.execute(query, (booking.user_id,))
-    rows: List[tuple] = cursor.fetchall()
+    rows: list[tuple] = cursor.fetchall()
 
     response: str = ""
     if len(rows) == 0:
@@ -44,9 +52,11 @@ def cancel_booking() -> Union[str, None]:
     elif len(rows) > 1:
         response = MULTIPLE_SHOWS_MESSAGE
     else:
-        column_names: List[str] = [column[0] for column in cursor.description]
-        results: List[Dict[str, Any]] = [dict(zip(column_names, row)) for row in rows]
-        show: Dict[str, Any] = results[0]
+        column_names: list[str] = [column[0] for column in cursor.description]
+        results: list[dict[str, Any]] = [
+            dict(zip(column_names, row, strict=False)) for row in rows
+        ]
+        show: dict[str, Any] = results[0]
         # Delete a row from the booking table based on show_id
         cursor.execute(
             """DELETE FROM booking WHERE show_id = ?

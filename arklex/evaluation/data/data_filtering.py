@@ -1,10 +1,11 @@
-import os
 import argparse
 import json
-from typing import List, Dict, Any
-from tqdm import tqdm
-from openai import OpenAI
+import os
+from typing import Any
+
 from dotenv import load_dotenv
+from openai import OpenAI
+from tqdm import tqdm
 
 load_dotenv()
 
@@ -44,7 +45,7 @@ client = OpenAI(
 )
 
 
-def chatgpt_chatbot(messages: List[Dict[str, str]], model: str) -> str:
+def chatgpt_chatbot(messages: list[dict[str, str]], model: str) -> str:
     completion = client.chat.completions.create(
         model=model,
         messages=messages,
@@ -54,7 +55,7 @@ def chatgpt_chatbot(messages: List[Dict[str, str]], model: str) -> str:
     return answer
 
 
-def join_messages(messages: List[Dict[str, str]]) -> str:
+def join_messages(messages: list[dict[str, str]]) -> str:
     message_str: str = ""
     for message in messages:
         if message["role"] == "bot_follow_up":
@@ -63,9 +64,9 @@ def join_messages(messages: List[Dict[str, str]]) -> str:
     return message_str[:-1]
 
 
-def rule_based_filtering(convos: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+def rule_based_filtering(convos: list[dict[str, Any]]) -> list[dict[str, Any]]:
     bad_msg_order: bool = False
-    final_convos: List[Dict[str, Any]] = []
+    final_convos: list[dict[str, Any]] = []
     for convo in convos:
         if convo["user_msg_length"] < 5:
             continue
@@ -86,9 +87,9 @@ def rule_based_filtering(convos: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
 
 
 def first_pass_model_filtering(
-    convos: List[Dict[str, Any]], model: str
-) -> List[Dict[str, Any]]:
-    final_convos: List[Dict[str, Any]] = []
+    convos: list[dict[str, Any]], model: str
+) -> list[dict[str, Any]]:
+    final_convos: list[dict[str, Any]] = []
     for convo in tqdm(convos):
         convo_str: str = join_messages(convo["message"])
         english_check: str = chatgpt_chatbot(
@@ -117,9 +118,9 @@ def first_pass_model_filtering(
 
 
 def second_pass_model_filtering(
-    convos: List[Dict[str, Any]], model: str
-) -> List[Dict[str, Any]]:
-    final_convos: List[Dict[str, Any]] = []
+    convos: list[dict[str, Any]], model: str
+) -> list[dict[str, Any]]:
+    final_convos: list[dict[str, Any]] = []
     for convo in tqdm(convos):
         convo_str: str = join_messages(convo["message"])
         engagement_guess: str = chatgpt_chatbot(
@@ -132,10 +133,10 @@ def second_pass_model_filtering(
     return final_convos
 
 
-def extract_customer_profile(customer_profile_output: str) -> Dict[str, str]:
-    split_profile: List[str] = customer_profile_output.split("Final Profile:\n")
+def extract_customer_profile(customer_profile_output: str) -> dict[str, str]:
+    split_profile: list[str] = customer_profile_output.split("Final Profile:\n")
     profile_text: str = split_profile[-1]
-    profile: Dict[str, str] = {}
+    profile: dict[str, str] = {}
     for line in profile_text.split("\n"):
         if ":" not in line:
             continue
@@ -147,10 +148,10 @@ def extract_customer_profile(customer_profile_output: str) -> Dict[str, str]:
 
 
 def get_all_customer_profiles(
-    final_convos: List[Dict[str, Any]], model: str
-) -> Dict[str, List[Dict[str, Any]]]:
+    final_convos: list[dict[str, Any]], model: str
+) -> dict[str, list[dict[str, Any]]]:
     failed_extractions: int = 0
-    profiles: Dict[str, List[Dict[str, Any]]] = {}
+    profiles: dict[str, list[dict[str, Any]]] = {}
     for convo in tqdm(final_convos):
         convo_str: str = join_messages(convo["message"])
         customer_profile_output: str = chatgpt_chatbot(
@@ -165,10 +166,11 @@ def get_all_customer_profiles(
             model=model,
         )
         try:
-            profile: Dict[str, str] = extract_customer_profile(customer_profile_output)
-        except:
+            profile: dict[str, str] = extract_customer_profile(customer_profile_output)
+        except (ValueError, IndexError, KeyError):
             failed_extractions += 1
             print(f"Profile extraction failed. Total failures: {failed_extractions}")
+            continue
         profile_vals: str = ",".join(list(profile.values()))
         profiles[profile_vals] = profiles.get(profile_vals, []) + [convo]
     return profiles

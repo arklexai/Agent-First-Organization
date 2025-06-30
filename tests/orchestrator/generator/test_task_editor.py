@@ -6,12 +6,17 @@ interface for editing task graphs using Textual UI framework.
 
 import sys
 import types
-from unittest.mock import MagicMock
+from typing import Any
+from unittest.mock import AsyncMock, MagicMock, Mock, patch
+
+import pytest
+
+from arklex.orchestrator.generator.ui.task_editor import TaskEditorApp
 
 
 # Create a minimal fake textual.app module
 class FakeApp:
-    def __init__(self, *args, **kwargs):
+    def __init__(self, *args: object, **kwargs: object) -> None:
         pass
 
 
@@ -40,17 +45,11 @@ MOCK_MODULES = [
 for mod in MOCK_MODULES:
     sys.modules[mod] = MagicMock()
 
-import pytest
-from unittest.mock import Mock, patch, AsyncMock, MagicMock
-from typing import Any, Dict, List
-from arklex.orchestrator.generator.ui import TaskEditorApp, InputModal
-
-
 # --- Mock fixtures for UI components ---
 
 
 @pytest.fixture
-def mock_tree(monkeypatch):
+def mock_tree(monkeypatch: pytest.MonkeyPatch) -> Mock:
     """Mock the Tree widget."""
     mock_tree = Mock()
     mock_tree_instance = Mock()
@@ -62,7 +61,7 @@ def mock_tree(monkeypatch):
 
 
 @pytest.fixture
-def mock_label(monkeypatch):
+def mock_label(monkeypatch: pytest.MonkeyPatch) -> Mock:
     """Mock the Label widget."""
     mock_label = Mock()
     mock_label_instance = Mock()
@@ -71,7 +70,7 @@ def mock_label(monkeypatch):
 
 
 @pytest.fixture
-def mock_input_modal(monkeypatch):
+def mock_input_modal(monkeypatch: pytest.MonkeyPatch) -> Mock:
     """Mock the InputModal class."""
     mock_modal = Mock()
     mock_modal_instance = Mock()
@@ -80,14 +79,14 @@ def mock_input_modal(monkeypatch):
 
 
 @pytest.fixture
-def mock_log_context(monkeypatch):
+def mock_log_context(monkeypatch: pytest.MonkeyPatch) -> Mock:
     """Mock the log_context."""
     mock_log = Mock()
     return mock_log
 
 
 @pytest.fixture
-def sample_tasks() -> list:
+def sample_tasks() -> list[dict[str, Any]]:
     """Sample tasks for testing."""
     return [
         {
@@ -99,7 +98,7 @@ def sample_tasks() -> list:
 
 
 @pytest.fixture
-def complex_tasks() -> list:
+def complex_tasks() -> list[dict[str, Any]]:
     """Complex tasks for testing."""
     return [
         {
@@ -114,7 +113,7 @@ def complex_tasks() -> list:
 
 
 @pytest.fixture
-def task_editor_app(sample_tasks):
+def task_editor_app(sample_tasks: list[dict[str, Any]]) -> TaskEditorApp:
     """Create a TaskEditorApp instance for testing."""
     return TaskEditorApp(sample_tasks)
 
@@ -213,7 +212,7 @@ class TestTaskEditorAppInitialization:
         for attr_name in expected_attributes:
             assert hasattr(editor, attr_name)
 
-    def test_task_editor_init_none_tasks(self):
+    def test_task_editor_init_none_tasks(self) -> None:
         from arklex.orchestrator.generator.ui.task_editor import TaskEditorApp
 
         editor = TaskEditorApp(None)
@@ -224,11 +223,12 @@ class TestTaskEditorAppInitialization:
 class TestTaskEditorAppCompose:
     """Test TaskEditorApp compose method."""
 
-    def test_compose_method(self, sample_tasks, mock_tree, mock_label) -> None:
+    def test_compose_method(
+        self, sample_tasks: list[dict[str, Any]], mock_tree: Mock, mock_label: Mock
+    ) -> None:
         """Test the compose method with valid tasks."""
         app = TaskEditorApp(sample_tasks)
 
-        # Patch the Tree and Label classes in the UI module
         with (
             patch("arklex.orchestrator.generator.ui.task_editor.Tree", mock_tree),
             patch("arklex.orchestrator.generator.ui.task_editor.Label", mock_label),
@@ -239,7 +239,7 @@ class TestTaskEditorAppCompose:
             mock_tree.return_value.root.add.return_value = mock_task_node
 
             # Test compose
-            result = list(app.compose())
+            list(app.compose())
 
             # Verify tree was created and configured
             mock_tree.assert_called_once_with("Tasks")
@@ -248,7 +248,7 @@ class TestTaskEditorAppCompose:
             # Verify tasks were added to tree
             assert mock_tree.return_value.root.add.call_count == 2  # Two tasks
 
-    def test_compose_with_empty_tasks(self, mock_tree, mock_label) -> None:
+    def test_compose_with_empty_tasks(self, mock_tree: Mock, mock_label: Mock) -> None:
         """Test compose method with empty tasks list."""
         app = TaskEditorApp([])
 
@@ -256,13 +256,13 @@ class TestTaskEditorAppCompose:
             patch("arklex.orchestrator.generator.ui.task_editor.Tree", mock_tree),
             patch("arklex.orchestrator.generator.ui.task_editor.Label", mock_label),
         ):
-            result = list(app.compose())
+            list(app.compose())
 
             # Verify tree was created
             mock_tree.assert_called_once_with("Tasks")
             mock_tree.return_value.root.expand.assert_called_once()
 
-    def test_compose_with_none_tasks(self, mock_tree, mock_label) -> None:
+    def test_compose_with_none_tasks(self, mock_tree: Mock, mock_label: Mock) -> None:
         """Test compose method with None tasks."""
         app = TaskEditorApp(None)
 
@@ -271,14 +271,14 @@ class TestTaskEditorAppCompose:
             patch("arklex.orchestrator.generator.ui.task_editor.Label", mock_label),
         ):
             # Should handle None gracefully
-            result = list(app.compose())
+            list(app.compose())
 
             # Verify tree was created
             mock_tree.assert_called_once_with("Tasks")
             mock_tree.return_value.root.expand.assert_called_once()
 
     def test_compose_with_complex_tasks(
-        self, complex_tasks, mock_tree, mock_label
+        self, complex_tasks: list[dict[str, Any]], mock_tree: Mock, mock_label: Mock
     ) -> None:
         """Test compose method with complex task structures."""
         app = TaskEditorApp(complex_tasks)
@@ -292,7 +292,7 @@ class TestTaskEditorAppCompose:
             mock_task_node.add_leaf = Mock()
             mock_tree.return_value.root.add.return_value = mock_task_node
 
-            result = list(app.compose())
+            list(app.compose())
 
             # Verify tree was created
             mock_tree.assert_called_once_with("Tasks")
@@ -302,7 +302,7 @@ class TestTaskEditorAppCompose:
 class TestTaskEditorAppEventHandling:
     """Test TaskEditorApp event handling methods."""
 
-    def test_on_mount(self, task_editor_app) -> None:
+    def test_on_mount(self, task_editor_app: TaskEditorApp) -> None:
         """Test the on_mount method."""
         # Mock the task_tree
         mock_tree = Mock()
@@ -315,7 +315,7 @@ class TestTaskEditorAppEventHandling:
         mock_tree.focus.assert_called_once()
 
     async def test_on_tree_node_selected(
-        self, task_editor_app, mock_input_modal
+        self, task_editor_app: TaskEditorApp, mock_input_modal: Mock
     ) -> None:
         """Test on_tree_node_selected event handler."""
         with patch(
@@ -340,7 +340,7 @@ class TestTaskEditorAppEventHandling:
             mock_input_modal.assert_called_once()
 
     async def test_on_tree_node_selected_with_none_label(
-        self, task_editor_app, mock_input_modal
+        self, task_editor_app: TaskEditorApp, mock_input_modal: Mock
     ) -> None:
         """Test on_tree_node_selected with None label."""
         with patch(
@@ -368,7 +368,7 @@ class TestTaskEditorAppEventHandling:
 class TestTaskEditorAppKeyboardHandling:
     """Test TaskEditorApp keyboard input handling."""
 
-    async def test_on_key_add_node(self, task_editor_app) -> None:
+    async def test_on_key_add_node(self, task_editor_app: TaskEditorApp) -> None:
         """Test on_key method for adding nodes."""
         # Mock the event
         mock_event = Mock()
@@ -389,7 +389,7 @@ class TestTaskEditorAppKeyboardHandling:
         # Verify action_add_node was called
         task_editor_app.action_add_node.assert_called_once_with(mock_cursor_node)
 
-    async def test_on_key_delete_node(self, task_editor_app) -> None:
+    async def test_on_key_delete_node(self, task_editor_app: TaskEditorApp) -> None:
         """Test on_key method for deleting nodes."""
         # Mock the event
         mock_event = Mock()
@@ -414,7 +414,7 @@ class TestTaskEditorAppKeyboardHandling:
         # Verify update_tasks was called
         task_editor_app.update_tasks.assert_called_once()
 
-    async def test_on_key_save_exit(self, task_editor_app) -> None:
+    async def test_on_key_save_exit(self, task_editor_app: TaskEditorApp) -> None:
         """Test on_key method for saving and exiting."""
         # Mock the event
         mock_event = Mock()
@@ -433,7 +433,7 @@ class TestTaskEditorAppKeyboardHandling:
         # Verify exit was called with tasks
         task_editor_app.exit.assert_called_once_with(task_editor_app.tasks)
 
-    async def test_on_key_other_key(self, task_editor_app) -> None:
+    async def test_on_key_other_key(self, task_editor_app: TaskEditorApp) -> None:
         """Test on_key method for other keys."""
         # Mock the event
         mock_event = Mock()
@@ -458,7 +458,7 @@ class TestTaskEditorAppKeyboardHandling:
         task_editor_app.update_tasks.assert_not_called()
         task_editor_app.exit.assert_not_called()
 
-    async def test_on_key_no_cursor_node(self, task_editor_app) -> None:
+    async def test_on_key_no_cursor_node(self, task_editor_app: TaskEditorApp) -> None:
         """Test on_key method when no cursor node is selected."""
         # Mock the event
         mock_event = Mock()
@@ -481,7 +481,7 @@ class TestTaskEditorAppKeyboardHandling:
         task_editor_app.update_tasks.assert_not_called()
         task_editor_app.exit.assert_not_called()
 
-    async def test_on_key_no_parent(self, task_editor_app) -> None:
+    async def test_on_key_no_parent(self, task_editor_app: TaskEditorApp) -> None:
         """Test on_key method when cursor node has no parent."""
         # Mock the event
         mock_event = Mock()
@@ -511,7 +511,7 @@ class TestTaskEditorAppNodeManagement:
     """Test TaskEditorApp node management methods."""
 
     async def test_action_add_node_step_node(
-        self, task_editor_app, mock_input_modal
+        self, task_editor_app: TaskEditorApp, mock_input_modal: Mock
     ) -> None:
         """Test action_add_node for step nodes."""
         with patch(
@@ -533,7 +533,7 @@ class TestTaskEditorAppNodeManagement:
             mock_input_modal.assert_called_once()
 
     async def test_action_add_node_task_node_expanded(
-        self, task_editor_app, mock_input_modal
+        self, task_editor_app: TaskEditorApp, mock_input_modal: Mock
     ) -> None:
         """Test action_add_node for expanded task nodes."""
         with patch(
@@ -556,7 +556,7 @@ class TestTaskEditorAppNodeManagement:
             mock_input_modal.assert_called_once()
 
     async def test_action_add_node_task_node_not_expanded(
-        self, task_editor_app, mock_input_modal
+        self, task_editor_app: TaskEditorApp, mock_input_modal: Mock
     ) -> None:
         """Test action_add_node for non-expanded task nodes."""
         with patch(
@@ -578,7 +578,9 @@ class TestTaskEditorAppNodeManagement:
             # Verify InputModal was called
             mock_input_modal.assert_called_once()
 
-    def test_show_input_modal(self, task_editor_app, mock_input_modal) -> None:
+    def test_show_input_modal(
+        self, task_editor_app: TaskEditorApp, mock_input_modal: Mock
+    ) -> None:
         """Test show_input_modal method."""
         with patch(
             "arklex.orchestrator.generator.ui.task_editor.InputModal", mock_input_modal
@@ -587,13 +589,13 @@ class TestTaskEditorAppNodeManagement:
             task_editor_app.push_screen = Mock()
 
             # Test show_input_modal
-            result = task_editor_app.show_input_modal("Test Title", "Default Value")
+            task_editor_app.show_input_modal("Test Title", "Default Value")
 
             # Verify InputModal was called
             mock_input_modal.assert_called_once_with("Test Title", "Default Value")
 
     def test_show_input_modal_with_empty_default(
-        self, task_editor_app, mock_input_modal
+        self, task_editor_app: TaskEditorApp, mock_input_modal: Mock
     ) -> None:
         """Test show_input_modal with empty default value."""
         with patch(
@@ -603,12 +605,14 @@ class TestTaskEditorAppNodeManagement:
             task_editor_app.push_screen = Mock()
 
             # Test show_input_modal with empty default
-            result = task_editor_app.show_input_modal("Test Title")
+            task_editor_app.show_input_modal("Test Title")
 
             # Verify InputModal was called with empty default
             mock_input_modal.assert_called_once_with("Test Title", "")
 
-    def test_show_input_modal_various(self, task_editor_app, mock_input_modal) -> None:
+    def test_show_input_modal_various(
+        self, task_editor_app: TaskEditorApp, mock_input_modal: Mock
+    ) -> None:
         """Test show_input_modal with various parameters."""
         with patch(
             "arklex.orchestrator.generator.ui.task_editor.InputModal", mock_input_modal
@@ -631,7 +635,7 @@ class TestTaskEditorAppNodeManagement:
 class TestTaskEditorAppDataManagement:
     """Test TaskEditorApp data management methods."""
 
-    async def test_update_tasks(self, mock_log_context) -> None:
+    async def test_update_tasks(self, mock_log_context: Mock) -> None:
         """Test update_tasks method with valid tree structure."""
         with patch(
             "arklex.orchestrator.generator.ui.task_editor.log_context", mock_log_context
@@ -675,7 +679,7 @@ class TestTaskEditorAppDataManagement:
             assert app.tasks[0]["steps"][0] == "Step 1.1"  # Steps are strings
             assert app.tasks[0]["steps"][1] == "Step 1.2"  # Steps are strings
 
-    async def test_update_tasks_empty_tree(self, mock_log_context) -> None:
+    async def test_update_tasks_empty_tree(self, mock_log_context: Mock) -> None:
         """Test update_tasks with empty tree."""
         with patch(
             "arklex.orchestrator.generator.ui.task_editor.log_context", mock_log_context
@@ -697,7 +701,9 @@ class TestTaskEditorAppDataManagement:
             # Verify tasks list is empty
             assert app.tasks == []
 
-    async def test_update_tasks_with_none_tree(self, task_editor_app) -> None:
+    async def test_update_tasks_with_none_tree(
+        self, task_editor_app: TaskEditorApp
+    ) -> None:
         """Test update_tasks with None task_tree."""
         # Set task_tree to None
         task_editor_app.task_tree = None
@@ -709,7 +715,7 @@ class TestTaskEditorAppDataManagement:
         assert task_editor_app.tasks == []
 
     async def test_update_tasks_with_invalid_node_structure(
-        self, mock_log_context
+        self, mock_log_context: Mock
     ) -> None:
         """Test update_tasks with invalid node structure."""
         with patch(
@@ -735,7 +741,9 @@ class TestTaskEditorAppDataManagement:
             ):
                 await app.update_tasks()
 
-    async def test_update_tasks_with_missing_step_data(self, mock_log_context) -> None:
+    async def test_update_tasks_with_missing_step_data(
+        self, mock_log_context: Mock
+    ) -> None:
         """Test update_tasks with missing step data."""
         with patch(
             "arklex.orchestrator.generator.ui.task_editor.log_context", mock_log_context
@@ -763,7 +771,7 @@ class TestTaskEditorAppDataManagement:
             ):
                 await app.update_tasks()
 
-    def test_run_returns_tasks(self, task_editor_app) -> None:
+    def test_run_returns_tasks(self, task_editor_app: TaskEditorApp) -> None:
         """Test run method returns tasks."""
         task_editor_app.tasks = [{"name": "Task 1", "steps": ["Step 1"]}]
         task_editor_app.run = MagicMock(return_value=task_editor_app.tasks)

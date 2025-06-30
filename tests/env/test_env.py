@@ -1,10 +1,12 @@
-from unittest.mock import patch, MagicMock, Mock
-from arklex.env.env import Environment, DefaultResourceInitializer
-from arklex.orchestrator.NLU.services.model_service import DummyModelService
-from arklex.orchestrator.NLU.core.slot import SlotFiller
-from arklex.utils.graph_state import MessageState, Params, NodeInfo, StatusEnum
-from arklex.env.planner.react_planner import ReactPlanner
+from unittest.mock import MagicMock, Mock, patch
+
 import pytest
+
+from arklex.env.env import DefaultResourceInitializer, Environment
+from arklex.env.planner.react_planner import ReactPlanner
+from arklex.orchestrator.NLU.core.slot import SlotFiller
+from arklex.orchestrator.NLU.services.model_service import DummyModelService
+from arklex.utils.graph_state import MessageState, NodeInfo, Params, StatusEnum
 
 
 def test_environment_uses_dummy_model_service() -> None:
@@ -38,7 +40,7 @@ def test_default_resource_initializer_init_tools_success_and_error() -> None:
     with patch("importlib.import_module") as mock_import:
         fake_module = MagicMock()
         fake_func = MagicMock(return_value=MagicMock(description="desc"))
-        setattr(fake_module, "fake_tool", fake_func)
+        fake_module.fake_tool = fake_func
         mock_import.side_effect = [fake_module, Exception("fail")]
         registry = DefaultResourceInitializer.init_tools(tools)
         assert "t1" in registry
@@ -53,7 +55,7 @@ def test_default_resource_initializer_init_workers_success_and_error() -> None:
     with patch("importlib.import_module") as mock_import:
         fake_module = MagicMock()
         fake_func = MagicMock(description="desc")
-        setattr(fake_module, "fake_worker", fake_func)
+        fake_module.fake_worker = fake_func
         mock_import.side_effect = [fake_module, Exception("fail")]
         registry = DefaultResourceInitializer.init_workers(workers)
         assert "w1" in registry
@@ -72,7 +74,7 @@ def test_environment_step_tool_executes_and_updates_params() -> None:
     ]
     with patch("importlib.import_module") as mock_import:
         fake_module = MagicMock()
-        setattr(fake_module, "fake_tool", MagicMock(return_value=fake_tool))
+        fake_module.fake_tool = MagicMock(return_value=fake_tool)
         mock_import.return_value = fake_module
         env = Environment(tools=tools, workers=[])
 
@@ -368,7 +370,7 @@ def test_register_tool_exception_handling() -> None:
     env = Environment(tools=[], workers=[])
 
     class RaisingDict(dict):
-        def __setitem__(self, key, value):
+        def __setitem__(self, key: str, value: object) -> None:
             raise Exception("Registration error")
 
     env.tools = RaisingDict()

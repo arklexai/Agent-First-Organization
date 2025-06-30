@@ -4,11 +4,12 @@ This module provides comprehensive test coverage for the worker module,
 ensuring all functionality is properly tested including error handling and edge cases.
 """
 
+from typing import Any, NoReturn
+
 import pytest
-from unittest.mock import Mock, patch, MagicMock
-from arklex.env.workers.worker import BaseWorker, register_worker
-from arklex.utils.graph_state import MessageState, StatusEnum, ResourceRecord
-from arklex.utils.exceptions import ValidationError
+
+from arklex.env.workers.worker import BaseWorker, WorkerKwargs, register_worker
+from arklex.utils.graph_state import MessageState, ResourceRecord, StatusEnum
 
 
 class TestRegisterWorkerDecorator:
@@ -19,7 +20,9 @@ class TestRegisterWorkerDecorator:
 
         @register_worker
         class TestWorker(BaseWorker):
-            def _execute(self, msg_state, **kwargs):
+            def _execute(
+                self, msg_state: MessageState, **kwargs: WorkerKwargs
+            ) -> dict[str, Any]:
                 return {"status": "complete"}
 
         assert TestWorker.name == "TestWorker"
@@ -29,7 +32,9 @@ class TestRegisterWorkerDecorator:
 
         @register_worker
         class TestWorker(BaseWorker):
-            def _execute(self, msg_state, **kwargs):
+            def _execute(
+                self, msg_state: MessageState, **kwargs: WorkerKwargs
+            ) -> dict[str, Any]:
                 return {"status": "complete"}
 
         assert issubclass(TestWorker, BaseWorker)
@@ -43,7 +48,9 @@ class TestBaseWorker:
         """Test string representation of BaseWorker."""
 
         class TestWorker(BaseWorker):
-            def _execute(self, msg_state, **kwargs):
+            def _execute(
+                self, msg_state: MessageState, **kwargs: WorkerKwargs
+            ) -> dict[str, Any]:
                 return {"status": "complete"}
 
         worker = TestWorker()
@@ -53,7 +60,9 @@ class TestBaseWorker:
         """Test detailed string representation of BaseWorker."""
 
         class TestWorker(BaseWorker):
-            def _execute(self, msg_state, **kwargs):
+            def _execute(
+                self, msg_state: MessageState, **kwargs: WorkerKwargs
+            ) -> dict[str, Any]:
                 return {"status": "complete"}
 
         worker = TestWorker()
@@ -63,7 +72,9 @@ class TestBaseWorker:
         """Test that description is None by default."""
 
         class TestWorker(BaseWorker):
-            def _execute(self, msg_state, **kwargs):
+            def _execute(
+                self, msg_state: MessageState, **kwargs: WorkerKwargs
+            ) -> dict[str, Any]:
                 return {"status": "complete"}
 
         worker = TestWorker()
@@ -75,7 +86,9 @@ class TestBaseWorker:
         class TestWorker(BaseWorker):
             description = "A test worker"
 
-            def _execute(self, msg_state, **kwargs):
+            def _execute(
+                self, msg_state: MessageState, **kwargs: WorkerKwargs
+            ) -> dict[str, Any]:
                 return {"status": "complete"}
 
         worker = TestWorker()
@@ -93,7 +106,9 @@ class TestConcreteWorker:
     class SimpleWorker(BaseWorker):
         """A simple concrete worker for testing."""
 
-        def _execute(self, msg_state, **kwargs):
+        def _execute(
+            self, msg_state: MessageState, **kwargs: WorkerKwargs
+        ) -> dict[str, Any]:
             return {
                 "status": StatusEnum.COMPLETE,
                 "response": "Test response",
@@ -103,13 +118,15 @@ class TestConcreteWorker:
     class ErrorWorker(BaseWorker):
         """A worker that raises an exception for testing."""
 
-        def _execute(self, msg_state, **kwargs):
+        def _execute(self, msg_state: MessageState, **kwargs: WorkerKwargs) -> NoReturn:
             raise ValueError("Test error")
 
     class IncompleteWorker(BaseWorker):
         """A worker that returns incomplete status."""
 
-        def _execute(self, msg_state, **kwargs):
+        def _execute(
+            self, msg_state: MessageState, **kwargs: WorkerKwargs
+        ) -> dict[str, Any]:
             return {
                 "status": StatusEnum.INCOMPLETE,
                 "response": "Incomplete response",
@@ -119,7 +136,9 @@ class TestConcreteWorker:
     class EmptyResponseWorker(BaseWorker):
         """A worker that returns empty response."""
 
-        def _execute(self, msg_state, **kwargs):
+        def _execute(
+            self, msg_state: MessageState, **kwargs: WorkerKwargs
+        ) -> dict[str, Any]:
             return {"status": StatusEnum.COMPLETE, "message_flow": "flow only"}
 
     def test_worker_execute_success(self) -> None:
@@ -194,7 +213,9 @@ class TestConcreteWorker:
         """Test worker execution that returns invalid response."""
 
         class InvalidWorker(BaseWorker):
-            def _execute(self, msg_state, **kwargs):
+            def _execute(
+                self, msg_state: MessageState, **kwargs: WorkerKwargs
+            ) -> dict[str, Any]:
                 return {"invalid": "response"}  # Missing required fields
 
         worker = InvalidWorker()
@@ -210,7 +231,9 @@ class TestConcreteWorker:
         """Test worker execution with None response."""
 
         class NoneResponseWorker(BaseWorker):
-            def _execute(self, msg_state, **kwargs):
+            def _execute(
+                self, msg_state: MessageState, **kwargs: WorkerKwargs
+            ) -> dict[str, Any]:
                 return {
                     "status": StatusEnum.COMPLETE,
                     "response": "",
@@ -233,7 +256,9 @@ class TestConcreteWorker:
         """Test worker execution with empty message flow."""
 
         class EmptyFlowWorker(BaseWorker):
-            def _execute(self, msg_state, **kwargs):
+            def _execute(
+                self, msg_state: MessageState, **kwargs: WorkerKwargs
+            ) -> dict[str, Any]:
                 return {"status": StatusEnum.COMPLETE, "response": "response only"}
 
         worker = EmptyFlowWorker()
@@ -265,7 +290,9 @@ class TestConcreteWorker:
         """Test worker execution with complex response structure."""
 
         class ComplexWorker(BaseWorker):
-            def _execute(self, msg_state, **kwargs):
+            def _execute(
+                self, msg_state: MessageState, **kwargs: WorkerKwargs
+            ) -> dict[str, Any]:
                 return {
                     "status": StatusEnum.COMPLETE,
                     "response": "complex response",
@@ -294,7 +321,9 @@ class TestWorkerIntegration:
 
         @register_worker
         class DecoratedWorker(BaseWorker):
-            def _execute(self, msg_state, **kwargs):
+            def _execute(
+                self, msg_state: MessageState, **kwargs: WorkerKwargs
+            ) -> dict[str, Any]:
                 return {"status": StatusEnum.COMPLETE, "response": "decorated"}
 
         worker = DecoratedWorker()
@@ -313,7 +342,9 @@ class TestWorkerIntegration:
         """Test multiple instances of the same worker class."""
 
         class MultiWorker(BaseWorker):
-            def _execute(self, msg_state, **kwargs):
+            def _execute(
+                self, msg_state: MessageState, **kwargs: WorkerKwargs
+            ) -> dict[str, Any]:
                 return {"status": StatusEnum.COMPLETE, "response": "multi"}
 
         worker1 = MultiWorker()
@@ -339,11 +370,15 @@ class TestWorkerIntegration:
         """Test worker inheritance behavior."""
 
         class ParentWorker(BaseWorker):
-            def _execute(self, msg_state, **kwargs):
+            def _execute(
+                self, msg_state: MessageState, **kwargs: WorkerKwargs
+            ) -> dict[str, Any]:
                 return {"status": StatusEnum.COMPLETE, "response": "parent"}
 
         class ChildWorker(ParentWorker):
-            def _execute(self, msg_state, **kwargs):
+            def _execute(
+                self, msg_state: MessageState, **kwargs: WorkerKwargs
+            ) -> dict[str, Any]:
                 return {"status": StatusEnum.COMPLETE, "response": "child"}
 
         parent = ParentWorker()

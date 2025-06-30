@@ -1,16 +1,15 @@
-# Copyright Sierra
+from typing import Any
 
-from typing import Any, Dict
 from benchmark.tau_bench.envs.tool import Tool
 
 
 class Think(Tool):
     @staticmethod
-    def invoke(data: Dict[str, Any], thought: str) -> str:
+    def invoke(data: dict[str, Any], thought: str) -> str:
         return ""
 
     @staticmethod
-    def get_info() -> Dict[str, Any]:
+    def get_info() -> dict[str, Any]:
         return {
             "type": "function",
             "function": {

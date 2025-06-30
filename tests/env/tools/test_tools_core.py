@@ -1,7 +1,8 @@
 """Comprehensive tests for arklex.env.tools.tools (Tool class and register_tool)."""
 
-import pytest
-from unittest.mock import Mock, patch, MagicMock
+from typing import NoReturn
+from unittest.mock import Mock
+
 from arklex.env.tools import tools
 from arklex.env.tools.tools import Tool, register_tool
 
@@ -10,7 +11,7 @@ from arklex.utils.graph_state import MessageState, StatusEnum
 from arklex.utils.slot import Slot
 
 
-def dummy_func(a=None, b=None) -> str:
+def dummy_func(a: object = None, b: object = None) -> str:
     return f"a={a}, b={b}"
 
 
@@ -173,7 +174,7 @@ def test_tool_execute_slot_verification_needed() -> None:
 def test_tool_execute_tool_execution_error() -> None:
     """Test Tool.execute handles ToolExecutionError."""
 
-    def error_func(**kwargs):
+    def error_func(**kwargs: object) -> NoReturn:
         raise tools.ToolExecutionError("toolname", "fail", extra_message="extra")
 
     slot = Slot(
@@ -206,7 +207,7 @@ def test_tool_execute_tool_execution_error() -> None:
 def test_tool_execute_authentication_error() -> None:
     """Test Tool.execute handles AuthenticationError."""
 
-    def error_func(**kwargs):
+    def error_func(**kwargs: object) -> NoReturn:
         raise tools.AuthenticationError("auth fail")
 
     slot = Slot(

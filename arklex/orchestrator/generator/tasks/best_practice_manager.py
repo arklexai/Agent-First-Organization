@@ -11,12 +11,11 @@ Key Features:
 - Quality assurance and validation
 """
 
-from typing import List, Dict, Any, Optional
 from dataclasses import dataclass
-import json
+from typing import Any
 
-from arklex.utils.logging_utils import LogContext
 from arklex.orchestrator.generator.prompts import PromptManager
+from arklex.utils.logging_utils import LogContext
 
 log_context = LogContext(__name__)
 
@@ -39,9 +38,9 @@ class BestPractice:
     practice_id: str
     name: str
     description: str
-    steps: List[Dict[str, Any]]
+    steps: list[dict[str, Any]]
     rationale: str
-    examples: List[str]
+    examples: list[str]
     priority: int
     category: str
 
@@ -79,12 +78,12 @@ class BestPracticeManager:
 
     def __init__(
         self,
-        model: Any,
+        model: object,
         role: str,
         user_objective: str,
-        workers: Optional[List[Dict[str, Any]]] = None,
-        tools: Optional[List[Dict[str, Any]]] = None,
-        all_resources: Optional[List[Dict[str, Any]]] = None,
+        workers: list[dict[str, Any]] | None = None,
+        tools: list[dict[str, Any]] | None = None,
+        all_resources: list[dict[str, Any]] | None = None,
     ) -> None:
         """Initialize the BestPracticeManager with required components.
 
@@ -102,13 +101,13 @@ class BestPracticeManager:
         self._workers = workers or []
         self._tools = tools or []
         self._all_resources = all_resources or []
-        self._practices: Dict[str, BestPractice] = {}
-        self._practice_categories: Dict[str, List[str]] = {}
+        self._practices: dict[str, BestPractice] = {}
+        self._practice_categories: dict[str, list[str]] = {}
         self.prompt_manager = PromptManager()
 
     def generate_best_practices(
-        self, tasks: List[Dict[str, Any]]
-    ) -> List[Dict[str, Any]]:
+        self, tasks: list[dict[str, Any]]
+    ) -> list[dict[str, Any]]:
         """Generate best practices for the given tasks.
 
         This method orchestrates the practice generation process by:
@@ -146,8 +145,8 @@ class BestPracticeManager:
         return optimized_practices
 
     def finetune_best_practice(
-        self, practice: Dict[str, Any], task: Dict[str, Any]
-    ) -> Dict[str, Any]:
+        self, practice: dict[str, Any], task: dict[str, Any]
+    ) -> dict[str, Any]:
         """Refine a best practice based on feedback and task information.
 
         This method takes a practice and a task, and refines the practice by
@@ -228,10 +227,9 @@ class BestPracticeManager:
                 ]
 
             # Use round-robin assignment to ensure all resource types are used
-            resource_index = 0
             refined_steps = []
 
-            for step in steps:
+            for resource_index, step in enumerate(steps):
                 # Get step description
                 step_description = step.get("description", "")
                 if isinstance(step, str):
@@ -241,7 +239,6 @@ class BestPracticeManager:
                 assigned_resource = available_resources[
                     resource_index % len(available_resources)
                 ]
-                resource_index += 1
 
                 # Create refined step with resource assignment
                 refined_step = {
@@ -269,8 +266,8 @@ class BestPracticeManager:
             return practice
 
     def _generate_practice_definitions(
-        self, tasks: List[Dict[str, Any]]
-    ) -> List[BestPractice]:
+        self, tasks: list[dict[str, Any]]
+    ) -> list[BestPractice]:
         """Generate practice definitions from tasks.
 
         This method creates practice definitions based on the tasks,
@@ -282,7 +279,7 @@ class BestPracticeManager:
         Returns:
             List[BestPractice]: List of generated practice definitions
         """
-        practice_definitions: List[BestPractice] = []
+        practice_definitions: list[BestPractice] = []
         for i, task in enumerate(tasks):
             practice_def = BestPractice(
                 practice_id=f"practice_{i + 1}",
@@ -298,8 +295,8 @@ class BestPracticeManager:
         return practice_definitions
 
     def _validate_practices(
-        self, practice_definitions: List[BestPractice]
-    ) -> List[Dict[str, Any]]:
+        self, practice_definitions: list[BestPractice]
+    ) -> list[dict[str, Any]]:
         """Validate generated practice definitions.
 
         This method ensures that all practice definitions meet the required
@@ -321,7 +318,7 @@ class BestPracticeManager:
                     "category": str
                 }
         """
-        validated_practices: List[Dict[str, Any]] = []
+        validated_practices: list[dict[str, Any]] = []
         for practice_def in practice_definitions:
             if self._validate_practice_definition(practice_def):
                 validated_practices.append(self._convert_to_dict(practice_def))
@@ -352,11 +349,9 @@ class BestPracticeManager:
             return False
         if not isinstance(practice_def.priority, int):
             return False
-        if not practice_def.category:
-            return False
-        return True
+        return bool(practice_def.category)
 
-    def _categorize_practices(self, practices: List[Dict[str, Any]]) -> None:
+    def _categorize_practices(self, practices: list[dict[str, Any]]) -> None:
         """Categorize practices by type.
 
         Args:
@@ -370,8 +365,8 @@ class BestPracticeManager:
             self._practice_categories[category].append(practice["practice_id"])
 
     def _optimize_practices(
-        self, practices: List[Dict[str, Any]]
-    ) -> List[Dict[str, Any]]:
+        self, practices: list[dict[str, Any]]
+    ) -> list[dict[str, Any]]:
         """Optimize practices for efficiency and effectiveness.
 
         This method analyzes and optimizes the practices to ensure they are
@@ -384,13 +379,13 @@ class BestPracticeManager:
             List[Dict[str, Any]]: List of optimized practices with the same structure
                 as the input practices
         """
-        optimized_practices: List[Dict[str, Any]] = []
+        optimized_practices: list[dict[str, Any]] = []
         for practice in practices:
             practice["steps"] = self._optimize_steps(practice["steps"])
             optimized_practices.append(practice)
         return optimized_practices
 
-    def _optimize_steps(self, steps: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+    def _optimize_steps(self, steps: list[dict[str, Any]]) -> list[dict[str, Any]]:
         """Optimize individual steps within a practice.
 
         This method analyzes and optimizes the steps to ensure they are
@@ -403,7 +398,7 @@ class BestPracticeManager:
             List[Dict[str, Any]]: List of optimized steps with the same structure
                 as the input steps
         """
-        optimized_steps: List[Dict[str, Any]] = []
+        optimized_steps: list[dict[str, Any]] = []
         for i, step in enumerate(steps):
             # Ensure step_id exists
             if "step_id" not in step:
@@ -434,7 +429,7 @@ class BestPracticeManager:
 
         return optimized_steps
 
-    def _convert_to_dict(self, practice_def: BestPractice) -> Dict[str, Any]:
+    def _convert_to_dict(self, practice_def: BestPractice) -> dict[str, Any]:
         """Convert a BestPractice object to a dictionary.
 
         Args:

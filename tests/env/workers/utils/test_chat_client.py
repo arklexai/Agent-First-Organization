@@ -4,18 +4,14 @@ This module provides extensive test coverage for the ChatClient class,
 including all methods, edge cases, error conditions, and async scenarios.
 """
 
-import pytest
-import asyncio
 import json
-import sys
-from unittest.mock import Mock, patch, AsyncMock, MagicMock
-from concurrent.futures import Future
 import runpy
-import subprocess
-import os
+from concurrent.futures import Future
+from unittest.mock import AsyncMock, Mock, patch
+
+import pytest
 
 from arklex.env.workers.utils.chat_client import ChatClient
-
 
 # =============================================================================
 # FIXTURES - Core Test Data
@@ -23,7 +19,7 @@ from arklex.env.workers.utils.chat_client import ChatClient
 
 
 @pytest.fixture
-def chat_client():
+def chat_client() -> ChatClient:
     """Create a ChatClient instance for testing."""
     return ChatClient(
         server_address="127.0.0.1",
@@ -35,13 +31,13 @@ def chat_client():
 
 
 @pytest.fixture
-def chat_client_minimal():
+def chat_client_minimal() -> ChatClient:
     """Create a minimal ChatClient instance for testing."""
     return ChatClient()
 
 
 @pytest.fixture
-def chat_client_read_only():
+def chat_client_read_only() -> ChatClient:
     """Create a read-only ChatClient instance for testing."""
     return ChatClient(
         server_address="127.0.0.1",
@@ -53,7 +49,7 @@ def chat_client_read_only():
 
 
 @pytest.fixture
-def chat_client_write_only():
+def chat_client_write_only() -> ChatClient:
     """Create a write-only ChatClient instance for testing."""
     return ChatClient(
         server_address="127.0.0.1",
@@ -65,7 +61,7 @@ def chat_client_write_only():
 
 
 @pytest.fixture
-def sample_logs():
+def sample_logs() -> list[dict[str, str]]:
     """Sample logs for testing."""
     return [
         {"name": "client1", "message": "Hello"},
@@ -82,7 +78,7 @@ def sample_logs():
 class TestChatClient:
     """Test the ChatClient class."""
 
-    def test_chat_client_initialization(self, chat_client) -> None:
+    def test_chat_client_initialization(self, chat_client: ChatClient) -> None:
         """Test ChatClient initialization with all parameters."""
         assert chat_client.server_address == "127.0.0.1"
         assert chat_client.server_port == "8888"
@@ -95,7 +91,9 @@ class TestChatClient:
         assert chat_client.async_thread is None
         assert isinstance(chat_client.async_result, Future)
 
-    def test_chat_client_minimal_initialization(self, chat_client_minimal) -> None:
+    def test_chat_client_minimal_initialization(
+        self, chat_client_minimal: ChatClient
+    ) -> None:
         """Test ChatClient initialization with minimal parameters."""
         assert chat_client_minimal.server_address == "127.0.0.1"
         assert chat_client_minimal.server_port == "8888"
@@ -108,25 +106,27 @@ class TestChatClient:
         assert chat_client_minimal.async_thread is None
         assert isinstance(chat_client_minimal.async_result, Future)
 
-    def test_format_logs(self, chat_client, sample_logs) -> None:
+    def test_format_logs(
+        self, chat_client: ChatClient, sample_logs: list[dict[str, str]]
+    ) -> None:
         """Test format_logs method."""
         formatted = chat_client.format_logs(sample_logs)
         expected = "client1: Hello\nclient2: Hi there\nServer: Welcome"
         assert formatted == expected
 
-    def test_format_logs_empty(self, chat_client) -> None:
+    def test_format_logs_empty(self, chat_client: ChatClient) -> None:
         """Test format_logs with empty logs."""
         formatted = chat_client.format_logs([])
         assert formatted == ""
 
-    def test_format_logs_single_log(self, chat_client) -> None:
+    def test_format_logs_single_log(self, chat_client: ChatClient) -> None:
         """Test format_logs with single log."""
         logs = [{"name": "test", "message": "single message"}]
         formatted = chat_client.format_logs(logs)
         assert formatted == "test: single message"
 
     @pytest.mark.asyncio
-    async def test_send_message(self, chat_client) -> None:
+    async def test_send_message(self, chat_client: ChatClient) -> None:
         """Test send_message method."""
         # Mock writer
         mock_writer = AsyncMock()
@@ -145,7 +145,7 @@ class TestChatClient:
         assert message_data["message"] == "test message"
 
     @pytest.mark.asyncio
-    async def test_write_messages_quit(self, chat_client) -> None:
+    async def test_write_messages_quit(self, chat_client: ChatClient) -> None:
         """Test write_messages method with QUIT command."""
         # Mock stdin and writer
         with patch("asyncio.to_thread") as mock_to_thread:
@@ -160,7 +160,7 @@ class TestChatClient:
             mock_writer.drain.assert_called()
 
     @pytest.mark.asyncio
-    async def test_write_messages_normal_message(self, chat_client) -> None:
+    async def test_write_messages_normal_message(self, chat_client: ChatClient) -> None:
         """Test write_messages method with normal message."""
         # Mock stdin and writer
         with patch("asyncio.to_thread") as mock_to_thread:
@@ -179,7 +179,9 @@ class TestChatClient:
                 mock_send.assert_any_call("QUIT\n")
 
     @pytest.mark.asyncio
-    async def test_receive_message_single_message(self, chat_client) -> None:
+    async def test_receive_message_single_message(
+        self, chat_client: ChatClient
+    ) -> None:
         """Test receive_message method with single message."""
         # Mock reader
         mock_reader = AsyncMock()
@@ -193,7 +195,9 @@ class TestChatClient:
         assert messages[0]["message"] == "hello"
 
     @pytest.mark.asyncio
-    async def test_receive_message_multiple_messages(self, chat_client) -> None:
+    async def test_receive_message_multiple_messages(
+        self, chat_client: ChatClient
+    ) -> None:
         """Test receive_message method with multiple messages."""
         # Mock reader
         mock_reader = AsyncMock()
@@ -209,7 +213,7 @@ class TestChatClient:
         assert messages[1]["message"] == "world"
 
     @pytest.mark.asyncio
-    async def test_receive_message_empty_data(self, chat_client) -> None:
+    async def test_receive_message_empty_data(self, chat_client: ChatClient) -> None:
         """Test receive_message method with empty data."""
         # Mock reader
         mock_reader = AsyncMock()
@@ -221,7 +225,9 @@ class TestChatClient:
         assert len(messages) == 0
 
     @pytest.mark.asyncio
-    async def test_receive_message_with_empty_split(self, chat_client) -> None:
+    async def test_receive_message_with_empty_split(
+        self, chat_client: ChatClient
+    ) -> None:
         """Test receive_message method with empty split parts."""
         # Mock reader
         mock_reader = AsyncMock()
@@ -236,20 +242,25 @@ class TestChatClient:
         assert messages[0]["message"] == "hello"
 
     @pytest.mark.asyncio
-    async def test_read_messages(self, chat_client) -> None:
+    async def test_read_messages(self, chat_client: ChatClient) -> None:
         """Test read_messages method."""
         # Mock receive_message to return some messages
         with patch.object(chat_client, "receive_message") as mock_receive:
             mock_receive.return_value = [{"name": "test", "message": "hello"}]
 
             # This will run indefinitely, so we need to mock it to return after one iteration
-            with patch.object(
-                chat_client,
-                "receive_message",
-                side_effect=[[{"name": "test", "message": "hello"}], Exception("stop")],
+            with (
+                patch.object(
+                    chat_client,
+                    "receive_message",
+                    side_effect=[
+                        [{"name": "test", "message": "hello"}],
+                        Exception("stop"),
+                    ],
+                ),
+                pytest.raises(Exception, match="stop"),
             ):
-                with pytest.raises(Exception, match="stop"):
-                    await chat_client.read_messages()
+                await chat_client.read_messages()
 
             # Verify logs were extended
             assert len(chat_client.logs) == 1
@@ -257,15 +268,13 @@ class TestChatClient:
             assert chat_client.logs[0]["message"] == "hello"
 
     @pytest.mark.asyncio
-    async def test_main_connect_mode(self, chat_client) -> None:
+    async def test_main_connect_mode(self, chat_client: ChatClient) -> None:
         """Test main method in connect mode."""
         # Mock all dependencies
         with (
             patch("asyncio.open_connection") as mock_open_conn,
             patch("builtins.input") as mock_input,
             patch.object(chat_client, "receive_message") as mock_receive,
-            patch.object(chat_client, "read_messages") as mock_read,
-            patch.object(chat_client, "write_messages") as mock_write,
             patch("asyncio.create_task") as mock_create_task,
             patch("asyncio.wait") as mock_wait,
         ):
@@ -281,7 +290,7 @@ class TestChatClient:
             mock_create_task.side_effect = [mock_read_task, mock_write_task]
             mock_wait.return_value = ({mock_read_task}, {mock_write_task})
 
-            result = await chat_client.main()
+            await chat_client.main()
 
             # Verify connection was established
             mock_open_conn.assert_called_once_with("127.0.0.1", "8888")
@@ -289,12 +298,11 @@ class TestChatClient:
             mock_input.assert_not_called()
 
     @pytest.mark.asyncio
-    async def test_main_read_only_mode(self, chat_client_read_only) -> None:
+    async def test_main_read_only_mode(self, chat_client_read_only: ChatClient) -> None:
         """Test main method in read-only mode."""
         # Mock all dependencies
         with (
             patch("asyncio.open_connection") as mock_open_conn,
-            patch("builtins.input") as mock_input,
             patch.object(chat_client_read_only, "receive_message") as mock_receive,
             patch.object(chat_client_read_only, "send_message") as mock_send,
         ):
@@ -308,19 +316,20 @@ class TestChatClient:
                 [{"name": "other_client", "message": "response"}],
             ]
 
-            result = await chat_client_read_only.main("test_message")
+            await chat_client_read_only.main("test_message")
 
             # Verify message was sent and response was received
             mock_send.assert_any_call("test_message")
             mock_send.assert_any_call("QUIT")
 
     @pytest.mark.asyncio
-    async def test_main_write_only_mode(self, chat_client_write_only) -> None:
+    async def test_main_write_only_mode(
+        self, chat_client_write_only: ChatClient
+    ) -> None:
         """Test main method in write-only mode."""
         # Mock all dependencies
         with (
             patch("asyncio.open_connection") as mock_open_conn,
-            patch("builtins.input") as mock_input,
             patch.object(chat_client_write_only, "receive_message") as mock_receive,
             patch.object(chat_client_write_only, "send_message") as mock_send,
         ):
@@ -333,14 +342,14 @@ class TestChatClient:
                 [{"name": "Server", "message": "Welcome"}],
             ]
 
-            result = await chat_client_write_only.main("test_message")
+            await chat_client_write_only.main("test_message")
 
             # Verify message was sent
             mock_send.assert_any_call("test_message")
             mock_send.assert_any_call("QUIT")
 
     @pytest.mark.asyncio
-    async def test_main_unknown_mode(self, chat_client) -> None:
+    async def test_main_unknown_mode(self, chat_client: ChatClient) -> None:
         """Test main method with unknown mode."""
         chat_client.mode = "unknown"
 
@@ -363,7 +372,7 @@ class TestChatClient:
             with pytest.raises(ValueError, match="Invalid mode: unknown"):
                 await chat_client.main()
 
-    def test_sync_main(self, chat_client) -> None:
+    def test_sync_main(self, chat_client: ChatClient) -> None:
         """Test sync_main method."""
         with patch.object(chat_client, "async_thread_worker") as mock_worker:
             # Set the future result to prevent blocking
@@ -376,7 +385,7 @@ class TestChatClient:
             mock_worker.assert_called_once_with("test_message")
             assert result == "test_result"
 
-    def test_async_thread_worker(self, chat_client) -> None:
+    def test_async_thread_worker(self, chat_client: ChatClient) -> None:
         """Test async_thread_worker method."""
         with (
             patch("asyncio.new_event_loop") as mock_new_loop,
@@ -402,7 +411,7 @@ class TestChatClient:
             assert chat_client.async_result.result() == "test_result"
 
     @pytest.mark.asyncio
-    async def test_main_debug_mode(self, chat_client) -> None:
+    async def test_main_debug_mode(self, chat_client: ChatClient) -> None:
         """Test main method with debug mode enabled."""
         # Mock all dependencies
         with (
@@ -428,7 +437,7 @@ class TestChatClient:
             mock_print.assert_any_call("Connected.")
 
     @pytest.mark.asyncio
-    async def test_main_no_name_provided(self, chat_client_minimal) -> None:
+    async def test_main_no_name_provided(self, chat_client_minimal: ChatClient) -> None:
         """Test main method when no name is provided."""
         # Mock all dependencies
         with (
@@ -452,7 +461,7 @@ class TestChatClient:
             mock_input.assert_called_once_with("Enter name: ")
 
     @pytest.mark.asyncio
-    async def test_receive_message_debug_mode(self, chat_client) -> None:
+    async def test_receive_message_debug_mode(self, chat_client: ChatClient) -> None:
         """Test receive_message method with debug mode enabled."""
         # Mock reader and print
         with (
@@ -462,14 +471,14 @@ class TestChatClient:
             mock_reader.read.return_value = b'{"name": "test", "message": "hello"}'
             chat_client.reader = mock_reader
 
-            messages = await chat_client.receive_message()
+            await chat_client.receive_message()
 
             # Verify message was printed in debug mode
             mock_print.assert_called_with("test: hello")
 
     @pytest.mark.asyncio
     async def test_receive_message_connect_mode_server_message(
-        self, chat_client
+        self, chat_client: ChatClient
     ) -> None:
         """Test receive_message method in connect mode with server message."""
         # Mock reader and print
@@ -480,7 +489,7 @@ class TestChatClient:
             mock_reader.read.return_value = b'{"name": "Server", "message": "hello"}'
             chat_client.reader = mock_reader
 
-            messages = await chat_client.receive_message()
+            await chat_client.receive_message()
 
             # Server messages should not be printed in connect mode when debug is True
             # Since debug=True, it should print
@@ -488,7 +497,7 @@ class TestChatClient:
 
     @pytest.mark.asyncio
     async def test_receive_message_connect_mode_client_message(
-        self, chat_client
+        self, chat_client: ChatClient
     ) -> None:
         """Test receive_message method in connect mode with client message."""
         # Mock reader and print
@@ -501,13 +510,15 @@ class TestChatClient:
             )
             chat_client.reader = mock_reader
 
-            messages = await chat_client.receive_message()
+            await chat_client.receive_message()
 
             # Client messages should be printed in connect mode
             mock_print.assert_called_with("other_client: hello")
 
     @pytest.mark.asyncio
-    async def test_receive_message_read_only_mode(self, chat_client_read_only) -> None:
+    async def test_receive_message_read_only_mode(
+        self, chat_client_read_only: ChatClient
+    ) -> None:
         """Test receive_message method in read-only mode."""
         # Mock reader and print
         with (
@@ -517,14 +528,14 @@ class TestChatClient:
             mock_reader.read.return_value = b'{"name": "test", "message": "hello"}'
             chat_client_read_only.reader = mock_reader
 
-            messages = await chat_client_read_only.receive_message()
+            await chat_client_read_only.receive_message()
 
             # Messages should be printed in read-only mode when debug is False
             # Since debug=False and mode="ro", it should not print
             mock_print.assert_not_called()
 
     @pytest.mark.asyncio
-    async def test_main_connection_error(self, chat_client) -> None:
+    async def test_main_connection_error(self, chat_client: ChatClient) -> None:
         """Test main method with connection error."""
         # Mock open_connection to raise an exception
         with (
@@ -536,7 +547,7 @@ class TestChatClient:
             await chat_client.main()
 
     @pytest.mark.asyncio
-    async def test_main_input_error(self, chat_client) -> None:
+    async def test_main_input_error(self, chat_client: ChatClient) -> None:
         """Test main method with input error."""
         # Set name to None to trigger input call
         chat_client.name = None
@@ -555,7 +566,7 @@ class TestChatClient:
                 await chat_client.main()
 
     @pytest.mark.asyncio
-    async def test_main_json_error(self, chat_client) -> None:
+    async def test_main_json_error(self, chat_client: ChatClient) -> None:
         """Test main method with JSON error."""
         # Mock all dependencies
         with (
@@ -582,41 +593,43 @@ class TestChatClient:
         assert ChatClient.reader is None
         assert ChatClient.writer is None
 
-    def test_chat_client_timeout_default(self, chat_client_minimal) -> None:
+    def test_chat_client_timeout_default(self, chat_client_minimal: ChatClient) -> None:
         """Test ChatClient timeout default value."""
         assert chat_client_minimal.timeout == 100000
 
-    def test_chat_client_timeout_custom(self, chat_client) -> None:
+    def test_chat_client_timeout_custom(self, chat_client: ChatClient) -> None:
         """Test ChatClient timeout custom value."""
         # The timeout is hardcoded in the class, so this test verifies the current value
         assert chat_client.timeout == 100000
 
-    def test_chat_client_mode_default(self, chat_client_minimal) -> None:
+    def test_chat_client_mode_default(self, chat_client_minimal: ChatClient) -> None:
         """Test ChatClient mode default value."""
         assert chat_client_minimal.mode == "c"
 
-    def test_chat_client_mode_custom(self, chat_client) -> None:
+    def test_chat_client_mode_custom(self, chat_client: ChatClient) -> None:
         """Test ChatClient mode custom value."""
         assert chat_client.mode == "c"
 
-    def test_chat_client_debug_default(self, chat_client_minimal) -> None:
+    def test_chat_client_debug_default(self, chat_client_minimal: ChatClient) -> None:
         """Test ChatClient debug default value."""
         assert chat_client_minimal.debug is False
 
-    def test_chat_client_debug_custom(self, chat_client) -> None:
+    def test_chat_client_debug_custom(self, chat_client: ChatClient) -> None:
         """Test ChatClient debug custom value."""
         assert chat_client.debug is True
 
     @pytest.mark.asyncio
-    async def test_main_connect_mode_with_task_cancellation(self, chat_client) -> None:
+    async def test_main_connect_mode_with_task_cancellation(
+        self, chat_client: ChatClient
+    ) -> None:
         """Test main method in connect mode with task cancellation."""
         # Mock all dependencies
         with (
             patch("asyncio.open_connection") as mock_open_conn,
-            patch("builtins.input") as mock_input,
+            patch("builtins.input"),
             patch.object(chat_client, "receive_message") as mock_receive,
-            patch.object(chat_client, "read_messages") as mock_read,
-            patch.object(chat_client, "write_messages") as mock_write,
+            patch.object(chat_client, "read_messages"),
+            patch.object(chat_client, "write_messages"),
             patch("asyncio.create_task") as mock_create_task,
             patch("asyncio.wait") as mock_wait,
         ):
@@ -643,15 +656,17 @@ class TestChatClient:
             assert mock_read_task.cancel.called or mock_write_task.cancel.called
 
     @pytest.mark.asyncio
-    async def test_main_connect_mode_with_writer_operations(self, chat_client) -> None:
+    async def test_main_connect_mode_with_writer_operations(
+        self, chat_client: ChatClient
+    ) -> None:
         """Test main method in connect mode with writer operations."""
         # Mock all dependencies
         with (
             patch("asyncio.open_connection") as mock_open_conn,
-            patch("builtins.input") as mock_input,
+            patch("builtins.input"),
             patch.object(chat_client, "receive_message") as mock_receive,
-            patch.object(chat_client, "read_messages") as mock_read,
-            patch.object(chat_client, "write_messages") as mock_write,
+            patch.object(chat_client, "read_messages"),
+            patch.object(chat_client, "write_messages"),
             patch("asyncio.create_task") as mock_create_task,
             patch("asyncio.wait") as mock_wait,
         ):
@@ -667,7 +682,7 @@ class TestChatClient:
             mock_create_task.side_effect = [mock_read_task, mock_write_task]
             mock_wait.return_value = ({mock_read_task}, {mock_write_task})
 
-            result = await chat_client.main()
+            await chat_client.main()
 
             # Verify writer operations
             mock_writer.drain.assert_called()
@@ -675,16 +690,18 @@ class TestChatClient:
             mock_writer.wait_closed.assert_called_once()
 
     @pytest.mark.asyncio
-    async def test_main_connect_mode_with_print_statements(self, chat_client) -> None:
+    async def test_main_connect_mode_with_print_statements(
+        self, chat_client: ChatClient
+    ) -> None:
         """Test main method in connect mode with print statements."""
         # Mock all dependencies
         with (
             patch("asyncio.open_connection") as mock_open_conn,
-            patch("builtins.input") as mock_input,
+            patch("builtins.input"),
             patch("builtins.print") as mock_print,
             patch.object(chat_client, "receive_message") as mock_receive,
-            patch.object(chat_client, "read_messages") as mock_read,
-            patch.object(chat_client, "write_messages") as mock_write,
+            patch.object(chat_client, "read_messages"),
+            patch.object(chat_client, "write_messages"),
             patch("asyncio.create_task") as mock_create_task,
             patch("asyncio.wait") as mock_wait,
         ):
@@ -694,28 +711,32 @@ class TestChatClient:
             mock_open_conn.return_value = (mock_reader, mock_writer)
             mock_receive.return_value = [{"name": "Server", "message": "Connected"}]
 
-            # Mock tasks
-            mock_read_task = AsyncMock()
-            mock_write_task = AsyncMock()
+            # Mock tasks with regular Mock to avoid async cleanup issues
+            mock_read_task = Mock()
+            mock_write_task = Mock()
+            mock_read_task.done.return_value = True
+            mock_write_task.done.return_value = True
             mock_create_task.side_effect = [mock_read_task, mock_write_task]
             mock_wait.return_value = ({mock_read_task}, {mock_write_task})
 
-            result = await chat_client.main()
+            await chat_client.main()
 
             # Verify print statements
             mock_print.assert_any_call("Disconnecting from server...")
             mock_print.assert_any_call("Done.")
 
     @pytest.mark.asyncio
-    async def test_main_connect_mode_with_format_logs(self, chat_client) -> None:
+    async def test_main_connect_mode_with_format_logs(
+        self, chat_client: ChatClient
+    ) -> None:
         """Test main method in connect mode with format_logs."""
         # Mock all dependencies
         with (
             patch("asyncio.open_connection") as mock_open_conn,
-            patch("builtins.input") as mock_input,
+            patch("builtins.input"),
             patch.object(chat_client, "receive_message") as mock_receive,
-            patch.object(chat_client, "read_messages") as mock_read,
-            patch.object(chat_client, "write_messages") as mock_write,
+            patch.object(chat_client, "read_messages"),
+            patch.object(chat_client, "write_messages"),
             patch("asyncio.create_task") as mock_create_task,
             patch("asyncio.wait") as mock_wait,
         ):
@@ -736,7 +757,7 @@ class TestChatClient:
             # Verify format_logs was called
             assert isinstance(result, str)
 
-    def test_chat_client_cli_wo_mode_subprocess(self):
+    def test_chat_client_cli_wo_mode_subprocess(self) -> None:
         """Test CLI with write-only mode using subprocess."""
         # Mock the network operations to avoid connection errors
         with patch("asyncio.open_connection") as mock_conn:
@@ -745,31 +766,34 @@ class TestChatClient:
             mock_conn.return_value = (mock_reader, mock_writer)
 
             # Mock input to avoid hanging
-            with patch("builtins.input", return_value="test_user"):
-                with patch(
+            with (
+                patch("builtins.input", return_value="test_user"),
+                patch(
                     "sys.argv", ["chat_client.py", "--mode", "wo", "--message", "test"]
-                ):
-                    with patch("asyncio.run") as mock_run:
-                        # Import and run the module
-                        import sys
+                ),
+                patch("asyncio.run") as mock_run,
+            ):
+                # Import and run the module
+                import sys
 
-                        module_name = "arklex.env.workers.utils.chat_client"
-                        if module_name in sys.modules:
-                            del sys.modules[module_name]
-                        runpy.run_module(module_name, run_name="__main__")
+                module_name = "arklex.env.workers.utils.chat_client"
+                if module_name in sys.modules:
+                    del sys.modules[module_name]
+                runpy.run_module(module_name, run_name="__main__")
 
-                        # Verify asyncio.run was called
-                        mock_run.assert_called_once()
+                # Verify asyncio.run was called
+                mock_run.assert_called_once()
 
-    def test_chat_client_cli_custom_arguments_subprocess(self):
+    def test_chat_client_cli_custom_arguments_subprocess(self) -> None:
         """Test CLI with custom arguments using subprocess."""
         with patch("asyncio.open_connection") as mock_conn:
             mock_reader = AsyncMock()
             mock_writer = AsyncMock()
             mock_conn.return_value = (mock_reader, mock_writer)
 
-            with patch("builtins.input", return_value="test_user"):
-                with patch(
+            with (
+                patch("builtins.input", return_value="test_user"),
+                patch(
                     "sys.argv",
                     [
                         "chat_client.py",
@@ -787,118 +811,130 @@ class TestChatClient:
                         "--message",
                         "custom message",
                     ],
-                ):
-                    with patch("asyncio.run") as mock_run:
-                        import sys
+                ),
+                patch("asyncio.run") as mock_run,
+            ):
+                import sys
 
-                        module_name = "arklex.env.workers.utils.chat_client"
-                        if module_name in sys.modules:
-                            del sys.modules[module_name]
-                        runpy.run_module(module_name, run_name="__main__")
-                        mock_run.assert_called_once()
+                module_name = "arklex.env.workers.utils.chat_client"
+                if module_name in sys.modules:
+                    del sys.modules[module_name]
+                runpy.run_module(module_name, run_name="__main__")
+                mock_run.assert_called_once()
 
-    def test_chat_client_cli_minimal_arguments_subprocess(self):
+    def test_chat_client_cli_minimal_arguments_subprocess(self) -> None:
         """Test CLI with minimal arguments using subprocess."""
         with patch("asyncio.open_connection") as mock_conn:
             mock_reader = AsyncMock()
             mock_writer = AsyncMock()
             mock_conn.return_value = (mock_reader, mock_writer)
 
-            with patch("builtins.input", return_value="test_user"):
-                with patch("sys.argv", ["chat_client.py"]):
-                    with patch("asyncio.run") as mock_run:
-                        import sys
+            with (
+                patch("builtins.input", return_value="test_user"),
+                patch("sys.argv", ["chat_client.py"]),
+                patch("asyncio.run") as mock_run,
+            ):
+                import sys
 
-                        module_name = "arklex.env.workers.utils.chat_client"
-                        if module_name in sys.modules:
-                            del sys.modules[module_name]
-                        runpy.run_module(module_name, run_name="__main__")
-                        mock_run.assert_called_once()
+                module_name = "arklex.env.workers.utils.chat_client"
+                if module_name in sys.modules:
+                    del sys.modules[module_name]
+                runpy.run_module(module_name, run_name="__main__")
+                mock_run.assert_called_once()
 
-    def test_chat_client_cli_message_only_subprocess(self):
+    def test_chat_client_cli_message_only_subprocess(self) -> None:
         """Test CLI with message argument only using subprocess."""
         with patch("asyncio.open_connection") as mock_conn:
             mock_reader = AsyncMock()
             mock_writer = AsyncMock()
             mock_conn.return_value = (mock_reader, mock_writer)
 
-            with patch("builtins.input", return_value="test_user"):
-                with patch("sys.argv", ["chat_client.py", "--message", "hello world"]):
-                    with patch("asyncio.run") as mock_run:
-                        import sys
+            with (
+                patch("builtins.input", return_value="test_user"),
+                patch("sys.argv", ["chat_client.py", "--message", "hello world"]),
+                patch("asyncio.run") as mock_run,
+            ):
+                import sys
 
-                        module_name = "arklex.env.workers.utils.chat_client"
-                        if module_name in sys.modules:
-                            del sys.modules[module_name]
-                        runpy.run_module(module_name, run_name="__main__")
-                        mock_run.assert_called_once()
+                module_name = "arklex.env.workers.utils.chat_client"
+                if module_name in sys.modules:
+                    del sys.modules[module_name]
+                runpy.run_module(module_name, run_name="__main__")
+                mock_run.assert_called_once()
 
-    def test_chat_client_cli_debug_mode_subprocess(self):
+    def test_chat_client_cli_debug_mode_subprocess(self) -> None:
         """Test CLI with debug mode enabled using subprocess."""
         with patch("asyncio.open_connection") as mock_conn:
             mock_reader = AsyncMock()
             mock_writer = AsyncMock()
             mock_conn.return_value = (mock_reader, mock_writer)
 
-            with patch("builtins.input", return_value="test_user"):
-                with patch("sys.argv", ["chat_client.py", "--debug"]):
-                    with patch("asyncio.run") as mock_run:
-                        import sys
+            with (
+                patch("builtins.input", return_value="test_user"),
+                patch("sys.argv", ["chat_client.py", "--debug"]),
+                patch("asyncio.run") as mock_run,
+            ):
+                import sys
 
-                        module_name = "arklex.env.workers.utils.chat_client"
-                        if module_name in sys.modules:
-                            del sys.modules[module_name]
-                        runpy.run_module(module_name, run_name="__main__")
-                        mock_run.assert_called_once()
+                module_name = "arklex.env.workers.utils.chat_client"
+                if module_name in sys.modules:
+                    del sys.modules[module_name]
+                runpy.run_module(module_name, run_name="__main__")
+                mock_run.assert_called_once()
 
-    def test_chat_client_cli_read_only_mode_subprocess(self):
+    def test_chat_client_cli_read_only_mode_subprocess(self) -> None:
         """Test CLI with read-only mode using subprocess."""
         with patch("asyncio.open_connection") as mock_conn:
             mock_reader = AsyncMock()
             mock_writer = AsyncMock()
             mock_conn.return_value = (mock_reader, mock_writer)
 
-            with patch("builtins.input", return_value="test_user"):
-                with patch(
+            with (
+                patch("builtins.input", return_value="test_user"),
+                patch(
                     "sys.argv",
                     ["chat_client.py", "--mode", "ro", "--message", "test message"],
-                ):
-                    with patch("asyncio.run") as mock_run:
-                        import sys
+                ),
+                patch("asyncio.run") as mock_run,
+            ):
+                import sys
 
-                        module_name = "arklex.env.workers.utils.chat_client"
-                        if module_name in sys.modules:
-                            del sys.modules[module_name]
-                        runpy.run_module(module_name, run_name="__main__")
-                        mock_run.assert_called_once()
+                module_name = "arklex.env.workers.utils.chat_client"
+                if module_name in sys.modules:
+                    del sys.modules[module_name]
+                runpy.run_module(module_name, run_name="__main__")
+                mock_run.assert_called_once()
 
-    def test_chat_client_cli_connect_mode_subprocess(self):
+    def test_chat_client_cli_connect_mode_subprocess(self) -> None:
         """Test CLI with connect mode using subprocess."""
         with patch("asyncio.open_connection") as mock_conn:
             mock_reader = AsyncMock()
             mock_writer = AsyncMock()
             mock_conn.return_value = (mock_reader, mock_writer)
 
-            with patch("builtins.input", return_value="test_user"):
-                with patch("sys.argv", ["chat_client.py", "--mode", "c"]):
-                    with patch("asyncio.run") as mock_run:
-                        import sys
+            with (
+                patch("builtins.input", return_value="test_user"),
+                patch("sys.argv", ["chat_client.py", "--mode", "c"]),
+                patch("asyncio.run") as mock_run,
+            ):
+                import sys
 
-                        module_name = "arklex.env.workers.utils.chat_client"
-                        if module_name in sys.modules:
-                            del sys.modules[module_name]
-                        runpy.run_module(module_name, run_name="__main__")
-                        mock_run.assert_called_once()
+                module_name = "arklex.env.workers.utils.chat_client"
+                if module_name in sys.modules:
+                    del sys.modules[module_name]
+                runpy.run_module(module_name, run_name="__main__")
+                mock_run.assert_called_once()
 
-    def test_chat_client_cli_all_optional_arguments_subprocess(self):
+    def test_chat_client_cli_all_optional_arguments_subprocess(self) -> None:
         """Test CLI with all optional arguments using subprocess."""
         with patch("asyncio.open_connection") as mock_conn:
             mock_reader = AsyncMock()
             mock_writer = AsyncMock()
             mock_conn.return_value = (mock_reader, mock_writer)
 
-            with patch("builtins.input", return_value="test_user"):
-                with patch(
+            with (
+                patch("builtins.input", return_value="test_user"),
+                patch(
                     "sys.argv",
                     [
                         "chat_client.py",
@@ -916,12 +952,13 @@ class TestChatClient:
                         "--message",
                         "final test message",
                     ],
-                ):
-                    with patch("asyncio.run") as mock_run:
-                        import sys
+                ),
+                patch("asyncio.run") as mock_run,
+            ):
+                import sys
 
-                        module_name = "arklex.env.workers.utils.chat_client"
-                        if module_name in sys.modules:
-                            del sys.modules[module_name]
-                        runpy.run_module(module_name, run_name="__main__")
-                        mock_run.assert_called_once()
+                module_name = "arklex.env.workers.utils.chat_client"
+                if module_name in sys.modules:
+                    del sys.modules[module_name]
+                runpy.run_module(module_name, run_name="__main__")
+                mock_run.assert_called_once()

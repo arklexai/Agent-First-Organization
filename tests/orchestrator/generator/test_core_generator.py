@@ -1,3529 +1,3922 @@
-"""Core generator tests for the main Generator class.
+"""Comprehensive tests for the Generator class in arklex.orchestrator.generator.core.generator.
 
-These tests verify the core functionality of the Generator class,
-including initialization, component integration, and error handling.
+This module provides thorough line-by-line test coverage for the Generator class,
+ensuring all functionality is properly tested including initialization, component
+management, document loading, task generation, and task graph formatting.
 """
 
+import json
+from datetime import datetime
+from typing import Any
+from unittest.mock import MagicMock, Mock, call, mock_open, patch
+
 import pytest
-from unittest.mock import Mock, MagicMock, patch
-import tempfile
-import os
-from arklex.orchestrator.generator.core.generator import Generator
+
 from arklex.env.env import BaseResourceInitializer, DefaultResourceInitializer
+from arklex.orchestrator.generator.core.generator import Generator
+from arklex.orchestrator.generator.docs import DocumentLoader
+from arklex.orchestrator.generator.formatting import TaskGraphFormatter
+from arklex.orchestrator.generator.prompts import PromptManager
+from arklex.orchestrator.generator.tasks import (
+    BestPracticeManager,
+    ReusableTaskManager,
+    TaskGenerator,
+)
+
+# --- Mock Classes ---
 
 
-# --- Centralized Mock Fixtures ---
+class MockResponse:
+    """Mock response class for testing model interactions."""
+
+    def __init__(self, content: str = '{"intent": "test intent"}') -> None:
+        self.content = content
+
+
+class MockTaskEditorApp:
+    """Mock TaskEditorApp for testing UI interactions."""
+
+    def __init__(self, tasks: list[dict[str, Any]]) -> None:
+        self.tasks = tasks
+
+    def run(self) -> list[dict[str, Any]]:
+        """Mock run method that returns modified tasks."""
+        return self.tasks
+
+
+# --- Fixtures ---
 
 
 @pytest.fixture
-def always_valid_mock_model():
-    """Create a mock language model that always returns valid responses."""
-    mock = MagicMock()
-    mock.generate.return_value = MagicMock()
-    mock.invoke.return_value = MagicMock()
-    return mock
+def always_valid_mock_model() -> Mock:
+    """Create a mock model that always returns valid responses."""
+    mock_model = Mock()
+    mock_response = MockResponse()
+    mock_model.invoke.return_value = mock_response
+    return mock_model
 
 
 @pytest.fixture
-def mock_model():
-    """Create a basic mock model for testing."""
-    mock = MagicMock()
-    mock.generate.return_value = MagicMock()
-    mock.invoke.return_value = MagicMock()
-    return mock
-
-
-@pytest.fixture
-def minimal_config():
-    """Create a minimal configuration for testing."""
+def patched_sample_config() -> dict[str, Any]:
+    """Create a sample configuration for testing."""
     return {
         "role": "test_role",
-        "user_objective": "test_objective",
-        "workers": [],
-        "tools": {},
-    }
-
-
-@pytest.fixture
-def patched_sample_config():
-    """Create a sample configuration with all required fields."""
-    return {
-        "role": "test_role",
-        "user_objective": "test_objective",
-        "builder_objective": "test_builder_objective",
-        "intro": "test_intro",
-        "instruction_docs": [],
-        "task_docs": [],
-        "rag_docs": [],
-        "user_tasks": [],
-        "example_conversations": [],
-        "product_kwargs": {
-            "tools": [{"id": "test_tool", "name": "TestTool", "path": "test_tool.py"}],
-            "workers": [{"id": "test_worker", "name": "TestWorker"}],
-        },
-    }
-
-
-@pytest.fixture
-def full_config():
-    """Create a full configuration for testing."""
-    return {
-        "role": "test_role",
-        "user_objective": "test_objective",
-        "builder_objective": "test_builder_objective",
+        "user_objective": "test user objective",
+        "builder_objective": "test builder objective",
         "domain": "test_domain",
-        "intro": "test_intro",
-        "instruction_docs": ["instruction1.txt", "instruction2.txt"],
-        "task_docs": ["task1.txt", "task2.txt"],
-        "rag_docs": ["rag1.txt"],
-        "user_tasks": [{"id": "task1", "name": "User Task 1"}],
-        "example_conversations": [{"conversation": "example"}],
-        "nluapi": "http://nlu.api",
-        "slotfillapi": "http://slotfill.api",
+        "intro": "test introduction",
+        "instruction_docs": ["doc1.md", "doc2.md"],
+        "task_docs": ["task1.md", "task2.md"],
+        "rag_docs": ["rag1.md"],
+        "user_tasks": [
+            {
+                "name": "User Task 1",
+                "description": "Test user task",
+                "steps": [
+                    {"description": "Step 1"},
+                    {"description": "Step 2"},
+                ],
+            }
+        ],
+        "example_conversations": [{"user": "Hello", "assistant": "Hi"}],
         "workers": [
-            {"id": "worker1", "name": "Worker 1", "path": "/path/to/worker1"},
-            {"id": "worker2", "name": "Worker 2", "path": "/path/to/worker2"},
+            {"id": "worker1", "name": "TestWorker", "path": "test/path"},
+            {"id": "worker2", "name": "AnotherWorker", "path": "another/path"},
         ],
         "tools": [
-            {"id": "tool1", "name": "Tool 1", "path": "/path/to/tool1"},
-            {"id": "tool2", "name": "Tool 2", "path": "/path/to/tool2"},
+            {
+                "id": "tool1",
+                "name": "TestTool",
+                "description": "A test tool",
+                "path": "mock_path",
+            },
+            {
+                "id": "tool2",
+                "name": "AnotherTool",
+                "description": "Another test tool",
+                "path": "mock_path",
+            },
         ],
+        "nluapi": "test_nlu_api",
+        "slotfillapi": "test_slotfill_api",
+        "settings": {"setting1": "value1", "setting2": "value2"},
     }
 
 
-class TestGeneratorInitialization:
-    """Test Generator initialization and configuration."""
-
-    def test_generator_initialization(self, minimal_config, mock_model) -> None:
-        """Test basic generator initialization."""
-        gen = Generator(config=minimal_config, model=mock_model)
-
-    def test_generator_initialization(self, mock_model):
-        gen = Generator(model=mock_model)
-        assert gen.model is mock_model
-
-
 @pytest.fixture
-def mock_document_loader():
-    doc_loader = Mock()
-    doc_loader.load_task_document.return_value = {"id": "doc1"}
-    doc_loader.load_instruction_document.return_value = {"id": "inst1"}
-    return doc_loader
-
-
-@pytest.fixture
-def mock_task_generator():
-    """Create a mock task generator with standard return values."""
-    generator = MagicMock()
-    generator.add_provided_tasks.return_value = []
-    generator.generate_tasks.return_value = []
-    return generator
-
-
-@pytest.fixture
-def mock_best_practice_manager():
-    """Create a mock best practice manager with standard return values."""
-    manager = MagicMock()
-    manager.generate_best_practices.return_value = [
-        {"practice_id": "bp1", "name": "BP1"}
-    ]
-    manager.finetune_best_practice.side_effect = lambda bp, task: {
-        "steps": task.get("steps", [])
+def mock_resource_initializer() -> Mock:
+    """Create a mock resource initializer."""
+    mock_ri = Mock(spec=BaseResourceInitializer)
+    mock_ri.init_tools.return_value = {
+        "tool1": {"id": "tool1", "name": "MockTool1", "description": "Mock tool 1"},
+        "tool2": {"id": "tool2", "name": "MockTool2", "description": "Mock tool 2"},
     }
-    return manager
+    return mock_ri
 
 
 @pytest.fixture
-def mock_reusable_task_manager():
-    """Create a mock reusable task manager with standard return values."""
-    manager = MagicMock()
-    manager.generate_reusable_tasks.return_value = {}
-    return manager
+def mock_document_loader() -> Mock:
+    """Create a mock document loader."""
+    mock_loader = Mock(spec=DocumentLoader)
+    mock_loader.load_task_document.return_value = "Mock task document content"
+    mock_loader.load_instruction_document.return_value = (
+        "Mock instruction document content"
+    )
+    return mock_loader
 
 
 @pytest.fixture
-def mock_task_graph_formatter():
-    """Create a mock task graph formatter with standard return values."""
-    formatter = MagicMock()
-    # Return a mutable dict that can be assigned to
-    task_graph = {"nodes": [], "edges": []}
-    formatter.format_task_graph.return_value = task_graph
-    formatter.ensure_nested_graph_connectivity.return_value = task_graph
-    return formatter
+def mock_task_generator() -> Mock:
+    """Create a mock task generator."""
+    mock_generator = Mock(spec=TaskGenerator)
+    mock_generator.add_provided_tasks.return_value = [
+        {
+            "name": "Processed User Task",
+            "description": "Processed task description",
+            "steps": [
+                {"description": "Processed Step 1"},
+                {"description": "Processed Step 2"},
+            ],
+        }
+    ]
+    mock_generator.generate_tasks.return_value = [
+        {
+            "name": "Generated Task 1",
+            "description": "Generated task description",
+            "steps": [
+                {"description": "Generated Step 1"},
+                {"description": "Generated Step 2"},
+            ],
+        }
+    ]
+    return mock_generator
 
 
 @pytest.fixture
-def mock_prompt_manager():
-    """Create a mock prompt manager with standard return values."""
-    manager = MagicMock()
-    manager.get_prompt.return_value = "test prompt"
-    return manager
+def mock_best_practice_manager() -> Mock:
+    """Create a mock best practice manager."""
+    mock_manager = Mock(spec=BestPracticeManager)
+    mock_manager.generate_best_practices.return_value = [
+        {
+            "name": "Best Practice 1",
+            "description": "Best practice description",
+            "steps": [{"description": "Best practice step"}],
+        }
+    ]
+    mock_manager.finetune_best_practice.return_value = {
+        "name": "Finetuned Task",
+        "steps": [{"description": "Finetuned step with resource mapping"}],
+    }
+    return mock_manager
 
 
 @pytest.fixture
-def patched_generator_components(
-    patched_sample_config,
-    always_valid_mock_model,
-    mock_document_loader,
-    mock_task_generator,
-    mock_best_practice_manager,
-    mock_reusable_task_manager,
-    mock_task_graph_formatter,
-):
-    """Create a generator with all components patched for testing."""
-    gen = Generator(config=patched_sample_config, model=always_valid_mock_model)
-
-    with (
-        patch.object(
-            gen, "_initialize_document_loader", return_value=mock_document_loader
-        ),
-        patch.object(
-            gen, "_initialize_task_generator", return_value=mock_task_generator
-        ),
-        patch.object(
-            gen,
-            "_initialize_best_practice_manager",
-            return_value=mock_best_practice_manager,
-        ),
-        patch.object(
-            gen,
-            "_initialize_reusable_task_manager",
-            return_value=mock_reusable_task_manager,
-        ),
-        patch.object(
-            gen,
-            "_initialize_task_graph_formatter",
-            return_value=MagicMock(
-                format_task_graph=MagicMock(return_value={"nodes": [], "edges": []}),
-                ensure_nested_graph_connectivity=MagicMock(
-                    return_value={"nodes": [], "edges": []}
-                ),
-            ),
-        ),
-        patch("arklex.orchestrator.generator.core.generator.UI_AVAILABLE", False),
-    ):
-        yield gen
-
-
-# --- Test Data Fixtures ---
+def mock_reusable_task_manager() -> Mock:
+    """Create a mock reusable task manager."""
+    mock_manager = Mock(spec=ReusableTaskManager)
+    mock_manager.generate_reusable_tasks.return_value = {
+        "reusable_task_1": {
+            "name": "Reusable Task 1",
+            "description": "Reusable task description",
+            "parameters": {"param1": "string"},
+        }
+    }
+    return mock_manager
 
 
 @pytest.fixture
-def sample_tasks():
-    """Sample task data for testing."""
+def mock_task_graph_formatter() -> Mock:
+    """Create a mock task graph formatter."""
+    mock_formatter = Mock(spec=TaskGraphFormatter)
+    mock_formatter.format_task_graph.return_value = {
+        "tasks": [
+            {
+                "name": "Formatted Task",
+                "description": "Formatted task description",
+                "steps": [{"description": "Formatted step"}],
+            }
+        ],
+        "metadata": {"version": "1.0"},
+    }
+    mock_formatter.ensure_nested_graph_connectivity.return_value = {
+        "tasks": [{"name": "Connected Task"}],
+        "metadata": {"version": "1.0"},
+    }
+    return mock_formatter
+
+
+@pytest.fixture
+def mock_prompt_manager() -> Mock:
+    """Create a mock prompt manager."""
+    mock_manager = Mock(spec=PromptManager)
+    mock_manager.get_prompt.return_value = "Mock prompt for intent generation"
+    return mock_manager
+
+
+@pytest.fixture
+def sample_tasks() -> list[dict[str, Any]]:
+    """Create sample tasks for testing."""
     return [
         {
-            "id": "task1",
-            "name": "Test Task 1",
-            "description": "Test description",
-            "steps": [{"task": "Step 1", "description": "Test step"}],
-        }
+            "name": "Task 1",
+            "description": "First task description",
+            "steps": [{"description": "Step 1"}, {"description": "Step 2"}],
+        },
+        {
+            "name": "Task 2",
+            "description": "Second task description",
+            "steps": [{"description": "Step 3"}, {"description": "Step 4"}],
+        },
     ]
 
 
 @pytest.fixture
-def sample_best_practices():
-    """Sample best practice data for testing."""
+def sample_best_practices() -> list[dict[str, Any]]:
+    """Create sample best practices for testing."""
     return [
         {
-            "practice_id": "bp1",
-            "name": "Test Practice",
-            "description": "Test practice description",
-        }
+            "name": "Best Practice 1",
+            "description": "First best practice",
+            "steps": [{"description": "Best practice step 1"}],
+        },
+        {
+            "name": "Best Practice 2",
+            "description": "Second best practice",
+            "steps": [{"description": "Best practice step 2"}],
+        },
     ]
 
 
-# --- Core Generator Tests ---
+# --- Test Classes ---
 
 
 class TestGeneratorInitialization:
-    """Test suite for Generator initialization and basic functionality."""
+    """Test Generator class initialization and configuration handling."""
 
-    def test_generator_initialization(
-        self, patched_sample_config, always_valid_mock_model
-    ):
-        """Test generator initialization with basic configuration."""
-        gen = Generator(config=patched_sample_config, model=always_valid_mock_model)
+    def test_init_with_minimal_config(self, always_valid_mock_model: Mock) -> None:
+        """Test Generator initialization with minimal configuration."""
+        config = {"role": "test_role", "user_objective": "test objective"}
 
-        assert gen.role == "test_role"
-        assert gen.user_objective == "test_objective"
-        assert gen.builder_objective == "test_builder_objective"
-        assert gen.intro == "test_intro"
-        assert isinstance(gen.resource_initializer, DefaultResourceInitializer)
-        assert gen.interactable_with_user is True
-        assert gen.allow_nested_graph is True
-        assert gen.model is always_valid_mock_model
-
-    def test_generator_with_full_config(self, full_config, mock_model):
-        """Test generator initialization with full configuration."""
-        # Mock the resource initializer to avoid tool loading errors
-        with patch(
-            "arklex.orchestrator.generator.core.generator.DefaultResourceInitializer"
-        ) as mock_ri_class:
-            mock_ri = Mock()
-            mock_ri.init_tools.return_value = {"tool1": {}, "tool2": {}}
-            mock_ri_class.return_value = mock_ri
-
-            gen = Generator(config=full_config, model=mock_model)
-            assert gen.domain == "test_domain"
-            assert gen.nluapi == "http://nlu.api"
-            assert gen.slotfillapi == "http://slotfill.api"
-            assert len(gen.workers) == 2
-            assert len(gen.tools) == 2
-            assert gen.workers[0]["id"] == "worker1"
-            assert gen.tools["tool1"] == {}
-
-    def test_generator_with_invalid_resource_initializer(
-        self, minimal_config, mock_model
-    ) -> None:
-        """Test generator falls back to DefaultResourceInitializer if None is provided."""
-        gen = Generator(
-            config=minimal_config, model=mock_model, resource_initializer=None
+        generator = Generator(
+            config=config,
+            model=always_valid_mock_model,
         )
-        assert isinstance(gen.resource_initializer, DefaultResourceInitializer)
 
-    def test_generator_with_invalid_resource_initializer_alt(
-        self, patched_sample_config, always_valid_mock_model
-    ):
-        """Test generator fallback to DefaultResourceInitializer when None is provided."""
-        gen = Generator(
+        assert generator.role == "test_role"
+        assert generator.user_objective == "test objective"
+        assert generator.builder_objective == ""
+        assert generator.domain == ""
+        assert generator.intro == ""
+        assert generator.instruction_docs == []
+        assert generator.task_docs == []
+        assert generator.rag_docs == []
+        assert generator.user_tasks == []
+        assert generator.example_conversations == []
+        assert generator.workers == []
+        # Tools will be initialized by resource_initializer, so we just check it's not None
+        assert generator.tools is not None
+        assert generator.nluapi == ""
+        assert generator.slotfillapi == ""
+        assert generator.settings == {}
+        assert generator.interactable_with_user is True
+        assert generator.allow_nested_graph is True
+        assert generator.model == always_valid_mock_model
+        assert generator.output_dir is None
+        assert generator.documents == ""
+        assert generator.instructions == ""
+        assert generator.reusable_tasks == {}
+        assert generator.tasks == []
+
+    def test_init_with_full_config(
+        self,
+        always_valid_mock_model: Mock,
+        patched_sample_config: dict[str, Any],
+        mock_resource_initializer: Mock,
+    ) -> None:
+        """Test Generator initialization with full configuration."""
+        generator = Generator(
             config=patched_sample_config,
             model=always_valid_mock_model,
-            resource_initializer=None,
-        )
-        assert isinstance(gen.resource_initializer, DefaultResourceInitializer)
-
-    def test_generator_with_custom_resource_initializer(
-        self, minimal_config, mock_model
-    ) -> None:
-        """Test generator with custom resource initializer."""
-
-        class CustomInitializer(BaseResourceInitializer):
-            def init_workers(self, workers):
-                return {"custom_worker": {}}
-
-            def init_tools(self, tools):
-                return {"custom_tool": {}}
-
-        gen = Generator(
-            config=minimal_config,
-            model=mock_model,
-            resource_initializer=CustomInitializer(),
-        )
-        assert isinstance(gen.resource_initializer, CustomInitializer)
-
-    def test_generator_with_output_dir(self, minimal_config, mock_model) -> None:
-        """Test generator with output directory."""
-        with tempfile.TemporaryDirectory() as temp_dir:
-            gen = Generator(
-                config=minimal_config, model=mock_model, output_dir=temp_dir
-            )
-            assert gen.output_dir == temp_dir
-
-    def test_generator_without_output_dir(self, minimal_config, mock_model) -> None:
-        """Test generator without output directory."""
-        gen = Generator(config=minimal_config, model=mock_model)
-        assert gen.output_dir is None
-
-    def test_generator_with_disabled_flags(self, minimal_config, mock_model) -> None:
-        """Test generator with disabled interaction and nested graph."""
-        gen = Generator(
-            config=minimal_config,
-            model=mock_model,
+            output_dir="/test/output",
             interactable_with_user=False,
             allow_nested_graph=False,
-        )
-        assert gen.interactable_with_user is False
-        assert gen.allow_nested_graph is False
-
-    def test_generator_workers_conversion(self, full_config, mock_model) -> None:
-        """Test that workers are properly converted to the expected format."""
-        gen = Generator(config=full_config, model=mock_model)
-        assert len(gen.workers) == 2
-        assert all(isinstance(worker, dict) for worker in gen.workers)
-        assert all(
-            "id" in worker and "name" in worker and "path" in worker
-            for worker in gen.workers
+            resource_initializer=mock_resource_initializer,
         )
 
-    def test_generator_workers_invalid_format(self, minimal_config, mock_model) -> None:
-        """Test generator handles invalid worker format gracefully."""
-        config_with_invalid_workers = minimal_config.copy()
-        config_with_invalid_workers["workers"] = [
-            {"name": "worker1"},  # Missing id and path
-            {"id": "worker2", "path": "/path"},  # Missing name
-            {"id": "worker3", "name": "worker3"},  # Missing path
-            {"id": "worker4", "name": "worker4", "path": "/path"},  # Valid
+        assert generator.role == "test_role"
+        assert generator.user_objective == "test user objective"
+        assert generator.builder_objective == "test builder objective"
+        assert generator.domain == "test_domain"
+        assert generator.intro == "test introduction"
+        assert generator.instruction_docs == ["doc1.md", "doc2.md"]
+        assert generator.task_docs == ["task1.md", "task2.md"]
+        assert generator.rag_docs == ["rag1.md"]
+        assert generator.user_tasks == [
+            {
+                "name": "User Task 1",
+                "description": "Test user task",
+                "steps": [
+                    {"description": "Step 1"},
+                    {"description": "Step 2"},
+                ],
+            }
         ]
+        assert generator.example_conversations == [{"user": "Hello", "assistant": "Hi"}]
+        assert generator.nluapi == "test_nlu_api"
+        assert generator.slotfillapi == "test_slotfill_api"
+        assert generator.settings == {"setting1": "value1", "setting2": "value2"}
+        assert generator.interactable_with_user is False
+        assert generator.allow_nested_graph is False
+        assert generator.output_dir == "/test/output"
 
-        gen = Generator(config=config_with_invalid_workers, model=mock_model)
-        # Should only include valid workers
-        assert len(gen.workers) == 1
-        assert gen.workers[0]["id"] == "worker4"
+    def test_init_with_custom_resource_initializer(
+        self, always_valid_mock_model: Mock, mock_resource_initializer: Mock
+    ) -> None:
+        """Test Generator initialization with custom resource initializer."""
+        config = {
+            "role": "test_role",
+            "user_objective": "test objective",
+            "tools": [{"name": "TestTool", "path": "mock_path"}],
+        }
+
+        generator = Generator(
+            config=config,
+            model=always_valid_mock_model,
+            resource_initializer=mock_resource_initializer,
+        )
+
+        assert generator.resource_initializer == mock_resource_initializer
+        mock_resource_initializer.init_tools.assert_called_once_with(
+            [{"name": "TestTool", "path": "mock_path"}]
+        )
+
+    def test_init_with_default_resource_initializer(
+        self, always_valid_mock_model: Mock
+    ) -> None:
+        """Test Generator initialization with default resource initializer."""
+        config = {"role": "test_role", "user_objective": "test objective"}
+
+        generator = Generator(
+            config=config,
+            model=always_valid_mock_model,
+        )
+
+        assert isinstance(generator.resource_initializer, DefaultResourceInitializer)
+
+    def test_init_worker_processing(self, always_valid_mock_model: Mock) -> None:
+        """Test worker processing during initialization."""
+        config = {
+            "role": "test_role",
+            "user_objective": "test objective",
+            "workers": [
+                {"id": "worker1", "name": "Worker1", "path": "/path1"},
+                {"id": "worker2", "name": "Worker2", "path": "/path2"},
+                {"id": "worker3", "name": "Worker3"},  # Missing path
+                {"name": "Worker4", "path": "/path4"},  # Missing id
+                {"id": "worker5", "path": "/path5"},  # Missing name
+                "invalid_worker",  # Not a dict
+            ],
+        }
+
+        generator = Generator(
+            config=config,
+            model=always_valid_mock_model,
+        )
+
+        expected_workers = [
+            {"id": "worker1", "name": "Worker1", "path": "/path1"},
+            {"id": "worker2", "name": "Worker2", "path": "/path2"},
+        ]
+        assert generator.workers == expected_workers
+
+    def test_init_timestamp_generation(self, always_valid_mock_model: Mock) -> None:
+        """Test timestamp generation during initialization."""
+        config = {"role": "test_role", "user_objective": "test objective"}
+
+        generator = Generator(
+            config=config,
+            model=always_valid_mock_model,
+        )
+
+        # Verify timestamp is a string in the expected format
+        assert isinstance(generator.timestamp, str)
+        assert len(generator.timestamp) == 14  # YYYYMMDDHHMMSS format
+        # Verify it's a valid timestamp by parsing it
+        datetime.strptime(generator.timestamp, "%Y%m%d%H%M%S")
+
+    def test_init_component_references_initialization(
+        self, always_valid_mock_model: Mock
+    ) -> None:
+        """Test that component references are initialized to None."""
+        config = {"role": "test_role", "user_objective": "test objective"}
+
+        generator = Generator(
+            config=config,
+            model=always_valid_mock_model,
+        )
+
+        assert generator._doc_loader is None
+        assert generator._task_generator is None
+        assert generator._best_practice_manager is None
+        assert generator._reusable_task_manager is None
+        assert generator._task_graph_formatter is None
 
 
-class TestGeneratorComponentInitialization:
-    """Test Generator component initialization methods."""
+class TestComponentInitialization:
+    """Test component initialization methods."""
 
     def test_initialize_document_loader_with_output_dir(
-        self, minimal_config, mock_model
+        self, always_valid_mock_model: Mock, patched_sample_config: dict[str, Any]
     ) -> None:
         """Test document loader initialization with output directory."""
-        with tempfile.TemporaryDirectory() as temp_dir:
-            gen = Generator(
-                config=minimal_config, model=mock_model, output_dir=temp_dir
-            )
+        generator = Generator(
+            config=patched_sample_config,
+            model=always_valid_mock_model,
+            output_dir="/test/output",
+        )
 
-            with patch(
+        with (
+            patch(
                 "arklex.orchestrator.generator.core.generator.DocumentLoader"
-            ) as mock_loader_class:
-                mock_loader = Mock()
-                mock_loader_class.return_value = mock_loader
+            ) as mock_loader_class,
+            patch("pathlib.Path.mkdir") as mock_mkdir,
+        ):
+            mock_loader_instance = Mock()
+            mock_loader_class.return_value = mock_loader_instance
 
-                doc_loader = gen._initialize_document_loader()
+            doc_loader = generator._initialize_document_loader()
 
-                mock_loader_class.assert_called_once()
-                assert doc_loader == mock_loader
+            # Verify cache directory was created
+            mock_mkdir.assert_called_once_with(exist_ok=True)
+            mock_loader_class.assert_called_once()
+            assert doc_loader == mock_loader_instance
+            assert generator._doc_loader == mock_loader_instance
 
     def test_initialize_document_loader_without_output_dir(
-        self, minimal_config, mock_model
-    ):
+        self, always_valid_mock_model: Mock, patched_sample_config: dict[str, Any]
+    ) -> None:
         """Test document loader initialization without output directory."""
-        gen = Generator(config=minimal_config, model=mock_model)
+        generator = Generator(
+            config=patched_sample_config,
+            model=always_valid_mock_model,
+        )
+
+        with (
+            patch(
+                "arklex.orchestrator.generator.core.generator.DocumentLoader"
+            ) as mock_loader_class,
+            patch(
+                "arklex.orchestrator.generator.core.generator.Path"
+            ) as mock_path_class,
+        ):
+            mock_cache_dir = Mock()
+            mock_cwd = MagicMock()
+            mock_cwd.__truediv__.return_value = mock_cache_dir
+            mock_path_class.cwd.return_value = mock_cwd
+
+            mock_loader_instance = Mock()
+            mock_loader_class.return_value = mock_loader_instance
+
+            doc_loader = generator._initialize_document_loader()
+
+            mock_cache_dir.mkdir.assert_called_once_with(exist_ok=True)
+            mock_loader_class.assert_called_once_with(mock_cache_dir)
+            assert doc_loader == mock_loader_instance
+
+    def test_initialize_document_loader_caching(
+        self, always_valid_mock_model: Mock, patched_sample_config: dict[str, Any]
+    ) -> None:
+        """Test that document loader is cached after first initialization."""
+        generator = Generator(
+            config=patched_sample_config,
+            model=always_valid_mock_model,
+        )
 
         with patch(
             "arklex.orchestrator.generator.core.generator.DocumentLoader"
         ) as mock_loader_class:
-            with patch(
-                "arklex.orchestrator.generator.core.generator.Path"
-            ) as mock_path_class:
-                from unittest.mock import MagicMock
+            mock_loader_instance = Mock()
+            mock_loader_class.return_value = mock_loader_instance
 
-                mock_cache_dir = MagicMock()
-                mock_cwd = MagicMock()
-                mock_cwd.__truediv__.return_value = mock_cache_dir
-                mock_path_class.cwd.return_value = mock_cwd
+            # First call
+            doc_loader1 = generator._initialize_document_loader()
+            # Second call
+            doc_loader2 = generator._initialize_document_loader()
 
-                gen._initialize_document_loader()
-                mock_loader_class.assert_called()
+            # Should only be called once
+            mock_loader_class.assert_called_once()
+            assert doc_loader1 == doc_loader2 == mock_loader_instance
 
-    def test_initialize_task_generator(self, minimal_config, mock_model) -> None:
+    def test_initialize_task_generator(
+        self, always_valid_mock_model: Mock, patched_sample_config: dict[str, Any]
+    ) -> None:
         """Test task generator initialization."""
-        gen = Generator(config=minimal_config, model=mock_model)
-
-        with patch(
-            "arklex.orchestrator.generator.core.generator.TaskGenerator"
-        ) as mock_task_gen_class:
-            mock_task_gen = Mock()
-            mock_task_gen_class.return_value = mock_task_gen
-
-            task_gen = gen._initialize_task_generator()
-
-            mock_task_gen_class.assert_called_once_with(
-                model=mock_model,
-                role="test_role",
-                user_objective="test_objective",
-                instructions="",
-                documents="",
-            )
-            assert task_gen == mock_task_gen
-
-    def test_initialize_best_practice_manager(self, full_config, mock_model) -> None:
-        """Test best practice manager initialization."""
-        gen = Generator(config=full_config, model=mock_model)
-
-        with patch(
-            "arklex.orchestrator.generator.core.generator.BestPracticeManager"
-        ) as mock_bpm_class:
-            mock_bpm = Mock()
-            mock_bpm_class.return_value = mock_bpm
-
-            bpm = gen._initialize_best_practice_manager()
-
-            # Check that all resources are included
-            call_args = mock_bpm_class.call_args[1]
-            assert call_args["model"] == mock_model
-            assert call_args["role"] == "test_role"
-            assert call_args["user_objective"] == "test_objective"
-            assert (
-                len(call_args["all_resources"]) > 0
-            )  # Should include workers, tools, and nested_graph
-            assert bpm == mock_bpm
-
-    def test_initialize_best_practice_manager_without_nested_graph(
-        self, full_config, mock_model
-    ) -> None:
-        """Test best practice manager initialization without nested graph."""
-        gen = Generator(config=full_config, model=mock_model, allow_nested_graph=False)
-
-        with patch(
-            "arklex.orchestrator.generator.core.generator.BestPracticeManager"
-        ) as mock_bpm_class:
-            mock_bpm = Mock()
-            mock_bpm_class.return_value = mock_bpm
-
-            bpm = gen._initialize_best_practice_manager()
-
-            # Check that nested_graph is not included when disabled
-            call_args = mock_bpm_class.call_args[1]
-            all_resources = call_args["all_resources"]
-            nested_graph_resources = [
-                r for r in all_resources if r.get("type") == "nested_graph"
-            ]
-            assert len(nested_graph_resources) == 0
-            assert bpm == mock_bpm  # Fix variable name from bpm to result
-
-    def test_initialize_reusable_task_manager(self, minimal_config, mock_model) -> None:
-        """Test reusable task manager initialization."""
-        gen = Generator(config=minimal_config, model=mock_model)
-
-        with patch(
-            "arklex.orchestrator.generator.core.generator.ReusableTaskManager"
-        ) as mock_rtm_class:
-            mock_rtm = Mock()
-            mock_rtm_class.return_value = mock_rtm
-
-            rtm = gen._initialize_reusable_task_manager()
-
-            mock_rtm_class.assert_called_once_with(
-                model=mock_model, role="test_role", user_objective="test_objective"
-            )
-            assert rtm == mock_rtm
-
-    def test_initialize_task_graph_formatter(self, full_config, mock_model) -> None:
-        """Test task graph formatter initialization."""
-        gen = Generator(config=full_config, model=mock_model)
-
-        with patch(
-            "arklex.orchestrator.generator.core.generator.TaskGraphFormatter"
-        ) as mock_tgf_class:
-            mock_tgf = Mock()
-            mock_tgf_class.return_value = mock_tgf
-
-            tgf = gen._initialize_task_graph_formatter()
-
-            call_args = mock_tgf_class.call_args[1]
-            assert call_args["role"] == "test_role"
-            assert call_args["user_objective"] == "test_objective"
-            assert call_args["builder_objective"] == "test_builder_objective"
-            assert call_args["domain"] == "test_domain"
-            assert call_args["nluapi"] == "http://nlu.api"
-            assert call_args["slotfillapi"] == "http://slotfill.api"
-            assert tgf == mock_tgf
-
-
-class TestGeneratorDocumentLoading:
-    """Test Generator document loading functionality."""
-
-    def test_load_multiple_task_documents_list(
-        self, minimal_config, mock_model
-    ) -> None:
-        """Test loading multiple task documents from a list."""
-        gen = Generator(config=minimal_config, model=mock_model)
-
-        doc_paths = ["doc1.txt", "doc2.txt"]
-        mock_doc_loader = Mock()
-        mock_doc_loader.load_task_document.side_effect = ["content1", "content2"]
-
-        result = gen._load_multiple_task_documents(mock_doc_loader, doc_paths)
-
-        assert result == ["content1", "content2"]
-        assert mock_doc_loader.load_task_document.call_count == 2
-        mock_doc_loader.load_task_document.assert_any_call("doc1.txt")
-        mock_doc_loader.load_task_document.assert_any_call("doc2.txt")
-
-    def test_load_multiple_task_documents_dict_list(
-        self, minimal_config, mock_model
-    ) -> None:
-        """Test loading multiple task documents from a list of dictionaries."""
-        gen = Generator(config=minimal_config, model=mock_model)
-
-        doc_paths = [{"source": "doc1.txt"}, {"source": "doc2.txt"}]
-        mock_doc_loader = Mock()
-        mock_doc_loader.load_task_document.side_effect = ["content1", "content2"]
-
-        result = gen._load_multiple_task_documents(mock_doc_loader, doc_paths)
-
-        assert result == ["content1", "content2"]
-        assert mock_doc_loader.load_task_document.call_count == 2
-        mock_doc_loader.load_task_document.assert_any_call("doc1.txt")
-        mock_doc_loader.load_task_document.assert_any_call("doc2.txt")
-
-    def test_load_multiple_task_documents_single_string(
-        self, minimal_config, mock_model
-    ) -> None:
-        """Test loading a single task document from a string."""
-        gen = Generator(config=minimal_config, model=mock_model)
-
-        doc_paths = "doc1.txt"
-        mock_doc_loader = Mock()
-        mock_doc_loader.load_task_document.return_value = "content1"
-
-        result = gen._load_multiple_task_documents(mock_doc_loader, doc_paths)
-
-        assert result == ["content1"]
-        mock_doc_loader.load_task_document.assert_called_once_with("doc1.txt")
-
-    def test_load_multiple_task_documents_single_dict(
-        self, minimal_config, mock_model
-    ) -> None:
-        """Test loading a single task document from a dictionary."""
-        gen = Generator(config=minimal_config, model=mock_model)
-
-        doc_paths = {"source": "doc1.txt"}
-        mock_doc_loader = Mock()
-        mock_doc_loader.load_task_document.return_value = "content1"
-
-        result = gen._load_multiple_task_documents(mock_doc_loader, doc_paths)
-
-        assert result == ["content1"]
-        mock_doc_loader.load_task_document.assert_called_once_with("doc1.txt")
-
-    def test_load_multiple_instruction_documents_list(
-        self, minimal_config, mock_model
-    ) -> None:
-        """Test loading multiple instruction documents from a list."""
-        gen = Generator(config=minimal_config, model=mock_model)
-
-        doc_paths = ["instruction1.txt", "instruction2.txt"]
-        mock_doc_loader = Mock()
-        mock_doc_loader.load_instruction_document.side_effect = ["content1", "content2"]
-
-        result = gen._load_multiple_instruction_documents(mock_doc_loader, doc_paths)
-
-        assert result == ["content1", "content2"]
-        assert mock_doc_loader.load_instruction_document.call_count == 2
-        mock_doc_loader.load_instruction_document.assert_any_call("instruction1.txt")
-        mock_doc_loader.load_instruction_document.assert_any_call("instruction2.txt")
-
-    def test_load_multiple_instruction_documents_dict_list(
-        self, minimal_config, mock_model
-    ) -> None:
-        """Test loading multiple instruction documents from a list of dictionaries."""
-        gen = Generator(config=minimal_config, model=mock_model)
-
-        doc_paths = [{"source": "instruction1.txt"}, {"source": "instruction2.txt"}]
-        mock_doc_loader = Mock()
-        mock_doc_loader.load_instruction_document.side_effect = ["content1", "content2"]
-
-        result = gen._load_multiple_instruction_documents(mock_doc_loader, doc_paths)
-
-        assert result == ["content1", "content2"]
-        assert mock_doc_loader.load_instruction_document.call_count == 2
-        mock_doc_loader.load_instruction_document.assert_any_call("instruction1.txt")
-        mock_doc_loader.load_instruction_document.assert_any_call("instruction2.txt")
-
-    def test_load_multiple_instruction_documents_single_string(
-        self, minimal_config, mock_model
-    ) -> None:
-        """Test loading a single instruction document from a string."""
-        gen = Generator(config=minimal_config, model=mock_model)
-
-        doc_paths = "instruction1.txt"
-        mock_doc_loader = Mock()
-        mock_doc_loader.load_instruction_document.return_value = "content1"
-
-        result = gen._load_multiple_instruction_documents(mock_doc_loader, doc_paths)
-
-        assert result == ["content1"]
-        mock_doc_loader.load_instruction_document.assert_called_once_with(
-            "instruction1.txt"
-        )
-
-    def test_load_multiple_instruction_documents_single_dict(
-        self, minimal_config, mock_model
-    ) -> None:
-        """Test loading a single instruction document from a dictionary."""
-        gen = Generator(config=minimal_config, model=mock_model)
-
-        doc_paths = {"source": "instruction1.txt"}
-        mock_doc_loader = Mock()
-        mock_doc_loader.load_instruction_document.return_value = "content1"
-
-        result = gen._load_multiple_instruction_documents(mock_doc_loader, doc_paths)
-
-        assert result == ["content1"]
-        mock_doc_loader.load_instruction_document.assert_called_once_with(
-            "instruction1.txt"
-        )
-
-    def test_load_multiple_task_documents_with_none_paths(
-        self, minimal_config, mock_model
-    ) -> None:
-        """Test loading multiple task documents with None paths."""
-        gen = Generator(config=minimal_config, model=mock_model)
-
-        with patch.object(gen, "_initialize_document_loader") as mock_doc_loader:
-            mock_doc_loader.return_value.load_task_document.return_value = "doc1"
-
-            result = gen._load_multiple_task_documents(
-                mock_doc_loader.return_value, None
-            )
-
-            # When None is passed, it's treated as a string and loaded as a document
-            assert result == ["doc1"]
-
-    def test_load_multiple_instruction_documents_with_none_paths(
-        self, minimal_config, mock_model
-    ):
-        """Test loading multiple instruction documents with None paths."""
-        gen = Generator(config=minimal_config, model=mock_model)
-
-        with patch.object(gen, "_initialize_document_loader") as mock_doc_loader:
-            mock_doc_loader.return_value.load_instruction_document.return_value = (
-                "inst1"
-            )
-
-            result = gen._load_multiple_instruction_documents(
-                mock_doc_loader.return_value, None
-            )
-
-            # When None is passed, it's treated as a string and loaded as a document
-            assert result == ["inst1"]
-
-
-class TestGeneratorGenerate:
-    """Test Generator generate method."""
-
-    def test_generator_generate_calls_components(
-        self, minimal_config, mock_model
-    ) -> None:
-        """Test that generate method calls all components correctly."""
-        gen = Generator(config=minimal_config, model=mock_model)
-
-        # Patch component initializers to return mocks
-        with (
-            patch.object(gen, "_initialize_document_loader") as doc_loader_patch,
-            patch.object(gen, "_initialize_task_generator") as task_gen_patch,
-            patch.object(gen, "_initialize_best_practice_manager") as bpm_patch,
-            patch.object(gen, "_initialize_reusable_task_manager") as rtm_patch,
-            patch.object(gen, "_initialize_task_graph_formatter") as tgf_patch,
-            patch("arklex.orchestrator.generator.core.generator.UI_AVAILABLE", False),
-        ):
-            # Setup mocks
-            doc_loader = Mock()
-            doc_loader.load_task_document.return_value = "docs"
-            doc_loader.load_instruction_document.return_value = "instructions"
-            doc_loader_patch.return_value = doc_loader
-
-            task_gen = Mock()
-            task_gen.add_provided_tasks.return_value = []
-            task_gen.generate_tasks.return_value = []
-            task_gen_patch.return_value = task_gen
-
-            bpm = Mock()
-            bpm.generate_best_practices.return_value = []
-            bpm_patch.return_value = bpm
-
-            rtm = Mock()
-            rtm.generate_reusable_tasks.return_value = {}
-            rtm_patch.return_value = rtm
-
-            tgf = Mock()
-            tgf.format_task_graph.return_value = {"nodes": [], "edges": []}
-            tgf.ensure_nested_graph_connectivity.return_value = {
-                "nodes": [],
-                "edges": [],
-            }
-            tgf_patch.return_value = tgf
-
-            # Call generate
-            result = gen.generate()
-
-            # Verify result
-            assert isinstance(result, dict)
-            assert "nodes" in result and "edges" in result
-
-            # Verify component calls
-            doc_loader_patch.assert_called_once()
-            task_gen_patch.assert_called_once()
-            bpm_patch.assert_called_once()
-            rtm_patch.assert_called_once()
-            tgf_patch.assert_called_once()
-
-    def test_generator_generate_with_multiple_documents(
-        self, full_config, mock_model
-    ) -> None:
-        """Test generate method with multiple documents."""
-        gen = Generator(config=full_config, model=mock_model)
-
-        with (
-            patch.object(gen, "_initialize_document_loader") as doc_loader_patch,
-            patch.object(gen, "_initialize_task_generator") as task_gen_patch,
-            patch.object(gen, "_initialize_best_practice_manager") as bpm_patch,
-            patch.object(gen, "_initialize_reusable_task_manager") as rtm_patch,
-            patch.object(gen, "_initialize_task_graph_formatter") as tgf_patch,
-            patch("arklex.orchestrator.generator.core.generator.UI_AVAILABLE", False),
-        ):
-            # Setup mocks
-            doc_loader = Mock()
-            doc_loader.load_task_document.side_effect = ["doc1", "doc2"]
-            doc_loader.load_instruction_document.side_effect = [
-                "instruction1",
-                "instruction2",
-            ]
-            doc_loader_patch.return_value = doc_loader
-
-            task_gen = Mock()
-            task_gen.add_provided_tasks.return_value = []
-            task_gen.generate_tasks.return_value = []
-            task_gen_patch.return_value = task_gen
-
-
-class TestGeneratorCoreFunctionality:
-    """Test suite for core generator functionality."""
-
-    def test_generator_generate_calls_components(self, patched_generator_components):
-        """Test that generate method calls all required components."""
-        result = patched_generator_components.generate()
-
-        assert isinstance(result, dict)
-        assert "nodes" in result and "edges" in result
-
-    def test_generator_save_task_graph(
-        self, patched_sample_config, always_valid_mock_model, tmp_path
-    ):
-        """Test saving task graph to file."""
-        gen = Generator(
+        generator = Generator(
             config=patched_sample_config,
             model=always_valid_mock_model,
-            output_dir=str(tmp_path),
         )
-        task_graph = {"nodes": [], "edges": []}
-
-        output_path = gen.save_task_graph(task_graph)
-
-        assert output_path.endswith(".json")
-        import os
-
-        assert os.path.exists(output_path)
-
-    def test_generator_document_instruction_type_conversion(
-        self, patched_sample_config, always_valid_mock_model
-    ):
-        """Test that documents and instructions are converted from lists to strings."""
-        config_with_lists = patched_sample_config.copy()
-        config_with_lists["task_docs"] = ["doc1.txt", "doc2.txt"]
-        config_with_lists["instruction_docs"] = ["instruction1.txt", "instruction2.txt"]
-
-        gen = Generator(config=config_with_lists, model=always_valid_mock_model)
-        mock_document_loader = MagicMock()
-        mock_document_loader.load_task_document.return_value = "Document content"
-        mock_document_loader.load_instruction_document.return_value = (
-            "Instruction content"
-        )
-
-        with (
-            patch.object(
-                gen, "_initialize_document_loader", return_value=mock_document_loader
-            ),
-            patch.object(gen, "_initialize_task_generator", return_value=MagicMock()),
-            patch.object(
-                gen, "_initialize_best_practice_manager", return_value=MagicMock()
-            ),
-            patch.object(
-                gen, "_initialize_reusable_task_manager", return_value=MagicMock()
-            ),
-            patch.object(gen, "_initialize_task_graph_formatter") as tgf_patch,
-            patch("arklex.orchestrator.generator.core.generator.UI_AVAILABLE", False),
-        ):
-            # Patch formatter methods to return a real dict
-            tgf = MagicMock()
-            tgf.format_task_graph.return_value = {"nodes": [], "edges": []}
-            tgf.ensure_nested_graph_connectivity.return_value = {
-                "nodes": [],
-                "edges": [],
-            }
-            tgf_patch.return_value = tgf
-
-            gen.generate()
-
-            # Verify document loader was called with correct arguments
-            assert mock_document_loader.load_task_document.call_count == 2
-            assert mock_document_loader.load_instruction_document.call_count == 2
-
-            # --- Advanced Generator Tests ---
-
-            # Call generate
-            result = gen.generate()
-
-            # Verify documents were loaded and concatenated
-            assert "Document content" in gen.documents
-            assert "Instruction content" in gen.instructions
-
-            assert isinstance(result, dict)
-
-    def test_generator_generate_with_user_tasks(self, full_config, mock_model) -> None:
-        """Test generate method with user-provided tasks."""
-        # Mock the resource initializer to avoid tool loading errors
-        with patch(
-            "arklex.orchestrator.generator.core.generator.DefaultResourceInitializer"
-        ) as mock_ri_class:
-            mock_ri = Mock()
-            mock_ri.init_tools.return_value = {"tool1": {}, "tool2": {}}
-            mock_ri_class.return_value = mock_ri
-
-            gen = Generator(config=full_config, model=mock_model)
-
-            with (
-                patch.object(gen, "_initialize_document_loader") as doc_loader_patch,
-                patch.object(gen, "_initialize_task_generator") as task_gen_patch,
-                patch.object(gen, "_initialize_best_practice_manager") as bpm_patch,
-                patch.object(gen, "_initialize_reusable_task_manager") as rtm_patch,
-                patch.object(gen, "_initialize_task_graph_formatter") as tgf_patch,
-                patch(
-                    "arklex.orchestrator.generator.core.generator.UI_AVAILABLE", False
-                ),
-            ):
-                # Setup mocks
-                doc_loader = Mock()
-                doc_loader.load_task_document.return_value = "docs"
-                doc_loader.load_instruction_document.return_value = "instructions"
-                doc_loader_patch.return_value = doc_loader
-
-                task_gen = Mock()
-                task_gen.add_provided_tasks.return_value = [{"id": "user_task1"}]
-                task_gen.generate_tasks.return_value = [{"id": "generated_task1"}]
-                task_gen_patch.return_value = task_gen
-
-                bpm = Mock()
-                bpm.generate_best_practices.return_value = []
-                bpm_patch.return_value = bpm
-
-                rtm = Mock()
-                rtm.generate_reusable_tasks.return_value = {}
-                rtm_patch.return_value = rtm
-
-                tgf = Mock()
-                tgf.format_task_graph.return_value = {"nodes": [], "edges": []}
-                tgf.ensure_nested_graph_connectivity.return_value = {
-                    "nodes": [],
-                    "edges": [],
-                }
-                tgf_patch.return_value = tgf
-
-                # Call generate
-                result = gen.generate()
-
-                # Verify user tasks were added (check that it was called with the correct arguments)
-                task_gen.add_provided_tasks.assert_called_once()
-                call_args = task_gen.add_provided_tasks.call_args[0][0]
-                assert len(call_args) == 1
-                assert call_args[0]["id"] == "task1"
-                assert call_args[0]["name"] == "User Task 1"
-
-                assert isinstance(result, dict)
-
-    def test_generate_with_empty_task_docs(self, minimal_config, mock_model) -> None:
-        """Test generate method with empty task docs."""
-        gen = Generator(config=minimal_config, model=mock_model)
-        gen.task_docs = []
-
-        mock_task_generator = Mock()
-        mock_task_generator.generate_tasks.return_value = []
-
-        mock_bpm = Mock()
-        mock_bpm.generate_best_practices.return_value = []
-
-        mock_rtm = Mock()
-        mock_rtm.generate_reusable_tasks.return_value = {}
-
-        mock_tgf = Mock()
-        mock_tgf.format_task_graph.return_value = {"nodes": [], "edges": []}
-        mock_tgf.ensure_nested_graph_connectivity.return_value = {
-            "nodes": [],
-            "edges": [],
-        }
-
-        with (
-            patch.object(gen, "_initialize_document_loader") as mock_init_loader,
-            patch.object(gen, "_initialize_task_generator") as mock_init_task,
-            patch.object(gen, "_initialize_best_practice_manager") as mock_init_bpm,
-            patch.object(gen, "_initialize_reusable_task_manager") as mock_init_rtm,
-            patch.object(gen, "_initialize_task_graph_formatter") as mock_init_tgf,
-            patch("arklex.orchestrator.generator.core.generator.UI_AVAILABLE", False),
-        ):
-            mock_init_loader.return_value = Mock()
-            mock_init_task.return_value = mock_task_generator
-            mock_init_bpm.return_value = mock_bpm
-            mock_init_rtm.return_value = mock_rtm
-            mock_init_tgf.return_value = mock_tgf
-
-            result = gen.generate()
-            assert isinstance(result, dict)
-
-    def test_generate_with_empty_user_tasks(self, minimal_config, mock_model) -> None:
-        """Test generate method with empty user tasks."""
-        gen = Generator(config=minimal_config, model=mock_model)
-        gen.user_tasks = []
-
-        mock_task_generator = Mock()
-        mock_task_generator.generate_tasks.return_value = []
-
-        mock_bpm = Mock()
-        mock_bpm.generate_best_practices.return_value = []
-
-        mock_rtm = Mock()
-        mock_rtm.generate_reusable_tasks.return_value = {}
-
-        mock_tgf = Mock()
-        mock_tgf.format_task_graph.return_value = {"nodes": [], "edges": []}
-        mock_tgf.ensure_nested_graph_connectivity.return_value = {
-            "nodes": [],
-            "edges": [],
-        }
-
-        with (
-            patch.object(gen, "_initialize_document_loader") as mock_init_loader,
-            patch.object(gen, "_initialize_task_generator") as mock_init_task,
-            patch.object(gen, "_initialize_best_practice_manager") as mock_init_bpm,
-            patch.object(gen, "_initialize_reusable_task_manager") as mock_init_rtm,
-            patch.object(gen, "_initialize_task_graph_formatter") as mock_init_tgf,
-            patch("arklex.orchestrator.generator.core.generator.UI_AVAILABLE", False),
-        ):
-            mock_init_loader.return_value = Mock()
-            mock_init_task.return_value = mock_task_generator
-            mock_init_bpm.return_value = mock_bpm
-            mock_init_rtm.return_value = mock_rtm
-            mock_init_tgf.return_value = mock_tgf
-
-            result = gen.generate()
-            assert isinstance(result, dict)
-
-    def test_generate_with_none_user_tasks(self, minimal_config, mock_model) -> None:
-        """Test generate method with None user tasks."""
-        gen = Generator(config=minimal_config, model=mock_model)
-        gen.user_tasks = None
-
-        mock_task_generator = Mock()
-        mock_task_generator.generate_tasks.return_value = []
-
-        mock_bpm = Mock()
-        mock_bpm.generate_best_practices.return_value = []
-
-        mock_rtm = Mock()
-        mock_rtm.generate_reusable_tasks.return_value = {}
-
-        mock_tgf = Mock()
-        mock_tgf.format_task_graph.return_value = {"nodes": [], "edges": []}
-        mock_tgf.ensure_nested_graph_connectivity.return_value = {
-            "nodes": [],
-            "edges": [],
-        }
-
-        with (
-            patch.object(gen, "_initialize_document_loader") as mock_init_loader,
-            patch.object(gen, "_initialize_task_generator") as mock_init_task,
-            patch.object(gen, "_initialize_best_practice_manager") as mock_init_bpm,
-            patch.object(gen, "_initialize_reusable_task_manager") as mock_init_rtm,
-            patch.object(gen, "_initialize_task_graph_formatter") as mock_init_tgf,
-            patch("arklex.orchestrator.generator.core.generator.UI_AVAILABLE", False),
-            patch(
-                "arklex.orchestrator.generator.core.generator.log_context.info"
-            ) as mock_log,
-        ):
-            mock_init_loader.return_value = Mock()
-            mock_init_task.return_value = mock_task_generator
-            mock_init_bpm.return_value = mock_bpm
-            mock_init_rtm.return_value = mock_rtm
-            mock_init_tgf.return_value = mock_tgf
-
-            result = gen.generate()
-            assert isinstance(result, dict)
-
-    def test_generate_with_none_task_docs(self, minimal_config, mock_model) -> None:
-        """Test generate method with None task docs."""
-        gen = Generator(config=minimal_config, model=mock_model)
-        gen.task_docs = None
-
-        mock_task_generator = Mock()
-        mock_task_generator.generate_tasks.return_value = []
-
-        mock_bpm = Mock()
-        mock_bpm.generate_best_practices.return_value = []
-
-        mock_rtm = Mock()
-        mock_rtm.generate_reusable_tasks.return_value = {}
-
-        mock_tgf = Mock()
-        mock_tgf.format_task_graph.return_value = {"nodes": [], "edges": []}
-        mock_tgf.ensure_nested_graph_connectivity.return_value = {
-            "nodes": [],
-            "edges": [],
-        }
-
-        with (
-            patch.object(gen, "_initialize_document_loader") as mock_init_loader,
-            patch.object(gen, "_initialize_task_generator") as mock_init_task,
-            patch.object(gen, "_initialize_best_practice_manager") as mock_init_bpm,
-            patch.object(gen, "_initialize_reusable_task_manager") as mock_init_rtm,
-            patch.object(gen, "_initialize_task_graph_formatter") as mock_init_tgf,
-            patch("arklex.orchestrator.generator.core.generator.UI_AVAILABLE", False),
-            patch.object(gen, "_load_multiple_task_documents") as mock_load_task,
-            patch.object(
-                gen, "_load_multiple_instruction_documents"
-            ) as mock_load_instruction,
-            patch(
-                "arklex.orchestrator.generator.core.generator.log_context.info"
-            ) as mock_log,
-        ):
-            mock_init_loader.return_value = Mock()
-            mock_init_task.return_value = mock_task_generator
-            mock_init_bpm.return_value = mock_bpm
-            mock_init_rtm.return_value = mock_rtm
-            mock_init_tgf.return_value = mock_tgf
-            mock_load_task.return_value = []
-            mock_load_instruction.return_value = []
-            # Patch to avoid TypeError in len(self.task_docs)
-            gen.task_docs = []
-            result = gen.generate()
-            assert isinstance(result, dict)
-
-    def test_generate_with_empty_instruction_docs(
-        self, minimal_config, mock_model
-    ) -> None:
-        """Test generate method with empty instruction docs."""
-        gen = Generator(config=minimal_config, model=mock_model)
-        gen.instruction_docs = []
-
-        mock_task_generator = Mock()
-        mock_task_generator.generate_tasks.return_value = []
-
-        mock_bpm = Mock()
-        mock_bpm.generate_best_practices.return_value = []
-
-        mock_rtm = Mock()
-        mock_rtm.generate_reusable_tasks.return_value = {}
-
-        mock_tgf = Mock()
-        mock_tgf.format_task_graph.return_value = {"nodes": [], "edges": []}
-        mock_tgf.ensure_nested_graph_connectivity.return_value = {
-            "nodes": [],
-            "edges": [],
-        }
-
-        with (
-            patch.object(gen, "_initialize_document_loader") as mock_init_loader,
-            patch.object(gen, "_initialize_task_generator") as mock_init_task,
-            patch.object(gen, "_initialize_best_practice_manager") as mock_init_bpm,
-            patch.object(gen, "_initialize_reusable_task_manager") as mock_init_rtm,
-            patch.object(gen, "_initialize_task_graph_formatter") as mock_init_tgf,
-            patch("arklex.orchestrator.generator.core.generator.UI_AVAILABLE", False),
-        ):
-            mock_init_loader.return_value = Mock()
-            mock_init_task.return_value = mock_task_generator
-            mock_init_bpm.return_value = mock_bpm
-            mock_init_rtm.return_value = mock_rtm
-            mock_init_tgf.return_value = mock_tgf
-
-            result = gen.generate()
-            assert isinstance(result, dict)
-
-    def test_generate_with_none_instruction_docs(
-        self, minimal_config, mock_model
-    ) -> None:
-        """Test generate method with None instruction docs."""
-        gen = Generator(config=minimal_config, model=mock_model)
-        gen.instruction_docs = None
-
-        mock_task_generator = Mock()
-        mock_task_generator.generate_tasks.return_value = []
-
-        mock_bpm = Mock()
-        mock_bpm.generate_best_practices.return_value = []
-
-        mock_rtm = Mock()
-        mock_rtm.generate_reusable_tasks.return_value = {}
-
-        mock_tgf = Mock()
-        mock_tgf.format_task_graph.return_value = {"nodes": [], "edges": []}
-        mock_tgf.ensure_nested_graph_connectivity.return_value = {
-            "nodes": [],
-            "edges": [],
-        }
-
-        with (
-            patch.object(gen, "_initialize_document_loader") as mock_init_loader,
-            patch.object(gen, "_initialize_task_generator") as mock_init_task,
-            patch.object(gen, "_initialize_best_practice_manager") as mock_init_bpm,
-            patch.object(gen, "_initialize_reusable_task_manager") as mock_init_rtm,
-            patch.object(gen, "_initialize_task_graph_formatter") as mock_init_tgf,
-            patch("arklex.orchestrator.generator.core.generator.UI_AVAILABLE", False),
-            patch.object(gen, "_load_multiple_task_documents") as mock_load_task,
-            patch.object(
-                gen, "_load_multiple_instruction_documents"
-            ) as mock_load_instruction,
-            patch(
-                "arklex.orchestrator.generator.core.generator.log_context.info"
-            ) as mock_log,
-        ):
-            mock_init_loader.return_value = Mock()
-            mock_init_task.return_value = mock_task_generator
-            mock_init_bpm.return_value = mock_bpm
-            mock_init_rtm.return_value = mock_rtm
-            mock_init_tgf.return_value = mock_tgf
-            mock_load_task.return_value = []
-            mock_load_instruction.return_value = []
-            # Patch to avoid TypeError in len(self.instruction_docs)
-            gen.instruction_docs = []
-            result = gen.generate()
-            assert isinstance(result, dict)
-
-
-class TestGeneratorSaveTaskGraph:
-    """Test Generator save_task_graph method."""
-
-    def test_generator_save_task_graph(self, minimal_config, mock_model) -> None:
-        """Test saving task graph to file."""
-        with tempfile.TemporaryDirectory() as temp_dir:
-            gen = Generator(
-                config=minimal_config, model=mock_model, output_dir=temp_dir
-            )
-            task_graph = {
-                "nodes": [{"id": "node1"}],
-                "edges": [{"source": "node1", "target": "node2"}],
-            }
-
-            output_path = gen.save_task_graph(task_graph)
-
-            assert output_path.endswith(".json")
-            assert os.path.exists(output_path)
-
-            # Verify file content
-            import json
-
-            with open(output_path, "r") as f:
-                saved_content = json.load(f)
-            assert saved_content == task_graph
-
-    def test_generator_save_task_graph_without_output_dir(
-        self, minimal_config, mock_model
-    ) -> None:
-        """Test saving task graph without output directory."""
-        gen = Generator(config=minimal_config, model=mock_model)
-        task_graph = {"nodes": [], "edges": []}
-
-        # Mock the save_task_graph method to handle None output_dir
-        with patch.object(gen, "output_dir", None):
-            with patch("os.path.join") as mock_join:
-                mock_join.return_value = "/tmp/taskgraph.json"
-                with patch("builtins.open", create=True) as mock_open:
-                    mock_file = Mock()
-                    mock_open.return_value.__enter__.return_value = mock_file
-
-                    output_path = gen.save_task_graph(task_graph)
-
-                    assert output_path == "/tmp/taskgraph.json"
-
-    def test_generator_save_task_graph_sanitizes_filename(
-        self, minimal_config, mock_model
-    ) -> None:
-        """Test that save_task_graph sanitizes the filename."""
-        with tempfile.TemporaryDirectory() as temp_dir:
-            gen = Generator(
-                config=minimal_config, model=mock_model, output_dir=temp_dir
-            )
-            task_graph = {"nodes": [], "edges": []}
-
-            # Mock timestamp to include special characters
-            with patch.object(gen, "timestamp", "2023/12/25 15:30:45"):
-                output_path = gen.save_task_graph(task_graph)
-
-                # Should not contain special characters
-                assert "/" not in os.path.basename(output_path)
-                assert ":" not in os.path.basename(output_path)
-                assert os.path.exists(output_path)
-
-    def test_save_task_graph_with_invalid_filename(
-        self, minimal_config, mock_model
-    ) -> None:
-        """Test save_task_graph method with invalid filename."""
-        gen = Generator(config=minimal_config, model=mock_model, output_dir="/tmp")
-        task_graph = {"test": "data"}
-
-        # Test with filename containing invalid characters
-        gen.timestamp = "invalid/chars"
-
-        with patch("builtins.open") as mock_open:
-            gen.save_task_graph(task_graph)
-            # Should handle invalid characters gracefully
-            assert mock_open.called
-
-    def test_save_task_graph_with_complex_objects(
-        self, minimal_config, mock_model
-    ) -> None:
-        """Test save_task_graph with complex non-serializable objects."""
-        with tempfile.TemporaryDirectory() as temp_dir:
-            gen = Generator(
-                config=minimal_config, model=mock_model, output_dir=temp_dir
-            )
-
-            # Create a task graph with non-serializable objects
-            import functools
-            import collections.abc
-
-            def test_function():
-                return "test"
-
-            partial_func = functools.partial(test_function)
-
-            task_graph = {
-                "tasks": [{"name": "Task 1", "steps": [{"description": "Step 1"}]}],
-                "partial_function": partial_func,
-                "callable_object": test_function,
-                "complex_object": Mock(),
-                "nested": {
-                    "function": lambda x: x,
-                    "partial": functools.partial(lambda x: x, 1),
-                },
-            }
-
-            with patch(
-                "arklex.orchestrator.generator.core.generator.log_context"
-            ) as mock_log:
-                result_path = gen.save_task_graph(task_graph)
-
-                # Verify the file was created
-                assert os.path.exists(result_path)
-
-                # Verify debug logging was called for non-serializable objects
-                assert mock_log.debug.called
-
-                # Verify the file contains sanitized data
-                with open(result_path, "r") as f:
-                    import json
-
-                    saved_data = json.load(f)
-
-                # Check that non-serializable objects were converted to strings
-                assert isinstance(saved_data["partial_function"], str)
-                assert isinstance(saved_data["callable_object"], str)
-                assert isinstance(saved_data["complex_object"], str)
-                assert isinstance(saved_data["nested"]["function"], str)
-                assert isinstance(saved_data["nested"]["partial"], str)
-
-    def test_save_task_graph_with_various_data_types(
-        self, minimal_config, mock_model
-    ) -> None:
-        """Test save_task_graph with various data types."""
-        with tempfile.TemporaryDirectory() as temp_dir:
-            gen = Generator(
-                config=minimal_config, model=mock_model, output_dir=temp_dir
-            )
-
-            task_graph = {
-                "string": "test string",
-                "integer": 42,
-                "float": 3.14,
-                "boolean": True,
-                "none": None,
-                "list": [1, 2, 3],
-                "dict": {"key": "value"},
-                "tuple": (1, 2, 3),
-                "nested": {
-                    "list": [{"nested_dict": {"nested_list": [1, 2, 3]}}],
-                    "tuple": ({"a": 1}, {"b": 2}),
-                },
-            }
-
-            result_path = gen.save_task_graph(task_graph)
-
-            # Verify the file was created and contains all data
-            assert os.path.exists(result_path)
-
-            with open(result_path, "r") as f:
-                import json
-
-                saved_data = json.load(f)
-
-            # Check that all data types were preserved correctly
-            assert saved_data["string"] == "test string"
-            assert saved_data["integer"] == 42
-            assert saved_data["float"] == 3.14
-            assert saved_data["boolean"] is True
-            assert saved_data["none"] is None
-            assert saved_data["list"] == [1, 2, 3]
-            assert saved_data["dict"] == {"key": "value"}
-            assert saved_data["tuple"] == [1, 2, 3]  # tuples become lists in JSON
-            assert saved_data["nested"]["list"] == [
-                {"nested_dict": {"nested_list": [1, 2, 3]}}
-            ]
-            assert saved_data["nested"]["tuple"] == [{"a": 1}, {"b": 2}]
-
-    def test_save_task_graph_debug_logging(self, minimal_config, mock_model) -> None:
-        """Test that debug logging is called for non-serializable fields."""
-        with tempfile.TemporaryDirectory() as temp_dir:
-            gen = Generator(
-                config=minimal_config, model=mock_model, output_dir=temp_dir
-            )
-
-            task_graph = {"normal_field": "normal value", "non_serializable": Mock()}
-
-            with patch(
-                "arklex.orchestrator.generator.core.generator.log_context"
-            ) as mock_log:
-                gen.save_task_graph(task_graph)
-
-                # Verify debug logging was called for non-serializable field
-                # Use a more flexible assertion that checks for the pattern
-                debug_calls = [call.args[0] for call in mock_log.debug.call_args_list]
-                assert any(
-                    "Field non_serializable is non-serializable" in call
-                    for call in debug_calls
-                )
-
-    def test_save_task_graph_with_empty_output_dir(
-        self, minimal_config, mock_model
-    ) -> None:
-        """Test save_task_graph when output_dir is None."""
-        gen = Generator(config=minimal_config, model=mock_model, output_dir=None)
-
-        task_graph = {"tasks": [{"name": "Task 1"}]}
-
-        with pytest.raises(TypeError):
-            # This should fail because output_dir is None
-            gen.save_task_graph(task_graph)
-
-
-class TestGeneratorDocumentTypeConversion:
-    """Test Generator document and instruction type conversion."""
-
-    def test_generator_document_instruction_type_conversion(
-        self, minimal_config, mock_model
-    ) -> None:
-        """Test that documents and instructions are converted from lists to strings."""
-        # Configure with list-based documents and instructions
-        config_with_lists = minimal_config.copy()
-        config_with_lists["task_docs"] = ["doc1.txt", "doc2.txt"]
-        config_with_lists["instruction_docs"] = ["instruction1.txt", "instruction2.txt"]
-
-        gen = Generator(config=config_with_lists, model=mock_model)
-
-        # Mock the document loader to return lists
-        with patch.object(gen, "_initialize_document_loader") as doc_loader_patch:
-            doc_loader = Mock()
-            doc_loader.load_task_document.side_effect = [
-                "Document 1 content",
-                "Document 2 content",
-            ]
-            doc_loader.load_instruction_document.side_effect = [
-                "Instruction 1 content",
-                "Instruction 2 content",
-            ]
-            doc_loader_patch.return_value = doc_loader
-
-            # Mock other components to avoid actual processing
-            with (
-                patch.object(gen, "_initialize_task_generator") as task_gen_patch,
-                patch.object(gen, "_initialize_best_practice_manager") as bpm_patch,
-                patch.object(gen, "_initialize_reusable_task_manager") as rtm_patch,
-                patch.object(gen, "_initialize_task_graph_formatter") as tgf_patch,
-                patch(
-                    "arklex.orchestrator.generator.core.generator.UI_AVAILABLE", False
-                ),
-            ):
-                task_gen = Mock()
-                task_gen.add_provided_tasks.return_value = []
-                task_gen.generate_tasks.return_value = []
-                task_gen_patch.return_value = task_gen
-
-                bpm = Mock()
-                bpm.generate_best_practices.return_value = []
-                bpm_patch.return_value = bpm
-
-                rtm = Mock()
-                rtm.generate_reusable_tasks.return_value = {}
-                rtm_patch.return_value = rtm
-
-                tgf = Mock()
-                tgf.format_task_graph.return_value = {"nodes": [], "edges": []}
-                tgf.ensure_nested_graph_connectivity.return_value = {
-                    "nodes": [],
-                    "edges": [],
-                }
-                tgf_patch.return_value = tgf
-
-                # Call generate to trigger the type conversion
-                gen.generate()
-
-                # Verify that documents and instructions are now strings
-                assert isinstance(gen.documents, str)
-                assert isinstance(gen.instructions, str)
-
-                # Verify the content contains both documents/instructions
-                assert "Document 1 content" in gen.documents
-                assert "Document 2 content" in gen.documents
-                assert "Instruction 1 content" in gen.instructions
-                assert "Instruction 2 content" in gen.instructions
-
-    def test_generator_document_instruction_type_conversion_single_docs(
-        self, minimal_config, mock_model
-    ) -> None:
-        """Test type conversion with single documents."""
-        config_with_single_docs = minimal_config.copy()
-        config_with_single_docs["task_docs"] = "single_doc.txt"
-        config_with_single_docs["instruction_docs"] = "single_instruction.txt"
-
-        gen = Generator(config=config_with_single_docs, model=mock_model)
-
-        with patch.object(gen, "_initialize_document_loader") as doc_loader_patch:
-            doc_loader = Mock()
-            doc_loader.load_task_document.return_value = "Single document content"
-            doc_loader.load_instruction_document.return_value = (
-                "Single instruction content"
-            )
-            doc_loader_patch.return_value = doc_loader
-
-            with (
-                patch.object(gen, "_initialize_task_generator") as task_gen_patch,
-                patch.object(gen, "_initialize_best_practice_manager") as bpm_patch,
-                patch.object(gen, "_initialize_reusable_task_manager") as rtm_patch,
-                patch.object(gen, "_initialize_task_graph_formatter") as tgf_patch,
-                patch(
-                    "arklex.orchestrator.generator.core.generator.UI_AVAILABLE", False
-                ),
-            ):
-                task_gen = Mock()
-                task_gen.add_provided_tasks.return_value = []
-                task_gen.generate_tasks.return_value = []
-                task_gen_patch.return_value = task_gen
-
-                bpm = Mock()
-                bpm.generate_best_practices.return_value = []
-                bpm_patch.return_value = bpm
-
-                rtm = Mock()
-                rtm.generate_reusable_tasks.return_value = {}
-                rtm_patch.return_value = rtm
-
-                tgf = Mock()
-                tgf.format_task_graph.return_value = {"nodes": [], "edges": []}
-                tgf.ensure_nested_graph_connectivity.return_value = {
-                    "nodes": [],
-                    "edges": [],
-                }
-                tgf_patch.return_value = tgf
-
-                gen.generate()
-
-                assert isinstance(gen.documents, str)
-                assert isinstance(gen.instructions, str)
-                assert gen.documents == "Single document content"
-                assert gen.instructions == "Single instruction content"
-
-    def test_generator_document_instruction_type_conversion(
-        self, mock_model, minimal_config
-    ):
-        gen = Generator(config=minimal_config, model=mock_model)
-        doc_loader = Mock()
-        doc_loader.load_task_document.return_value = {"id": "doc1"}
-        doc_loader.load_instruction_document.return_value = {"id": "inst1"}
-        gen._load_multiple_task_documents = lambda loader, sources: [
-            doc_loader.load_task_document(src) for src in (sources or [])
-        ]
-        gen._load_multiple_instruction_documents = lambda loader, sources: [
-            doc_loader.load_instruction_document(src) for src in (sources or [])
-        ]
-        result = gen.generate()
-        assert isinstance(result, dict)
-
-
-class TestGeneratorExtendedCoverage:
-    """Additional tests to increase coverage for generator.py"""
-
-    def test_generator_with_missing_config_keys(self, mock_model) -> None:
-        """Test generator initialization with missing config keys."""
-        config = {}
-
-        gen = Generator(config=config, model=mock_model)
-
-        assert gen.role == ""
-        assert gen.user_objective == ""
-        assert gen.builder_objective == ""
-        assert gen.domain == ""
-        assert gen.intro == ""
-        assert gen.instruction_docs == []
-        assert gen.task_docs == []
-        assert gen.rag_docs == []
-        assert gen.user_tasks == []
-        assert gen.example_conversations == []
-        assert gen.nluapi == ""
-        assert gen.slotfillapi == ""
-
-    def test_generator_with_none_workers(self, mock_model) -> None:
-        """Test generator initialization with None workers."""
-        config = {"workers": None}
-
-        with pytest.raises(TypeError):
-            gen = Generator(config=config, model=mock_model)
-
-    def test_generator_with_invalid_worker_format(self, mock_model) -> None:
-        """Test generator initialization with invalid worker format."""
-        config = {"workers": ["invalid_worker"]}
-
-        gen = Generator(config=config, model=mock_model)
-        assert gen.workers == []
-
-    def test_generator_with_missing_worker_fields(self, mock_model) -> None:
-        """Test generator initialization with missing worker fields."""
-        config = {"workers": [{"id": "worker1"}]}  # Missing name and path
-
-        gen = Generator(config=config, model=mock_model)
-        assert gen.workers == []
-
-    def test_generator_with_resource_initializer_exception(self, mock_model) -> None:
-        """Test generator initialization with resource initializer exception."""
-        config = {"tools": ["tool1"]}
-
-        with patch("arklex.env.env.DefaultResourceInitializer") as mock_initializer:
-            mock_initializer.return_value.init_tools.side_effect = Exception(
-                "Init error"
-            )
-
-            with pytest.raises(Exception):
-                Generator(config=config, model=mock_model)
-
-    def test_initialize_document_loader_with_exception(
-        self, minimal_config, mock_model
-    ) -> None:
-        """Test document loader initialization with exception."""
-        gen = Generator(config=minimal_config, model=mock_model)
-
-        with patch(
-            "arklex.orchestrator.generator.core.generator.DocumentLoader"
-        ) as mock_loader:
-            mock_loader.side_effect = Exception("Loader error")
-
-            with pytest.raises(Exception):
-                gen._initialize_document_loader()
-
-    def test_initialize_task_generator_with_exception(
-        self, minimal_config, mock_model
-    ) -> None:
-        """Test task generator initialization with exception."""
-        gen = Generator(config=minimal_config, model=mock_model)
+        generator.documents = "test documents"
+        generator.instructions = "test instructions"
 
         with patch(
             "arklex.orchestrator.generator.core.generator.TaskGenerator"
-        ) as mock_task_gen:
-            mock_task_gen.side_effect = Exception("Task generator error")
+        ) as mock_generator_class:
+            mock_generator_instance = Mock()
+            mock_generator_class.return_value = mock_generator_instance
 
-            with pytest.raises(Exception):
-                gen._initialize_task_generator()
+            task_generator = generator._initialize_task_generator()
 
-    def test_initialize_best_practice_manager_with_exception(
-        self, full_config, mock_model
+            mock_generator_class.assert_called_once_with(
+                model=always_valid_mock_model,
+                role="test_role",
+                user_objective="test user objective",
+                instructions="test instructions",
+                documents="test documents",
+            )
+            assert task_generator == mock_generator_instance
+            assert generator._task_generator == mock_generator_instance
+
+    def test_initialize_task_generator_caching(
+        self, always_valid_mock_model: Mock, patched_sample_config: dict[str, Any]
     ) -> None:
-        """Test best practice manager initialization with exception."""
-        gen = Generator(config=full_config, model=mock_model)
+        """Test that task generator is cached after first initialization."""
+        generator = Generator(
+            config=patched_sample_config,
+            model=always_valid_mock_model,
+        )
 
         with patch(
-            "arklex.orchestrator.generator.core.generator.BestPracticeManager"
-        ) as mock_bpm:
-            mock_bpm.side_effect = Exception("BPM error")
+            "arklex.orchestrator.generator.core.generator.TaskGenerator"
+        ) as mock_generator_class:
+            mock_generator_instance = Mock()
+            mock_generator_class.return_value = mock_generator_instance
 
-            with pytest.raises(Exception):
-                gen._initialize_best_practice_manager()
+            # First call
+            task_generator1 = generator._initialize_task_generator()
+            # Second call
+            task_generator2 = generator._initialize_task_generator()
 
-    def test_initialize_reusable_task_manager_with_exception(
-        self, minimal_config, mock_model
+            # Should only be called once
+            mock_generator_class.assert_called_once()
+            assert task_generator1 == task_generator2 == mock_generator_instance
+
+    def test_initialize_best_practice_manager_with_nested_graph(
+        self, always_valid_mock_model: Mock, patched_sample_config: dict[str, Any]
     ) -> None:
-        """Test reusable task manager initialization with exception."""
-        gen = Generator(config=minimal_config, model=mock_model)
-
-        with patch(
-            "arklex.orchestrator.generator.core.generator.ReusableTaskManager"
-        ) as mock_rtm:
-            mock_rtm.side_effect = Exception("RTM error")
-
-            with pytest.raises(Exception):
-                gen._initialize_reusable_task_manager()
-
-    def test_initialize_task_graph_formatter_with_exception(
-        self, full_config, mock_model
-    ) -> None:
-        """Test task graph formatter initialization with exception."""
-        gen = Generator(config=full_config, model=mock_model)
-
-        with patch(
-            "arklex.orchestrator.generator.core.generator.TaskGraphFormatter"
-        ) as mock_tgf:
-            mock_tgf.side_effect = Exception("TGF error")
-
-            with pytest.raises(Exception):
-                gen._initialize_task_graph_formatter()
-
-    def test_load_multiple_task_documents_with_exception(
-        self, minimal_config, mock_model
-    ) -> None:
-        """Test loading multiple task documents with exception."""
-        gen = Generator(config=minimal_config, model=mock_model)
-
-        doc_paths = ["doc1.txt"]
-        mock_doc_loader = Mock()
-        mock_doc_loader.load_task_document.side_effect = Exception("Load error")
-
-        with pytest.raises(Exception):
-            gen._load_multiple_task_documents(mock_doc_loader, doc_paths)
-
-    def test_load_multiple_instruction_documents_with_exception(
-        self, minimal_config, mock_model
-    ) -> None:
-        """Test loading multiple instruction documents with exception."""
-        gen = Generator(config=minimal_config, model=mock_model)
-
-        doc_paths = ["instruction1.txt"]
-        mock_doc_loader = Mock()
-        mock_doc_loader.load_instruction_document.side_effect = Exception("Load error")
-
-        with pytest.raises(Exception):
-            gen._load_multiple_instruction_documents(mock_doc_loader, doc_paths)
-
-    def test_generate_with_document_loader_exception(
-        self, minimal_config, mock_model
-    ) -> None:
-        """Test generate method with document loader exception."""
-        gen = Generator(config=minimal_config, model=mock_model)
-
-        with patch.object(gen, "_initialize_document_loader") as mock_init_loader:
-            mock_init_loader.side_effect = Exception("Document loader error")
-
-            with pytest.raises(Exception):
-                gen.generate()
-
-    def test_generate_with_task_generator_exception(
-        self, minimal_config, mock_model
-    ) -> None:
-        """Test generate method with task generator exception."""
-        gen = Generator(config=minimal_config, model=mock_model)
-
-        with (
-            patch.object(gen, "_initialize_document_loader") as mock_init_loader,
-            patch.object(gen, "_initialize_task_generator") as mock_init_task,
-        ):
-            mock_init_loader.return_value = Mock()
-            mock_init_task.side_effect = Exception("Task generator error")
-
-            with pytest.raises(Exception):
-                gen.generate()
-
-    def test_generate_with_best_practice_manager_exception(
-        self, full_config, mock_model
-    ) -> None:
-        """Test generate method with best practice manager exception."""
-        gen = Generator(config=full_config, model=mock_model)
-
-        with (
-            patch.object(gen, "_initialize_document_loader") as mock_init_loader,
-            patch.object(gen, "_initialize_task_generator") as mock_init_task,
-            patch.object(gen, "_initialize_best_practice_manager") as mock_init_bpm,
-        ):
-            mock_init_loader.return_value = Mock()
-            mock_init_task.return_value = Mock()
-            mock_init_bpm.side_effect = Exception("BPM error")
-
-            with pytest.raises(Exception):
-                gen.generate()
-
-    def test_generate_with_reusable_task_manager_exception(
-        self, full_config, mock_model
-    ) -> None:
-        """Test generate method with reusable task manager exception."""
-        gen = Generator(config=full_config, model=mock_model)
-
-        with (
-            patch.object(gen, "_initialize_document_loader") as mock_init_loader,
-            patch.object(gen, "_initialize_task_generator") as mock_init_task,
-            patch.object(gen, "_initialize_best_practice_manager") as mock_init_bpm,
-            patch.object(gen, "_initialize_reusable_task_manager") as mock_init_rtm,
-        ):
-            mock_init_loader.return_value = Mock()
-            mock_init_task.return_value = Mock()
-            mock_init_bpm.return_value = Mock()
-            mock_init_rtm.side_effect = Exception("RTM error")
-
-            with pytest.raises(Exception):
-                gen.generate()
-
-    def test_generate_with_task_graph_formatter_format_exception(
-        self, full_config, mock_model
-    ) -> None:
-        """Test generate method with task graph formatter format exception."""
-        gen = Generator(config=full_config, model=mock_model)
-
-        mock_task_generator = Mock()
-        mock_task_generator.generate_tasks.return_value = []
-
-        mock_bpm = Mock()
-        mock_bpm.generate_best_practices.return_value = {}
-
-        mock_rtm = Mock()
-        mock_rtm.generate_reusable_tasks.return_value = {}
-
-        mock_tgf = Mock()
-        mock_tgf.format_task_graph.side_effect = Exception("Format task graph error")
-
-        with (
-            patch.object(gen, "_initialize_document_loader") as mock_init_loader,
-            patch.object(gen, "_initialize_task_generator") as mock_init_task,
-            patch.object(gen, "_initialize_best_practice_manager") as mock_init_bpm,
-            patch.object(gen, "_initialize_reusable_task_manager") as mock_init_rtm,
-            patch.object(gen, "_initialize_task_graph_formatter") as mock_init_tgf,
-        ):
-            mock_init_loader.return_value = Mock()
-            mock_init_task.return_value = mock_task_generator
-            mock_init_bpm.return_value = mock_bpm
-            mock_init_rtm.return_value = mock_rtm
-            mock_init_tgf.return_value = mock_tgf
-
-            with pytest.raises(Exception):
-                gen.generate()
-
-    def test_save_task_graph_with_exception(self, minimal_config, mock_model) -> None:
-        """Test save_task_graph method with exception."""
-        gen = Generator(config=minimal_config, model=mock_model)
-        task_graph = {"test": "data"}
-
-        with patch("builtins.open") as mock_open:
-            mock_open.side_effect = Exception("File error")
-
-            with pytest.raises(Exception):
-                gen.save_task_graph(task_graph)
-
-    def test_load_multiple_task_documents_with_empty_list(
-        self, minimal_config, mock_model
-    ) -> None:
-        """Test loading multiple task documents with empty list."""
-        gen = Generator(config=minimal_config, model=mock_model)
-
-        doc_paths = []
-        mock_doc_loader = Mock()
-
-        result = gen._load_multiple_task_documents(mock_doc_loader, doc_paths)
-        assert result == []
-
-    def test_load_multiple_instruction_documents_with_empty_list(
-        self, minimal_config, mock_model
-    ) -> None:
-        """Test loading multiple instruction documents with empty list."""
-        gen = Generator(config=minimal_config, model=mock_model)
-
-        doc_paths = []
-        mock_doc_loader = Mock()
-
-        result = gen._load_multiple_instruction_documents(mock_doc_loader, doc_paths)
-        assert result == []
-
-
-class TestGeneratorUIComponents:
-    """Test UI component availability and error handling."""
-
-    def test_ui_components_import_error_handling(self) -> None:
-        """Test that UI components handle import errors gracefully."""
-        # Test that the TaskEditorApp class exists and has the expected behavior
-        from arklex.orchestrator.generator.core.generator import TaskEditorApp
-
-        # The class should exist regardless of UI availability
-        assert TaskEditorApp is not None
-
-        # Test that it can be instantiated (the actual behavior depends on UI_AVAILABLE)
-        # This test verifies the class structure, not the import error handling
-        # The import error handling is tested at module import time
-        assert hasattr(TaskEditorApp, "__init__")
-
-    def test_ui_components_available(self) -> None:
-        """Test that UI components work when available."""
-        with patch("arklex.orchestrator.generator.core.generator.UI_AVAILABLE", True):
-            from arklex.orchestrator.generator.core.generator import TaskEditorApp
-
-            # Should not raise ImportError when UI is available
-            assert TaskEditorApp is not None
-
-
-class TestGeneratorToolProcessing:
-    """Test tool processing in best practice manager initialization."""
-
-    def test_initialize_best_practice_manager_with_tools(
-        self, full_config, mock_model
-    ) -> None:
-        """Test best practice manager initialization with tools."""
-        with patch(
-            "arklex.orchestrator.generator.core.generator.DefaultResourceInitializer"
-        ) as mock_ri_class:
-            mock_ri = Mock()
-            # Return tools as a list of dicts, not a dict
-            mock_ri.init_tools.return_value = [
-                {"name": "Tool 1", "description": "Test tool 1"},
-                {"name": "Tool 2", "description": "Test tool 2"},
-            ]
-            mock_ri_class.return_value = mock_ri
-
-            gen = Generator(config=full_config, model=mock_model)
-
-            with patch(
-                "arklex.orchestrator.generator.core.generator.BestPracticeManager"
-            ) as mock_bpm_class:
-                mock_bpm = Mock()
-                mock_bpm_class.return_value = mock_bpm
-
-                result = gen._initialize_best_practice_manager()
-
-                # Verify that tools are processed correctly
-                mock_bpm_class.assert_called_once()
-                call_args = mock_bpm_class.call_args
-                assert "all_resources" in call_args[1]
-
-                # Check that tools are included in all_resources
-                all_resources = call_args[1]["all_resources"]
-                tool_resources = [r for r in all_resources if r["type"] == "tool"]
-                assert len(tool_resources) == 2
-                assert any(r["name"] == "Tool 1" for r in tool_resources)
-                assert any(r["name"] == "Tool 2" for r in tool_resources)
-
-    def test_initialize_best_practice_manager_with_nested_graph_disabled(
-        self, full_config, mock_model
-    ) -> None:
-        """Test best practice manager initialization without nested graph."""
-        with patch(
-            "arklex.orchestrator.generator.core.generator.DefaultResourceInitializer"
-        ) as mock_ri_class:
-            mock_ri = Mock()
-            # Return tools as a list of dicts, not a dict
-            mock_ri.init_tools.return_value = [{"name": "Tool 1"}]
-            mock_ri_class.return_value = mock_ri
-
-            gen = Generator(
-                config=full_config, model=mock_model, allow_nested_graph=False
-            )
-
-            with patch(
-                "arklex.orchestrator.generator.core.generator.BestPracticeManager"
-            ) as mock_bpm_class:
-                mock_bpm = Mock()
-                mock_bpm_class.return_value = mock_bpm
-
-                result = gen._initialize_best_practice_manager()
-
-                # Verify that nested_graph is not included when disabled
-                call_args = mock_bpm_class.call_args
-                all_resources = call_args[1]["all_resources"]
-                nested_graph_resources = [
-                    r for r in all_resources if r["type"] == "nested_graph"
-                ]
-                assert len(nested_graph_resources) == 0
-                assert result == mock_bpm  # Fix variable name from bpm to result
-
-
-class TestGeneratorUIInteraction:
-    """Test UI interaction and task editing functionality."""
-
-    def test_generate_with_ui_interaction_success(
-        self, full_config, mock_model
-    ) -> None:
-        """Test generate method with successful UI interaction."""
-        # Create a simple test that mocks the entire generate method
-        with patch.object(Generator, "generate") as mock_generate:
-            mock_generate.return_value = {
-                "tasks": [
-                    {"name": "Modified Task 1", "steps": [{"description": "Step 1"}]},
-                    {"name": "Modified Task 2", "steps": [{"description": "Step 3"}]},
-                ]
-            }
-
-            gen = Generator(
-                config=full_config, model=mock_model, interactable_with_user=True
-            )
-
-            gen.tasks = [
-                {"name": "Original Task 1", "steps": [{"description": "Original Step"}]}
-            ]
-
-            result = gen.generate()
-
-            # Verify the result contains the expected tasks
-            assert "tasks" in result
-            assert len(result["tasks"]) == 2
-
-    def test_generate_with_ui_interaction_no_changes(
-        self, full_config, mock_model
-    ) -> None:
-        """Test generate method when UI interaction doesn't change tasks."""
-        # Create a simple test that mocks the entire generate method
-        with patch.object(Generator, "generate") as mock_generate:
-            mock_generate.return_value = {
-                "tasks": [{"name": "Task 1", "steps": [{"description": "Step 1"}]}]
-            }
-
-            gen = Generator(
-                config=full_config, model=mock_model, interactable_with_user=True
-            )
-
-            gen.tasks = [{"name": "Task 1", "steps": [{"description": "Step 1"}]}]
-
-            result = gen.generate()
-
-            # Verify the result contains the expected tasks
-            assert "tasks" in result
-            assert len(result["tasks"]) == 1
-
-    def test_generate_with_ui_interaction_exception(
-        self, full_config, mock_model
-    ) -> None:
-        """Test generate method when UI interaction raises an exception."""
-        # Create a simple test that mocks the entire generate method
-        with patch.object(Generator, "generate") as mock_generate:
-            mock_generate.return_value = {
-                "tasks": [{"name": "Task 1", "steps": [{"description": "Step 1"}]}]
-            }
-
-            gen = Generator(
-                config=full_config, model=mock_model, interactable_with_user=True
-            )
-
-            gen.tasks = [{"name": "Task 1", "steps": [{"description": "Step 1"}]}]
-
-            result = gen.generate()
-
-            # Verify the result contains the expected tasks
-            assert "tasks" in result
-            assert len(result["tasks"]) == 1
-
-    def test_generate_without_ui_interaction(self, full_config, mock_model) -> None:
-        """Test generate method without UI interaction."""
-        # Create a simple test that mocks the entire generate method
-        with patch.object(Generator, "generate") as mock_generate:
-            mock_generate.return_value = {
-                "tasks": [
-                    {"name": "Task 1", "steps": [{"description": "Refined Step 1"}]}
-                ]
-            }
-
-            gen = Generator(
-                config=full_config, model=mock_model, interactable_with_user=False
-            )
-
-            gen.tasks = [{"name": "Task 1", "steps": [{"description": "Step 1"}]}]
-
-            result = gen.generate()
-
-            # Verify the result contains the expected tasks
-            assert "tasks" in result
-            assert len(result["tasks"]) == 1
-
-
-class TestGeneratorReusableTasks:
-    """Test reusable tasks handling and final task graph completion."""
-
-    def test_generate_with_reusable_tasks(self, full_config, mock_model) -> None:
-        """Test generate method with reusable tasks enabled."""
-        # Create a simple test that mocks the entire generate method
-        with patch.object(Generator, "generate") as mock_generate:
-            mock_generate.return_value = {
-                "tasks": [],
-                "reusable_tasks": {
-                    "reusable_task_1": {
-                        "resource": {
-                            "id": "task1",
-                            "name": "Reusable Task 1",
-                        }
-                    },
-                    "nested_graph": {
-                        "resource": {"id": "nested_graph", "name": "NestedGraph"},
-                        "limit": 1,
-                    },
-                },
-            }
-
-            gen = Generator(
-                config=full_config,
-                model=mock_model,
-                allow_nested_graph=True,
-            )
-
-            gen.tasks = [{"name": "Task 1", "steps": [{"description": "Step 1"}]}]
-
-            result = gen.generate()
-
-            # Verify reusable tasks were generated and added to result
-            assert "reusable_tasks" in result
-            assert "reusable_task_1" in result["reusable_tasks"]
-            assert "nested_graph" in result["reusable_tasks"]
-
-    def test_generate_without_reusable_tasks(self, full_config, mock_model) -> None:
-        """Test generate method with reusable tasks disabled."""
-        # Create a simple test that mocks the entire generate method
-        with patch.object(Generator, "generate") as mock_generate:
-            mock_generate.return_value = {
-                "tasks": [],
-                "reusable_tasks": {
-                    "nested_graph": {
-                        "resource": {"id": "nested_graph", "name": "NestedGraph"},
-                        "limit": 1,
-                    }
-                },
-            }
-
-            gen = Generator(
-                config=full_config,
-                model=mock_model,
-                allow_nested_graph=False,
-            )
-
-            gen.tasks = [{"name": "Task 1", "steps": [{"description": "Step 1"}]}]
-
-            result = gen.generate()
-
-            # Verify nested_graph should still be added
-            assert "reusable_tasks" in result
-            assert "nested_graph" in result["reusable_tasks"]
-
-    def test_generate_with_empty_reusable_tasks(self, full_config, mock_model) -> None:
-        """Test generate method when reusable task manager returns empty dict."""
-        # Create a simple test that mocks the entire generate method
-        with patch.object(Generator, "generate") as mock_generate:
-            mock_generate.return_value = {
-                "tasks": [],
-                "reusable_tasks": {
-                    "nested_graph": {
-                        "resource": {"id": "nested_graph", "name": "NestedGraph"},
-                        "limit": 1,
-                    }
-                },
-            }
-
-            gen = Generator(
-                config=full_config,
-                model=mock_model,
-                allow_nested_graph=True,
-            )
-
-            gen.tasks = [{"name": "Task 1", "steps": [{"description": "Step 1"}]}]
-
-            result = gen.generate()
-
-            # Verify nested_graph is still added even with empty reusable tasks
-            assert "reusable_tasks" in result
-            assert "nested_graph" in result["reusable_tasks"]
-
-    def test_generate_with_existing_reusable_tasks(
-        self, full_config, mock_model
-    ) -> None:
-        """Test generate method when reusable_tasks already exists."""
-        # Create a simple test that mocks the entire generate method
-        with patch.object(Generator, "generate") as mock_generate:
-            mock_generate.return_value = {
-                "tasks": [],
-                "reusable_tasks": {
-                    "existing_task": {
-                        "resource": {
-                            "id": "existing",
-                            "name": "Existing Task",
-                        }
-                    },
-                    "nested_graph": {
-                        "resource": {"id": "nested_graph", "name": "NestedGraph"},
-                        "limit": 1,
-                    },
-                },
-            }
-
-            gen = Generator(
-                config=full_config,
-                model=mock_model,
-                allow_nested_graph=True,
-            )
-
-            gen.tasks = [{"name": "Task 1", "steps": [{"description": "Step 1"}]}]
-            gen.reusable_tasks = {
-                "existing_task": {
-                    "resource": {
-                        "id": "existing",
-                        "name": "Existing Task",
-                    }
-                }
-            }
-
-            result = gen.generate()
-
-            # Verify both existing and new reusable tasks are included
-            assert "reusable_tasks" in result
-            assert "existing_task" in result["reusable_tasks"]
-            assert "nested_graph" in result["reusable_tasks"]
-
-
-class TestGeneratorFinalCompletion:
-    """Test final task graph completion and logging."""
-
-    def test_generate_completion_logging(self, full_config, mock_model) -> None:
-        """Test that completion logging is called."""
-        # Create a simple test that mocks the entire generate method
-        with patch.object(Generator, "generate") as mock_generate:
-            mock_generate.return_value = {
-                "tasks": [{"name": "Task 1", "steps": [{"description": "Step 1"}]}]
-            }
-
-            gen = Generator(config=full_config, model=mock_model)
-            gen.tasks = [
-                {
-                    "name": "Task 1",
-                    "steps": [{"description": "Step 1"}],
-                }
-            ]
-
-            result = gen.generate()
-
-            # Verify the result contains the expected tasks
-            assert "tasks" in result
-            assert len(result["tasks"]) == 1
-
-    def test_generate_with_multiple_tasks_and_best_practices(
-        self, full_config, mock_model
-    ) -> None:
-        """Test generate method with multiple tasks and best practices."""
-        # Create a simple test that mocks the entire generate method
-        with patch.object(Generator, "generate") as mock_generate:
-            mock_generate.return_value = {
-                "tasks": [
-                    {"name": "Task 1", "steps": [{"description": "Refined Step"}]},
-                    {"name": "Task 2", "steps": [{"description": "Refined Step"}]},
-                ]
-            }
-
-            gen = Generator(
-                config=full_config,
-                model=mock_model,
-                interactable_with_user=False,
-            )
-            gen.tasks = [
-                {
-                    "name": "Task 1",
-                    "steps": [{"description": "Step 1"}],
-                },
-                {
-                    "name": "Task 2",
-                    "steps": [{"description": "Step 2"}],
-                },
-            ]
-
-            result = gen.generate()
-
-            # Verify the result contains the expected tasks
-            assert "tasks" in result
-            assert len(result["tasks"]) == 2
-
-    def test_generate_final_completion_success(self, full_config, mock_model) -> None:
-        """Test generate method with successful final completion."""
-        # Create a simple test that mocks the entire generate method
-        with patch.object(Generator, "generate") as mock_generate:
-            mock_generate.return_value = {
-                "tasks": [{"name": "Task 1", "steps": [{"description": "Step 1"}]}]
-            }
-
-            gen = Generator(
-                config=full_config,
-                model=mock_model,
-                allow_nested_graph=True,
-            )
-
-            gen.tasks = [{"name": "Task 1", "steps": [{"description": "Step 1"}]}]
-
-            result = gen.generate()
-
-            # Verify final completion was called
-            assert "tasks" in result
-
-    def test_generate_final_completion_exception(self, full_config, mock_model) -> None:
-        """Test generate method when final completion raises an exception."""
-        # Create a simple test that mocks the entire generate method
-        with patch.object(Generator, "generate") as mock_generate:
-            mock_generate.return_value = {
-                "tasks": [{"name": "Task 1", "steps": [{"description": "Step 1"}]}]
-            }
-
-            gen = Generator(
-                config=full_config,
-                model=mock_model,
-                allow_nested_graph=True,
-            )
-
-            gen.tasks = [{"name": "Task 1", "steps": [{"description": "Step 1"}]}]
-
-            result = gen.generate()
-
-            # Verify exception was handled gracefully
-            assert "tasks" in result
-
-
-class TestGeneratorAdvanced:
-    """Test suite for advanced generator features."""
-
-    @pytest.fixture
-    def patched_advanced_generator(
-        self,
-        patched_sample_config,
-        always_valid_mock_model,
-        sample_tasks,
-        sample_best_practices,
-        mock_best_practice_manager,
-    ):
-        """Create a generator with advanced features patched for testing."""
-        gen = Generator(config=patched_sample_config, model=always_valid_mock_model)
-
-        with (
-            patch(
-                "arklex.orchestrator.generator.core.generator.TaskEditorApp"
-            ) as mock_task_editor_app,
-            patch(
-                "arklex.orchestrator.generator.core.generator.PromptManager"
-            ) as mock_prompt_manager,
-            patch(
-                "arklex.orchestrator.generator.core.generator.TaskGraphFormatter"
-            ) as mock_formatter,
-        ):
-            mock_formatter.return_value.format_task_graph.return_value = {
-                "nodes": sample_tasks,
-                "edges": [],
-            }
-            mock_formatter.return_value.ensure_nested_graph_connectivity.return_value = {
-                "nodes": sample_tasks,
-                "edges": [],
-            }
-            mock_prompt_manager.return_value.get_prompt.return_value = "test prompt"
-            mock_task_editor_app.return_value.run.return_value = sample_tasks
-
-            yield gen, mock_formatter, mock_prompt_manager, mock_task_editor_app
-
-    def test_human_in_the_loop_refinement_with_changes(
-        self, patched_advanced_generator
-    ) -> None:
-        """Test human-in-the-loop refinement when changes are made."""
-        gen, mock_formatter, mock_prompt_manager, mock_task_editor_app = (
-            patched_advanced_generator
-        )
-
-        result = gen.generate()
-
-        assert isinstance(result, dict)
-        assert "nodes" in result and "edges" in result
-        mock_task_editor_app.return_value.run.assert_called_once()
-
-    def test_resource_pairing_without_ui(self, patched_advanced_generator) -> None:
-        """Test resource pairing functionality without UI interaction."""
-        gen, mock_formatter, mock_prompt_manager, mock_task_editor_app = (
-            patched_advanced_generator
-        )
-
-        with patch("arklex.orchestrator.generator.core.generator.UI_AVAILABLE", False):
-            result = gen.generate()
-
-            assert isinstance(result, dict)
-            assert "nodes" in result and "edges" in result
-
-    def test_intent_prediction(self, patched_advanced_generator) -> None:
-        """Test intent prediction functionality."""
-        gen, mock_formatter, mock_prompt_manager, mock_task_editor_app = (
-            patched_advanced_generator
-        )
-
-        result = gen.generate()
-
-        assert isinstance(result, dict)
-        assert "nodes" in result and "edges" in result
-
-    def test_nested_graph_connectivity(self, patched_advanced_generator) -> None:
-        """Test nested graph connectivity functionality."""
-        gen, mock_formatter, mock_prompt_manager, mock_task_editor_app = (
-            patched_advanced_generator
-        )
-
-        result = gen.generate()
-
-        assert isinstance(result, dict)
-        assert "nodes" in result and "edges" in result
-        mock_formatter.return_value.ensure_nested_graph_connectivity.assert_called_once()
-
-    def test_reusable_tasks_added_to_graph(self, patched_advanced_generator) -> None:
-        """Test that reusable tasks are properly added to the graph."""
-        gen, mock_formatter, mock_prompt_manager, mock_task_editor_app = (
-            patched_advanced_generator
-        )
-
-        result = gen.generate()
-
-        assert isinstance(result, dict)
-        assert "nodes" in result and "edges" in result
-
-
-class TestGeneratorEdgeCases:
-    def test_generator_init_with_missing_keys(self, mock_model) -> None:
-        # Should not raise even if config is missing keys
-        gen = Generator(config={}, model=mock_model)
-        assert gen.role == ""
-        assert gen.user_objective == ""
-        assert gen.workers == []
-        assert gen.tools == {}  # tools is initialized as empty dict, not list
-
-    def test_generator_init_with_various_worker_formats(self, mock_model) -> None:
-        config = {
-            "workers": [
-                {"id": "w1", "name": "Worker1", "path": "p1"},
-                {"id": "w2", "name": "Worker2"},  # missing path
-                "notadict",
-                123,
-            ]
-        }
-        gen = Generator(config=config, model=mock_model)
-        # Only the first worker should be added
-        assert len(gen.workers) == 1
-        assert gen.workers[0]["id"] == "w1"
-
-    def test_initialize_document_loader_creates_cache_dir(
-        self, minimal_config, mock_model, tmp_path
-    ) -> None:
-        gen = Generator(config=minimal_config, model=mock_model, output_dir=None)
-        # Should create a cache dir in cwd
-        doc_loader = gen._initialize_document_loader()
-        assert doc_loader is not None
-        assert hasattr(gen, "_doc_loader")
-
-    def test_initialize_document_loader_with_output_dir(
-        self, minimal_config, mock_model, tmp_path
-    ) -> None:
-        gen = Generator(
-            config=minimal_config, model=mock_model, output_dir=str(tmp_path)
-        )
-        doc_loader = gen._initialize_document_loader()
-        assert doc_loader is not None
-        assert tmp_path.exists()
-
-    def test_initialize_task_generator_only_once(
-        self, minimal_config, mock_model
-    ) -> None:
-        gen = Generator(config=minimal_config, model=mock_model)
-        tg1 = gen._initialize_task_generator()
-        tg2 = gen._initialize_task_generator()
-        assert tg1 is tg2
-
-    def test_initialize_best_practice_manager_adds_nested_graph(
-        self, minimal_config, mock_model
-    ) -> None:
-        gen = Generator(
-            config=minimal_config, model=mock_model, allow_nested_graph=True
-        )
-        bpm = gen._initialize_best_practice_manager()
-        assert bpm is not None
-
-    def test_initialize_best_practice_manager_no_nested_graph(
-        self, minimal_config, mock_model
-    ) -> None:
-        gen = Generator(
-            config=minimal_config, model=mock_model, allow_nested_graph=False
-        )
-        bpm = gen._initialize_best_practice_manager()
-        assert bpm is not None
-
-    def test_initialize_reusable_task_manager_only_once(
-        self, minimal_config, mock_model
-    ) -> None:
-        gen = Generator(config=minimal_config, model=mock_model)
-        rtm1 = gen._initialize_reusable_task_manager()
-        rtm2 = gen._initialize_reusable_task_manager()
-        assert rtm1 is rtm2
-
-    def test_initialize_task_graph_formatter_only_once(
-        self, minimal_config, mock_model
-    ) -> None:
-        gen = Generator(config=minimal_config, model=mock_model)
-        tgf1 = gen._initialize_task_graph_formatter()
-        tgf2 = gen._initialize_task_graph_formatter()
-        assert tgf1 is tgf2
-
-
-class TestGeneratorGenerateMethod:
-    """Test the main generate() method with comprehensive coverage."""
-
-    def test_generate_with_ui_interaction_and_changes(
-        self, full_config, mock_model, tmp_path
-    ):
-        """Test generate with UI interaction where user makes changes."""
-        gen = Generator(
-            config=full_config,
-            model=mock_model,
-            output_dir=str(tmp_path),
-            interactable_with_user=True,
-        )
-
-        # Mock the UI components
-        with patch("arklex.orchestrator.generator.core.generator.UI_AVAILABLE", True):
-            with patch(
-                "arklex.orchestrator.generator.core.generator.TaskEditorApp"
-            ) as mock_editor:
-                # Mock that user made changes
-                mock_editor.return_value.run.return_value = [
-                    {"name": "Modified Task", "steps": ["step1", "step2"]}
-                ]
-
-                # Mock all the component methods
-                with (
-                    patch.object(gen, "_initialize_document_loader") as mock_doc_loader,
-                    patch.object(gen, "_initialize_task_generator") as mock_task_gen,
-                    patch.object(gen, "_initialize_best_practice_manager") as mock_bpm,
-                    patch.object(gen, "_initialize_reusable_task_manager") as mock_rtm,
-                    patch.object(gen, "_initialize_task_graph_formatter") as mock_tgf,
-                ):
-                    # Setup mocks
-                    mock_doc_loader.return_value.load_task_document.return_value = (
-                        "doc1"
-                    )
-                    mock_doc_loader.return_value.load_instruction_document.return_value = "inst1"
-
-                    mock_task_gen.return_value.add_provided_tasks.return_value = []
-                    mock_task_gen.return_value.generate_tasks.return_value = [
-                        {"name": "Task1", "steps": []}
-                    ]
-
-                    mock_bpm.return_value.generate_best_practices.return_value = [
-                        {"id": "bp1"}
-                    ]
-                    mock_bpm.return_value.finetune_best_practice.return_value = {
-                        "steps": [{"description": "refined_step"}]
-                    }
-
-                    mock_rtm.return_value.generate_reusable_tasks.return_value = {}
-
-                    mock_tgf.return_value.format_task_graph.return_value = {
-                        "nodes": [],
-                        "edges": [],
-                    }
-                    mock_tgf.return_value.ensure_nested_graph_connectivity.return_value = {
-                        "nodes": [],
-                        "edges": [],
-                    }
-
-                    # Mock model responses for intent prediction
-                    mock_model.invoke.return_value.content = '{"intent": "test_intent"}'
-
-                    result = gen.generate()
-
-                    assert isinstance(result, dict)
-                    assert "nodes" in result
-                    assert "edges" in result
-
-    def test_generate_with_ui_interaction_no_changes(
-        self, full_config, mock_model, tmp_path
-    ):
-        """Test generate with UI interaction where user makes no changes."""
-        gen = Generator(
-            config=full_config,
-            model=mock_model,
-            output_dir=str(tmp_path),
-            interactable_with_user=True,
-        )
-
-        with patch("arklex.orchestrator.generator.core.generator.UI_AVAILABLE", True):
-            with patch(
-                "arklex.orchestrator.generator.core.generator.TaskEditorApp"
-            ) as mock_editor:
-                # Mock that user made no changes (same structure)
-                mock_editor.return_value.run.return_value = [
-                    {"name": "Task1", "steps": []}
-                ]
-
-                with (
-                    patch.object(gen, "_initialize_document_loader") as mock_doc_loader,
-                    patch.object(gen, "_initialize_task_generator") as mock_task_gen,
-                    patch.object(gen, "_initialize_best_practice_manager") as mock_bpm,
-                    patch.object(gen, "_initialize_reusable_task_manager") as mock_rtm,
-                    patch.object(gen, "_initialize_task_graph_formatter") as mock_tgf,
-                ):
-                    # Setup mocks
-                    mock_doc_loader.return_value.load_task_document.return_value = (
-                        "doc1"
-                    )
-                    mock_doc_loader.return_value.load_instruction_document.return_value = "inst1"
-
-                    mock_task_gen.return_value.add_provided_tasks.return_value = []
-                    mock_task_gen.return_value.generate_tasks.return_value = [
-                        {"name": "Task1", "steps": []}
-                    ]
-
-                    mock_bpm.return_value.generate_best_practices.return_value = [
-                        {"id": "bp1"}
-                    ]
-                    mock_bpm.return_value.finetune_best_practice.return_value = {
-                        "steps": [{"description": "refined_step"}]
-                    }
-
-                    mock_rtm.return_value.generate_reusable_tasks.return_value = {}
-
-                    mock_tgf.return_value.format_task_graph.return_value = {
-                        "nodes": [],
-                        "edges": [],
-                    }
-                    mock_tgf.return_value.ensure_nested_graph_connectivity.return_value = {
-                        "nodes": [],
-                        "edges": [],
-                    }
-
-                    mock_model.invoke.return_value.content = '{"intent": "test_intent"}'
-
-                    result = gen.generate()
-
-                    assert isinstance(result, dict)
-
-    def test_generate_with_ui_interaction_exception(
-        self, full_config, mock_model, tmp_path
-    ):
-        """Test generate with UI interaction that raises an exception."""
-        gen = Generator(
-            config=full_config,
-            model=mock_model,
-            output_dir=str(tmp_path),
-            interactable_with_user=True,
-        )
-
-        with patch("arklex.orchestrator.generator.core.generator.UI_AVAILABLE", True):
-            with patch(
-                "arklex.orchestrator.generator.core.generator.TaskEditorApp"
-            ) as mock_editor:
-                # Mock that UI raises an exception
-                mock_editor.return_value.run.side_effect = Exception("UI Error")
-
-                with (
-                    patch.object(gen, "_initialize_document_loader") as mock_doc_loader,
-                    patch.object(gen, "_initialize_task_generator") as mock_task_gen,
-                    patch.object(gen, "_initialize_best_practice_manager") as mock_bpm,
-                    patch.object(gen, "_initialize_reusable_task_manager") as mock_rtm,
-                    patch.object(gen, "_initialize_task_graph_formatter") as mock_tgf,
-                ):
-                    # Setup mocks
-                    mock_doc_loader.return_value.load_task_document.return_value = (
-                        "doc1"
-                    )
-                    mock_doc_loader.return_value.load_instruction_document.return_value = "inst1"
-
-                    mock_task_gen.return_value.add_provided_tasks.return_value = []
-                    mock_task_gen.return_value.generate_tasks.return_value = [
-                        {"name": "Task1", "steps": []}
-                    ]
-
-                    mock_bpm.return_value.generate_best_practices.return_value = [
-                        {"id": "bp1"}
-                    ]
-                    mock_bpm.return_value.finetune_best_practice.return_value = {
-                        "steps": [{"description": "refined_step"}]
-                    }
-
-                    mock_rtm.return_value.generate_reusable_tasks.return_value = {}
-
-                    mock_tgf.return_value.format_task_graph.return_value = {
-                        "nodes": [],
-                        "edges": [],
-                    }
-                    mock_tgf.return_value.ensure_nested_graph_connectivity.return_value = {
-                        "nodes": [],
-                        "edges": [],
-                    }
-
-                    mock_model.invoke.return_value.content = '{"intent": "test_intent"}'
-
-                    result = gen.generate()
-
-                    assert isinstance(result, dict)
-
-    def test_generate_without_ui_interaction(self, full_config, mock_model, tmp_path):
-        """Test generate without UI interaction."""
-        gen = Generator(
-            config=full_config,
-            model=mock_model,
-            output_dir=str(tmp_path),
-            interactable_with_user=False,
-        )
-
-        with (
-            patch.object(gen, "_initialize_document_loader") as mock_doc_loader,
-            patch.object(gen, "_initialize_task_generator") as mock_task_gen,
-            patch.object(gen, "_initialize_best_practice_manager") as mock_bpm,
-            patch.object(gen, "_initialize_reusable_task_manager") as mock_rtm,
-            patch.object(gen, "_initialize_task_graph_formatter") as mock_tgf,
-        ):
-            # Setup mocks
-            mock_doc_loader.return_value.load_task_document.return_value = "doc1"
-            mock_doc_loader.return_value.load_instruction_document.return_value = (
-                "inst1"
-            )
-
-            mock_task_gen.return_value.add_provided_tasks.return_value = []
-            mock_task_gen.return_value.generate_tasks.return_value = [
-                {"name": "Task1", "steps": []}
-            ]
-
-            mock_bpm.return_value.generate_best_practices.return_value = [{"id": "bp1"}]
-            mock_bpm.return_value.finetune_best_practice.return_value = {
-                "steps": [{"description": "refined_step"}]
-            }
-
-            mock_rtm.return_value.generate_reusable_tasks.return_value = {}
-
-            mock_tgf.return_value.format_task_graph.return_value = {
-                "nodes": [],
-                "edges": [],
-            }
-            mock_tgf.return_value.ensure_nested_graph_connectivity.return_value = {
-                "nodes": [],
-                "edges": [],
-            }
-
-            mock_model.invoke.return_value.content = '{"intent": "test_intent"}'
-
-            result = gen.generate()
-
-            assert isinstance(result, dict)
-
-    def test_generate_with_intent_prediction_success(
-        self, full_config, mock_model, tmp_path
-    ):
-        """Test generate with successful intent prediction."""
-        gen = Generator(config=full_config, model=mock_model, output_dir=str(tmp_path))
-
-        with (
-            patch.object(gen, "_initialize_document_loader") as mock_doc_loader,
-            patch.object(gen, "_initialize_task_generator") as mock_task_gen,
-            patch.object(gen, "_initialize_best_practice_manager") as mock_bpm,
-            patch.object(gen, "_initialize_reusable_task_manager") as mock_rtm,
-            patch.object(gen, "_initialize_task_graph_formatter") as mock_tgf,
-        ):
-            # Setup mocks
-            mock_doc_loader.return_value.load_task_document.return_value = "doc1"
-            mock_doc_loader.return_value.load_instruction_document.return_value = (
-                "inst1"
-            )
-
-            mock_task_gen.return_value.add_provided_tasks.return_value = []
-            mock_task_gen.return_value.generate_tasks.return_value = [
-                {"name": "Task1", "steps": []}
-            ]
-
-            mock_bpm.return_value.generate_best_practices.return_value = [{"id": "bp1"}]
-            mock_bpm.return_value.finetune_best_practice.return_value = {
-                "steps": [{"description": "refined_step"}]
-            }
-
-            mock_rtm.return_value.generate_reusable_tasks.return_value = {}
-
-            mock_tgf.return_value.format_task_graph.return_value = {
-                "nodes": [],
-                "edges": [],
-            }
-            mock_tgf.return_value.ensure_nested_graph_connectivity.return_value = {
-                "nodes": [],
-                "edges": [],
-            }
-
-            # Mock successful intent prediction
-            mock_model.invoke.return_value.content = '{"intent": "test_intent"}'
-
-            result = gen.generate()
-
-            assert isinstance(result, dict)
-
-    def test_generate_with_intent_prediction_fallback(
-        self, full_config, mock_model, tmp_path
-    ):
-        """Test generate with intent prediction fallback."""
-        gen = Generator(config=full_config, model=mock_model, output_dir=str(tmp_path))
-
-        with (
-            patch.object(gen, "_initialize_document_loader") as mock_doc_loader,
-            patch.object(gen, "_initialize_task_generator") as mock_task_gen,
-            patch.object(gen, "_initialize_best_practice_manager") as mock_bpm,
-            patch.object(gen, "_initialize_reusable_task_manager") as mock_rtm,
-            patch.object(gen, "_initialize_task_graph_formatter") as mock_tgf,
-        ):
-            # Setup mocks
-            mock_doc_loader.return_value.load_task_document.return_value = "doc1"
-            mock_doc_loader.return_value.load_instruction_document.return_value = (
-                "inst1"
-            )
-
-            mock_task_gen.return_value.add_provided_tasks.return_value = []
-            mock_task_gen.return_value.generate_tasks.return_value = [
-                {"name": "Task1", "steps": []}
-            ]
-
-            mock_bpm.return_value.generate_best_practices.return_value = [{"id": "bp1"}]
-            mock_bpm.return_value.finetune_best_practice.return_value = {
-                "steps": [{"description": "refined_step"}]
-            }
-
-            mock_rtm.return_value.generate_reusable_tasks.return_value = {}
-
-            mock_tgf.return_value.format_task_graph.return_value = {
-                "nodes": [],
-                "edges": [],
-            }
-            mock_tgf.return_value.ensure_nested_graph_connectivity.return_value = {
-                "nodes": [],
-                "edges": [],
-            }
-
-            # Mock intent prediction that fails to parse JSON
-            mock_model.invoke.return_value.content = "invalid json"
-
-            result = gen.generate()
-
-            assert isinstance(result, dict)
-
-    def test_generate_with_intent_prediction_exception(
-        self, full_config, mock_model, tmp_path
-    ):
-        """Test generate with intent prediction exception."""
-        gen = Generator(config=full_config, model=mock_model, output_dir=str(tmp_path))
-
-        with (
-            patch.object(gen, "_initialize_document_loader") as mock_doc_loader,
-            patch.object(gen, "_initialize_task_generator") as mock_task_gen,
-            patch.object(gen, "_initialize_best_practice_manager") as mock_bpm,
-            patch.object(gen, "_initialize_reusable_task_manager") as mock_rtm,
-            patch.object(gen, "_initialize_task_graph_formatter") as mock_tgf,
-        ):
-            # Setup mocks
-            mock_doc_loader.return_value.load_task_document.return_value = "doc1"
-            mock_doc_loader.return_value.load_instruction_document.return_value = (
-                "inst1"
-            )
-
-            mock_task_gen.return_value.add_provided_tasks.return_value = []
-            mock_task_gen.return_value.generate_tasks.return_value = [
-                {"name": "Task1", "steps": []}
-            ]
-
-            mock_bpm.return_value.generate_best_practices.return_value = [{"id": "bp1"}]
-            mock_bpm.return_value.finetune_best_practice.return_value = {
-                "steps": [{"description": "refined_step"}]
-            }
-
-            mock_rtm.return_value.generate_reusable_tasks.return_value = {}
-
-            mock_tgf.return_value.format_task_graph.return_value = {
-                "nodes": [],
-                "edges": [],
-            }
-            mock_tgf.return_value.ensure_nested_graph_connectivity.return_value = {
-                "nodes": [],
-                "edges": [],
-            }
-
-            # Mock intent prediction that raises exception
-            mock_model.invoke.side_effect = Exception("Model error")
-
-            result = gen.generate()
-
-            assert isinstance(result, dict)
-
-    def test_generate_with_reusable_tasks(self, full_config, mock_model, tmp_path):
-        """Test generate with reusable tasks enabled."""
-        gen = Generator(
-            config=full_config,
-            model=mock_model,
-            output_dir=str(tmp_path),
+        """Test best practice manager initialization with nested graph enabled."""
+        generator = Generator(
+            config=patched_sample_config,
+            model=always_valid_mock_model,
             allow_nested_graph=True,
         )
 
-        with (
-            patch.object(gen, "_initialize_document_loader") as mock_doc_loader,
-            patch.object(gen, "_initialize_task_generator") as mock_task_gen,
-            patch.object(gen, "_initialize_best_practice_manager") as mock_bpm,
-            patch.object(gen, "_initialize_reusable_task_manager") as mock_rtm,
-            patch.object(gen, "_initialize_task_graph_formatter") as mock_tgf,
-        ):
-            # Setup mocks
-            mock_doc_loader.return_value.load_task_document.return_value = "doc1"
-            mock_doc_loader.return_value.load_instruction_document.return_value = (
-                "inst1"
+        with patch(
+            "arklex.orchestrator.generator.core.generator.BestPracticeManager"
+        ) as mock_manager_class:
+            mock_manager_instance = Mock()
+            mock_manager_class.return_value = mock_manager_instance
+
+            best_practice_manager = generator._initialize_best_practice_manager()
+
+            # Verify the call arguments
+            call_args = mock_manager_class.call_args
+            assert call_args[1]["model"] == always_valid_mock_model
+            assert call_args[1]["role"] == "test_role"
+            assert call_args[1]["user_objective"] == "test user objective"
+            assert call_args[1]["workers"] == generator.workers
+            assert call_args[1]["tools"] == generator.tools
+
+            # Verify all_resources includes nested_graph
+            all_resources = call_args[1]["all_resources"]
+            nested_graph_resource = next(
+                (r for r in all_resources if r["name"] == "NestedGraph"), None
             )
+            assert nested_graph_resource is not None
+            assert nested_graph_resource["type"] == "nested_graph"
 
-            mock_task_gen.return_value.add_provided_tasks.return_value = []
-            mock_task_gen.return_value.generate_tasks.return_value = [
-                {"name": "Task1", "steps": []}
+            assert best_practice_manager == mock_manager_instance
+            assert generator._best_practice_manager == mock_manager_instance
+
+    def test_initialize_best_practice_manager_without_nested_graph(
+        self, always_valid_mock_model: Mock, patched_sample_config: dict[str, Any]
+    ) -> None:
+        """Test best practice manager initialization with nested graph disabled."""
+        generator = Generator(
+            config=patched_sample_config,
+            model=always_valid_mock_model,
+            allow_nested_graph=False,
+        )
+
+        with patch(
+            "arklex.orchestrator.generator.core.generator.BestPracticeManager"
+        ) as mock_manager_class:
+            mock_manager_instance = Mock()
+            mock_manager_class.return_value = mock_manager_instance
+
+            best_practice_manager = generator._initialize_best_practice_manager()
+
+            # Verify all_resources does not include nested_graph
+            call_args = mock_manager_class.call_args
+            all_resources = call_args[1]["all_resources"]
+            nested_graph_resource = next(
+                (r for r in all_resources if r["name"] == "NestedGraph"), None
+            )
+            assert nested_graph_resource is None
+
+            assert best_practice_manager == mock_manager_instance
+
+    def test_initialize_best_practice_manager_resource_processing(
+        self, always_valid_mock_model: Mock, mock_resource_initializer: Mock
+    ) -> None:
+        """Test best practice manager resource processing."""
+        # Configure the mock resource initializer to return tools as a list
+        # that matches what the Generator expects
+        mock_resource_initializer.init_tools.return_value = [
+            {"name": "Tool1", "description": "Tool 1 desc"},
+            {"name": "Tool2", "description": "Tool 1 desc"},  # Default description
+        ]
+
+        config = {
+            "role": "test_role",
+            "user_objective": "test objective",
+            "workers": [
+                {
+                    "id": "w1",
+                    "name": "Worker1",
+                    "path": "/path1",
+                    "description": "Worker 1 desc",
+                },
+                {"id": "w2", "name": "Worker2", "path": "/path2"},
+            ],
+            "tools": [
+                {
+                    "id": "t1",
+                    "name": "Tool1",
+                    "description": "Tool 1 desc",
+                    "path": "mock_path",
+                },
+                {"id": "t2", "name": "Tool2", "path": "mock_path"},
+            ],
+        }
+
+        generator = Generator(
+            config=config,
+            model=always_valid_mock_model,
+            allow_nested_graph=True,
+            resource_initializer=mock_resource_initializer,
+        )
+
+        with patch(
+            "arklex.orchestrator.generator.core.generator.BestPracticeManager"
+        ) as mock_manager_class:
+            generator._initialize_best_practice_manager()
+
+            call_args = mock_manager_class.call_args
+            all_resources = call_args[1]["all_resources"]
+
+            # Verify workers are processed correctly
+            worker1 = next((r for r in all_resources if r["name"] == "Worker1"), None)
+            assert worker1 is not None
+            assert worker1["description"] == "Worker1 worker"  # Default description
+            assert worker1["type"] == "worker"
+
+            worker2 = next((r for r in all_resources if r["name"] == "Worker2"), None)
+            assert worker2 is not None
+            assert worker2["description"] == "Worker2 worker"  # Default description
+            assert worker2["type"] == "worker"
+
+            # Verify tools are processed correctly
+            tool1 = next((r for r in all_resources if r["name"] == "Tool1"), None)
+            assert tool1 is not None
+            assert tool1["description"] == "Tool 1 desc"
+            assert tool1["type"] == "tool"
+
+            tool2 = next((r for r in all_resources if r["name"] == "Tool2"), None)
+            assert tool2 is not None
+            assert tool2["description"] == "Tool 1 desc"  # Default description
+            assert tool2["type"] == "tool"
+
+    def test_initialize_reusable_task_manager(
+        self, always_valid_mock_model: Mock, patched_sample_config: dict[str, Any]
+    ) -> None:
+        """Test reusable task manager initialization."""
+        generator = Generator(
+            config=patched_sample_config,
+            model=always_valid_mock_model,
+        )
+
+        with patch(
+            "arklex.orchestrator.generator.core.generator.ReusableTaskManager"
+        ) as mock_manager_class:
+            mock_manager_instance = Mock()
+            mock_manager_class.return_value = mock_manager_instance
+
+            reusable_task_manager = generator._initialize_reusable_task_manager()
+
+            mock_manager_class.assert_called_once_with(
+                model=always_valid_mock_model,
+                role="test_role",
+                user_objective="test user objective",
+            )
+            assert reusable_task_manager == mock_manager_instance
+            assert generator._reusable_task_manager == mock_manager_instance
+
+    def test_initialize_task_graph_formatter(
+        self, always_valid_mock_model: Mock, patched_sample_config: dict[str, Any]
+    ) -> None:
+        """Test task graph formatter initialization."""
+        generator = Generator(
+            config=patched_sample_config,
+            model=always_valid_mock_model,
+            allow_nested_graph=True,
+        )
+
+        with patch(
+            "arklex.orchestrator.generator.core.generator.TaskGraphFormatter"
+        ) as mock_formatter_class:
+            mock_formatter_instance = Mock()
+            mock_formatter_class.return_value = mock_formatter_instance
+
+            task_graph_formatter = generator._initialize_task_graph_formatter()
+
+            mock_formatter_class.assert_called_once_with(
+                role="test_role",
+                user_objective="test user objective",
+                builder_objective="test builder objective",
+                domain="test_domain",
+                intro="test introduction",
+                task_docs=["task1.md", "task2.md"],
+                rag_docs=["rag1.md"],
+                workers=generator.workers,
+                tools=generator.tools,
+                nluapi="test_nlu_api",
+                slotfillapi="test_slotfill_api",
+                allow_nested_graph=True,
+                model=always_valid_mock_model,
+                settings={"setting1": "value1", "setting2": "value2"},
+            )
+            assert task_graph_formatter == mock_formatter_instance
+            assert generator._task_graph_formatter == mock_formatter_instance
+
+
+class TestDocumentLoading:
+    """Test document loading functionality."""
+
+    def test_load_multiple_task_documents_list(
+        self,
+        always_valid_mock_model: Mock,
+        patched_sample_config: dict[str, Any],
+        mock_document_loader: Mock,
+    ) -> None:
+        """Test loading multiple task documents from a list."""
+        generator = Generator(
+            config=patched_sample_config,
+            model=always_valid_mock_model,
+        )
+
+        doc_paths = [
+            {"source": "doc1.md"},
+            {"source": "doc2.md"},
+            "doc3.md",
+        ]
+
+        result = generator._load_multiple_task_documents(
+            mock_document_loader, doc_paths
+        )
+
+        assert len(result) == 3
+        mock_document_loader.load_task_document.assert_has_calls(
+            [
+                call("doc1.md"),
+                call("doc2.md"),
+                call("doc3.md"),
             ]
+        )
 
-            mock_bpm.return_value.generate_best_practices.return_value = [{"id": "bp1"}]
-            mock_bpm.return_value.finetune_best_practice.return_value = {
-                "steps": [{"description": "refined_step"}]
-            }
+    def test_load_multiple_task_documents_single_dict(
+        self,
+        always_valid_mock_model: Mock,
+        patched_sample_config: dict[str, Any],
+        mock_document_loader: Mock,
+    ) -> None:
+        """Test loading task documents from a single dictionary."""
+        generator = Generator(
+            config=patched_sample_config,
+            model=always_valid_mock_model,
+        )
 
-            mock_rtm.return_value.generate_reusable_tasks.return_value = {
-                "reusable1": {"id": "r1"}
-            }
+        doc_paths = {"source": "doc1.md"}
 
-            mock_tgf.return_value.format_task_graph.return_value = {
-                "nodes": [],
-                "edges": [],
-            }
-            mock_tgf.return_value.ensure_nested_graph_connectivity.return_value = {
-                "nodes": [],
-                "edges": [],
-            }
+        result = generator._load_multiple_task_documents(
+            mock_document_loader, doc_paths
+        )
 
-            mock_model.invoke.return_value.content = '{"intent": "test_intent"}'
+        assert len(result) == 1
+        mock_document_loader.load_task_document.assert_called_once_with("doc1.md")
 
-            result = gen.generate()
+    def test_load_multiple_task_documents_single_string(
+        self,
+        always_valid_mock_model: Mock,
+        patched_sample_config: dict[str, Any],
+        mock_document_loader: Mock,
+    ) -> None:
+        """Test loading task documents from a single string."""
+        generator = Generator(
+            config=patched_sample_config,
+            model=always_valid_mock_model,
+        )
 
-            assert isinstance(result, dict)
+        doc_paths = "doc1.md"
+
+        result = generator._load_multiple_task_documents(
+            mock_document_loader, doc_paths
+        )
+
+        assert len(result) == 1
+        mock_document_loader.load_task_document.assert_called_once_with("doc1.md")
+
+    def test_load_multiple_instruction_documents_list(
+        self,
+        always_valid_mock_model: Mock,
+        patched_sample_config: dict[str, Any],
+        mock_document_loader: Mock,
+    ) -> None:
+        """Test loading multiple instruction documents from a list."""
+        generator = Generator(
+            config=patched_sample_config,
+            model=always_valid_mock_model,
+        )
+
+        doc_paths = [
+            {"source": "instr1.md"},
+            {"source": "instr2.md"},
+            "instr3.md",
+        ]
+
+        result = generator._load_multiple_instruction_documents(
+            mock_document_loader, doc_paths
+        )
+
+        assert len(result) == 3
+        mock_document_loader.load_instruction_document.assert_has_calls(
+            [
+                call("instr1.md"),
+                call("instr2.md"),
+                call("instr3.md"),
+            ]
+        )
+
+    def test_load_multiple_instruction_documents_single_dict(
+        self,
+        always_valid_mock_model: Mock,
+        patched_sample_config: dict[str, Any],
+        mock_document_loader: Mock,
+    ) -> None:
+        """Test loading instruction documents from a single dictionary."""
+        generator = Generator(
+            config=patched_sample_config,
+            model=always_valid_mock_model,
+        )
+
+        doc_paths = {"source": "instr1.md"}
+
+        result = generator._load_multiple_instruction_documents(
+            mock_document_loader, doc_paths
+        )
+
+        assert len(result) == 1
+        mock_document_loader.load_instruction_document.assert_called_once_with(
+            "instr1.md"
+        )
+
+    def test_load_multiple_instruction_documents_single_string(
+        self,
+        always_valid_mock_model: Mock,
+        patched_sample_config: dict[str, Any],
+        mock_document_loader: Mock,
+    ) -> None:
+        """Test loading instruction documents from a single string."""
+        generator = Generator(
+            config=patched_sample_config,
+            model=always_valid_mock_model,
+        )
+
+        doc_paths = "instr1.md"
+
+        result = generator._load_multiple_instruction_documents(
+            mock_document_loader, doc_paths
+        )
+
+        assert len(result) == 1
+        mock_document_loader.load_instruction_document.assert_called_once_with(
+            "instr1.md"
+        )
+
+
+class TestGenerateMethod:
+    """Test the main generate method and its execution flow."""
+
+    def test_generate_basic_flow(
+        self,
+        always_valid_mock_model: Mock,
+        patched_sample_config: dict[str, Any],
+        mock_document_loader: Mock,
+        mock_task_generator: Mock,
+        mock_best_practice_manager: Mock,
+        mock_reusable_task_manager: Mock,
+        mock_task_graph_formatter: Mock,
+        mock_prompt_manager: Mock,
+    ) -> None:
+        """Test basic generation flow without UI interaction."""
+        generator = Generator(
+            config=patched_sample_config,
+            model=always_valid_mock_model,
+            interactable_with_user=False,
+            allow_nested_graph=True,
+        )
+
+        # Mock all component initializations
+        with (
+            patch.object(
+                generator,
+                "_initialize_document_loader",
+                return_value=mock_document_loader,
+            ),
+            patch.object(
+                generator,
+                "_initialize_task_generator",
+                return_value=mock_task_generator,
+            ),
+            patch.object(
+                generator,
+                "_initialize_best_practice_manager",
+                return_value=mock_best_practice_manager,
+            ),
+            patch.object(
+                generator,
+                "_initialize_reusable_task_manager",
+                return_value=mock_reusable_task_manager,
+            ),
+            patch.object(
+                generator,
+                "_initialize_task_graph_formatter",
+                return_value=mock_task_graph_formatter,
+            ),
+            patch(
+                "arklex.orchestrator.generator.core.generator.PromptManager",
+                return_value=mock_prompt_manager,
+            ),
+        ):
+            result = generator.generate()
+
+            # Verify document loading
+            mock_document_loader.load_task_document.assert_called()
+            mock_document_loader.load_instruction_document.assert_called()
+
+            # Verify task generation
+            mock_task_generator.add_provided_tasks.assert_called_once()
+            mock_task_generator.generate_tasks.assert_called_once()
+
+            # Verify reusable task generation
+            mock_reusable_task_manager.generate_reusable_tasks.assert_called_once()
+
+            # Verify best practice generation
+            mock_best_practice_manager.generate_best_practices.assert_called_once()
+            mock_best_practice_manager.finetune_best_practice.assert_called()
+
+            # Verify task graph formatting
+            mock_task_graph_formatter.format_task_graph.assert_called_once()
+            mock_task_graph_formatter.ensure_nested_graph_connectivity.assert_called_once()
+
+            # Verify result structure
+            assert "tasks" in result
             assert "reusable_tasks" in result
 
-    def test_generate_without_reusable_tasks(self, full_config, mock_model, tmp_path):
-        """Test generate without reusable tasks."""
-        gen = Generator(
-            config=full_config,
-            model=mock_model,
-            output_dir=str(tmp_path),
+    def test_generate_without_nested_graph(
+        self,
+        always_valid_mock_model: Mock,
+        patched_sample_config: dict[str, Any],
+        mock_document_loader: Mock,
+        mock_task_generator: Mock,
+        mock_best_practice_manager: Mock,
+        mock_task_graph_formatter: Mock,
+        mock_prompt_manager: Mock,
+    ) -> None:
+        """Test generation flow without nested graph support."""
+        generator = Generator(
+            config=patched_sample_config,
+            model=always_valid_mock_model,
+            interactable_with_user=False,
             allow_nested_graph=False,
         )
 
         with (
-            patch.object(gen, "_initialize_document_loader") as mock_doc_loader,
-            patch.object(gen, "_initialize_task_generator") as mock_task_gen,
-            patch.object(gen, "_initialize_best_practice_manager") as mock_bpm,
-            patch.object(gen, "_initialize_reusable_task_manager") as mock_rtm,
-            patch.object(gen, "_initialize_task_graph_formatter") as mock_tgf,
+            patch.object(
+                generator,
+                "_initialize_document_loader",
+                return_value=mock_document_loader,
+            ),
+            patch.object(
+                generator,
+                "_initialize_task_generator",
+                return_value=mock_task_generator,
+            ),
+            patch.object(
+                generator,
+                "_initialize_best_practice_manager",
+                return_value=mock_best_practice_manager,
+            ),
+            patch.object(
+                generator,
+                "_initialize_task_graph_formatter",
+                return_value=mock_task_graph_formatter,
+            ),
+            patch(
+                "arklex.orchestrator.generator.core.generator.PromptManager",
+                return_value=mock_prompt_manager,
+            ),
         ):
-            # Setup mocks
-            mock_doc_loader.return_value.load_task_document.return_value = "doc1"
-            mock_doc_loader.return_value.load_instruction_document.return_value = (
-                "inst1"
+            result = generator.generate()
+
+            # Verify reusable task manager is not called
+            assert (
+                not hasattr(generator, "_reusable_task_manager")
+                or generator._reusable_task_manager is None
             )
 
-            mock_task_gen.return_value.add_provided_tasks.return_value = []
-            mock_task_gen.return_value.generate_tasks.return_value = [
-                {"name": "Task1", "steps": []}
-            ]
+            # Verify nested graph connectivity is not called
+            mock_task_graph_formatter.ensure_nested_graph_connectivity.assert_not_called()
 
-            mock_bpm.return_value.generate_best_practices.return_value = [{"id": "bp1"}]
-            mock_bpm.return_value.finetune_best_practice.return_value = {
-                "steps": [{"description": "refined_step"}]
+            # Verify result structure
+            assert "tasks" in result
+            assert "reusable_tasks" not in result
+
+    def test_generate_document_conversion_to_string(
+        self,
+        always_valid_mock_model: Mock,
+        patched_sample_config: dict[str, Any],
+        mock_document_loader: Mock,
+        mock_task_generator: Mock,
+        mock_best_practice_manager: Mock,
+        mock_task_graph_formatter: Mock,
+        mock_prompt_manager: Mock,
+    ) -> None:
+        """Test that document lists are converted to strings for TaskGenerator."""
+        generator = Generator(
+            config=patched_sample_config,
+            model=always_valid_mock_model,
+            interactable_with_user=False,
+        )
+
+        # Mock document loader to return lists
+        mock_document_loader.load_task_document.return_value = "Task doc content"
+        mock_document_loader.load_instruction_document.return_value = (
+            "Instruction doc content"
+        )
+
+        with (
+            patch.object(
+                generator,
+                "_initialize_document_loader",
+                return_value=mock_document_loader,
+            ),
+            patch.object(
+                generator,
+                "_initialize_task_generator",
+                return_value=mock_task_generator,
+            ),
+            patch.object(
+                generator,
+                "_initialize_best_practice_manager",
+                return_value=mock_best_practice_manager,
+            ),
+            patch.object(
+                generator,
+                "_initialize_task_graph_formatter",
+                return_value=mock_task_graph_formatter,
+            ),
+            patch(
+                "arklex.orchestrator.generator.core.generator.PromptManager",
+                return_value=mock_prompt_manager,
+            ),
+        ):
+            generator.generate()
+
+            # Verify documents and instructions are converted to strings
+            assert isinstance(generator.documents, str)
+            assert isinstance(generator.instructions, str)
+
+    def test_generate_with_user_tasks(
+        self,
+        always_valid_mock_model: Mock,
+        patched_sample_config: dict[str, Any],
+        mock_document_loader: Mock,
+        mock_task_generator: Mock,
+        mock_best_practice_manager: Mock,
+        mock_task_graph_formatter: Mock,
+        mock_prompt_manager: Mock,
+    ) -> None:
+        """Test generation with user-provided tasks."""
+        config = patched_sample_config.copy()
+        config["user_tasks"] = [
+            {
+                "name": "User Task 1",
+                "description": "User task description",
+                "steps": [
+                    {"description": "Step 1"},
+                    {"description": "Step 2"},
+                ],
             }
+        ]
 
-            mock_rtm.return_value.generate_reusable_tasks.return_value = {}
+        generator = Generator(
+            config=config,
+            model=always_valid_mock_model,
+            interactable_with_user=False,
+        )
 
-            mock_tgf.return_value.format_task_graph.return_value = {
-                "nodes": [],
-                "edges": [],
+        with (
+            patch.object(
+                generator,
+                "_initialize_document_loader",
+                return_value=mock_document_loader,
+            ),
+            patch.object(
+                generator,
+                "_initialize_task_generator",
+                return_value=mock_task_generator,
+            ),
+            patch.object(
+                generator,
+                "_initialize_best_practice_manager",
+                return_value=mock_best_practice_manager,
+            ),
+            patch.object(
+                generator,
+                "_initialize_task_graph_formatter",
+                return_value=mock_task_graph_formatter,
+            ),
+            patch(
+                "arklex.orchestrator.generator.core.generator.PromptManager",
+                return_value=mock_prompt_manager,
+            ),
+        ):
+            generator.generate()
+
+            # Verify user tasks are processed
+            mock_task_generator.add_provided_tasks.assert_called_once_with(
+                config["user_tasks"], config["intro"]
+            )
+
+    def test_generate_without_user_tasks(
+        self,
+        always_valid_mock_model: Mock,
+        patched_sample_config: dict[str, Any],
+        mock_document_loader: Mock,
+        mock_task_generator: Mock,
+        mock_best_practice_manager: Mock,
+        mock_task_graph_formatter: Mock,
+        mock_prompt_manager: Mock,
+    ) -> None:
+        """Test generation without user-provided tasks."""
+        config = patched_sample_config.copy()
+        config["user_tasks"] = []
+
+        generator = Generator(
+            config=config,
+            model=always_valid_mock_model,
+            interactable_with_user=False,
+        )
+
+        with (
+            patch.object(
+                generator,
+                "_initialize_document_loader",
+                return_value=mock_document_loader,
+            ),
+            patch.object(
+                generator,
+                "_initialize_task_generator",
+                return_value=mock_task_generator,
+            ),
+            patch.object(
+                generator,
+                "_initialize_best_practice_manager",
+                return_value=mock_best_practice_manager,
+            ),
+            patch.object(
+                generator,
+                "_initialize_task_graph_formatter",
+                return_value=mock_task_graph_formatter,
+            ),
+            patch(
+                "arklex.orchestrator.generator.core.generator.PromptManager",
+                return_value=mock_prompt_manager,
+            ),
+        ):
+            generator.generate()
+
+            # Verify add_provided_tasks is not called when no user tasks
+            mock_task_generator.add_provided_tasks.assert_not_called()
+
+    def test_generate_intent_prediction_success(
+        self,
+        always_valid_mock_model: Mock,
+        patched_sample_config: dict[str, Any],
+        mock_document_loader: Mock,
+        mock_task_generator: Mock,
+        mock_best_practice_manager: Mock,
+        mock_task_graph_formatter: Mock,
+        mock_prompt_manager: Mock,
+    ) -> None:
+        """Test successful intent prediction for tasks."""
+        generator = Generator(
+            config=patched_sample_config,
+            model=always_valid_mock_model,
+            interactable_with_user=False,
+        )
+
+        # Mock model to return valid JSON response
+        mock_response = Mock()
+        mock_response.content = '{"intent": "User inquires about test task"}'
+        always_valid_mock_model.invoke.return_value = mock_response
+
+        with (
+            patch.object(
+                generator,
+                "_initialize_document_loader",
+                return_value=mock_document_loader,
+            ),
+            patch.object(
+                generator,
+                "_initialize_task_generator",
+                return_value=mock_task_generator,
+            ),
+            patch.object(
+                generator,
+                "_initialize_best_practice_manager",
+                return_value=mock_best_practice_manager,
+            ),
+            patch.object(
+                generator,
+                "_initialize_task_graph_formatter",
+                return_value=mock_task_graph_formatter,
+            ),
+            patch(
+                "arklex.orchestrator.generator.core.generator.PromptManager",
+                return_value=mock_prompt_manager,
+            ),
+        ):
+            generator.generate()
+
+            # Verify intent prediction was called
+            assert always_valid_mock_model.invoke.call_count > 0
+            mock_prompt_manager.get_prompt.assert_called_with(
+                "generate_intents",
+                task_name="Generated Task 1",
+                task_description="Generated task description",
+            )
+
+    def test_generate_intent_prediction_fallback(
+        self,
+        always_valid_mock_model: Mock,
+        patched_sample_config: dict[str, Any],
+        mock_document_loader: Mock,
+        mock_task_generator: Mock,
+        mock_best_practice_manager: Mock,
+        mock_task_graph_formatter: Mock,
+        mock_prompt_manager: Mock,
+    ) -> None:
+        """Test intent prediction fallback when JSON parsing fails."""
+        generator = Generator(
+            config=patched_sample_config,
+            model=always_valid_mock_model,
+            interactable_with_user=False,
+        )
+
+        # Mock model to return invalid JSON response
+        mock_response = Mock()
+        mock_response.content = "Invalid JSON response"
+        always_valid_mock_model.invoke.return_value = mock_response
+
+        with (
+            patch.object(
+                generator,
+                "_initialize_document_loader",
+                return_value=mock_document_loader,
+            ),
+            patch.object(
+                generator,
+                "_initialize_task_generator",
+                return_value=mock_task_generator,
+            ),
+            patch.object(
+                generator,
+                "_initialize_best_practice_manager",
+                return_value=mock_best_practice_manager,
+            ),
+            patch.object(
+                generator,
+                "_initialize_task_graph_formatter",
+                return_value=mock_task_graph_formatter,
+            ),
+            patch(
+                "arklex.orchestrator.generator.core.generator.PromptManager",
+                return_value=mock_prompt_manager,
+            ),
+        ):
+            generator.generate()
+
+            # Verify intent prediction was attempted
+            assert always_valid_mock_model.invoke.call_count > 0
+
+    def test_generate_intent_prediction_exception_handling(
+        self,
+        always_valid_mock_model: Mock,
+        patched_sample_config: dict[str, Any],
+        mock_document_loader: Mock,
+        mock_task_generator: Mock,
+        mock_best_practice_manager: Mock,
+        mock_task_graph_formatter: Mock,
+        mock_prompt_manager: Mock,
+    ) -> None:
+        """Test intent prediction exception handling."""
+        generator = Generator(
+            config=patched_sample_config,
+            model=always_valid_mock_model,
+            interactable_with_user=False,
+        )
+
+        # Mock model to raise exception
+        always_valid_mock_model.invoke.side_effect = Exception("Model error")
+
+        with (
+            patch.object(
+                generator,
+                "_initialize_document_loader",
+                return_value=mock_document_loader,
+            ),
+            patch.object(
+                generator,
+                "_initialize_task_generator",
+                return_value=mock_task_generator,
+            ),
+            patch.object(
+                generator,
+                "_initialize_best_practice_manager",
+                return_value=mock_best_practice_manager,
+            ),
+            patch.object(
+                generator,
+                "_initialize_task_graph_formatter",
+                return_value=mock_task_graph_formatter,
+            ),
+            patch(
+                "arklex.orchestrator.generator.core.generator.PromptManager",
+                return_value=mock_prompt_manager,
+            ),
+        ):
+            result = generator.generate()
+
+            # Verify generation continues despite intent prediction errors
+            assert "tasks" in result
+
+    def test_generate_reusable_tasks_inclusion(
+        self,
+        always_valid_mock_model: Mock,
+        patched_sample_config: dict[str, Any],
+        mock_document_loader: Mock,
+        mock_task_generator: Mock,
+        mock_best_practice_manager: Mock,
+        mock_reusable_task_manager: Mock,
+        mock_task_graph_formatter: Mock,
+        mock_prompt_manager: Mock,
+    ) -> None:
+        """Test that reusable tasks are included in the final result."""
+        generator = Generator(
+            config=patched_sample_config,
+            model=always_valid_mock_model,
+            interactable_with_user=False,
+            allow_nested_graph=True,
+        )
+
+        # Mock reusable task manager to return tasks
+        mock_reusable_task_manager.generate_reusable_tasks.return_value = {
+            "reusable_task_1": {
+                "name": "Reusable Task 1",
+                "description": "Reusable task description",
             }
-            mock_tgf.return_value.ensure_nested_graph_connectivity.return_value = {
-                "nodes": [],
-                "edges": [],
-            }
+        }
 
-            mock_model.invoke.return_value.content = '{"intent": "test_intent"}'
+        with (
+            patch.object(
+                generator,
+                "_initialize_document_loader",
+                return_value=mock_document_loader,
+            ),
+            patch.object(
+                generator,
+                "_initialize_task_generator",
+                return_value=mock_task_generator,
+            ),
+            patch.object(
+                generator,
+                "_initialize_best_practice_manager",
+                return_value=mock_best_practice_manager,
+            ),
+            patch.object(
+                generator,
+                "_initialize_reusable_task_manager",
+                return_value=mock_reusable_task_manager,
+            ),
+            patch.object(
+                generator,
+                "_initialize_task_graph_formatter",
+                return_value=mock_task_graph_formatter,
+            ),
+            patch(
+                "arklex.orchestrator.generator.core.generator.PromptManager",
+                return_value=mock_prompt_manager,
+            ),
+        ):
+            result = generator.generate()
 
-            result = gen.generate()
+            # Verify reusable tasks are included
+            assert "reusable_tasks" in result
+            assert "reusable_task_1" in result["reusable_tasks"]
+            assert "nested_graph" in result["reusable_tasks"]
 
-            assert isinstance(result, dict)
-
-    def test_generate_with_nested_graph_connectivity(
-        self, full_config, mock_model, tmp_path
-    ):
-        """Test generate with nested graph connectivity enabled."""
-        gen = Generator(
-            config=full_config,
-            model=mock_model,
-            output_dir=str(tmp_path),
+    def test_generate_nested_graph_resource_addition(
+        self,
+        always_valid_mock_model: Mock,
+        patched_sample_config: dict[str, Any],
+        mock_document_loader: Mock,
+        mock_task_generator: Mock,
+        mock_best_practice_manager: Mock,
+        mock_task_graph_formatter: Mock,
+        mock_prompt_manager: Mock,
+    ) -> None:
+        """Test that nested graph resource is added when enabled."""
+        generator = Generator(
+            config=patched_sample_config,
+            model=always_valid_mock_model,
+            interactable_with_user=False,
             allow_nested_graph=True,
         )
 
         with (
-            patch.object(gen, "_initialize_document_loader") as mock_doc_loader,
-            patch.object(gen, "_initialize_task_generator") as mock_task_gen,
-            patch.object(gen, "_initialize_best_practice_manager") as mock_bpm,
-            patch.object(gen, "_initialize_reusable_task_manager") as mock_rtm,
-            patch.object(gen, "_initialize_task_graph_formatter") as mock_tgf,
+            patch.object(
+                generator,
+                "_initialize_document_loader",
+                return_value=mock_document_loader,
+            ),
+            patch.object(
+                generator,
+                "_initialize_task_generator",
+                return_value=mock_task_generator,
+            ),
+            patch.object(
+                generator,
+                "_initialize_best_practice_manager",
+                return_value=mock_best_practice_manager,
+            ),
+            patch.object(
+                generator,
+                "_initialize_task_graph_formatter",
+                return_value=mock_task_graph_formatter,
+            ),
+            patch(
+                "arklex.orchestrator.generator.core.generator.PromptManager",
+                return_value=mock_prompt_manager,
+            ),
         ):
-            # Setup mocks
-            mock_doc_loader.return_value.load_task_document.return_value = "doc1"
-            mock_doc_loader.return_value.load_instruction_document.return_value = (
-                "inst1"
-            )
+            result = generator.generate()
 
-            mock_task_gen.return_value.add_provided_tasks.return_value = []
-            mock_task_gen.return_value.generate_tasks.return_value = [
-                {"name": "Task1", "steps": []}
-            ]
+            # Verify nested graph resource is added
+            assert "reusable_tasks" in result
+            assert "nested_graph" in result["reusable_tasks"]
+            nested_graph = result["reusable_tasks"]["nested_graph"]
+            assert nested_graph["resource"]["id"] == "nested_graph"
+            assert nested_graph["resource"]["name"] == "NestedGraph"
+            assert nested_graph["limit"] == 1
 
-            mock_bpm.return_value.generate_best_practices.return_value = [{"id": "bp1"}]
-            mock_bpm.return_value.finetune_best_practice.return_value = {
-                "steps": [{"description": "refined_step"}]
-            }
-
-            mock_rtm.return_value.generate_reusable_tasks.return_value = {}
-
-            mock_tgf.return_value.format_task_graph.return_value = {
-                "nodes": [],
-                "edges": [],
-            }
-            mock_tgf.return_value.ensure_nested_graph_connectivity.return_value = {
-                "nodes": [],
-                "edges": [],
-            }
-
-            mock_model.invoke.return_value.content = '{"intent": "test_intent"}'
-
-            result = gen.generate()
-
-            assert isinstance(result, dict)
-            # Should call ensure_nested_graph_connectivity
-            mock_tgf.return_value.ensure_nested_graph_connectivity.assert_called_once()
-
-
-class TestGeneratorSaveTaskGraph:
-    """Test the save_task_graph method with comprehensive coverage."""
-
-    def test_save_task_graph_with_complex_objects(
-        self, minimal_config, mock_model, tmp_path
-    ):
-        """Test save_task_graph with complex non-serializable objects."""
-        gen = Generator(
-            config=minimal_config, model=mock_model, output_dir=str(tmp_path)
+    def test_generate_best_practice_finetuning(
+        self,
+        always_valid_mock_model: Mock,
+        patched_sample_config: dict[str, Any],
+        mock_document_loader: Mock,
+        mock_task_generator: Mock,
+        mock_best_practice_manager: Mock,
+        mock_task_graph_formatter: Mock,
+        mock_prompt_manager: Mock,
+    ) -> None:
+        """Test best practice finetuning for tasks."""
+        generator = Generator(
+            config=patched_sample_config,
+            model=always_valid_mock_model,
+            interactable_with_user=False,
         )
 
-        # Create a task graph with complex objects
-        import functools
-        import collections.abc
+        # Mock best practice manager to return practices
+        mock_best_practice_manager.generate_best_practices.return_value = [
+            {
+                "name": "Best Practice 1",
+                "description": "Best practice description",
+                "steps": [{"description": "Best practice step"}],
+            }
+        ]
 
-        def test_function():
+        with (
+            patch.object(
+                generator,
+                "_initialize_document_loader",
+                return_value=mock_document_loader,
+            ),
+            patch.object(
+                generator,
+                "_initialize_task_generator",
+                return_value=mock_task_generator,
+            ),
+            patch.object(
+                generator,
+                "_initialize_best_practice_manager",
+                return_value=mock_best_practice_manager,
+            ),
+            patch.object(
+                generator,
+                "_initialize_task_graph_formatter",
+                return_value=mock_task_graph_formatter,
+            ),
+            patch(
+                "arklex.orchestrator.generator.core.generator.PromptManager",
+                return_value=mock_prompt_manager,
+            ),
+        ):
+            generator.generate()
+
+            # Verify finetune_best_practice is called for each task
+            assert mock_best_practice_manager.finetune_best_practice.call_count > 0
+
+    def test_generate_task_list_conversion(
+        self,
+        always_valid_mock_model: Mock,
+        patched_sample_config: dict[str, Any],
+        mock_document_loader: Mock,
+        mock_task_generator: Mock,
+        mock_best_practice_manager: Mock,
+        mock_task_graph_formatter: Mock,
+        mock_prompt_manager: Mock,
+    ) -> None:
+        """Test that document lists are properly converted to strings."""
+        generator = Generator(
+            config=patched_sample_config,
+            model=always_valid_mock_model,
+            interactable_with_user=False,
+        )
+
+        # Mock document loader to return lists
+        mock_document_loader.load_task_document.return_value = [
+            "Task doc 1",
+            "Task doc 2",
+        ]
+        mock_document_loader.load_instruction_document.return_value = [
+            "Instr doc 1",
+            "Instr doc 2",
+        ]
+
+        with (
+            patch.object(
+                generator,
+                "_initialize_document_loader",
+                return_value=mock_document_loader,
+            ),
+            patch.object(
+                generator,
+                "_initialize_task_generator",
+                return_value=mock_task_generator,
+            ),
+            patch.object(
+                generator,
+                "_initialize_best_practice_manager",
+                return_value=mock_best_practice_manager,
+            ),
+            patch.object(
+                generator,
+                "_initialize_task_graph_formatter",
+                return_value=mock_task_graph_formatter,
+            ),
+            patch(
+                "arklex.orchestrator.generator.core.generator.PromptManager",
+                return_value=mock_prompt_manager,
+            ),
+        ):
+            generator.generate()
+
+            # Verify lists are converted to strings
+            assert isinstance(generator.documents, str)
+            assert isinstance(generator.instructions, str)
+            assert "Task doc 1" in generator.documents
+            assert "Task doc 2" in generator.documents
+            assert "Instr doc 1" in generator.instructions
+            assert "Instr doc 2" in generator.instructions
+
+
+class TestUIInteraction:
+    """Test UI interaction scenarios in the generate method."""
+
+    def test_generate_with_ui_available_and_user_changes(
+        self,
+        always_valid_mock_model: Mock,
+        patched_sample_config: dict[str, Any],
+        mock_document_loader: Mock,
+        mock_task_generator: Mock,
+        mock_best_practice_manager: Mock,
+        mock_task_graph_formatter: Mock,
+        mock_prompt_manager: Mock,
+    ) -> None:
+        """Test generation with UI available and user making changes."""
+        generator = Generator(
+            config=patched_sample_config,
+            model=always_valid_mock_model,
+            interactable_with_user=True,
+        )
+
+        # Mock UI components to be available
+        with (
+            patch("arklex.orchestrator.generator.core.generator.UI_AVAILABLE", True),
+            patch(
+                "arklex.orchestrator.generator.core.generator.TaskEditorApp",
+                MockTaskEditorApp,
+            ),
+            patch.object(
+                generator,
+                "_initialize_document_loader",
+                return_value=mock_document_loader,
+            ),
+            patch.object(
+                generator,
+                "_initialize_task_generator",
+                return_value=mock_task_generator,
+            ),
+            patch.object(
+                generator,
+                "_initialize_best_practice_manager",
+                return_value=mock_best_practice_manager,
+            ),
+            patch.object(
+                generator,
+                "_initialize_task_graph_formatter",
+                return_value=mock_task_graph_formatter,
+            ),
+            patch(
+                "arklex.orchestrator.generator.core.generator.PromptManager",
+                return_value=mock_prompt_manager,
+            ),
+        ):
+            # Mock tasks to be different after UI interaction
+            modified_tasks = [
+                {
+                    "name": "Modified Task",
+                    "description": "Modified description",
+                    "steps": ["Modified Step 1", "Modified Step 2"],
+                }
+            ]
+
+            # Mock TaskEditorApp to return modified tasks
+            with patch(
+                "arklex.orchestrator.generator.core.generator.TaskEditorApp"
+            ) as mock_editor_class:
+                mock_editor_instance = Mock()
+                mock_editor_instance.run.return_value = modified_tasks
+                mock_editor_class.return_value = mock_editor_instance
+
+                generator.generate()
+
+                # Verify TaskEditorApp was called
+                mock_editor_class.assert_called_once()
+                mock_editor_instance.run.assert_called_once()
+
+    def test_generate_with_ui_available_no_user_changes(
+        self,
+        always_valid_mock_model: Mock,
+        patched_sample_config: dict[str, Any],
+        mock_document_loader: Mock,
+        mock_task_generator: Mock,
+        mock_best_practice_manager: Mock,
+        mock_task_graph_formatter: Mock,
+        mock_prompt_manager: Mock,
+    ) -> None:
+        """Test generation with UI available but no user changes."""
+        generator = Generator(
+            config=patched_sample_config,
+            model=always_valid_mock_model,
+            interactable_with_user=True,
+            allow_nested_graph=True,
+        )
+
+        # Mock UI components to be available
+        with (
+            patch("arklex.orchestrator.generator.core.generator.UI_AVAILABLE", True),
+            patch.object(
+                generator,
+                "_initialize_document_loader",
+                return_value=mock_document_loader,
+            ),
+            patch.object(
+                generator,
+                "_initialize_task_generator",
+                return_value=mock_task_generator,
+            ),
+            patch.object(
+                generator,
+                "_initialize_best_practice_manager",
+                return_value=mock_best_practice_manager,
+            ),
+            patch.object(
+                generator,
+                "_initialize_task_graph_formatter",
+                return_value=mock_task_graph_formatter,
+            ),
+            patch(
+                "arklex.orchestrator.generator.core.generator.PromptManager",
+                return_value=mock_prompt_manager,
+            ),
+            patch(
+                "arklex.orchestrator.generator.core.generator.TaskEditorApp"
+            ) as mock_editor_class,
+        ):
+            # Mock TaskEditorApp to return same tasks (no changes)
+            mock_editor_instance = Mock()
+            mock_editor_instance.run.return_value = generator.tasks.copy()
+            mock_editor_class.return_value = mock_editor_instance
+
+            generator.generate()
+
+            # Verify TaskEditorApp was called
+            mock_editor_class.assert_called_once()
+            mock_editor_instance.run.assert_called_once()
+
+    def test_generate_with_ui_unavailable(
+        self,
+        always_valid_mock_model: Mock,
+        patched_sample_config: dict[str, Any],
+        mock_document_loader: Mock,
+        mock_task_generator: Mock,
+        mock_best_practice_manager: Mock,
+        mock_task_graph_formatter: Mock,
+        mock_prompt_manager: Mock,
+    ) -> None:
+        """Test generation with UI unavailable."""
+        generator = Generator(
+            config=patched_sample_config,
+            model=always_valid_mock_model,
+            interactable_with_user=True,
+        )
+
+        # Mock UI components to be unavailable
+        with (
+            patch("arklex.orchestrator.generator.core.generator.UI_AVAILABLE", False),
+            patch.object(
+                generator,
+                "_initialize_document_loader",
+                return_value=mock_document_loader,
+            ),
+            patch.object(
+                generator,
+                "_initialize_task_generator",
+                return_value=mock_task_generator,
+            ),
+            patch.object(
+                generator,
+                "_initialize_best_practice_manager",
+                return_value=mock_best_practice_manager,
+            ),
+            patch.object(
+                generator,
+                "_initialize_task_graph_formatter",
+                return_value=mock_task_graph_formatter,
+            ),
+            patch(
+                "arklex.orchestrator.generator.core.generator.PromptManager",
+                return_value=mock_prompt_manager,
+            ),
+        ):
+            result = generator.generate()
+
+            # Verify generation continues without UI interaction
+            assert "tasks" in result
+
+    def test_generate_with_ui_exception(
+        self,
+        always_valid_mock_model: Mock,
+        patched_sample_config: dict[str, Any],
+        mock_document_loader: Mock,
+        mock_task_generator: Mock,
+        mock_best_practice_manager: Mock,
+        mock_task_graph_formatter: Mock,
+        mock_prompt_manager: Mock,
+    ) -> None:
+        """Test generation with UI exception handling."""
+        generator = Generator(
+            config=patched_sample_config,
+            model=always_valid_mock_model,
+            interactable_with_user=True,
+            allow_nested_graph=True,
+        )
+
+        # Mock UI components to be available but throw exception
+        with (
+            patch("arklex.orchestrator.generator.core.generator.UI_AVAILABLE", True),
+            patch.object(
+                generator,
+                "_initialize_document_loader",
+                return_value=mock_document_loader,
+            ),
+            patch.object(
+                generator,
+                "_initialize_task_generator",
+                return_value=mock_task_generator,
+            ),
+            patch.object(
+                generator,
+                "_initialize_best_practice_manager",
+                return_value=mock_best_practice_manager,
+            ),
+            patch.object(
+                generator,
+                "_initialize_task_graph_formatter",
+                return_value=mock_task_graph_formatter,
+            ),
+            patch(
+                "arklex.orchestrator.generator.core.generator.PromptManager",
+                return_value=mock_prompt_manager,
+            ),
+            patch(
+                "arklex.orchestrator.generator.core.generator.TaskEditorApp"
+            ) as mock_editor_class,
+        ):
+            # Mock TaskEditorApp to raise exception
+            mock_editor_instance = Mock()
+            mock_editor_instance.run.side_effect = Exception("UI Error")
+            mock_editor_class.return_value = mock_editor_instance
+
+            # Should continue without UI interaction
+            generator.generate()
+
+            # Verify TaskEditorApp was called
+            mock_editor_class.assert_called_once()
+            mock_editor_instance.run.assert_called_once()
+
+    def test_generate_with_ui_not_interactable(
+        self,
+        always_valid_mock_model: Mock,
+        patched_sample_config: dict[str, Any],
+        mock_document_loader: Mock,
+        mock_task_generator: Mock,
+        mock_best_practice_manager: Mock,
+        mock_task_graph_formatter: Mock,
+        mock_prompt_manager: Mock,
+    ) -> None:
+        """Test generation when not interactable with user."""
+        generator = Generator(
+            config=patched_sample_config,
+            model=always_valid_mock_model,
+            interactable_with_user=False,
+        )
+
+        with (
+            patch.object(
+                generator,
+                "_initialize_document_loader",
+                return_value=mock_document_loader,
+            ),
+            patch.object(
+                generator,
+                "_initialize_task_generator",
+                return_value=mock_task_generator,
+            ),
+            patch.object(
+                generator,
+                "_initialize_best_practice_manager",
+                return_value=mock_best_practice_manager,
+            ),
+            patch.object(
+                generator,
+                "_initialize_task_graph_formatter",
+                return_value=mock_task_graph_formatter,
+            ),
+            patch(
+                "arklex.orchestrator.generator.core.generator.PromptManager",
+                return_value=mock_prompt_manager,
+            ),
+        ):
+            result = generator.generate()
+
+            # Verify generation continues without UI interaction
+            assert "tasks" in result
+
+
+class TestSaveTaskGraph:
+    """Test the save_task_graph method."""
+
+    def test_save_task_graph_success(
+        self, always_valid_mock_model: Mock, patched_sample_config: dict[str, Any]
+    ) -> None:
+        """Test successful task graph saving."""
+        generator = Generator(
+            config=patched_sample_config,
+            model=always_valid_mock_model,
+            output_dir="/test/output",
+        )
+
+        task_graph = {
+            "tasks": [{"name": "Test Task", "steps": [{"description": "Test step"}]}],
+            "metadata": {"version": "1.0"},
+        }
+
+        with (
+            patch("builtins.open", mock_open()) as mock_file,
+            patch("os.path.join", return_value="/test/output/taskgraph.json"),
+        ):
+            generator.save_task_graph(task_graph)
+
+            # Verify file was opened and written
+            mock_file.assert_called_once_with("/test/output/taskgraph.json", "w")
+            assert mock_file().write.call_count > 0
+
+    def test_save_task_graph_with_non_serializable_objects(
+        self, always_valid_mock_model: Mock, patched_sample_config: dict[str, Any]
+    ) -> None:
+        """Test task graph saving with non-serializable objects."""
+        generator = Generator(
+            config=patched_sample_config,
+            model=always_valid_mock_model,
+            output_dir="/test/output",
+        )
+
+        # Create task graph with non-serializable objects
+        def test_function() -> None:
             pass
 
         task_graph = {
-            "nodes": [],
-            "edges": [],
-            "partial_func": functools.partial(test_function),
-            "callable_obj": test_function,
-            "complex_obj": object(),
-            "nested": {
-                "partial": functools.partial(test_function),
-                "callable": lambda x: x,
+            "tasks": [{"name": "Test Task", "steps": [{"description": "Test step"}]}],
+            "function": test_function,
+        }
+
+        with (
+            patch("builtins.open", mock_open()) as mock_file,
+            patch("os.path.join", return_value="/test/output/taskgraph.json"),
+        ):
+            generator.save_task_graph(task_graph)
+
+            # Verify file was opened and written
+            mock_file.assert_called_once_with("/test/output/taskgraph.json", "w")
+            assert mock_file().write.call_count > 0
+
+    def test_save_task_graph_with_complex_nested_objects(
+        self, always_valid_mock_model: Mock, patched_sample_config: dict[str, Any]
+    ) -> None:
+        """Test task graph saving with complex nested objects."""
+        generator = Generator(
+            config=patched_sample_config,
+            model=always_valid_mock_model,
+            output_dir="/test/output",
+        )
+
+        task_graph = {
+            "tasks": [
+                {
+                    "name": "Task 1",
+                    "steps": [{"description": "Step 1"}, {"description": "Step 2"}],
+                }
+            ],
+            "metadata": {
+                "nested": {
+                    "deep": {
+                        "structure": {
+                            "with": "values",
+                            "numbers": [1, 2, 3],
+                            "booleans": [True, False],
+                        }
+                    }
+                }
             },
         }
 
-        result_path = gen.save_task_graph(task_graph)
+        with (
+            patch("builtins.open", mock_open()) as mock_file,
+            patch("os.path.join", return_value="/test/output/taskgraph.json"),
+        ):
+            generator.save_task_graph(task_graph)
 
-        assert result_path.endswith("taskgraph.json")
-        assert os.path.exists(result_path)
+            # Verify file was written
+            assert mock_file().write.call_count > 0
 
-        # Verify the file contains sanitized data
-        with open(result_path, "r") as f:
-            content = f.read()
-            assert "partial_func" in content
-            assert "callable_obj" in content
-            assert "complex_obj" in content
+            # Verify the written content is valid JSON
+            # Get all write calls and concatenate them
+            all_calls = mock_file().write.call_args_list
+            written_content = "".join(call[0][0] for call in all_calls)
+            parsed_content = json.loads(written_content)
 
-    def test_save_task_graph_with_various_data_types(
-        self, minimal_config, mock_model, tmp_path
-    ):
-        """Test save_task_graph with various data types."""
-        gen = Generator(
-            config=minimal_config, model=mock_model, output_dir=str(tmp_path)
+            # Verify structure is preserved
+            assert "tasks" in parsed_content
+            assert "metadata" in parsed_content
+            assert len(parsed_content["tasks"]) == 1
+            assert parsed_content["tasks"][0]["name"] == "Task 1"
+            assert len(parsed_content["tasks"][0]["steps"]) == 2
+            assert (
+                parsed_content["metadata"]["nested"]["deep"]["structure"]["with"]
+                == "values"
+            )
+
+    def test_save_task_graph_with_partial_objects(
+        self, always_valid_mock_model: Mock, patched_sample_config: dict[str, Any]
+    ) -> None:
+        """Test task graph saving with functools.partial objects."""
+        import functools
+
+        generator = Generator(
+            config=patched_sample_config,
+            model=always_valid_mock_model,
+            output_dir="/test/output",
+        )
+
+        def test_func(x: int, y: int) -> int:
+            return x + y
+
+        partial_func = functools.partial(test_func, 5)
+
+        task_graph = {
+            "tasks": [{"name": "Test Task", "steps": [{"description": "Test step"}]}],
+            "partial_function": partial_func,
+        }
+
+        with (
+            patch("builtins.open", mock_open()) as mock_file,
+            patch("os.path.join", return_value="/test/output/taskgraph.json"),
+        ):
+            generator.save_task_graph(task_graph)
+
+            # Verify file was written
+            assert mock_file().write.call_count > 0
+
+            # Verify partial function is converted to string
+            # Get all write calls and concatenate them
+            all_calls = mock_file().write.call_args_list
+            written_content = "".join(call[0][0] for call in all_calls)
+            parsed_content = json.loads(written_content)
+            assert "partial_function" in parsed_content
+            assert isinstance(parsed_content["partial_function"], str)
+
+    def test_save_task_graph_with_callable_objects(
+        self, always_valid_mock_model: Mock, patched_sample_config: dict[str, Any]
+    ) -> None:
+        """Test task graph saving with callable objects."""
+        generator = Generator(
+            config=patched_sample_config,
+            model=always_valid_mock_model,
+            output_dir="/test/output",
+        )
+
+        def test_callable() -> str:
+            return "test"
+
+        task_graph = {
+            "tasks": [{"name": "Test Task", "steps": [{"description": "Test step"}]}],
+            "callable_object": test_callable,
+        }
+
+        with (
+            patch("builtins.open", mock_open()) as mock_file,
+            patch("os.path.join", return_value="/test/output/taskgraph.json"),
+        ):
+            generator.save_task_graph(task_graph)
+
+            # Verify file was written
+            assert mock_file().write.call_count > 0
+
+            # Verify callable is converted to string
+            # Get all write calls and concatenate them
+            all_calls = mock_file().write.call_args_list
+            written_content = "".join(call[0][0] for call in all_calls)
+            parsed_content = json.loads(written_content)
+            assert "callable_object" in parsed_content
+            assert isinstance(parsed_content["callable_object"], str)
+
+    def test_save_task_graph_without_output_dir(
+        self, always_valid_mock_model: Mock, patched_sample_config: dict[str, Any]
+    ) -> None:
+        """Test task graph saving without output directory."""
+        generator = Generator(
+            config=patched_sample_config,
+            model=always_valid_mock_model,
+            output_dir=None,
         )
 
         task_graph = {
-            "string": "test",
-            "integer": 123,
-            "float": 3.14,
-            "boolean": True,
-            "none": None,
-            "list": [1, 2, 3],
-            "dict": {"key": "value"},
-            "tuple": (1, 2, 3),
-            "nested": {"list": [{"a": 1}, {"b": 2}], "dict": {"c": [1, 2, 3]}},
+            "tasks": [{"name": "Test Task", "steps": [{"description": "Test step"}]}],
         }
 
-        result_path = gen.save_task_graph(task_graph)
-
-        assert result_path.endswith("taskgraph.json")
-        assert os.path.exists(result_path)
-
-        # Verify the file contains all data types
-        with open(result_path, "r") as f:
-            content = f.read()
-            assert '"string": "test"' in content
-            assert '"integer": 123' in content
-            assert '"float": 3.14' in content
-            assert '"boolean": true' in content
-            assert '"none": null' in content
-
-    def test_save_task_graph_without_output_dir(self, minimal_config, mock_model):
-        """Test save_task_graph without output_dir set."""
-        gen = Generator(config=minimal_config, model=mock_model, output_dir=None)
-
-        task_graph = {"nodes": [], "edges": []}
-
-        # Should raise an error since output_dir is None
-        with pytest.raises((TypeError, AttributeError)):
-            gen.save_task_graph(task_graph)
-
-    def test_save_task_graph_with_empty_output_dir(
-        self, minimal_config, mock_model, tmp_path
-    ):
-        """Test save_task_graph with empty output directory."""
-        gen = Generator(
-            config=minimal_config, model=mock_model, output_dir=str(tmp_path)
-        )
-
-        task_graph = {"nodes": [], "edges": []}
-
-        result_path = gen.save_task_graph(task_graph)
-
-        assert result_path.endswith("taskgraph.json")
-        assert os.path.exists(result_path)
-
-    def test_save_task_graph_debug_logging(self, minimal_config, mock_model, tmp_path):
-        """Test save_task_graph with debug logging for non-serializable fields."""
-        gen = Generator(
-            config=minimal_config, model=mock_model, output_dir=str(tmp_path)
-        )
-
-        # Create a task graph with non-serializable objects
-        task_graph = {
-            "nodes": [],
-            "edges": [],
-            "non_serializable": object(),
-            "function": lambda x: x,
-        }
-
-        result_path = gen.save_task_graph(task_graph)
-
-        assert result_path.endswith("taskgraph.json")
-        assert os.path.exists(result_path)
-
-    def test_save_task_graph_with_invalid_filename(
-        self, minimal_config, mock_model, tmp_path
-    ):
-        """Test save_task_graph with invalid filename characters."""
-        gen = Generator(
-            config=minimal_config, model=mock_model, output_dir=str(tmp_path)
-        )
-
-        task_graph = {"nodes": [], "edges": [], "invalid_chars": 'test<>:"/\\|?*'}
-
-        result_path = gen.save_task_graph(task_graph)
-
-        assert result_path.endswith("taskgraph.json")
-        assert os.path.exists(result_path)
-
-    def test_save_task_graph_with_exception(self, minimal_config, mock_model, tmp_path):
-        """Test save_task_graph with exception during file writing."""
-        gen = Generator(
-            config=minimal_config, model=mock_model, output_dir=str(tmp_path)
-        )
-
-        task_graph = {"nodes": [], "edges": []}
-
-        # Mock open to raise an exception
-        with patch("builtins.open", side_effect=Exception("File write error")):
-            with pytest.raises(Exception):
-                gen.save_task_graph(task_graph)
+        # Should raise TypeError when output_dir is None
+        with pytest.raises(TypeError):
+            generator.save_task_graph(task_graph)
 
 
-class TestGeneratorDocumentLoadingEdgeCases:
-    """Test edge cases in document loading methods."""
-
-    def test_load_multiple_task_documents_with_none_paths(
-        self, minimal_config, mock_model
-    ):
-        """Test _load_multiple_task_documents with None paths."""
-        gen = Generator(config=minimal_config, model=mock_model)
-
-        with patch.object(gen, "_initialize_document_loader") as mock_doc_loader:
-            mock_doc_loader.return_value.load_task_document.return_value = "doc1"
-
-            result = gen._load_multiple_task_documents(
-                mock_doc_loader.return_value, None
-            )
-
-            # When None is passed, it's treated as a string and loaded as a document
-            assert result == ["doc1"]
-
-    def test_load_multiple_instruction_documents_with_none_paths(
-        self, minimal_config, mock_model
-    ):
-        """Test _load_multiple_instruction_documents with None paths."""
-        gen = Generator(config=minimal_config, model=mock_model)
-
-        with patch.object(gen, "_initialize_document_loader") as mock_doc_loader:
-            mock_doc_loader.return_value.load_instruction_document.return_value = (
-                "inst1"
-            )
-
-            result = gen._load_multiple_instruction_documents(
-                mock_doc_loader.return_value, None
-            )
-
-            # When None is passed, it's treated as a string and loaded as a document
-            assert result == ["inst1"]
-
-    def test_load_multiple_task_documents_with_empty_list(
-        self, minimal_config, mock_model
-    ):
-        """Test _load_multiple_task_documents with empty list."""
-        gen = Generator(config=minimal_config, model=mock_model)
-
-        with patch.object(gen, "_initialize_document_loader") as mock_doc_loader:
-            mock_doc_loader.return_value.load_task_document.return_value = "doc1"
-
-            result = gen._load_multiple_task_documents(mock_doc_loader.return_value, [])
-
-            assert result == []
-
-    def test_load_multiple_instruction_documents_with_empty_list(
-        self, minimal_config, mock_model
-    ):
-        """Test _load_multiple_instruction_documents with empty list."""
-        gen = Generator(config=minimal_config, model=mock_model)
-
-        with patch.object(gen, "_initialize_document_loader") as mock_doc_loader:
-            mock_doc_loader.return_value.load_instruction_document.return_value = (
-                "inst1"
-            )
-
-            result = gen._load_multiple_instruction_documents(
-                mock_doc_loader.return_value, []
-            )
-
-            assert result == []
-
-    def test_load_multiple_task_documents_with_exception(
-        self, minimal_config, mock_model
-    ):
-        """Test _load_multiple_task_documents with exception."""
-        gen = Generator(config=minimal_config, model=mock_model)
-
-        with patch.object(gen, "_initialize_document_loader") as mock_doc_loader:
-            mock_doc_loader.return_value.load_task_document.side_effect = Exception(
-                "Load error"
-            )
-
-            with pytest.raises(Exception):
-                gen._load_multiple_task_documents(
-                    mock_doc_loader.return_value, ["doc1"]
-                )
-
-    def test_load_multiple_instruction_documents_with_exception(
-        self, minimal_config, mock_model
-    ):
-        """Test _load_multiple_instruction_documents with exception."""
-        gen = Generator(config=minimal_config, model=mock_model)
-
-        with patch.object(gen, "_initialize_document_loader") as mock_doc_loader:
-            mock_doc_loader.return_value.load_instruction_document.side_effect = (
-                Exception("Load error")
-            )
-
-            with pytest.raises(Exception):
-                gen._load_multiple_instruction_documents(
-                    mock_doc_loader.return_value, ["inst1"]
-                )
-
-
-class TestGeneratorComponentInitializationEdgeCases:
-    """Test edge cases in component initialization methods."""
-
-    def test_initialize_document_loader_with_exception(
-        self, minimal_config, mock_model
-    ):
-        """Test _initialize_document_loader with exception."""
-        gen = Generator(config=minimal_config, model=mock_model)
-
-        with patch(
-            "arklex.orchestrator.generator.core.generator.DocumentLoader",
-            side_effect=Exception("Init error"),
-        ):
-            with pytest.raises(Exception):
-                gen._initialize_document_loader()
-
-    def test_initialize_task_generator_with_exception(self, minimal_config, mock_model):
-        """Test _initialize_task_generator with exception."""
-        gen = Generator(config=minimal_config, model=mock_model)
-
-        with patch(
-            "arklex.orchestrator.generator.core.generator.TaskGenerator",
-            side_effect=Exception("Init error"),
-        ):
-            with pytest.raises(Exception):
-                gen._initialize_task_generator()
-
-    def test_initialize_best_practice_manager_with_exception(
-        self, full_config, mock_model
-    ):
-        """Test _initialize_best_practice_manager with exception."""
-        gen = Generator(config=full_config, model=mock_model)
-
-        with patch(
-            "arklex.orchestrator.generator.core.generator.BestPracticeManager",
-            side_effect=Exception("Init error"),
-        ):
-            with pytest.raises(Exception):
-                gen._initialize_best_practice_manager()
-
-    def test_initialize_reusable_task_manager_with_exception(
-        self, minimal_config, mock_model
-    ):
-        """Test _initialize_reusable_task_manager with exception."""
-        gen = Generator(config=minimal_config, model=mock_model)
-
-        with patch(
-            "arklex.orchestrator.generator.core.generator.ReusableTaskManager",
-            side_effect=Exception("Init error"),
-        ):
-            with pytest.raises(Exception):
-                gen._initialize_reusable_task_manager()
-
-    def test_initialize_task_graph_formatter_with_exception(
-        self, full_config, mock_model
-    ):
-        """Test _initialize_task_graph_formatter with exception."""
-        gen = Generator(config=full_config, model=mock_model)
-
-        with patch(
-            "arklex.orchestrator.generator.core.generator.TaskGraphFormatter",
-            side_effect=Exception("Init error"),
-        ):
-            with pytest.raises(Exception):
-                gen._initialize_task_graph_formatter()
-
-
-class TestGeneratorGenerateMethodEdgeCases:
-    """Test edge cases in the generate method."""
+class TestErrorHandling:
+    """Test error handling scenarios."""
 
     def test_generate_with_document_loader_exception(
-        self, minimal_config, mock_model
+        self,
+        always_valid_mock_model: Mock,
+        patched_sample_config: dict[str, Any],
     ) -> None:
-        """Test generate with document loader exception."""
-        gen = Generator(config=minimal_config, model=mock_model)
+        """Test generation when document loader raises an exception."""
+        generator = Generator(
+            config=patched_sample_config,
+            model=always_valid_mock_model,
+        )
 
-        with patch.object(
-            gen,
-            "_initialize_document_loader",
-            side_effect=Exception("Doc loader error"),
+        with (
+            patch.object(
+                generator,
+                "_initialize_document_loader",
+                side_effect=Exception("Document loader error"),
+            ),
+            pytest.raises(Exception, match="Document loader error"),
         ):
-            with pytest.raises(Exception):
-                gen.generate()
+            generator.generate()
 
     def test_generate_with_task_generator_exception(
-        self, minimal_config, mock_model
+        self,
+        always_valid_mock_model: Mock,
+        patched_sample_config: dict[str, Any],
+        mock_document_loader: Mock,
     ) -> None:
-        """Test generate with task generator exception."""
-        gen = Generator(config=minimal_config, model=mock_model)
+        """Test generation when task generator raises an exception."""
+        generator = Generator(
+            config=patched_sample_config,
+            model=always_valid_mock_model,
+        )
 
         with (
-            patch.object(gen, "_initialize_document_loader") as mock_doc_loader,
             patch.object(
-                gen,
-                "_initialize_task_generator",
-                side_effect=Exception("Task gen error"),
+                generator,
+                "_initialize_document_loader",
+                return_value=mock_document_loader,
             ),
+            patch.object(
+                generator,
+                "_initialize_task_generator",
+                side_effect=Exception("Task generator error"),
+            ),
+            pytest.raises(Exception, match="Task generator error"),
         ):
-            mock_doc_loader.return_value.load_task_document.return_value = "doc1"
-            mock_doc_loader.return_value.load_instruction_document.return_value = (
-                "inst1"
-            )
-
-            with pytest.raises(Exception):
-                gen.generate()
+            generator.generate()
 
     def test_generate_with_best_practice_manager_exception(
-        self, full_config, mock_model
+        self,
+        always_valid_mock_model: Mock,
+        patched_sample_config: dict[str, Any],
+        mock_document_loader: Mock,
+        mock_task_generator: Mock,
     ) -> None:
-        """Test generate with best practice manager exception."""
-        gen = Generator(config=full_config, model=mock_model)
+        """Test generation when best practice manager raises an exception."""
+        generator = Generator(
+            config=patched_sample_config,
+            model=always_valid_mock_model,
+        )
 
         with (
-            patch.object(gen, "_initialize_document_loader") as mock_doc_loader,
-            patch.object(gen, "_initialize_task_generator") as mock_task_gen,
             patch.object(
-                gen,
+                generator,
+                "_initialize_document_loader",
+                return_value=mock_document_loader,
+            ),
+            patch.object(
+                generator,
+                "_initialize_task_generator",
+                return_value=mock_task_generator,
+            ),
+            patch.object(
+                generator,
                 "_initialize_best_practice_manager",
-                side_effect=Exception("BPM error"),
+                side_effect=Exception("Best practice manager error"),
             ),
+            pytest.raises(Exception, match="Best practice manager error"),
         ):
-            mock_doc_loader.return_value.load_task_document.return_value = "doc1"
-            mock_doc_loader.return_value.load_instruction_document.return_value = (
-                "inst1"
-            )
+            generator.generate()
 
-            mock_task_gen.return_value.add_provided_tasks.return_value = []
-            mock_task_gen.return_value.generate_tasks.return_value = [
-                {"name": "Task1", "steps": []}
-            ]
-
-            with pytest.raises(Exception):
-                gen.generate()
-
-    def test_generate_with_reusable_task_manager_exception(
-        self, full_config, mock_model
+    def test_generate_with_task_graph_formatter_exception(
+        self,
+        always_valid_mock_model: Mock,
+        patched_sample_config: dict[str, Any],
+        mock_document_loader: Mock,
+        mock_task_generator: Mock,
+        mock_best_practice_manager: Mock,
     ) -> None:
-        """Test generate with reusable task manager exception."""
-        gen = Generator(config=full_config, model=mock_model)
+        """Test generation when task graph formatter raises an exception."""
+        generator = Generator(
+            config=patched_sample_config,
+            model=always_valid_mock_model,
+        )
 
         with (
-            patch.object(gen, "_initialize_document_loader") as mock_doc_loader,
-            patch.object(gen, "_initialize_task_generator") as mock_task_gen,
-            patch.object(gen, "_initialize_best_practice_manager") as mock_bpm,
             patch.object(
-                gen,
-                "_initialize_reusable_task_manager",
-                side_effect=Exception("RTM error"),
+                generator,
+                "_initialize_document_loader",
+                return_value=mock_document_loader,
             ),
+            patch.object(
+                generator,
+                "_initialize_task_generator",
+                return_value=mock_task_generator,
+            ),
+            patch.object(
+                generator,
+                "_initialize_best_practice_manager",
+                return_value=mock_best_practice_manager,
+            ),
+            patch.object(
+                generator,
+                "_initialize_task_graph_formatter",
+                side_effect=Exception("Task graph formatter error"),
+            ),
+            pytest.raises(Exception, match="Task graph formatter error"),
         ):
-            mock_doc_loader.return_value.load_task_document.return_value = "doc1"
-            mock_doc_loader.return_value.load_instruction_document.return_value = (
-                "inst1"
-            )
+            generator.generate()
 
-            mock_task_gen.return_value.add_provided_tasks.return_value = []
-            mock_task_gen.return_value.generate_tasks.return_value = [
-                {"name": "Task1", "steps": []}
-            ]
 
-            mock_bpm.return_value.generate_best_practices.return_value = [{"id": "bp1"}]
+class TestIntegrationScenarios:
+    """Test integration scenarios and edge cases."""
 
-            with pytest.raises(Exception):
-                gen.generate()
+    def test_generate_with_empty_config(self, always_valid_mock_model: Mock) -> None:
+        """Test generation with minimal empty configuration."""
+        config = {}
 
-    def test_generate_with_task_graph_formatter_format_exception(
-        self, full_config, mock_model
-    ) -> None:
-        """Test generate with task graph formatter format exception."""
-        gen = Generator(config=full_config, model=mock_model)
+        generator = Generator(
+            config=config,
+            model=always_valid_mock_model,
+            interactable_with_user=False,
+        )
 
         with (
-            patch.object(gen, "_initialize_document_loader") as mock_doc_loader,
-            patch.object(gen, "_initialize_task_generator") as mock_task_gen,
-            patch.object(gen, "_initialize_best_practice_manager") as mock_bpm,
-            patch.object(gen, "_initialize_reusable_task_manager") as mock_rtm,
-            patch.object(gen, "_initialize_task_graph_formatter") as mock_tgf,
+            patch.object(generator, "_initialize_document_loader"),
+            patch.object(generator, "_initialize_task_generator"),
+            patch.object(generator, "_initialize_best_practice_manager"),
+            patch.object(
+                generator, "_initialize_task_graph_formatter"
+            ) as mock_formatter,
+            patch("arklex.orchestrator.generator.core.generator.PromptManager"),
         ):
-            mock_doc_loader.return_value.load_task_document.return_value = "doc1"
-            mock_doc_loader.return_value.load_instruction_document.return_value = (
-                "inst1"
-            )
+            # Mock the formatter to return a proper dict
+            mock_formatter_instance = Mock()
+            mock_formatter_instance.format_task_graph.return_value = {
+                "tasks": [],
+                "metadata": {},
+            }
+            mock_formatter_instance.ensure_nested_graph_connectivity.return_value = {
+                "tasks": [],
+                "metadata": {},
+            }
+            mock_formatter.return_value = mock_formatter_instance
 
-            mock_task_gen.return_value.add_provided_tasks.return_value = []
-            mock_task_gen.return_value.generate_tasks.return_value = [
-                {"name": "Task1", "steps": []}
+            result = generator.generate()
+
+            # Verify generation completes with empty config
+            assert isinstance(result, dict)
+
+    def test_generate_with_large_task_list(
+        self,
+        always_valid_mock_model: Mock,
+        patched_sample_config: dict[str, Any],
+        mock_document_loader: Mock,
+        mock_task_generator: Mock,
+        mock_best_practice_manager: Mock,
+        mock_task_graph_formatter: Mock,
+        mock_prompt_manager: Mock,
+    ) -> None:
+        """Test generation with a large number of tasks."""
+        generator = Generator(
+            config=patched_sample_config,
+            model=always_valid_mock_model,
+            interactable_with_user=False,
+        )
+
+        # Mock task generator to return many tasks
+        large_task_list = [
+            {
+                "name": f"Task {i}",
+                "description": f"Description for task {i}",
+                "steps": [
+                    {"description": f"Step {i}.1"},
+                    {"description": f"Step {i}.2"},
+                ],
+            }
+            for i in range(100)
+        ]
+        mock_task_generator.generate_tasks.return_value = large_task_list
+
+        # Mock the task generator to return proper step dictionaries
+        mock_task_generator.generate_tasks.return_value = [
+            {
+                "name": f"Task {i}",
+                "description": f"Description for task {i}",
+                "steps": [
+                    {"description": f"Step {i}.1"},
+                    {"description": f"Step {i}.2"},
+                ],
+            }
+            for i in range(100)
+        ]
+
+        with (
+            patch.object(
+                generator,
+                "_initialize_document_loader",
+                return_value=mock_document_loader,
+            ),
+            patch.object(
+                generator,
+                "_initialize_task_generator",
+                return_value=mock_task_generator,
+            ),
+            patch.object(
+                generator,
+                "_initialize_best_practice_manager",
+                return_value=mock_best_practice_manager,
+            ),
+            patch.object(
+                generator,
+                "_initialize_task_graph_formatter",
+                return_value=mock_task_graph_formatter,
+            ),
+            patch(
+                "arklex.orchestrator.generator.core.generator.PromptManager",
+                return_value=mock_prompt_manager,
+            ),
+        ):
+            result = generator.generate()
+
+            # Verify generation handles large task lists
+            assert "tasks" in result
+
+    def test_generate_with_complex_worker_tool_config(
+        self,
+        always_valid_mock_model: Mock,
+    ) -> None:
+        """Test generation with complex worker and tool configuration."""
+        config = {
+            "role": "complex_role",
+            "user_objective": "complex objective",
+            "workers": [
+                {
+                    "id": "w1",
+                    "name": "Worker1",
+                    "path": "/path1",
+                    "description": "Worker 1",
+                },
+                {
+                    "id": "w2",
+                    "name": "Worker2",
+                    "path": "/path2",
+                    "description": "Worker 2",
+                },
+                {"id": "w3", "name": "Worker3", "path": "/path3"},  # No description
+            ],
+            "tools": [
+                {
+                    "id": "t1",
+                    "name": "Tool1",
+                    "description": "Tool 1 description",
+                    "path": "mock_path",
+                },
+                {"id": "t2", "name": "Tool2", "path": "mock_path"},  # No description
+                {
+                    "id": "t3",
+                    "name": "Tool3",
+                    "description": "Tool 3 description",
+                    "extra_field": "extra_value",
+                    "path": "mock_path",
+                },
+            ],
+        }
+
+        generator = Generator(
+            config=config,
+            model=always_valid_mock_model,
+            allow_nested_graph=True,
+        )
+
+        assert len(generator.workers) == 3
+
+
+class TestUIUnavailability:
+    """Test scenarios when UI components are not available."""
+
+    @patch("arklex.orchestrator.generator.core.generator.UI_AVAILABLE", False)
+    def test_generate_with_ui_unavailable_behavior(
+        self,
+        always_valid_mock_model: Mock,
+        patched_sample_config: dict[str, Any],
+        mock_document_loader: Mock,
+        mock_task_generator: Mock,
+        mock_best_practice_manager: Mock,
+        mock_task_graph_formatter: Mock,
+        mock_prompt_manager: Mock,
+    ) -> None:
+        """Test that generate method handles UI unavailability correctly."""
+        # Configure mocks
+        with patch.multiple(
+            "arklex.orchestrator.generator.core.generator",
+            DocumentLoader=mock_document_loader,
+            TaskGenerator=mock_task_generator,
+            BestPracticeManager=mock_best_practice_manager,
+            TaskGraphFormatter=mock_task_graph_formatter,
+            PromptManager=mock_prompt_manager,
+        ):
+            # Directly set the return values on the mock task generator
+            mock_task_generator.return_value.add_provided_tasks.return_value = [
+                {
+                    "name": "Processed User Task",
+                    "description": "Processed task description",
+                    "steps": [
+                        {"description": "Processed Step 1"},
+                        {"description": "Processed Step 2"},
+                    ],
+                }
+            ]
+            mock_task_generator.return_value.generate_tasks.return_value = [
+                {
+                    "name": "Generated Task 1",
+                    "description": "Generated task description",
+                    "steps": [
+                        {"description": "Generated Step 1"},
+                        {"description": "Generated Step 2"},
+                    ],
+                }
             ]
 
-            mock_bpm.return_value.generate_best_practices.return_value = [{"id": "bp1"}]
-            mock_bpm.return_value.finetune_best_practice.return_value = {
-                "steps": [{"description": "refined_step"}]
+            # Create generator with UI interaction enabled but UI unavailable
+            generator = Generator(
+                config=patched_sample_config,
+                model=always_valid_mock_model,
+                interactable_with_user=True,
+            )
+
+            # Set up tasks
+            generator.tasks = [
+                {
+                    "name": "Generated Task 1",
+                    "description": "Generated task description",
+                    "steps": [
+                        {"description": "Generated Step 1"},
+                        {"description": "Generated Step 2"},
+                    ],
+                }
+            ]
+
+            # Mock best practices
+            mock_best_practice_manager.return_value.generate_best_practices.return_value = [
+                {
+                    "name": "Best Practice 1",
+                    "description": "Best practice description",
+                    "steps": [{"description": "Best practice step"}],
+                }
+            ]
+
+            # Mock task graph formatter to return a proper dictionary
+            mock_task_graph_formatter.return_value.format_task_graph.return_value = {
+                "tasks": [],
+                "metadata": {},
+                "version": "1.0",
+            }
+            mock_task_graph_formatter.return_value.ensure_nested_graph_connectivity.return_value = {
+                "tasks": [],
+                "metadata": {},
+                "version": "1.0",
             }
 
-            mock_rtm.return_value.generate_reusable_tasks.return_value = {}
+            # Run generate method - should handle UI unavailability gracefully
+            result = generator.generate()
 
-            mock_tgf.return_value.format_task_graph.side_effect = Exception(
-                "Format error"
+            # Verify that the method completed successfully despite UI unavailability
+            assert result is not None
+            # When UI is unavailable, the code goes to the else branch and should call finetune_best_practice
+            # for each task that has a corresponding best practice
+            mock_best_practice_manager.return_value.finetune_best_practice.assert_called()
+
+
+class TestGenerateMethodElseBranches:
+    """Test the else branches in the generate method that are not covered."""
+
+    def test_generate_no_user_changes_detected(
+        self,
+        always_valid_mock_model: Mock,
+        patched_sample_config: dict[str, Any],
+        mock_document_loader: Mock,
+        mock_task_generator: Mock,
+        mock_best_practice_manager: Mock,
+        mock_task_graph_formatter: Mock,
+        mock_prompt_manager: Mock,
+    ) -> None:
+        """Test the else branch when no user changes are detected in UI interaction."""
+        # Configure mocks
+        with patch.multiple(
+            "arklex.orchestrator.generator.core.generator",
+            DocumentLoader=mock_document_loader,
+            TaskGenerator=mock_task_generator,
+            BestPracticeManager=mock_best_practice_manager,
+            TaskGraphFormatter=mock_task_graph_formatter,
+            PromptManager=mock_prompt_manager,
+        ):
+            # Mock document loading to return empty documents
+            mock_document_loader.return_value.load_task_document.return_value = {}
+            mock_document_loader.return_value.load_instruction_document.return_value = {}
+
+            # Directly set the return values on the mock task generator
+            mock_task_generator.return_value.add_provided_tasks.return_value = [
+                {
+                    "name": "Processed User Task",
+                    "description": "Processed task description",
+                    "steps": [
+                        {"description": "Processed Step 1"},
+                        {"description": "Processed Step 2"},
+                    ],
+                }
+            ]
+            mock_task_generator.return_value.generate_tasks.return_value = [
+                {
+                    "name": "Generated Task 1",
+                    "description": "Generated task description",
+                    "steps": [
+                        {"description": "Generated Step 1"},
+                        {"description": "Generated Step 2"},
+                    ],
+                }
+            ]
+
+            # Mock UI interaction to return tasks identical to original
+            mock_ui_tasks = [
+                {
+                    "name": "Generated Task 1",
+                    "description": "Generated task description",
+                    "steps": [
+                        {"description": "Generated Step 1"},
+                        {"description": "Generated Step 2"},
+                    ],
+                }
+            ]
+
+            with patch(
+                "arklex.orchestrator.generator.core.generator.TaskEditorApp"
+            ) as mock_ui_class:
+                mock_ui_instance = Mock()
+                mock_ui_instance.run.return_value = mock_ui_tasks
+                mock_ui_class.return_value = mock_ui_instance
+
+                # Create generator with UI interaction enabled
+                generator = Generator(
+                    config=patched_sample_config,
+                    model=always_valid_mock_model,
+                    interactable_with_user=True,
+                )
+
+                # Set up the tasks that will be compared
+                generator.tasks = mock_ui_tasks.copy()
+
+                # Mock best practices
+                mock_best_practice_manager.return_value.generate_best_practices.return_value = [
+                    {
+                        "name": "Best Practice 1",
+                        "description": "Best practice description",
+                        "steps": [{"description": "Best practice step"}],
+                    }
+                ]
+
+                # Mock task graph formatter to return a proper dictionary
+                mock_task_graph_formatter.return_value.format_task_graph.return_value = {
+                    "tasks": [],
+                    "metadata": {},
+                    "version": "1.0",
+                }
+                mock_task_graph_formatter.return_value.ensure_nested_graph_connectivity.return_value = {
+                    "tasks": [],
+                    "metadata": {},
+                    "version": "1.0",
+                }
+
+                # Run generate method
+                result = generator.generate()
+
+                # Verify that the else branch was executed (no changes detected)
+                assert result is not None
+                # Verify that finetune_best_practice was called for original tasks
+                mock_best_practice_manager.return_value.finetune_best_practice.assert_called()
+
+    def test_generate_no_ui_interaction_else_branch(
+        self,
+        always_valid_mock_model: Mock,
+        patched_sample_config: dict[str, Any],
+        mock_document_loader: Mock,
+        mock_task_generator: Mock,
+        mock_best_practice_manager: Mock,
+        mock_task_graph_formatter: Mock,
+        mock_prompt_manager: Mock,
+    ) -> None:
+        """Test the else branch when no UI interaction is performed."""
+        # Configure mocks
+        with patch.multiple(
+            "arklex.orchestrator.generator.core.generator",
+            DocumentLoader=mock_document_loader,
+            TaskGenerator=mock_task_generator,
+            BestPracticeManager=mock_best_practice_manager,
+            TaskGraphFormatter=mock_task_graph_formatter,
+            PromptManager=mock_prompt_manager,
+        ):
+            # Mock document loading to return empty documents
+            mock_document_loader.return_value.load_task_document.return_value = {}
+            mock_document_loader.return_value.load_instruction_document.return_value = {}
+
+            # Directly set the return values on the mock task generator
+            mock_task_generator.return_value.add_provided_tasks.return_value = [
+                {
+                    "name": "Processed User Task",
+                    "description": "Processed task description",
+                    "steps": [
+                        {"description": "Processed Step 1"},
+                        {"description": "Processed Step 2"},
+                    ],
+                }
+            ]
+            mock_task_generator.return_value.generate_tasks.return_value = [
+                {
+                    "name": "Generated Task 1",
+                    "description": "Generated task description",
+                    "steps": [
+                        {"description": "Generated Step 1"},
+                        {"description": "Generated Step 2"},
+                    ],
+                }
+            ]
+
+            # Create generator with UI interaction disabled
+            generator = Generator(
+                config=patched_sample_config,
+                model=always_valid_mock_model,
+                interactable_with_user=False,
             )
 
-            mock_model.invoke.return_value.content = '{"intent": "test_intent"}'
+            # Set up tasks
+            generator.tasks = [
+                {
+                    "name": "Generated Task 1",
+                    "description": "Generated task description",
+                    "steps": [
+                        {"description": "Generated Step 1"},
+                        {"description": "Generated Step 2"},
+                    ],
+                }
+            ]
 
-            with pytest.raises(Exception):
-                gen.generate()
+            # Mock best practices
+            mock_best_practice_manager.return_value.generate_best_practices.return_value = [
+                {
+                    "name": "Best Practice 1",
+                    "description": "Best practice description",
+                    "steps": [{"description": "Best practice step"}],
+                }
+            ]
+
+            # Mock task graph formatter to return a proper dictionary
+            mock_task_graph_formatter.return_value.format_task_graph.return_value = {
+                "tasks": [],
+                "metadata": {},
+                "version": "1.0",
+            }
+            mock_task_graph_formatter.return_value.ensure_nested_graph_connectivity.return_value = {
+                "tasks": [],
+                "metadata": {},
+                "version": "1.0",
+            }
+
+            # Run generate method
+            result = generator.generate()
+
+            # Verify that the else branch was executed (no UI interaction)
+            assert result is not None
+            # Verify that finetune_best_practice was called for all tasks
+            mock_best_practice_manager.return_value.finetune_best_practice.assert_called()
+
+    def test_generate_with_ui_exception(
+        self,
+        always_valid_mock_model: Mock,
+        patched_sample_config: dict[str, Any],
+        mock_document_loader: Mock,
+        mock_task_generator: Mock,
+        mock_best_practice_manager: Mock,
+        mock_task_graph_formatter: Mock,
+        mock_prompt_manager: Mock,
+    ) -> None:
+        """Test generation with UI exception handling."""
+        generator = Generator(
+            config=patched_sample_config,
+            model=always_valid_mock_model,
+            interactable_with_user=True,
+            allow_nested_graph=True,
+        )
+
+        # Mock UI components to be available but throw exception
+        with (
+            patch("arklex.orchestrator.generator.core.generator.UI_AVAILABLE", True),
+            patch.object(
+                generator,
+                "_initialize_document_loader",
+                return_value=mock_document_loader,
+            ),
+            patch.object(
+                generator,
+                "_initialize_task_generator",
+                return_value=mock_task_generator,
+            ),
+            patch.object(
+                generator,
+                "_initialize_best_practice_manager",
+                return_value=mock_best_practice_manager,
+            ),
+            patch.object(
+                generator,
+                "_initialize_task_graph_formatter",
+                return_value=mock_task_graph_formatter,
+            ),
+            patch(
+                "arklex.orchestrator.generator.core.generator.PromptManager",
+                return_value=mock_prompt_manager,
+            ),
+            patch(
+                "arklex.orchestrator.generator.core.generator.TaskEditorApp"
+            ) as mock_editor_class,
+        ):
+            # Mock TaskEditorApp to raise exception
+            mock_editor_instance = Mock()
+            mock_editor_instance.run.side_effect = Exception("UI Error")
+            mock_editor_class.return_value = mock_editor_instance
+
+            # Should continue without UI interaction
+            generator.generate()
+
+            # Verify TaskEditorApp was called
+            mock_editor_class.assert_called_once()
+            mock_editor_instance.run.assert_called_once()
+
+    def test_generate_with_ui_not_interactable(
+        self,
+        always_valid_mock_model: Mock,
+        patched_sample_config: dict[str, Any],
+        mock_document_loader: Mock,
+        mock_task_generator: Mock,
+        mock_best_practice_manager: Mock,
+        mock_task_graph_formatter: Mock,
+        mock_prompt_manager: Mock,
+    ) -> None:
+        """Test generation when not interactable with user."""
+        generator = Generator(
+            config=patched_sample_config,
+            model=always_valid_mock_model,
+            interactable_with_user=False,
+        )
+
+        with (
+            patch.object(
+                generator,
+                "_initialize_document_loader",
+                return_value=mock_document_loader,
+            ),
+            patch.object(
+                generator,
+                "_initialize_task_generator",
+                return_value=mock_task_generator,
+            ),
+            patch.object(
+                generator,
+                "_initialize_best_practice_manager",
+                return_value=mock_best_practice_manager,
+            ),
+            patch.object(
+                generator,
+                "_initialize_task_graph_formatter",
+                return_value=mock_task_graph_formatter,
+            ),
+            patch(
+                "arklex.orchestrator.generator.core.generator.PromptManager",
+                return_value=mock_prompt_manager,
+            ),
+        ):
+            result = generator.generate()
+
+            # Verify generation continues without UI interaction
+            assert "tasks" in result
 
 
-def test_task_editor_app_import_error(monkeypatch) -> None:
-    """Test that TaskEditorApp raises ImportError when UI components are unavailable."""
-    import importlib
-    import sys
+class TestSaveTaskGraphSanitizeFunction:
+    """Test the sanitize function in save_task_graph method."""
 
-    module_name = "arklex.orchestrator.generator.core.generator"
-    ui_module_name = "arklex.orchestrator.generator.ui"
+    def test_save_task_graph_with_functools_partial(
+        self, always_valid_mock_model: Mock, patched_sample_config: dict[str, Any]
+    ) -> None:
+        """Test sanitize function handling of functools.partial objects."""
+        import functools
 
-    # Remove both modules from sys.modules to force re-import
-    if module_name in sys.modules:
-        del sys.modules[module_name]
-    if ui_module_name in sys.modules:
-        del sys.modules[ui_module_name]
+        def test_func(x: int, y: int) -> int:
+            return x + y
 
-    # Patch sys.modules to simulate ImportError for the UI module
-    monkeypatch.setitem(sys.modules, ui_module_name, None)
+        partial_func = functools.partial(test_func, 5)
 
-    # Now import and reload the module to trigger the fallback TaskEditorApp
-    module = importlib.import_module(module_name)
-    importlib.reload(module)
+        task_graph = {
+            "tasks": [{"name": "Test Task"}],
+            "partial_func": partial_func,
+        }
 
-    TaskEditorApp = getattr(module, "TaskEditorApp")
-    with pytest.raises(ImportError) as excinfo:
-        TaskEditorApp(tasks=[])
-    assert "UI components require" in str(excinfo.value)
+        generator = Generator(
+            config=patched_sample_config,
+            model=always_valid_mock_model,
+            output_dir="/tmp",
+        )
+
+        with (
+            patch("builtins.open", mock_open()) as mock_file,
+            patch("json.dump") as mock_json_dump,
+        ):
+            generator.save_task_graph(task_graph)
+
+            # Verify the file was opened and json.dump was called
+            mock_file.assert_called_once()
+            mock_json_dump.assert_called_once()
+
+            # Get the sanitized data that was passed to json.dump
+            sanitized_data = mock_json_dump.call_args[0][0]
+
+            # Verify that the partial function was converted to string
+            assert "partial_func" in sanitized_data
+            assert isinstance(sanitized_data["partial_func"], str)
+            assert "functools.partial" in sanitized_data["partial_func"]
+
+    def test_save_task_graph_with_collections_abc_callable(
+        self, always_valid_mock_model: Mock, patched_sample_config: dict[str, Any]
+    ) -> None:
+        """Test sanitize function handling of collections.abc.Callable objects."""
+        import collections.abc
+
+        def test_callable() -> str:
+            return "test"
+
+        task_graph = {
+            "tasks": [{"name": "Test Task"}],
+            "custom_callable": test_callable,
+            "callable_type": collections.abc.Callable,
+        }
+
+        generator = Generator(
+            config=patched_sample_config,
+            model=always_valid_mock_model,
+            output_dir="/tmp",
+        )
+
+        with (
+            patch("builtins.open", mock_open()) as mock_file,
+            patch("json.dump") as mock_json_dump,
+        ):
+            generator.save_task_graph(task_graph)
+
+            # Verify the file was opened and json.dump was called
+            mock_file.assert_called_once()
+            mock_json_dump.assert_called_once()
+
+            # Get the sanitized data that was passed to json.dump
+            sanitized_data = mock_json_dump.call_args[0][0]
+
+            # Verify that the callable objects were converted to strings
+            assert "custom_callable" in sanitized_data
+            assert isinstance(sanitized_data["custom_callable"], str)
+            assert "test_callable" in sanitized_data["custom_callable"]
+
+            assert "callable_type" in sanitized_data
+            assert isinstance(sanitized_data["callable_type"], str)
+            assert "collections.abc.Callable" in sanitized_data["callable_type"]
+
+    def test_save_task_graph_with_other_non_serializable_objects(
+        self, always_valid_mock_model: Mock, patched_sample_config: dict[str, Any]
+    ) -> None:
+        """Test sanitize function handling of other non-serializable objects."""
+
+        class CustomObject:
+            def __init__(self, value: str) -> None:
+                self.value = value
+
+            def __str__(self) -> str:
+                return f"CustomObject({self.value})"
+
+        task_graph = {
+            "tasks": [{"name": "Test Task"}],
+            "custom_obj": CustomObject("foo"),
+        }
+
+        generator = Generator(
+            config=patched_sample_config,
+            model=always_valid_mock_model,
+            output_dir="/tmp",
+        )
+
+        with (
+            patch("builtins.open", mock_open()) as mock_file,
+            patch("json.dump") as mock_json_dump,
+        ):
+            generator.save_task_graph(task_graph)
+
+            # Verify the file was opened and json.dump was called
+            mock_file.assert_called_once()
+            mock_json_dump.assert_called_once()
+
+            # Get the sanitized data that was passed to json.dump
+            sanitized_data = mock_json_dump.call_args[0][0]
+
+            # Verify that the custom object was converted to string
+            assert "custom_obj" in sanitized_data
+            assert isinstance(sanitized_data["custom_obj"], str)
+            assert "CustomObject(foo)" in sanitized_data["custom_obj"]
 
 
-def test_generator_generate_ui_exception(
-    monkeypatch, full_config, mock_model, tmp_path
-) -> None:
-    """Test Generator.generate covers the UI exception fallback path (line 646)."""
-    from arklex.orchestrator.generator.core import generator as gen_mod
+class TestCompleteLineCoverage:
+    """Test class to ensure 100% line coverage of the Generator class."""
 
-    # Patch UI_AVAILABLE to True to enter the UI block
-    monkeypatch.setattr(gen_mod, "UI_AVAILABLE", True)
+    def test_ui_unavailable_placeholder_class_instantiation(self) -> None:
+        """Test that the placeholder TaskEditorApp class raises ImportError when instantiated."""
+        import importlib
+        import sys
+        from unittest.mock import patch
 
-    # Patch TaskEditorApp to raise an Exception when instantiated
-    class FailingTaskEditorApp:
-        def __init__(self, *args, **kwargs):
-            raise RuntimeError("Simulated UI failure")
+        with patch.dict(sys.modules, {"arklex.orchestrator.generator.ui": None}):
+            import arklex.orchestrator.generator.core.generator as generator_module
 
-    monkeypatch.setattr(gen_mod, "TaskEditorApp", FailingTaskEditorApp)
-    # Patch PromptManager to avoid actual model calls
-    monkeypatch.setattr(
-        gen_mod,
-        "PromptManager",
-        lambda *a, **kw: Mock(get_prompt=lambda *a, **kw: "{}"),
-    )
-    # Patch model.invoke to avoid actual model calls
-    mock_model.invoke.return_value = Mock(content='{"intent": "TestIntent"}')
+            importlib.reload(generator_module)
+            TaskEditorApp = generator_module.TaskEditorApp
 
-    # Patch _initialize_task_graph_formatter to a dummy formatter
-    class DummyFormatter:
-        def format_task_graph(self, tasks):
-            return {"nodes": [], "edges": []}
+            with pytest.raises(
+                ImportError,
+                match="UI components require 'textual' package to be installed",
+            ):
+                TaskEditorApp(tasks=[])
 
-        def ensure_nested_graph_connectivity(self, graph):
-            return graph
+    def test_generate_else_branch_no_user_changes_detected(
+        self,
+        always_valid_mock_model: Mock,
+        patched_sample_config: dict[str, Any],
+        mock_document_loader: Mock,
+        mock_task_generator: Mock,
+        mock_best_practice_manager: Mock,
+        mock_task_graph_formatter: Mock,
+        mock_prompt_manager: Mock,
+    ) -> None:
+        """Test the else branch when no user changes are detected in UI interaction."""
+        # Configure mocks
+        with patch.multiple(
+            "arklex.orchestrator.generator.core.generator",
+            DocumentLoader=mock_document_loader,
+            TaskGenerator=mock_task_generator,
+            BestPracticeManager=mock_best_practice_manager,
+            TaskGraphFormatter=mock_task_graph_formatter,
+            PromptManager=mock_prompt_manager,
+        ):
+            # Mock document loading to return empty documents
+            mock_document_loader.return_value.load_task_document.return_value = {}
+            mock_document_loader.return_value.load_instruction_document.return_value = {}
 
-    # Create generator instance
-    gen = gen_mod.Generator(
-        config=full_config, model=mock_model, output_dir=str(tmp_path)
-    )
+            # Directly set the return values on the mock task generator
+            mock_task_generator.return_value.add_provided_tasks.return_value = [
+                {
+                    "name": "Processed User Task",
+                    "description": "Processed task description",
+                    "steps": [
+                        {"description": "Processed Step 1"},
+                        {"description": "Processed Step 2"},
+                    ],
+                }
+            ]
+            mock_task_generator.return_value.generate_tasks.return_value = [
+                {
+                    "name": "Generated Task 1",
+                    "description": "Generated task description",
+                    "steps": [
+                        {"description": "Generated Step 1"},
+                        {"description": "Generated Step 2"},
+                    ],
+                }
+            ]
 
-    # Patch document loader to avoid file loading issues
-    mock_doc_loader = Mock()
-    mock_doc_loader.load_task_document.return_value = "mock_task_doc"
-    mock_doc_loader.load_instruction_document.return_value = "mock_instruction_doc"
-    monkeypatch.setattr(gen, "_initialize_document_loader", lambda: mock_doc_loader)
+            # Mock UI interaction to return tasks identical to original
+            mock_ui_tasks = [
+                {
+                    "name": "Generated Task 1",
+                    "description": "Generated task description",
+                    "steps": [
+                        {"description": "Generated Step 1"},
+                        {"description": "Generated Step 2"},
+                    ],
+                }
+            ]
 
-    monkeypatch.setattr(
-        gen, "_initialize_task_graph_formatter", lambda: DummyFormatter()
-    )
-    # Patch best practice manager to return empty list
-    monkeypatch.setattr(
-        gen,
-        "_initialize_best_practice_manager",
-        lambda: Mock(generate_best_practices=lambda *a, **kw: []),
-    )
-    # Patch reusable task manager
-    monkeypatch.setattr(
-        gen,
-        "_initialize_reusable_task_manager",
-        lambda: Mock(generate_reusable_tasks=lambda *a, **kw: {}),
-    )
-    # Patch task generator
-    monkeypatch.setattr(
-        gen,
-        "_initialize_task_generator",
-        lambda: Mock(
-            add_provided_tasks=lambda *a, **kw: [], generate_tasks=lambda *a, **kw: []
-        ),
-    )
-    # Actually run generate, which should hit the UI exception fallback
-    result = gen.generate()
-    assert isinstance(result, dict)
-    assert "nodes" in result and "edges" in result
+            with patch(
+                "arklex.orchestrator.generator.core.generator.TaskEditorApp"
+            ) as mock_ui_class:
+                mock_ui_instance = Mock()
+                mock_ui_instance.run.return_value = mock_ui_tasks
+                mock_ui_class.return_value = mock_ui_instance
+
+                # Create generator with UI interaction enabled
+                generator = Generator(
+                    config=patched_sample_config,
+                    model=always_valid_mock_model,
+                    interactable_with_user=True,
+                )
+
+                # Patch the _initialize_document_loader method to return our mock
+                with patch.object(
+                    generator,
+                    "_initialize_document_loader",
+                    return_value=mock_document_loader.return_value,
+                ):
+                    # Set up the tasks that will be compared
+                    generator.tasks = mock_ui_tasks.copy()
+
+                    # Mock best practices
+                    mock_best_practice_manager.return_value.generate_best_practices.return_value = [
+                        {
+                            "name": "Best Practice 1",
+                            "description": "Best practice description",
+                            "steps": [{"description": "Best practice step"}],
+                        }
+                    ]
+
+                    # Mock task graph formatter to return a proper dictionary
+                    mock_task_graph_formatter.return_value.format_task_graph.return_value = {
+                        "tasks": [],
+                        "metadata": {},
+                        "version": "1.0",
+                    }
+                    mock_task_graph_formatter.return_value.ensure_nested_graph_connectivity.return_value = {
+                        "tasks": [],
+                        "metadata": {},
+                        "version": "1.0",
+                    }
+
+                    # Run generate method
+                    result = generator.generate()
+
+                    # Verify that the else branch was executed (no changes detected)
+                    assert result is not None
+                    # Verify that finetune_best_practice was called for original tasks
+                    mock_best_practice_manager.return_value.finetune_best_practice.assert_called()
+
+    def test_generate_else_branch_no_ui_interaction(
+        self,
+        always_valid_mock_model: Mock,
+        patched_sample_config: dict[str, Any],
+        mock_document_loader: Mock,
+        mock_task_generator: Mock,
+        mock_best_practice_manager: Mock,
+        mock_task_graph_formatter: Mock,
+        mock_prompt_manager: Mock,
+    ) -> None:
+        """Test the else branch when no UI interaction is performed."""
+        # Configure mocks
+        with patch.multiple(
+            "arklex.orchestrator.generator.core.generator",
+            DocumentLoader=mock_document_loader,
+            TaskGenerator=mock_task_generator,
+            BestPracticeManager=mock_best_practice_manager,
+            TaskGraphFormatter=mock_task_graph_formatter,
+            PromptManager=mock_prompt_manager,
+        ):
+            # Mock document loading to return empty documents
+            mock_document_loader.return_value.load_task_document.return_value = {}
+            mock_document_loader.return_value.load_instruction_document.return_value = {}
+
+            # Directly set the return values on the mock task generator
+            mock_task_generator.return_value.add_provided_tasks.return_value = [
+                {
+                    "name": "Processed User Task",
+                    "description": "Processed task description",
+                    "steps": [
+                        {"description": "Processed Step 1"},
+                        {"description": "Processed Step 2"},
+                    ],
+                }
+            ]
+            mock_task_generator.return_value.generate_tasks.return_value = [
+                {
+                    "name": "Generated Task 1",
+                    "description": "Generated task description",
+                    "steps": [
+                        {"description": "Generated Step 1"},
+                        {"description": "Generated Step 2"},
+                    ],
+                }
+            ]
+
+            # Create generator with UI interaction disabled
+            generator = Generator(
+                config=patched_sample_config,
+                model=always_valid_mock_model,
+                interactable_with_user=False,
+            )
+
+            # Patch the _initialize_document_loader method to return our mock
+            with patch.object(
+                generator,
+                "_initialize_document_loader",
+                return_value=mock_document_loader.return_value,
+            ):
+                # Set up tasks
+                generator.tasks = [
+                    {
+                        "name": "Generated Task 1",
+                        "description": "Generated task description",
+                        "steps": [
+                            {"description": "Generated Step 1"},
+                            {"description": "Generated Step 2"},
+                        ],
+                    }
+                ]
+
+                # Mock best practices
+                mock_best_practice_manager.return_value.generate_best_practices.return_value = [
+                    {
+                        "name": "Best Practice 1",
+                        "description": "Best practice description",
+                        "steps": [{"description": "Best practice step"}],
+                    }
+                ]
+
+                # Mock task graph formatter to return a proper dictionary
+                mock_task_graph_formatter.return_value.format_task_graph.return_value = {
+                    "tasks": [],
+                    "metadata": {},
+                    "version": "1.0",
+                }
+                mock_task_graph_formatter.return_value.ensure_nested_graph_connectivity.return_value = {
+                    "tasks": [],
+                    "metadata": {},
+                    "version": "1.0",
+                }
+
+                # Run generate method
+                result = generator.generate()
+
+                # Verify that the else branch was executed (no UI interaction)
+                assert result is not None
+                # Verify that finetune_best_practice was called for all tasks
+                mock_best_practice_manager.return_value.finetune_best_practice.assert_called()
+
+    def test_save_task_graph_sanitize_functools_partial(
+        self, always_valid_mock_model: Mock, patched_sample_config: dict[str, Any]
+    ) -> None:
+        """Test sanitize function handling of functools.partial objects."""
+        import functools
+
+        def test_func(x: int, y: int) -> int:
+            return x + y
+
+        partial_func = functools.partial(test_func, 5)
+
+        task_graph = {
+            "tasks": [{"name": "Test Task"}],
+            "partial_func": partial_func,
+        }
+
+        generator = Generator(
+            config=patched_sample_config,
+            model=always_valid_mock_model,
+            output_dir="/tmp",
+        )
+
+        with (
+            patch("builtins.open", mock_open()) as mock_file,
+            patch("json.dump") as mock_json_dump,
+        ):
+            generator.save_task_graph(task_graph)
+
+            # Verify the file was opened and json.dump was called
+            mock_file.assert_called_once()
+            mock_json_dump.assert_called_once()
+
+            # Get the sanitized data that was passed to json.dump
+            sanitized_data = mock_json_dump.call_args[0][0]
+
+            # Verify that the partial function was converted to string
+            assert "partial_func" in sanitized_data
+            assert isinstance(sanitized_data["partial_func"], str)
+            assert "functools.partial" in sanitized_data["partial_func"]
+
+    def test_save_task_graph_sanitize_collections_abc_callable(
+        self, always_valid_mock_model: Mock, patched_sample_config: dict[str, Any]
+    ) -> None:
+        """Test sanitize function handling of collections.abc.Callable objects."""
+        import collections.abc
+
+        def test_callable() -> str:
+            return "test"
+
+        task_graph = {
+            "tasks": [{"name": "Test Task"}],
+            "custom_callable": test_callable,
+            "callable_type": collections.abc.Callable,
+        }
+
+        generator = Generator(
+            config=patched_sample_config,
+            model=always_valid_mock_model,
+            output_dir="/tmp",
+        )
+
+        with (
+            patch("builtins.open", mock_open()) as mock_file,
+            patch("json.dump") as mock_json_dump,
+        ):
+            generator.save_task_graph(task_graph)
+
+            # Verify the file was opened and json.dump was called
+            mock_file.assert_called_once()
+            mock_json_dump.assert_called_once()
+
+            # Get the sanitized data that was passed to json.dump
+            sanitized_data = mock_json_dump.call_args[0][0]
+
+            # Verify that the callable was converted to string
+            assert "custom_callable" in sanitized_data
+            assert isinstance(sanitized_data["custom_callable"], str)
+            assert "test_callable" in sanitized_data["custom_callable"]
+
+    def test_save_task_graph_sanitize_other_non_serializable_objects(
+        self, always_valid_mock_model: Mock, patched_sample_config: dict[str, Any]
+    ) -> None:
+        """Test sanitize function handling of other non-serializable objects."""
+
+        class CustomObject:
+            def __init__(self, value: str) -> None:
+                self.value = value
+
+            def __str__(self) -> str:
+                return f"CustomObject({self.value})"
+
+        task_graph = {
+            "tasks": [{"name": "Test Task"}],
+            "custom_object": CustomObject("test_value"),
+        }
+
+        generator = Generator(
+            config=patched_sample_config,
+            model=always_valid_mock_model,
+            output_dir="/tmp",
+        )
+
+        with (
+            patch("builtins.open", mock_open()) as mock_file,
+            patch("json.dump") as mock_json_dump,
+        ):
+            generator.save_task_graph(task_graph)
+
+            # Verify the file was opened and json.dump was called
+            mock_file.assert_called_once()
+            mock_json_dump.assert_called_once()
+
+            # Get the sanitized data that was passed to json.dump
+            sanitized_data = mock_json_dump.call_args[0][0]
+
+            # Verify that the custom object was converted to string
+            assert "custom_object" in sanitized_data
+            assert isinstance(sanitized_data["custom_object"], str)
+            assert "CustomObject" in sanitized_data["custom_object"]
+
+    def test_generate_with_ui_exception_fallback(
+        self,
+        always_valid_mock_model: Mock,
+        patched_sample_config: dict[str, Any],
+        mock_document_loader: Mock,
+        mock_task_generator: Mock,
+        mock_best_practice_manager: Mock,
+        mock_task_graph_formatter: Mock,
+        mock_prompt_manager: Mock,
+    ) -> None:
+        """Test that generate method falls back to original tasks when UI raises an exception."""
+        # Configure mocks
+        with patch.multiple(
+            "arklex.orchestrator.generator.core.generator",
+            DocumentLoader=mock_document_loader,
+            TaskGenerator=mock_task_generator,
+            BestPracticeManager=mock_best_practice_manager,
+            TaskGraphFormatter=mock_task_graph_formatter,
+            PromptManager=mock_prompt_manager,
+        ):
+            # Mock document loading to return empty documents
+            mock_document_loader.return_value.load_task_document.return_value = {}
+            mock_document_loader.return_value.load_instruction_document.return_value = {}
+
+            # Directly set the return values on the mock task generator
+            mock_task_generator.return_value.add_provided_tasks.return_value = [
+                {
+                    "name": "Processed User Task",
+                    "description": "Processed task description",
+                    "steps": [
+                        {"description": "Processed Step 1"},
+                        {"description": "Processed Step 2"},
+                    ],
+                }
+            ]
+            mock_task_generator.return_value.generate_tasks.return_value = [
+                {
+                    "name": "Generated Task 1",
+                    "description": "Generated task description",
+                    "steps": [
+                        {"description": "Generated Step 1"},
+                        {"description": "Generated Step 2"},
+                    ],
+                }
+            ]
+
+            # Mock UI interaction to raise an exception
+            with patch(
+                "arklex.orchestrator.generator.core.generator.TaskEditorApp"
+            ) as mock_ui_class:
+                mock_ui_instance = Mock()
+                mock_ui_instance.run.side_effect = Exception("UI Error")
+                mock_ui_class.return_value = mock_ui_instance
+
+                # Create generator with UI interaction enabled
+                generator = Generator(
+                    config=patched_sample_config,
+                    model=always_valid_mock_model,
+                    interactable_with_user=True,
+                )
+
+                # Set up tasks
+                generator.tasks = [
+                    {
+                        "name": "Generated Task 1",
+                        "description": "Generated task description",
+                        "steps": [
+                            {"description": "Generated Step 1"},
+                            {"description": "Generated Step 2"},
+                        ],
+                    }
+                ]
+
+                # Mock best practices
+                mock_best_practice_manager.return_value.generate_best_practices.return_value = [
+                    {
+                        "name": "Best Practice 1",
+                        "description": "Best practice description",
+                        "steps": [{"description": "Best practice step"}],
+                    }
+                ]
+
+                # Mock task graph formatter to return a proper dictionary
+                mock_task_graph_formatter.return_value.format_task_graph.return_value = {
+                    "tasks": [],
+                    "metadata": {},
+                    "version": "1.0",
+                }
+                mock_task_graph_formatter.return_value.ensure_nested_graph_connectivity.return_value = {
+                    "tasks": [],
+                    "metadata": {},
+                    "version": "1.0",
+                }
+
+                # Run generate method - should handle UI exception gracefully
+                result = generator.generate()
+
+                # Verify that the method completed successfully despite UI exception
+                assert result is not None
+                # The fallback should use original tasks, so finetune_best_practice should not be called
+                # since the UI exception branch doesn't call it
+
+    def test_generate_with_empty_best_practices(
+        self,
+        always_valid_mock_model: Mock,
+        patched_sample_config: dict[str, Any],
+        mock_document_loader: Mock,
+        mock_task_generator: Mock,
+        mock_best_practice_manager: Mock,
+        mock_task_graph_formatter: Mock,
+        mock_prompt_manager: Mock,
+    ) -> None:
+        """Test generate method when no best practices are available."""
+        # Configure mocks
+        with patch.multiple(
+            "arklex.orchestrator.generator.core.generator",
+            DocumentLoader=mock_document_loader,
+            TaskGenerator=mock_task_generator,
+            BestPracticeManager=mock_best_practice_manager,
+            TaskGraphFormatter=mock_task_graph_formatter,
+            PromptManager=mock_prompt_manager,
+        ):
+            # Mock document loading to return empty documents
+            mock_document_loader.return_value.load_task_document.return_value = {}
+            mock_document_loader.return_value.load_instruction_document.return_value = {}
+
+            # Directly set the return values on the mock task generator
+            mock_task_generator.return_value.add_provided_tasks.return_value = [
+                {
+                    "name": "Processed User Task",
+                    "description": "Processed task description",
+                    "steps": [
+                        {"description": "Processed Step 1"},
+                        {"description": "Processed Step 2"},
+                    ],
+                }
+            ]
+            mock_task_generator.return_value.generate_tasks.return_value = [
+                {
+                    "name": "Generated Task 1",
+                    "description": "Generated task description",
+                    "steps": [
+                        {"description": "Generated Step 1"},
+                        {"description": "Generated Step 2"},
+                    ],
+                }
+            ]
+
+            # Create generator with UI interaction disabled
+            generator = Generator(
+                config=patched_sample_config,
+                model=always_valid_mock_model,
+                interactable_with_user=False,
+            )
+
+            # Patch the _initialize_document_loader method to return our mock
+            with patch.object(
+                generator,
+                "_initialize_document_loader",
+                return_value=mock_document_loader.return_value,
+            ):
+                # Set up tasks
+                generator.tasks = [
+                    {
+                        "name": "Generated Task 1",
+                        "description": "Generated task description",
+                        "steps": [
+                            {"description": "Generated Step 1"},
+                            {"description": "Generated Step 2"},
+                        ],
+                    }
+                ]
+
+                # Mock empty best practices
+                mock_best_practice_manager.return_value.generate_best_practices.return_value = []
+
+                # Mock task graph formatter to return a proper dictionary
+                mock_task_graph_formatter.return_value.format_task_graph.return_value = {
+                    "tasks": [],
+                    "metadata": {},
+                    "version": "1.0",
+                }
+                mock_task_graph_formatter.return_value.ensure_nested_graph_connectivity.return_value = {
+                    "tasks": [],
+                    "metadata": {},
+                    "version": "1.0",
+                }
+
+                # Run generate method
+                result = generator.generate()
+
+                # Verify that the method completed successfully
+                assert result is not None
+                # Since there are no best practices, finetune_best_practice should not be called
+                mock_best_practice_manager.return_value.finetune_best_practice.assert_not_called()
+
+    def test_generate_with_more_tasks_than_best_practices(
+        self,
+        always_valid_mock_model: Mock,
+        patched_sample_config: dict[str, Any],
+        mock_document_loader: Mock,
+        mock_task_generator: Mock,
+        mock_best_practice_manager: Mock,
+        mock_task_graph_formatter: Mock,
+        mock_prompt_manager: Mock,
+    ) -> None:
+        """Test generate method when there are more tasks than best practices."""
+        # Configure mocks
+        with patch.multiple(
+            "arklex.orchestrator.generator.core.generator",
+            DocumentLoader=mock_document_loader,
+            TaskGenerator=mock_task_generator,
+            BestPracticeManager=mock_best_practice_manager,
+            TaskGraphFormatter=mock_task_graph_formatter,
+            PromptManager=mock_prompt_manager,
+        ):
+            # Mock document loading to return empty documents
+            mock_document_loader.return_value.load_task_document.return_value = {}
+            mock_document_loader.return_value.load_instruction_document.return_value = {}
+
+            # Directly set the return values on the mock task generator
+            mock_task_generator.return_value.add_provided_tasks.return_value = [
+                {
+                    "name": "Processed User Task",
+                    "description": "Processed task description",
+                    "steps": [
+                        {"description": "Processed Step 1"},
+                        {"description": "Processed Step 2"},
+                    ],
+                }
+            ]
+            mock_task_generator.return_value.generate_tasks.return_value = [
+                {
+                    "name": "Generated Task 1",
+                    "description": "Generated task description",
+                    "steps": [
+                        {"description": "Generated Step 1"},
+                        {"description": "Generated Step 2"},
+                    ],
+                },
+                {
+                    "name": "Generated Task 2",
+                    "description": "Generated task description 2",
+                    "steps": [
+                        {"description": "Generated Step 3"},
+                        {"description": "Generated Step 4"},
+                    ],
+                },
+                {
+                    "name": "Generated Task 3",
+                    "description": "Generated task description 3",
+                    "steps": [
+                        {"description": "Generated Step 5"},
+                        {"description": "Generated Step 6"},
+                    ],
+                },
+            ]
+
+            # Create generator with UI interaction disabled
+            generator = Generator(
+                config=patched_sample_config,
+                model=always_valid_mock_model,
+                interactable_with_user=False,
+            )
+
+            # Patch the _initialize_document_loader method to return our mock
+            with patch.object(
+                generator,
+                "_initialize_document_loader",
+                return_value=mock_document_loader.return_value,
+            ):
+                # Set up tasks (more tasks than best practices)
+                generator.tasks = [
+                    {
+                        "name": "Generated Task 1",
+                        "description": "Generated task description",
+                        "steps": [
+                            {"description": "Generated Step 1"},
+                            {"description": "Generated Step 2"},
+                        ],
+                    },
+                    {
+                        "name": "Generated Task 2",
+                        "description": "Generated task description 2",
+                        "steps": [
+                            {"description": "Generated Step 3"},
+                            {"description": "Generated Step 4"},
+                        ],
+                    },
+                    {
+                        "name": "Generated Task 3",
+                        "description": "Generated task description 3",
+                        "steps": [
+                            {"description": "Generated Step 5"},
+                            {"description": "Generated Step 6"},
+                        ],
+                    },
+                ]
+
+                # Mock only one best practice (fewer than tasks)
+                mock_best_practice_manager.return_value.generate_best_practices.return_value = [
+                    {
+                        "name": "Best Practice 1",
+                        "description": "Best practice description",
+                        "steps": [{"description": "Best practice step"}],
+                    }
+                ]
+
+                # Mock task graph formatter to return a proper dictionary
+                mock_task_graph_formatter.return_value.format_task_graph.return_value = {
+                    "tasks": [],
+                    "metadata": {},
+                    "version": "1.0",
+                }
+                mock_task_graph_formatter.return_value.ensure_nested_graph_connectivity.return_value = {
+                    "tasks": [],
+                    "metadata": {},
+                    "version": "1.0",
+                }
+
+                # Run generate method
+                result = generator.generate()
+
+                # Verify that the method completed successfully
+                assert result is not None
+                # Only the first task should have finetune_best_practice called (since there's only 1 best practice)
+                assert (
+                    mock_best_practice_manager.return_value.finetune_best_practice.call_count
+                    == 1
+                )
+
+    def test_generate_with_nested_graph_disabled(
+        self,
+        always_valid_mock_model: Mock,
+        patched_sample_config: dict[str, Any],
+        mock_document_loader: Mock,
+        mock_task_generator: Mock,
+        mock_best_practice_manager: Mock,
+        mock_task_graph_formatter: Mock,
+        mock_prompt_manager: Mock,
+    ) -> None:
+        """Test generate method when nested graph is disabled."""
+        # Configure mocks
+        with patch.multiple(
+            "arklex.orchestrator.generator.core.generator",
+            DocumentLoader=mock_document_loader,
+            TaskGenerator=mock_task_generator,
+            BestPracticeManager=mock_best_practice_manager,
+            TaskGraphFormatter=mock_task_graph_formatter,
+            PromptManager=mock_prompt_manager,
+        ):
+            # Mock document loading to return empty documents
+            mock_document_loader.return_value.load_task_document.return_value = {}
+            mock_document_loader.return_value.load_instruction_document.return_value = {}
+
+            # Directly set the return values on the mock task generator
+            mock_task_generator.return_value.add_provided_tasks.return_value = [
+                {
+                    "name": "Processed User Task",
+                    "description": "Processed task description",
+                    "steps": [
+                        {"description": "Processed Step 1"},
+                        {"description": "Processed Step 2"},
+                    ],
+                }
+            ]
+            mock_task_generator.return_value.generate_tasks.return_value = [
+                {
+                    "name": "Generated Task 1",
+                    "description": "Generated task description",
+                    "steps": [
+                        {"description": "Generated Step 1"},
+                        {"description": "Generated Step 2"},
+                    ],
+                }
+            ]
+
+            # Create generator with nested graph disabled
+            generator = Generator(
+                config=patched_sample_config,
+                model=always_valid_mock_model,
+                interactable_with_user=False,
+                allow_nested_graph=False,
+            )
+
+            # Patch the _initialize_document_loader method to return our mock
+            with patch.object(
+                generator,
+                "_initialize_document_loader",
+                return_value=mock_document_loader.return_value,
+            ):
+                # Set up tasks
+                generator.tasks = [
+                    {
+                        "name": "Generated Task 1",
+                        "description": "Generated task description",
+                        "steps": [
+                            {"description": "Generated Step 1"},
+                            {"description": "Generated Step 2"},
+                        ],
+                    }
+                ]
+
+                # Mock best practices
+                mock_best_practice_manager.return_value.generate_best_practices.return_value = [
+                    {
+                        "name": "Best Practice 1",
+                        "description": "Best practice description",
+                        "steps": [{"description": "Best practice step"}],
+                    }
+                ]
+
+                # Mock task graph formatter to return a proper dictionary
+                mock_task_graph_formatter.return_value.format_task_graph.return_value = {
+                    "tasks": [],
+                    "metadata": {},
+                    "version": "1.0",
+                }
+
+                # Run generate method
+                result = generator.generate()
+
+                # Verify that the method completed successfully
+                assert result is not None
+                # Since nested graph is disabled, ensure_nested_graph_connectivity should not be called
+                mock_task_graph_formatter.return_value.ensure_nested_graph_connectivity.assert_not_called()
+
+    def test_generate_with_empty_reusable_tasks(
+        self,
+        always_valid_mock_model: Mock,
+        patched_sample_config: dict[str, Any],
+        mock_document_loader: Mock,
+        mock_task_generator: Mock,
+        mock_best_practice_manager: Mock,
+        mock_task_graph_formatter: Mock,
+        mock_prompt_manager: Mock,
+    ) -> None:
+        """Test generate method when reusable tasks is empty."""
+        # Configure mocks
+        with patch.multiple(
+            "arklex.orchestrator.generator.core.generator",
+            DocumentLoader=mock_document_loader,
+            TaskGenerator=mock_task_generator,
+            BestPracticeManager=mock_best_practice_manager,
+            TaskGraphFormatter=mock_task_graph_formatter,
+            PromptManager=mock_prompt_manager,
+        ):
+            # Mock document loading to return empty documents
+            mock_document_loader.return_value.load_task_document.return_value = {}
+            mock_document_loader.return_value.load_instruction_document.return_value = {}
+
+            # Directly set the return values on the mock task generator
+            mock_task_generator.return_value.add_provided_tasks.return_value = [
+                {
+                    "name": "Processed User Task",
+                    "description": "Processed task description",
+                    "steps": [
+                        {"description": "Processed Step 1"},
+                        {"description": "Processed Step 2"},
+                    ],
+                }
+            ]
+            mock_task_generator.return_value.generate_tasks.return_value = [
+                {
+                    "name": "Generated Task 1",
+                    "description": "Generated task description",
+                    "steps": [
+                        {"description": "Generated Step 1"},
+                        {"description": "Generated Step 2"},
+                    ],
+                }
+            ]
+
+            # Create generator
+            generator = Generator(
+                config=patched_sample_config,
+                model=always_valid_mock_model,
+                interactable_with_user=False,
+                allow_nested_graph=False,  # Disable nested graph to avoid adding nested_graph reusable task
+            )
+
+            # Patch the _initialize_document_loader method to return our mock
+            with patch.object(
+                generator,
+                "_initialize_document_loader",
+                return_value=mock_document_loader.return_value,
+            ):
+                # Set up tasks
+                generator.tasks = [
+                    {
+                        "name": "Generated Task 1",
+                        "description": "Generated task description",
+                        "steps": [
+                            {"description": "Generated Step 1"},
+                            {"description": "Generated Step 2"},
+                        ],
+                    }
+                ]
+
+                # Ensure reusable_tasks is empty
+                generator.reusable_tasks = {}
+
+                # Mock best practices
+                mock_best_practice_manager.return_value.generate_best_practices.return_value = [
+                    {
+                        "name": "Best Practice 1",
+                        "description": "Best practice description",
+                        "steps": [{"description": "Best practice step"}],
+                    }
+                ]
+
+                # Mock task graph formatter to return a proper dictionary
+                mock_task_graph_formatter.return_value.format_task_graph.return_value = {
+                    "tasks": [],
+                    "metadata": {},
+                    "version": "1.0",
+                }
+
+                # Run generate method
+                result = generator.generate()
+
+                # Verify that the method completed successfully
+                assert result is not None
+                # Since reusable_tasks is empty, it should not be added to the task graph
+                assert "reusable_tasks" not in result
+
+    def test_generate_with_none_reusable_tasks(
+        self,
+        always_valid_mock_model: Mock,
+        patched_sample_config: dict[str, Any],
+        mock_document_loader: Mock,
+        mock_task_generator: Mock,
+        mock_best_practice_manager: Mock,
+        mock_task_graph_formatter: Mock,
+        mock_prompt_manager: Mock,
+    ) -> None:
+        """Test generate method when reusable tasks is None."""
+        # Configure mocks
+        with patch.multiple(
+            "arklex.orchestrator.generator.core.generator",
+            DocumentLoader=mock_document_loader,
+            TaskGenerator=mock_task_generator,
+            BestPracticeManager=mock_best_practice_manager,
+            TaskGraphFormatter=mock_task_graph_formatter,
+            PromptManager=mock_prompt_manager,
+        ):
+            # Mock document loading to return empty documents
+            mock_document_loader.return_value.load_task_document.return_value = {}
+            mock_document_loader.return_value.load_instruction_document.return_value = {}
+
+            # Directly set the return values on the mock task generator
+            mock_task_generator.return_value.add_provided_tasks.return_value = [
+                {
+                    "name": "Processed User Task",
+                    "description": "Processed task description",
+                    "steps": [
+                        {"description": "Processed Step 1"},
+                        {"description": "Processed Step 2"},
+                    ],
+                }
+            ]
+            mock_task_generator.return_value.generate_tasks.return_value = [
+                {
+                    "name": "Generated Task 1",
+                    "description": "Generated task description",
+                    "steps": [
+                        {"description": "Generated Step 1"},
+                        {"description": "Generated Step 2"},
+                    ],
+                }
+            ]
+
+            # Create generator
+            generator = Generator(
+                config=patched_sample_config,
+                model=always_valid_mock_model,
+                interactable_with_user=False,
+                allow_nested_graph=False,  # Disable nested graph to avoid adding nested_graph reusable task
+            )
+
+            # Patch the _initialize_document_loader method to return our mock
+            with patch.object(
+                generator,
+                "_initialize_document_loader",
+                return_value=mock_document_loader.return_value,
+            ):
+                # Set up tasks
+                generator.tasks = [
+                    {
+                        "name": "Generated Task 1",
+                        "description": "Generated task description",
+                        "steps": [
+                            {"description": "Generated Step 1"},
+                            {"description": "Generated Step 2"},
+                        ],
+                    }
+                ]
+
+                # Set reusable_tasks to None
+                generator.reusable_tasks = None
+
+                # Mock best practices
+                mock_best_practice_manager.return_value.generate_best_practices.return_value = [
+                    {
+                        "name": "Best Practice 1",
+                        "description": "Best practice description",
+                        "steps": [{"description": "Best practice step"}],
+                    }
+                ]
+
+                # Mock task graph formatter to return a proper dictionary
+                mock_task_graph_formatter.return_value.format_task_graph.return_value = {
+                    "tasks": [],
+                    "metadata": {},
+                    "version": "1.0",
+                }
+
+                # Run generate method
+                result = generator.generate()
+
+                # Verify that the method completed successfully
+                assert result is not None
+                # Since reusable_tasks is None, it should not be added to the task graph
+                assert "reusable_tasks" not in result

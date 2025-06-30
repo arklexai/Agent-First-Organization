@@ -1,12 +1,12 @@
 import inspect
+
 import requests
 from requests.auth import HTTPBasicAuth
 
+from arklex.env.tools.acuity._exception_prompt import AcuityExceptionPrompt
 from arklex.env.tools.acuity.utils import authenticate_acuity
 from arklex.env.tools.tools import register_tool
 from arklex.utils.exceptions import ToolExecutionError
-from arklex.env.tools.acuity._exception_prompt import AcuityExceptionPrompt
-
 
 description = "Get the available dates of the info session based on the specific month"
 slots = [
@@ -43,7 +43,9 @@ outputs = [
 
 
 @register_tool(description, slots, outputs)
-def get_available_dates(year, month, apt_type_id, **kwargs):
+def get_available_dates(
+    year: str, month: str, apt_type_id: str, **kwargs: str | int | float | bool | None
+) -> str:
     func_name = inspect.currentframe().f_code.co_name
     user_id, api_key = authenticate_acuity(kwargs)
 

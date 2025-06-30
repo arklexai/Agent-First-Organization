@@ -14,38 +14,48 @@ Module Name: get_user_details_admin
 This file contains the code for retrieving user details using the Shopify Admin API.
 """
 
-from typing import Any, Dict, Optional
-import json
 import inspect
+import json
+from typing import TypedDict
 
-from arklex.env.tools.tools import register_tool
+# Admin API
+import shopify
 
+from arklex.env.tools.shopify._exception_prompt import ShopifyExceptionPrompt
+from arklex.env.tools.shopify.utils import authorify_admin
+from arklex.env.tools.shopify.utils_nav import PAGEINFO_OUTPUTS, cursorify
 from arklex.env.tools.shopify.utils_slots import (
     ShopifyGetUserDetailsAdminSlots,
     ShopifyOutputs,
 )
-from arklex.env.tools.shopify.utils_nav import *
-from arklex.env.tools.shopify.utils import authorify_admin
-from arklex.env.tools.shopify._exception_prompt import ShopifyExceptionPrompt
+from arklex.env.tools.tools import register_tool
 from arklex.utils.exceptions import ToolExecutionError
-
-# Admin API
-import shopify
 
 description = "Get the details of a user with Admin API."
 slots = ShopifyGetUserDetailsAdminSlots.get_all_slots()
 outputs = [ShopifyOutputs.USER_DETAILS, *PAGEINFO_OUTPUTS]
 
 
+class GetUserDetailsAdminParams(TypedDict, total=False):
+    """Parameters for the get user details admin tool."""
+
+    shop_url: str
+    api_version: str
+    admin_token: str
+    limit: str
+    navigate: str
+    pageInfo: str
+
+
 @register_tool(description, slots, outputs)
-def get_user_details_admin(user_id: str, **kwargs: Any) -> str:
+def get_user_details_admin(user_id: str, **kwargs: GetUserDetailsAdminParams) -> str:
     """
     Retrieve detailed information about a user using the Shopify Admin API.
 
     Args:
         user_id (str): The ID of the user to retrieve information for.
             Can be a full user ID or just the numeric portion.
-        **kwargs (Any): Additional keyword arguments for pagination and authentication.
+        **kwargs (GetUserDetailsAdminParams): Additional keyword arguments for pagination and authentication.
 
     Returns:
         str: A JSON string containing detailed user information, including:
@@ -106,7 +116,7 @@ def get_user_details_admin(user_id: str, **kwargs: Any) -> str:
                     }}
                 }}
             """)
-            data: Optional[Dict[str, Any]] = json.loads(response)["data"]["customer"]
+            data: dict[str, str] | None = json.loads(response)["data"]["customer"]
             if data:
                 return json.dumps(data)
             else:
@@ -115,8 +125,8 @@ def get_user_details_admin(user_id: str, **kwargs: Any) -> str:
                     extra_message=ShopifyExceptionPrompt.USER_NOT_FOUND_PROMPT,
                 )
 
-    except Exception:
+    except Exception as e:
         raise ToolExecutionError(
             func_name,
             extra_message=ShopifyExceptionPrompt.USER_NOT_FOUND_PROMPT,
-        )
+        ) from e

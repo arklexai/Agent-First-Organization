@@ -1,17 +1,16 @@
-# Copyright Sierra
+from typing import Any
 
-from typing import Any, Dict
 from benchmark.tau_bench.envs.tool import Tool
 
 
 class TransferToHumanAgents(Tool):
     @staticmethod
-    def invoke(data: Dict[str, Any], summary: str) -> str:
+    def invoke(data: dict[str, Any], summary: str) -> str:
         # This method simulates the transfer to a human agent.
         return "Transfer successful"
 
     @staticmethod
-    def get_info() -> Dict[str, Any]:
+    def get_info() -> dict[str, Any]:
         return {
             "type": "function",
             "function": {

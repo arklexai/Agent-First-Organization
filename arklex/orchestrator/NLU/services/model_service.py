@@ -7,29 +7,30 @@ message formatting, and response processing.
 """
 
 import json
-from typing import Dict, Any, Optional, List, Union, Tuple
+from typing import Any
+
 from langchain_core.language_models import BaseChatModel
 from langchain_core.messages import HumanMessage, SystemMessage
-from .model_config import ModelConfig
-from arklex.utils.model_config import MODEL
 
-from arklex.utils.exceptions import ModelError, ValidationError
-from arklex.utils.logging_utils import LogContext, LOG_MESSAGES, handle_exceptions
 from arklex.orchestrator.NLU.core.base import (
     IntentResponse,
     SlotResponse,
     VerificationResponse,
 )
 from arklex.orchestrator.NLU.services.api_service import APIClientService
+from arklex.orchestrator.NLU.utils.formatters import (
+    format_verification_input as format_verification_input_formatter,
+)
 from arklex.orchestrator.NLU.utils.validators import (
     validate_intent_response,
     validate_slot_response,
     validate_verification_response,
 )
-from arklex.orchestrator.NLU.utils.formatters import (
-    format_slot_input as format_slot_input_formatter,
-    format_verification_input as format_verification_input_formatter,
-)
+from arklex.utils.exceptions import ModelError, ValidationError
+from arklex.utils.logging_utils import LOG_MESSAGES, LogContext, handle_exceptions
+from arklex.utils.model_config import MODEL
+
+from .model_config import ModelConfig
 
 log_context = LogContext(__name__)
 
@@ -51,7 +52,7 @@ class ModelService:
         model: Initialized model instance
     """
 
-    def __init__(self, model_config: Dict[str, Any]) -> None:
+    def __init__(self, model_config: dict[str, Any]) -> None:
         """Initialize the model service.
 
         Args:
@@ -91,7 +92,7 @@ class ModelService:
                     "service": "ModelService",
                     "operation": "initialization",
                 },
-            )
+            ) from e
 
     def _validate_config(self) -> None:
         """Validate the model configuration.
@@ -126,8 +127,8 @@ class ModelService:
 
     @handle_exceptions()
     async def process_text(
-        self, text: str, context: Optional[Dict[str, Any]] = None
-    ) -> Dict[str, Any]:
+        self, text: str, context: dict[str, Any] | None = None
+    ) -> dict[str, Any]:
         """Process text through the model.
 
         Args:
@@ -200,11 +201,9 @@ class ModelService:
                     "text": text,
                     "operation": "text_processing",
                 },
-            )
+            ) from e
 
-    async def _make_model_request(
-        self, text: Union[str, Dict[str, Any]]
-    ) -> Dict[str, Any]:
+    async def _make_model_request(self, text: str | dict[str, Any]) -> dict[str, Any]:
         """Make a request to the model.
 
         Args:
@@ -243,7 +242,7 @@ class ModelService:
                     "text": text,
                     "operation": "model_request",
                 },
-            )
+            ) from e
 
     @handle_exceptions()
     async def predict_intent(self, text: str) -> IntentResponse:
@@ -327,7 +326,7 @@ class ModelService:
                     "response": response.content,
                     "operation": "intent_prediction",
                 },
-            )
+            ) from e
         except ValidationError as e:
             log_context.error(
                 "Invalid intent response format",
@@ -344,7 +343,7 @@ class ModelService:
                     "response": response.content,
                     "operation": "intent_prediction",
                 },
-            )
+            ) from e
 
     @handle_exceptions()
     async def fill_slots(self, text: str, intent: str) -> SlotResponse:
@@ -445,7 +444,7 @@ class ModelService:
                     "response": response.content,
                     "operation": "slot_filling",
                 },
-            )
+            ) from e
         except ValidationError as e:
             log_context.error(
                 "Invalid slot response format",
@@ -462,11 +461,11 @@ class ModelService:
                     "response": response.content,
                     "operation": "slot_filling",
                 },
-            )
+            ) from e
 
     @handle_exceptions()
     async def verify_slots(
-        self, text: str, slots: Dict[str, Any]
+        self, text: str, slots: dict[str, Any]
     ) -> VerificationResponse:
         """Verify slots against input text.
 
@@ -566,7 +565,7 @@ class ModelService:
                     "response": response.content,
                     "operation": "slot_verification",
                 },
-            )
+            ) from e
         except ValidationError as e:
             log_context.error(
                 "Invalid verification response format",
@@ -583,7 +582,7 @@ class ModelService:
                     "response": response.content,
                     "operation": "slot_verification",
                 },
-            )
+            ) from e
 
     @handle_exceptions()
     def _initialize_model(self) -> BaseChatModel:
@@ -609,11 +608,11 @@ class ModelService:
                     "model_config": self.model_config,
                     "operation": "model_initialization",
                 },
-            )
+            ) from e
 
     def _format_messages(
-        self, prompt: str, context: Optional[Dict[str, Any]] = None
-    ) -> List[Union[HumanMessage, SystemMessage]]:
+        self, prompt: str, context: dict[str, Any] | None = None
+    ) -> list[HumanMessage | SystemMessage]:
         """Format messages for the model.
 
         Args:
@@ -646,7 +645,7 @@ class ModelService:
         return f"{count}) {intent_name}: {definition}\n"
 
     def _format_intent_exemplars(
-        self, intent_name: str, sample_utterances: List[str], count: int
+        self, intent_name: str, sample_utterances: list[str], count: int
     ) -> str:
         """Format sample utterances for an intent.
 
@@ -666,10 +665,10 @@ class ModelService:
     def _process_intent(
         self,
         intent_k: str,
-        intent_v: List[Dict[str, Any]],
+        intent_v: list[dict[str, Any]],
         count: int,
-        idx2intents_mapping: Dict[str, str],
-    ) -> Tuple[str, str, str, int]:
+        idx2intents_mapping: dict[str, str],
+    ) -> tuple[str, str, str, int]:
         """Process a single intent and its variations.
 
         Args:
@@ -734,10 +733,10 @@ class ModelService:
     def get_response(
         self,
         prompt: str,
-        model_config: Optional[Dict[str, Any]] = None,
-        system_prompt: Optional[str] = None,
-        response_format: Optional[str] = None,
-        note: Optional[str] = None,
+        model_config: dict[str, Any] | None = None,
+        system_prompt: str | None = None,
+        response_format: str | None = None,
+        note: str | None = None,
     ) -> str:
         """Get response from the model.
 
@@ -759,9 +758,6 @@ class ModelService:
             ValueError: If model response is invalid or empty
         """
         try:
-            # Use instance model_config if none provided
-            model_config if model_config is not None else self.model_config
-
             # Format messages with system prompt if provided
             messages = []
             if system_prompt:
@@ -780,14 +776,14 @@ class ModelService:
             return response.content
         except Exception as e:
             log_context.error(f"Error getting model response: {str(e)}")
-            raise ValueError(f"Failed to get model response: {str(e)}")
+            raise ValueError(f"Failed to get model response: {str(e)}") from e
 
     def get_json_response(
         self,
         prompt: str,
-        model_config: Optional[Dict[str, Any]] = None,
-        system_prompt: Optional[str] = None,
-    ) -> Dict[str, Any]:
+        model_config: dict[str, Any] | None = None,
+        system_prompt: str | None = None,
+    ) -> dict[str, Any]:
         """Get JSON response from the model.
 
         Sends a prompt to the model and returns its response as a parsed
@@ -810,14 +806,14 @@ class ModelService:
             return json.loads(response)
         except json.JSONDecodeError as e:
             log_context.error(f"Error parsing JSON response: {str(e)}")
-            raise ValueError(f"Failed to parse JSON response: {str(e)}")
+            raise ValueError(f"Failed to parse JSON response: {str(e)}") from e
         except Exception as e:
             log_context.error(f"Error getting JSON response: {str(e)}")
-            raise ValueError(f"Failed to get JSON response: {str(e)}")
+            raise ValueError(f"Failed to get JSON response: {str(e)}") from e
 
     def format_intent_input(
-        self, intents: Dict[str, List[Dict[str, Any]]], chat_history_str: str
-    ) -> Tuple[str, Dict[str, str]]:
+        self, intents: dict[str, list[dict[str, Any]]], chat_history_str: str
+    ) -> tuple[str, dict[str, str]]:
         """Format input for intent detection.
 
         Creates a formatted prompt for intent detection based on the
@@ -838,7 +834,7 @@ class ModelService:
         definition_str = ""
         exemplars_str = ""
         intents_choice = ""
-        idx2intents_mapping: Dict[str, str] = {}
+        idx2intents_mapping: dict[str, str] = {}
         count = 1
 
         for intent_k, intent_v in intents.items():
@@ -869,8 +865,8 @@ Please choose the most appropriate intent by providing the corresponding intent 
         return prompt, idx2intents_mapping
 
     def format_slot_input(
-        self, slots: List[Dict[str, Any]], context: str, type: str = "chat"
-    ) -> Tuple[str, str]:
+        self, slots: list[dict[str, Any]], context: str, type: str = "chat"
+    ) -> tuple[str, str]:
         """Format input for slot filling.
 
         Creates a prompt for the model to extract slot values from the given context.
@@ -937,8 +933,8 @@ Please choose the most appropriate intent by providing the corresponding intent 
         return user_prompt, system_prompt
 
     def process_slot_response(
-        self, response: str, slots: List[Dict[str, Any]]
-    ) -> List[Dict[str, Any]]:
+        self, response: str, slots: list[dict[str, Any]]
+    ) -> list[dict[str, Any]]:
         """Process the model's response for slot filling.
 
         Parses the model's response and updates the slot values accordingly.
@@ -969,20 +965,22 @@ Please choose the most appropriate intent by providing the corresponding intent 
                 else:
                     slot_name = getattr(slot, "name", "")
                     if slot_name in extracted_values:
-                        setattr(slot, "value", extracted_values[slot_name])
+                        slot.value = extracted_values[slot_name]
                     else:
-                        setattr(slot, "value", None)
+                        slot.value = None
 
             return slots
         except json.JSONDecodeError as e:
             log_context.error(f"Error parsing slot filling response: {str(e)}")
-            raise ValueError(f"Failed to parse slot filling response: {str(e)}")
+            raise ValueError(f"Failed to parse slot filling response: {str(e)}") from e
         except Exception as e:
             log_context.error(f"Error processing slot filling response: {str(e)}")
-            raise ValueError(f"Failed to process slot filling response: {str(e)}")
+            raise ValueError(
+                f"Failed to process slot filling response: {str(e)}"
+            ) from e
 
     def format_verification_input(
-        self, slot: Dict[str, Any], chat_history_str: str
+        self, slot: dict[str, Any], chat_history_str: str
     ) -> str:
         """Format input for slot verification.
 
@@ -997,7 +995,7 @@ Please choose the most appropriate intent by providing the corresponding intent 
         """
         return format_verification_input_formatter(slot, chat_history_str)
 
-    def process_verification_response(self, response: str) -> Tuple[bool, str]:
+    def process_verification_response(self, response: str) -> tuple[bool, str]:
         """Process the model's response for slot verification.
 
         Parses the model's response to determine if verification is needed.
@@ -1029,8 +1027,8 @@ class DummyModelService(ModelService):
     """
 
     def format_slot_input(
-        self, slots: List[Dict[str, Any]], context: str, type: str = "chat"
-    ) -> Tuple[str, str]:
+        self, slots: list[dict[str, Any]], context: str, type: str = "chat"
+    ) -> tuple[str, str]:
         """Format slot input for testing.
 
         Args:
@@ -1046,10 +1044,10 @@ class DummyModelService(ModelService):
     def get_response(
         self,
         prompt: str,
-        model_config: Optional[Dict[str, Any]] = None,
-        system_prompt: Optional[str] = None,
-        response_format: Optional[str] = None,
-        note: Optional[str] = None,
+        model_config: dict[str, Any] | None = None,
+        system_prompt: str | None = None,
+        response_format: str | None = None,
+        note: str | None = None,
     ) -> str:
         """Get a mock response for testing.
 
@@ -1066,8 +1064,8 @@ class DummyModelService(ModelService):
         return "1) others"
 
     def process_slot_response(
-        self, response: str, slots: List[Dict[str, Any]]
-    ) -> List[Dict[str, Any]]:
+        self, response: str, slots: list[dict[str, Any]]
+    ) -> list[dict[str, Any]]:
         """Process mock slot response for testing.
 
         Args:
@@ -1080,8 +1078,8 @@ class DummyModelService(ModelService):
         return super().process_slot_response(response, slots)
 
     def format_verification_input(
-        self, slot: Dict[str, Any], chat_history_str: str
-    ) -> Tuple[str, str]:
+        self, slot: dict[str, Any], chat_history_str: str
+    ) -> tuple[str, str]:
         """Format verification input for testing.
 
         Args:
@@ -1093,7 +1091,7 @@ class DummyModelService(ModelService):
         """
         return super().format_verification_input(slot, chat_history_str)
 
-    def process_verification_response(self, response: str) -> Tuple[bool, str]:
+    def process_verification_response(self, response: str) -> tuple[bool, str]:
         """Process mock verification response for testing.
 
         Args:

@@ -4,7 +4,7 @@ This module tests the document loading utilities including domain information
 extraction, document loading with caching, and handling different document types.
 """
 
-from unittest.mock import patch, MagicMock
+from unittest.mock import MagicMock, Mock, patch
 
 from arklex.evaluation import get_documents
 from arklex.utils.loader import CrawledObject, SourceType
@@ -57,7 +57,11 @@ class TestLoadDocs:
     @patch("builtins.open", create=True)
     @patch("arklex.utils.loader.Loader.save")
     def test_load_docs_with_existing_cache(
-        self, mock_save, mock_open, mock_exists, mock_pickle_load
+        self,
+        mock_save: Mock,
+        mock_open: Mock,
+        mock_exists: Mock,
+        mock_pickle_load: Mock,
     ) -> None:
         """Test loading documents with existing cache file."""
         mock_exists.return_value = True
@@ -95,11 +99,15 @@ class TestLoadDocs:
     @patch("builtins.open", create=True)
     @patch("arklex.utils.loader.Loader.save")
     def test_load_docs_without_cache_url_type(
-        self, mock_save, mock_open, mock_exists, mock_pickle_load
+        self,
+        mock_save: Mock,
+        mock_open: Mock,
+        mock_exists: Mock,
+        mock_pickle_load: Mock,
     ) -> None:
         """Test loading documents without cache for URL type."""
         mock_exists.return_value = False
-        from arklex.utils.loader import Loader, CrawledObject, SourceType
+        from arklex.utils.loader import CrawledObject, Loader, SourceType
 
         loader = Loader()
         with (
@@ -149,7 +157,11 @@ class TestLoadDocs:
     @patch("arklex.evaluation.get_documents.Loader")
     @patch("os.listdir")
     def test_load_docs_file_type(
-        self, mock_listdir, mock_loader_class, mock_exists, mock_pickle_load
+        self,
+        mock_listdir: Mock,
+        mock_loader_class: Mock,
+        mock_exists: Mock,
+        mock_pickle_load: Mock,
     ) -> None:
         """Test loading documents for file type."""
         mock_exists.return_value = False
@@ -185,7 +197,7 @@ class TestLoadDocs:
     @patch("os.path.exists")
     @patch("arklex.evaluation.get_documents.Loader")
     def test_load_docs_text_type(
-        self, mock_loader_class, mock_exists, mock_pickle_load
+        self, mock_loader_class: Mock, mock_exists: Mock, mock_pickle_load: Mock
     ) -> None:
         """Test loading documents for text type."""
         mock_exists.return_value = False
@@ -226,7 +238,7 @@ class TestLoadDocs:
     @patch("os.path.exists")
     @patch("arklex.evaluation.get_documents.Loader")
     def test_load_docs_with_exception(
-        self, mock_loader_class, mock_exists, mock_pickle_load
+        self, mock_loader_class: Mock, mock_exists: Mock, mock_pickle_load: Mock
     ) -> None:
         """Test loading documents with exception handling."""
         mock_exists.return_value = False
@@ -245,7 +257,7 @@ class TestLoadDocs:
     @patch("os.path.exists")
     @patch("arklex.evaluation.get_documents.Loader")
     def test_load_docs_high_total_docs(
-        self, mock_loader_class, mock_exists, mock_pickle_load
+        self, mock_loader_class: Mock, mock_exists: Mock, mock_pickle_load: Mock
     ) -> None:
         """Test loading documents with high total document count."""
         mock_exists.return_value = False
@@ -287,7 +299,7 @@ class TestLoadDocs:
     @patch("os.path.exists")
     @patch("arklex.evaluation.get_documents.Loader")
     def test_load_docs_mixed_source_types(
-        self, mock_loader_class, mock_exists, mock_pickle_load
+        self, mock_loader_class: Mock, mock_exists: Mock, mock_pickle_load: Mock
     ) -> None:
         """Test loading documents with mixed source types."""
         mock_exists.return_value = False
@@ -363,7 +375,7 @@ class TestLoadDocs:
     @patch("pickle.load")
     @patch("os.path.exists")
     def test_load_docs_invalid_crawled_objects(
-        self, mock_exists, mock_pickle_load
+        self, mock_exists: Mock, mock_pickle_load: Mock
     ) -> None:
         """Test loading documents with invalid crawled objects."""
         mock_exists.return_value = True
@@ -384,7 +396,7 @@ class TestLoadDocs:
     @patch("os.path.exists")
     @patch("arklex.evaluation.get_documents.Loader")
     def test_load_docs_with_num_field(
-        self, mock_loader_class, mock_exists, mock_pickle_load
+        self, mock_loader_class: Mock, mock_exists: Mock, mock_pickle_load: Mock
     ) -> None:
         """Test loading documents with num field specified."""
         mock_exists.return_value = False
@@ -421,7 +433,7 @@ class TestLoadDocs:
     @patch("os.path.exists")
     @patch("arklex.evaluation.get_documents.Loader")
     def test_load_docs_without_num_field(
-        self, mock_loader_class, mock_exists, mock_pickle_load
+        self, mock_loader_class: Mock, mock_exists: Mock, mock_pickle_load: Mock
     ) -> None:
         """Test loading documents without num field (should default to 1)."""
         mock_exists.return_value = False

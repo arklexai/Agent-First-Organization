@@ -1,20 +1,20 @@
-import requests
 import inspect
 from datetime import datetime
-from typing import Dict, Any, List
+from typing import Any
 
+import requests
 from requests.auth import HTTPBasicAuth
-from arklex.env.tools.tools import register_tool
-from arklex.env.tools.acuity.utils import authenticate_acuity
-from arklex.utils.exceptions import ToolExecutionError
-from arklex.env.tools.acuity._exception_prompt import AcuityExceptionPrompt
 
+from arklex.env.tools.acuity._exception_prompt import AcuityExceptionPrompt
+from arklex.env.tools.acuity.utils import authenticate_acuity
+from arklex.env.tools.tools import register_tool
+from arklex.utils.exceptions import ToolExecutionError
 
 # Tool description for retrieving appointments
 description: str = "Get the list of all information sessions"
 
 # List of required parameters for the tool
-slots: List[Dict[str, Any]] = [
+slots: list[dict[str, Any]] = [
     {
         "name": "email",
         "type": "str",
@@ -25,7 +25,7 @@ slots: List[Dict[str, Any]] = [
 ]
 
 # List of output parameters for the tool
-outputs: List[Dict[str, Any]] = [
+outputs: list[dict[str, Any]] = [
     {
         "name": "apt_ls",
         "type": "list[dict]",
@@ -35,7 +35,7 @@ outputs: List[Dict[str, Any]] = [
 
 
 @register_tool(description, slots, outputs)
-def get_apt_by_email(email: str, **kwargs: Dict[str, Any]) -> str:
+def get_apt_by_email(email: str, **kwargs: dict[str, Any]) -> str:
     """
     Get all future appointments for a given email address.
 
@@ -59,10 +59,9 @@ def get_apt_by_email(email: str, **kwargs: Dict[str, Any]) -> str:
     response: requests.Response = requests.get(
         base_url, auth=HTTPBasicAuth(user_id, api_key)
     )
-    apt_ls: List[Dict[str, Any]] = []
     response_str: str = "Please include all appointments (At least the types and time info) in the response to users. There might be multiple appointments.\n"
     if response.status_code == 200:
-        data: List[Dict[str, Any]] = response.json()
+        data: list[dict[str, Any]] = response.json()
         today: datetime.date = datetime.now().date()
         for item in data:
             if item.get("email") == email:

@@ -1,5 +1,4 @@
 import json
-from typing import Dict, List
 
 from pydantic import BaseModel
 
@@ -17,18 +16,18 @@ from benchmark.tau_bench.model_utils.api.datapoint import (
 class TokenUsage(BaseModel):
     input_tokens: int
     output_tokens: int
-    by_primitive: Dict[str, "TokenUsage"]
+    by_primitive: dict[str, "TokenUsage"]
 
 
 def batch_token_analysis(
-    dps: List[Datapoint], encoding_for_model: str = "gpt-4o"
+    dps: list[Datapoint], encoding_for_model: str = "gpt-4o"
 ) -> TokenUsage:
     import tiktoken
 
     enc = tiktoken.encoding_for_model(encoding_for_model)
     # very rough estimates
-    inputs_by_primitive: Dict[str, List[str]] = {}
-    outputs_by_primitive: Dict[str, List[str]] = {}
+    inputs_by_primitive: dict[str, list[str]] = {}
+    outputs_by_primitive: dict[str, list[str]] = {}
     for dp in dps:
         input: str = json.dumps(
             {k: v for k, v in dp.model_dump().items() if k != "response"}
@@ -57,8 +56,8 @@ def batch_token_analysis(
         else:
             raise ValueError(f"Unknown datapoint type: {type(dp)}")
         outputs_by_primitive.setdefault(type(dp).__name__, []).append(output)
-    input_tokens_by_primitive: Dict[str, int] = {}
-    output_tokens_by_primitive: Dict[str, int] = {}
+    input_tokens_by_primitive: dict[str, int] = {}
+    output_tokens_by_primitive: dict[str, int] = {}
     for primitive, inputs in inputs_by_primitive.items():
         input_tokens: int = sum([len(item) for item in enc.encode_batch(inputs)])
         input_tokens_by_primitive[primitive] = input_tokens

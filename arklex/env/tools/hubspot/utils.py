@@ -4,22 +4,24 @@ Utility functions for HubSpot tool authentication in the Arklex framework.
 This module provides helper functions for authenticating HubSpot API requests within the Arklex tool system.
 """
 
-from typing import Dict, Any
-from arklex.utils.exceptions import AuthenticationError
 import os
 from datetime import datetime, timedelta
+from typing import Any
+
 import requests
-from arklex.utils.mysql import mysql_pool
-from arklex.env.tools.types import ResourceAuthGroup
 from pydantic import BaseModel
+
+from arklex.env.tools.types import ResourceAuthGroup
+from arklex.utils.exceptions import AuthenticationError
 from arklex.utils.logging_utils import LogContext
+from arklex.utils.mysql import mysql_pool
 
 log_context = LogContext(__name__)
 # Error message for missing HubSpot authentication parameters
 HUBSPOT_AUTH_ERROR: str = "Missing some or all required hubspot authentication parameters: access_token. Please set up 'fixed_args' in the config file. For example, {'name': <unique name of the tool>, 'fixed_args': {'access_token': <hubspot_access_token>}"
 
 
-def authenticate_hubspot(kwargs: Dict[str, Any]) -> str:
+def authenticate_hubspot(kwargs: dict[str, Any]) -> str:
     """
     Authenticate with HubSpot using the provided access token.
 
@@ -92,7 +94,7 @@ def refresh_token_if_needed(
         except ValueError:
             # If expiry time is invalid, proceed with refresh
             pass
-        log_context.info(f"hubspot token is expired, refreshing it")
+        log_context.info("hubspot token is expired, refreshing it")
         # Token is expired, refresh it
         token_refresh_url = "https://api.hubapi.com/oauth/v1/token"
         req_body = {
@@ -132,10 +134,10 @@ def refresh_token_if_needed(
 
         return new_token
 
-    except requests.exceptions.RequestException as e:
+    except requests.exceptions.RequestException:
         # If refresh fails, return the old token
         return hubspot_auth_tokens
     except Exception as e:
         if isinstance(e, HubspotNotIntegratedError):
             raise
-        raise Exception(f"Failed to get HubSpot access token: {str(e)}")
+        raise Exception(f"Failed to get HubSpot access token: {str(e)}") from e

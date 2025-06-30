@@ -1,11 +1,12 @@
 import inspect
 import json
+
 import requests
 from requests.auth import HTTPBasicAuth
 
 from arklex.env.tools.acuity._exception_prompt import AcuityExceptionPrompt
-from arklex.env.tools.tools import register_tool
 from arklex.env.tools.acuity.utils import authenticate_acuity
+from arklex.env.tools.tools import register_tool
 from arklex.utils.exceptions import ToolExecutionError
 
 description = "Make an appointment for the info session"
@@ -57,7 +58,14 @@ outputs = [
 
 
 @register_tool(description, slots, outputs)
-def book_info_session(fname, lname, email, time, apt_type_id, **kwargs):
+def book_info_session(
+    fname: str,
+    lname: str,
+    email: str,
+    time: str,
+    apt_type_id: str,
+    **kwargs: str | int | float | bool | None,
+) -> str:
     func_name = inspect.currentframe().f_code.co_name
     user_id, api_key = authenticate_acuity(kwargs)
 

@@ -18,22 +18,20 @@ import logging
 import os
 import sys
 import uuid
-from typing import Any, Dict, List
+from typing import Any
 
 from dotenv import load_dotenv
-
 from langchain_openai import ChatOpenAI
 
-from arklex.utils.logging_utils import LogContext
-from arklex.utils.model_config import MODEL
-from arklex.orchestrator.generator.generator import Generator
 from arklex.env.env import DefaultResourceInitializer
 from arklex.env.tools.tools import Tool
-
-from benchmark.tau_bench.envs.retail.tools import ALL_TOOLS
-from benchmark.tau_bench.tau_types import RunConfig
-from benchmark.tau_bench.run import run
+from arklex.orchestrator.generator.generator import Generator
+from arklex.utils.logging_utils import LogContext
+from arklex.utils.model_config import MODEL
 from benchmark.tau_bench.envs.retail.data import load_data
+from benchmark.tau_bench.envs.retail.tools import ALL_TOOLS
+from benchmark.tau_bench.run import run
+from benchmark.tau_bench.tau_types import RunConfig
 
 root_dir: str = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))
 sys.path.append(root_dir)
@@ -42,12 +40,12 @@ load_dotenv()
 NLUAPI_ADDR: str = ""
 SLOTFILLAPI_ADDR: str = ""
 
-tool_name_class_map: Dict[str, Any] = {}
+tool_name_class_map: dict[str, Any] = {}
 
 log_context = LogContext(__name__)
 
 
-def get_tool_name_class_map() -> Dict[str, Any]:
+def get_tool_name_class_map() -> dict[str, Any]:
     """Create a mapping of tool names to their class implementations.
 
     This function creates a dictionary that maps tool names to their corresponding
@@ -57,7 +55,7 @@ def get_tool_name_class_map() -> Dict[str, Any]:
     Returns:
         Dict[str, Any]: A dictionary mapping tool names to their class implementations.
     """
-    tool_map: Dict[str, Any] = {}
+    tool_map: dict[str, Any] = {}
     for tool in ALL_TOOLS:
         name: str = tool.get_info()["function"]["name"]
         tool_map[name] = tool
@@ -74,7 +72,7 @@ class TauBenchResourceInitializer(DefaultResourceInitializer):
     """
 
     @staticmethod
-    def init_tools(tools: Dict[str, Any]) -> Dict[str, Any]:
+    def init_tools(tools: dict[str, Any]) -> dict[str, Any]:
         """Initialize tools for the TAU benchmark.
 
         This method creates tool instances with appropriate parameters, slots,
@@ -87,10 +85,10 @@ class TauBenchResourceInitializer(DefaultResourceInitializer):
         Returns:
             Dict[str, Any]: Dictionary of initialized tools with their configurations.
         """
-        tool_name_class_map: Dict[str, Any] = get_tool_name_class_map()
-        tool_registry: Dict[str, Any] = {}
+        tool_name_class_map: dict[str, Any] = get_tool_name_class_map()
+        tool_registry: dict[str, Any] = {}
 
-        def tool_lambda(val: Any) -> Any:
+        def tool_lambda(val: object) -> object:
             return lambda: val
 
         for tool_id, tool_info in tools.items():
@@ -99,13 +97,13 @@ class TauBenchResourceInitializer(DefaultResourceInitializer):
             tool_func: Any = tool_original_class.invoke
             tool_key: str = tool_name
             tool_desc: str = tool_info["description"]
-            params: Dict[str, Any] = tool_original_class.get_info()["function"][
+            params: dict[str, Any] = tool_original_class.get_info()["function"][
                 "parameters"
             ]
-            tool_slots: List[Dict[str, Any]] = []
+            tool_slots: list[dict[str, Any]] = []
 
             for param_name, param_info in params["properties"].items():
-                slot: Dict[str, Any] = {}
+                slot: dict[str, Any] = {}
                 slot["name"] = param_name
                 slot["type"] = param_info["type"]
                 slot["items"] = param_info.get("items", {})
@@ -116,7 +114,7 @@ class TauBenchResourceInitializer(DefaultResourceInitializer):
                 )
                 slot["required"] = param_name in params["required"]
                 tool_slots.append(slot)
-            tool_output: List[Any] = []
+            tool_output: list[Any] = []
 
             tool: Any = tool_lambda(
                 Tool(
@@ -149,14 +147,14 @@ def generate_tau_bench_config(output_dir: str) -> None:
     Args:
         output_dir (str): Directory where the configuration file will be saved.
     """
-    retain_tools: List[Any] = ALL_TOOLS
-    tools: Dict[str, Any] = {}
+    retain_tools: list[Any] = ALL_TOOLS
+    tools: dict[str, Any] = {}
     for tool in retain_tools:
         tool_id: str = str(uuid.uuid1())
         tools[tool_id] = {}
         tools[tool_id]["name"] = tool.get_info()["function"]["name"]
         tools[tool_id]["description"] = tool.get_info()["function"]["description"]
-    retail_config: Dict[str, Any] = {
+    retail_config: dict[str, Any] = {
         "role": "Retail Agent",
         "user_objective": "The core goal of the agent is to assist a single, authenticated user per conversation in managing their retail orders—resolving any questions, cancellations, modifications, exchanges, or returns—while strictly following the rules and confirmation steps set by the retail policy.",
         "builder_objective": "Users want a convenient, reliable way to manage their orders—whether that means updating their shipping address, switching payment methods, or returning/exchanging items they've received. They come to the Retail Agent because they need to quickly resolve questions about their orders, get real-time updates on shipping statuses, and handle any necessary cancellations or modifications with confidence that every action is confirmed and secure.",
@@ -197,14 +195,14 @@ def generate_taskgraph(config_file: str, output_dir: str) -> None:
     """
     model: ChatOpenAI = ChatOpenAI(model=MODEL["model_type_or_path"], timeout=30000)
     resource_initializer: TauBenchResourceInitializer = TauBenchResourceInitializer()
-    config: Dict[str, Any] = json.load(open(config_file))
+    with open(config_file) as f:
+        config: dict[str, Any] = json.load(f)
     generator: Generator = Generator(config, model, output_dir, resource_initializer)
-    taskgraph: Dict[str, Any] = generator.generate()
+    taskgraph: dict[str, Any] = generator.generate()
     taskgraph_filepath: str = generator.save_task_graph(taskgraph)
     # Update the task graph with the API URLs
-    task_graph: Dict[str, Any] = json.load(
-        open(os.path.join(root_dir, taskgraph_filepath))
-    )
+    with open(os.path.join(root_dir, taskgraph_filepath)) as f:
+        task_graph: dict[str, Any] = json.load(f)
     task_graph["nluapi"] = NLUAPI_ADDR
     task_graph["slotfillapi"] = SLOTFILLAPI_ADDR
     with open(taskgraph_filepath, "w") as f:
@@ -215,7 +213,7 @@ def run_tau_bench_eval(
     taskgraph_dir: str,
     output_dir: str,
     num_trials: int,
-    task_ids: List[int],
+    task_ids: list[int],
     env: str,
     task_split: str = "test",
     user_strategy: str = "llm",
@@ -274,7 +272,7 @@ if __name__ == "__main__":
     import random
 
     random.seed(42)
-    random_list: List[int] = random.sample(range(118), 10)
+    random_list: list[int] = random.sample(range(118), 10)
     print(f"Running Tau Bench on tasks {random_list}")
     parser.add_argument("--task-ids", type=list, default=random_list)
     # parser.add_argument('--task-ids', type=list, default=[1,2,3,4,5,6,7,8,9,10])
