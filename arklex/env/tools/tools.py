@@ -458,7 +458,7 @@ class Tool:
                     state.message_flow = (
                         state.message_flow
                         + f"IMPORTANT: The tool cannot proceed without required information. You MUST ask the user for: {questions_text}\n"
-                        + f"Do NOT provide any facts or information until you have collected this required information from the user.\n"
+                        + "Do NOT provide any facts or information until you have collected this required information from the user.\n"
                     )
                 else:
                     state.message_flow = (
