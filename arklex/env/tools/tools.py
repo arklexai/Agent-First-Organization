@@ -221,7 +221,7 @@ class Tool:
         log_context.info(f"Slots after initialization are: {self.slots}")
 
 
-    def load_slots(self, slots: List[Dict[str, Any]]) -> None:
+    def load_slots(self, slots: list[dict[str, Any]]) -> None:
         """Load and merge slots with existing slots.
 
         This method handles the merging of new slots with the tool's existing slots.
