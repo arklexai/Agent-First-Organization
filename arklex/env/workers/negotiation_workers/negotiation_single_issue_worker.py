@@ -33,6 +33,31 @@ class NegotiationSingleIssueWorker(BaseWorker):
     
     description = "This worker should then be the only worker running for the rest of the conversation. This worker helps process the user's message and generate a response that moves the negotiation forward."
     
+    # Define the expected parameters for this worker
+    parameters_schema = {
+        "unit_index": {
+            "type": "integer",
+            "description": "Index of the negotiation scenario",
+            "required": True,
+            "default": 0
+        },
+        "max_perceived_marketPrice": {
+            "type": "integer", 
+            "description": "Maximum perceived market price by the buyer",
+            "required": True
+        },
+        "max_marketPrice": {
+            "type": "integer",
+            "description": "Maximum actual market price",
+            "required": True
+        },
+        "reservation_price": {
+            "type": "integer",
+            "description": "Minimum acceptable price (reservation price)",
+            "required": True
+        }
+    }
+    
     def __init__(self):
         """Initialize the NegotiationSingleIssueWorker with necessary attributes."""
         super().__init__()
@@ -362,9 +387,16 @@ class NegotiationSingleIssueWorker(BaseWorker):
         log_context.info("Executing negotiation response worker")
         
         self.llm = PROVIDER_MAP.get(msg_state.bot_config.llm_config.llm_provider, ChatOpenAI )(model=msg_state.bot_config.llm_config.model_type_or_path)
-        # Debug the incoming state
         
         self.parameters = kwargs.get("parameters", {})
+        
+        # Validate parameters against schema
+        if not self.validate_parameters(self.parameters):
+            log_context.error("Invalid parameters provided to NegotiationSingleIssueWorker")
+            msg_state.status = StatusEnum.INCOMPLETE
+            msg_state.message_flow = "Invalid parameters provided to negotiation worker"
+            return msg_state.model_dump()
+        
         self.action_graph = self._create_action_graph(self.parameters)
         graph = self.action_graph.compile()
         result = graph.invoke(msg_state)
@@ -377,4 +409,45 @@ class NegotiationSingleIssueWorker(BaseWorker):
         response_state.status = StatusEnum.STAY
             
         return response_state.model_dump()
+    
+    def validate_parameters(self, parameters: Dict[str, Any]) -> bool:
+        """Validate that the provided parameters match the schema requirements.
+        
+        Args:
+            parameters: Dictionary of parameters to validate
+            
+        Returns:
+            bool: True if parameters are valid, False otherwise
+        """
+        if not parameters:
+            log_context.error("No parameters provided")
+            return False
+            
+        for param_name, param_config in self.parameters_schema.items():
+            if param_config.get("required", False) and param_name not in parameters:
+                log_context.error(f"Required parameter '{param_name}' is missing")
+                return False
+                
+            if param_name in parameters:
+                value = parameters[param_name]
+                param_type = param_config.get("type", "string")
+                
+                # Type validation
+                if param_type == "integer":
+                    try:
+                        int_value = int(value)
+                        parameters[param_name] = int_value  # Convert to int
+                    except (ValueError, TypeError):
+                        log_context.error(f"Parameter '{param_name}' must be an integer")
+                        return False
+                        
+        return True
+    
+    def get_parameters_schema(self) -> Dict[str, Any]:
+        """Get the parameters schema for this worker.
+        
+        Returns:
+            Dict[str, Any]: The parameters schema
+        """
+        return self.parameters_schema
     
