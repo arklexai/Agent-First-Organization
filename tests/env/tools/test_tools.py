@@ -742,7 +742,7 @@ class TestTools:
             assert result.status.value == "incomplete"
             assert (
                 result.message_flow
-                == "Context from test_tool tool execution: Please provide param1\n"
+                == "IMPORTANT: The tool cannot proceed without required information. You MUST ask the user for: Please provide param1\nDo NOT provide any facts or information until you have collected this required information from the user.\n"
             )
 
     def test_execute_with_slot_verification_needed(self) -> None:
