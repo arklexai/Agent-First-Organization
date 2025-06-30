@@ -168,7 +168,11 @@ class TaskGenerator:
         task_definitions = self._convert_to_task_definitions(tasks_with_steps)
         tasks = []
         for i, task_def in enumerate(task_definitions):
-            task_dict = self._convert_to_dict(task_def)
+            # Pass the original task data to preserve intent field
+            original_task_data = (
+                tasks_with_steps[i] if i < len(tasks_with_steps) else None
+            )
+            task_dict = self._convert_to_dict(task_def, original_task_data)
             task_dict["id"] = f"task_{i + 1}"
             tasks.append(task_dict)
 
@@ -656,16 +660,21 @@ class TaskGenerator:
                 task["level"] = 0
         tasks.sort(key=lambda x: x.get("level", 0))
 
-    def _convert_to_dict(self, task_def: TaskDefinition) -> Dict[str, Any]:
+    def _convert_to_dict(
+        self,
+        task_def: TaskDefinition,
+        original_task_data: Optional[Dict[str, Any]] = None,
+    ) -> Dict[str, Any]:
         """Convert a TaskDefinition to a dictionary.
 
         Args:
             task_def (TaskDefinition): Task definition to convert.
+            original_task_data (Optional[Dict[str, Any]]): Original task data to preserve additional fields like intent.
 
         Returns:
             Dict[str, Any]: Dictionary representation of the task.
         """
-        return {
+        result = {
             "id": task_def.task_id,
             "name": task_def.name,
             "description": task_def.description,
@@ -675,6 +684,12 @@ class TaskGenerator:
             "estimated_duration": task_def.estimated_duration,
             "priority": task_def.priority,
         }
+
+        # Preserve intent field from original task data if available
+        if original_task_data and "intent" in original_task_data:
+            result["intent"] = original_task_data["intent"]
+
+        return result
 
     def _convert_to_task_dict(
         self, task_definitions: List[Dict[str, Any]]

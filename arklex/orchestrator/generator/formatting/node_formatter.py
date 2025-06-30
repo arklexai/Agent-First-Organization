@@ -40,12 +40,12 @@ class NodeFormatter:
         """
         node_data = {
             "resource": {
-                "id": task.get("task_id", node_id),
-                "name": task.get("name", ""),
+                "id": task.get("task_id") or node_id,
+                "name": task.get("name") or "",
             },
             "attribute": {
-                "value": task.get("description", ""),
-                "task": task.get("name", ""),
+                "value": task.get("description") or "",
+                "task": task.get("name") or "",
                 "directed": self._default_directed,
             },
         }
@@ -67,8 +67,8 @@ class NodeFormatter:
         return {
             "resource": self._default_resource,
             "attribute": {
-                "value": task.get("description", ""),
-                "task": task.get("name", ""),
+                "value": task.get("description") or "",
+                "task": task.get("name") or "",
                 "directed": self._default_directed,
             },
         }

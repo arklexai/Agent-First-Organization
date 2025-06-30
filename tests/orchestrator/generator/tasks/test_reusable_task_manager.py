@@ -557,3 +557,31 @@ class TestReusableTaskManager:
         ]
         result = reusable_task_manager.generate_reusable_tasks(tasks)
         assert isinstance(result, dict)
+
+    def test_generate_reusable_tasks_with_no_patterns_but_tasks_exist(self) -> None:
+        """Test generate_reusable_tasks when no patterns are found but tasks exist."""
+        manager = ReusableTaskManager(
+            model=Mock(), role="test_role", user_objective="test_objective"
+        )
+
+        tasks = [
+            {
+                "name": "Test Task 1",
+                "description": "Test task 1 description",
+                "steps": [{"description": "Step 1"}],
+            }
+        ]
+
+        # Mock _identify_patterns to return empty list
+        with patch.object(manager, "_identify_patterns", return_value=[]):
+            result = manager.generate_reusable_tasks(tasks)
+
+            # Should create a pattern from the first task when no patterns are found
+            assert len(result) == 1
+            template_id = list(result.keys())[0]
+            template = result[template_id]
+
+            assert template["name"] == "Test Task 1"
+            assert template["description"] == "Test task 1 description"
+            assert template["steps"] == [{"description": "Step 1"}]
+            assert template["parameters"] == {}

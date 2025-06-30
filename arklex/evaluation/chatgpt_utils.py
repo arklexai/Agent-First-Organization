@@ -317,6 +317,10 @@ def generate_goals(
     return goals
 
 
+def _print_goals(goals) -> None:
+    print(goals)
+
+
 def main() -> None:
     from get_documents import get_all_documents, filter_documents
 
@@ -324,7 +328,7 @@ def main() -> None:
     documents = filter_documents(documents)
     client = create_client()
     params = {"num_goals": 1}
-    print(generate_goals(documents, params, client))
+    _print_goals(generate_goals(documents, params, client))
 
 
 if __name__ == "__main__":

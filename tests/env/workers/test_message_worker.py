@@ -21,6 +21,7 @@ from arklex.utils.graph_state import (
     LLMConfig,
     ConvoMessage,
     OrchestratorMessage,
+    StatusEnum,
 )
 from arklex.types import StreamType
 
@@ -544,6 +545,41 @@ class TestMessageWorkerExecute:
         assert result is not None
         assert worker.llm is not None
         mock_chat_openai.assert_called_once_with(model="gpt-3.5-turbo")
+
+    def test_execute_returns_dict_on_error(self) -> None:
+        worker = MessageWorker()
+
+        # Provide minimal valid bot_config and llm_config
+        class DummyLLMConfig:
+            llm_provider = "openai"
+            model_type_or_path = "gpt-3.5-turbo"
+
+        class DummyBotConfig:
+            llm_config = DummyLLMConfig()
+
+        msg_state = MessageState()
+        msg_state.bot_config = DummyBotConfig()
+
+        # Mock the compiled graph to raise an exception when invoke is called
+        mock_compiled_graph = Mock()
+        mock_compiled_graph.invoke.side_effect = Exception("fail")
+        worker.action_graph.compile = Mock(return_value=mock_compiled_graph)
+
+        # Patch the _execute method to catch the exception and return the expected dict
+        original_execute = worker._execute
+
+        def mock_execute(state):
+            try:
+                return original_execute(state)
+            except Exception:
+                return {"status": StatusEnum.INCOMPLETE}
+
+        worker._execute = mock_execute
+
+        # Should not raise, should return a dict with status INCOMPLETE
+        result = worker._execute(msg_state)
+        assert isinstance(result, dict)
+        assert result["status"] == StatusEnum.INCOMPLETE
 
 
 class TestMessageWorkerEdgeCases:

@@ -3428,3 +3428,102 @@ class TestGeneratorGenerateMethodEdgeCases:
 
             with pytest.raises(Exception):
                 gen.generate()
+
+
+def test_task_editor_app_import_error(monkeypatch) -> None:
+    """Test that TaskEditorApp raises ImportError when UI components are unavailable."""
+    import importlib
+    import sys
+
+    module_name = "arklex.orchestrator.generator.core.generator"
+    ui_module_name = "arklex.orchestrator.generator.ui"
+
+    # Remove both modules from sys.modules to force re-import
+    if module_name in sys.modules:
+        del sys.modules[module_name]
+    if ui_module_name in sys.modules:
+        del sys.modules[ui_module_name]
+
+    # Patch sys.modules to simulate ImportError for the UI module
+    monkeypatch.setitem(sys.modules, ui_module_name, None)
+
+    # Now import and reload the module to trigger the fallback TaskEditorApp
+    module = importlib.import_module(module_name)
+    importlib.reload(module)
+
+    TaskEditorApp = getattr(module, "TaskEditorApp")
+    with pytest.raises(ImportError) as excinfo:
+        TaskEditorApp(tasks=[])
+    assert "UI components require" in str(excinfo.value)
+
+
+def test_generator_generate_ui_exception(
+    monkeypatch, full_config, mock_model, tmp_path
+) -> None:
+    """Test Generator.generate covers the UI exception fallback path (line 646)."""
+    from arklex.orchestrator.generator.core import generator as gen_mod
+
+    # Patch UI_AVAILABLE to True to enter the UI block
+    monkeypatch.setattr(gen_mod, "UI_AVAILABLE", True)
+
+    # Patch TaskEditorApp to raise an Exception when instantiated
+    class FailingTaskEditorApp:
+        def __init__(self, *args, **kwargs):
+            raise RuntimeError("Simulated UI failure")
+
+    monkeypatch.setattr(gen_mod, "TaskEditorApp", FailingTaskEditorApp)
+    # Patch PromptManager to avoid actual model calls
+    monkeypatch.setattr(
+        gen_mod,
+        "PromptManager",
+        lambda *a, **kw: Mock(get_prompt=lambda *a, **kw: "{}"),
+    )
+    # Patch model.invoke to avoid actual model calls
+    mock_model.invoke.return_value = Mock(content='{"intent": "TestIntent"}')
+
+    # Patch _initialize_task_graph_formatter to a dummy formatter
+    class DummyFormatter:
+        def format_task_graph(self, tasks):
+            return {"nodes": [], "edges": []}
+
+        def ensure_nested_graph_connectivity(self, graph):
+            return graph
+
+    # Create generator instance
+    gen = gen_mod.Generator(
+        config=full_config, model=mock_model, output_dir=str(tmp_path)
+    )
+
+    # Patch document loader to avoid file loading issues
+    mock_doc_loader = Mock()
+    mock_doc_loader.load_task_document.return_value = "mock_task_doc"
+    mock_doc_loader.load_instruction_document.return_value = "mock_instruction_doc"
+    monkeypatch.setattr(gen, "_initialize_document_loader", lambda: mock_doc_loader)
+
+    monkeypatch.setattr(
+        gen, "_initialize_task_graph_formatter", lambda: DummyFormatter()
+    )
+    # Patch best practice manager to return empty list
+    monkeypatch.setattr(
+        gen,
+        "_initialize_best_practice_manager",
+        lambda: Mock(generate_best_practices=lambda *a, **kw: []),
+    )
+    # Patch reusable task manager
+    monkeypatch.setattr(
+        gen,
+        "_initialize_reusable_task_manager",
+        lambda: Mock(generate_reusable_tasks=lambda *a, **kw: {}),
+    )
+    # Patch task generator
+    monkeypatch.setattr(
+        gen,
+        "_initialize_task_generator",
+        lambda: Mock(
+            add_provided_tasks=lambda *a, **kw: [], generate_tasks=lambda *a, **kw: []
+        ),
+    )
+    # Actually run generate, which should hit the UI exception fallback
+    result = gen.generate()
+    assert isinstance(result, dict)
+    assert "nodes" in result and "edges" in result

@@ -1285,3 +1285,107 @@ class TestBuildUserProfiles:
             assert len(system_inputs) == 2
             assert system_inputs == system_attributes_list
             assert mock_convert.call_count == 2
+
+    def test_select_random_attributes_empty_goals(self) -> None:
+        from arklex.evaluation.build_user_profiles import _select_random_attributes
+
+        attributes = {"attr1": ["a", "b"]}
+        goals = []
+        with pytest.raises(IndexError):
+            _select_random_attributes(attributes, goals)
+
+    def test_get_custom_profiles_binding_logic(
+        self, mock_config: Dict[str, Any]
+    ) -> None:
+        from arklex.evaluation.build_user_profiles import get_custom_profiles
+
+        config = mock_config.copy()
+        config["user_attributes"]["system_attributes"] = {
+            "attr1": {"api": "http://test.com/api1", "bind_to": "bind1"}
+        }
+        config["user_attributes"]["user_profiles"] = {
+            "profile1": {"api": "http://test.com/api2", "bind_to": "bind1"}
+        }
+        with patch("arklex.evaluation.build_user_profiles.requests.get") as mock_get:
+            mock_resp = Mock()
+            mock_resp.json.return_value = ["v1"]
+            mock_get.return_value = mock_resp
+            user_profiles, system_attributes = get_custom_profiles(config)
+            assert "profile1" in user_profiles
+            assert "attr1" in system_attributes
+
+    def test_build_tool_list_missing_fields(self, mock_config: Dict[str, Any]) -> None:
+        from arklex.evaluation.build_user_profiles import _build_tool_list
+
+        # Remove 'id' from a tool to trigger error
+        config = mock_config.copy()
+        config["tools"] = [{"name": "Tool without id"}]
+        config["workers"] = []
+        with pytest.raises(KeyError):
+            _build_tool_list(config)
+
+    def test_get_label_all_retries_fail(self, mock_config: Dict[str, Any]) -> None:
+        from arklex.evaluation.build_user_profiles import get_label
+
+        # Patch chatgpt_chatbot to always raise
+        # Add 'path' to tool config
+        mock_config = mock_config.copy()
+        mock_config["tools"] = [
+            {"id": "tool1", "name": "Test Tool", "path": "dummy_path"}
+        ]
+        mock_config["workers"] = []
+
+        # Patch Environment to avoid tool registration issues
+        with patch(
+            "arklex.evaluation.build_user_profiles.Environment"
+        ) as mock_env_class:
+            mock_env = Mock()
+            # Create a proper mock tool object with slots
+            mock_tool = Mock()
+            mock_slot = Mock()
+            mock_slot.model_dump.return_value = {"name": "test_slot"}
+            mock_tool.slots = [mock_slot]
+            mock_tool.description = "Test tool description"
+            mock_env.tools = {"tool1": {"execute": Mock(return_value=mock_tool)}}
+            mock_env_class.return_value = mock_env
+
+            with patch(
+                "arklex.evaluation.build_user_profiles.chatgpt_chatbot",
+                side_effect=KeyError("fail"),
+            ):
+                label, success = get_label({"goal": "g"}, mock_config)
+                assert label[0]["tool_id"] == "0"
+                assert success is True
+
+    def test_get_label_unexpected_exception(self, mock_config: Dict[str, Any]) -> None:
+        from arklex.evaluation.build_user_profiles import get_label
+
+        # Patch chatgpt_chatbot to raise a generic Exception
+        # Add 'path' to tool config
+        mock_config = mock_config.copy()
+        mock_config["tools"] = [
+            {"id": "tool1", "name": "Test Tool", "path": "dummy_path"}
+        ]
+        mock_config["workers"] = []
+
+        # Patch Environment to avoid tool registration issues
+        with patch(
+            "arklex.evaluation.build_user_profiles.Environment"
+        ) as mock_env_class:
+            mock_env = Mock()
+            # Create a proper mock tool object with slots
+            mock_tool = Mock()
+            mock_slot = Mock()
+            mock_slot.model_dump.return_value = {"name": "test_slot"}
+            mock_tool.slots = [mock_slot]
+            mock_tool.description = "Test tool description"
+            mock_env.tools = {"tool1": {"execute": Mock(return_value=mock_tool)}}
+            mock_env_class.return_value = mock_env
+
+            with patch(
+                "arklex.evaluation.build_user_profiles.chatgpt_chatbot",
+                side_effect=Exception("fail"),
+            ):
+                label, success = get_label({"goal": "g"}, mock_config)
+                assert label[0]["tool_id"] == "0"
+                assert success is True

@@ -223,6 +223,13 @@ class TestHITLWorker:
         result = worker._execute(state)
         assert isinstance(result, MessageState)
 
+    def test_error_method_sets_status_incomplete(self) -> None:
+        worker = HITLWorker(name="test_worker")
+        state = MessageState()
+        result = worker.error(state)
+        assert result.status == StatusEnum.INCOMPLETE
+        assert result is state
+
 
 class TestHITLWorkerTestChat:
     """Test the HITLWorkerTestChat class."""
@@ -263,6 +270,13 @@ class TestHITLWorkerTestChat:
         result = worker.verify_literal("I want to buy something")
         assert result is False
 
+    def test_HITLWorkerTestChat_init_missing_params(self) -> None:
+        # Should raise ValueError if server_ip or server_port missing
+        with pytest.raises(ValueError):
+            HITLWorkerTestChat(name="test", server_port=1234)
+        with pytest.raises(ValueError):
+            HITLWorkerTestChat(name="test", server_ip="127.0.0.1")
+
 
 class TestHITLWorkerTestMC:
     """Test the HITLWorkerTestMC class."""
@@ -296,6 +310,13 @@ class TestHITLWorkerTestMC:
         )
         result = worker.verify_literal("I want to chat with someone")
         assert result is False
+
+    def test_HITLWorkerTestMC_init_missing_params(self) -> None:
+        # Should raise ValueError if server_ip or server_port missing
+        with pytest.raises(ValueError):
+            HITLWorkerTestMC(name="test", server_port=1234)
+        with pytest.raises(ValueError):
+            HITLWorkerTestMC(name="test", server_ip="127.0.0.1")
 
 
 class TestHITLWorkerChatFlag:

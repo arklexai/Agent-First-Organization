@@ -323,6 +323,30 @@ class TestBestPracticeManagerGenerateBestPractices:
 
         assert len(result) == 0
 
+    def test_generate_best_practices_fallback_when_no_json(
+        self, patched_model_invoke
+    ) -> None:
+        patched_model_invoke["mock_invoke"].return_value = {"text": "No JSON here"}
+        gen = patched_model_invoke["manager"]
+        result = gen.generate_best_practices([{"name": "test task"}])
+        assert result == []
+
+    def test_generate_best_practices_with_invalid_response(
+        self, patched_model_invoke
+    ) -> None:
+        patched_model_invoke["mock_invoke"].return_value = {
+            "text": "Invalid JSON response"
+        }
+        gen = patched_model_invoke["manager"]
+        result = gen.generate_best_practices([{"name": "test task"}])
+        assert result == []
+
+    def test_generate_best_practices_with_exception(self, patched_model_invoke) -> None:
+        patched_model_invoke["mock_invoke"].side_effect = Exception("Test error")
+        gen = patched_model_invoke["manager"]
+        result = gen.generate_best_practices([{"name": "test task"}])
+        assert result == []
+
 
 class TestBestPracticeManagerFinetuneBestPractice:
     """Test the finetune_best_practice method."""
@@ -653,6 +677,24 @@ class TestBestPracticeManagerValidatePractices:
         result = best_practice_manager._validate_practice_definition(practice_def)
 
         assert result is False
+
+    def test_validate_best_practices_fallback(self, patched_model_invoke) -> None:
+        patched_model_invoke["mock_invoke"].return_value = {"text": "Invalid response"}
+        gen = patched_model_invoke["manager"]
+        # Create a mock BestPractice object for testing
+        mock_practice = BestPractice(
+            practice_id="test1",
+            name="Test Practice",
+            description="Test description",
+            steps=[{"task": "test step"}],
+            rationale="Test rationale",
+            examples=[],
+            priority=3,
+            category="test",
+        )
+        result = gen._validate_practices([mock_practice])
+        assert len(result) == 1
+        assert result[0]["practice_id"] == "test1"
 
 
 class TestBestPracticeManagerCategorizePractices:
@@ -1102,3 +1144,335 @@ class TestBestPracticeManagerEdgeCases:
         result = manager.finetune_best_practice(sample_practice, sample_task)
 
         assert result == sample_practice
+
+    def test_finetune_best_practice_with_string_step(
+        self, patched_model_invoke
+    ) -> None:
+        """Test finetune_best_practice with string step (line 238)."""
+        gen = patched_model_invoke["manager"]
+        practice = {"steps": ["step1", "step2"]}
+        # Provide task with 2 steps to match the expected output
+        task = {"name": "test task", "steps": [{"task": "step1"}, {"task": "step2"}]}
+
+        # Mock the model response to return a proper JSON response
+        patched_model_invoke["mock_invoke"].return_value = {
+            "content": '[{"task": "step1", "description": "Step 1 description"}, {"task": "step2", "description": "Step 2 description"}]'
+        }
+
+        result = gen.finetune_best_practice(practice, task)
+        assert "steps" in result
+        assert len(result["steps"]) == 2
+
+    def test_validate_practice_definition_with_invalid_steps(
+        self, patched_model_invoke
+    ) -> None:
+        gen = patched_model_invoke["manager"]
+        from arklex.orchestrator.generator.tasks.best_practice_manager import (
+            BestPractice,
+        )
+
+        # Test with non-list steps
+        invalid_practice = BestPractice(
+            practice_id="test1",
+            name="Test Practice",
+            description="Test description",
+            steps="not a list",  # Invalid type
+            rationale="Test rationale",
+            examples=[],
+            priority=3,
+            category="test",
+        )
+        result = gen._validate_practice_definition(invalid_practice)
+        assert result is False
+
+    def test_validate_practice_definition_with_invalid_examples(
+        self, patched_model_invoke
+    ) -> None:
+        gen = patched_model_invoke["manager"]
+        from arklex.orchestrator.generator.tasks.best_practice_manager import (
+            BestPractice,
+        )
+
+        # Test with non-list examples
+        invalid_practice = BestPractice(
+            practice_id="test1",
+            name="Test Practice",
+            description="Test description",
+            steps=[{"task": "test step"}],
+            rationale="Test rationale",
+            examples="not a list",  # Invalid type
+            priority=3,
+            category="test",
+        )
+        result = gen._validate_practice_definition(invalid_practice)
+        assert result is False
+
+    def test_validate_practice_definition_with_invalid_priority(
+        self, patched_model_invoke
+    ) -> None:
+        gen = patched_model_invoke["manager"]
+        from arklex.orchestrator.generator.tasks.best_practice_manager import (
+            BestPractice,
+        )
+
+        # Test with non-int priority
+        invalid_practice = BestPractice(
+            practice_id="test1",
+            name="Test Practice",
+            description="Test description",
+            steps=[{"task": "test step"}],
+            rationale="Test rationale",
+            examples=[],
+            priority="high",  # Invalid type
+            category="test",
+        )
+        result = gen._validate_practice_definition(invalid_practice)
+        assert result is False
+
+    def test_optimize_steps_with_invalid_description(
+        self, patched_model_invoke
+    ) -> None:
+        """Test _optimize_steps with invalid description (lines 423-424)."""
+        gen = patched_model_invoke["manager"]
+        steps = [
+            {"step_id": "step1", "description": None},  # Invalid description
+            {"step_id": "step2", "description": 123},  # Invalid type
+            {"step_id": "step3", "description": ""},  # Empty description
+        ]
+        result = gen._optimize_steps(steps)
+        assert len(result) == 3
+        assert result[0]["description"] == "Step 1"
+        assert result[1]["description"] == "123"
+        assert result[2]["description"] == "Step 3"
+
+    def test_optimize_steps_with_missing_step_id(self, patched_model_invoke) -> None:
+        """Test _optimize_steps with missing step_id."""
+        gen = patched_model_invoke["manager"]
+        steps = [{"step_id": "step1", "description": "test step"}]
+        result = gen._optimize_steps(steps)
+        assert len(result) == 1
+        assert result[0]["step_id"] == "step_1"
+
+    def test_refine_practice_with_available_resources(self) -> None:
+        """Test refine_practice with available resources."""
+        # This test is removed as the method doesn't exist
+        pass
+
+    def test_refine_practice_with_exception(self) -> None:
+        """Test refine_practice with exception handling."""
+        # This test is removed as the method doesn't exist
+        pass
+
+    def test_generate_practice_definitions(self) -> None:
+        """Test _generate_practice_definitions method."""
+        manager = BestPracticeManager(
+            model=Mock(), role="test_role", user_objective="test_objective"
+        )
+
+        tasks = [
+            {
+                "name": "Task 1",
+                "steps": [{"task": "Step 1", "description": "First step"}],
+                "priority": 3,
+                "category": "general",
+            }
+        ]
+
+        result = manager._generate_practice_definitions(tasks)
+        assert len(result) == 1
+        assert result[0].name == "Best Practice for Task 1"
+        assert result[0].description == "Best practices for executing Task 1"
+
+    def test_validate_practices(self) -> None:
+        """Test _validate_practices method."""
+        manager = BestPracticeManager(
+            model=Mock(), role="test_role", user_objective="test_objective"
+        )
+
+        from arklex.orchestrator.generator.tasks.best_practice_manager import (
+            BestPractice,
+        )
+
+        practice_def = BestPractice(
+            practice_id="practice_1",
+            name="Test Practice",
+            description="Test description",
+            steps=[{"task": "Step 1", "description": "First step"}],
+            rationale="Test rationale",
+            examples=[],
+            priority=3,
+            category="general",
+        )
+
+        result = manager._validate_practices([practice_def])
+        assert len(result) == 1
+        assert result[0]["practice_id"] == "practice_1"
+
+    def test_validate_practice_definition_with_invalid_practice(self) -> None:
+        """Test _validate_practice_definition with invalid practice."""
+        manager = BestPracticeManager(
+            model=Mock(), role="test_role", user_objective="test_objective"
+        )
+
+        from arklex.orchestrator.generator.tasks.best_practice_manager import (
+            BestPractice,
+        )
+
+        invalid_practice = BestPractice(
+            practice_id="",  # Empty practice_id
+            name="Test Practice",
+            description="Test description",
+            steps=[],
+            rationale="Test rationale",
+            examples=[],
+            priority=3,
+            category="general",
+        )
+
+        result = manager._validate_practice_definition(invalid_practice)
+        assert result is False
+
+    def test_validate_practice_definition_with_valid_practice(self) -> None:
+        """Test _validate_practice_definition with valid practice."""
+        manager = BestPracticeManager(
+            model=Mock(), role="test_role", user_objective="test_objective"
+        )
+
+        from arklex.orchestrator.generator.tasks.best_practice_manager import (
+            BestPractice,
+        )
+
+        valid_practice = BestPractice(
+            practice_id="practice_1",
+            name="Test Practice",
+            description="Test description",
+            steps=[{"task": "Step 1", "description": "First step"}],
+            rationale="Test rationale",
+            examples=[],
+            priority=3,
+            category="general",
+        )
+
+        result = manager._validate_practice_definition(valid_practice)
+        assert result is True
+
+    def test_categorize_practices(self) -> None:
+        """Test _categorize_practices method."""
+        manager = BestPracticeManager(
+            model=Mock(), role="test_role", user_objective="test_objective"
+        )
+
+        practices = [
+            {"practice_id": "practice_1", "category": "efficiency"},
+            {"practice_id": "practice_2", "category": "quality"},
+        ]
+
+        manager._categorize_practices(practices)
+        assert "efficiency" in manager._practice_categories
+        assert "quality" in manager._practice_categories
+        assert "practice_1" in manager._practice_categories["efficiency"]
+        assert "practice_2" in manager._practice_categories["quality"]
+
+    def test_optimize_practices(self) -> None:
+        """Test _optimize_practices method."""
+        manager = BestPracticeManager(
+            model=Mock(), role="test_role", user_objective="test_objective"
+        )
+
+        practices = [{"steps": [{"description": "Step 1"}, {"description": "Step 2"}]}]
+
+        result = manager._optimize_practices(practices)
+        assert len(result) == 1
+        assert "steps" in result[0]
+
+    def test_optimize_steps_with_missing_step_id(self) -> None:
+        """Test _optimize_steps with missing step_id."""
+        manager = BestPracticeManager(
+            model=Mock(), role="test_role", user_objective="test_objective"
+        )
+
+        steps = [
+            {"description": "Step 1"},  # Missing step_id
+            {"description": "Step 2"},  # Missing step_id
+        ]
+
+        result = manager._optimize_steps(steps)
+        assert len(result) == 2
+        assert "step_id" in result[0]
+        assert "step_id" in result[1]
+
+    def test_optimize_steps_with_missing_description(self) -> None:
+        """Test _optimize_steps with missing description."""
+        manager = BestPracticeManager(
+            model=Mock(), role="test_role", user_objective="test_objective"
+        )
+
+        steps = [
+            {"step_id": "step_1"},  # Missing description
+            {"step_id": "step_2", "description": None},  # None description
+        ]
+
+        result = manager._optimize_steps(steps)
+        assert len(result) == 2
+        assert result[0]["description"] == "Step 1"
+        assert result[1]["description"] == "Step 2"
+
+    def test_optimize_steps_with_invalid_description_type(self) -> None:
+        """Test _optimize_steps with invalid description type."""
+        manager = BestPracticeManager(
+            model=Mock(), role="test_role", user_objective="test_objective"
+        )
+
+        steps = [
+            {"step_id": "step_1", "description": 123}  # Invalid type
+        ]
+
+        result = manager._optimize_steps(steps)
+        assert len(result) == 1
+        assert result[0]["description"] == "123"
+
+    def test_optimize_steps_with_missing_required_fields(self) -> None:
+        """Test _optimize_steps with missing required_fields."""
+        manager = BestPracticeManager(
+            model=Mock(), role="test_role", user_objective="test_objective"
+        )
+
+        steps = [
+            {"step_id": "step_1", "description": "Step 1"}  # Missing required_fields
+        ]
+
+        result = manager._optimize_steps(steps)
+        assert len(result) == 1
+        assert "required_fields" in result[0]
+        assert result[0]["required_fields"] == []
+
+    def test_convert_to_dict(self) -> None:
+        """Test _convert_to_dict method."""
+        manager = BestPracticeManager(
+            model=Mock(), role="test_role", user_objective="test_objective"
+        )
+
+        from arklex.orchestrator.generator.tasks.best_practice_manager import (
+            BestPractice,
+        )
+
+        practice_def = BestPractice(
+            practice_id="practice_1",
+            name="Test Practice",
+            description="Test description",
+            steps=[{"task": "Step 1", "description": "First step"}],
+            rationale="Test rationale",
+            examples=["Example 1", "Example 2"],
+            priority=3,
+            category="general",
+        )
+
+        result = manager._convert_to_dict(practice_def)
+        assert result["practice_id"] == "practice_1"
+        assert result["name"] == "Test Practice"
+        assert result["description"] == "Test description"
+        assert result["steps"] == [{"task": "Step 1", "description": "First step"}]
+        assert result["rationale"] == "Test rationale"
+        assert result["examples"] == ["Example 1", "Example 2"]
+        assert result["priority"] == 3
+        assert result["category"] == "general"

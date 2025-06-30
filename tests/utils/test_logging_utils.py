@@ -317,9 +317,17 @@ class TestLogContextProperties:
         context = LogContext("test_logger")
         assert context.propagate is True
 
-        # Test setter
-        context.propagate = False
-        assert context.propagate is False
+    def test_log_context_propagate_setter(self) -> None:
+        """Test log context propagate setter property."""
+        log_context = LogContext("test_logger")
+
+        # Test setting propagate to True
+        log_context.propagate = True
+        assert log_context.log_context.propagate is True
+
+        # Test setting propagate to False
+        log_context.propagate = False
+        assert log_context.log_context.propagate is False
 
     def test_log_context_parent_property_with_parent(self) -> None:
         """Test LogContext parent property when parent exists."""
@@ -650,3 +658,35 @@ class TestLogContextLoggingMethods:
         context = get_test_context()
         context.critical("Critical message", {"crit_ctx": "crit_value"}, fatal=True)
         assert any("Critical message" in r.getMessage() for r in caplog.records)
+
+
+class TestLogContextInternalMethods:
+    """Test internal methods of LogContext class."""
+
+    def test_get_console_handler_default_format(self) -> None:
+        """Test _get_console_handler with default format."""
+        context = LogContext("test")
+        handler = context._get_console_handler()
+
+        assert isinstance(handler, logging.StreamHandler)
+        assert handler.formatter is not None
+        assert "%(levelname)s - %(message)s" in str(handler.formatter._fmt)
+
+    def test_get_console_handler_custom_format(self) -> None:
+        """Test _get_console_handler with custom format."""
+        context = LogContext("test")
+        custom_format = "%(name)s - %(levelname)s - %(message)s"
+        handler = context._get_console_handler(custom_format)
+
+        assert isinstance(handler, logging.StreamHandler)
+        assert handler.formatter is not None
+        assert custom_format in str(handler.formatter._fmt)
+
+    def test_get_console_handler_none_format(self) -> None:
+        """Test _get_console_handler with None format (should use default)."""
+        context = LogContext("test")
+        handler = context._get_console_handler(None)
+
+        assert isinstance(handler, logging.StreamHandler)
+        assert handler.formatter is not None
+        assert "%(levelname)s - %(message)s" in str(handler.formatter._fmt)

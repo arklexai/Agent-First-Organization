@@ -4,6 +4,7 @@ from arklex.orchestrator.NLU.services.model_service import DummyModelService
 from arklex.orchestrator.NLU.core.slot import SlotFiller
 from arklex.utils.graph_state import MessageState, Params, NodeInfo, StatusEnum
 from arklex.env.planner.react_planner import ReactPlanner
+import pytest
 
 
 def test_environment_uses_dummy_model_service() -> None:
@@ -360,3 +361,33 @@ def test_default_resource_initializer_init_workers_with_fixed_args() -> None:
         ]
     )
     assert result == {}
+
+
+def test_register_tool_exception_handling() -> None:
+    """Test register_tool method with exception handling (lines 304-305)."""
+    env = Environment(tools=[], workers=[])
+
+    class RaisingDict(dict):
+        def __setitem__(self, key, value):
+            raise Exception("Registration error")
+
+    env.tools = RaisingDict()
+    with patch("arklex.env.env.log_context.error") as mock_log_error:
+        env.register_tool("test_tool", {"name": "test"})
+        mock_log_error.assert_called_once()
+
+
+def test_base_resource_initializer_init_tools_not_implemented() -> None:
+    """Test BaseResourceInitializer.init_tools raises NotImplementedError (line 48)."""
+    from arklex.env.env import BaseResourceInitializer
+
+    with pytest.raises(NotImplementedError):
+        BaseResourceInitializer.init_tools([])
+
+
+def test_base_resource_initializer_init_workers_not_implemented() -> None:
+    """Test BaseResourceInitializer.init_workers raises NotImplementedError (line 63)."""
+    from arklex.env.env import BaseResourceInitializer
+
+    with pytest.raises(NotImplementedError):
+        BaseResourceInitializer.init_workers([])

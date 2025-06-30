@@ -10,6 +10,7 @@ from arklex.evaluation.chatgpt_utils import (
     flip_hist,
     format_chat_history_str,
     flip_hist_content_only,
+    main,
 )
 
 
@@ -635,33 +636,102 @@ class TestChatGPTUtils:
                         organization=None,
                     )
 
-    def test_main_function(self):
-        import sys
-        import types
-        from unittest.mock import patch, Mock
-        from arklex.evaluation import chatgpt_utils
+    def test_flip_hist_with_system_message_continue_statement(self) -> None:
+        """Test flip_hist function with system message to cover continue statement (line 142)."""
+        # Setup conversation with system message
+        conversation = [
+            {"role": "system", "content": "You are a helpful assistant"},
+            {"role": "user", "content": "Hello"},
+            {"role": "assistant", "content": "Hi there"},
+        ]
 
-        # Mock the get_documents module and its functions
-        mock_documents = [{"content": "test content"}]
-        mock_get_documents = types.ModuleType("get_documents")
-        mock_get_documents.get_all_documents = lambda: mock_documents
-        mock_get_documents.filter_documents = lambda docs: docs
-        sys.modules["get_documents"] = mock_get_documents
+        # Execute
+        result = flip_hist(conversation)
 
-        with (
-            patch(
-                "arklex.evaluation.chatgpt_utils.create_client", return_value=Mock()
-            ) as mock_create_client,
-            patch(
-                "arklex.evaluation.chatgpt_utils.generate_goals",
-                return_value=["test goal"],
-            ) as mock_generate_goals,
-            patch("builtins.print") as mock_print,
-        ):
-            chatgpt_utils.main()
+        # Assert - system message should be skipped (continue statement executed)
+        assert len(result) == 2  # Only user and assistant messages
+        assert result[0]["role"] == "assistant"  # user becomes assistant
+        assert result[1]["role"] == "user"  # assistant becomes user
+        assert "system" not in [msg["role"] for msg in result]
 
-        mock_create_client.assert_called_once()
-        mock_generate_goals.assert_called_once_with(
-            mock_documents, {"num_goals": 1}, mock_create_client.return_value
-        )
-        mock_print.assert_called_once_with(["test goal"])
+    def test_query_chatbot_return_response_json(self) -> None:
+        """Test query_chatbot function to cover return response.json() statement (line 230)."""
+        # Setup
+        conversation = [
+            {"role": "user", "content": "Hello"},
+            {"role": "assistant", "content": "Hi there"},
+        ]
+        params = {"param1": "value1"}
+        env_config = {"workers": [], "tools": []}
+
+        # Mock the requests.post call to return a valid JSON response
+        with patch("arklex.evaluation.chatgpt_utils.requests.post") as mock_post:
+            mock_response = Mock()
+            mock_response.json.return_value = {
+                "response": "Test response",
+                "status": "success",
+            }
+            mock_post.return_value = mock_response
+
+            # Execute
+            result = query_chatbot(
+                model_api="http://test-api.com",
+                history=conversation,
+                params=params,
+                env_config=env_config,
+            )
+
+            # Assert - should return the JSON response from the API
+            assert isinstance(result, dict)
+            assert result["response"] == "Test response"
+            assert result["status"] == "success"
+            # Verify that requests.post was called and response.json() was called
+            mock_post.assert_called_once()
+            mock_response.json.assert_called_once()
+
+    def test_main_function_execution(self) -> None:
+        """Test main function execution to cover print statement (line 331)."""
+        # Mock the print function to avoid actual output
+        with patch("builtins.print") as mock_print:
+            # Mock the import inside main function by patching builtins.__import__
+            mock_get_docs_module = Mock()
+            mock_get_docs_module.get_all_documents.return_value = [
+                {"content": "Test document"}
+            ]
+            mock_get_docs_module.filter_documents.return_value = [
+                {"content": "Test document"}
+            ]
+
+            import builtins
+
+            real_import = builtins.__import__
+
+            def mock_import(name, *args, **kwargs):
+                if name == "get_documents":
+                    return mock_get_docs_module
+                return real_import(name, *args, **kwargs)
+
+            with patch("builtins.__import__", side_effect=mock_import):
+                with patch(
+                    "arklex.evaluation.chatgpt_utils.create_client"
+                ) as mock_create_client:
+                    with patch(
+                        "arklex.evaluation.chatgpt_utils.generate_goals"
+                    ) as mock_generate_goals:
+                        mock_client = Mock()
+                        mock_create_client.return_value = mock_client
+                        mock_generate_goals.return_value = ["Test goal"]
+
+                        # Execute main function
+                        main()
+
+                        # Assert print was called with the expected result
+                        mock_print.assert_called_once_with(["Test goal"])
+
+    def test__print_goals(self) -> None:
+        from arklex.evaluation.chatgpt_utils import _print_goals
+
+        with patch("builtins.print") as mock_print:
+            goals = ["goal1", "goal2"]
+            _print_goals(goals)
+            mock_print.assert_called_once_with(goals)
