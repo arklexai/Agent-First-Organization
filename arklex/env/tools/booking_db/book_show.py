@@ -1,11 +1,20 @@
-from typing import List, Dict, Any, Optional, Union
-from ..tools import register_tool
-from .utils import *
-from arklex.utils.logging_utils import LogContext
-
 import datetime
+import sqlite3
 import uuid
+from typing import Any
+
 import pandas as pd
+
+from arklex.env.tools.booking_db.utils import (
+    LOG_IN_FAILURE,
+    MULTIPLE_SHOWS_MESSAGE,
+    NO_SHOW_MESSAGE,
+    SLOTS,
+    booking,
+    log_in,
+)
+from arklex.env.tools.tools import register_tool
+from arklex.utils.logging_utils import LogContext
 
 log_context = LogContext(__name__)
 
@@ -28,11 +37,11 @@ log_context = LogContext(__name__)
     lambda x: x and x not in (LOG_IN_FAILURE, NO_SHOW_MESSAGE, MULTIPLE_SHOWS_MESSAGE),
 )
 def book_show(
-    show_name: Optional[str] = None,
-    date: Optional[str] = None,
-    time: Optional[str] = None,
-    location: Optional[str] = None,
-) -> Union[str, None]:
+    show_name: str | None = None,
+    date: str | None = None,
+    time: str | None = None,
+    location: str | None = None,
+) -> str | None:
     if not log_in():
         return LOG_IN_FAILURE
 
@@ -40,8 +49,8 @@ def book_show(
     conn: sqlite3.Connection = sqlite3.connect(booking.db_path)
     cursor: sqlite3.Cursor = conn.cursor()
     query: str = "SELECT id, show_name, date, time, description, location, price FROM show WHERE 1 = 1"
-    params: List[str] = []
-    slots: Dict[str, Optional[str]] = {
+    params: list[str] = []
+    slots: dict[str, str | None] = {
         "show_name": show_name,
         "date": date,
         "time": time,
@@ -55,18 +64,18 @@ def book_show(
 
     # Execute the query
     cursor.execute(query, params)
-    rows: List[tuple] = cursor.fetchall()
+    rows: list[tuple] = cursor.fetchall()
     log_context.info(f"Rows found: {len(rows)}")
 
-    response: Optional[str] = None
+    response: str | None = None
     # Check whether info is enough to book a show
     if len(rows) == 0:
         response = NO_SHOW_MESSAGE
     elif len(rows) > 1:
         response = MULTIPLE_SHOWS_MESSAGE
     else:
-        column_names: List[str] = [column[0] for column in cursor.description]
-        results: Dict[str, Any] = dict(zip(column_names, rows[0]))
+        column_names: list[str] = [column[0] for column in cursor.description]
+        results: dict[str, Any] = dict(zip(column_names, rows[0], strict=False))
         show_id: str = results["id"]
 
         # Insert a row into the booking table

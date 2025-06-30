@@ -35,7 +35,7 @@ NO_NEXT_PAGE = "error: no more pages after"
 NO_PREV_PAGE = "error: no more pages before"
 
 
-def cursorify(kwargs):
+def cursorify(kwargs: dict) -> dict:
     limit = int(kwargs.get("limit")) if kwargs.get("limit") else 3
     navigate = kwargs.get("navigate") if kwargs.get("navigate") else "stay"
     pageInfo = kwargs.get("pageInfo")

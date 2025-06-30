@@ -1,11 +1,14 @@
+from typing import Any
+
 import requests
+
 from arklex.utils.exceptions import AuthenticationError
 
 SHOPIFY_ADMIN_AUTH_ERROR_MSG = "Missing some or all required Shopify admin authentication parameters: shop_url, api_version, admin_token. Please set up 'fixed_args' in the config file. For example, {'name': <unique name of the tool>, 'fixed_args': {'admin_token': <shopify_access_token>, 'shop_url': <shopify_shop_url>, 'api_version': <Shopify API version>}}"
 SHOPIFY_STOREFRONT_AUTH_ERROR_MSG = "Missing some or all required Shopify storefront authentication parameters: shop_url, api_version, storefront_token. Please set up 'fixed_args' in the config file. For example, {'name': <unique name of the tool>, 'fixed_args': {'storefront_token': <shopify_access_token>, 'shop_url': <shopify_shop_url>, 'api_version': <Shopify API version>}}"
 
 
-def authorify_admin(kwargs):
+def authorify_admin(kwargs: dict[str, Any]) -> dict[str, str]:
     auth = {
         "domain": kwargs.get("shop_url"),
         "version": kwargs.get("api_version"),
@@ -19,7 +22,7 @@ def authorify_admin(kwargs):
     return auth
 
 
-def authorify_storefront(kwargs):
+def authorify_storefront(kwargs: dict[str, Any]) -> dict[str, str]:
     auth_dict = {
         "domain": kwargs.get("shop_url"),
         "version": kwargs.get("api_version"),
@@ -37,7 +40,9 @@ def authorify_storefront(kwargs):
     return auth
 
 
-def make_query(url, query, variables, headers):
+def make_query(
+    url: str, query: str, variables: dict[str, Any], headers: dict[str, str]
+) -> dict[str, Any]:
     """
     Make query response
     """
@@ -48,7 +53,5 @@ def make_query(url, query, variables, headers):
         return request.json()
     else:
         raise Exception(
-            "Query failed to run by returning code of {}. {}".format(
-                request.status_code, query
-            )
+            f"Query failed to run by returning code of {request.status_code}. {query}"
         )

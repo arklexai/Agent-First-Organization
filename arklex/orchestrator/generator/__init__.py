@@ -60,7 +60,7 @@ from .core import Generator
 
 # Make UI components optional to avoid dependency issues
 try:
-    from .ui import TaskEditorApp, InputModal
+    from .ui import InputModal, TaskEditorApp
 
     _UI_COMPONENTS = ["TaskEditorApp", "InputModal"]
 except ImportError:
@@ -68,7 +68,7 @@ except ImportError:
     class TaskEditorApp:
         """Placeholder class when UI components are not available."""
 
-        def __init__(self, *args, **kwargs):
+        def __init__(self, *args: object, **kwargs: object) -> None:
             raise ImportError(
                 "TaskEditorApp requires 'textual' package to be installed"
             )
@@ -76,17 +76,13 @@ except ImportError:
     class InputModal:
         """Placeholder class when UI components are not available."""
 
-        def __init__(self, *args, **kwargs):
+        def __init__(self, *args: object, **kwargs: object) -> None:
             raise ImportError("InputModal requires 'textual' package to be installed")
 
     _UI_COMPONENTS = []
 
 # Import specialized modules for advanced usage
-from . import core
-from . import ui
-from . import tasks
-from . import docs
-from . import formatting
+from . import core, docs, formatting, tasks, ui
 
 __all__ = [
     "Generator",

@@ -3,8 +3,9 @@ import hashlib
 import inspect
 import threading
 from collections import defaultdict
+from collections.abc import Callable
 from multiprocessing import Lock
-from typing import Any, Callable, TypeVar, Dict, Tuple, Union
+from typing import TypeVar
 
 from pydantic import BaseModel
 
@@ -12,9 +13,9 @@ T = TypeVar("T")
 
 USE_CACHE: bool = True
 _USE_CACHE_LOCK: Lock = Lock()  # type: ignore
-cache: Dict[str, Tuple[Union[T, Exception], threading.Event]] = {}
+cache: dict[str, tuple[T | Exception, threading.Event]] = {}
 lock: threading.Lock = threading.Lock()
-conditions: Dict[str, threading.Condition] = defaultdict(threading.Condition)
+conditions: dict[str, threading.Condition] = defaultdict(threading.Condition)
 
 
 def disable_cache() -> None:
@@ -29,7 +30,7 @@ def enable_cache() -> None:
         USE_CACHE = True
 
 
-def hash_item(item: Any) -> int:
+def hash_item(item: object) -> int:
     if isinstance(item, dict):
         return hash(tuple({k: hash_item(v) for k, v in sorted(item.items())}))
     elif isinstance(item, list):
@@ -44,20 +45,20 @@ def hash_item(item: Any) -> int:
 
 
 def hash_func_call(
-    func: Callable[..., Any], args: Tuple[Any, ...], kwargs: Dict[str, Any]
+    func: Callable[..., object], args: tuple[object, ...], kwargs: dict[str, object]
 ) -> str:
     bound_args = inspect.signature(func).bind(*args, **kwargs)
     bound_args.apply_defaults()
     standardized_args = sorted(bound_args.arguments.items())
     arg_hash: int = hash_item(standardized_args)
     hashed_func: int = id(func)
-    call: Tuple[int, int] = (hashed_func, arg_hash)
+    call: tuple[int, int] = (hashed_func, arg_hash)
     return hashlib.md5(str(call).encode()).hexdigest()
 
 
 def cache_call_w_dedup(func: Callable[..., T]) -> Callable[..., T]:
     @functools.wraps(func)
-    def wrapper(*args: Any, **kwargs: Any) -> T:
+    def wrapper(*args: object, **kwargs: object) -> T:
         if not USE_CACHE:
             return func(*args, **kwargs)
         key: str = hash_func_call(func=func, args=args, kwargs=kwargs)

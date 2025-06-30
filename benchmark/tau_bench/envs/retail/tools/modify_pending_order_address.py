@@ -1,14 +1,13 @@
-# Copyright Sierra
-
 import json
-from typing import Any, Dict
+from typing import Any
+
 from benchmark.tau_bench.envs.tool import Tool
 
 
 class ModifyPendingOrderAddress(Tool):
     @staticmethod
     def invoke(
-        data: Dict[str, Any],
+        data: dict[str, Any],
         order_id: str,
         address1: str,
         address2: str,
@@ -37,7 +36,7 @@ class ModifyPendingOrderAddress(Tool):
         return json.dumps(order)
 
     @staticmethod
-    def get_info() -> Dict[str, Any]:
+    def get_info() -> dict[str, Any]:
         return {
             "type": "function",
             "function": {

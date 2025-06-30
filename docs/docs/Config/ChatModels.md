@@ -175,7 +175,7 @@ python run.py --input-dir ./examples/customer_service --model claude-3-5-haiku-2
 > **ASSISTANT**: Absolutely! I can help you book a demo for our ADAM robot. We offer several ways to schedule a demonstration:
 >
 > 1. Online Booking: You can visit our robot rentals page at
- <https://www.richtechrobotics.com/robot-rentals#rent-new-form> to schedule a demo.
+ [https://www.richtechrobotics.com/robot-rentals#rent-new-form](https://www.richtechrobotics.com/robot-rentals#rent-new-form) to schedule a demo.
 >
 > 2. Contact Our Sales Team: You can reach our sales line at (866) 236-3835 to discuss a demo and explore how ADAM can benefit your business.
 >

@@ -1,6 +1,5 @@
 import json
 import os
-from typing import Dict, List, Optional
 
 from benchmark.tau_bench.model_utils.api.datapoint import Datapoint
 from benchmark.tau_bench.model_utils.model.chat import ChatModel, Message
@@ -15,22 +14,22 @@ DEFAULT_CLAUDE_MODEL = "claude-3-5-sonnet-20240620"
 DEFAULT_MAX_TOKENS = 8192
 ENV_VAR_API_KEY = "ANTHROPIC_API_KEY"
 
-PRICE_PER_INPUT_TOKEN_MAP: Dict[str, float] = {
+PRICE_PER_INPUT_TOKEN_MAP: dict[str, float] = {
     "claude-3-5-sonnet-20240620": 3 / 1000000,
 }
 INPUT_PRICE_PER_TOKEN_FALLBACK = 15 / 1000000
 
-CAPABILITY_SCORE_MAP: Dict[str, float] = {
+CAPABILITY_SCORE_MAP: dict[str, float] = {
     "claude-3-5-sonnet-20240620": 1.0,
 }
 CAPABILITY_SCORE_FALLBACK = 0.5
 
 # TODO: implement
-LATENCY_MS_PER_OUTPUT_TOKEN_MAP: Dict[str, float] = {}
+LATENCY_MS_PER_OUTPUT_TOKEN_MAP: dict[str, float] = {}
 # TODO: implement
 LATENCY_MS_PER_OUTPUT_TOKEN_FALLBACK = 0.0
 
-MAX_CONTEXT_LENGTH_MAP: Dict[str, int] = {
+MAX_CONTEXT_LENGTH_MAP: dict[str, int] = {
     "claude-3-5-sonnet-20240620": 8192,
 }
 MAX_CONTEXT_LENGTH_FALLBACK = 8192
@@ -39,8 +38,8 @@ MAX_CONTEXT_LENGTH_FALLBACK = 8192
 class ClaudeModel(ChatModel):
     def __init__(
         self,
-        model: Optional[str] = None,
-        api_key: Optional[str] = None,
+        model: str | None = None,
+        api_key: str | None = None,
         temperature: float = 0.0,
     ) -> None:
         from anthropic import Anthropic, AsyncAnthropic
@@ -86,8 +85,8 @@ class ClaudeModel(ChatModel):
             self.model, MAX_CONTEXT_LENGTH_FALLBACK
         )
 
-    def _remap_messages(self, messages: List[Dict[str, str]]) -> List[Dict[str, str]]:
-        remapped: List[Dict[str, str]] = []
+    def _remap_messages(self, messages: list[dict[str, str]]) -> list[dict[str, str]]:
+        remapped: list[dict[str, str]] = []
         is_user = True
         for i, message in enumerate(messages):
             role = message["role"]
@@ -116,22 +115,19 @@ class ClaudeModel(ChatModel):
 
     def build_generate_message_state(
         self,
-        messages: List[Message],
-    ) -> List[Dict[str, str]]:
-        msgs: List[Dict[str, str]] = []
+        messages: list[Message],
+    ) -> list[dict[str, str]]:
+        msgs: list[dict[str, str]] = []
         for msg in messages:
-            if msg.obj is not None:
-                content = json.dumps(msg.obj)
-            else:
-                content = msg.content
+            content = json.dumps(msg.obj) if msg.obj is not None else msg.content
             msgs.append({"role": msg.role.value, "content": content})
         return self._remap_messages(msgs)
 
     def generate_message(
         self,
-        messages: List[Message],
+        messages: list[Message],
         force_json: bool,
-        temperature: Optional[float] = None,
+        temperature: float | None = None,
     ) -> Message:
         if temperature is None:
             temperature = self.temperature

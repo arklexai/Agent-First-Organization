@@ -7,7 +7,7 @@ This module provides a tool implementation for scheduling meetings with customer
 import inspect
 import json
 from datetime import datetime, timedelta
-from typing import Any, Dict, List, Optional
+from typing import Any
 
 import hubspot
 import parsedatetime
@@ -26,7 +26,7 @@ log_context = LogContext(__name__)
 description: str = "Schedule a meeting for the existing customer with the specific representative. If you are not sure any information, please ask users to confirm in response."
 
 
-slots: List[Dict[str, Any]] = [
+slots: list[dict[str, Any]] = [
     {
         "name": "cus_fname",
         "type": "str",
@@ -93,7 +93,7 @@ slots: List[Dict[str, Any]] = [
         "required": True,
     },
 ]
-outputs: List[Dict[str, Any]] = [
+outputs: list[dict[str, Any]] = [
     {
         "name": "meeting_confirmation_info",
         "type": "dict",
@@ -112,7 +112,7 @@ def create_meeting(
     duration: int,
     slug: str,
     time_zone: str,
-    **kwargs: Dict[str, Any],
+    **kwargs: dict[str, Any],
 ) -> str:
     """
     Schedule a meeting for a customer with a specific representative.
@@ -175,19 +175,19 @@ def create_meeting(
                 "qs": {"timezone": time_zone},
             }
         )
-        create_meeting_response: Dict[str, Any] = create_meeting_response.json()
+        create_meeting_response: dict[str, Any] = create_meeting_response.json()
         return json.dumps(create_meeting_response)
     except ApiException as e:
-        log_context.info("Exception when scheduling a meeting: %s\n" % e)
+        log_context.info(f"Exception when scheduling a meeting: {e}\n")
         raise ToolExecutionError(
             func_name, HubspotExceptionPrompt.MEETING_UNAVAILABLE_PROMPT
-        )
+        ) from e
 
 
 def parse_natural_date(
     date_str: str,
-    base_date: Optional[datetime] = None,
-    timezone: Optional[str] = None,
+    base_date: datetime | None = None,
+    timezone: str | None = None,
     date_input: bool = False,
 ) -> datetime:
     """

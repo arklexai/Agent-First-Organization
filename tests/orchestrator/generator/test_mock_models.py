@@ -5,10 +5,8 @@ in tests to simulate LLM responses without requiring actual API calls.
 """
 
 import random
-from typing import Any, List, Optional
-
+from typing import Any
 from unittest.mock import Mock
-
 
 # --- Mock Classes ---
 
@@ -20,7 +18,7 @@ class MockLanguageModel:
     predefined responses based on the input prompts.
     """
 
-    def __init__(self, responses: Optional[dict] = None) -> None:
+    def __init__(self, responses: dict | None = None) -> None:
         """Initialize the mock model with predefined responses.
 
         Args:
@@ -30,7 +28,7 @@ class MockLanguageModel:
         self.call_count = 0
         self.last_prompt = None
 
-    def invoke(self, messages: List[Any]) -> Mock:
+    def invoke(self, messages: list[Any]) -> Mock:
         """Mock the invoke method of a language model.
 
         Args:
@@ -100,7 +98,7 @@ class MockLanguageModel:
 
         return response
 
-    def generate(self, messages: List[Any]) -> Mock:
+    def generate(self, messages: list[Any]) -> Mock:
         """Mock the generate method of a language model.
 
         Args:
@@ -152,7 +150,7 @@ class MockLanguageModelWithErrors:
         self.call_count = 0
         self.base_model = MockLanguageModel()
 
-    def invoke(self, messages: List[Any]) -> Mock:
+    def invoke(self, messages: list[Any]) -> Mock:
         """Mock the invoke method with potential errors.
 
         Args:
@@ -165,19 +163,6 @@ class MockLanguageModelWithErrors:
             Exception: Various types of exceptions based on error_type
         """
         self.call_count += 1
-
-        # Handle both string prompts and message lists
-        if isinstance(messages, str):
-            prompt = messages
-        elif messages and len(messages) > 0:
-            if hasattr(messages[0], "content"):
-                prompt = messages[0].content
-            elif isinstance(messages[0], dict):
-                prompt = messages[0].get("content", "")
-            else:
-                prompt = str(messages[0])
-        else:
-            prompt = ""
 
         # Simulate error based on error_rate
         if random.random() < self.error_rate:
@@ -195,7 +180,7 @@ class MockLanguageModelWithErrors:
         # Return normal response if no error
         return self.base_model.invoke(messages)
 
-    def generate(self, messages: List[Any]) -> Mock:
+    def generate(self, messages: list[Any]) -> Mock:
         """Mock the generate method with potential errors.
 
         Args:
@@ -244,7 +229,7 @@ class MockLanguageModelWithCustomResponses:
         """
         self.responses[prompt_pattern] = response
 
-    def invoke(self, messages: List[Any]) -> Mock:
+    def invoke(self, messages: list[Any]) -> Mock:
         """Mock the invoke method with custom responses.
 
         Args:
@@ -280,7 +265,7 @@ class MockLanguageModelWithCustomResponses:
         mock_response.content = "Default custom response"
         return mock_response
 
-    def generate(self, messages: List[Any]) -> Mock:
+    def generate(self, messages: list[Any]) -> Mock:
         """Mock the generate method with custom responses.
 
         Args:

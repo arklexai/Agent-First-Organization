@@ -7,24 +7,34 @@ Module Name: return_products
 This file contains the code for processing product returns in Shopify.
 """
 
-import json
-import shopify
 import inspect
-from typing import Any
+import json
+from typing import TypedDict
+
+import shopify
+
+from arklex.env.tools.shopify._exception_prompt import ShopifyExceptionPrompt
 
 # general GraphQL navigation utilities
 from arklex.env.tools.shopify.utils import authorify_admin
 from arklex.env.tools.shopify.utils_slots import (
-    ShopifyReturnProductsSlots,
     ShopifyOutputs,
+    ShopifyReturnProductsSlots,
 )
-
 from arklex.env.tools.tools import register_tool
 from arklex.utils.exceptions import ToolExecutionError
-from arklex.env.tools.shopify._exception_prompt import ShopifyExceptionPrompt
 from arklex.utils.logging_utils import LogContext
 
 log_context = LogContext(__name__)
+
+
+class ReturnProductsParams(TypedDict, total=False):
+    """Parameters for the return products tool."""
+
+    shop_url: str
+    api_version: str
+    admin_token: str
+
 
 description = "Return order by order id. If no fulfillments are found, the function will return an error message."
 slots = ShopifyReturnProductsSlots.get_all_slots()
@@ -35,13 +45,13 @@ outputs = [
 
 
 @register_tool(description, slots, outputs)
-def return_products(return_order_id: str, **kwargs: Any) -> str:
+def return_products(return_order_id: str, **kwargs: ReturnProductsParams) -> str:
     """
     Process a return request for a Shopify order.
 
     Args:
         return_order_id (str): The ID of the order to be returned.
-        **kwargs (Any): Additional keyword arguments for authentication.
+        **kwargs (ReturnProductsParams): Additional keyword arguments for authentication.
 
     Returns:
         str: A success message with return request details if successful.
@@ -100,14 +110,15 @@ def return_products(return_order_id: str, **kwargs: Any) -> str:
                 if not fulfillment_items:
                     raise ToolExecutionError(
                         func_name,
-                        ShopifyExceptionPrompt.NO_FULFILLMENT_FOUND_ERROR_PROMPT,
+                        extra_message=ShopifyExceptionPrompt.NO_FULFILLMENT_FOUND_ERROR_PROMPT,
                     )
                 log_context.info(f"Found {len(fulfillment_items)} fulfillment items.")
             except Exception as e:
                 log_context.error(f"Error parsing response: {e}")
                 raise ToolExecutionError(
-                    func_name, ShopifyExceptionPrompt.PRODUCT_RETURN_ERROR_PROMPT
-                )
+                    func_name,
+                    extra_message=ShopifyExceptionPrompt.PRODUCT_RETURN_ERROR_PROMPT,
+                ) from e
 
             # Submit the return request
             fulfillment_string = ""
@@ -142,15 +153,18 @@ def return_products(return_order_id: str, **kwargs: Any) -> str:
                     )
                 else:
                     raise ToolExecutionError(
-                        func_name, ShopifyExceptionPrompt.PRODUCT_RETURN_ERROR_PROMPT
+                        func_name,
+                        extra_message=ShopifyExceptionPrompt.PRODUCT_RETURN_ERROR_PROMPT,
                     )
             except Exception as e:
                 log_context.error(f"Error parsing response: {e}")
                 raise ToolExecutionError(
-                    func_name, ShopifyExceptionPrompt.PRODUCT_RETURN_ERROR_PROMPT
-                )
+                    func_name,
+                    extra_message=ShopifyExceptionPrompt.PRODUCT_RETURN_ERROR_PROMPT,
+                ) from e
 
-    except Exception:
+    except Exception as e:
         raise ToolExecutionError(
-            func_name, ShopifyExceptionPrompt.PRODUCT_RETURN_ERROR_PROMPT
-        )
+            func_name,
+            extra_message=ShopifyExceptionPrompt.PRODUCT_RETURN_ERROR_PROMPT,
+        ) from e

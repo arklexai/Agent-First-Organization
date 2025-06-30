@@ -8,26 +8,24 @@ confidence-scored document retrieval.
 """
 
 import os
-from typing import List, Dict, Any, Tuple
 import pickle
+from typing import Any
 
 from langchain.prompts import PromptTemplate
-from langchain_openai import ChatOpenAI
-from langchain_core.output_parsers import StrOutputParser
-from langchain_core.documents import Document
 from langchain_community.vectorstores.faiss import FAISS
-from langchain_openai import OpenAIEmbeddings
+from langchain_core.documents import Document
+from langchain_core.output_parsers import StrOutputParser
+from langchain_openai import ChatOpenAI, OpenAIEmbeddings
 
 from arklex.env.prompts import load_prompts
-from arklex.utils.graph_state import MessageState, LLMConfig
-from arklex.utils.model_provider_config import (
-    PROVIDER_MAP,
-    PROVIDER_EMBEDDINGS,
-    PROVIDER_EMBEDDING_MODELS,
-)
 from arklex.env.tools.utils import trace
+from arklex.utils.graph_state import LLMConfig, MessageState
 from arklex.utils.logging_utils import LogContext
-
+from arklex.utils.model_provider_config import (
+    PROVIDER_EMBEDDING_MODELS,
+    PROVIDER_EMBEDDINGS,
+    PROVIDER_MAP,
+)
 
 log_context = LogContext(__name__)
 
@@ -39,13 +37,13 @@ class RetrieveEngine:
         user_message = state.user_message
 
         # Search for the relevant documents
-        prompts: Dict[str, str] = load_prompts(state.bot_config)
+        prompts: dict[str, str] = load_prompts(state.bot_config)
         docs: FaissRetrieverExecutor = FaissRetrieverExecutor.load_docs(
             database_path=os.environ.get("DATA_DIR"),
             llm_config=state.bot_config.llm_config,
         )
         retrieved_text: str
-        retriever_returns: List[Dict[str, Any]]
+        retriever_returns: list[dict[str, Any]]
         retrieved_text, retriever_returns = docs.search(
             user_message.history, prompts["retrieve_contextualize_q_prompt"]
         )
@@ -58,11 +56,11 @@ class RetrieveEngine:
 class FaissRetrieverExecutor:
     def __init__(
         self,
-        texts: List[Document],
+        texts: list[Document],
         index_path: str,
         llm_config: LLMConfig,
     ) -> None:
-        self.texts: List[Document] = texts
+        self.texts: list[Document] = texts
         self.index_path: str = index_path
         self.embedding_model = PROVIDER_EMBEDDINGS.get(
             llm_config.llm_provider, OpenAIEmbeddings
@@ -76,38 +74,38 @@ class FaissRetrieverExecutor:
         )
         self.retriever = self._init_retriever()
 
-    def _init_retriever(self, **kwargs: Any) -> Any:
+    def _init_retriever(self, **kwargs: dict[str, object]) -> object:
         # initiate FAISS retriever
         docsearch: FAISS = FAISS.from_documents(self.texts, self.embedding_model)
         retriever = docsearch.as_retriever(**kwargs)
         return retriever
 
-    def retrieve_w_score(self, query: str) -> List[Tuple[Document, float]]:
+    def retrieve_w_score(self, query: str) -> list[tuple[Document, float]]:
         k_value: int = (
             4
             if not self.retriever.search_kwargs.get("k")
             else self.retriever.search_kwargs.get("k")
         )
-        docs_and_scores: List[Tuple[Document, float]] = (
+        docs_and_scores: list[tuple[Document, float]] = (
             self.retriever.vectorstore.similarity_search_with_score(query, k=k_value)
         )
         return docs_and_scores
 
     def search(
         self, chat_history_str: str, contextualize_prompt: str
-    ) -> Tuple[str, List[Dict[str, Any]]]:
+    ) -> tuple[str, list[dict[str, Any]]]:
         contextualize_q_prompt: PromptTemplate = PromptTemplate.from_template(
             contextualize_prompt
         )
         ret_input_chain = contextualize_q_prompt | self.llm | StrOutputParser()
         ret_input: str = ret_input_chain.invoke({"chat_history": chat_history_str})
         log_context.info(f"Reformulated input for retriever search: {ret_input}")
-        docs_and_score: List[Tuple[Document, float]] = self.retrieve_w_score(ret_input)
+        docs_and_score: list[tuple[Document, float]] = self.retrieve_w_score(ret_input)
         retrieved_text: str = ""
-        retriever_returns: List[Dict[str, Any]] = []
+        retriever_returns: list[dict[str, Any]] = []
         for doc, score in docs_and_score:
             retrieved_text += f"{doc.page_content} \n"
-            item: Dict[str, Any] = {
+            item: dict[str, Any] = {
                 "title": doc.metadata.get("title"),
                 "content": doc.page_content,
                 "source": doc.metadata.get("source"),
@@ -124,7 +122,7 @@ class FaissRetrieverExecutor:
         index_path: str = os.path.join(database_path, "index")
         log_context.info(f"Loaded documents from {document_path}")
         with open(document_path, "rb") as fread:
-            documents: List[Document] = pickle.load(fread)
+            documents: list[Document] = pickle.load(fread)
         log_context.info(f"Loaded {len(documents)} documents")
 
         return FaissRetrieverExecutor(

@@ -52,50 +52,63 @@ Usage:
 """
 
 import copy
-import janus
 import json
 import time
+from typing import Any, TypedDict
+
+try:
+    from typing import Unpack
+except ImportError:
+    from typing_extensions import Unpack
+
+import janus
 from dotenv import load_dotenv
+from langchain_core.runnables import RunnableLambda
 from langchain_openai.chat_models import ChatOpenAI
-from typing import Any, Dict, Tuple, List, Optional, Union
-from arklex.env.nested_graph.nested_graph import NESTED_GRAPH_ID, NestedGraph
+
 from arklex.env.env import Environment
-from arklex.orchestrator.task_graph import TaskGraph
-from arklex.orchestrator.post_process import post_process_response
+from arklex.env.nested_graph.nested_graph import NESTED_GRAPH_ID, NestedGraph
 from arklex.env.tools.utils import ToolGenerator
+from arklex.orchestrator.post_process import post_process_response
+from arklex.orchestrator.task_graph import TaskGraph
 from arklex.types import StreamType
 from arklex.utils.graph_state import (
-    ConvoMessage,
-    NodeInfo,
-    OrchestratorMessage,
-    MessageState,
-    PathNode,
-    StatusEnum,
-    LLMConfig,
     BotConfig,
-    Params,
-    ResourceRecord,
-    OrchestratorResp,
+    ConvoMessage,
+    LLMConfig,
+    MessageState,
+    NodeInfo,
     NodeTypeEnum,
+    OrchestratorMessage,
+    OrchestratorResp,
+    Params,
+    PathNode,
+    ResourceRecord,
+    StatusEnum,
 )
-
-
-from arklex.utils.utils import format_chat_history
+from arklex.utils.logging_utils import LogContext
 from arklex.utils.model_config import MODEL
 from arklex.utils.model_provider_config import PROVIDER_MAP
-from langchain_core.runnables import RunnableLambda
-from arklex.utils.logging_utils import LogContext
-
+from arklex.utils.utils import format_chat_history
 
 load_dotenv()
 log_context = LogContext(__name__)
 
-INFO_WORKERS: List[str] = [
+INFO_WORKERS: list[str] = [
     "planner",
     "MessageWorker",
     "RagMsgWorker",
     "HITLWorkerChatFlag",
 ]
+
+
+class AgentOrgKwargs(TypedDict, total=False):
+    """Keyword arguments for AgentOrg constructor."""
+
+    user_prefix: str
+    worker_prefix: str
+    environment_prefix: str
+    eos_token: str
 
 
 class AgentOrg:
@@ -117,9 +130,9 @@ class AgentOrg:
 
     def __init__(
         self,
-        config: Union[str, Dict[str, Any]],
-        env: Optional[Environment],
-        **kwargs: Any,
+        config: str | dict[str, Any],
+        env: Environment | None,
+        **kwargs: Unpack[AgentOrgKwargs],
     ) -> None:
         """Initialize the AgentOrg orchestrator.
 
@@ -132,14 +145,15 @@ class AgentOrg:
             env (Environment): Environment object containing tools, workers, and other resources.
             **kwargs (Any): Additional keyword arguments for customization.
         """
-        self.user_prefix: str = "user"
-        self.worker_prefix: str = "assistant"
-        self.environment_prefix: str = "tool"
-        self.__eos_token: str = "\n"
+        self.user_prefix: str = kwargs.get("user_prefix", "user")
+        self.worker_prefix: str = kwargs.get("worker_prefix", "assistant")
+        self.environment_prefix: str = kwargs.get("environment_prefix", "tool")
+        self.__eos_token: str = kwargs.get("eos_token", "\n")
         if isinstance(config, dict):
-            self.product_kwargs: Dict[str, Any] = config
+            self.product_kwargs: dict[str, Any] = config
         else:
-            self.product_kwargs: Dict[str, Any] = json.load(open(config))
+            with open(config) as f:
+                self.product_kwargs: dict[str, Any] = json.load(f)
         self.llm_config: LLMConfig = LLMConfig(
             **self.product_kwargs.get("model", MODEL)
         )
@@ -165,15 +179,18 @@ class AgentOrg:
         # Update planner model info now that LLMConfig is defined
         if self.env.planner:
             self.env.planner.set_llm_config_and_build_resource_library(self.llm_config)
-
+        # Extra configuration settings
+        self.settings = self.task_graph.product_kwargs.get("settings", {})
+        # HITL settings
         self.hitl_worker_available = any(
             worker.get("name") == "HITLWorkerChatFlag"
             for worker in self.task_graph.product_kwargs["workers"]
         )
+        self.hitl_proposal_enabled = self.settings.get("hitl_proposal") is True
 
     def init_params(
-        self, inputs: Dict[str, Any]
-    ) -> Tuple[str, str, Params, MessageState]:
+        self, inputs: dict[str, Any]
+    ) -> tuple[str, str, Params, MessageState]:
         """Initialize parameters for a new conversation turn.
 
         This function processes the input text, chat history, and parameters to initialize
@@ -188,8 +205,8 @@ class AgentOrg:
                 formatted chat history, updated parameters, and new message state.
         """
         text: str = inputs["text"]
-        chat_history: List[Dict[str, str]] = inputs["chat_history"]
-        input_params: Optional[Dict[str, Any]] = inputs["parameters"]
+        chat_history: list[dict[str, str]] = inputs["chat_history"]
+        input_params: dict[str, Any] | None = inputs["parameters"]
 
         # Create base params with defaults
         params: Params = Params()
@@ -199,7 +216,7 @@ class AgentOrg:
             params = Params.model_validate(input_params)
 
         # Update specific fields
-        chat_history_copy: List[Dict[str, str]] = copy.deepcopy(chat_history)
+        chat_history_copy: list[dict[str, str]] = copy.deepcopy(chat_history)
         chat_history_copy.append({"role": self.user_prefix, "content": text})
         chat_history_str: str = format_chat_history(chat_history_copy)
         # Update turn_id and function_calling_trajectory
@@ -281,7 +298,7 @@ Answer with only 'yes' or 'no'"""
             return False
 
     def post_process_node(
-        self, node_info: NodeInfo, params: Params, update_info: Dict[str, Any] = {}
+        self, node_info: NodeInfo, params: Params, update_info: dict[str, Any] = None
     ) -> Params:
         """Process a node after its execution.
 
@@ -298,10 +315,8 @@ Answer with only 'yes' or 'no'"""
         Returns:
             Params: Updated parameters after processing the node.
         """
-        """
-        update_info is a dict of
-            skipped = Optional[bool]
-        """
+        if update_info is None:
+            update_info = {}
         curr_node: str = params.taskgraph.curr_node
         node: PathNode = PathNode(
             node_id=curr_node,
@@ -320,7 +335,7 @@ Answer with only 'yes' or 'no'"""
 
     def handl_direct_node(
         self, node_info: NodeInfo, params: Params
-    ) -> Tuple[bool, Optional[OrchestratorResp], Params]:
+    ) -> tuple[bool, OrchestratorResp | None, Params]:
         """Handle a direct response node in the task graph.
 
         This function processes nodes that are configured to return direct responses,
@@ -336,21 +351,19 @@ Answer with only 'yes' or 'no'"""
                 indicating if a direct response was handled, the response if applicable,
                 and updated parameters.
         """
-        node_attribute: Dict[str, Any] = node_info.attributes
-        if node_attribute.get("direct"):
-            # Direct response
-            if node_attribute.get("value", "").strip():
-                params = self.post_process_node(node_info, params)
-                return_response: OrchestratorResp = OrchestratorResp(
-                    answer=node_attribute["value"], parameters=params.model_dump()
-                )
-                # Multiple choice list
-                if (
-                    node_info.type == NodeTypeEnum.MULTIPLE_CHOICE.value
-                    and node_attribute.get("choice_list", [])
-                ):
-                    return_response.choice_list = node_attribute["choice_list"]
-                return True, return_response, params
+        node_attribute: dict[str, Any] = node_info.attributes
+        if node_attribute.get("direct") and node_attribute.get("value", "").strip():
+            params = self.post_process_node(node_info, params)
+            return_response: OrchestratorResp = OrchestratorResp(
+                answer=node_attribute["value"], parameters=params.model_dump()
+            )
+            # Multiple choice list
+            if (
+                node_info.type == NodeTypeEnum.MULTIPLE_CHOICE.value
+                and node_attribute.get("choice_list", [])
+            ):
+                return_response.choice_list = node_attribute["choice_list"]
+            return True, return_response, params
         return False, None, params
 
     def perform_node(
@@ -360,9 +373,9 @@ Answer with only 'yes' or 'no'"""
         params: Params,
         text: str,
         chat_history_str: str,
-        stream_type: Optional[StreamType],
-        message_queue: Optional[janus.SyncQueue],
-    ) -> Tuple[NodeInfo, MessageState, Params]:
+        stream_type: StreamType | None,
+        message_queue: janus.SyncQueue | None,
+    ) -> tuple[NodeInfo, MessageState, Params]:
         """Execute a node in the task graph.
 
         This function processes a node in the task graph, handling nested graph nodes,
@@ -415,7 +428,7 @@ Answer with only 'yes' or 'no'"""
         message_state.trajectory = params.memory.trajectory
         message_state.slots = params.taskgraph.dialog_states
         message_state.metadata = params.metadata
-        message_state.is_stream = True if stream_type is not None else False
+        message_state.is_stream = stream_type is not None
         message_state.stream_type = stream_type
         message_state.message_queue = message_queue
 
@@ -428,7 +441,7 @@ Answer with only 'yes' or 'no'"""
 
     def handle_nested_graph_node(
         self, node_info: NodeInfo, params: Params
-    ) -> Tuple[NodeInfo, Params]:
+    ) -> tuple[NodeInfo, Params]:
         """Handle a nested graph node in the task graph.
 
         This function processes nodes that represent nested graphs, updating the current node
@@ -468,9 +481,9 @@ Answer with only 'yes' or 'no'"""
 
     def _get_response(
         self,
-        inputs: Dict[str, Any],
-        stream_type: Optional[StreamType] = None,
-        message_queue: Optional[janus.SyncQueue] = None,
+        inputs: dict[str, Any],
+        stream_type: StreamType | None = None,
+        message_queue: janus.SyncQueue | None = None,
     ) -> OrchestratorResp:
         """Get a response from the orchestrator.
 
@@ -492,7 +505,7 @@ Answer with only 'yes' or 'no'"""
         message_state: MessageState
         text, chat_history_str, params, message_state = self.init_params(inputs)
         # TaskGraph Chain
-        taskgraph_inputs: Dict[str, Any] = {
+        taskgraph_inputs: dict[str, Any] = {
             "text": text,
             "chat_history_str": chat_history_str,
             "parameters": params,
@@ -613,7 +626,10 @@ Answer with only 'yes' or 'no'"""
                 message_state = ToolGenerator.stream_context_generate(message_state)
 
         message_state = post_process_response(
-            message_state, params, self.hitl_worker_available
+            message_state,
+            params,
+            self.hitl_worker_available,
+            self.hitl_proposal_enabled,
         )
 
         return OrchestratorResp(
@@ -624,10 +640,10 @@ Answer with only 'yes' or 'no'"""
 
     def get_response(
         self,
-        inputs: Dict[str, Any],
-        stream_type: Optional[StreamType] = None,
-        message_queue: Optional[janus.SyncQueue] = None,
-    ) -> Dict[str, Any]:
+        inputs: dict[str, Any],
+        stream_type: StreamType | None = None,
+        message_queue: janus.SyncQueue | None = None,
+    ) -> dict[str, Any]:
         """Get a response from the orchestrator with additional metadata.
 
         This function wraps the _get_response method to provide additional metadata about

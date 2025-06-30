@@ -14,15 +14,14 @@ Module Name: auth_utils
 This file contains utility functions for authenticating with Shopify.
 """
 
-import os
-import requests
-import json
-import time
-import secrets
-import hashlib
 import base64
-from typing import Dict
+import hashlib
+import json
+import os
+import secrets
+import time
 
+import requests
 from dotenv import load_dotenv
 
 load_dotenv()
@@ -75,7 +74,7 @@ shop_id = "60183707761"
 redirect_uri = "https://causal-bluejay-humble.ngrok-free.app/callback"
 
 auth_url = f"https://shopify.com/authentication/{shop_id}/oauth/authorize"
-auth_params: Dict[str, str] = {
+auth_params: dict[str, str] = {
     "scope": "openid email customer-account-api:full",
     "client_id": clientID,
     "response_type": "code",
@@ -107,7 +106,7 @@ def get_auth_link(redirect_uri: str = redirect_uri) -> str:
 
 
 token_url = f"https://shopify.com/authentication/{shop_id}/oauth/token"
-token_params: Dict[str, str] = {
+token_params: dict[str, str] = {
     "grant_type": "authorization_code",
     "client_id": clientID,
     "redirect_uri": redirect_uri,
@@ -135,7 +134,7 @@ def get_refresh_token(code: str) -> str:
     return json.loads(response.text)["refresh_token"]
 
 
-refresh_params: Dict[str, str] = {
+refresh_params: dict[str, str] = {
     "grant_type": "refresh_token",
     "client_id": clientID,
     "refresh_token": "<refresh_token>",

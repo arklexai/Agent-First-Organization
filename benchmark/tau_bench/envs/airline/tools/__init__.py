@@ -1,6 +1,3 @@
-# Copyright Sierra
-
-from typing import List, Type
 from benchmark.tau_bench.envs.base import Tool
 
 from .book_reservation import BookReservation
@@ -18,7 +15,7 @@ from .update_reservation_baggages import UpdateReservationBaggages
 from .update_reservation_flights import UpdateReservationFlights
 from .update_reservation_passengers import UpdateReservationPassengers
 
-ALL_TOOLS: List[Type[Tool]] = [
+ALL_TOOLS: list[type[Tool]] = [
     BookReservation,
     Calculate,
     CancelReservation,

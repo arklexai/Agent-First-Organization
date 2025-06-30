@@ -27,7 +27,8 @@ Here is the structure for a **Config** JSON file:
             * `name (Required, Str)`: The tool function name. Such as `find_user_id_by_email`.
             *`path (Required, Str)`: The file path of the worker start from the arklex/env/tools folder. Such as `shopify/find_user_id_by_email.py`.
             * `fixed_args (Optional, Dict)`: All the must and deterministic arguments for the tool function, such as credentials or already known argument during development. It should be a dictionary. Such as `{"token": "<access_token>", "shop_url": "<url>", "api_version": "<version>"}`
-
+* `settings (Optional, Dict)`: The extra configuration settings that you want to use for the chatbot. The dictionary should contain the following fields:
+             * `hitl_proposal (Optional)` : Enable the HITL (human in the the loop) postprocess checking. When enabled, if the bot truly doesn't know the answer and question is relevant, it will ask the user if they want to connect to human assistant. Set to `True` or `False`
 ## Examples
 
 #### [Customer Service Bot](../tutorials/customer-service.md)
@@ -54,6 +55,7 @@ Here is the structure for a **Config** JSON file:
         {"id": "9c15af81-04b3-443e-be04-a3522124b905", "name": "SearchWorker", "path": "search_worker.py"},
         {"id": "b06c2b58-12c5-41fe-9838-e93b530e42e8", "name": "DefaultWorker", "path": "default_worker.py"}
     ],
-    "tools": []
+    "tools": [],
+    "settings": {}
 }
 ```

@@ -56,8 +56,6 @@ Usage:
     )
 """
 
-from typing import Any
-
 # Intent Generation Prompt Template
 generate_intents_sys_prompt = """
 Your task is to generate a user-facing intent for a given task.
@@ -743,19 +741,16 @@ class PromptManager:
             "embed_builder_obj": embed_builder_obj_sys_prompt,
         }
 
-    def get_prompt(self, name: str, **kwargs: Any) -> str:
+    def get_prompt(self, name: str, **kwargs: object) -> str:
         """
         Get a formatted prompt by name.
 
         Args:
-            name (str): The name of the prompt template.
-            **kwargs: The arguments to format the prompt with.
+            name: The name of the prompt to get
+            **kwargs: Formatting arguments for the prompt
 
         Returns:
-            str: The formatted prompt.
-
-        Raises:
-            ValueError: If the prompt name is not found.
+            The formatted prompt string
         """
         prompt_template = self.prompts.get(name)
         if prompt_template is None:

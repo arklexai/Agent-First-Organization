@@ -6,12 +6,14 @@ It manages HTTP communication, request formatting, and response handling
 for NLU operations including intent detection and slot filling.
 """
 
-from typing import Dict, Any, Optional, List, Tuple
+from typing import Any
+
 import httpx
-from arklex.utils.slot import Slot
+
 from arklex.orchestrator.NLU.utils.validators import validate_intent_response
-from arklex.utils.logging_utils import LogContext, handle_exceptions
 from arklex.utils.exceptions import APIError, ValidationError
+from arklex.utils.logging_utils import LogContext, handle_exceptions
+from arklex.utils.slot import Slot
 
 log_context = LogContext(__name__)
 
@@ -92,12 +94,12 @@ class APIClientService:
                     "timeout": timeout,
                     "operation": "initialization",
                 },
-            )
+            ) from e
 
     @handle_exceptions()
     def _make_request(
-        self, endpoint: str, method: str, data: Optional[Dict[str, Any]] = None
-    ) -> Dict[str, Any]:
+        self, endpoint: str, method: str, data: dict[str, Any] | None = None
+    ) -> dict[str, Any]:
         """Make HTTP request to the API.
 
         Sends an HTTP request to the specified endpoint and processes
@@ -160,7 +162,7 @@ class APIClientService:
                     "status_code": getattr(e.response, "status_code", None),
                     "operation": "api_request",
                 },
-            )
+            ) from e
         except Exception as e:
             log_context.error(
                 "Unexpected error in API request",
@@ -179,15 +181,15 @@ class APIClientService:
                     "method": method,
                     "operation": "api_request",
                 },
-            )
+            ) from e
 
     @handle_exceptions()
     def predict_intent(
         self,
         text: str,
-        intents: Dict[str, List[Dict[str, Any]]],
+        intents: dict[str, list[dict[str, Any]]],
         chat_history_str: str,
-        model_config: Dict[str, Any],
+        model_config: dict[str, Any],
     ) -> str:
         """Predict intent from text.
 
@@ -239,8 +241,8 @@ class APIClientService:
 
     @handle_exceptions()
     def predict_slots(
-        self, text: str, slots: List[Slot], model_config: Dict[str, Any]
-    ) -> List[Slot]:
+        self, text: str, slots: list[Slot], model_config: dict[str, Any]
+    ) -> list[Slot]:
         """Predict slots from text.
 
         Sends a request to fill slots in the given text using the
@@ -262,14 +264,14 @@ class APIClientService:
             "Predicting slots",
             extra={
                 "text": text,
-                "slots": [slot.to_dict() for slot in slots],
+                "slots": [slot.model_dump() for slot in slots],
                 "operation": "slot_prediction",
             },
         )
 
         data = {
             "text": text,
-            "slots": [slot.to_dict() for slot in slots],
+            "slots": [slot.model_dump() for slot in slots],
             "model_config": model_config,
         }
         response = self._make_request("/slotfill/predict", HTTP_METHOD_POST, data)
@@ -277,7 +279,7 @@ class APIClientService:
         log_context.info(
             "Slot prediction successful",
             extra={
-                "slots": [slot.to_dict() for slot in result],
+                "slots": [slot.model_dump() for slot in result],
                 "operation": "slot_prediction",
             },
         )
@@ -285,8 +287,8 @@ class APIClientService:
 
     @handle_exceptions()
     def verify_slots(
-        self, text: str, slots: List[Slot], model_config: Dict[str, Any]
-    ) -> Tuple[bool, str]:
+        self, text: str, slots: list[Slot], model_config: dict[str, Any]
+    ) -> tuple[bool, str]:
         """Verify slots from text.
 
         Sends a request to verify the filled slots in the given text.
@@ -309,14 +311,14 @@ class APIClientService:
             "Verifying slots",
             extra={
                 "text": text,
-                "slots": [slot.to_dict() for slot in slots],
+                "slots": [slot.model_dump() for slot in slots],
                 "operation": "slot_verification",
             },
         )
 
         data = {
             "text": text,
-            "slots": [slot.to_dict() for slot in slots],
+            "slots": [slot.model_dump() for slot in slots],
             "model_config": model_config,
         }
         response = self._make_request("/slotfill/verify", HTTP_METHOD_POST, data)

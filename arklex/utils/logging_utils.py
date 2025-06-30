@@ -8,12 +8,15 @@ import asyncio
 import functools
 import logging
 import traceback
-from typing import Any, Callable, Dict, Optional, Type, Union
+from collections.abc import Callable
+from types import TracebackType
+from typing import Any, Optional
+
 from tenacity import (
     retry,
+    retry_if_exception_type,
     stop_after_attempt,
     wait_exponential,
-    retry_if_exception_type,
 )
 
 from arklex.utils.exceptions import ArklexError, RetryableError
@@ -59,7 +62,7 @@ LOG_MESSAGES = {
 class RequestIdFilter(logging.Filter):
     """Filter to add request ID to log records."""
 
-    def __init__(self, request_id: Optional[str] = None) -> None:
+    def __init__(self, request_id: str | None = None) -> None:
         """Initialize filter with request ID."""
         super().__init__()
         self.request_id = request_id
@@ -73,7 +76,7 @@ class RequestIdFilter(logging.Filter):
 class ContextFilter(logging.Filter):
     """Filter to add context to log records."""
 
-    def __init__(self, context: Optional[dict] = None) -> None:
+    def __init__(self, context: dict | None = None) -> None:
         """Initialize filter with context."""
         super().__init__()
         self.context = context or {}
@@ -90,10 +93,10 @@ class LogContext:
     def __init__(
         self,
         name: str,
-        level: Optional[str] = None,
-        base_context: Optional[Dict[str, Any]] = None,
-        log_format: Optional[str] = None,
-    ):
+        level: str | None = None,
+        base_context: dict[str, Any] | None = None,
+        log_format: str | None = None,
+    ) -> None:
         self.log_context = logging.getLogger(name)
         # Set the log level only if explicitly provided
         if level is not None:
@@ -109,27 +112,32 @@ class LogContext:
         """Enter context."""
         return self.log_context
 
-    def __exit__(self, exc_type, exc_val, exc_tb) -> None:
+    def __exit__(
+        self,
+        exc_type: type[BaseException] | None,
+        exc_val: BaseException | None,
+        exc_tb: TracebackType | None,
+    ) -> None:
         """Exit context."""
 
     @property
-    def name(self):
+    def name(self) -> str:
         return self.log_context.name
 
     @property
-    def level(self):
+    def level(self) -> int:
         return self.log_context.level
 
     @property
-    def handlers(self):
+    def handlers(self) -> list[logging.Handler]:
         return self.log_context.handlers
 
     @property
-    def propagate(self):
+    def propagate(self) -> bool:
         return self.log_context.propagate
 
     @propagate.setter
-    def propagate(self, value):
+    def propagate(self, value: bool) -> None:
         self.log_context.propagate = value
 
     @property
@@ -142,7 +150,7 @@ class LogContext:
         return None
 
     def _get_console_handler(
-        self, log_format: Optional[str] = None
+        self, log_format: str | None = None
     ) -> logging.StreamHandler:
         handler = logging.StreamHandler()
         handler.setFormatter(
@@ -150,14 +158,14 @@ class LogContext:
         )
         return handler
 
-    def setLevel(self, level: Union[str, int]) -> None:
+    def setLevel(self, level: str | int) -> None:
         """Set the log level for the log_context."""
         if isinstance(level, str):
             self.log_context.setLevel(getattr(logging, level))
         else:
             self.log_context.setLevel(level)
 
-    def _merge_extra(self, context: Optional[Dict[str, Any]], kwargs: dict) -> dict:
+    def _merge_extra(self, context: dict[str, Any] | None, kwargs: dict) -> dict:
         # Merge context and any extra fields from kwargs into a single extra dict
         extra = {"context": context or {}}
         # Remove 'extra' from kwargs if present and is a dict
@@ -171,41 +179,41 @@ class LogContext:
         return extra
 
     def info(
-        self, message: str, context: Optional[Dict[str, Any]] = None, **kwargs: Any
+        self, message: str, context: dict[str, Any] | None = None, **kwargs: object
     ) -> None:
         self.log_context.info(
             message, extra=self._merge_extra(context, kwargs), **kwargs
         )
 
     def debug(
-        self, message: str, context: Optional[Dict[str, Any]] = None, **kwargs: Any
+        self, message: str, context: dict[str, Any] | None = None, **kwargs: object
     ) -> None:
         self.log_context.debug(
             message, extra=self._merge_extra(context, kwargs), **kwargs
         )
 
     def warning(
-        self, message: str, context: Optional[Dict[str, Any]] = None, **kwargs: Any
+        self, message: str, context: dict[str, Any] | None = None, **kwargs: object
     ) -> None:
         self.log_context.warning(
             message, extra=self._merge_extra(context, kwargs), **kwargs
         )
 
     def error(
-        self, message: str, context: Optional[Dict[str, Any]] = None, **kwargs: Any
+        self, message: str, context: dict[str, Any] | None = None, **kwargs: object
     ) -> None:
         self.log_context.error(
             message, extra=self._merge_extra(context, kwargs), **kwargs
         )
 
     def critical(
-        self, message: str, context: Optional[Dict[str, Any]] = None, **kwargs: Any
+        self, message: str, context: dict[str, Any] | None = None, **kwargs: object
     ) -> None:
         self.log_context.critical(
             message, extra=self._merge_extra(context, kwargs), **kwargs
         )
 
-    def push_context(self, context: Dict[str, Any]) -> None:
+    def push_context(self, context: dict[str, Any]) -> None:
         pass
 
     def pop_context(self) -> None:
@@ -215,7 +223,7 @@ class LogContext:
 def handle_exceptions(
     *,
     reraise: bool = True,
-    default_error: Type[ArklexError] = ArklexError,
+    default_error: type[ArklexError] = ArklexError,
     log_level: str = "ERROR",
     include_stack_trace: bool = True,
 ) -> Callable:
@@ -234,7 +242,7 @@ def handle_exceptions(
 
     def decorator(func: Callable) -> Callable:
         @functools.wraps(func)
-        async def async_wrapper(*args: Any, **kwargs: Any) -> Any:
+        async def async_wrapper(*args: object, **kwargs: object) -> object:
             try:
                 return await func(*args, **kwargs)
             except ArklexError:
@@ -265,11 +273,11 @@ def handle_exceptions(
                             "error_type": type(e).__name__,
                             "module": func.__module__,
                         },
-                    )
+                    ) from e
                 return None
 
         @functools.wraps(func)
-        def sync_wrapper(*args: Any, **kwargs: Any) -> Any:
+        def sync_wrapper(*args: object, **kwargs: object) -> object:
             try:
                 return func(*args, **kwargs)
             except ArklexError:
@@ -300,7 +308,7 @@ def handle_exceptions(
                             "error_type": type(e).__name__,
                             "module": func.__module__,
                         },
-                    )
+                    ) from e
                 return None
 
         return async_wrapper if asyncio.iscoroutinefunction(func) else sync_wrapper
@@ -313,7 +321,7 @@ def with_retry(
     max_attempts: int = 3,
     min_wait: int = 1,
     max_wait: int = 10,
-    retry_on: Optional[Type[Exception]] = None,
+    retry_on: type[Exception] | None = None,
     include_stack_trace: bool = True,
 ) -> Callable:
     """Decorator for retrying operations with exponential backoff.
@@ -337,7 +345,7 @@ def with_retry(
             retry=retry_if_exception_type(retry_on or RetryableError),
         )
         @functools.wraps(func)
-        async def async_wrapper(*args: Any, **kwargs: Any) -> Any:
+        async def async_wrapper(*args: object, **kwargs: object) -> object:
             try:
                 return await func(*args, **kwargs)
             except Exception as e:
@@ -369,7 +377,7 @@ def with_retry(
             retry=retry_if_exception_type(retry_on or RetryableError),
         )
         @functools.wraps(func)
-        def sync_wrapper(*args: Any, **kwargs: Any) -> Any:
+        def sync_wrapper(*args: object, **kwargs: object) -> object:
             try:
                 return func(*args, **kwargs)
             except Exception as e:

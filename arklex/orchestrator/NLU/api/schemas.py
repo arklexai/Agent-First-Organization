@@ -11,7 +11,8 @@ The module includes:
 - Field validation and documentation
 """
 
-from typing import Dict, List, Any
+from typing import Any
+
 from pydantic import BaseModel, Field
 
 
@@ -30,13 +31,13 @@ class IntentRequest(BaseModel):
     """
 
     text: str = Field(..., description="Input text to analyze for intent detection")
-    intents: Dict[str, List[Dict[str, Any]]] = Field(
+    intents: dict[str, list[dict[str, Any]]] = Field(
         ..., description="Dictionary mapping intent names to their definitions"
     )
     chat_history_str: str = Field(
         ..., description="Formatted chat history providing context"
     )
-    model: Dict[str, Any] = Field(
+    model: dict[str, Any] = Field(
         ..., description="Configuration parameters for the language model"
     )
 
@@ -68,11 +69,11 @@ class SlotRequest(BaseModel):
         type: Type of slot filling operation (default: "chat")
     """
 
-    slots: List[Dict[str, Any]] = Field(
+    slots: list[dict[str, Any]] = Field(
         ..., description="List of slots to fill with their definitions"
     )
     context: str = Field(..., description="Input context to extract values from")
-    model: Dict[str, Any] = Field(
+    model: dict[str, Any] = Field(
         ..., description="Configuration parameters for the language model"
     )
     type: str = Field(default="chat", description="Type of slot filling operation")
@@ -91,13 +92,13 @@ class SlotVerificationRequest(BaseModel):
         model: Configuration parameters for the language model
     """
 
-    slot: Dict[str, Any] = Field(
+    slot: dict[str, Any] = Field(
         ..., description="The slot to verify with its current value"
     )
     chat_history_str: str = Field(
         ..., description="Formatted chat history providing context"
     )
-    model: Dict[str, Any] = Field(
+    model: dict[str, Any] = Field(
         ..., description="Configuration parameters for the language model"
     )
 

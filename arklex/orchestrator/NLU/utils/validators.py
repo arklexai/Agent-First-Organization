@@ -13,14 +13,14 @@ Key features:
 """
 
 import json
-from typing import Dict, List, Tuple
+
+from arklex.utils.logging_utils import LOG_MESSAGES, LogContext
 from arklex.utils.slot import Slot
-from arklex.utils.logging_utils import LogContext, LOG_MESSAGES
 
 log_context = LogContext(__name__)
 
 
-def validate_intent_response(response: str, idx2intents_mapping: Dict[str, str]) -> str:
+def validate_intent_response(response: str, idx2intents_mapping: dict[str, str]) -> str:
     """Validate and process intent detection response.
 
     This function validates and processes the raw response from an intent
@@ -65,7 +65,7 @@ def validate_intent_response(response: str, idx2intents_mapping: Dict[str, str])
         return "others"
 
 
-def validate_slot_response(response: str, slots: List[Slot]) -> List[Slot]:
+def validate_slot_response(response: str, slots: list[Slot]) -> list[Slot]:
     """Validate and process slot filling response.
 
     This function validates and processes the raw response from a slot
@@ -128,7 +128,7 @@ def validate_slot_response(response: str, slots: List[Slot]) -> List[Slot]:
         return slots
 
 
-def validate_verification_response(response: str) -> Tuple[bool, str]:
+def validate_verification_response(response: str) -> tuple[bool, str]:
     """Validate and process slot verification response.
 
     This function validates and processes the raw response from a slot

@@ -4,7 +4,7 @@ Formats task definitions into graph structure with nodes, edges, and metadata.
 Handles LLM-based intent generation and nested graph connectivity.
 """
 
-from typing import Dict, Any, List, Optional, Tuple
+from typing import Any
 
 from arklex.utils.logging_utils import LogContext
 
@@ -41,21 +41,22 @@ class TaskGraphFormatter:
         builder_objective: str = "",
         domain: str = "",
         intro: str = "",
-        task_docs: Optional[List[Dict[str, Any]]] = None,
-        rag_docs: Optional[List[Dict[str, Any]]] = None,
-        workers: Optional[List[Dict[str, Any]]] = None,
-        tools: Optional[List[Dict[str, Any]]] = None,
+        task_docs: list[dict[str, Any]] | None = None,
+        rag_docs: list[dict[str, Any]] | None = None,
+        workers: list[dict[str, Any]] | None = None,
+        tools: list[dict[str, Any]] | None = None,
         nluapi: str = "",
         slotfillapi: str = "",
-        default_intent: Optional[str] = None,
+        default_intent: str | None = None,
         default_weight: int = 1,
         default_pred: bool = False,
         default_definition: str = "",
-        default_sample_utterances: Optional[List[str]] = None,
-        nodes: Optional[List[Any]] = None,
-        edges: Optional[List[Any]] = None,
+        default_sample_utterances: list[str] | None = None,
+        nodes: list[Any] | None = None,
+        edges: list[Any] | None = None,
         allow_nested_graph: bool = True,
-        model: Optional[Any] = None,
+        model: object | None = None,
+        settings: dict[str, Any] | None = None,
     ) -> None:
         """Initialize the TaskGraphFormatter.
 
@@ -80,6 +81,7 @@ class TaskGraphFormatter:
             edges (Optional[List[Any]]): List of edges
             allow_nested_graph (bool): Whether to allow nested graph generation
             model (Optional[Any]): Language model for intent generation
+            settings (Optional[Dict[str, Any]]): Additional configuration settings
         """
         self._role = role
         self._user_objective = user_objective
@@ -101,8 +103,9 @@ class TaskGraphFormatter:
         self._edges = edges
         self._allow_nested_graph = allow_nested_graph
         self._model = model
+        self._settings = settings
 
-    def _find_worker_by_name(self, worker_name: str) -> Dict[str, str]:
+    def _find_worker_by_name(self, worker_name: str) -> dict[str, str]:
         """Get worker info from name, with fallback mappings.
 
         Args:
@@ -135,7 +138,7 @@ class TaskGraphFormatter:
             worker_name, {"id": worker_name.lower(), "name": worker_name}
         )
 
-    def format_task_graph(self, tasks: List[Dict[str, Any]]) -> Dict[str, Any]:
+    def format_task_graph(self, tasks: list[dict[str, Any]]) -> dict[str, Any]:
         """Format tasks into complete graph structure with nodes, edges, and metadata.
 
         Args:
@@ -162,7 +165,8 @@ class TaskGraphFormatter:
                 target_node_id = None
                 for edge in edges:
                     if edge[0] == node_id:  # This edge starts from the NestedGraph node
-                        potential_target = edge[1]  # The target is the second element
+                        # The target is the second element
+                        potential_target = edge[1]
                         # Don't point to node "0" (start node)
                         if potential_target != "0":
                             target_node_id = potential_target
@@ -218,12 +222,13 @@ class TaskGraphFormatter:
             "nluapi": self._nluapi,
             "slotfillapi": self._slotfillapi,
             "reusable_tasks": reusable_tasks,
+            "settings": self._settings,
         }
 
         # Ensure nested graphs are connected correctly as sequential steps
         return self.ensure_nested_graph_connectivity(graph)
 
-    def _format_nodes(self, tasks: List[Dict]) -> Tuple[List, Dict, List]:
+    def _format_nodes(self, tasks: list[dict]) -> tuple[list, dict, list]:
         """Create nodes for start, tasks, and steps with worker assignments.
 
         Args:
@@ -391,12 +396,12 @@ class TaskGraphFormatter:
 
     def _create_edge_attributes(
         self,
-        intent: Optional[str] = None,
+        intent: str | None = None,
         weight: int = 1,
         pred: bool = False,
         definition: str = "",
-        sample_utterances: Optional[List[str]] = None,
-    ) -> Dict[str, Any]:
+        sample_utterances: list[str] | None = None,
+    ) -> dict[str, Any]:
         """Create edge attributes with intent and metadata.
 
         Args:
@@ -421,11 +426,11 @@ class TaskGraphFormatter:
 
     def _format_edges(
         self,
-        tasks: List[Dict[str, Any]],
-        node_lookup: Dict[str, str],
-        all_task_node_ids: List[str],
+        tasks: list[dict[str, Any]],
+        node_lookup: dict[str, str],
+        all_task_node_ids: list[str],
         start_node_id: str,
-    ) -> Tuple[List[Any], List[Any]]:
+    ) -> tuple[list[Any], list[Any]]:
         """Create edges between nodes with LLM-generated intents.
 
         Args:
@@ -514,7 +519,24 @@ class TaskGraphFormatter:
                 else:
                     # This handles dependencies between tasks.
                     for dep in dependencies:
-                        dep_id = dep if isinstance(dep, str) else dep.get("id")
+                        # Handle edge cases where dependency is None or not a string/dict
+                        if dep is None:
+                            log_context.warning("Skipping None dependency")
+                            continue
+                        elif isinstance(dep, str):
+                            dep_id = dep
+                        elif isinstance(dep, dict):
+                            dep_id = dep.get("id")
+                            if dep_id is None:
+                                log_context.warning(
+                                    "Skipping dependency dict without 'id' field"
+                                )
+                                continue
+                        else:
+                            log_context.warning(
+                                f"Skipping invalid dependency type: {type(dep)}"
+                            )
+                            continue
 
                         # Find the source task from the list of tasks
                         source_task = next(
@@ -583,7 +605,7 @@ class TaskGraphFormatter:
 
         return edges, nested_graph_nodes
 
-    def ensure_nested_graph_connectivity(self, graph: Dict[str, Any]) -> Dict[str, Any]:
+    def ensure_nested_graph_connectivity(self, graph: dict[str, Any]) -> dict[str, Any]:
         """Ensures that all nested graph nodes are properly connected as sequential steps.
 
         This method finds all 'NestedGraph' nodes and connects them to the
@@ -627,7 +649,7 @@ class TaskGraphFormatter:
 
             steps = task.get("steps", [])
             step_index = -1
-            for i, step in enumerate(steps):
+            for i, _step in enumerate(steps):
                 step_node_id = f"{task_id}_step{i}"
                 if step_node_id == ng_node_id:
                     step_index = i
@@ -646,7 +668,7 @@ class TaskGraphFormatter:
                         ng_node_id,
                         next_step_node_id,
                         self._create_edge_attributes(
-                            definition=f"Continue to next step from nested graph"
+                            definition="Continue to next step from nested graph"
                         ),
                     ]
                 )

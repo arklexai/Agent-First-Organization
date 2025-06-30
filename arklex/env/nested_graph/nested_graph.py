@@ -1,6 +1,7 @@
-from typing import List, Tuple, Callable, Any, Optional
-from arklex.utils.graph_state import NodeInfo, Params, PathNode, StatusEnum
+from collections.abc import Callable
+from typing import Any
 
+from arklex.utils.graph_state import NodeInfo, Params, PathNode, StatusEnum
 
 NESTED_GRAPH_ID: str = "nested_graph"
 
@@ -27,7 +28,7 @@ class NestedGraph:
     @staticmethod
     def get_nested_graph_component_node(
         params: Params, is_leaf_func: Callable[[Any], bool]
-    ) -> Tuple[Optional[PathNode], Params]:
+    ) -> tuple[PathNode | None, Params]:
         """
         If in nested subgraph, locate and return the nested graph resource node
         If leaf in main graph, return current node
@@ -51,21 +52,21 @@ class NestedGraph:
 
         def _get_nested_graph_component_node(
             node_i: int, params: Params
-        ) -> Tuple[int, Params]:
+        ) -> tuple[int, Params]:
             """
             if node is in nested graph, return path index of nested graph resource node, params and update path
             if node in main graph, return -1, params
             """
-            path: List[PathNode] = params.taskgraph.path
+            path: list[PathNode] = params.taskgraph.path
             cur_node_i: int = node_i
-            prev_node_id: Optional[str] = None
+            prev_node_id: str | None = None
             while cur_node_i >= 0:
                 if path[cur_node_i].nested_graph_leaf_jump is not None:
                     cur_node_i = path[cur_node_i].nested_graph_leaf_jump
 
                 cur_node: PathNode = path[cur_node_i]
                 cur_node_id: str = cur_node.node_id
-                to_node_id: Optional[str] = cur_node.nested_graph_node_value
+                to_node_id: str | None = cur_node.nested_graph_node_value
                 if to_node_id is not None and to_node_id == prev_node_id:
                     params.taskgraph.node_status[cur_node_id] = StatusEnum.COMPLETE
                     params.taskgraph.path[node_i].nested_graph_leaf_jump = cur_node_i
@@ -75,7 +76,7 @@ class NestedGraph:
 
             return -1, params
 
-        path: List[PathNode] = params.taskgraph.path
+        path: list[PathNode] = params.taskgraph.path
         cur_node_i: int = len(path) - 1
         while cur_node_i >= 0:
             nested_graph_next_node_path_i: int

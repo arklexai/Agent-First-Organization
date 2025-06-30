@@ -12,8 +12,8 @@ Module Name: get_refresh_token
 This file contains the code for getting the refresh token of a customer through the Auth process.
 """
 
+from arklex.env.tools.shopify.auth import authenticate
 from arklex.env.tools.tools import register_tool
-from arklex.env.tools.shopify.auth import *
 
 description = "Get refresh token of customer through the Auth process."
 slots = []

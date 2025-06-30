@@ -4,17 +4,36 @@ This module provides functionality for human-in-the-loop interactions, including
 slot filling and verification with human oversight.
 """
 
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any, TypedDict
 
-from langgraph.graph import StateGraph, START
+from langgraph.graph import START, StateGraph
 
+from arklex.env.workers.utils.chat_client import ChatClient
 from arklex.env.workers.worker import BaseWorker, register_worker
 from arklex.orchestrator.NLU.core.slot import SlotFiller
 from arklex.utils.graph_state import MessageState, StatusEnum
-from arklex.env.workers.utils.chat_client import ChatClient
 from arklex.utils.logging_utils import LogContext
 
 log_context = LogContext(__name__)
+
+
+class HITLWorkerKwargs(TypedDict, total=False):
+    """Type definition for kwargs used in HITLWorker.__init__ method."""
+
+    name: str
+    server_ip: str
+    server_port: int
+    mode: str
+    params: dict[str, Any]
+    verifier: list[str]
+    slot_fill_api: SlotFiller
+
+
+class HITLWorkerExecuteKwargs(TypedDict, total=False):
+    """Type definition for kwargs used in HITLWorker._execute method."""
+
+    # Add specific execution parameters as needed
+    pass
 
 
 # @register_worker
@@ -30,24 +49,24 @@ class HITLWorker(BaseWorker):
     """
 
     description: str = "This is a template for a HITL worker."
-    mode: Optional[str] = None
-    params: Optional[Dict[str, Any]] = None
-    verifier: List[str] = []
+    mode: str | None = None
+    params: dict[str, Any] | None = None
+    verifier: list[str] = []
 
-    slot_fill_api: Optional[SlotFiller] = None
+    slot_fill_api: SlotFiller | None = None
 
-    # def __init__(self, server_ip: str, server_port: int, name: str):
-    def __init__(self, **kwargs: Any) -> None:
-        """Initialize the HITL worker.
-
-        Args:
-            **kwargs: Keyword arguments for initializing the worker
-        """
-        super().__init__(**kwargs)
-
+    def __init__(self, **kwargs: HITLWorkerKwargs) -> None:
+        # Initialize attributes from kwargs
+        self.name = kwargs.get("name")
+        self.server_ip = kwargs.get("server_ip")
+        self.server_port = kwargs.get("server_port")
+        self.mode = kwargs.get("mode", self.mode)
+        self.params = kwargs.get("params", self.params)
+        self.verifier = kwargs.get("verifier", self.verifier)
+        self.slot_fill_api = kwargs.get("slot_fill_api", self.slot_fill_api)
         self.action_graph: StateGraph = self._create_action_graph()
 
-    def verify_literal(self, state: MessageState) -> Tuple[bool, str]:
+    def verify_literal(self, state: MessageState) -> tuple[bool, str]:
         """Override this method to allow verification on the message, either orchestrator's message or user's message
         Case: user's message
         Before the bot generate the response for the user's query, the framework decide whether it need to call human for the help because the user directly request so
@@ -62,11 +81,11 @@ class HITLWorker(BaseWorker):
         """
         return True, ""
 
-    def verify_slots(self, message: Any) -> Tuple[bool, str]:
+    def verify_slots(self, message: dict[str, Any]) -> tuple[bool, str]:
         """Override this method to allow verification on the slots"""
         return True, ""
 
-    def verify(self, state: MessageState) -> Tuple[bool, str]:
+    def verify(self, state: MessageState) -> tuple[bool, str]:
         """Override this method to allow advanced verification on MessageState object"""
         need_hitl: bool
         message_literal: str
@@ -80,7 +99,7 @@ class HITLWorker(BaseWorker):
 
         return False, ""
 
-    def init_slot_filler(self, slot_fill_api: Any) -> None:
+    def init_slot_filler(self, slot_fill_api: SlotFiller) -> None:
         """Initialize the slot filling API.
 
         Args:
@@ -120,7 +139,7 @@ class HITLWorker(BaseWorker):
 
     def hitl(self, state: MessageState) -> str:
         """Human in the loop function"""
-        result: Optional[str] = None
+        result: str | None = None
         match self.mode:
             case "chat":
                 chat_result: MessageState = self.chat(state)
@@ -170,13 +189,19 @@ class HITLWorker(BaseWorker):
         workflow.add_edge(START, "hitl")
         return workflow
 
-    def _execute(self, state: MessageState, **kwargs: Any) -> MessageState:
+    def _execute(
+        self, state: MessageState, **kwargs: HITLWorkerExecuteKwargs
+    ) -> MessageState:
         if not self.verify(state):
             return self.error(state)
 
         graph = self.action_graph.compile()
         result: MessageState = graph.invoke(state)
         return result
+
+    def error(self, state: MessageState) -> MessageState:
+        state.status = StatusEnum.INCOMPLETE
+        return state
 
 
 @register_worker
@@ -194,17 +219,21 @@ class HITLWorkerTestChat(HITLWorker):
         _type_: _description_
     """
 
-    description: str = "Chat with a real end user"
+    description: str = "This worker is designed to start live chat locally"
     mode: str = "chat"
 
-    def __init__(self, **kwargs: Any) -> None:
-        super().__init__(**kwargs)
-        self.server_ip: Optional[str] = kwargs.get("server_ip")
-        self.server_port: Optional[int] = kwargs.get("server_port")
-        self.name: Optional[str] = kwargs.get("name")
-
+    def __init__(self, **kwargs: HITLWorkerKwargs) -> None:
+        # Initialize attributes from kwargs
+        self.name = kwargs.get("name")
+        self.server_ip = kwargs.get("server_ip")
+        self.server_port = kwargs.get("server_port")
+        self.mode = kwargs.get("mode", self.mode)
+        self.params = kwargs.get("params", self.params)
+        self.verifier = kwargs.get("verifier", self.verifier)
+        self.slot_fill_api = kwargs.get("slot_fill_api", self.slot_fill_api)
         if not self.server_ip or not self.server_port:
             raise ValueError("Server IP and Port are required")
+        self.action_graph: StateGraph = self._create_action_graph()
 
     def verify_literal(self, message: str) -> bool:
         return "chat" in message
@@ -224,7 +253,7 @@ class HITLWorkerTestMC(HITLWorker):
 
     description: str = "Get confirmation from a real end user in purchasing"
     mode: str = "mc"
-    params: Dict[str, Any] = {
+    params: dict[str, Any] = {
         "intro": "Should the user continue with this purchase? (Y/N)",
         "max_retries": 5,
         "default": "User is not allowed to continue with the purchase",
@@ -234,11 +263,18 @@ class HITLWorkerTestMC(HITLWorker):
         },
     }
 
-    def __init__(self, **kwargs: Any) -> None:
-        super().__init__(**kwargs)
-        self.server_ip: Optional[str] = kwargs.get("server_ip")
-        self.server_port: Optional[int] = kwargs.get("server_port")
-        self.name: Optional[str] = kwargs.get("name")
+    def __init__(self, **kwargs: HITLWorkerKwargs) -> None:
+        # Initialize attributes from kwargs
+        self.name = kwargs.get("name")
+        self.server_ip = kwargs.get("server_ip")
+        self.server_port = kwargs.get("server_port")
+        self.mode = kwargs.get("mode", self.mode)
+        self.params = kwargs.get("params", self.params)
+        self.verifier = kwargs.get("verifier", self.verifier)
+        self.slot_fill_api = kwargs.get("slot_fill_api", self.slot_fill_api)
+        if not self.server_ip or not self.server_port:
+            raise ValueError("Server IP and Port are required")
+        self.action_graph: StateGraph = self._create_action_graph()
 
     def verify_literal(self, message: str) -> bool:
         return "buy" in message
@@ -259,7 +295,7 @@ class HITLWorkerChatFlag(HITLWorker):
     description: str = "Human in the loop worker"
     mode: str = "chat"
 
-    def verify_literal(self, state: MessageState) -> Tuple[bool, str]:
+    def verify_literal(self, state: MessageState) -> tuple[bool, str]:
         """TODO: Implement orchestrator message handling for HITL worker
         This method is to check the message from the user, since in the NLU, we already determine that the user wants to chat with the human in the loop.
 
@@ -273,7 +309,9 @@ class HITLWorkerChatFlag(HITLWorker):
 
         return True, message
 
-    def _execute(self, state: MessageState, **kwargs: Any) -> MessageState:
+    def _execute(
+        self, state: MessageState, **kwargs: HITLWorkerExecuteKwargs
+    ) -> MessageState:
         if not state.metadata.hitl:
             need_hitl: bool
             message: str
@@ -281,9 +319,7 @@ class HITLWorkerChatFlag(HITLWorker):
             if not need_hitl:
                 return self.fallback(state)
 
-            state.response = (
-                "[[sending confirmation : this should not show up for user]]"
-            )
+            state.message_flow = message
             state.metadata.hitl = "live"
             state.status = StatusEnum.STAY
 
@@ -311,7 +347,7 @@ class HITLWorkerMCFlag(HITLWorker):
 
     description: str = "Get confirmation from a real end user in purchasing"
     mode: str = "mc"
-    params: Dict[str, Any] = {
+    params: dict[str, Any] = {
         "intro": "Should the user continue with this purchase? (Y/N)",
         "max_retries": 5,
         "default": "User is not allowed to continue with the purchase",
@@ -324,7 +360,9 @@ class HITLWorkerMCFlag(HITLWorker):
     def verify_literal(self, message: str) -> bool:
         return "buy" in message
 
-    def _execute(self, state: MessageState, **kwargs: Any) -> MessageState:
+    def _execute(
+        self, state: MessageState, **kwargs: HITLWorkerExecuteKwargs
+    ) -> MessageState:
         if not state.metadata.hitl:
             need_hitl: bool
             _: str
@@ -340,7 +378,7 @@ class HITLWorkerMCFlag(HITLWorker):
             state.status = StatusEnum.STAY
 
         else:
-            result: Optional[str] = self.params["choices"].get(
+            result: str | None = self.params["choices"].get(
                 state.user_message.message
             )  # not actually user message but system confirmation
 

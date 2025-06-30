@@ -11,12 +11,13 @@ Key Features:
 - Support for task and instruction documents
 """
 
-from typing import Dict, Any, Union
-from pathlib import Path
-import json
-import requests
-import os
 import hashlib
+import json
+import os
+from pathlib import Path
+from typing import Any
+
+import requests
 from bs4 import BeautifulSoup
 
 from arklex.orchestrator.generator.docs.document_validator import DocumentValidator
@@ -37,10 +38,10 @@ class DocumentLoader:
         """
         self._cache_dir = cache_dir
         self._validate_documents = validate_documents
-        self._cache: Dict[str, Dict[str, Any]] = {}
+        self._cache: dict[str, dict[str, Any]] = {}
         self._validator = DocumentValidator()
 
-    def load_document(self, doc_path: Path) -> Dict[str, Any]:
+    def load_document(self, doc_path: Path) -> dict[str, Any]:
         """Load a document from file.
 
         Args:
@@ -61,19 +62,18 @@ class DocumentLoader:
             if hasattr(doc_path, "read_text"):
                 content = doc_path.read_text()
             else:
-                with open(doc_path, "r") as f:
+                with open(doc_path) as f:
                     content = f.read()
             document = json.loads(content)
         except json.JSONDecodeError as e:
             raise json.JSONDecodeError(
                 f"Invalid JSON in document: {doc_path}", e.doc, e.pos
-            )
-        if self._validate_documents:
-            if not self.validate_document(document):
-                raise ValueError(f"Invalid document structure: {doc_path}")
+            ) from e
+        if self._validate_documents and not self.validate_document(document):
+            raise ValueError(f"Invalid document structure: {doc_path}")
         return document
 
-    def load_task_document(self, doc_path: Union[Path, str]) -> Dict[str, Any]:
+    def load_task_document(self, doc_path: Path | str) -> dict[str, Any]:
         """Load a task document.
 
         Args:
@@ -111,7 +111,7 @@ class DocumentLoader:
             if hasattr(doc_path, "read_text"):
                 content = doc_path.read_text()
             else:
-                with open(doc_path, "r") as f:
+                with open(doc_path) as f:
                     content = f.read()
             try:
                 document = json.loads(content)
@@ -130,13 +130,13 @@ class DocumentLoader:
                 except Exception as e:
                     raise ValueError(
                         f"Content at {doc_path} is neither valid JSON nor parseable HTML. Error: {e}"
-                    )
+                    ) from e
             self._cache[cache_key] = document
         if not self._validate_task_document(document):
             raise ValueError(f"Invalid task document structure: {doc_path}")
         return document
 
-    def load_instruction_document(self, doc_path: Path) -> Dict[str, Any]:
+    def load_instruction_document(self, doc_path: Path) -> dict[str, Any]:
         """Load an instruction document.
 
         Args:
@@ -157,7 +157,7 @@ class DocumentLoader:
             if hasattr(doc_path, "read_text"):
                 content = doc_path.read_text()
             else:
-                with open(doc_path, "r") as f:
+                with open(doc_path) as f:
                     content = f.read()
             document = json.loads(content)
             self._cache[str(doc_path)] = document
@@ -165,7 +165,7 @@ class DocumentLoader:
             raise ValueError(f"Invalid instruction document structure: {doc_path}")
         return document
 
-    def cache_document(self, doc_path: Path, document: Dict[str, Any]) -> None:
+    def cache_document(self, doc_path: Path, document: dict[str, Any]) -> None:
         """Cache a document.
 
         Args:
@@ -174,7 +174,7 @@ class DocumentLoader:
         """
         self._cache[str(doc_path)] = document
 
-    def validate_document(self, document: Dict[str, Any]) -> bool:
+    def validate_document(self, document: dict[str, Any]) -> bool:
         """Validate document structure.
 
         Args:
@@ -201,7 +201,7 @@ class DocumentLoader:
                 return False
         return True
 
-    def _validate_task_document(self, document: Dict[str, Any]) -> bool:
+    def _validate_task_document(self, document: dict[str, Any]) -> bool:
         """Validate task document structure.
 
         Args:
@@ -228,7 +228,7 @@ class DocumentLoader:
                 return False
         return True
 
-    def _validate_instruction_document(self, document: Dict[str, Any]) -> bool:
+    def _validate_instruction_document(self, document: dict[str, Any]) -> bool:
         """Validate instruction document structure.
 
         Args:

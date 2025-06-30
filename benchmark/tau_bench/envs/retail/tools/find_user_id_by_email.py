@@ -1,12 +1,11 @@
-# Copyright Sierra
+from typing import Any
 
-from typing import Any, Dict
 from benchmark.tau_bench.envs.tool import Tool
 
 
 class FindUserIdByEmail(Tool):
     @staticmethod
-    def invoke(data: Dict[str, Any], email: str) -> str:
+    def invoke(data: dict[str, Any], email: str) -> str:
         users = data["users"]
         for user_id, profile in users.items():
             if profile["email"].lower() == email.lower():
@@ -14,7 +13,7 @@ class FindUserIdByEmail(Tool):
         raise Exception("Error: user not found")
 
     @staticmethod
-    def get_info() -> Dict[str, Any]:
+    def get_info() -> dict[str, Any]:
         return {
             "type": "function",
             "function": {

@@ -36,5 +36,6 @@
             "path": "search_worker.py"
         }
     ],
-    "tools": []
+    "tools": [],
+    "settings": {}
 }

@@ -6,28 +6,27 @@ This module implements a tool for checking the availability of representatives u
 
 import json
 from datetime import datetime
-from typing import Dict, Any, List, Optional, Tuple, Set
+from typing import Any
 
 import hubspot
 import pytz
 from hubspot import HubSpot
 
 from arklex.env.tools.hubspot.utils import authenticate_hubspot
+from arklex.env.tools.tools import register_tool
 from arklex.utils.logging_utils import LogContext
 
 log_context = LogContext(__name__)
 
 description: str = "Check the availability of any representative from Husbspot calendar. If you are not sure any information, please ask users to confirm in response."
 
-slots: List[Dict[str, Any]] = [
+slots: list[dict[str, Any]] = [
     {
         "name": "start_time",
         "type": "str",
         "required": True,
         "prompt": "Could you please provide when you want to meet with the representative?",
-        "description": "The start time that the meeting will take place. The meeting's start time includes the hour, as the date alone is not sufficient. The format should be 'YYYY-MM-DDTHH:MM:SS'. Today is {today}.".format(
-            today=datetime.now().isoformat()
-        ),
+        "description": f"The start time that the meeting will take place. The meeting's start time includes the hour, as the date alone is not sufficient. The format should be 'YYYY-MM-DDTHH:MM:SS'. Today is {datetime.now().isoformat()}.",
     },
     {
         "name": "duration",
@@ -48,7 +47,7 @@ slots: List[Dict[str, Any]] = [
 ]
 
 
-outputs: List[Dict[str, Any]] = [
+outputs: list[dict[str, Any]] = [
     {
         "name": "meeting_info",
         "type": "dict",
@@ -56,12 +55,12 @@ outputs: List[Dict[str, Any]] = [
     }
 ]
 
-errors: List[str] = []
+errors: list[str] = []
 
 
 @register_tool(description, slots, outputs)
 def check_availability(
-    timezone: str, duration: int, start_time: str, **kwargs: Dict[str, Any]
+    timezone: str, duration: int, start_time: str, **kwargs: dict[str, Any]
 ) -> str:
     access_token: str = authenticate_hubspot(kwargs)
     api_client: hubspot.Client = hubspot.Client.create(access_token=access_token)
@@ -81,11 +80,11 @@ def check_availability(
     if not (slugs := get_all_slugs(api_client)):
         return "error: no meeting links found. there are no representatives available for meetings."
 
-    all_alternate_times: List[Tuple[datetime, str]] = []
+    all_alternate_times: list[tuple[datetime, str]] = []
 
     for slug in slugs:
         is_available: bool
-        alternates: Optional[List[datetime]]
+        alternates: list[datetime] | None
         is_available, alternates = check_slug_availability(
             api_client, slug, start_time_dt, duration_ms, timezone
         )
@@ -108,7 +107,7 @@ def check_availability(
                 all_alternate_times.append((alternate_time, slug))
 
     if all_alternate_times:
-        unique_times: Set[Tuple[datetime, str]] = sorted(set(all_alternate_times))
+        unique_times: set[tuple[datetime, str]] = sorted(set(all_alternate_times))
         return json.dumps(
             {
                 "status": "alternate times available",
@@ -125,7 +124,7 @@ def check_availability(
     )
 
 
-def summarize_time_slots(times: List[Tuple[datetime, str]]) -> List[Dict[str, str]]:
+def summarize_time_slots(times: list[tuple[datetime, str]]) -> list[dict[str, str]]:
     """Summarize a list of time slots by grouping consecutive slots together.
 
     Args:
@@ -138,8 +137,8 @@ def summarize_time_slots(times: List[Tuple[datetime, str]]) -> List[Dict[str, st
         return []
 
     # Sort times to ensure proper grouping
-    sorted_times: List[Tuple[datetime, str]] = sorted(times, key=lambda x: x[0])
-    ranges: List[Dict[str, str]] = []
+    sorted_times: list[tuple[datetime, str]] = sorted(times, key=lambda x: x[0])
+    ranges: list[dict[str, str]] = []
     current_start: datetime
     current_slug: str
     current_start, current_slug = sorted_times[0]
@@ -175,7 +174,7 @@ def summarize_time_slots(times: List[Tuple[datetime, str]]) -> List[Dict[str, st
     return ranges
 
 
-def get_all_slugs(api_client: HubSpot) -> List[str]:
+def get_all_slugs(api_client: HubSpot) -> list[str]:
     """Get all slugs from the HubSpot API."""
     try:
         response: Any = api_client.api_request(
@@ -185,7 +184,7 @@ def get_all_slugs(api_client: HubSpot) -> List[str]:
                 "headers": {"Content-Type": "application/json"},
             }
         )
-        response: Dict[str, Any] = response.json()
+        response: dict[str, Any] = response.json()
         return [link["slug"] for link in response["results"]]
     except Exception as e:
         log_context.error(f"Error getting slugs: {e}")
@@ -198,8 +197,8 @@ def check_slug_availability(
     start_time: datetime,
     duration: int,
     timezone: str,
-) -> Tuple[bool, Optional[List[datetime]]]:
-    alternate_times_on_same_day: List[datetime] = []
+) -> tuple[bool, list[datetime] | None]:
+    alternate_times_on_same_day: list[datetime] = []
     month_offset: int = 0
     has_more: bool = True
 
@@ -213,13 +212,13 @@ def check_slug_availability(
                     "qs": {"timezone": timezone, "monthOffset": month_offset},
                 }
             )
-            res: Dict[str, Any] = res.json()
+            res: dict[str, Any] = res.json()
 
             if res.get("status") == "error":
                 log_context.error(f"Error getting availability: {res}")
                 return False, []
 
-            availabilities: List[Dict[str, Any]] = res["linkAvailability"][
+            availabilities: list[dict[str, Any]] = res["linkAvailability"][
                 "linkAvailabilityByDuration"
             ][str(duration)]["availabilities"]
             has_more: bool = res["linkAvailability"].get("hasMore", False)

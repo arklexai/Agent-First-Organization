@@ -4,18 +4,20 @@ Tool for finding available meeting times for a representative via HubSpot in the
 This module provides a tool for retrieving available meeting slots for a specific representative using the HubSpot API. It is designed for use within the Arklex tool system and supports slot extraction and time zone management.
 """
 
-from datetime import datetime, timezone
-import inspect
-import pytz
 import calendar
+import inspect
+from datetime import datetime, timezone
+from typing import Any
+
 import hubspot
 import parsedatetime
-from typing import Dict, Any, List, Optional
+import pytz
 from hubspot.crm.objects.meetings import ApiException
-from arklex.env.tools.tools import register_tool
-from arklex.env.tools.hubspot.utils import authenticate_hubspot
-from arklex.utils.exceptions import ToolExecutionError
+
 from arklex.env.tools.hubspot._exception_prompt import HubspotExceptionPrompt
+from arklex.env.tools.hubspot.utils import authenticate_hubspot
+from arklex.env.tools.tools import register_tool
+from arklex.utils.exceptions import ToolExecutionError
 from arklex.utils.logging_utils import LogContext
 
 log_context = LogContext(__name__)
@@ -24,7 +26,7 @@ log_context = LogContext(__name__)
 description: str = "Give the customer that the unavailable time of the specific representative and the representative's related meeting link information."
 
 # List of required parameters for the tool
-slots: List[Dict[str, Any]] = [
+slots: list[dict[str, Any]] = [
     {
         "name": "owner_id",
         "type": "int",
@@ -64,7 +66,7 @@ slots: List[Dict[str, Any]] = [
 ]
 
 # List of output parameters for the tool
-outputs: List[Dict[str, Any]] = [
+outputs: list[dict[str, Any]] = [
     {
         "name": "meeting_info",
         "type": "dict",
@@ -79,7 +81,7 @@ def check_available(
     time_zone: str,
     meeting_date: str,
     duration: int,
-    **kwargs: Dict[str, Any],
+    **kwargs: dict[str, Any],
 ) -> str:
     """
     Check available meeting times for a specific representative.
@@ -109,7 +111,7 @@ def check_available(
                 "headers": {"Content-Type": "application/json"},
             }
         )
-        meeting_link_response: Dict[str, Any] = meeting_link_response.json()
+        meeting_link_response: dict[str, Any] = meeting_link_response.json()
         if meeting_link_response.get("status") == "error" or meeting_link_response.get(
             "error"
         ):
@@ -130,7 +132,7 @@ def check_available(
                 )
             else:
                 # Extract the corresponsing link of the specific user
-                meeting_links_ls: List[Dict[str, Any]] = [
+                meeting_links_ls: list[dict[str, Any]] = [
                     item
                     for item in meeting_link_response.get("results")
                     if item.get("organizerUserId") == str(owner_id)
@@ -138,7 +140,7 @@ def check_available(
 
                 # Get the first link of someone
                 if len(meeting_links_ls) != 0:
-                    meeting_links: Dict[str, Any] = meeting_links_ls[0]
+                    meeting_links: dict[str, Any] = meeting_links_ls[0]
                 else:
                     # The length is 0, then raise error
                     log_context.error(
@@ -167,26 +169,26 @@ def check_available(
                     "qs": {"timezone": time_zone, "monthOffset": month_offset},
                 }
             )
-            availability_response: Dict[str, Any] = availability_response.json()
+            availability_response: dict[str, Any] = availability_response.json()
             duration_ms: str = str(duration * 60 * 1000)
-            availability: Dict[str, Any] = (
+            availability: dict[str, Any] = (
                 availability_response.get("linkAvailability", {})
                 .get("linkAvailabilityByDuration", {})
                 .get(duration_ms, {})
             )
-            slots: List[Dict[str, Any]] = availability.get("availabilities", [])
+            slots: list[dict[str, Any]] = availability.get("availabilities", [])
             time_zone: pytz.BaseTzInfo = pytz.timezone(time_zone)
 
-            ab_times: List[Dict[str, int]] = []
+            ab_times: list[dict[str, int]] = []
 
             for slot in slots:
                 start_ts: int = slot["startMillisUtc"]
                 end_ts: int = slot["endMillisUtc"]
 
                 ab_times.append({"start": start_ts, "end": end_ts})
-            same_dt_info: Dict[str, List[Dict[str, str]]] = {"available_time_slots": []}
+            same_dt_info: dict[str, list[dict[str, str]]] = {"available_time_slots": []}
 
-            other_dt_info: Dict[str, List[Dict[str, str]]] = {
+            other_dt_info: dict[str, list[dict[str, str]]] = {
                 "available_time_slots": []
             }
 
@@ -226,38 +228,38 @@ def check_available(
                     )
 
             response: str = ""
-            if not len(same_dt_info["available_time_slots"]) == 0:
+            if len(same_dt_info["available_time_slots"]) != 0:
                 response += f"The slug for your meeting is: {meeting_slug}\n"
                 response += f"The alternative time for you on the same date is {same_dt_info['available_time_slots']}\n"
-                response += f"Feel free to choose from it\n"
-                response += f"You must give some available time slots for users as the reference to choose.\n"
+                response += "Feel free to choose from it\n"
+                response += "You must give some available time slots for users as the reference to choose.\n"
             else:
                 response += f"The slug for your meeting is: {meeting_slug}\n"
                 response += (
-                    f"I am sorry there is no available time slots on the same day.\n"
+                    "I am sorry there is no available time slots on the same day.\n"
                 )
                 response += f"If you want to change the date, available times for other dates are {other_dt_info['available_time_slots']}\n"
-                response += f"Feel free to choose from the list.\n"
-                response += f"You must give some available time slots for users as the reference so that they could choose from.\n"
+                response += "Feel free to choose from the list.\n"
+                response += "You must give some available time slots for users as the reference so that they could choose from.\n"
             return response
         except ApiException as e:
             log_context.info(
-                "Exception when extracting booking information of someone: %s\n" % e
+                f"Exception when extracting booking information of someone: {e}\n"
             )
             raise ToolExecutionError(
                 func_name, HubspotExceptionPrompt.MEETING_LINK_UNFOUND_PROMPT
-            )
+            ) from e
     except ApiException as e:
-        log_context.info("Exception when extracting meeting scheduler links: %s\n" % e)
+        log_context.info(f"Exception when extracting meeting scheduler links: {e}\n")
         raise ToolExecutionError(
             func_name, HubspotExceptionPrompt.MEETING_LINK_UNFOUND_PROMPT
-        )
+        ) from e
 
 
 def parse_natural_date(
     date_str: str,
-    base_date: Optional[datetime] = None,
-    timezone: Optional[str] = None,
+    base_date: datetime | None = None,
+    timezone: str | None = None,
     date_input: bool = False,
 ) -> datetime:
     """

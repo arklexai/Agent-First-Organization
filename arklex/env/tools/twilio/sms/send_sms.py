@@ -1,9 +1,11 @@
 """Send SMS tool for Twilio integration."""
 
-from typing import Any
-from arklex.utils.logging_utils import LogContext
-from arklex.env.tools.tools import register_tool
+from typing import TypedDict
+
 from twilio.rest import Client as TwilioClient
+
+from arklex.env.tools.tools import register_tool
+from arklex.utils.logging_utils import LogContext
 
 log_context = LogContext(__name__)
 
@@ -23,8 +25,18 @@ outputs = []
 errors = []
 
 
+class SendSmsKwargs(TypedDict, total=False):
+    """Type definition for kwargs used in send_sms function."""
+
+    sid: str
+    auth_token: str
+    phone_no_to: str
+    phone_no_from: str
+    message: str
+
+
 @register_tool(description, slots, outputs, lambda x: x not in errors)
-def send_sms(**kwargs: Any) -> str:
+def send_sms(**kwargs: SendSmsKwargs) -> str:
     twilio_client = TwilioClient(kwargs.get("sid"), kwargs.get("auth_token"))
     phone_no_to = kwargs.get("phone_no_to")
     phone_no_from = kwargs.get("phone_no_from")

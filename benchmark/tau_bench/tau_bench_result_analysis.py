@@ -6,9 +6,9 @@ environment and runs the error identification process with default parameters
 for the retail environment and OpenAI platform.
 """
 
+import argparse
 import os
 import sys
-import argparse
 
 from dotenv import load_dotenv
 

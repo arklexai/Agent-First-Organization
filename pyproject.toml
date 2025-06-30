@@ -52,7 +52,8 @@ dependencies = [
   "pytest-mock>=3.10.0,<4.0.0",
   "pytest-env>=1.0.0,<2.0.0",
   "parsedatetime>=2.6,<3.0",
-  "scikit-learn>=1.7.0,<2.0.0"
+  "scikit-learn>=1.7.0,<2.0.0",
+  "sentence-transformers>=2.2.2,<3.0.0"
 ]
 license = "MIT"
 
@@ -122,7 +123,8 @@ requires = ["hatchling"]
 build-backend = "hatchling.build"
 
 [tool.ruff]
-# Exclude a variety of commonly ignored directories.
+line-length = 88  # Match Black, or use your own standard
+target-version = "py310"  # Adjust to match your minimum Python version
 exclude = [
     ".bzr",
     ".direnv",
@@ -151,24 +153,31 @@ exclude = [
     "site-packages",
     "venv",
 ]
-
-line-length = 88
 indent-width = 4
 
 [tool.ruff.lint]
-select = ["E", "ANN"]
-ignore = ["E501", "E722", "E402", "ANN401"] #The last two are:Do not use bare `except`, and Module level import not at top of file
-fixable = ["ALL"]
+select = [
+  "E",  # pycodestyle (formatting errors)
+  "F",  # pyflakes (undefined names, etc.)
+  "I",  # isort (import sorting)
+  "UP",  # pyupgrade (modernizes syntax)
+  "ANN",  # flake8-annotations (type hints)
+  "B",  # flake8-bugbear (likely bugs/bad practices)
+  "SIM",  # flake8-simplify (simpler constructs)
+  "C4",  # flake8-comprehensions
+  "TID", # flake8-tidy-imports
+]
+ignore = [
+  "E501",  # Line too long (if you're using Black)
+]
 
 [tool.ruff.format]
 quote-style = "double"
-
 indent-style = "space"
-
 skip-magic-trailing-comma = false
-
 line-ending = "auto"
-
 docstring-code-format = false
-
 docstring-code-line-length = "dynamic"
+
+[tool.coverage.run]
+relative_files = true

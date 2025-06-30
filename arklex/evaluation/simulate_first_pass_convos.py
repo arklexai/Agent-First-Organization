@@ -10,20 +10,21 @@ capabilities for efficient evaluation.
 import json
 import os
 import random
-from typing import List, Dict, Any, Tuple, Optional
-from arklex.evaluation.build_user_profiles import build_profile, ATTR_TO_PROFILE
+from concurrent.futures import ThreadPoolExecutor, as_completed
+from typing import Any
+
+from arklex.evaluation.build_user_profiles import ATTR_TO_PROFILE, build_profile
 from arklex.evaluation.chatgpt_utils import (
     chatgpt_chatbot,
-    query_chatbot,
     filter_convo,
     flip_hist,
-    format_chat_history_str,
     flip_hist_content_only,
+    format_chat_history_str,
+    query_chatbot,
 )
-from concurrent.futures import ThreadPoolExecutor, as_completed
 
 # USER_DATA_KEYS = ['goal', 'product_experience_level', 'deal_stage', 'customer_type', 'decision_making_authority', 'persona', 'discovery_type', 'buying_behavior']
-USER_DATA_KEYS: List[str] = [
+USER_DATA_KEYS: list[str] = [
     "goal",
     "product_experience_level",
     "customer_type",
@@ -33,22 +34,22 @@ USER_DATA_KEYS: List[str] = [
 ]
 
 
-def get_relevant_vals(attr: Dict[str, Any]) -> List[str]:
-    vals: List[str] = []
+def get_relevant_vals(attr: dict[str, Any]) -> list[str]:
+    vals: list[str] = []
     for key in USER_DATA_KEYS:
         vals.append(attr[key])
     return vals
 
 
-def count_matches(l1: List[str], l2: List[str]) -> int:
+def count_matches(l1: list[str], l2: list[str]) -> int:
     num_matches: int = 0
-    for i in range((len(l1))):
+    for i in range(len(l1)):
         if l1[i] == l2[i]:
             num_matches += 1
     return num_matches
 
 
-def join_messages(messages: List[Dict[str, Any]]) -> str:
+def join_messages(messages: list[dict[str, Any]]) -> str:
     message_str: str = ""
     for message in messages:
         if message["role"] == "bot_follow_up":
@@ -58,9 +59,9 @@ def join_messages(messages: List[Dict[str, Any]]) -> str:
 
 
 def create_convo_profile(
-    best_match: List[str], attr_vals: List[str], summary: str, client: Any
+    best_match: list[str], attr_vals: list[str], summary: str, client: object
 ) -> str:
-    dict_profile: Dict[str, str] = {}
+    dict_profile: dict[str, str] = {}
     for i in range(len(USER_DATA_KEYS)):
         if best_match[i] == "other":
             continue
@@ -84,14 +85,14 @@ def create_convo_profile(
 
 
 def retrieve_convo(
-    attr_vals: List[str],
-    all_profiles: List[str],
-    user_convos: Dict[str, List[Dict[str, Any]]],
+    attr_vals: list[str],
+    all_profiles: list[str],
+    user_convos: dict[str, list[dict[str, Any]]],
     summary: str,
-    client: Any,
-) -> Tuple[str, str]:
-    split_profiles: List[List[str]] = [p.split(",") for p in all_profiles]
-    best_match: Optional[List[str]] = None
+    client: object,
+) -> tuple[str, str]:
+    split_profiles: list[list[str]] = [p.split(",") for p in all_profiles]
+    best_match: list[str] | None = None
     max_matches: int = 0
     for profile in split_profiles:
         num_matches: int = count_matches(attr_vals, profile)
@@ -100,23 +101,23 @@ def retrieve_convo(
             max_matches = num_matches
             num_matches = 0
 
-    convo: Dict[str, Any] = random.choice(user_convos[",".join(best_match)])
+    convo: dict[str, Any] = random.choice(user_convos[",".join(best_match)])
     convo_messages: str = join_messages(convo["message"])
     convo_profile: str = create_convo_profile(best_match, attr_vals, summary, client)
     return convo_messages, convo_profile
 
 
 def get_example_convo(
-    attr: Dict[str, Any],
-    synthetic_data_params: Dict[str, Any],
+    attr: dict[str, Any],
+    synthetic_data_params: dict[str, Any],
     summary: str,
-    client: Any,
-) -> Tuple[str, str]:
+    client: object,
+) -> tuple[str, str]:
     with open(synthetic_data_params["data_file"]) as f:
-        user_convos: Dict[str, List[Dict[str, Any]]] = json.load(f)
+        user_convos: dict[str, list[dict[str, Any]]] = json.load(f)
 
-    all_profiles: List[str] = list(user_convos.keys())
-    attr_vals: List[str] = get_relevant_vals(attr)
+    all_profiles: list[str] = list(user_convos.keys())
+    attr_vals: list[str] = get_relevant_vals(attr)
     convo, matching_profile = retrieve_convo(
         attr_vals, all_profiles, user_convos, summary, client
     )
@@ -126,11 +127,11 @@ def get_example_convo(
 def retrieve_prompts(
     profile: str,
     goal: str,
-    attr: Dict[str, Any],
+    attr: dict[str, Any],
     summary: str,
-    synthetic_data_params: Dict[str, Any],
-    client: Any,
-) -> Tuple[str, str]:
+    synthetic_data_params: dict[str, Any],
+    client: object,
+) -> tuple[str, str]:
     if synthetic_data_params["data_file"] is None:
         instructional_prompt: str = f"Pretend you are a human interacting with a customer service chatbot for the following company: {summary}\nYou have the following goal when interacting with this chatbot:\n{goal}\nHere is a description of the customer you are pretending to be:\n{profile}\nHave a conversation with the chatbot while trying to achieve your goal as this customer. Make sure the conversation is natural. For example, if the chatbot asks you a question you should answer it."
         start_text: str = "Humans write short questions with occasional typos. Here are some examples of what a human customer would type: [how much is it?, Can you send info to my email, yes I need a job, want to check both proposals to rent and buy, How much does it cost a [PRODUCT_HERE], Im interested in [PRODUCT_HERE], hi i would like to rent out [PRODUCT_HERE] but im wondering which countries are available for rental]. Replicate the writing behavior of a human customer and begin the conversation with a question to achieve your goal."
@@ -143,7 +144,9 @@ def retrieve_prompts(
     return instructional_prompt, start_text
 
 
-def check_goal_completion(goal: str, convo: List[Dict[str, Any]], client: Any) -> bool:
+def check_goal_completion(
+    goal: str, convo: list[dict[str, Any]], client: object
+) -> bool:
     convo_str: str = format_chat_history_str(flip_hist_content_only(convo[2:]))
     prompt: str = f"Here is a conversation between a user and a customer service chatbot assistant:\n{convo_str}\n\nThe user's goal is the following: {goal}\nOutput False if the user needs to learn more information regarding their goal. Output True otherwise. Only onput True or False and nothing else."
     output: str = chatgpt_chatbot([{"role": "user", "content": prompt}], client)
@@ -154,21 +157,21 @@ def conversation(
     model_api: str,
     profile: str,
     goal: str,
-    attr: Dict[str, Any],
-    sys_input: Dict[str, Any],
+    attr: dict[str, Any],
+    sys_input: dict[str, Any],
     summary: str,
-    model_params: Dict[str, Any],
-    synthetic_data_params: Dict[str, Any],
-    env_config: Dict[str, Any],
-) -> Tuple[List[Dict[str, Any]], bool]:
+    model_params: dict[str, Any],
+    synthetic_data_params: dict[str, Any],
+    env_config: dict[str, Any],
+) -> tuple[list[dict[str, Any]], bool]:
     instructional_prompt, start_text = retrieve_prompts(
         profile, goal, attr, summary, synthetic_data_params, env_config["client"]
     )
-    history: List[Dict[str, Any]] = []
+    history: list[dict[str, Any]] = []
     history.append({"role": "system", "content": instructional_prompt})
     history.append({"role": "user", "content": start_text})
-    chatbot_history: List[Dict[str, Any]] = []
-    default_slots: List[Dict[str, Any]] = []
+    chatbot_history: list[dict[str, Any]] = []
+    default_slots: list[dict[str, Any]] = []
     for key, value in sys_input.items():
         if key and value:
             default_slots.append({"name": key, "value": value})
@@ -179,7 +182,7 @@ def conversation(
         output: str = chatgpt_chatbot(history, env_config["client"])
         history.append({"role": "assistant", "content": output})
         chatbot_history.append({"role": "assistant", "content": output})
-        response_data: Dict[str, Any] = query_chatbot(
+        response_data: dict[str, Any] = query_chatbot(
             model_api, chatbot_history, model_params, env_config
         )
         answer: str = response_data["answer"]
@@ -203,21 +206,21 @@ def conversation(
 
 def generate_conversations(
     model_api: str,
-    profiles: List[str],
-    goals: List[str],
-    attributes_list: List[Dict[str, Any]],
-    system_inputs: List[Dict[str, Any]],
+    profiles: list[str],
+    goals: list[str],
+    attributes_list: list[dict[str, Any]],
+    system_inputs: list[dict[str, Any]],
     summary: str,
-    model_params: Dict[str, Any],
-    synthetic_data_params: Dict[str, Any],
-    env_config: Dict[str, Any],
-) -> List[Dict[str, Any]]:
-    convos: List[Dict[str, Any]] = []
+    model_params: dict[str, Any],
+    synthetic_data_params: dict[str, Any],
+    env_config: dict[str, Any],
+) -> list[dict[str, Any]]:
+    convos: list[dict[str, Any]] = []
 
     # Create input combinations with IDs
     input_combinations = []
     for i, (profile, goal, attr, sys_input) in enumerate(
-        zip(profiles, goals, attributes_list, system_inputs)
+        zip(profiles, goals, attributes_list, system_inputs, strict=False)
     ):
         input_combinations.append(
             {
@@ -229,7 +232,7 @@ def generate_conversations(
             }
         )
 
-    def worker(input_combo):
+    def worker(input_combo: dict[str, Any]) -> dict[str, Any]:
         convo, goal_completion = conversation(
             model_api,
             input_combo["profile"],
@@ -270,10 +273,10 @@ def generate_conversations(
 
 def simulate_conversations(
     model_api: str,
-    model_params: Dict[str, Any],
-    synthetic_data_params: Dict[str, Any],
-    config: Dict[str, Any],
-) -> Tuple[List[Dict[str, Any]], List[str]]:
+    model_params: dict[str, Any],
+    synthetic_data_params: dict[str, Any],
+    config: dict[str, Any],
+) -> tuple[list[dict[str, Any]], list[str]]:
     if config["task"] == "first_pass":
         profiles, goals, attributes_list, system_inputs, labels_list = build_profile(
             synthetic_data_params, config
@@ -306,36 +309,34 @@ def simulate_conversations(
 
     elif config["task"] == "simulate_conv_only":
         with open(
-            os.path.join(config["output_dir"], "simulate_data", "profiles.json"), "r"
+            os.path.join(config["output_dir"], "simulate_data", "profiles.json")
         ) as f:
             profiles = json.load(f)
         with open(
-            os.path.join(config["output_dir"], "simulate_data", "goals.json"), "r"
+            os.path.join(config["output_dir"], "simulate_data", "goals.json")
         ) as f:
             goals = json.load(f)
         with open(
             os.path.join(config["output_dir"], "simulate_data", "attributes_list.json"),
-            "r",
         ) as f:
             attributes_list = json.load(f)
         with open(
             os.path.join(config["output_dir"], "simulate_data", "system_inputs.json"),
-            "r",
         ) as f:
             system_inputs = json.load(f)
         with open(
-            os.path.join(config["output_dir"], "simulate_data", "labels_list.json"), "r"
+            os.path.join(config["output_dir"], "simulate_data", "labels_list.json")
         ) as f:
             labels_list = json.load(f)
 
     summary: str = config["intro"]
-    env_config: Dict[str, Any] = {
+    env_config: dict[str, Any] = {
         "workers": config["workers"],
         "tools": config["tools"],
         "client": config["client"],
     }
 
-    conversations: List[Dict[str, Any]] = generate_conversations(
+    conversations: list[dict[str, Any]] = generate_conversations(
         model_api,
         profiles,
         goals,
@@ -349,14 +350,59 @@ def simulate_conversations(
     return conversations, goals
 
 
+def main(
+    model_api: str = "http://adaptation.cs.columbia.edu:55231/qa/richtech/v1alpha1",
+    synthetic_data_params: dict[str, Any] | None = None,
+    model_params: dict[str, Any] | None = None,
+    config: dict[str, Any] | None = None,
+    output_file: str = "p1_sample_convos.json",
+) -> list[dict[str, Any]]:
+    """
+    Main function to simulate conversations with configurable parameters.
+
+    Args:
+        model_api: The API endpoint for the model
+        synthetic_data_params: Parameters for synthetic data generation
+        model_params: Parameters for the model
+        config: Configuration dictionary for the simulation
+        output_file: Output file path for saving conversations
+
+    Returns:
+        List of conversation dictionaries
+    """
+    # Set default values if not provided
+    if synthetic_data_params is None:
+        synthetic_data_params = {
+            "num_convos": 5,
+            "num_goals": 3,
+            "max_turns": 10,
+        }
+
+    if model_params is None:
+        model_params = {}
+
+    if config is None:
+        config = {
+            "task": "first_pass",
+            "output_dir": ".",
+            "intro": "Sample company introduction",
+            "workers": {},
+            "tools": {},
+            "client": None,
+        }
+
+    # Simulate conversations
+    convos, _ = simulate_conversations(
+        model_api, model_params, synthetic_data_params, config
+    )
+
+    # Save to file if output_file is provided
+    if output_file:
+        with open(output_file, "w") as f:
+            json.dump(convos, f, indent=5)
+
+    return convos
+
+
 if __name__ == "__main__":
-    model_api: str = "http://adaptation.cs.columbia.edu:55231/qa/richtech/v1alpha1"
-    synthetic_data_params: Dict[str, Any] = {
-        "num_convos": 5,
-        "num_goals": 3,
-        "max_turns": 10,
-    }
-    model_params: Dict[str, Any] = {}
-    convos = simulate_conversations(model_api, model_params, synthetic_data_params)
-    with open("p1_sample_convos.json", "w") as f:
-        json.dump(convos, f, indent=5)
+    convos = main()

@@ -1,7 +1,8 @@
 from datetime import datetime
+
 import pytz
 from hubspot import HubSpot
-from typing import Any
+
 from arklex.env.tools.tools import register_tool
 from arklex.utils.logging_utils import LogContext
 
@@ -35,7 +36,7 @@ errors = []
 
 
 @register_tool(description, slots, outputs, lambda x: x not in errors)
-def list_availability(timezone: str, duration: int, **kwargs: Any) -> str:
+def list_availability(timezone: str, duration: int, **kwargs: dict[str, object]) -> str:
     slug = kwargs.get("slug")
     log_context.info(
         f"Getting availability for {slug} in {timezone} for {duration} meeting"

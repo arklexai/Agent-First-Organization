@@ -5,14 +5,15 @@ covering both local and remote intent detection functionality, as well
 as error handling cases.
 """
 
-import pytest
+from typing import Any
 from unittest.mock import Mock, patch
-from typing import Dict, List, Any
+
+import pytest
 
 from arklex.orchestrator.NLU.core.intent import IntentDetector
-from arklex.orchestrator.NLU.services.model_service import ModelService
 from arklex.orchestrator.NLU.services.api_service import APIClientService
-from arklex.utils.exceptions import ValidationError, ModelError, APIError
+from arklex.orchestrator.NLU.services.model_service import ModelService
+from arklex.utils.exceptions import APIError, ModelError, ValidationError
 
 
 @pytest.fixture
@@ -36,7 +37,7 @@ def mock_api_service() -> APIClientService:
 
 
 @pytest.fixture
-def sample_intents() -> Dict[str, List[Dict[str, Any]]]:
+def sample_intents() -> dict[str, list[dict[str, Any]]]:
     """Create sample intents for testing."""
     return {
         "greeting": [
@@ -78,7 +79,7 @@ def test_intent_detector_initialization(mock_model_service: ModelService) -> Non
 
 def test_detect_intent_local(
     mock_model_service: ModelService,
-    sample_intents: Dict[str, List[Dict[str, Any]]],
+    sample_intents: dict[str, list[dict[str, Any]]],
 ) -> None:
     """Test local intent detection."""
     detector = IntentDetector(model_service=mock_model_service)
@@ -115,7 +116,7 @@ def test_detect_intent_local(
 def test_detect_intent_remote(
     mock_model_service: ModelService,
     mock_api_service: APIClientService,
-    sample_intents: Dict[str, List[Dict[str, Any]]],
+    sample_intents: dict[str, list[dict[str, Any]]],
 ) -> None:
     """Test remote intent detection."""
     detector = IntentDetector(
@@ -156,7 +157,7 @@ def test_detect_intent_remote(
 def test_predict_intent(
     mock_model_service: ModelService,
     mock_api_service: APIClientService,
-    sample_intents: Dict[str, List[Dict[str, Any]]],
+    sample_intents: dict[str, list[dict[str, Any]]],
 ) -> None:
     """Test the main predict_intent method."""
     # Test local prediction
@@ -208,7 +209,7 @@ def test_predict_intent(
 
 def test_execute(
     mock_model_service: ModelService,
-    sample_intents: Dict[str, List[Dict[str, Any]]],
+    sample_intents: dict[str, list[dict[str, Any]]],
 ) -> None:
     """Test the execute method (alias for predict_intent)."""
     detector = IntentDetector(model_service=mock_model_service)

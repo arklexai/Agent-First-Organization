@@ -1,17 +1,15 @@
-# Copyright Sierra
-
 import abc
 import enum
-from litellm import completion
+from typing import Any
 
-from typing import Optional, List, Dict, Any, Union
+from litellm import completion
 
 
 class BaseUserSimulationEnv(abc.ABC):
     metadata = {}
 
     @abc.abstractmethod
-    def reset(self, instruction: Optional[str] = None) -> str:
+    def reset(self, instruction: str | None = None) -> str:
         raise NotImplementedError
 
     @abc.abstractmethod
@@ -37,13 +35,13 @@ class HumanUserSimulationEnv(BaseUserSimulationEnv):
 class LLMUserSimulationEnv(BaseUserSimulationEnv):
     def __init__(self, model: str, provider: str) -> None:
         super().__init__()
-        self.messages: List[Dict[str, Any]] = []
+        self.messages: list[dict[str, Any]] = []
         self.model = model
         self.provider = provider
         self.total_cost = 0.0
         self.reset()
 
-    def generate_next_message(self, messages: List[Dict[str, Any]]) -> str:
+    def generate_next_message(self, messages: list[dict[str, Any]]) -> str:
         res = completion(
             model=self.model, custom_llm_provider=self.provider, messages=messages
         )
@@ -52,7 +50,7 @@ class LLMUserSimulationEnv(BaseUserSimulationEnv):
         self.total_cost = res._hidden_params["response_cost"]
         return message.content
 
-    def build_system_prompt(self, instruction: Optional[str]) -> str:
+    def build_system_prompt(self, instruction: str | None) -> str:
         instruction_display = (
             ("\n\nInstruction: " + instruction + "\n")
             if instruction is not None
@@ -67,7 +65,7 @@ Rules:
 - Do not repeat the exact instruction in the conversation. Instead, use your own words to convey the same information.
 - Try to make the conversation as natural as possible, and stick to the personalities in the instruction."""
 
-    def reset(self, instruction: Optional[str] = None) -> str:
+    def reset(self, instruction: str | None = None) -> str:
         self.messages = [
             {
                 "role": "system",
@@ -90,7 +88,7 @@ class ReactUserSimulationEnv(LLMUserSimulationEnv):
         super().__init__(model=model, provider=provider)
         self.reset()
 
-    def build_system_prompt(self, instruction: Optional[str]) -> str:
+    def build_system_prompt(self, instruction: str | None) -> str:
         instruction_display = (
             ("\n\nInstruction: " + instruction + "\n")
             if instruction is not None
@@ -114,7 +112,7 @@ Thought:
 User Response:
 <the user response (this will be parsed and sent to the agent)>"""
 
-    def generate_next_message(self, messages: List[Dict[str, Any]]) -> str:
+    def generate_next_message(self, messages: list[dict[str, Any]]) -> str:
         res = completion(
             model=self.model, custom_llm_provider=self.provider, messages=messages
         )
@@ -123,7 +121,7 @@ User Response:
         self.total_cost = res._hidden_params["response_cost"]
         return self.parse_response(message.content)
 
-    def reset(self, instruction: Optional[str] = None) -> str:
+    def reset(self, instruction: str | None = None) -> str:
         self.messages = [
             {
                 "role": "system",
@@ -160,7 +158,7 @@ class VerifyUserSimulationEnv(LLMUserSimulationEnv):
         self.max_attempts = max_attempts
         self.reset()
 
-    def generate_next_message(self, messages: List[Dict[str, Any]]) -> str:
+    def generate_next_message(self, messages: list[dict[str, Any]]) -> str:
         attempts = 0
         cur_message = None
         while attempts < self.max_attempts:
@@ -176,7 +174,7 @@ class VerifyUserSimulationEnv(LLMUserSimulationEnv):
         assert cur_message is not None
         return cur_message.content
 
-    def reset(self, instruction: Optional[str] = None) -> str:
+    def reset(self, instruction: str | None = None) -> str:
         self.messages = [
             {
                 "role": "system",
@@ -204,7 +202,7 @@ def map_role_label(role: str) -> str:
 
 
 def verify(
-    model: str, provider: str, response: str, messages: List[Dict[str, Any]]
+    model: str, provider: str, response: str, messages: list[dict[str, Any]]
 ) -> bool:
     transcript = "\n".join(
         [
@@ -233,7 +231,7 @@ Classification:"""
 
 
 def reflect(
-    model: str, provider: str, response: str, messages: List[Dict[str, Any]]
+    model: str, provider: str, response: str, messages: list[dict[str, Any]]
 ) -> str:
     transcript = "\n".join(
         [
@@ -274,7 +272,7 @@ class ReflectionUserSimulationEnv(LLMUserSimulationEnv):
         self.max_attempts = max_attempts
         self.reset()
 
-    def generate_next_message(self, messages: List[Dict[str, Any]]) -> str:
+    def generate_next_message(self, messages: list[dict[str, Any]]) -> str:
         cur_messages = messages.copy()
         initial_response = super().generate_next_message(cur_messages)
         if verify(self.model, self.provider, initial_response, cur_messages):
@@ -291,7 +289,7 @@ class ReflectionUserSimulationEnv(LLMUserSimulationEnv):
             attempts += 1
         return initial_response
 
-    def reset(self, instruction: Optional[str] = None) -> str:
+    def reset(self, instruction: str | None = None) -> str:
         self.messages = [
             {
                 "role": "system",
@@ -318,9 +316,9 @@ class UserStrategy(enum.Enum):
 
 
 def load_user(
-    user_strategy: Union[str, UserStrategy],
-    model: Optional[str] = "gpt-4o",
-    provider: Optional[str] = None,
+    user_strategy: str | UserStrategy,
+    model: str | None = "gpt-4o",
+    provider: str | None = None,
 ) -> BaseUserSimulationEnv:
     if isinstance(user_strategy, str):
         user_strategy = UserStrategy(user_strategy)

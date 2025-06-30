@@ -1,5 +1,3 @@
-# Copyright Sierra
-
 tasks = [
     {
         "annotator": 0,

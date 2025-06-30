@@ -5,15 +5,16 @@ package metadata, dependencies, and installation requirements. It uses setuptool
 to configure the package for distribution and installation.
 """
 
-# Copyright Sierra
-
 from setuptools import find_packages, setup
+
+with open("README.md", encoding="utf-8") as f:
+    long_description = f.read()
 
 setup(
     name="tau_bench",
     version="0.1.0",
     description="The Tau-Bench package",
-    long_description=open("README.md").read(),
+    long_description=long_description,
     packages=find_packages(),
     include_package_data=True,
     install_requires=[

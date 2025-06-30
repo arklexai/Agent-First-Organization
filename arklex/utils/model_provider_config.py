@@ -32,17 +32,14 @@ Usage:
     embeddings = embedding_class(model=embedding_model)
 """
 
-from typing import Dict, Type, Any, List
-from langchain_openai import ChatOpenAI
-from langchain_google_genai import ChatGoogleGenerativeAI
 from langchain_anthropic import ChatAnthropic
-from langchain_openai import OpenAIEmbeddings
-from langchain_google_genai import GoogleGenerativeAIEmbeddings
+from langchain_google_genai import ChatGoogleGenerativeAI, GoogleGenerativeAIEmbeddings
+from langchain_huggingface import ChatHuggingFace, HuggingFaceEndpoint
 from langchain_huggingface.embeddings import HuggingFaceEmbeddings
-from langchain_huggingface import HuggingFaceEndpoint, ChatHuggingFace
+from langchain_openai import ChatOpenAI, OpenAIEmbeddings
 
 
-def get_huggingface_llm(model: str, **kwargs: Any) -> ChatHuggingFace:
+def get_huggingface_llm(model: str, **kwargs: object) -> ChatHuggingFace:
     """Initialize a HuggingFace language model.
 
     This function creates a HuggingFace language model instance using the specified model
@@ -50,7 +47,7 @@ def get_huggingface_llm(model: str, **kwargs: Any) -> ChatHuggingFace:
 
     Args:
         model (str): The HuggingFace model identifier to use.
-        **kwargs (Any): Additional configuration parameters for the model.
+        **kwargs (object): Additional configuration parameters for the model.
 
     Returns:
         ChatHuggingFace: A configured HuggingFace chat model instance.
@@ -69,10 +66,10 @@ def get_huggingface_llm(model: str, **kwargs: Any) -> ChatHuggingFace:
 
 
 class DummyLLM:
-    def __init__(self, *args, **kwargs):
+    def __init__(self, *args: object, **kwargs: object) -> None:
         pass
 
-    def invoke(self, messages):
+    def invoke(self, messages: object) -> object:
         class Response:
             content = "dummy response"
 
@@ -80,7 +77,7 @@ class DummyLLM:
 
 
 # List of supported language model providers
-LLM_PROVIDERS: List[str] = [
+LLM_PROVIDERS: list[str] = [
     "openai",  # OpenAI's language models
     "gemini",  # Google's Gemini models
     "anthropic",  # Anthropic's Claude models
@@ -88,7 +85,7 @@ LLM_PROVIDERS: List[str] = [
 ]
 
 # Mapping of provider names to their LLM classes
-PROVIDER_MAP: Dict[str, Type] = {
+PROVIDER_MAP: dict[str, type] = {
     "anthropic": ChatAnthropic,  # Anthropic's Claude models
     "gemini": ChatGoogleGenerativeAI,  # Google's Gemini models
     "openai": ChatOpenAI,  # OpenAI's GPT models
@@ -97,7 +94,7 @@ PROVIDER_MAP: Dict[str, Type] = {
 }
 
 # Mapping of provider names to their embedding classes
-PROVIDER_EMBEDDINGS: Dict[str, Type] = {
+PROVIDER_EMBEDDINGS: dict[str, type] = {
     "anthropic": HuggingFaceEmbeddings,  # Anthropic uses HuggingFace embeddings
     "gemini": GoogleGenerativeAIEmbeddings,  # Google's Gemini embeddings
     "openai": OpenAIEmbeddings,  # OpenAI's embeddings
@@ -105,7 +102,7 @@ PROVIDER_EMBEDDINGS: Dict[str, Type] = {
 }
 
 # Mapping of provider names to their default embedding model identifiers
-PROVIDER_EMBEDDING_MODELS: Dict[str, str] = {
+PROVIDER_EMBEDDING_MODELS: dict[str, str] = {
     "anthropic": "sentence-transformers/sentence-t5-base",  # T5-based embeddings
     "gemini": "models/embedding-001",  # Gemini embeddings
     "openai": "text-embedding-ada-002",  # OpenAI's Ada embeddings

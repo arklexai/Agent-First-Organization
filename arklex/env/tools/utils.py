@@ -8,7 +8,7 @@ provide flexible response generation capabilities.
 """
 
 import inspect
-from typing import Dict, Any, Optional
+from typing import Any, Protocol, TypedDict
 
 from langchain.prompts import PromptTemplate
 from langchain_core.output_parsers import StrOutputParser
@@ -16,17 +16,30 @@ from langchain_openai import ChatOpenAI
 
 from arklex.env.prompts import load_prompts
 from arklex.types import EventType, StreamType
-from arklex.utils.graph_state import MessageState
-from arklex.utils.model_provider_config import PROVIDER_MAP
-from arklex.utils.logging_utils import LogContext
 from arklex.utils.exceptions import ToolError
+from arklex.utils.graph_state import MessageState
+from arklex.utils.logging_utils import LogContext
+from arklex.utils.model_provider_config import PROVIDER_MAP
 
 log_context = LogContext(__name__)
 
 
+class ExecuteToolKwargs(TypedDict, total=False):
+    """Type definition for kwargs used in execute_tool function."""
+
+    # Add specific tool parameters as needed
+    pass
+
+
+class ToolExecutor(Protocol):
+    """Protocol for objects that can execute tools."""
+
+    tools: dict[str, Any]
+
+
 def get_prompt_template(state: MessageState, prompt_key: str) -> PromptTemplate:
     """Get the prompt template based on the stream type."""
-    prompts: Dict[str, str] = load_prompts(state.bot_config)
+    prompts: dict[str, str] = load_prompts(state.bot_config)
 
     if state.stream_type == StreamType.SPEECH:
         # Use speech prompts, but fall back to regular prompts for Chinese
@@ -42,7 +55,7 @@ def get_prompt_template(state: MessageState, prompt_key: str) -> PromptTemplate:
 class ToolGenerator:
     @staticmethod
     def generate(state: MessageState) -> MessageState:
-        llm_config: Dict[str, Any] = state.bot_config.llm_config
+        llm_config: dict[str, Any] = state.bot_config.llm_config
         user_message: Any = state.user_message
 
         llm: Any = PROVIDER_MAP.get(llm_config.llm_provider, ChatOpenAI)(
@@ -61,7 +74,7 @@ class ToolGenerator:
 
     @staticmethod
     def context_generate(state: MessageState) -> MessageState:
-        llm_config: Dict[str, Any] = state.bot_config.llm_config
+        llm_config: dict[str, Any] = state.bot_config.llm_config
         llm: Any = PROVIDER_MAP.get(llm_config.llm_provider, ChatOpenAI)(
             model=llm_config.model_type_or_path, temperature=0.1
         )
@@ -73,7 +86,7 @@ class ToolGenerator:
         if state.relevant_records:
             relevant_context: str = "\nRelevant past interactions:\n"
             for record in state.relevant_records:
-                relevant_context += f"Record:\n"
+                relevant_context += "Record:\n"
                 if record.info:
                     relevant_context += f"- Info: {record.info}\n"
                 if record.personalized_intent:
@@ -83,7 +96,7 @@ class ToolGenerator:
                 if record.output:
                     relevant_context += f"- Raw Output: {record.output}\n"
                 if record.steps:
-                    relevant_context += f"- Intermediate Steps:\n"
+                    relevant_context += "- Intermediate Steps:\n"
                     for step in record.steps:
                         if isinstance(step, dict):
                             for key, value in step.items():
@@ -116,7 +129,7 @@ class ToolGenerator:
 
     @staticmethod
     def stream_context_generate(state: MessageState) -> MessageState:
-        llm_config: Dict[str, Any] = state.bot_config.llm_config
+        llm_config: dict[str, Any] = state.bot_config.llm_config
         llm: Any = PROVIDER_MAP.get(llm_config.llm_provider, ChatOpenAI)(
             model=llm_config.model_type_or_path, temperature=0.1
         )
@@ -127,7 +140,7 @@ class ToolGenerator:
         if state.relevant_records:
             relevant_context: str = "\nRelevant past interactions:\n"
             for record in state.relevant_records:
-                relevant_context += f"Record:\n"
+                relevant_context += "Record:\n"
                 if record.info:
                     relevant_context += f"- Info: {record.info}\n"
                 if record.personalized_intent:
@@ -137,7 +150,7 @@ class ToolGenerator:
                 if record.output:
                     relevant_context += f"- Raw Output: {record.output}\n"
                 if record.steps:
-                    relevant_context += f"- Intermediate Steps:\n"
+                    relevant_context += "- Intermediate Steps:\n"
                     for step in record.steps:
                         if isinstance(step, dict):
                             for key, value in step.items():
@@ -178,7 +191,7 @@ class ToolGenerator:
     def stream_generate(state: MessageState) -> MessageState:
         user_message: Any = state.user_message
 
-        llm_config: Dict[str, Any] = state.bot_config.llm_config
+        llm_config: dict[str, Any] = state.bot_config.llm_config
         llm: Any = PROVIDER_MAP.get(llm_config.llm_provider, ChatOpenAI)(
             model=llm_config.model_type_or_path, temperature=0.1
         )
@@ -199,22 +212,25 @@ class ToolGenerator:
 
 
 def trace(input: str, state: MessageState) -> MessageState:
-    current_frame: Optional[inspect.FrameInfo] = inspect.currentframe()
-    previous_frame: Optional[inspect.FrameInfo] = (
+    current_frame: inspect.FrameInfo | None = inspect.currentframe()
+    previous_frame: inspect.FrameInfo | None = (
         current_frame.f_back if current_frame else None
     )
     previous_function_name: str = (
         previous_frame.f_code.co_name if previous_frame else "unknown"
     )
-    response_meta: Dict[str, str] = {previous_function_name: input}
+    response_meta: dict[str, str] = {previous_function_name: input}
     state.trajectory[-1][-1].steps.append(response_meta)
     return state
 
 
-def execute_tool(self, tool_name: str, **kwargs: Any) -> Any:
+def execute_tool(
+    self: ToolExecutor, tool_name: str, **kwargs: ExecuteToolKwargs
+) -> str:
     """Execute a tool.
 
     Args:
+        self: The object instance containing tools
         tool_name: Name of the tool to execute
         **kwargs: Additional arguments for the tool
 

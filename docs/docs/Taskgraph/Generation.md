@@ -103,6 +103,7 @@ Here is an exmaple of the generated TaskGraph for the customer service assistant
         }
     ],
     "tasks": [],
+    "tools": [],
     "workers": [
         "RAGAWorker",
         "RagMsgWorker",
@@ -111,7 +112,8 @@ Here is an exmaple of the generated TaskGraph for the customer service assistant
         "DefaultWorker"
     ],
     "nluapi": "http://localhost:55135/nlu/predict",
-    "slotfillapi": "http://localhost:55135/slotfill/predict"
+    "slotfillapi": "http://localhost:55135/slotfill/predict",
+    "settings":{}
 }
 ```
 
@@ -119,6 +121,6 @@ Here is an exmaple of the generated TaskGraph for the customer service assistant
 
 * `nodes`: The nodes in the TaskGraph, each node contains the worker name, task, and the directed attribute.
 * `edges`: The edges in the TaskGraph, each edge contains the intent, weight, pred, definition, and sample_utterances.
-* fileds in the config file: role, user_objective, builder_objective, domain, intro, task_docs, rag_docs, tasks, workers
+* fields in the config file: role, user_objective, builder_objective, domain, intro, task_docs, rag_docs, tasks, workers, tools, settings
 * nluapi: It will automatically add the default NLU api which use the `NLUModelAPI` service defined under `./agentorg/orchestrator/NLU/api.py` file. If you want to customize the NLU api, you can change the `nluapi` field to your own NLU api url.
 * slotfillapi: It will automatically add the default SlotFill api which use the `SlotFillModelAPI` service defined under `./agentorg/orchestrator/NLU/api.py` file. If you want to customize the SlotFill api, you can change the `slotfillapi` field to your own SlotFill api url.

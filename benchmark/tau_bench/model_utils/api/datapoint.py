@@ -15,9 +15,11 @@ from __future__ import annotations
 
 import abc
 import json
-from typing import Any, Callable, TypeVar, Dict, List, Optional, Union, Set
+from collections.abc import Callable
+from typing import Any, TypeVar
 
 from pydantic import BaseModel
+
 from benchmark import tau_bench
 from benchmark.tau_bench.model_utils.api._model_methods import MODEL_METHODS
 from benchmark.tau_bench.model_utils.api.exception import APIError
@@ -27,7 +29,7 @@ from benchmark.tau_bench.model_utils.model.exception import ModelError
 T = TypeVar("T", bound=BaseModel)
 
 
-def _is_trace(obj: Dict[str, Any]) -> bool:
+def _is_trace(obj: dict[str, Any]) -> bool:
     """Check if a dictionary represents a trace.
 
     Args:
@@ -45,7 +47,7 @@ def _is_trace(obj: Dict[str, Any]) -> bool:
     )
 
 
-def dict_equal(d1: Dict[str, Any], d2: Dict[str, Any]) -> bool:
+def dict_equal(d1: dict[str, Any], d2: dict[str, Any]) -> bool:
     """Compare two dictionaries for equality.
 
     This function performs a deep comparison of two dictionaries, handling nested
@@ -58,8 +60,8 @@ def dict_equal(d1: Dict[str, Any], d2: Dict[str, Any]) -> bool:
     Returns:
         bool: True if the dictionaries are equal, False otherwise.
     """
-    d1_keys_sorted: List[str] = sorted(d1.keys())
-    d2_keys_sorted: List[str] = sorted(d2.keys())
+    d1_keys_sorted: list[str] = sorted(d1.keys())
+    d2_keys_sorted: list[str] = sorted(d2.keys())
     if d1_keys_sorted != d2_keys_sorted:
         return False
     for k in d1_keys_sorted:
@@ -80,7 +82,7 @@ def dict_equal(d1: Dict[str, Any], d2: Dict[str, Any]) -> bool:
     return True
 
 
-def list_equal(l1: List[Any], l2: List[Any]) -> bool:
+def list_equal(l1: list[Any], l2: list[Any]) -> bool:
     """Compare two lists for equality.
 
     This function performs a deep comparison of two lists, handling nested
@@ -95,7 +97,7 @@ def list_equal(l1: List[Any], l2: List[Any]) -> bool:
     """
     if len(l1) != len(l2):
         return False
-    for i1, i2 in zip(l1, l2):
+    for i1, i2 in zip(l1, l2, strict=False):
         if isinstance(i1, dict) and isinstance(i2, dict):
             if not dict_equal(i1, i2):
                 return False
@@ -113,7 +115,7 @@ def list_equal(l1: List[Any], l2: List[Any]) -> bool:
     return True
 
 
-def set_equal(s1: Set[Any], s2: Set[Any]) -> bool:
+def set_equal(s1: set[Any], s2: set[Any]) -> bool:
     """Compare two sets for equality.
 
     This function performs a deep comparison of two sets, handling nested
@@ -128,7 +130,7 @@ def set_equal(s1: Set[Any], s2: Set[Any]) -> bool:
     """
     if len(s1) != len(s2):
         return False
-    for i1, i2 in zip(s1, s2):
+    for i1, i2 in zip(s1, s2, strict=False):
         if isinstance(i1, dict) and isinstance(i2, dict):
             if not dict_equal(i1, i2):
                 return False
@@ -187,9 +189,9 @@ class EvaluationResult(BaseModel):
 
     is_error: bool
     is_correct: bool
-    datapoint: Optional[Dict[str, Any]]
-    response: Optional[Any]
-    error: Optional[str]
+    datapoint: dict[str, Any] | None
+    response: Any | None
+    error: str | None
 
 
 class Datapoint(BaseModel, abc.ABC):
@@ -205,7 +207,7 @@ class Datapoint(BaseModel, abc.ABC):
     """
 
     @classmethod
-    def from_trace(cls, d: Dict[str, Any]) -> "Datapoint":
+    def from_trace(cls, d: dict[str, Any]) -> Datapoint:
         """Create a datapoint from a trace dictionary.
 
         Args:
@@ -220,11 +222,11 @@ class Datapoint(BaseModel, abc.ABC):
         if not _is_trace(d):
             raise ValueError(f"This is not a trace: {d}")
         response: Any = d["response"]
-        kwargs: Dict[str, Any] = d["kwargs"]
+        kwargs: dict[str, Any] = d["kwargs"]
         return cls(response=response, **kwargs)
 
     @classmethod
-    def from_dict(cls, d: Dict[str, Any]) -> "Datapoint":
+    def from_dict(cls, d: dict[str, Any]) -> Datapoint:
         """Create a datapoint from a dictionary.
 
         Args:
@@ -269,9 +271,9 @@ class ClassifyDatapoint(Datapoint):
 
     instruction: str
     text: str
-    options: List[str]
-    response: Optional[int] = None
-    examples: Optional[List["ClassifyDatapoint"]] = None
+    options: list[str]
+    response: int | None = None
+    examples: list[ClassifyDatapoint] | None = None
 
     def evaluate(self, api: tau_bench.model_utils.API) -> EvaluationResult:
         """Evaluate the classification datapoint.
@@ -309,8 +311,8 @@ class BinaryClassifyDatapoint(Datapoint):
 
     instruction: str
     text: str
-    response: Optional[bool] = None
-    examples: Optional[List["BinaryClassifyDatapoint"]] = None
+    response: bool | None = None
+    examples: list[BinaryClassifyDatapoint] | None = None
 
     def evaluate(self, api: tau_bench.model_utils.API) -> EvaluationResult:
         """Evaluate the binary classification datapoint.
@@ -349,8 +351,8 @@ class ScoreDatapoint(Datapoint):
     text: str
     min: int
     max: int
-    response: Optional[int] = None
-    examples: Optional[List["ScoreDatapoint"]] = None
+    response: int | None = None
+    examples: list[ScoreDatapoint] | None = None
 
     def evaluate(self, api: tau_bench.model_utils.API) -> EvaluationResult:
         """Evaluate the scoring datapoint.
@@ -381,9 +383,9 @@ class ParseDatapoint(Datapoint):
     """
 
     text: str
-    typ: Union[type[T], Dict[str, Any]]
-    response: Optional[Union[Dict[str, Any], T, PartialObj]] = None
-    examples: Optional[List["ParseDatapoint"]] = None
+    typ: type[T] | dict[str, Any]
+    response: dict[str, Any] | T | PartialObj | None = None
+    examples: list[ParseDatapoint] | None = None
 
     def evaluate(self, api: tau_bench.model_utils.API) -> EvaluationResult:
         """Evaluate the parsing datapoint.
@@ -416,8 +418,8 @@ class GenerateDatapoint(Datapoint):
 
     instruction: str
     text: str
-    response: Optional[str] = None
-    examples: Optional[List["GenerateDatapoint"]] = None
+    response: str | None = None
+    examples: list[GenerateDatapoint] | None = None
 
     def evaluate(
         self, api: tau_bench.model_utils.API
@@ -451,10 +453,10 @@ class ParseForceDatapoint(Datapoint):
     """
 
     instruction: str
-    typ: Union[type[T], Dict[str, Any]]
-    text: Optional[str] = None
-    response: Optional[Union[Dict[str, Any], T]] = None
-    examples: Optional[List["ParseForceDatapoint"]] = None
+    typ: type[T] | dict[str, Any]
+    text: str | None = None
+    response: dict[str, Any] | T | None = None
+    examples: list[ParseForceDatapoint] | None = None
 
     def evaluate(self, api: tau_bench.model_utils.API) -> EvaluationResult:
         """Evaluate the forced parsing datapoint.
@@ -477,7 +479,7 @@ class ParseForceDatapoint(Datapoint):
         )
 
 
-def datapoint_factory(d: Dict[str, Any]) -> Datapoint:
+def datapoint_factory(d: dict[str, Any]) -> Datapoint:
     """Create a datapoint from a dictionary.
 
     This function creates an appropriate datapoint instance based on the
@@ -494,8 +496,8 @@ def datapoint_factory(d: Dict[str, Any]) -> Datapoint:
     """
     if _is_trace(d):
         method_name: str = d["method_name"]
-        kwargs: Dict[str, Any] = d["kwargs"]
-        data: Dict[str, Any] = {"response": d["response"], **kwargs}
+        kwargs: dict[str, Any] = d["kwargs"]
+        data: dict[str, Any] = {"response": d["response"], **kwargs}
         if method_name == "classify":
             return ClassifyDatapoint(**data)
         elif method_name == "binary_classify":
@@ -534,7 +536,7 @@ def datapoint_factory(d: Dict[str, Any]) -> Datapoint:
 
 
 def run_and_catch_api_error(
-    callable: Callable[..., Any], response: Any, datapoint: Dict[str, Any]
+    callable: Callable[..., object], response: object, datapoint: dict[str, object]
 ) -> EvaluationResult:
     """Run a callable and catch any API errors.
 
@@ -542,9 +544,9 @@ def run_and_catch_api_error(
     returning an appropriate evaluation result.
 
     Args:
-        callable (Callable[..., Any]): The callable to run.
-        response (Any): The expected response.
-        datapoint (Dict[str, Any]): The datapoint being evaluated.
+        callable (Callable[..., object]): The callable to run.
+        response (object): The expected response.
+        datapoint (Dict[str, object]): The datapoint being evaluated.
 
     Returns:
         EvaluationResult: The result of the evaluation.
@@ -568,7 +570,7 @@ def run_and_catch_api_error(
         )
 
 
-def load_from_disk(path: str) -> List[Datapoint]:
+def load_from_disk(path: str) -> list[Datapoint]:
     """Load datapoints from a file.
 
     This function loads datapoints from a JSON file on disk.
@@ -580,5 +582,5 @@ def load_from_disk(path: str) -> List[Datapoint]:
         List[Datapoint]: A list of datapoints loaded from the file.
     """
     with open(path) as f:
-        data: List[Dict[str, Any]] = json.load(f)
+        data: list[dict[str, Any]] = json.load(f)
     return [datapoint_factory(d) for d in data]

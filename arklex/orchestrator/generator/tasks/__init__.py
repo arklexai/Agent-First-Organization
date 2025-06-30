@@ -58,8 +58,8 @@ Usage:
     reusable_tasks = reusable_task_manager.generate_reusable_tasks(tasks)
 """
 
-from .task_generator import TaskGenerator
 from .best_practice_manager import BestPracticeManager
 from .reusable_task_manager import ReusableTaskManager
+from .task_generator import TaskGenerator
 
 __all__ = ["TaskGenerator", "BestPracticeManager", "ReusableTaskManager"]

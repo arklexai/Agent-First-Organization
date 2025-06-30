@@ -1,14 +1,13 @@
-# Copyright Sierra
-
 import json
-from typing import Any, Dict, List
+from typing import Any
+
 from benchmark.tau_bench.envs.tool import Tool
 
 
 class ReturnDeliveredOrderItems(Tool):
     @staticmethod
     def invoke(
-        data: Dict[str, Any], order_id: str, item_ids: List[str], payment_method_id: str
+        data: dict[str, Any], order_id: str, item_ids: list[str], payment_method_id: str
     ) -> str:
         orders = data["orders"]
 
@@ -44,7 +43,7 @@ class ReturnDeliveredOrderItems(Tool):
         return json.dumps(order)
 
     @staticmethod
-    def get_info() -> Dict[str, Any]:
+    def get_info() -> dict[str, Any]:
         return {
             "type": "function",
             "function": {

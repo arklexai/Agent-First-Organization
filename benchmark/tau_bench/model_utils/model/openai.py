@@ -1,5 +1,4 @@
 import os
-from typing import Dict, List, Optional
 
 from benchmark.tau_bench.model_utils.api.datapoint import Datapoint
 from benchmark.tau_bench.model_utils.model.chat import ChatModel, Message
@@ -13,7 +12,7 @@ from benchmark.tau_bench.model_utils.model.utils import approx_num_tokens
 DEFAULT_OPENAI_MODEL = "gpt-4o-2024-08-06"
 API_KEY_ENV_VAR = "OPENAI_API_KEY"
 
-PRICE_PER_INPUT_TOKEN_MAP: Dict[str, float] = {
+PRICE_PER_INPUT_TOKEN_MAP: dict[str, float] = {
     "gpt-4o-2024-08-06": 2.5 / 1000000,
     "gpt-4o": 5 / 1000000,
     "gpt-4o-2024-05-13": 5 / 1000000,
@@ -28,7 +27,7 @@ PRICE_PER_INPUT_TOKEN_MAP: Dict[str, float] = {
 }
 INPUT_PRICE_PER_TOKEN_FALLBACK = 10 / 1000000
 
-CAPABILITY_SCORE_MAP: Dict[str, float] = {
+CAPABILITY_SCORE_MAP: dict[str, float] = {
     "gpt-4o-2024-08-06": 0.8,
     "gpt-4o": 0.8,
     "gpt-4o-2024-05-13": 0.8,
@@ -43,11 +42,11 @@ CAPABILITY_SCORE_MAP: Dict[str, float] = {
 CAPABILITY_SCORE_FALLBACK = 0.3
 
 # TODO: implement
-LATENCY_MS_PER_OUTPUT_TOKEN_MAP: Dict[str, float] = {}
+LATENCY_MS_PER_OUTPUT_TOKEN_MAP: dict[str, float] = {}
 # TODO: implement
 LATENCY_MS_PER_OUTPUT_TOKEN_FALLBACK = 0.0
 
-MAX_CONTEXT_LENGTH_MAP: Dict[str, int] = {
+MAX_CONTEXT_LENGTH_MAP: dict[str, int] = {
     "gpt-4o-2024-08-06": 128000,
     "gpt-4o": 128000,
     "gpt-4o-2024-05-13": 128000,
@@ -65,8 +64,8 @@ MAX_CONTEXT_LENGTH_FALLBACK = 128000
 class OpenAIModel(ChatModel):
     def __init__(
         self,
-        model: Optional[str] = None,
-        api_key: Optional[str] = None,
+        model: str | None = None,
+        api_key: str | None = None,
         temperature: float = 0.0,
     ) -> None:
         from openai import AsyncOpenAI, OpenAI
@@ -87,9 +86,9 @@ class OpenAIModel(ChatModel):
 
     def generate_message(
         self,
-        messages: List[Message],
+        messages: list[Message],
         force_json: bool,
-        temperature: Optional[float] = None,
+        temperature: float | None = None,
     ) -> Message:
         if temperature is None:
             temperature = self.temperature

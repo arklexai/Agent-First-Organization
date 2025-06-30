@@ -34,21 +34,21 @@ The Generator orchestrates these components to create a complete task graph base
 user objectives, documentation, and configuration settings.
 """
 
-import os
 import json
+import os
 from datetime import datetime
-from typing import Optional, Dict, List, Any, Union
 from pathlib import Path
+from typing import Any
 
 from arklex.env.env import BaseResourceInitializer, DefaultResourceInitializer
-from arklex.orchestrator.generator.tasks import (
-    TaskGenerator,
-    BestPracticeManager,
-    ReusableTaskManager,
-)
 from arklex.orchestrator.generator.docs import DocumentLoader
 from arklex.orchestrator.generator.formatting import TaskGraphFormatter
 from arklex.orchestrator.generator.prompts import PromptManager
+from arklex.orchestrator.generator.tasks import (
+    BestPracticeManager,
+    ReusableTaskManager,
+    TaskGenerator,
+)
 from arklex.utils.logging_utils import LogContext
 
 # Make UI components optional to avoid dependency issues
@@ -62,7 +62,7 @@ except ImportError:
     class TaskEditorApp:
         """Placeholder class when UI components are not available."""
 
-        def __init__(self, *args, **kwargs):
+        def __init__(self, *args: object, **kwargs: object) -> None:
             raise ImportError("UI components require 'textual' package to be installed")
 
 
@@ -106,6 +106,7 @@ class Generator:
         resource_initializer: The resource initializer for the generator
         nluapi (str): The nluapi for the task graph
         slotfillapi (str): The slotfillapi for the task graph
+        settings (Optional[Dict[str, Any]]): Additional configuration settings
 
     Methods:
         generate(): Main method to generate the task graph
@@ -121,10 +122,10 @@ class Generator:
 
     def __init__(
         self,
-        config: Dict[str, Any],
-        model: Any,
-        output_dir: Optional[str] = None,
-        resource_initializer: Optional[BaseResourceInitializer] = None,
+        config: dict[str, Any],
+        model: object,
+        output_dir: str | None = None,
+        resource_initializer: BaseResourceInitializer | None = None,
         interactable_with_user: bool = True,
         allow_nested_graph: bool = True,
     ) -> None:
@@ -154,6 +155,7 @@ class Generator:
         self.example_conversations = config.get("example_conversations", [])
         self.nluapi = config.get("nluapi", "")
         self.slotfillapi = config.get("slotfillapi", "")
+        self.settings = config.get("settings", {})
 
         # Initialize resource initializer
         if resource_initializer is None:
@@ -255,8 +257,13 @@ class Generator:
                         }
                     )
 
-            # Add tools
-            for tool in self.tools:
+            # Add tools - handle both list and dictionary formats
+            tools_list = self.tools
+            if isinstance(self.tools, dict):
+                # Convert dictionary to list format for processing
+                tools_list = list(self.tools.values())
+
+            for tool in tools_list:
                 if isinstance(tool, dict) and "name" in tool:
                     all_resources.append(
                         {
@@ -323,14 +330,15 @@ class Generator:
                 slotfillapi=self.slotfillapi,
                 allow_nested_graph=self.allow_nested_graph,
                 model=self.model,
+                settings=self.settings,
             )
         return self._task_graph_formatter
 
     def _load_multiple_task_documents(
         self,
         doc_loader: DocumentLoader,
-        doc_paths: Union[List[Union[str, Dict[str, Any]]], str, Dict[str, Any]],
-    ) -> List[Any]:
+        doc_paths: list[str | dict[str, Any]] | str | dict[str, Any],
+    ) -> list[Any]:
         """Helper to load multiple task documents and aggregate them as a list.
 
         Args:
@@ -357,8 +365,8 @@ class Generator:
     def _load_multiple_instruction_documents(
         self,
         doc_loader: DocumentLoader,
-        doc_paths: Union[List[Union[str, Dict[str, Any]]], str, Dict[str, Any]],
-    ) -> List[Any]:
+        doc_paths: list[str | dict[str, Any]] | str | dict[str, Any],
+    ) -> list[Any]:
         """Helper to load multiple instruction documents and aggregate them as a list.
 
         Args:
@@ -382,7 +390,7 @@ class Generator:
             )
             return [doc_loader.load_instruction_document(src)]
 
-    def generate(self) -> Dict[str, Any]:
+    def generate(self) -> dict[str, Any]:
         """Generate a complete task graph.
 
         This method orchestrates the task graph generation process by:
@@ -480,8 +488,8 @@ class Generator:
                     if len(hitl_result) != len(self.tasks):
                         tasks_changed = True
                     else:
-                        for i, (original_task, edited_task) in enumerate(
-                            zip(self.tasks, hitl_result)
+                        for _i, (original_task, edited_task) in enumerate(
+                            zip(self.tasks, hitl_result, strict=False)
                         ):
                             if original_task.get("name") != edited_task.get(
                                 "name"
@@ -682,7 +690,7 @@ class Generator:
         log_context.info("✅ Task graph generated successfully!")
         return task_graph
 
-    def save_task_graph(self, task_graph: Dict[str, Any]) -> str:
+    def save_task_graph(self, task_graph: dict[str, Any]) -> str:
         """Save the generated task graph to a file.
 
         Args:
@@ -691,11 +699,11 @@ class Generator:
         Returns:
             str: Path to the saved task graph file
         """
-        import functools
         import collections.abc
+        import functools
 
-        def sanitize(obj):
-            if isinstance(obj, (str, int, float, bool)) or obj is None:
+        def sanitize(obj: object) -> object:
+            if isinstance(obj, str | int | float | bool) or obj is None:
                 return obj
             elif isinstance(obj, dict):
                 return {k: sanitize(v) for k, v in obj.items()}
@@ -715,13 +723,13 @@ class Generator:
 
         # Debug logging for non-serializable fields
         for k, v in task_graph.items():
-            if not isinstance(v, (str, int, float, bool, list, dict, type(None))):
+            if not isinstance(v, str | int | float | bool | list | dict | type(None)):
                 log_context.debug(
                     f"Field {k} is non-serializable: {v} (type: {type(v)})"
                 )
 
         sanitized_task_graph = sanitize(task_graph)
-        taskgraph_filepath = os.path.join(self.output_dir, f"taskgraph.json")
+        taskgraph_filepath = os.path.join(self.output_dir, "taskgraph.json")
         with open(taskgraph_filepath, "w") as f:
             json.dump(sanitized_task_graph, f, indent=4)
         return taskgraph_filepath

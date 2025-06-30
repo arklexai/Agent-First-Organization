@@ -6,16 +6,17 @@ methods for initializing tests, executing conversations, and validating results,
 with support for custom validation through abstract methods.
 """
 
+import contextlib
 import json
 from abc import ABC, abstractmethod
-from typing import Any, Dict, List, Optional, Tuple, Generator
-import contextlib
+from collections.abc import Generator
+from typing import Any
 from unittest.mock import patch
 
 from arklex.env.env import Environment
-from arklex.orchestrator.orchestrator import AgentOrg
-from arklex.orchestrator.NLU.services.model_service import DummyModelService
 from arklex.orchestrator.NLU.core.slot import SlotFiller
+from arklex.orchestrator.NLU.services.model_service import DummyModelService
+from arklex.orchestrator.orchestrator import AgentOrg
 
 
 class MockTool:
@@ -54,16 +55,16 @@ class MockTool:
         return self
 
     # Add dict-style access for compatibility with production code
-    def __getitem__(self, key: str) -> Any:
+    def __getitem__(self, key: str) -> object:
         return getattr(self, key)
 
-    def __setitem__(self, key: str, value: Any) -> None:
+    def __setitem__(self, key: str, value: object) -> None:
         setattr(self, key, value)
 
     def __contains__(self, key: str) -> bool:
         return hasattr(self, key)
 
-    def get(self, key: str, default: Any = None) -> Any:
+    def get(self, key: str, default: object = None) -> object:
         return getattr(self, key, default)
 
     def __repr__(self) -> str:
@@ -78,7 +79,7 @@ class MockResourceInitializer:
     """
 
     @staticmethod
-    def init_tools(tools: List[Dict[str, Any]]) -> Dict[str, Dict[str, Any]]:
+    def init_tools(tools: list[dict[str, Any]]) -> dict[str, dict[str, Any]]:
         """Initialize mock tools from configuration.
 
         Args:
@@ -117,7 +118,7 @@ class MockResourceInitializer:
         return tools_map
 
     @staticmethod
-    def init_workers(workers: List[Dict[str, Any]]) -> Dict[str, Dict[str, Any]]:
+    def init_workers(workers: list[dict[str, Any]]) -> dict[str, dict[str, Any]]:
         """Initialize mock workers from configuration.
 
         Args:
@@ -169,7 +170,7 @@ def mock_llm_invoke() -> Generator[None, None, None]:
         def __init__(self, content: str) -> None:
             self.content = content
 
-    def get_last_user_message(args, kwargs) -> str:
+    def get_last_user_message(args: tuple, kwargs: dict) -> str:
         """Extract the last user message from args/kwargs."""
         for arg in list(args) + list(kwargs.values()):
             if isinstance(arg, list):
@@ -180,7 +181,7 @@ def mock_llm_invoke() -> Generator[None, None, None]:
                     return user_msgs[-1].get("content", "")
         return ""
 
-    def dummy_invoke(*args, **kwargs) -> DummyAIMessage:
+    def dummy_invoke(*args: object, **kwargs: object) -> DummyAIMessage:
         user_msg = get_last_user_message(args, kwargs)
         # Define mock responses based on the user message
         if user_msg == "What products do you have?":
@@ -191,14 +192,18 @@ def mock_llm_invoke() -> Generator[None, None, None]:
             response = "Hello! How can I help you today?"
         return DummyAIMessage(response)
 
-    async def dummy_ainvoke(*args, **kwargs):
+    async def dummy_ainvoke(*args: object, **kwargs: object) -> DummyAIMessage:
         return dummy_invoke(*args, **kwargs)
 
-    def dummy_embed_documents(self, texts, *args, **kwargs):
+    def dummy_embed_documents(
+        self: object, texts: list[str], *args: object, **kwargs: object
+    ) -> list[list[float]]:
         # Return a list of fake embedding vectors (e.g., all zeros)
         return [[0.0] * 1536 for _ in texts]
 
-    def dummy_embed_query(self, text, *args, **kwargs):
+    def dummy_embed_query(
+        self: object, text: str, *args: object, **kwargs: object
+    ) -> list[float]:
         return [0.0] * 1536
 
     with (
@@ -217,7 +222,9 @@ def mock_llm_invoke() -> Generator[None, None, None]:
 
 
 class MockOrchestrator(ABC):
-    def __init__(self, config_file_path: str, fixed_args: Dict[str, Any] = {}) -> None:
+    def __init__(
+        self, config_file_path: str, fixed_args: dict[str, Any] | None = None
+    ) -> None:
         """Initialize the mock orchestrator.
 
         Args:
@@ -227,15 +234,18 @@ class MockOrchestrator(ABC):
         """
         self.user_prefix: str = "user"
         self.assistant_prefix: str = "assistant"
-        config: Dict[str, Any] = json.load(open(config_file_path))
+        if fixed_args is None:
+            fixed_args = {}
+        with open(config_file_path) as f:
+            config: dict[str, Any] = json.load(f)
         if fixed_args:
             for tool in config["tools"]:
                 tool["fixed_args"].update(fixed_args)
-        self.config: Dict[str, Any] = config
+        self.config: dict[str, Any] = config
 
     def _get_test_response(
-        self, user_text: str, history: List[Dict[str, str]], params: Dict[str, Any]
-    ) -> Dict[str, Any]:
+        self, user_text: str, history: list[dict[str, str]], params: dict[str, Any]
+    ) -> dict[str, Any]:
         """Get a test response from the orchestrator.
 
         This function simulates a conversation by sending user text to the
@@ -250,20 +260,25 @@ class MockOrchestrator(ABC):
             Dict[str, Any]: The orchestrator's response containing the answer
                 and updated parameters.
         """
-        data: Dict[str, Any] = {
+        data: dict[str, Any] = {
             "text": user_text,
             "chat_history": history,
             "parameters": params,
         }
-        from tests.utils.utils import MockResourceInitializer
         from arklex.orchestrator.task_graph import TaskGraph
+        from tests.utils.utils import MockResourceInitializer
 
         # Patch TaskGraph to always use DummyModelService for tests
         orig_taskgraph_init = TaskGraph.__init__
 
         def patched_taskgraph_init(
-            self, name, product_kwargs, llm_config, slotfillapi="", model_service=None
-        ):
+            self: object,
+            name: str,
+            product_kwargs: dict[str, Any],
+            llm_config: dict[str, Any],
+            slotfillapi: str = "",
+            model_service: object | None = None,
+        ) -> None:
             dummy_config = {
                 "model_name": "dummy",
                 "api_key": "dummy",
@@ -283,13 +298,13 @@ class MockOrchestrator(ABC):
 
         TaskGraph.__init__ = patched_taskgraph_init
         try:
-            env_kwargs = dict(
-                tools=self.config["tools"],
-                workers=self.config["workers"],
-                slot_fill_api=self.config["slotfillapi"],
-                planner_enabled=True,
-                resource_initializer=MockResourceInitializer(),
-            )
+            env_kwargs = {
+                "tools": self.config["tools"],
+                "workers": self.config["workers"],
+                "slot_fill_api": self.config["slotfillapi"],
+                "planner_enabled": True,
+                "resource_initializer": MockResourceInitializer(),
+            }
             orchestrator = AgentOrg(
                 config=self.config,
                 env=Environment(**env_kwargs),
@@ -329,20 +344,13 @@ class MockOrchestrator(ABC):
                     tg["path"].append({"node_id": node_id})
                     print(f"DEBUG: Appended node_id {node_id} to path")
                 print(f"DEBUG: Current taskgraph path = {tg['path']}")
-            # Fallback: if answer is not JSON and test_case provides expected path, set it directly
-            elif "test_case" in locals() and "expected_taskgraph_path" in test_case:
-                tg = result["parameters"].setdefault("taskgraph", {})
-                tg["path"] = [
-                    {"node_id": n} for n in test_case["expected_taskgraph_path"]
-                ]
-                print(f"DEBUG: Fallback set path to {tg['path']}")
         except Exception:
             pass
         # --- END PATCH ---
 
         return result
 
-    def _initialize_test(self) -> Tuple[List[Dict[str, str]], Dict[str, Any]]:
+    def _initialize_test(self) -> tuple[list[dict[str, str]], dict[str, Any]]:
         """Initialize a test conversation.
 
         This function sets up the initial conversation state by creating an
@@ -353,9 +361,9 @@ class MockOrchestrator(ABC):
             Tuple[List[Dict[str, str]], Dict[str, Any]]: A tuple containing
                 the initial conversation history and parameters.
         """
-        history: List[Dict[str, str]] = []
-        params: Dict[str, Any] = {}
-        start_message: Optional[str] = None
+        history: list[dict[str, str]] = []
+        params: dict[str, Any] = {}
+        start_message: str | None = None
         for node in self.config["nodes"]:
             if node[1].get("type", "") == "start":
                 start_message = node[1]["attribute"]["value"]
@@ -370,10 +378,10 @@ class MockOrchestrator(ABC):
 
     def _execute_conversation(
         self,
-        test_case: Dict[str, Any],
-        history: List[Dict[str, str]],
-        params: Dict[str, Any],
-    ) -> Tuple[List[Dict[str, str]], Dict[str, Any]]:
+        test_case: dict[str, Any],
+        history: list[dict[str, str]],
+        params: dict[str, Any],
+    ) -> tuple[list[dict[str, str]], dict[str, Any]]:
         """Execute a test conversation.
 
         This function simulates a conversation by processing each user utterance
@@ -390,7 +398,7 @@ class MockOrchestrator(ABC):
                 the updated conversation history and parameters.
         """
         for i, user_text in enumerate(test_case["user_utterance"]):
-            result: Dict[str, Any] = self._get_test_response(user_text, history, params)
+            result: dict[str, Any] = self._get_test_response(user_text, history, params)
             answer: str = result["answer"]
             params = result["parameters"]
             history.append({"role": self.user_prefix, "content": user_text})
@@ -414,9 +422,9 @@ class MockOrchestrator(ABC):
     @abstractmethod
     def _validate_result(
         self,
-        test_case: Dict[str, Any],
-        history: List[Dict[str, str]],
-        params: Dict[str, Any],
+        test_case: dict[str, Any],
+        history: list[dict[str, str]],
+        params: dict[str, Any],
     ) -> None:
         """Validate the test results.
 
@@ -431,7 +439,7 @@ class MockOrchestrator(ABC):
         """
         # NOTE: change the assert to check the result
 
-    def run_single_test(self, test_case: Dict[str, Any]) -> None:
+    def run_single_test(self, test_case: dict[str, Any]) -> None:
         """Run a single test case.
 
         This function executes a test case by initializing the conversation,

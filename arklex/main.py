@@ -7,27 +7,30 @@ This module initializes the FastAPI application and configures:
 - CORS
 """
 
+from collections.abc import AsyncGenerator
 from contextlib import asynccontextmanager
-from fastapi import FastAPI, Request
-from fastapi.responses import JSONResponse
-from fastapi.middleware.cors import CORSMiddleware
 
-from arklex.utils.logging_utils import LogContext
+from fastapi import FastAPI, Request
+from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import JSONResponse
+
+from arklex.middleware.logging_middleware import RequestLoggingMiddleware
+from arklex.orchestrator.NLU.api.routes import router as nlu_router
 from arklex.utils.exceptions import (
     ArklexError,
     AuthenticationError,
-    ResourceNotFoundError,
     RateLimitError,
+    ResourceNotFoundError,
     RetryableError,
 )
-from arklex.middleware.logging_middleware import RequestLoggingMiddleware
+from arklex.utils.logging_utils import LogContext
 
 # Initialize logging with JSON formatting
 log_context = LogContext(__name__)
 
 
 @asynccontextmanager
-async def lifespan(app: FastAPI):
+async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
     """Lifespan context manager for FastAPI application."""
     # Startup
     log_context.info("Application startup")
@@ -155,7 +158,5 @@ async def health_check() -> dict[str, str]:
     return {"status": "healthy"}
 
 
-# Import and include routers
-from arklex.orchestrator.NLU.api.routes import router as nlu_router
-
+# Include routers
 app.include_router(nlu_router, prefix="/api/nlu", tags=["NLU"])

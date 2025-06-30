@@ -7,21 +7,22 @@ multiple LLM providers, conversation role flipping, history formatting, and chat
 with parameter management.
 """
 
+import json
 import os
 import random
-import json
-import requests
-from typing import List, Dict, Any, Optional, Union
-from openai import OpenAI
+from typing import Any
+
 import anthropic
+import requests
 from dotenv import load_dotenv
+from openai import OpenAI
 
 from arklex.utils.model_config import MODEL
 
 load_dotenv()
 
 
-def create_client() -> Union[OpenAI, anthropic.Anthropic]:
+def create_client() -> OpenAI | anthropic.Anthropic:
     """Create a client for interacting with language models.
 
     This function creates and returns a client for the configured language model provider
@@ -35,8 +36,8 @@ def create_client() -> Union[OpenAI, anthropic.Anthropic]:
         KeyError: If required environment variables are not set.
     """
     try:
-        org_key: Optional[str] = os.environ["OPENAI_ORG_ID"]
-    except:
+        org_key: str | None = os.environ["OPENAI_ORG_ID"]
+    except KeyError:
         org_key = None
     if MODEL["llm_provider"] == "openai" or MODEL["llm_provider"] == "gemini":
         client: OpenAI = OpenAI(
@@ -52,8 +53,8 @@ def create_client() -> Union[OpenAI, anthropic.Anthropic]:
 
 
 def chatgpt_chatbot(
-    messages: List[Dict[str, str]],
-    client: Union[OpenAI, anthropic.Anthropic],
+    messages: list[dict[str, str]],
+    client: OpenAI | anthropic.Anthropic,
     model: str = MODEL["model_type_or_path"],
 ) -> str:
     """Send messages to a language model and get a response.
@@ -79,7 +80,7 @@ def chatgpt_chatbot(
             .message.content.strip()
         )
     else:
-        kwargs: Dict[str, Any] = {
+        kwargs: dict[str, Any] = {
             "model": MODEL["model_type_or_path"],
             "messages": messages if messages[0]["role"] != "system" else [messages[1]],
             "temperature": 0.1,
@@ -96,7 +97,7 @@ def chatgpt_chatbot(
 
 
 # flip roles in convo history, only keep role and content
-def flip_hist_content_only(hist: List[Dict[str, Any]]) -> List[Dict[str, str]]:
+def flip_hist_content_only(hist: list[dict[str, Any]]) -> list[dict[str, str]]:
     """Flip roles in conversation history, keeping only role and content.
 
     This function takes a conversation history and flips the roles (user becomes assistant
@@ -109,7 +110,7 @@ def flip_hist_content_only(hist: List[Dict[str, Any]]) -> List[Dict[str, str]]:
     Returns:
         List[Dict[str, str]]: The processed conversation history with flipped roles.
     """
-    new_hist: List[Dict[str, str]] = []
+    new_hist: list[dict[str, str]] = []
     for turn in hist:
         if turn["role"] == "system":
             continue
@@ -121,7 +122,7 @@ def flip_hist_content_only(hist: List[Dict[str, Any]]) -> List[Dict[str, str]]:
 
 
 # flip roles in convo history, keep all other keys the same
-def flip_hist(hist: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+def flip_hist(hist: list[dict[str, Any]]) -> list[dict[str, Any]]:
     """Flip roles in conversation history, preserving all fields.
 
     This function takes a conversation history and flips the roles (user becomes assistant
@@ -134,9 +135,9 @@ def flip_hist(hist: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
     Returns:
         List[Dict[str, Any]]: The processed conversation history with flipped roles.
     """
-    new_hist: List[Dict[str, Any]] = []
+    new_hist: list[dict[str, Any]] = []
     for turn in hist.copy():
-        if "role" not in turn.keys():
+        if "role" not in turn:
             new_hist.append(turn)
         elif turn["role"] == "system":
             continue
@@ -151,10 +152,10 @@ def flip_hist(hist: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
 
 def query_chatbot(
     model_api: str,
-    history: List[Dict[str, Any]],
-    params: Dict[str, Any],
-    env_config: Dict[str, Any],
-) -> Dict[str, Any]:
+    history: list[dict[str, Any]],
+    params: dict[str, Any],
+    env_config: dict[str, Any],
+) -> dict[str, Any]:
     """Query a chatbot API with conversation history and parameters.
 
     This function sends a request to a chatbot API with the provided conversation history,
@@ -171,7 +172,7 @@ def query_chatbot(
         Dict[str, Any]: The API response as a dictionary.
     """
     history = flip_hist_content_only(history)
-    data: Dict[str, Any] = {
+    data: dict[str, Any] = {
         "history": history,
         "parameters": params,
         "workers": env_config["workers"],
@@ -184,7 +185,7 @@ def query_chatbot(
     return response.json()
 
 
-def format_chat_history_str(chat_history: List[Dict[str, str]]) -> str:
+def format_chat_history_str(chat_history: list[dict[str, str]]) -> str:
     """Format chat history into a single string.
 
     This function takes a list of chat messages and formats them into a single string,
@@ -204,8 +205,8 @@ def format_chat_history_str(chat_history: List[Dict[str, str]]) -> str:
 
 # filter prompts out of bot utterances
 def filter_convo(
-    convo: List[Dict[str, Any]], delim: str = "\n", filter_turns: bool = True
-) -> List[Dict[str, Any]]:
+    convo: list[dict[str, Any]], delim: str = "\n", filter_turns: bool = True
+) -> list[dict[str, Any]]:
     """Filter and process a conversation.
 
     This function processes a conversation by:
@@ -222,22 +223,21 @@ def filter_convo(
     Returns:
         List[Dict[str, Any]]: The processed conversation.
     """
-    filtered_convo: List[Dict[str, Any]] = []
+    filtered_convo: list[dict[str, Any]] = []
     for i, turn in enumerate(convo):
-        if i <= 1:
+        if i <= 1 or "role" not in turn and filter_turns:
             continue
-        elif "role" not in turn.keys() and filter_turns:
-            continue
-        elif "role" not in turn.keys():
-            filtered_convo.append(turn)
-        elif turn["role"] == "assistant":
+        elif "role" not in turn or turn["role"] == "assistant":
             filtered_convo.append(turn)
         else:
             idx: int = turn["content"].find(delim)
-            new_turn: Dict[str, Any] = {}
-            for key in turn.keys():
+            new_turn: dict[str, Any] = {}
+            for key in turn:
                 if key == "content":
-                    new_turn[key] = turn[key][:idx]
+                    if idx == -1:
+                        new_turn[key] = turn[key]
+                    else:
+                        new_turn[key] = turn[key][:idx]
                 else:
                     new_turn[key] = turn[key]
             filtered_convo.append(new_turn)
@@ -265,7 +265,7 @@ def adjust_goal(doc_content: str, goal: str) -> str:
     )
 
 
-def generate_goal(doc_content: str, client: Union[OpenAI, anthropic.Anthropic]) -> str:
+def generate_goal(doc_content: str, client: OpenAI | anthropic.Anthropic) -> str:
     """Generate a goal based on document content.
 
     This function uses a language model to generate a goal or information request
@@ -290,10 +290,10 @@ def generate_goal(doc_content: str, client: Union[OpenAI, anthropic.Anthropic]) 
 
 
 def generate_goals(
-    documents: List[Dict[str, str]],
-    params: Dict[str, Any],
-    client: Union[OpenAI, anthropic.Anthropic],
-) -> List[str]:
+    documents: list[dict[str, str]],
+    params: dict[str, Any],
+    client: OpenAI | anthropic.Anthropic,
+) -> list[str]:
     """Generate multiple goals based on a collection of documents.
 
     This function generates a specified number of goals by randomly selecting documents
@@ -307,18 +307,26 @@ def generate_goals(
     Returns:
         List[str]: List of generated goals.
     """
-    goals: List[str] = []
-    for i in range(params["num_goals"]):
-        doc: Dict[str, str] = random.choice(documents)
+    goals: list[str] = []
+    for _ in range(params["num_goals"]):
+        doc: dict[str, str] = random.choice(documents)
         goals.append(generate_goal(doc["content"], client))
     return goals
 
 
-if __name__ == "__main__":
-    from get_documents import get_all_documents, filter_documents
+def _print_goals(goals: list[str]) -> None:
+    print(goals)
+
+
+def main() -> None:
+    from get_documents import filter_documents, get_all_documents
 
     documents = get_all_documents()
     documents = filter_documents(documents)
     client = create_client()
     params = {"num_goals": 1}
-    print(generate_goals(documents, params, client))
+    _print_goals(generate_goals(documents, params, client))
+
+
+if __name__ == "__main__":
+    main()

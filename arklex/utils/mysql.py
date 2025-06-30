@@ -42,9 +42,11 @@ Usage:
 """
 
 import os
-import mysql.connector
 import time
-from typing import Dict, Any, Optional, List, Tuple
+from typing import Any
+
+import mysql.connector
+
 from arklex.utils.logging_utils import LogContext
 
 log_context = LogContext(__name__)
@@ -53,7 +55,7 @@ log_context = LogContext(__name__)
 CONNECTION_TIMEOUT: int = int(os.getenv("MYSQL_CONNECTION_TIMEOUT", 10))
 
 # Database configuration loaded from environment variables
-MYSQL_CONFIG: Dict[str, Optional[str]] = {
+MYSQL_CONFIG: dict[str, str | None] = {
     "user": os.getenv("MYSQL_USERNAME"),  # Database username
     "password": os.getenv("MYSQL_PASSWORD"),  # Database password
     "host": os.getenv("MYSQL_HOSTNAME"),  # Database host address
@@ -93,7 +95,7 @@ class MySQLPool:
         pool (mysql.connector.pooling.MySQLConnectionPool): The connection pool instance
     """
 
-    def __init__(self, pool_size: int, **kwargs: Dict[str, Any]) -> None:
+    def __init__(self, pool_size: int, **kwargs: dict[str, Any]) -> None:
         """Initialize the MySQL connection pool.
 
         This method sets up a connection pool with the specified size and configuration.
@@ -113,7 +115,7 @@ class MySQLPool:
         self._user: str = kwargs.get("user", "root")
         self._password: str = kwargs.get("password", "")
         self._database: str = kwargs.get("database", "test")
-        self.dbconfig: Dict[str, Any] = {
+        self.dbconfig: dict[str, Any] = {
             "host": self._host,
             "port": self._port,
             "user": self._user,
@@ -173,7 +175,7 @@ class MySQLPool:
         """
         sql_conns.close()
 
-    def execute(self, sql: str, params: Optional[Tuple[Any, ...]] = None) -> None:
+    def execute(self, sql: str, params: tuple[Any, ...] | None = None) -> None:
         """Execute a SQL query without returning results.
 
         This method executes the given SQL query with optional parameters and commits
@@ -205,8 +207,8 @@ class MySQLPool:
         return
 
     def fetchall(
-        self, sql: str, params: Optional[Tuple[Any, ...]] = None
-    ) -> List[Dict[str, Any]]:
+        self, sql: str, params: tuple[Any, ...] | None = None
+    ) -> list[dict[str, Any]]:
         """Execute a SQL query and return all results.
 
         This method executes the given SQL query with optional parameters and returns
@@ -241,8 +243,8 @@ class MySQLPool:
             conn.close()
 
     def fetchone(
-        self, sql: str, params: Optional[Tuple[Any, ...]] = None
-    ) -> Optional[Dict[str, Any]]:
+        self, sql: str, params: tuple[Any, ...] | None = None
+    ) -> dict[str, Any] | None:
         """Execute a SQL query and return a single result.
 
         This method executes the given SQL query with optional parameters and returns

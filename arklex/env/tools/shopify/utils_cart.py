@@ -14,10 +14,9 @@ This file contains the code for operations related to shopping cart.
 
 import os
 
-
-from arklex.env.tools.shopify.utils import *
-
 from dotenv import load_dotenv
+
+from arklex.env.tools.shopify.utils import make_query
 
 load_dotenv()
 
@@ -29,7 +28,7 @@ cart_headers = {
 }
 
 
-def create_cart():
+def create_cart() -> str:
     query = """
             mutation cartCreate($input: CartInput) {
                 cartCreate(input: $input) {

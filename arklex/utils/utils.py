@@ -20,10 +20,11 @@ Key Features:
 """
 
 import json
-from typing import List, Dict, Any, Optional
+from typing import Any
 
-import tiktoken
 import Levenshtein
+import tiktoken
+
 from arklex.utils.logging_utils import LogContext
 
 # Configure logging
@@ -56,7 +57,7 @@ def chunk_string(
     """
     # Initialize the tokenizer
     encoding: tiktoken.Encoding = tiktoken.get_encoding(tokenizer)
-    tokens: List[int] = encoding.encode(text)
+    tokens: list[int] = encoding.encode(text)
     chunks: str
     if from_end:
         chunks = encoding.decode(tokens[-max_length:])
@@ -65,7 +66,7 @@ def chunk_string(
     return chunks
 
 
-def normalize(lst: List[float]) -> List[float]:
+def normalize(lst: list[float]) -> list[float]:
     """Normalize a list of numbers to sum to 1.
 
     This function takes a list of numbers and returns a new list where each number
@@ -118,7 +119,7 @@ def str_similarity(string1: str, string2: str) -> float:
     return similarity
 
 
-def postprocess_json(raw_code: str) -> Optional[Dict[str, Any]]:
+def postprocess_json(raw_code: str) -> dict[str, Any] | None:
     """Process and validate raw JSON code.
 
     This function takes raw JSON code, filters out invalid lines, and attempts to
@@ -143,15 +144,15 @@ def postprocess_json(raw_code: str) -> Optional[Dict[str, Any]]:
     Returns:
         Optional[Dict[str, Any]]: The parsed JSON as a dictionary, or None if parsing fails.
     """
-    valid_phrases: List[str] = ['"', "{", "}", "[", "]"]
+    valid_phrases: list[str] = ['"', "{", "}", "[", "]"]
 
-    valid_lines: List[str] = []
+    valid_lines: list[str] = []
     for line in raw_code.split("\n"):
         if len(line) == 0:
             continue
         # If the line not starts with any of the valid phrases, skip it
         should_skip: bool = not any(
-            [line.strip().startswith(phrase) for phrase in valid_phrases]
+            line.strip().startswith(phrase) for phrase in valid_phrases
         )
         if should_skip:
             continue
@@ -159,7 +160,7 @@ def postprocess_json(raw_code: str) -> Optional[Dict[str, Any]]:
 
     try:
         generated_result: str = "\n".join(valid_lines)
-        result: Optional[Dict[str, Any]] = json.loads(generated_result)
+        result: dict[str, Any] | None = json.loads(generated_result)
     except json.JSONDecodeError as e:
         log_context.error(f"Error decoding generated JSON - {generated_result}")
         log_context.error(f"raw result: {raw_code}")
@@ -192,7 +193,7 @@ def truncate_string(text: str, max_length: int = 400) -> str:
     return text
 
 
-def format_chat_history(chat_history: List[Dict[str, str]]) -> str:
+def format_chat_history(chat_history: list[dict[str, str]]) -> str:
     """Format chat history into a string representation.
 
     This function takes a list of chat messages and formats them into a single string,
@@ -218,7 +219,7 @@ def format_chat_history(chat_history: List[Dict[str, str]]) -> str:
 
 
 def format_truncated_chat_history(
-    chat_history: List[Dict[str, str]], max_length: int = 400
+    chat_history: list[dict[str, str]], max_length: int = 400
 ) -> str:
     """Format chat history with truncated message content.
 

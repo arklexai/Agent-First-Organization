@@ -10,20 +10,21 @@ embedding generation, and conversion between different document formats for vect
 
 import json
 from enum import Enum
-from typing import List, Dict
-from openai import OpenAI
-from arklex.utils.logging_utils import LogContext
+from typing import Any
 
 import tiktoken
-from arklex.utils.mysql import mysql_pool
 from langchain.text_splitter import RecursiveCharacterTextSplitter
+from openai import OpenAI
+
+from arklex.utils.logging_utils import LogContext
+from arklex.utils.mysql import mysql_pool
 
 DEFAULT_CHUNK_ENCODING = "cl100k_base"
 
 log_context = LogContext(__name__)
 
 
-def embed(text: str):
+def embed(text: str) -> list[float]:
     client = OpenAI()
     try:
         response = client.embeddings.create(input=text, model="text-embedding-ada-002")
@@ -51,7 +52,7 @@ class RetrieverResult:
         text: str,
         start_chunk_idx: int,
         end_chunk_idx: int,
-    ):
+    ) -> None:
         self.qa_doc_id = qa_doc_id
         self.distance = distance
         if isinstance(metadata, str):
@@ -76,9 +77,9 @@ class RetrieverDocument:
         is_chunked: bool,
         bot_uid: str,
         # num_tokens: int = None,
-        embedding=None,
-        timestamp: int = None,
-    ):
+        embedding: list[float] | None = None,
+        timestamp: int | None = None,
+    ) -> None:
         self.id = id
         self.qa_doc_id = qa_doc_id
         self.chunk_idx = int(chunk_idx)
@@ -94,7 +95,9 @@ class RetrieverDocument:
         self.timestamp = int(timestamp)
         self.bot_uid = bot_uid
 
-    def chunk(self, chunk_encoding=DEFAULT_CHUNK_ENCODING) -> List["RetrieverDocument"]:
+    def chunk(
+        self, chunk_encoding: str = DEFAULT_CHUNK_ENCODING
+    ) -> list["RetrieverDocument"]:
         if self.is_chunked:
             raise ValueError("Document is already chunked")
         elif self.qa_doc_type == RetrieverDocumentType.FAQ:
@@ -128,7 +131,7 @@ class RetrieverDocument:
 
         return chunked_docs
 
-    def to_dict(self):
+    def to_dict(self) -> dict[str, Any]:
         return {
             "id": self.id,
             "qa_doc_id": self.qa_doc_id,
@@ -143,7 +146,7 @@ class RetrieverDocument:
             "bot_uid": self.bot_uid,
         }
 
-    def to_milvus_schema_dict_and_embed(self) -> Dict:
+    def to_milvus_schema_dict_and_embed(self) -> dict:
         # check if values exists
         if (
             self.id is None
@@ -172,7 +175,7 @@ class RetrieverDocument:
         }
 
     @classmethod
-    def from_dict(cls, doc_dict):
+    def from_dict(cls, doc_dict: dict[str, Any]) -> "RetrieverDocument":
         return cls(
             id=doc_dict["id"],
             qa_doc_id=doc_dict["qa_doc_id"],
@@ -196,8 +199,8 @@ class RetrieverDocument:
         text: str,
         metadata: dict,
         bot_uid: str,
-        timestamp: int = None,
-    ):
+        timestamp: int | None = None,
+    ) -> "RetrieverDocument":
         return cls(
             id,
             id,
@@ -220,8 +223,8 @@ class RetrieverDocument:
         text: str,
         metadata: dict,
         bot_uid: str,
-        timestamp: int = None,
-    ):
+        timestamp: int | None = None,
+    ) -> "RetrieverDocument":
         return cls(
             id,
             id,
@@ -238,11 +241,11 @@ class RetrieverDocument:
     @classmethod
     def chunked_retriever_docs_from_db_docs(
         cls,
-        db_docs: List[dict],
+        db_docs: list[dict],
         doc_type: RetrieverDocumentType,
         bot_uid: str,
-    ) -> List["RetrieverDocument"]:
-        chunked_db_docs: List[RetrieverDocument] = []
+    ) -> list["RetrieverDocument"]:
+        chunked_db_docs: list[RetrieverDocument] = []
         for doc in db_docs:
             doc_id = doc["id"]
             metadata = doc["metadata"]
@@ -261,7 +264,7 @@ class RetrieverDocument:
     @classmethod
     def load_all_chunked_docs_from_mysql(
         cls, bot_id: str, version: str
-    ) -> List["RetrieverDocument"]:
+    ) -> list["RetrieverDocument"]:
         faq_db_docs = mysql_pool.fetchall(
             "SELECT id, content, metadata, unix_timestamp(updated_at) as timestamp FROM qa_doc_faq WHERE qa_bot_id=%s and qa_bot_version=%s;",
             (bot_id, version),
@@ -302,9 +305,9 @@ class RetrieverDocument:
         return chunked_website_docs + chunked_other_docs + faq_docs
 
 
-def embed_retriever_document(retriever_document: RetrieverDocument):
+def embed_retriever_document(retriever_document: RetrieverDocument) -> dict:
     return retriever_document.to_milvus_schema_dict_and_embed()
 
 
-def get_bot_uid(bot_id: str, version: str):
+def get_bot_uid(bot_id: str, version: str) -> str:
     return f"{bot_id}__{version}"

@@ -4,17 +4,21 @@ This module provides test configuration, fixtures, and mocks for testing the Ark
 """
 
 import os
-import pytest
-from unittest.mock import patch, MagicMock
 import sys
+from collections.abc import Generator
+from typing import Any
+from unittest.mock import MagicMock, patch
+
+import pytest
 from fastapi.testclient import TestClient
+
 from arklex.main import app
 from arklex.utils.logging_config import setup_logging
 
 
 # Mock OpenAI API key for testing
 @pytest.fixture(autouse=True)
-def mock_openai_api_key():
+def mock_openai_api_key() -> Generator[None, None, None]:
     """Mock OpenAI API key for testing."""
     # Only mock if we're in test mode
     if os.getenv("ARKLEX_TEST_ENV") == "local":
@@ -29,7 +33,7 @@ def mock_openai_api_key():
 
 # Mock Shopify module for testing
 @pytest.fixture(autouse=True)
-def mock_shopify():
+def mock_shopify() -> Generator[MagicMock, None, None]:
     """Mock Shopify module for testing."""
     # Only mock if we're in test mode
     if os.getenv("ARKLEX_TEST_ENV") == "local":
@@ -43,7 +47,7 @@ def mock_shopify():
 
 # Mock OpenAI LLM and Embeddings for testing
 @pytest.fixture(autouse=True)
-def mock_openai_llm_and_embeddings():
+def mock_openai_llm_and_embeddings() -> Generator[None, None, None]:
     """Mock LangChain OpenAI LLM and Embeddings for testing."""
     # Only mock if we're in test mode
     if os.getenv("ARKLEX_TEST_ENV") == "local":
@@ -69,12 +73,13 @@ def mock_openai_llm_and_embeddings():
 
 # Patch openai client to prevent real API calls
 @pytest.fixture(autouse=True)
-def mock_openai_client():
+def mock_openai_client() -> Generator[None, None, None]:
     """Mock openai.OpenAI and openai.resources.embeddings.Embeddings.create for all tests."""
     # Only mock if we're in test mode
     if os.getenv("ARKLEX_TEST_ENV") == "local":
+        from unittest.mock import MagicMock, patch
+
         import openai
-        from unittest.mock import patch, MagicMock
 
         dummy_embedding = [0.0] * 1536
         dummy_response = MagicMock()
@@ -82,10 +87,14 @@ def mock_openai_client():
             "data": [{"embedding": dummy_embedding}]
         }
 
-        def fake_embed_documents(texts, *args, **kwargs):
+        def fake_embed_documents(
+            texts: list[str], *args: tuple[Any, ...], **kwargs: dict[str, Any]
+        ) -> list[list[float]]:
             return [dummy_embedding for _ in texts]
 
-        def fake_embed_query(text, *args, **kwargs):
+        def fake_embed_query(
+            text: str, *args: tuple[Any, ...], **kwargs: dict[str, Any]
+        ) -> list[float]:
             return dummy_embedding
 
         # Create a mock chat completion response
@@ -130,12 +139,13 @@ def mock_openai_client():
 
 # Patch IntentDetector.execute to always return a dummy intent for tests
 @pytest.fixture(autouse=True)
-def mock_intent_detector_execute():
+def mock_intent_detector_execute() -> Generator[None, None, None]:
     """Mock IntentDetector.execute to always return a dummy intent for tests."""
     # Only mock if we're in test mode
     if os.getenv("ARKLEX_TEST_ENV") == "local":
-        from arklex.orchestrator.NLU.core.intent import IntentDetector
         from unittest.mock import patch
+
+        from arklex.orchestrator.NLU.core.intent import IntentDetector
 
         with patch.object(IntentDetector, "execute", return_value="others"):
             yield
@@ -144,13 +154,13 @@ def mock_intent_detector_execute():
 
 
 @pytest.fixture(scope="session")
-def test_client():
+def test_client() -> TestClient:
     """Create a test client for the FastAPI application."""
     return TestClient(app)
 
 
 @pytest.fixture(scope="session", autouse=True)
-def setup_test_logging():
+def setup_test_logging() -> None:
     """Set up test logging configuration."""
     # Create a test logs directory
     test_log_dir = os.path.join(os.getcwd(), "test_logs")
@@ -161,12 +171,12 @@ def setup_test_logging():
 
 
 @pytest.fixture
-def mock_request_id():
+def mock_request_id() -> str:
     """Generate a mock request ID for testing."""
     return "test-request-id-123"
 
 
 @pytest.fixture
-def sample_error_details():
+def sample_error_details() -> dict[str, Any]:
     """Provide sample error details for testing."""
     return {"error": "Test error", "context": {"test": "context"}}

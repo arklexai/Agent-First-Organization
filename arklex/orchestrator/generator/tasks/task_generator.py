@@ -11,9 +11,10 @@ Key Features:
 - Support for user-provided tasks
 """
 
-from typing import List, Dict, Any, Optional
-from dataclasses import dataclass
 import json
+from collections.abc import Callable
+from dataclasses import dataclass
+from typing import Any
 
 from arklex.orchestrator.generator.prompts import PromptManager
 from arklex.utils.logging_utils import LogContext
@@ -39,10 +40,10 @@ class TaskDefinition:
     task_id: str
     name: str
     description: str
-    steps: List[Dict[str, Any]]
-    dependencies: List[str]
-    required_resources: List[str]
-    estimated_duration: Optional[str]
+    steps: list[dict[str, Any]]
+    dependencies: list[str]
+    required_resources: list[str]
+    estimated_duration: str | None
     priority: int
 
 
@@ -78,7 +79,7 @@ class TaskGenerator:
 
     def __init__(
         self,
-        model: Any,
+        model: Callable[..., str],
         role: str,
         user_objective: str,
         instructions: str,
@@ -98,13 +99,13 @@ class TaskGenerator:
         self.user_objective = user_objective
         self.instructions = instructions
         self.documents = documents
-        self._task_definitions: Dict[str, TaskDefinition] = {}
-        self._task_hierarchy: Dict[str, List[str]] = {}
+        self._task_definitions: dict[str, TaskDefinition] = {}
+        self._task_hierarchy: dict[str, list[str]] = {}
         self.prompt_manager = PromptManager()  # Initialize prompt manager
 
     def generate_tasks(
-        self, intro: str, existing_tasks: Optional[List[Dict[str, Any]]] = None
-    ) -> List[Dict[str, Any]]:
+        self, intro: str, existing_tasks: list[dict[str, Any]] | None = None
+    ) -> list[dict[str, Any]]:
         """Generate tasks from the introduction and existing tasks.
 
         This method implements the original three-step process:
@@ -168,7 +169,11 @@ class TaskGenerator:
         task_definitions = self._convert_to_task_definitions(tasks_with_steps)
         tasks = []
         for i, task_def in enumerate(task_definitions):
-            task_dict = self._convert_to_dict(task_def)
+            # Pass the original task data to preserve intent field
+            original_task_data = (
+                tasks_with_steps[i] if i < len(tasks_with_steps) else None
+            )
+            task_dict = self._convert_to_dict(task_def, original_task_data)
             task_dict["id"] = f"task_{i + 1}"
             tasks.append(task_dict)
 
@@ -181,8 +186,8 @@ class TaskGenerator:
         return validated_tasks
 
     def add_provided_tasks(
-        self, user_tasks: List[Dict[str, Any]], intro: str
-    ) -> List[Dict[str, Any]]:
+        self, user_tasks: list[dict[str, Any]], intro: str
+    ) -> list[dict[str, Any]]:
         """Add user-provided tasks to the task set.
 
         This method processes and validates user-provided tasks, ensuring they
@@ -196,7 +201,7 @@ class TaskGenerator:
         Returns:
             List[Dict[str, Any]]: List of processed and validated tasks
         """
-        processed_tasks: List[Dict[str, Any]] = []
+        processed_tasks: list[dict[str, Any]] = []
         for task in user_tasks:
             try:
                 # Check if this is a simple task description without steps
@@ -254,8 +259,8 @@ class TaskGenerator:
         objective: str,
         intro: str,
         docs: str,
-        existing_tasks: Optional[List[Dict[str, Any]]] = None,
-    ) -> Dict[str, Any]:
+        existing_tasks: list[dict[str, Any]] | None = None,
+    ) -> dict[str, Any]:
         """Process objective and documentation to generate tasks.
 
         Args:
@@ -285,7 +290,7 @@ class TaskGenerator:
         except ImportError:
             messages = [{"role": "user", "content": prompt}]
         response = self.model.generate([messages])
-        response_text: Optional[str] = None
+        response_text: str | None = None
         if hasattr(response, "generations"):
             if hasattr(response.generations[0][0], "text"):
                 response_text = response.generations[0][0].text
@@ -317,8 +322,8 @@ class TaskGenerator:
         return {"tasks": tasks_data}
 
     def _generate_high_level_tasks(
-        self, intro: str, existing_tasks: Optional[List[Dict[str, Any]]] = None
-    ) -> List[Dict[str, Any]]:
+        self, intro: str, existing_tasks: list[dict[str, Any]] | None = None
+    ) -> list[dict[str, Any]]:
         """Generate high-level tasks using the original generate_tasks_sys_prompt.
 
         This is Step 1 of the original 3-step process.
@@ -418,7 +423,7 @@ class TaskGenerator:
 
     def _generate_task_steps_original(
         self, task_name: str, task_intent: str
-    ) -> List[Dict[str, Any]]:
+    ) -> list[dict[str, Any]]:
         """Generate steps for a task using the original generate_best_practice_sys_prompt.
 
         This is Step 3 of the original 3-step process.
@@ -496,8 +501,8 @@ class TaskGenerator:
             ]
 
     def _convert_to_task_definitions(
-        self, tasks_with_steps: List[Dict[str, Any]]
-    ) -> List[TaskDefinition]:
+        self, tasks_with_steps: list[dict[str, Any]]
+    ) -> list[TaskDefinition]:
         """Convert tasks with steps to TaskDefinition objects.
 
         Args:
@@ -506,7 +511,7 @@ class TaskGenerator:
         Returns:
             List[TaskDefinition]: List of TaskDefinition objects
         """
-        task_definitions: List[TaskDefinition] = []
+        task_definitions: list[TaskDefinition] = []
         for i, task_data in enumerate(tasks_with_steps):
             steps = task_data.get("steps", [])
             if not steps:
@@ -535,7 +540,7 @@ class TaskGenerator:
             task_definitions.append(task_def)
         return task_definitions
 
-    def _validate_tasks(self, tasks: List[Any]) -> List[Dict[str, Any]]:
+    def _validate_tasks(self, tasks: list[Any]) -> list[dict[str, Any]]:
         """Validate task definitions.
 
         Args:
@@ -544,7 +549,7 @@ class TaskGenerator:
         Returns:
             List[Dict[str, Any]]: List of validated tasks.
         """
-        validated_tasks: List[Dict[str, Any]] = []
+        validated_tasks: list[dict[str, Any]] = []
         for task in tasks:
             if hasattr(task, "__dataclass_fields__"):
                 task = self._convert_to_dict(task)
@@ -570,23 +575,21 @@ class TaskGenerator:
             for step in task["steps"]:
                 if "description" not in step or not step["description"].strip():
                     step["description"] = f"Execute: {step.get('task', 'Unknown step')}"
-            if "dependencies" not in task:
+            if "dependencies" not in task or not isinstance(task["dependencies"], list):
                 task["dependencies"] = []
-            elif not isinstance(task["dependencies"], list):
-                task["dependencies"] = []
-            if "required_resources" not in task:
+            if "required_resources" not in task or not isinstance(
+                task["required_resources"], list
+            ):
                 task["required_resources"] = []
-            elif not isinstance(task["required_resources"], list):
-                task["required_resources"] = []
-            if "estimated_duration" not in task:
+            if "estimated_duration" not in task or not isinstance(
+                task["estimated_duration"], str
+            ):
                 task["estimated_duration"] = "1 hour"
-            elif not isinstance(task["estimated_duration"], str):
-                task["estimated_duration"] = "1 hour"
-            if "priority" not in task:
-                task["priority"] = 3
-            elif not isinstance(task["priority"], (int, float)):
-                task["priority"] = 3
-            elif not 1 <= task["priority"] <= 5:
+            if (
+                "priority" not in task
+                or not isinstance(task["priority"], int | float)
+                or not 1 <= task["priority"] <= 5
+            ):
                 task["priority"] = 3
             validated_tasks.append(task)
         return validated_tasks
@@ -607,11 +610,9 @@ class TaskGenerator:
         for step in task_def.steps:
             if not isinstance(step, dict) or "task" not in step:
                 return False
-        if not 1 <= task_def.priority <= 5:
-            return False
-        return True
+        return 1 <= task_def.priority <= 5
 
-    def _establish_relationships(self, tasks: List[Dict[str, Any]]) -> None:
+    def _establish_relationships(self, tasks: list[dict[str, Any]]) -> None:
         """Establish relationships between tasks.
 
         This method analyzes task dependencies and establishes proper
@@ -622,13 +623,13 @@ class TaskGenerator:
         """
         # Implementation details...
 
-    def _build_hierarchy(self, tasks: List[Dict[str, Any]]) -> None:
+    def _build_hierarchy(self, tasks: list[dict[str, Any]]) -> None:
         """Build task hierarchy based on dependencies.
 
         Args:
             tasks (List[Dict[str, Any]]): List of tasks to organize.
         """
-        graph: Dict[str, Any] = {}
+        graph: dict[str, Any] = {}
         for task in tasks:
             task_id = task.get("id") or task.get("task_id")
             if not task_id:
@@ -639,7 +640,7 @@ class TaskGenerator:
                 "dependencies": set(task.get("dependencies", [])),
                 "level": 0,
             }
-        for task_id, node in graph.items():
+        for _task_id, node in graph.items():
             if not node["dependencies"]:
                 node["level"] = 0
             else:
@@ -656,16 +657,21 @@ class TaskGenerator:
                 task["level"] = 0
         tasks.sort(key=lambda x: x.get("level", 0))
 
-    def _convert_to_dict(self, task_def: TaskDefinition) -> Dict[str, Any]:
+    def _convert_to_dict(
+        self,
+        task_def: TaskDefinition,
+        original_task_data: dict[str, Any] | None = None,
+    ) -> dict[str, Any]:
         """Convert a TaskDefinition to a dictionary.
 
         Args:
             task_def (TaskDefinition): Task definition to convert.
+            original_task_data (Optional[Dict[str, Any]]): Original task data to preserve additional fields like intent.
 
         Returns:
             Dict[str, Any]: Dictionary representation of the task.
         """
-        return {
+        result = {
             "id": task_def.task_id,
             "name": task_def.name,
             "description": task_def.description,
@@ -676,11 +682,17 @@ class TaskGenerator:
             "priority": task_def.priority,
         }
 
+        # Preserve intent field from original task data if available
+        if original_task_data and "intent" in original_task_data:
+            result["intent"] = original_task_data["intent"]
+
+        return result
+
     def _convert_to_task_dict(
-        self, task_definitions: List[Dict[str, Any]]
-    ) -> Dict[str, Any]:
+        self, task_definitions: list[dict[str, Any]]
+    ) -> dict[str, Any]:
         """Convert task definitions to task dictionary format."""
-        tasks: Dict[str, Any] = {}
+        tasks: dict[str, Any] = {}
         for task_def in task_definitions:
             task_id = f"task_{len(tasks) + 1}"
             tasks[task_id] = {

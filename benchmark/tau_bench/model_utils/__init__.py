@@ -14,9 +14,6 @@ The module includes:
 """
 
 from benchmark.tau_bench.model_utils.api.api import (
-    default_api_from_args as default_api_from_args,
-)
-from benchmark.tau_bench.model_utils.api.api import (
     BinaryClassifyDatapoint as BinaryClassifyDatapoint,
 )
 from benchmark.tau_bench.model_utils.api.api import (
@@ -27,6 +24,9 @@ from benchmark.tau_bench.model_utils.api.api import (
 )
 from benchmark.tau_bench.model_utils.api.api import (
     ParseForceDatapoint as ParseForceDatapoint,
+)
+from benchmark.tau_bench.model_utils.api.api import (
+    default_api_from_args as default_api_from_args,
 )
 from benchmark.tau_bench.model_utils.api.api import (
     default_quick_api as default_quick_api,

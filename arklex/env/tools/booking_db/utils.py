@@ -1,15 +1,15 @@
 import os
 import sqlite3
-from typing import Dict, Optional, Tuple
+
 from langchain_openai import ChatOpenAI
 
-from arklex.utils.model_config import MODEL
 from arklex.utils.logging_utils import LogContext
+from arklex.utils.model_config import MODEL
 
 log_context = LogContext(__name__)
 DBNAME: str = "show_booking_db.sqlite"
 USER_ID: str = "user_be6e1836-8fe9-4938-b2d0-48f810648e72"
-SLOTS: Dict[str, Dict[str, str]] = {
+SLOTS: dict[str, dict[str, str]] = {
     "show_name": {
         "name": "show_name",
         "type": "string",
@@ -53,7 +53,7 @@ NO_BOOKING_MESSAGE: str = "You have not booked any show."
 
 
 class Booking:
-    db_path: Optional[str] = None
+    db_path: str | None = None
     llm: ChatOpenAI = ChatOpenAI(model=MODEL["model_type_or_path"], timeout=30000)
     user_id: str = USER_ID
     # actions = {
@@ -73,7 +73,7 @@ def log_in() -> bool:
     conn: sqlite3.Connection = sqlite3.connect(booking.db_path)
     cursor: sqlite3.Cursor = conn.cursor()
     cursor.execute("SELECT 1 FROM user WHERE id = ?", (booking.user_id,))
-    result: Optional[Tuple[int, ...]] = cursor.fetchone()
+    result: tuple[int, ...] | None = cursor.fetchone()
     if result is None:
         log_context.info(f"User {booking.user_id} not found in the database.")
     else:

@@ -10,16 +10,16 @@ environment setup.
 import argparse
 import logging
 import os
-import uvicorn
-from typing import Any, Dict, List, Tuple
+from typing import Any
 
+import uvicorn
 from fastapi import FastAPI
 
 from arklex.env.env import Env
 from arklex.orchestrator.orchestrator import AgentOrg
+from arklex.utils.logging_utils import LogContext
 from arklex.utils.model_config import MODEL
 from arklex.utils.model_provider_config import LLM_PROVIDERS
-from arklex.utils.logging_utils import LogContext
 
 log_context = LogContext(__name__)
 app: FastAPI = FastAPI()
@@ -27,11 +27,11 @@ app: FastAPI = FastAPI()
 
 def get_api_bot_response(
     args: argparse.Namespace,
-    history: List[Dict[str, str]],
+    history: list[dict[str, str]],
     user_text: str,
-    parameters: Dict[str, Any],
+    parameters: dict[str, Any],
     env: Env,
-) -> Tuple[str, Dict[str, Any]]:
+) -> tuple[str, dict[str, Any]]:
     """Get a response from the bot based on the provided input.
 
     This function processes the user input and chat history through the orchestrator
@@ -47,7 +47,7 @@ def get_api_bot_response(
     Returns:
         Tuple[str, Dict[str, Any]]: A tuple containing the bot's response and updated parameters.
     """
-    data: Dict[str, Any] = {
+    data: dict[str, Any] = {
         "text": user_text,
         "chat_history": history,
         "parameters": parameters,
@@ -55,13 +55,13 @@ def get_api_bot_response(
     orchestrator: AgentOrg = AgentOrg(
         config=os.path.join(args.input_dir, "taskgraph.json"), env=env
     )
-    result: Dict[str, Any] = orchestrator.get_response(data)
+    result: dict[str, Any] = orchestrator.get_response(data)
 
     return result["answer"], result["parameters"]
 
 
 @app.post("/eval/chat")
-def predict(data: Dict[str, Any]) -> Dict[str, Any]:
+def predict(data: dict[str, Any]) -> dict[str, Any]:
     """Predict a response based on the provided chat data.
 
     This endpoint processes chat interactions through the Arklex framework. It takes a dictionary
@@ -89,10 +89,10 @@ def predict(data: Dict[str, Any]) -> Dict[str, Any]:
             - parameters: Updated conversation parameters
     """
     # Extract conversation components from input data
-    history: List[Dict[str, str]] = data["history"]
-    params: Dict[str, Any] = data["parameters"]
-    workers: List[Dict[str, Any]] = data["workers"]
-    tools: List[Dict[str, Any]] = data["tools"]
+    history: list[dict[str, str]] = data["history"]
+    params: dict[str, Any] = data["parameters"]
+    workers: list[dict[str, Any]] = data["workers"]
+    tools: list[dict[str, Any]] = data["tools"]
     user_text: str = history[-1]["content"]
 
     # Initialize environment with provided workers and tools
@@ -100,7 +100,7 @@ def predict(data: Dict[str, Any]) -> Dict[str, Any]:
 
     # Get bot response using the orchestrator
     answer: str
-    params: Dict[str, Any]
+    params: dict[str, Any]
     answer, params = get_api_bot_response(args, history[:-1], user_text, params, env)
     return {"answer": answer, "parameters": params}
 

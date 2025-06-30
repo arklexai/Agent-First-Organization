@@ -6,9 +6,15 @@ It provides a base class for all exceptions and implements specific error types
 for different scenarios.
 """
 
-from typing import Optional, Any, Dict
 import copy
 from types import MappingProxyType
+from typing import Any
+
+
+class ExceptionPrompt:
+    """Base class for exception prompts."""
+
+    pass
 
 
 class ArklexError(Exception):
@@ -24,9 +30,9 @@ class ArklexError(Exception):
     def __init__(
         self,
         message: str,
-        code: Optional[str] = None,
+        code: str | None = None,
         status_code: int = 500,
-        details: Optional[dict[str, Any]] = None,
+        details: dict[str, Any] | None = None,
     ) -> None:
         """Initialize the exception.
 
@@ -84,7 +90,7 @@ class AuthenticationError(ArklexError):
     def __init__(
         self,
         message: str = "Authentication failed",
-        details: Optional[dict[str, Any]] = None,
+        details: dict[str, Any] | None = None,
     ) -> None:
         """Initialize the exception.
 
@@ -106,7 +112,7 @@ class ValidationError(ArklexError):
     def __init__(
         self,
         message: str = "Validation failed",
-        details: Optional[dict[str, Any]] = None,
+        details: dict[str, Any] | None = None,
     ) -> None:
         """Initialize the exception.
 
@@ -130,7 +136,7 @@ class APIError(ArklexError):
         details: Optional dictionary with additional error details.
     """
 
-    def __init__(self, message: str, details: Optional[Dict[str, Any]] = None) -> None:
+    def __init__(self, message: str, details: dict[str, Any] | None = None) -> None:
         """Initialize the APIError.
 
         Args:
@@ -148,7 +154,7 @@ class ModelError(ArklexError):
         details: Optional dictionary with additional error details.
     """
 
-    def __init__(self, message: str, details: Optional[Dict[str, Any]] = None) -> None:
+    def __init__(self, message: str, details: dict[str, Any] | None = None) -> None:
         """Initialize the ModelError.
 
         Args:
@@ -166,7 +172,7 @@ class PlannerError(ArklexError):
         details: Optional dictionary with additional error details.
     """
 
-    def __init__(self, message: str, details: Optional[Dict[str, Any]] = None) -> None:
+    def __init__(self, message: str, details: dict[str, Any] | None = None) -> None:
         """Initialize the PlannerError.
 
         Args:
@@ -184,7 +190,7 @@ class ConfigurationError(ArklexError):
         details: Optional dictionary with additional error details.
     """
 
-    def __init__(self, message: str, details: Optional[Dict[str, Any]] = None) -> None:
+    def __init__(self, message: str, details: dict[str, Any] | None = None) -> None:
         """Initialize the ConfigurationError.
 
         Args:
@@ -202,7 +208,7 @@ class DatabaseError(ArklexError):
         details: Optional dictionary with additional error details.
     """
 
-    def __init__(self, message: str, details: Optional[Dict[str, Any]] = None) -> None:
+    def __init__(self, message: str, details: dict[str, Any] | None = None) -> None:
         """Initialize the DatabaseError.
 
         Args:
@@ -220,7 +226,7 @@ class ResourceNotFoundError(ArklexError):
         details: Optional dictionary with additional error details.
     """
 
-    def __init__(self, message: str, details: Optional[Dict[str, Any]] = None) -> None:
+    def __init__(self, message: str, details: dict[str, Any] | None = None) -> None:
         """Initialize the ResourceNotFoundError.
 
         Args:
@@ -238,7 +244,7 @@ class RateLimitError(ArklexError):
         details: Optional dictionary with additional error details.
     """
 
-    def __init__(self, message: str, details: Optional[Dict[str, Any]] = None) -> None:
+    def __init__(self, message: str, details: dict[str, Any] | None = None) -> None:
         """Initialize the RateLimitError.
 
         Args:
@@ -261,9 +267,9 @@ class ToolExecutionError(ArklexError):
     def __init__(
         self,
         tool_name: str,
-        message: str,
-        details: Optional[Dict[str, Any]] = None,
-        extra_message: Optional[str] = None,
+        message: str | None = None,
+        details: dict[str, Any] | None = None,
+        extra_message: str | None = None,
     ) -> None:
         """Initialize the ToolExecutionError.
 
@@ -279,6 +285,7 @@ class ToolExecutionError(ArklexError):
             500,
             details,
         )
+        self.extra_message = extra_message
 
 
 class UserFacingError(ArklexError):
@@ -295,8 +302,8 @@ class UserFacingError(ArklexError):
         self,
         message: str,
         error_code: str,
-        details: Optional[Dict[str, Any]] = None,
-        extra_message: Optional[str] = None,
+        details: dict[str, Any] | None = None,
+        extra_message: str | None = None,
     ) -> None:
         """Initialize the UserFacingError.
 
@@ -323,7 +330,7 @@ class RetryableError(ArklexError):
         self,
         message: str,
         error_code: str,
-        details: Optional[Dict[str, Any]] = None,
+        details: dict[str, Any] | None = None,
         max_retries: int = 3,
     ) -> None:
         """Initialize the RetryableError.
@@ -346,7 +353,7 @@ class NetworkError(RetryableError):
         details: Optional dictionary with additional error details.
     """
 
-    def __init__(self, message: str, details: Optional[Dict[str, Any]] = None) -> None:
+    def __init__(self, message: str, details: dict[str, Any] | None = None) -> None:
         """Initialize the NetworkError.
 
         Args:
@@ -364,7 +371,7 @@ class TimeoutError(RetryableError):
         details: Optional dictionary with additional error details.
     """
 
-    def __init__(self, message: str, details: Optional[Dict[str, Any]] = None) -> None:
+    def __init__(self, message: str, details: dict[str, Any] | None = None) -> None:
         """Initialize the TimeoutError.
 
         Args:
@@ -382,7 +389,7 @@ class ServiceUnavailableError(RetryableError):
         details: Optional dictionary with additional error details.
     """
 
-    def __init__(self, message: str, details: Optional[Dict[str, Any]] = None) -> None:
+    def __init__(self, message: str, details: dict[str, Any] | None = None) -> None:
         """Initialize the ServiceUnavailableError.
 
         Args:
@@ -400,7 +407,7 @@ class EnvironmentError(ArklexError):
         details: Optional dictionary with additional error details.
     """
 
-    def __init__(self, message: str, details: Optional[Dict[str, Any]] = None) -> None:
+    def __init__(self, message: str, details: dict[str, Any] | None = None) -> None:
         """Initialize the EnvironmentError.
 
         Args:
@@ -418,7 +425,7 @@ class TaskGraphError(ArklexError):
         details: Optional dictionary with additional error details.
     """
 
-    def __init__(self, message: str, details: Optional[Dict[str, Any]] = None) -> None:
+    def __init__(self, message: str, details: dict[str, Any] | None = None) -> None:
         """Initialize the TaskGraphError.
 
         Args:
@@ -436,7 +443,7 @@ class ToolError(ArklexError):
         details: Optional dictionary with additional error details.
     """
 
-    def __init__(self, message: str, details: Optional[Dict[str, Any]] = None) -> None:
+    def __init__(self, message: str, details: dict[str, Any] | None = None) -> None:
         """Initialize the ToolError.
 
         Args:
@@ -454,7 +461,7 @@ class OrchestratorError(ArklexError):
         details: Optional dictionary with additional error details.
     """
 
-    def __init__(self, message: str, details: Optional[Dict[str, Any]] = None) -> None:
+    def __init__(self, message: str, details: dict[str, Any] | None = None) -> None:
         """Initialize the OrchestratorError.
 
         Args:
@@ -467,7 +474,7 @@ class OrchestratorError(ArklexError):
 class SearchError(ArklexError):
     """Raised when there is an error with search operations."""
 
-    def __init__(self, message: str, details: Optional[Dict[str, Any]] = None) -> None:
+    def __init__(self, message: str, details: dict[str, Any] | None = None) -> None:
         """Initialize the SearchError.
 
         Args:

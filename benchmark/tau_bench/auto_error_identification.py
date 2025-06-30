@@ -13,19 +13,20 @@ The module includes:
 - Concurrent processing of multiple results
 """
 
-# Copyright Sierra
-import os
-import json
 import argparse
+import json
+import os
+from concurrent.futures import ThreadPoolExecutor
 from enum import Enum
+from typing import Any
+
 from pydantic import BaseModel
-from benchmark.tau_bench.model_utils import default_api_from_args, API
+
 from benchmark.tau_bench.envs.airline.tasks_test import TASKS as AIRLINE_TASKS
 from benchmark.tau_bench.envs.retail.tasks_test import TASKS_TEST as RETAIL_TASKS
+from benchmark.tau_bench.model_utils import API, default_api_from_args
 from benchmark.tau_bench.model_utils.args import api_parser
-from benchmark.tau_bench.tau_types import Task, Action
-from typing import List, Dict, Any
-from concurrent.futures import ThreadPoolExecutor
+from benchmark.tau_bench.tau_types import Action, Task
 
 
 def get_args() -> argparse.Namespace:
@@ -88,9 +89,9 @@ class OriginalResult(BaseModel):
 
     task_id: int
     user_instruction: str
-    traj: List[Dict[str, Any]]
-    ground_truth_actions: List[Action]
-    ground_truth_outputs: List[str]
+    traj: list[dict[str, Any]]
+    ground_truth_actions: list[Action]
+    ground_truth_outputs: list[str]
 
 
 class FaultAuthor(Enum):
@@ -129,7 +130,7 @@ class FaultAssignmentResult(BaseModel):
     author: FaultAuthor
     description: str
 
-    def model_dump(self) -> Dict[str, Any]:
+    def model_dump(self) -> dict[str, Any]:
         """Convert the fault assignment result to a dictionary.
 
         Returns:
@@ -180,7 +181,7 @@ class FaultTypeResult(BaseModel):
     fault_type: FaultType
     description: str
 
-    def model_dump(self) -> Dict[str, Any]:
+    def model_dump(self) -> dict[str, Any]:
         """Convert the fault type result to a dictionary.
 
         Returns:
@@ -235,7 +236,7 @@ def context_description(grading_strategy: GradingStrategy) -> str:
 - The trajectory has been determined to have a fault."""
 
 
-def display_traj(traj: List[Dict[str, Any]]) -> str:
+def display_traj(traj: list[dict[str, Any]]) -> str:
     """Format a trajectory for display.
 
     This function formats a trajectory (sequence of messages) into a readable
@@ -253,7 +254,7 @@ def display_traj(traj: List[Dict[str, Any]]) -> str:
     """
     if len(traj) == 0:
         raise ValueError("Trajectory is empty")
-    stripped_traj: List[Dict[str, Any]] = [
+    stripped_traj: list[dict[str, Any]] = [
         item for item in traj if item["role"] != "system"
     ]
     return "\n".join(
@@ -261,7 +262,7 @@ def display_traj(traj: List[Dict[str, Any]]) -> str:
     )
 
 
-def display_actions(actions: List[Action]) -> str:
+def display_actions(actions: list[Action]) -> str:
     """Format a list of actions for display.
 
     This function formats a list of actions into a JSON string for display,
@@ -278,9 +279,9 @@ def display_actions(actions: List[Action]) -> str:
 
 def display_context(
     user_instruction: str,
-    ground_truth_actions: List[Action],
-    ground_truth_outputs: List[str],
-    trajectory: List[Dict[str, Any]],
+    ground_truth_actions: list[Action],
+    ground_truth_outputs: list[str],
+    trajectory: list[dict[str, Any]],
 ) -> str:
     """Format the complete context for error analysis.
 
@@ -321,8 +322,8 @@ def display_context(
 
 
 def fault_assignment_analysis(
-    api: API, results: List[OriginalResult], max_concurrency: int
-) -> List[FaultAssignmentResult]:
+    api: API, results: list[OriginalResult], max_concurrency: int
+) -> list[FaultAssignmentResult]:
     """Analyze and assign responsibility for faults.
 
     This function analyzes a list of benchmark results to determine which entity
@@ -340,11 +341,11 @@ def fault_assignment_analysis(
     def assign_fault(
         task_id: int,
         user_instruction: str,
-        traj: List[Dict[str, Any]],
-        ground_truth_actions: List[Action],
-        ground_truth_outputs: List[str],
+        traj: list[dict[str, Any]],
+        ground_truth_actions: list[Action],
+        ground_truth_outputs: list[str],
     ) -> FaultAssignmentResult:
-        idx_to_author: Dict[int, FaultAuthor] = {
+        idx_to_author: dict[int, FaultAuthor] = {
             0: FaultAuthor.USER,
             1: FaultAuthor.AGENT,
             2: FaultAuthor.ENVIRONMENT,
@@ -377,16 +378,16 @@ def fault_assignment_analysis(
         )
 
     with ThreadPoolExecutor(max_workers=max_concurrency) as executor:
-        task_ids: List[int] = [r.task_id for r in results]
-        user_instructions: List[str] = [r.user_instruction for r in results]
-        trajs: List[List[Dict[str, Any]]] = [r.traj for r in results]
-        ground_truth_actions: List[List[Action]] = [
+        task_ids: list[int] = [r.task_id for r in results]
+        user_instructions: list[str] = [r.user_instruction for r in results]
+        trajs: list[list[dict[str, Any]]] = [r.traj for r in results]
+        ground_truth_actions: list[list[Action]] = [
             r.ground_truth_actions for r in results
         ]
-        ground_truth_outputs: List[List[str]] = [
+        ground_truth_outputs: list[list[str]] = [
             r.ground_truth_outputs for r in results
         ]
-        results: List[FaultAssignmentResult] = list(
+        results: list[FaultAssignmentResult] = list(
             executor.map(
                 assign_fault,
                 task_ids,
@@ -400,8 +401,8 @@ def fault_assignment_analysis(
 
 
 def fault_type_analysis(
-    api: API, results: List[OriginalResult], max_concurrency: int
-) -> List[FaultTypeResult]:
+    api: API, results: list[OriginalResult], max_concurrency: int
+) -> list[FaultTypeResult]:
     """Analyze and classify fault types.
 
     This function analyzes a list of benchmark results to determine the type
@@ -419,11 +420,11 @@ def fault_type_analysis(
     def get_fault_type(
         task_id: int,
         user_instruction: str,
-        traj: List[Dict[str, Any]],
-        ground_truth_actions: List[Action],
-        ground_truth_outputs: List[str],
+        traj: list[dict[str, Any]],
+        ground_truth_actions: list[Action],
+        ground_truth_outputs: list[str],
     ) -> FaultTypeResult:
-        idx_to_fault_type: Dict[int, FaultType] = {
+        idx_to_fault_type: dict[int, FaultType] = {
             0: FaultType.CALLED_WRONG_TOOL,
             1: FaultType.USED_WRONG_TOOL_ARGUMENT,
             2: FaultType.GOAL_PARTIALLY_COMPLETED,
@@ -458,16 +459,16 @@ def fault_type_analysis(
         )
 
     with ThreadPoolExecutor(max_workers=max_concurrency) as executor:
-        task_ids: List[int] = [r.task_id for r in results]
-        user_instructions: List[str] = [r.user_instruction for r in results]
-        trajs: List[List[Dict[str, Any]]] = [r.traj for r in results]
-        ground_truth_actions: List[List[Action]] = [
+        task_ids: list[int] = [r.task_id for r in results]
+        user_instructions: list[str] = [r.user_instruction for r in results]
+        trajs: list[list[dict[str, Any]]] = [r.traj for r in results]
+        ground_truth_actions: list[list[Action]] = [
             r.ground_truth_actions for r in results
         ]
-        ground_truth_outputs: List[List[str]] = [
+        ground_truth_outputs: list[list[str]] = [
             r.ground_truth_outputs for r in results
         ]
-        results: List[FaultTypeResult] = list(
+        results: list[FaultTypeResult] = list(
             executor.map(
                 get_fault_type,
                 task_ids,
@@ -483,11 +484,11 @@ def fault_type_analysis(
 def run_error_identification(args: argparse.Namespace) -> None:
     api: API = default_api_from_args(args)
     with open(args.results_path) as f:
-        results: List[Dict[str, Any]] = json.load(f)
-    failed_results: List[Dict[str, Any]] = [r for r in results if r["reward"] < 1]
+        results: list[dict[str, Any]] = json.load(f)
+    failed_results: list[dict[str, Any]] = [r for r in results if r["reward"] < 1]
     if args.max_num_failed_results is not None:
         failed_results = failed_results[: args.max_num_failed_results]
-    original_results: List[OriginalResult] = []
+    original_results: list[OriginalResult] = []
     for r in failed_results:
         task_id: int = r["task_id"]
         if args.env == "airline":
@@ -503,10 +504,10 @@ def run_error_identification(args: argparse.Namespace) -> None:
                 ground_truth_outputs=task.outputs,
             )
         )
-    fault_assignment_results: List[FaultAssignmentResult] = fault_assignment_analysis(
+    fault_assignment_results: list[FaultAssignmentResult] = fault_assignment_analysis(
         api, original_results, args.max_concurrency
     )
-    fault_type_results: List[FaultTypeResult] = fault_type_analysis(
+    fault_type_results: list[FaultTypeResult] = fault_type_analysis(
         api, original_results, args.max_concurrency
     )
     os.makedirs(args.output_dir, exist_ok=True)

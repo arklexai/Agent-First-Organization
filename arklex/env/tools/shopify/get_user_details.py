@@ -20,15 +20,23 @@ Module Name: get_user_details
 This file contains the code for retrieving user details from Shopify.
 """
 
-from typing import Any, Dict, Tuple, Union
+from typing import TypedDict
 
-from arklex.env.tools.tools import register_tool
+from arklex.env.tools.shopify.auth_utils import AUTH_ERROR, get_access_token
+from arklex.env.tools.shopify.utils import make_query
+from arklex.env.tools.shopify.utils_nav import (
+    PAGEINFO_OUTPUTS,
+    PAGEINFO_SLOTS,
+    cursorify,
+)
 
 # Customer API
-from arklex.env.tools.shopify.utils_slots import ShopifySlots, ShopifyOutputs
-from arklex.env.tools.shopify.utils import *
-from arklex.env.tools.shopify.auth_utils import *
-from arklex.env.tools.shopify.utils_nav import *
+from arklex.env.tools.shopify.utils_slots import ShopifyOutputs, ShopifySlots
+from arklex.env.tools.tools import register_tool
+
+# Placeholder values for undefined variables (module is inactive)
+customer_url = "https://placeholder.myshopify.com/api/2024-04/graphql.json"
+customer_headers = {"Content-Type": "application/json"}
 
 description = "Get the details of a user."
 slots = [ShopifySlots.REFRESH_TOKEN, *PAGEINFO_SLOTS]
@@ -38,28 +46,36 @@ USER_NOT_FOUND_ERROR = "error: user not found"
 errors = [USER_NOT_FOUND_ERROR]
 
 
+class GetUserDetailsParams(TypedDict, total=False):
+    """Parameters for the get user details tool."""
+
+    limit: str
+    navigate: str
+    pageInfo: str
+
+
 @register_tool(description, slots, outputs, lambda x: x not in errors)
 def get_user_details(
-    refresh_token: str, **kwargs: Any
-) -> Union[Tuple[Dict[str, Any], Dict[str, Any]], str]:
+    refresh_token: str, **kwargs: GetUserDetailsParams
+) -> tuple[dict[str, str], dict[str, str]] | str:
     """
     Retrieve detailed information about a user's profile and their orders.
 
     Args:
         refresh_token (str): The refresh token used for authentication.
             This token is used to obtain an access token for API requests.
-        **kwargs (Any): Additional keyword arguments for pagination.
+        **kwargs (GetUserDetailsParams): Additional keyword arguments for pagination.
 
     Returns:
-        Union[Tuple[Dict[str, Any], Dict[str, Any]], str]: Either:
+        Union[Tuple[Dict[str, str], Dict[str, str]], str]: Either:
             - A tuple containing:
-                - Dict[str, Any]: User details including:
+                - Dict[str, str]: User details including:
                     - ID, first name, last name
                     - Email address and phone number
                     - Creation date
                     - Default address
                     - Order IDs
-                - Dict[str, Any]: Page information for pagination including:
+                - Dict[str, str]: Page information for pagination including:
                     - endCursor
                     - hasNextPage
                     - hasPreviousPage
@@ -111,19 +127,19 @@ def get_user_details(
             }}
         """
         try:
-            auth: Dict[str, str] = {"Authorization": get_access_token(refresh_token)}
-        except:
+            auth: dict[str, str] = {"Authorization": get_access_token(refresh_token)}
+        except Exception:
             return AUTH_ERROR
 
         try:
-            response: Dict[str, Any] = make_query(
+            response: dict[str, str] = make_query(
                 customer_url, body, {}, customer_headers | auth
             )["data"]["customer"]
         except Exception as e:
             return f"error: {e}"
 
-        pageInfo: Dict[str, Any] = response["orders"]["pageInfo"]
+        pageInfo: dict[str, str] = response["orders"]["pageInfo"]
         return response, pageInfo
 
-    except Exception:
-        raise PermissionError
+    except Exception as e:
+        raise PermissionError from e

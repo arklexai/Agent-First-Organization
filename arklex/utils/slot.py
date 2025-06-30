@@ -38,10 +38,9 @@ Usage:
     updated_slots = format_slotfilling_output(slots, response)
 """
 
-from typing import Any, Dict, List, Optional, Tuple, Type, Union
-from arklex.utils.logging_utils import LogContext
-
 from pydantic import BaseModel, Field, create_model
+
+from arklex.utils.logging_utils import LogContext
 
 log_context = LogContext(__name__)
 
@@ -63,19 +62,19 @@ class TypeMapping:
             - List types: list[str], list[int], list[float], list[bool]
     """
 
-    STRING_TO_TYPE: Dict[str, Type] = {
+    STRING_TO_TYPE: dict[str, type] = {
         "str": str,
         "int": int,
         "float": float,
         "bool": bool,
-        "list[str]": List[str],
-        "list[int]": List[int],
-        "list[float]": List[float],
-        "list[bool]": List[bool],
+        "list[str]": list[str],
+        "list[int]": list[int],
+        "list[float]": list[float],
+        "list[bool]": list[bool],
     }
 
     @classmethod
-    def string_to_type(cls, type_string: str) -> Type:
+    def string_to_type(cls, type_string: str) -> type:
         """Convert a string representation to its corresponding Python type.
 
         This method looks up the Python type corresponding to the given string
@@ -117,13 +116,13 @@ class Slot(BaseModel):
 
     name: str
     type: str = Field(default="str")
-    value: Union[str, int, float, bool, List[str], None] = Field(default=None)
-    enum: Optional[List[Union[str, int, float, bool, None]]] = Field(default=[])
+    value: str | int | float | bool | list[str] | None = Field(default=None)
+    enum: list[str | int | float | bool | None] | None = Field(default=[])
     description: str = Field(default="")
     prompt: str = Field(default="")
     required: bool = Field(default=False)
     verified: bool = Field(default=False)
-    items: Dict | None = None
+    items: dict | None = None
 
 
 class SlotInput(BaseModel):
@@ -146,8 +145,8 @@ class SlotInput(BaseModel):
     """
 
     name: str
-    value: Union[str, int, float, bool, List[str], None]
-    enum: Optional[List[Union[str, int, float, bool, None]]]
+    value: str | int | float | bool | list[str] | None
+    enum: list[str | int | float | bool | None] | None
     description: str
 
 
@@ -166,7 +165,7 @@ class SlotInputList(BaseModel):
         slot_input_list (List[SlotInput]): List of slot inputs to process.
     """
 
-    slot_input_list: List[SlotInput]
+    slot_input_list: list[SlotInput]
 
 
 class Verification(BaseModel):
@@ -190,7 +189,7 @@ class Verification(BaseModel):
     verification_needed: bool
 
 
-def structured_input_output(slots: List[Slot]) -> Tuple[SlotInputList, Type]:
+def structured_input_output(slots: list[Slot]) -> tuple[SlotInputList, type]:
     """Format slots for slot filling input and output.
 
     This function converts a list of slots into a structured format suitable for
@@ -237,19 +236,19 @@ def structured_input_output(slots: List[Slot]) -> Tuple[SlotInputList, Type]:
     output_format = create_model(
         "DynamicSlotOutputs",
         **{
-            slot.name: (Optional[TypeMapping.string_to_type(slot.type)], None)
+            slot.name: (TypeMapping.string_to_type(slot.type) | None, None)
             for slot in slots
         },
     )
     return SlotInputList(slot_input_list=input_slots), output_format
 
 
-def format_slotfiller_output(slots: List[Slot], response: Any) -> List[Slot]:
+def format_slotfiller_output(slots: list[Slot], response: object) -> list[Slot]:
     """Format the output of slot filler.
 
     Args:
         slots (List[Slot]): List of slots to format
-        response (Any): Response from slot filler
+        response (object): Response from slot filler
 
     Returns:
         List[Slot]: Formatted slots
@@ -257,11 +256,11 @@ def format_slotfiller_output(slots: List[Slot], response: Any) -> List[Slot]:
     log_context.info(f"filled_slots: {response}")
     filled_slots = response.model_dump()
     for slot in slots:
-        slot.value = filled_slots[slot.name]
+        slot.value = filled_slots.get(slot.name, None)
     return slots
 
 
-def format_slot_output(slots: List[Slot], response: Any) -> List[Slot]:
+def format_slot_output(slots: list[Slot], response: object) -> list[Slot]:
     """Format slot output from response.
 
     Args:
@@ -272,14 +271,21 @@ def format_slot_output(slots: List[Slot], response: Any) -> List[Slot]:
         List of formatted slots
     """
     updated_slots = []
-    for slot in slots:
-        if slot.name in response:
-            slot.value = response[slot.name]
+    # If response has a 'slots' key, use that list
+    if isinstance(response, dict) and "slots" in response:
+        slot_dict = {item["name"]: item["value"] for item in response["slots"]}
+        for slot in slots:
+            slot.value = slot_dict.get(slot.name, None)
+            updated_slots.append(slot)
+    # If response is a dict with slot names as keys
+    elif isinstance(response, dict):
+        for slot in slots:
+            slot.value = response.get(slot.name, None)
             updated_slots.append(slot)
     return updated_slots
 
 
-def validate_slot_values(slots: List[Slot]) -> List[str]:
+def validate_slot_values(slots: list[Slot]) -> list[str]:
     """Validate slot values.
 
     Args:
@@ -310,7 +316,7 @@ def validate_slot_values(slots: List[Slot]) -> List[str]:
     return errors
 
 
-def convert_slot_values(slots: List[Slot]) -> List[Slot]:
+def convert_slot_values(slots: list[Slot]) -> list[Slot]:
     """Convert slot values to appropriate types.
 
     Args:
