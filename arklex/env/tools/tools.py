@@ -357,8 +357,12 @@ class Tool:
                 # Always include the slot value, even if None
                 kwargs[slot.name] = slot.value if slot.value is not None else ""
 
-            # Always include the slots list for tools that need it (convert to dict for JSON serialization)
-            kwargs["slots"] = [slot.model_dump() if hasattr(slot, 'model_dump') else slot for slot in slots]
+            # Get the function signature to check parameters
+            sig = inspect.signature(self.func)
+            
+            # Only include the slots list if the target function accepts it
+            if 'slots' in sig.parameters:
+                kwargs["slots"] = [slot.model_dump() if hasattr(slot, 'model_dump') else slot for slot in slots]
 
             combined_kwargs: dict[str, Any] = {
                 **kwargs,
@@ -366,8 +370,6 @@ class Tool:
                 **self.llm_config,
             }
             try:
-                # Get the function signature to check required arguments
-                sig = inspect.signature(self.func)
                 required_args = [
                     name
                     for name, param in sig.parameters.items()

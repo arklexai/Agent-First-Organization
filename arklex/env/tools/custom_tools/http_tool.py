@@ -60,7 +60,7 @@ def http_tool(**kwargs: dict[str, Any]) -> str:
                         log_context.info(f"Added slot '{slot_name}' with value '{slot_value}' to body")
         
         # Remove any {{}} placeholders from params and body as these are optional parameters
-        def remove_placeholders(data_dict):
+        def remove_placeholders(data_dict: dict[str, Any] | None) -> None:
             if not data_dict:
                 return
             keys_to_remove = []
