@@ -10,7 +10,7 @@
 
 
 <script src="/js/rb2b-tracking.js"></script><link rel="stylesheet" href="/Agent-First-Organization/assets/css/styles.e9e681e1.css">
-<script src="/Agent-First-Organization/assets/js/runtime~main.c4eb4194.js" defer="defer"></script>
+<script src="/Agent-First-Organization/assets/js/runtime~main.34edfb07.js" defer="defer"></script>
 <script src="/Agent-First-Organization/assets/js/main.fd4732ff.js" defer="defer"></script>
 </head>
 <body class="navigation-with-keyboard">
@@ -24,7 +24,7 @@
 <h4 class="anchor anchorWithStickyNavbar_LWe7" id="google-gemini">Google Gemini<a href="#google-gemini" class="hash-link" aria-label="Direct link to Google Gemini" title="Direct link to Google Gemini">​</a></h4>
 <ul>
 <li>
-<p>Models: <code> gemini-1.5-flash</code>, <code>gemini-2.0-flash</code>, <code>gemini-2.0-flash-lite</code></p>
+<p>Models: <code>gemini-1.5-flash</code>, <code>gemini-2.0-flash</code>, <code>gemini-2.0-flash-lite</code></p>
 </li>
 <li>
 <p><strong>NOTE:</strong> Tool calling is only supported with <code>gemini-2.0-flash</code></p>
@@ -42,26 +42,34 @@
 <h2 class="anchor anchorWithStickyNavbar_LWe7" id="taskgraph-generation">Taskgraph Generation<a href="#taskgraph-generation" class="hash-link" aria-label="Direct link to Taskgraph Generation" title="Direct link to Taskgraph Generation">​</a></h2>
 <h3 class="anchor anchorWithStickyNavbar_LWe7" id="openai-default-1">OpenAI (Default)<a href="#openai-default-1" class="hash-link" aria-label="Direct link to OpenAI (Default)" title="Direct link to OpenAI (Default)">​</a></h3>
 <ul>
-<li>Add your <code>OPEN_API_KEY</code> to the <code>.env</code> file</li>
-<li>Example usage:<!-- -->
+<li>
+<p>Add your <code>OPEN_API_KEY</code> to the <code>.env</code> file</p>
+</li>
+<li>
+<p>Example usage:</p>
 <div class="codeBlockContainer_Ckt0 theme-code-block" style="--prism-color:#bfc7d5;--prism-background-color:#292d3e"><div class="codeBlockContent_biex"><pre tabindex="0" class="prism-code language-text codeBlock_bY9V thin-scrollbar" style="color:#bfc7d5;background-color:#292d3e"><code class="codeBlockLines_e6Vv"><span class="token-line" style="color:#bfc7d5"><span class="token plain">python create.py --config ./examples/customer_service_config.json --output-dir ./examples/customer_service --model gpt-4o-mini --llm-provider openai</span><br></span></code></pre><div class="buttonGroup__atx"><button type="button" aria-label="Copy code to clipboard" title="Copy" class="clean-btn"><span class="copyButtonIcons_eSgA" aria-hidden="true"><svg viewBox="0 0 24 24" class="copyButtonIcon_y97N"><path fill="currentColor" d="M19,21H8V7H19M19,5H8A2,2 0 0,0 6,7V21A2,2 0 0,0 8,23H19A2,2 0 0,0 21,21V7A2,2 0 0,0 19,5M16,1H4A2,2 0 0,0 2,3V17H4V3H16V1Z"></path></svg><svg viewBox="0 0 24 24" class="copyButtonSuccessIcon_LjdS"><path fill="currentColor" d="M21,7L9,19L3.5,13.5L4.91,12.09L9,16.17L19.59,5.59L21,7Z"></path></svg></span></button></div></div></div>
 </li>
 </ul>
 <h3 class="anchor anchorWithStickyNavbar_LWe7" id="google-gemini-1">Google Gemini<a href="#google-gemini-1" class="hash-link" aria-label="Direct link to Google Gemini" title="Direct link to Google Gemini">​</a></h3>
 <ul>
-<li>Add your <code>GOOGLE_API_KEY</code> and <code>GEMINI_API_KEY</code> to the <code>.env</code> file<!-- -->
+<li>
+<p>Add your <code>GOOGLE_API_KEY</code> and <code>GEMINI_API_KEY</code> to the <code>.env</code> file</p>
 <ul>
 <li>Note: Both API keys should be the same</li>
 </ul>
 </li>
-<li>Example usage:<!-- -->
+<li>
+<p>Example usage:</p>
 <div class="codeBlockContainer_Ckt0 theme-code-block" style="--prism-color:#bfc7d5;--prism-background-color:#292d3e"><div class="codeBlockContent_biex"><pre tabindex="0" class="prism-code language-text codeBlock_bY9V thin-scrollbar" style="color:#bfc7d5;background-color:#292d3e"><code class="codeBlockLines_e6Vv"><span class="token-line" style="color:#bfc7d5"><span class="token plain">python create.py --config ./examples/customer_service_config.json --output-dir ./examples/customer_service --model gemini-2.0-flash --llm-provider gemini</span><br></span></code></pre><div class="buttonGroup__atx"><button type="button" aria-label="Copy code to clipboard" title="Copy" class="clean-btn"><span class="copyButtonIcons_eSgA" aria-hidden="true"><svg viewBox="0 0 24 24" class="copyButtonIcon_y97N"><path fill="currentColor" d="M19,21H8V7H19M19,5H8A2,2 0 0,0 6,7V21A2,2 0 0,0 8,23H19A2,2 0 0,0 21,21V7A2,2 0 0,0 19,5M16,1H4A2,2 0 0,0 2,3V17H4V3H16V1Z"></path></svg><svg viewBox="0 0 24 24" class="copyButtonSuccessIcon_LjdS"><path fill="currentColor" d="M21,7L9,19L3.5,13.5L4.91,12.09L9,16.17L19.59,5.59L21,7Z"></path></svg></span></button></div></div></div>
 </li>
 </ul>
 <h3 class="anchor anchorWithStickyNavbar_LWe7" id="anthropic-1">Anthropic<a href="#anthropic-1" class="hash-link" aria-label="Direct link to Anthropic" title="Direct link to Anthropic">​</a></h3>
 <ul>
-<li>Add your <code>ANTHROPIC_API_KEY</code> to the <code>.env</code> file</li>
-<li>Example usage:<!-- -->
+<li>
+<p>Add your <code>ANTHROPIC_API_KEY</code> to the <code>.env</code> file</p>
+</li>
+<li>
+<p>Example usage:</p>
 <div class="codeBlockContainer_Ckt0 theme-code-block" style="--prism-color:#bfc7d5;--prism-background-color:#292d3e"><div class="codeBlockContent_biex"><pre tabindex="0" class="prism-code language-text codeBlock_bY9V thin-scrollbar" style="color:#bfc7d5;background-color:#292d3e"><code class="codeBlockLines_e6Vv"><span class="token-line" style="color:#bfc7d5"><span class="token plain">python create.py --config ./examples/customer_service_config.json --output-dir ./examples/customer_service --model claude-3-5-haiku-20241022 --llm-provider anthropic</span><br></span></code></pre><div class="buttonGroup__atx"><button type="button" aria-label="Copy code to clipboard" title="Copy" class="clean-btn"><span class="copyButtonIcons_eSgA" aria-hidden="true"><svg viewBox="0 0 24 24" class="copyButtonIcon_y97N"><path fill="currentColor" d="M19,21H8V7H19M19,5H8A2,2 0 0,0 6,7V21A2,2 0 0,0 8,23H19A2,2 0 0,0 21,21V7A2,2 0 0,0 19,5M16,1H4A2,2 0 0,0 2,3V17H4V3H16V1Z"></path></svg><svg viewBox="0 0 24 24" class="copyButtonSuccessIcon_LjdS"><path fill="currentColor" d="M21,7L9,19L3.5,13.5L4.91,12.09L9,16.17L19.59,5.59L21,7Z"></path></svg></span></button></div></div></div>
 </li>
 </ul>
@@ -72,37 +80,52 @@
 <h2 class="anchor anchorWithStickyNavbar_LWe7" id="running-the-bot">Running the Bot<a href="#running-the-bot" class="hash-link" aria-label="Direct link to Running the Bot" title="Direct link to Running the Bot">​</a></h2>
 <h3 class="anchor anchorWithStickyNavbar_LWe7" id="openaidefault">OpenAI(Default)<a href="#openaidefault" class="hash-link" aria-label="Direct link to OpenAI(Default)" title="Direct link to OpenAI(Default)">​</a></h3>
 <ul>
-<li>Ensure your <code>OPEN_API_KEY</code> is in the <code>.env</code> file</li>
-<li>Example usage:<!-- -->
+<li>
+<p>Ensure your <code>OPEN_API_KEY</code> is in the <code>.env</code> file</p>
+</li>
+<li>
+<p>Example usage:</p>
 <div class="codeBlockContainer_Ckt0 theme-code-block" style="--prism-color:#bfc7d5;--prism-background-color:#292d3e"><div class="codeBlockContent_biex"><pre tabindex="0" class="prism-code language-text codeBlock_bY9V thin-scrollbar" style="color:#bfc7d5;background-color:#292d3e"><code class="codeBlockLines_e6Vv"><span class="token-line" style="color:#bfc7d5"><span class="token plain">python run.py --input-dir ./examples/customer_service --model gpt-4o-mini --llm-provider openai</span><br></span></code></pre><div class="buttonGroup__atx"><button type="button" aria-label="Copy code to clipboard" title="Copy" class="clean-btn"><span class="copyButtonIcons_eSgA" aria-hidden="true"><svg viewBox="0 0 24 24" class="copyButtonIcon_y97N"><path fill="currentColor" d="M19,21H8V7H19M19,5H8A2,2 0 0,0 6,7V21A2,2 0 0,0 8,23H19A2,2 0 0,0 21,21V7A2,2 0 0,0 19,5M16,1H4A2,2 0 0,0 2,3V17H4V3H16V1Z"></path></svg><svg viewBox="0 0 24 24" class="copyButtonSuccessIcon_LjdS"><path fill="currentColor" d="M21,7L9,19L3.5,13.5L4.91,12.09L9,16.17L19.59,5.59L21,7Z"></path></svg></span></button></div></div></div>
 </li>
 </ul>
 <h3 class="anchor anchorWithStickyNavbar_LWe7" id="google-gemini-2">Google Gemini<a href="#google-gemini-2" class="hash-link" aria-label="Direct link to Google Gemini" title="Direct link to Google Gemini">​</a></h3>
 <ul>
-<li>Ensure your <code>GOOGLE_API_KEY</code> and <code>GEMINI_API_KEY</code> are in the <code>.env</code> file</li>
-<li>Example usage:<!-- -->
+<li>
+<p>Ensure your <code>GOOGLE_API_KEY</code> and <code>GEMINI_API_KEY</code> are in the <code>.env</code> file</p>
+</li>
+<li>
+<p>Example usage:</p>
 <div class="codeBlockContainer_Ckt0 theme-code-block" style="--prism-color:#bfc7d5;--prism-background-color:#292d3e"><div class="codeBlockContent_biex"><pre tabindex="0" class="prism-code language-text codeBlock_bY9V thin-scrollbar" style="color:#bfc7d5;background-color:#292d3e"><code class="codeBlockLines_e6Vv"><span class="token-line" style="color:#bfc7d5"><span class="token plain">python run.py --input-dir ./examples/customer_service --model gemini-2.0-flash-lite --llm-provider gemini</span><br></span></code></pre><div class="buttonGroup__atx"><button type="button" aria-label="Copy code to clipboard" title="Copy" class="clean-btn"><span class="copyButtonIcons_eSgA" aria-hidden="true"><svg viewBox="0 0 24 24" class="copyButtonIcon_y97N"><path fill="currentColor" d="M19,21H8V7H19M19,5H8A2,2 0 0,0 6,7V21A2,2 0 0,0 8,23H19A2,2 0 0,0 21,21V7A2,2 0 0,0 19,5M16,1H4A2,2 0 0,0 2,3V17H4V3H16V1Z"></path></svg><svg viewBox="0 0 24 24" class="copyButtonSuccessIcon_LjdS"><path fill="currentColor" d="M21,7L9,19L3.5,13.5L4.91,12.09L9,16.17L19.59,5.59L21,7Z"></path></svg></span></button></div></div></div>
 </li>
 </ul>
 <h3 class="anchor anchorWithStickyNavbar_LWe7" id="anthropic-2">Anthropic<a href="#anthropic-2" class="hash-link" aria-label="Direct link to Anthropic" title="Direct link to Anthropic">​</a></h3>
 <ul>
-<li>Ensure your <code>ANTHROPIC_API_KEY</code> is in the <code>.env</code> file</li>
-<li>Example usage:<!-- -->
+<li>
+<p>Ensure your <code>ANTHROPIC_API_KEY</code> is in the <code>.env</code> file</p>
+</li>
+<li>
+<p>Example usage:</p>
 <div class="codeBlockContainer_Ckt0 theme-code-block" style="--prism-color:#bfc7d5;--prism-background-color:#292d3e"><div class="codeBlockContent_biex"><pre tabindex="0" class="prism-code language-text codeBlock_bY9V thin-scrollbar" style="color:#bfc7d5;background-color:#292d3e"><code class="codeBlockLines_e6Vv"><span class="token-line" style="color:#bfc7d5"><span class="token plain">python run.py --input-dir ./examples/customer_service --model claude-3-5-haiku-20241022 --llm-provider anthropic</span><br></span></code></pre><div class="buttonGroup__atx"><button type="button" aria-label="Copy code to clipboard" title="Copy" class="clean-btn"><span class="copyButtonIcons_eSgA" aria-hidden="true"><svg viewBox="0 0 24 24" class="copyButtonIcon_y97N"><path fill="currentColor" d="M19,21H8V7H19M19,5H8A2,2 0 0,0 6,7V21A2,2 0 0,0 8,23H19A2,2 0 0,0 21,21V7A2,2 0 0,0 19,5M16,1H4A2,2 0 0,0 2,3V17H4V3H16V1Z"></path></svg><svg viewBox="0 0 24 24" class="copyButtonSuccessIcon_LjdS"><path fill="currentColor" d="M21,7L9,19L3.5,13.5L4.91,12.09L9,16.17L19.59,5.59L21,7Z"></path></svg></span></button></div></div></div>
 </li>
 </ul>
 <h3 class="anchor anchorWithStickyNavbar_LWe7" id="hugging-face-2">Hugging Face<a href="#hugging-face-2" class="hash-link" aria-label="Direct link to Hugging Face" title="Direct link to Hugging Face">​</a></h3>
 <ul>
-<li>Uses the <a href="https://huggingface.co/docs/api-inference/en/getting-started" target="_blank" rel="noopener noreferrer">Hugging Face Inference API</a>.</li>
-<li>Add your <code>HUGGINGFACE_API_KEY</code> to the <code>.env</code> file<!-- -->
+<li>
+<p>Uses the <a href="https://huggingface.co/docs/api-inference/en/getting-started" target="_blank" rel="noopener noreferrer">Hugging Face Inference API</a>.</p>
+</li>
+<li>
+<p>Add your <code>HUGGINGFACE_API_KEY</code> to the <code>.env</code> file</p>
 <ul>
 <li>Follow these <a href="https://huggingface.co/docs/api-inference/en/getting-started#getting-a-token" target="_blank" rel="noopener noreferrer">instructions</a> to get API key</li>
 </ul>
 </li>
-<li>Example usage:<!-- -->
+<li>
+<p>Example usage:</p>
 <div class="codeBlockContainer_Ckt0 theme-code-block" style="--prism-color:#bfc7d5;--prism-background-color:#292d3e"><div class="codeBlockContent_biex"><pre tabindex="0" class="prism-code language-text codeBlock_bY9V thin-scrollbar" style="color:#bfc7d5;background-color:#292d3e"><code class="codeBlockLines_e6Vv"><span class="token-line" style="color:#bfc7d5"><span class="token plain">python run.py --input-dir ./examples/customer_service --model microsoft/Phi-3-mini-4k-instruct --llm-provider huggingface</span><br></span></code></pre><div class="buttonGroup__atx"><button type="button" aria-label="Copy code to clipboard" title="Copy" class="clean-btn"><span class="copyButtonIcons_eSgA" aria-hidden="true"><svg viewBox="0 0 24 24" class="copyButtonIcon_y97N"><path fill="currentColor" d="M19,21H8V7H19M19,5H8A2,2 0 0,0 6,7V21A2,2 0 0,0 8,23H19A2,2 0 0,0 21,21V7A2,2 0 0,0 19,5M16,1H4A2,2 0 0,0 2,3V17H4V3H16V1Z"></path></svg><svg viewBox="0 0 24 24" class="copyButtonSuccessIcon_LjdS"><path fill="currentColor" d="M21,7L9,19L3.5,13.5L4.91,12.09L9,16.17L19.59,5.59L21,7Z"></path></svg></span></button></div></div></div>
 </li>
-<li><strong>NOTE</strong> : You may need to request access to a specific model via the Hugging Face website</li>
+<li>
+<p><strong>NOTE</strong> : You may need to request access to a specific model via the Hugging Face website</p>
+</li>
 </ul>
 <h2 class="anchor anchorWithStickyNavbar_LWe7" id="sample-conversation">Sample conversation<a href="#sample-conversation" class="hash-link" aria-label="Direct link to Sample conversation" title="Direct link to Sample conversation">​</a></h2>
 <p>To run the bot, use the following command:</p>

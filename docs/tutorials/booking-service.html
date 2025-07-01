@@ -10,7 +10,7 @@
 
 
 <script src="/js/rb2b-tracking.js"></script><link rel="stylesheet" href="/Agent-First-Organization/assets/css/styles.e9e681e1.css">
-<script src="/Agent-First-Organization/assets/js/runtime~main.c4eb4194.js" defer="defer"></script>
+<script src="/Agent-First-Organization/assets/js/runtime~main.34edfb07.js" defer="defer"></script>
 <script src="/Agent-First-Organization/assets/js/main.fd4732ff.js" defer="defer"></script>
 </head>
 <body class="navigation-with-keyboard">
@@ -43,18 +43,18 @@
 </ul>
 </li>
 <li><code>tasks (Optional, List(Str))</code>: The pre-defined list of tasks that the chatbot need to handle. If empty, the system will generate the tasks and the steps to complete the tasks based on the role, objective, domain, intro and docs fields. The more information you provide in the fields, the more accurate the tasks and steps will be generated.</li>
-<li><code>workers (Required, List(Dict))</code>: The workers pre-defined under arklex/env/workers folder that you want to use for the chatbot. Each worker will be defined as a class decorated with @register_worker. Please refer to the arklex/env/workers/message_worker.py for an example. The field required for each worker object is:<!-- -->
+<li><code>workers (Required, List(Dict))</code>: The workers pre-defined under arklex/env/workers folder that you want to use for the chatbot. Each worker will be defined as a class decorated with @register_worker. Please refer to the arklex/env/workers/message_worker.py for an example. The field required for each worker object is:
+*<code>id (Required, uuid)</code>: The unique id for the worker<!-- -->
 <ul>
-<li><code>id (Required, uuid)</code>: The unique id for the worker</li>
 <li><code>name (Required, Str)</code>: The WorkerClassName. Such as <code>MessageWorker</code></li>
 <li><code>path (Required, Str)</code>: The file path of the worker start from the arklex/env/workers folder. Such as <code>message_worker.py</code>.</li>
 </ul>
 </li>
-<li><code>tools (Optional, List(Dict))</code>: The tools (e.g. APIs, function, etc.) pre-defined under arklex/env/tools folder that you want to use for the chatbot. Each tool will be defined as a function decorated with @register_tool. The decorator includes the <strong>description</strong> - the purpose of the function, <strong>slots</strong> - the arguments needed for the function, <strong>outputs</strong> - expected result of the function. For more details, please refer to the arklex/env/tools/shopify/find_user_id_by_email.py as an example. The field required for each tool object is:<!-- -->
+<li><code>tools (Optional, List(Dict))</code>: The tools (e.g. APIs, function, etc.) pre-defined under arklex/env/tools folder that you want to use for the chatbot. Each tool will be defined as a function decorated with @register_tool. The decorator includes the <strong>description</strong> - the purpose of the function, <strong>slots</strong> - the arguments needed for the function, <strong>outputs</strong> - expected result of the function. For more details, please refer to the arklex/env/tools/shopify/find_user_id_by_email.py as an example. The field required for each tool object is:
+*<code>id (Required, uuid)</code>: The unique id for the worker<!-- -->
 <ul>
-<li><code>id (Required, uuid)</code>: The unique id for the worker</li>
-<li><code>name (Required, Str)</code>: The tool function name. Such as <code>find_user_id_by_email</code>.</li>
-<li><code>path (Required, Str)</code>: The file path of the worker start from the arklex/env/tools folder. Such as <code>shopify/find_user_id_by_email.py</code>.</li>
+<li><code>name (Required, Str)</code>: The tool function name. Such as <code>find_user_id_by_email</code>.
+*<code>path (Required, Str)</code>: The file path of the worker start from the arklex/env/tools folder. Such as <code>shopify/find_user_id_by_email.py</code>.</li>
 <li><code>fixed_args (Optional, Dict)</code>: All the must and deterministic arguments for the tool function, such as credentials or already known argument during development. It should be a dictionary. Such as <code>{&quot;token&quot;: &quot;&lt;access_token&gt;&quot;, &quot;shop_url&quot;: &quot;&lt;url&gt;&quot;, &quot;api_version&quot;: &quot;&lt;version&gt;&quot;}</code></li>
 </ul>
 </li>
