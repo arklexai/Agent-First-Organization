@@ -5,7 +5,7 @@ This module defines a tool for making HTTP requests to external APIs and handlin
 """
 
 import inspect
-from typing import Any
+from typing import Any, Union, Dict, List
 
 import requests
 
@@ -16,7 +16,7 @@ from arklex.utils.logging_utils import LogContext
 
 log_context = LogContext(__name__)
 
-def replace_placeholders(data, slot_map):
+def replace_placeholders(data: Union[Dict[str, Any], List[Any], str, Any], slot_map: Dict[str, Any]) -> Union[Dict[str, Any], List[Any], str, Any]:
     """
     Recursively replace {{slot_name}} in all string values in data with slot_map[slot_name].
     If the slot is not found, replace the placeholder with None.
@@ -29,7 +29,7 @@ def replace_placeholders(data, slot_map):
         return [replace_placeholders(item, slot_map) for item in data]
     elif isinstance(data, str):
         # Replace all placeholders in the string with values from slot_map
-        def repl(m):
+        def repl(m: re.Match) -> str:
             slot_name = m.group(1)
             value = slot_map.get(slot_name, None)
             return str(value) if value is not None else None
@@ -70,13 +70,12 @@ def http_tool(
                     slot_value = slot.get("value")
                     slot_target = slot.get("target")
 
-                if slot_name and slot_value is not None and slot_target:
-                    if slot_target == "params":
-                        # Add to params
-                        if not params.params:
-                            params.params = {}
-                        params.params[slot_name] = slot_value
-                        log_context.info(f"Added slot '{slot_name}' with value '{slot_value}' to params")
+                if slot_name and slot_value is not None and slot_target and slot_target == "params":
+                    # Add to params
+                    if not params.params:
+                        params.params = {}
+                    params.params[slot_name] = slot_value
+                    log_context.info(f"Added slot '{slot_name}' with value '{slot_value}' to params")
 
             # Build slot_map once after all slots are processed
             slot_map = {}
