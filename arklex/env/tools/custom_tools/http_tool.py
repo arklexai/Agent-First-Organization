@@ -31,12 +31,20 @@ def replace_placeholders(
     elif isinstance(data, list):
         return [replace_placeholders(item, slot_map) for item in data]
     elif isinstance(data, str):
-        # Replace all placeholders in the string with values from slot_map
-        def repl(m: re.Match) -> str:
-            slot_name = m.group(1)
+        # Check if the entire string is a placeholder
+        placeholder_pattern = r"^\{\{(\w+)\}\}$"
+        match = re.match(placeholder_pattern, data)
+        if match:
+            slot_name = match.group(1)
             value = slot_map.get(slot_name)
-            return str(value) if value is not None else None
-        return re.sub(r"\{\{(\w+)\}\}", repl, data)
+            return value if value is not None else None
+        else:
+            # Replace all placeholders in the string with values from slot_map
+            def repl(m: re.Match) -> str:
+                slot_name = m.group(1)
+                value = slot_map.get(slot_name)
+                return str(value) if value is not None else "None"
+            return re.sub(r"\{\{(\w+)\}\}", repl, data)
     else:
         return data
 
