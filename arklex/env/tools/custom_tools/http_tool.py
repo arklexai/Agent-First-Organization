@@ -5,7 +5,7 @@ This module defines a tool for making HTTP requests to external APIs and handlin
 """
 
 import inspect
-from typing import Any, Union, Dict, List
+from typing import Any
 
 import requests
 
@@ -16,7 +16,10 @@ from arklex.utils.logging_utils import LogContext
 
 log_context = LogContext(__name__)
 
-def replace_placeholders(data: Union[Dict[str, Any], List[Any], str, Any], slot_map: Dict[str, Any]) -> Union[Dict[str, Any], List[Any], str, Any]:
+def replace_placeholders(
+    data: dict[str, object] | list[object] | str | object,
+    slot_map: dict[str, object],
+) -> dict[str, object] | list[object] | str | object:
     """
     Recursively replace {{slot_name}} in all string values in data with slot_map[slot_name].
     If the slot is not found, replace the placeholder with None.
@@ -31,7 +34,7 @@ def replace_placeholders(data: Union[Dict[str, Any], List[Any], str, Any], slot_
         # Replace all placeholders in the string with values from slot_map
         def repl(m: re.Match) -> str:
             slot_name = m.group(1)
-            value = slot_map.get(slot_name, None)
+            value = slot_map.get(slot_name)
             return str(value) if value is not None else None
         return re.sub(r"\{\{(\w+)\}\}", repl, data)
     else:
