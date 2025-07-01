@@ -599,3 +599,36 @@ def test_load_docs_empty_else() -> None:
 
     out = get_documents.load_docs(None, {})
     assert out == []
+
+
+def test_print_edge_weights_from_file(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Covers the print_edge_weights_from_file function (line 101)."""
+    from arklex.evaluation.extract_conversation_info import print_edge_weights_from_file
+
+    dummy_data = [
+        {
+            "convo": [
+                {"role": "user", "intent": "start", "content": "Hi"},
+                {"role": "assistant", "intent": "start", "content": "Hello"},
+                {"role": "user", "intent": "greet", "content": "Hey"},
+                {"role": "assistant", "intent": "greet", "content": "Hi again"},
+            ]
+        }
+    ]
+
+    class DummyFile:
+        def __enter__(self) -> "DummyFile":
+            return self
+
+        def __exit__(self, *a: object) -> None:
+            pass
+
+        def read(self) -> str:
+            return ""
+
+    monkeypatch.setattr("builtins.open", lambda *a, **kw: DummyFile())
+    monkeypatch.setattr("json.load", lambda f: dummy_data)
+    printed = []
+    monkeypatch.setattr("builtins.print", lambda *a, **kw: printed.append(a))
+    print_edge_weights_from_file("dummy_path.json")
+    assert any("Weight for edge" in str(args[0]) for args in printed)

@@ -214,3 +214,15 @@ class TestValidateVerificationResponse:
         response = '{"verification_needed": "true", "thought": "Please confirm"}'
         result = validators.validate_verification_response(response)
         assert result == ("true", "Please confirm")  # String "true" is truthy
+
+    def test_validate_verification_response_invalid_structure(self) -> None:
+        """Test invalid structure returns defaults."""
+        # Not a dict
+        result = validators.validate_verification_response("not a dict")
+        assert result == (False, "No need to verify")
+        # Dict but missing fields
+        import json
+
+        s = json.dumps({"foo": "bar"})
+        result = validators.validate_verification_response(s)
+        assert result == (False, "No need to verify")

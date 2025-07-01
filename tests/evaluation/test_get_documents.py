@@ -4,6 +4,7 @@ This module tests the document loading utilities including domain information
 extraction, document loading with caching, and handling different document types.
 """
 
+from typing import NoReturn
 from unittest.mock import MagicMock, Mock, patch
 
 import pytest
@@ -489,3 +490,26 @@ class TestLoadDocs:
 
         assert len(result) == 1
         mock_loader.get_all_urls.assert_called_with("https://example.com", 1)
+
+    def test_load_docs_exception_branch_and_none_dir(self) -> None:
+        """Covers the except Exception branch (lines 138-140) and the else branch for document_dir is None (line 125) in load_docs."""
+        from arklex.evaluation.get_documents import load_docs
+
+        # except Exception branch
+        class DummyLoader:
+            def __init__(self) -> None:
+                pass
+
+            def get_all_urls(self, *a: object, **kw: object) -> NoReturn:
+                raise Exception("fail")
+
+        doc_config = {"task_docs": [{"source": "bad", "type": "url", "num": 1}]}
+        with patch(
+            "arklex.evaluation.get_documents.Loader", return_value=DummyLoader()
+        ):
+            # Should not raise, should return []
+            result = load_docs("/tmp", doc_config, 10)
+            assert isinstance(result, list)
+        # else branch for document_dir is None
+        result2 = load_docs(None, doc_config, 10)
+        assert result2 == []

@@ -859,3 +859,18 @@ class TestChatGPTUtils:
         ]
         result = filter_convo(convo)
         assert result[0]["content"] == "user content"
+
+    @patch("arklex.evaluation.chatgpt_utils.generate_goal")
+    def test_generate_goals_return_value(self, mock_generate_goal: Mock) -> None:
+        """Covers the return line of generate_goals (line 335)."""
+        from arklex.evaluation.chatgpt_utils import generate_goals
+
+        mock_generate_goal.side_effect = (
+            lambda doc_content, client: f"goal-for-{doc_content}"
+        )
+        documents = [{"content": "doc1"}, {"content": "doc2"}]
+        params = {"num_goals": 2}
+        client = Mock()
+        result = generate_goals(documents, params, client)
+        assert len(result) == 2
+        assert all(r.startswith("goal-for-") for r in result)

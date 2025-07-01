@@ -1799,3 +1799,19 @@ class TestTaskGenerator:
             assert len(result) == 1
             assert result[0]["task"] == "Execute test task"
             assert result[0]["description"] == "Execute the task: test task"
+
+    def test_validate_tasks_missing_fields_and_invalid_steps(
+        self, task_generator: TaskGenerator
+    ) -> None:
+        # Task missing required fields
+        tasks = [{"name": "A"}]  # missing description and steps
+        result = task_generator._validate_tasks(tasks)
+        assert result == []
+        # Task steps not a list
+        tasks = [{"name": "A", "description": "desc", "steps": "notalist"}]
+        result = task_generator._validate_tasks(tasks)
+        assert result == []
+        # Task steps with non-dict step
+        tasks = [{"name": "A", "description": "desc", "steps": [123]}]
+        result = task_generator._validate_tasks(tasks)
+        assert result == []

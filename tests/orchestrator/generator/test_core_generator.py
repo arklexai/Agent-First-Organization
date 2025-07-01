@@ -4636,3 +4636,147 @@ class TestGeneratorSpecificLineCoverage:
             assert result is not None
             # Verify that the "no UI interaction" branch was executed
             mock_task_graph_formatter.return_value.format_task_graph.assert_called_once()
+
+
+def test_generate_with_user_changes_triggers_resource_pairing(
+    monkeypatch: object,
+) -> None:
+    from arklex.orchestrator.generator.core.generator import Generator
+
+    class DummyBestPracticeManager:
+        def finetune_best_practice(self, bp: object, task: object) -> object:
+            return {"steps": ["step1"]}
+
+        def generate_best_practices(self, tasks: list[object]) -> list[object]:
+            return [{"name": "Test Practice", "steps": ["step1"]}]
+
+    class DummyPromptManager:
+        def get_prompt(self, *a: object, **k: object) -> str:
+            return "prompt"
+
+    class DummyModel:
+        def invoke(self, prompt: str) -> object:
+            class R:
+                content = '{"intent": "test"}'
+
+            return R()
+
+    config = {
+        "role": "r",
+        "user_objective": "u",
+        "builder_objective": "b",
+        "intro": "i",
+        "tasks": [{"name": "T", "steps": ["s"]}],
+        "workers": [],
+        "tools": [],
+    }
+    gen = Generator(config, DummyModel())
+    gen.tasks = [{"name": "T", "steps": ["s"]}]
+    gen.allow_nested_graph = False
+    monkeypatch.setattr(
+        gen,
+        "_initialize_task_graph_formatter",
+        lambda: type(
+            "F",
+            (),
+            {
+                "format_task_graph": lambda self, t: {
+                    "nodes": [],
+                    "edges": [],
+                    "tasks": t,
+                }
+            },
+        )(),
+    )
+    monkeypatch.setattr(
+        gen, "_initialize_best_practice_manager", lambda: DummyBestPracticeManager()
+    )
+    monkeypatch.setattr(
+        gen, "_initialize_reusable_task_manager", lambda: type("R", (), {})()
+    )
+    monkeypatch.setattr(gen, "_initialize_document_loader", lambda: type("D", (), {})())
+    monkeypatch.setattr(
+        gen,
+        "_initialize_task_generator",
+        lambda: type("T", (), {"generate_tasks": lambda self, intro, tasks: []})(),
+    )
+    # Simulate UI available and user changes
+    gen.interactable_with_user = True
+    gen.reusable_tasks = None
+    gen.model = DummyModel()
+    # Patch TaskEditorApp
+    monkeypatch.setattr(
+        "arklex.orchestrator.generator.core.generator.TaskEditorApp",
+        lambda *a, **k: type(
+            "TaskEditorApp", (), {"run": lambda self: [{"name": "T", "steps": ["s"]}]}
+        )(),
+    )
+    result = gen.generate()
+    assert "tasks" in result
+
+
+def test_generate_intent_prediction_fallback(monkeypatch: object) -> None:
+    from arklex.orchestrator.generator.core.generator import Generator
+
+    class DummyBestPracticeManager:
+        def finetune_best_practice(self, bp: object, task: object) -> object:
+            return {"steps": ["step1"]}
+
+        def generate_best_practices(self, tasks: list[object]) -> list[object]:
+            return [{"name": "Test Practice", "steps": ["step1"]}]
+
+    class DummyPromptManager:
+        def get_prompt(self, *a: object, **k: object) -> str:
+            return "prompt"
+
+    class DummyModel:
+        def invoke(self, prompt: str) -> object:
+            class R:
+                content = "not a json"
+
+            return R()
+
+    config = {
+        "role": "r",
+        "user_objective": "u",
+        "builder_objective": "b",
+        "intro": "i",
+        "tasks": [{"name": "T", "steps": ["s"]}],
+        "workers": [],
+        "tools": [],
+    }
+    gen = Generator(config, DummyModel())
+    gen.tasks = [{"name": "T", "steps": ["s"]}]
+    gen.allow_nested_graph = False
+    monkeypatch.setattr(
+        gen,
+        "_initialize_task_graph_formatter",
+        lambda: type(
+            "F",
+            (),
+            {
+                "format_task_graph": lambda self, t: {
+                    "nodes": [],
+                    "edges": [],
+                    "tasks": t,
+                }
+            },
+        )(),
+    )
+    monkeypatch.setattr(
+        gen, "_initialize_best_practice_manager", lambda: DummyBestPracticeManager()
+    )
+    monkeypatch.setattr(
+        gen, "_initialize_reusable_task_manager", lambda: type("R", (), {})()
+    )
+    monkeypatch.setattr(gen, "_initialize_document_loader", lambda: type("D", (), {})())
+    monkeypatch.setattr(
+        gen,
+        "_initialize_task_generator",
+        lambda: type("T", (), {"generate_tasks": lambda self, intro, tasks: []})(),
+    )
+    gen.interactable_with_user = False
+    gen.reusable_tasks = None
+    gen.model = DummyModel()
+    result = gen.generate()
+    assert "tasks" in result

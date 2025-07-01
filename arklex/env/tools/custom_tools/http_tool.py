@@ -37,34 +37,39 @@ def replace_placeholders(data, slot_map):
     else:
         return data
 
+
 @register_tool(
     desc="Make HTTP requests to external APIs and handle responses",
     slots=[],
     outputs=["response"],
     isResponse=False,
 )
-def http_tool(slots: list[dict[str, Any]] | None = None, **kwargs: dict[str, Any]) -> str:
+def http_tool(
+    slots: list[dict[str, Any]] | None = None, **kwargs: dict[str, Any]
+) -> str:
     """Make an HTTP request and return the response"""
     func_name: str = inspect.currentframe().f_code.co_name
     try:
         params: HTTPParams = HTTPParams(**kwargs)
-        log_context.info(f"HTTPTool execution called with args: {kwargs}, slots: {slots}")
+        log_context.info(
+            f"HTTPTool execution called with args: {kwargs}, slots: {slots}"
+        )
         if slots:
             # Process slots based on their target
             for slot in slots:
                 slot_name = None
                 slot_value = None
                 slot_target = None
-                
-                if hasattr(slot, 'name') and hasattr(slot, 'value'):
+
+                if hasattr(slot, "name") and hasattr(slot, "value"):
                     slot_name = slot.name
                     slot_value = slot.value
-                    slot_target = getattr(slot, 'target', None)
+                    slot_target = getattr(slot, "target", None)
                 elif isinstance(slot, dict):
                     slot_name = slot.get("name")
                     slot_value = slot.get("value")
                     slot_target = slot.get("target")
-                
+
                 if slot_name and slot_value is not None and slot_target:
                     if slot_target == "params":
                         # Add to params
@@ -89,12 +94,18 @@ def http_tool(slots: list[dict[str, Any]] | None = None, **kwargs: dict[str, Any
                 return
             keys_to_remove = []
             for key, value in data_dict.items():
-                if isinstance(value, str) and value.startswith('{{') and value.endswith('}}'):
+                if (
+                    isinstance(value, str)
+                    and value.startswith("{{")
+                    and value.endswith("}}")
+                ):
                     keys_to_remove.append(key)
-                    log_context.info(f"Removing placeholder '{key}' with value '{value}'")
+                    log_context.info(
+                        f"Removing placeholder '{key}' with value '{value}'"
+                    )
             for key in keys_to_remove:
                 del data_dict[key]
-        
+
         remove_placeholders(params.params)
 
         log_context.info(

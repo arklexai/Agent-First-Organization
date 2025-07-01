@@ -2366,3 +2366,18 @@ class TestModelServiceExtraCoverage:
 
             with pytest.raises(ValueError, match="Failed to parse JSON response"):
                 model_service.get_json_response("test prompt")
+
+    def test_format_intent_exemplars_empty(self) -> None:
+        from arklex.orchestrator.NLU.services.model_service import ModelService
+
+        ms = ModelService(
+            {
+                "model_name": "m",
+                "model_type_or_path": "m",
+                "llm_provider": "openai",
+                "api_key": "k",
+                "endpoint": "e",
+            }
+        )
+        result = ms._format_intent_exemplars("intent", [], 1)
+        assert result == ""

@@ -2647,3 +2647,30 @@ class TestTaskGraphFormatterSpecificLineCoverage:
             # Verify the method completed successfully
             assert result is not None
             assert "edges" in result
+
+    def test_ensure_nested_graph_connectivity_adds_edge(self) -> None:
+        from arklex.orchestrator.generator.formatting.task_graph_formatter import (
+            TaskGraphFormatter,
+        )
+
+        formatter = TaskGraphFormatter()
+        # Simulate a graph with a nested graph node in the middle of steps
+        graph = {
+            "nodes": [
+                ["0", {"resource": {"id": "msg", "name": "MessageWorker"}}],
+                ["1", {"resource": {"id": "nested_graph", "name": "NestedGraph"}}],
+                ["2", {"resource": {"id": "msg", "name": "MessageWorker"}}],
+            ],
+            "edges": [],
+            "tasks": [
+                {"id": "t1", "steps": [{}, {}, {}]},
+            ],
+        }
+        # Map step node ids to the nested graph node
+        graph["nodes"][1][0] = "t1_step1"
+        graph["nodes"][2][0] = "t1_step2"
+        # Add node_to_task_map and step_index logic coverage
+        result = formatter.ensure_nested_graph_connectivity(graph)
+        assert any(
+            edge[0] == "t1_step1" and edge[1] == "t1_step2" for edge in result["edges"]
+        )

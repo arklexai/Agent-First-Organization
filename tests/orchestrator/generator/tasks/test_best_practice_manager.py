@@ -1171,3 +1171,115 @@ class TestBestPracticeManagerEdgeCases:
         patched_model_invoke["mock_invoke"].return_value = {"text": "no step_id"}
         result = gen._optimize_steps([{"task": "step1"}])
         assert isinstance(result, list)
+
+    def test_validate_practice_definition_missing_fields(
+        self, best_practice_manager: "BestPracticeManager"
+    ) -> None:
+        # Missing practice_id
+        p = BestPractice(
+            practice_id="",
+            name="n",
+            description="d",
+            steps=[{}],
+            rationale="r",
+            examples=[],
+            priority=1,
+            category="c",
+        )
+        assert not best_practice_manager._validate_practice_definition(p)
+        # Missing name
+        p = BestPractice(
+            practice_id="id",
+            name="",
+            description="d",
+            steps=[{}],
+            rationale="r",
+            examples=[],
+            priority=1,
+            category="c",
+        )
+        assert not best_practice_manager._validate_practice_definition(p)
+        # Missing description
+        p = BestPractice(
+            practice_id="id",
+            name="n",
+            description="",
+            steps=[{}],
+            rationale="r",
+            examples=[],
+            priority=1,
+            category="c",
+        )
+        assert not best_practice_manager._validate_practice_definition(p)
+        # Missing steps
+        p = BestPractice(
+            practice_id="id",
+            name="n",
+            description="d",
+            steps=[],
+            rationale="r",
+            examples=[],
+            priority=1,
+            category="c",
+        )
+        assert not best_practice_manager._validate_practice_definition(p)
+        # Steps not a list
+        p = BestPractice(
+            practice_id="id",
+            name="n",
+            description="d",
+            steps="notalist",
+            rationale="r",
+            examples=[],
+            priority=1,
+            category="c",
+        )
+        assert not best_practice_manager._validate_practice_definition(p)
+        # Missing rationale
+        p = BestPractice(
+            practice_id="id",
+            name="n",
+            description="d",
+            steps=[{}],
+            rationale="",
+            examples=[],
+            priority=1,
+            category="c",
+        )
+        assert not best_practice_manager._validate_practice_definition(p)
+        # Examples not a list
+        p = BestPractice(
+            practice_id="id",
+            name="n",
+            description="d",
+            steps=[{}],
+            rationale="r",
+            examples="notalist",
+            priority=1,
+            category="c",
+        )
+        assert not best_practice_manager._validate_practice_definition(p)
+        # Priority not int
+        p = BestPractice(
+            practice_id="id",
+            name="n",
+            description="d",
+            steps=[{}],
+            rationale="r",
+            examples=[],
+            priority="notint",
+            category="c",
+        )
+        assert not best_practice_manager._validate_practice_definition(p)
+        # Missing category
+        p = BestPractice(
+            practice_id="id",
+            name="n",
+            description="d",
+            steps=[{}],
+            rationale="r",
+            examples=[],
+            priority=1,
+            category="",
+        )
+        assert not best_practice_manager._validate_practice_definition(p)

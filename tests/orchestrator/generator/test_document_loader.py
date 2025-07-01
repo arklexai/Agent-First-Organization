@@ -1098,3 +1098,22 @@ def test_integration_document_pipeline(
     # Verify integration
     assert all("name" in section for section in formatted_doc["formatted_sections"])
     assert all("content" in section for section in formatted_doc["formatted_sections"])
+
+
+def test_load_document_invalid_json_error(tmp_path: Path) -> None:
+    import json
+
+    import pytest
+
+    # Create a file with invalid JSON
+    file_path = tmp_path / "invalid.json"
+    file_path.write_text("not a json")
+    # Should raise JSONDecodeError
+    # Create a new document loader with validation disabled to ensure JSONDecodeError is raised
+    loader = DocumentLoader(cache_dir=tmp_path, validate_documents=False)
+
+    with pytest.raises(json.JSONDecodeError) as exc_info:
+        loader.load_document(file_path)
+
+    # Verify it's a JSONDecodeError (even if re-raised with custom message)
+    assert isinstance(exc_info.value, json.JSONDecodeError)

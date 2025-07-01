@@ -760,6 +760,37 @@ class TestInputModalUI:
         # Verify pop_screen was called
         modal.app.pop_screen.assert_called_once()
 
+    def test_input_modal_on_button_pressed_without_app_pop_screen(self) -> None:
+        skip_if_ui_not_available()
+        from arklex.orchestrator.generator.ui.input_modal import InputModal
+
+        """Test InputModal on_button_pressed method when app doesn't have pop_screen."""
+        modal = InputModal("Test Title", "default value")
+
+        # Mock the query_one method
+        modal.query_one = Mock()
+        mock_input = Mock()
+        mock_input.value = "test input"
+        modal.query_one.return_value = mock_input
+
+        # Mock the app without pop_screen method
+        modal.app = Mock()
+        del modal.app.pop_screen  # Remove pop_screen method
+
+        # Create a mock button press event
+        mock_button = Mock()
+        mock_button.id = "submit"
+        mock_event = FallbackButton.Pressed(mock_button)
+
+        # Test button press - should not raise an exception
+        modal.on_button_pressed(mock_event)
+
+        # Verify the result was updated
+        assert modal.result == "test input"
+
+        # Verify no pop_screen was called since it doesn't exist
+        assert not hasattr(modal.app, "pop_screen")
+
 
 class TestUIErrorHandling:
     """Test UI error handling scenarios."""
@@ -976,9 +1007,109 @@ class TestInputModalFinalCoverage:
         # Verify pop_screen was called
         modal.app.pop_screen.assert_called_once()
 
+    def test_input_modal_on_button_pressed_without_app_pop_screen(self) -> None:
+        skip_if_ui_not_available()
+        from arklex.orchestrator.generator.ui.input_modal import InputModal
+
+        """Test InputModal on_button_pressed method when app doesn't have pop_screen."""
+        modal = InputModal("Test Title", "default value")
+
+        # Mock the query_one method
+        modal.query_one = Mock()
+        mock_input = Mock()
+        mock_input.value = "test input"
+        modal.query_one.return_value = mock_input
+
+        # Mock the app without pop_screen method
+        modal.app = Mock()
+        del modal.app.pop_screen  # Remove pop_screen method
+
+        # Create a mock button press event
+        mock_button = Mock()
+        mock_button.id = "submit"
+        mock_event = FallbackButton.Pressed(mock_button)
+
+        # Test button press - should not raise an exception
+        modal.on_button_pressed(mock_event)
+
+        # Verify the result was updated
+        assert modal.result == "test input"
+
+        # Verify no pop_screen was called since it doesn't exist
+        assert not hasattr(modal.app, "pop_screen")
+
 
 # Cleanup function to be called after tests
 def cleanup() -> None:
     """Clean up any patches made during testing."""
     if not TEXTUAL_AVAILABLE:
         unpatch_ui_modules()
+
+
+def test_protocols_full_coverage() -> None:
+    """Covers all methods/properties of the Protocols in protocols.py for coverage."""
+    from arklex.orchestrator.generator.ui import protocols
+
+    class DummyTreeNode(protocols.TreeNodeProtocol):
+        def add(self, label: str) -> "DummyTreeNode":
+            return self
+
+        def add_leaf(self, label: str) -> "DummyTreeNode":
+            return self
+
+        def remove(self) -> None:
+            pass
+
+        def set_label(self, label: str) -> None:
+            pass
+
+        def expand(self) -> None:
+            pass
+
+        @property
+        def children(self) -> list:
+            return []
+
+        @property
+        def parent(self) -> None:
+            return None
+
+        @property
+        def label(self) -> str:
+            return "label"
+
+    class DummyTree(protocols.TreeProtocol):
+        def focus(self) -> None:
+            pass
+
+        @property
+        def root(self) -> DummyTreeNode:
+            return DummyTreeNode()
+
+        @property
+        def cursor_node(self) -> DummyTreeNode:
+            return DummyTreeNode()
+
+    class DummyInputModal(protocols.InputModalProtocol):
+        def __init__(
+            self, title: str, default: str, node: object, callback: object
+        ) -> None:
+            pass
+
+    # Instantiate and call all methods/properties
+    node = DummyTreeNode()
+    node.add("x")
+    node.add_leaf("y")
+    node.remove()
+    node.set_label("z")
+    node.expand()
+    _ = node.children
+    _ = node.parent
+    _ = node.label
+
+    tree = DummyTree()
+    tree.focus()
+    _ = tree.root
+    _ = tree.cursor_node
+
+    DummyInputModal("t", "d", None, None)

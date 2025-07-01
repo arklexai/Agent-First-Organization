@@ -14,6 +14,7 @@ from textual.widgets.tree import TreeNode
 
 from arklex.utils.logging_utils import LogContext
 
+from .data_manager import TaskDataManager
 from .input_modal import InputModal
 
 log_context = LogContext(__name__)
@@ -35,6 +36,8 @@ class TaskEditorApp(App):
                      Each task dict should have a 'name' key and optionally a 'steps' key.
         task_tree (Tree | None): The tree widget displaying tasks and steps, initialized as None.
                                 Set during the compose() method.
+        _data_manager (TaskDataManager): Manager for task data operations
+        _input_modal_class (type): Class for creating input modals (injectable for testing)
 
     Methods:
         compose(): Creates the main UI components and populates the tree
@@ -54,7 +57,9 @@ class TaskEditorApp(App):
         - Enter: Edit selected node
     """
 
-    def __init__(self, tasks: list[dict[str, Any]]) -> None:
+    def __init__(
+        self, tasks: list[dict[str, Any]], input_modal_class: type = InputModal
+    ) -> None:
         """Initialize the TaskEditorApp instance.
 
         Args:
@@ -63,6 +68,7 @@ class TaskEditorApp(App):
                                          - 'name': str - The task name
                                          - 'steps': List[str] | List[Dict] - Optional list of steps.
                                            Steps can be strings or dicts with 'description' key.
+            input_modal_class (type): Class for creating input modals (for testing)
 
         Example:
             tasks = [
@@ -72,7 +78,8 @@ class TaskEditorApp(App):
         """
         super().__init__()
         self.tasks = tasks
-        self.task_tree = None
+        self.task_tree: Tree | None = None
+        self._input_modal_class = input_modal_class
 
     def compose(self) -> ComposeResult:
         """Create the main UI components.
@@ -90,28 +97,12 @@ class TaskEditorApp(App):
             ComposeResult: The composed UI elements including the tree widget
                           and instruction label
         """
-        self.task_tree = Tree("Tasks")
-        # Check if root exists before trying to expand it
-        if self.task_tree.root is not None:
-            self.task_tree.root.expand()
-        tasks = self.tasks if self.tasks is not None else []
-        for task in tasks:
-            # Only add tasks if root exists
-            if self.task_tree.root is not None:
-                task_node = self.task_tree.root.add(task["name"])
-                if "steps" in task and task["steps"]:
-                    for step in task["steps"]:
-                        # Handle both string and dictionary step formats
-                        if isinstance(step, dict):
-                            # Extract description from dict, fallback to string representation
-                            step_text = step.get("description", str(step))
-                        else:
-                            # Use string directly for string steps
-                            step_text = str(step)
-                        task_node.add_leaf(step_text)
+        self.task_tree = Tree("🎯 TASK EDITOR - Edit Your Tasks Below")
+        TaskDataManager.populate_tree_from_tasks(self.task_tree, self.tasks)
+
         yield self.task_tree
         yield Label(
-            "Use 'a' to add nodes, 'd' to delete, 's' to save and exit, arrow keys to navigate"
+            "🎯 TASK EDITOR ACTIVE - Use 'a' to add nodes, 'd' to delete, 's' to save and exit, arrow keys to navigate"
         )
 
     def on_mount(self) -> None:
@@ -119,7 +110,8 @@ class TaskEditorApp(App):
 
         Sets focus to the task tree widget to enable keyboard navigation.
         """
-        self.task_tree.focus()
+        if self.task_tree:
+            self.task_tree.focus()
 
     async def on_tree_node_selected(self, event: Tree.NodeSelected) -> None:
         """Handle node selection events.
@@ -143,13 +135,7 @@ class TaskEditorApp(App):
             if result and result.strip():
                 node.set_label(result.strip())
 
-        # Get the current label value
-        if hasattr(selected_node.label, "plain"):
-            # Textual labels have a 'plain' attribute for text content
-            current_label = selected_node.label.plain
-        else:
-            # Fallback to string representation for other label types
-            current_label = str(selected_node.label)
+        current_label = TaskDataManager.extract_label_text(selected_node.label)
 
         self.show_input_modal(
             "Edit node", current_label, selected_node, handle_modal_result
@@ -169,19 +155,17 @@ class TaskEditorApp(App):
         Args:
             event (Key): The keyboard event containing the pressed key
         """
+        if not self.task_tree:
+            return
+
         if event.key == "a":
-            # Add new node as child of currently selected node
             await self.action_add_node(self.task_tree.cursor_node)
         elif event.key == "d":
-            # Delete selected node (only if it has a parent, not root)
-            if self.task_tree.cursor_node and self.task_tree.cursor_node.parent:
-                self.task_tree.cursor_node.remove()
+            await self.action_delete_node(self.task_tree.cursor_node)
         elif event.key == "s":
-            # Save changes and exit the app
-            await self.update_tasks()
-            self.exit(self.tasks)
+            await self.action_save_and_exit()
 
-    async def action_add_node(self, node: TreeNode) -> None:
+    async def action_add_node(self, node: TreeNode | None) -> None:
         """Add a new node to the tree.
 
         Shows an input modal to get the new node's label and adds it as a child
@@ -205,6 +189,20 @@ class TaskEditorApp(App):
                 parent_node.add(result.strip())
 
         self.show_input_modal("Add new node", "", node, handle_modal_result)
+
+    async def action_delete_node(self, node: TreeNode | None) -> None:
+        """Delete the selected node.
+
+        Args:
+            node (TreeNode | None): The node to delete
+        """
+        if node and node.parent:
+            node.remove()
+
+    async def action_save_and_exit(self) -> None:
+        """Save changes and exit the app."""
+        await self.update_tasks()
+        self.exit(self.tasks)
 
     def push_screen(self, screen: "InputModal") -> None:
         """Push a screen to the app.
@@ -245,7 +243,7 @@ class TaskEditorApp(App):
         Returns:
             str: The default value (the actual result is handled by the callback)
         """
-        modal = InputModal(title, default, node, callback)
+        modal = self._input_modal_class(title, default, node, callback)
         self.push_screen(modal)
         # Return the default value as the immediate result
         # The actual result will be handled by the callback
@@ -262,32 +260,10 @@ class TaskEditorApp(App):
         attribute first, then falling back to string representation. It creates
         a new list of task dictionaries with 'name' and 'steps' keys.
         """
-        if not self.task_tree or not self.task_tree.root:
+        if not self.task_tree:
             return
 
-        updated_tasks = []
-        for task_node in self.task_tree.root.children:
-            # Handle different label formats for task names
-            if hasattr(task_node.label, "plain"):
-                task_name = task_node.label.plain
-            else:
-                task_name = str(task_node.label)
-
-            task = {"name": task_name}
-            steps = []
-            for step_node in task_node.children:
-                # Handle different label formats for steps too
-                if hasattr(step_node.label, "plain"):
-                    step_name = step_node.label.plain
-                else:
-                    step_name = str(step_node.label)
-                steps.append(step_name)
-            # Only add steps key if there are actual steps
-            if steps:
-                task["steps"] = steps
-            updated_tasks.append(task)
-
-        self.tasks = updated_tasks
+        self.tasks = TaskDataManager.build_tasks_from_tree(self.task_tree.root)
 
     def run(self) -> list[dict[str, Any]]:
         """Run the task editor app.
@@ -301,7 +277,7 @@ class TaskEditorApp(App):
             List[Dict[str, Any]]: The updated tasks list with any modifications
                                  made by the user during the editing session
         """
-        # Avoid calling super().run() to prevent Textual issues in testing
-        # In a real environment, this would start the app
-        # For testing purposes, we just return the tasks
+        # Run the actual Textual app
+        super().run()
+        # Return the tasks (which may have been modified during the session)
         return self.tasks

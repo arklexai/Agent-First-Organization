@@ -220,7 +220,6 @@ class Tool:
 
         log_context.info(f"Slots after initialization are: {self.slots}")
 
-
     def load_slots(self, slots: list[dict[str, Any]]) -> None:
         """Load and merge slots with existing slots.
 
@@ -235,11 +234,11 @@ class Tool:
             Existing slots:
                 [Slot(name="param1", type="str", required=True),
                  Slot(name="param2", type="int", required=False)]
-            
+
             New slots:
                 [{"name": "param1", "type": "str", "required": False},
                  {"name": "param3", "type": "bool", "required": True}]
-            
+
             Result:
                 [Slot(name="param1", type="str", required=False),  # Updated
                  Slot(name="param2", type="int", required=False),  # Preserved
@@ -250,7 +249,7 @@ class Tool:
 
         # Create a dictionary of existing slots for easy lookup
         existing_slots_dict = {slot.name: slot for slot in self.slots}
-        
+
         # Process new slots
         for new_slot in slots:
             slot_name = new_slot["name"]
@@ -262,7 +261,7 @@ class Tool:
             else:
                 # Add new slot
                 self.slots.append(Slot.model_validate(new_slot))
-        
+
         # Update tool info with merged slots
         self.info = self.get_info([slot.model_dump() for slot in self.slots])
 
@@ -283,7 +282,7 @@ class Tool:
         slot_verification: bool = False
         reason: str = ""
         response: str = ""  # Initialize response variable
-        
+
         # Check if we need to reset slots for a new node
         # If this tool has been called before, check if the current slots are different
         # from the previously stored slots (indicating a different node)
@@ -291,10 +290,12 @@ class Tool:
             previous_slots = state.slots[self.name]
             current_slot_names = {slot.name for slot in self.slots}
             previous_slot_names = {slot.name for slot in previous_slots}
-            
+
             # If the slot configurations are different, reset to current node's slots
             if current_slot_names != previous_slot_names:
-                log_context.info(f"Slot configuration changed from {previous_slot_names} to {current_slot_names}, resetting slots")
+                log_context.info(
+                    f"Slot configuration changed from {previous_slot_names} to {current_slot_names}, resetting slots"
+                )
                 # Reset slots to the current node's configuration
                 state.slots[self.name] = self.slots.copy()
             else:
@@ -303,7 +304,7 @@ class Tool:
         else:
             # First time calling this tool, store the current slots
             state.slots[self.name] = self.slots.copy()
-            
+
         # init slot values saved in default slots
         self._init_slots(state)
         # do slotfilling
@@ -359,10 +360,13 @@ class Tool:
 
             # Get the function signature to check parameters
             sig = inspect.signature(self.func)
-            
+
             # Only include the slots list if the target function accepts it
-            if 'slots' in sig.parameters:
-                kwargs["slots"] = [slot.model_dump() if hasattr(slot, 'model_dump') else slot for slot in slots]
+            if "slots" in sig.parameters:
+                kwargs["slots"] = [
+                    slot.model_dump() if hasattr(slot, "model_dump") else slot
+                    for slot in slots
+                ]
 
             combined_kwargs: dict[str, Any] = {
                 **kwargs,
@@ -451,9 +455,15 @@ class Tool:
                     "Tool execution INCOMPLETE due to tool execution failure"
                 )
                 # Make it clear that the LLM should ask the user for missing information
-                missing_slots = [slot.name for slot in slots if slot.required and not slot.value]
+                missing_slots = [
+                    slot.name for slot in slots if slot.required and not slot.value
+                ]
                 if missing_slots:
-                    slot_questions = [slot.prompt for slot in slots if slot.required and not slot.value]
+                    slot_questions = [
+                        slot.prompt
+                        for slot in slots
+                        if slot.required and not slot.value
+                    ]
                     questions_text = " ".join(slot_questions)
                     state.message_flow = (
                         state.message_flow

@@ -1,294 +1,212 @@
-# Arklex Agent First Organization
+# 🧠 Arklex AI · Agent-First Framework
 
-![Release](https://img.shields.io/github/release/arklexai/Agent-First-Organization?logo=github)
-[![PyPI version](https://img.shields.io/pypi/v/arklex.svg)](https://pypi.org/project/arklex)
-![Python version](https://img.shields.io/pypi/pyversions/arklex)
+<div align="center">
 
-Arklex Agent First Organization provides a framework for developing AI Agents to complete complex tasks powered by LLMs. The framework is designed to be modular and extensible, allowing developers to customize workers/tools that can interact with each other in a variety of ways under the supervision of the orchestrator managed by Taskgraph.
+![Arklex AI Logo](Arklex_AI__logo.jpeg)
 
-## Documentation
+**Build, deploy, and scale intelligent AI agents with enterprise-grade reliability**
 
-Please see [Open Source](https://www.arklex.ai/qa/open-source) for full documentation, which includes:
+[![Release](https://img.shields.io/github/release/arklexai/Agent-First-Organization?logo=github)](https://github.com/arklexai/Agent-First-Organization/releases)
+[![PyPI](https://img.shields.io/pypi/v/arklex.svg)](https://pypi.org/project/arklex)
+[![Python](https://img.shields.io/pypi/pyversions/arklex)](https://pypi.org/project/arklex)
+[![License](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
+[![Discord](https://img.shields.io/badge/discord-join%20community-7289da?logo=discord)](https://discord.gg/kJkefzkRg5)
 
-* [Introduction](https://arklexai.github.io/Agent-First-Organization/docs/intro): Overview of the Arklex AI agent framework and structure of the docs.
-* [Tutorials](https://arklexai.github.io/Agent-First-Organization/docs/tutorials/intro): If you're looking to build a customer service agent or booking service bot, check out our tutorials. This is the best place to get started.
+[🚀 Quick Start](#-get-started-in-5-minutes) • [📚 Documentation](https://arklexai.github.io/Agent-First-Organization/) • [💡 Examples](./examples/)
 
-## Installation
+</div>
 
-```bash
-pip install arklex
-```
+---
 
-## Build A Demo Customer Service Agent
+## 🚀 Get Started in 5 Minutes
 
-Watch the tutorial on [YouTube](https://youtu.be/y1P2Ethvy0I) to learn how to build a customer service AI agent with Arklex.AI in just 20 minutes.
-
-[![Build a customer service AI agent with Arklex.AI in 20 min](https://raw.githubusercontent.com/arklexai/Agent-First-Organization/main/assets/static/img/youtube_screenshot.png)](https://youtu.be/y1P2Ethvy0I)
-
-***
-
-### Preparation
-
-#### Environment Setup
-
-* Create a `.env` file in the root directory with the following information:
-
-  ```env
-  OPENAI_API_KEY=<your-openai-api-key>
-  GEMINI_API_KEY = <your-gemini-api-key>
-  GOOGLE_API_KEY = <your-gemini-api-key>
-  ANTHROPIC_API_KEY = <your-anthropic-api-key>
-  HUGGINGFACE_API_KEY = <your-huggingface-api-key>
-  MISTRAL_API_KEY = <your-mistral-api-key>
-
-  LANGCHAIN_TRACING_V2=false
-  LANGCHAIN_PROJECT=AgentOrg
-  LANGCHAIN_API_KEY=<your-langchain-api-key>
-
-  TAVILY_API_KEY=<your-tavily-api-key>
-
-  MYSQL_USERNAME=<your-mysql-db-username>
-  MYSQL_PASSWORD=<your-mysql-db-password>
-  MYSQL_HOSTNAME=<your-mysql-db-hostname>
-  MYSQL_PORT=<your-mysql-db-port>
-  MYSQL_DB_NAME=<your-mysql-db-name>
-  MYSQL_CONNECTION_TIMEOUT=<your-mysql-db-timeout>
-
-  MILVUS_URI=<your-milvus-db-uri>
-  ```
-
-* Enable LangSmith tracing (LANGCHAIN_TRACING_V2=true) for debugging (optional).
-
-#### Configuration File
-
-* Create a chatbot config file similar to `customer_service_config.json`.
-* Define chatbot parameters, including role, objectives, domain, introduction, and relevant documents.
-* Specify tasks, workers, tools, and settings to enhance chatbot functionality.
-* Workers and tools should be pre-defined in arklex/env/workers and arklex/env/tools, respectively.
-
-### Create Taskgraph and Initialize Worker
-
-> The following `--output-dir`, `--input-dir` and `--documents_dir` can be the same directory to save the generated files and the chatbot will use the generated files to run. E.g `--output-dir ./example/customer_service`. The following commands take customer_service chatbot as an example.
+### Install & Setup
 
 ```bash
-python create.py --config ./examples/customer_service/customer_service_config.json --output-dir ./examples/customer_service
-```
+# Install
+pip install arklex[all]
 
-* Fields:
-  * `--config`: The path to the config file
-  * `--output-dir`: The directory to save the generated files
-  * `--llm_provider`: The LLM provider you wish to use.
-    * Options: `openai` (default), `gemini`, `anthropic`
-  * `--model`: The model type used to generate the taskgraph. The default is `gpt-4o`.
-    * You can change this to other models like:
-      * `gpt-4o-mini`
-      * `gemini-2.0-flash`
-      * `claude-3-5-haiku-20241022`
+# Create .env file
+echo "OPENAI_API_KEY=your_key_here" > .env
 
-* It will first generate a task plan based on the config file and you could modify it in an interactive way from the command line. Made the necessary changes and press `s` to save the task plan under `output-dir` folder and continue the task graph generation process.
-* Then it will generate the task graph based on the task plan and save it under `output-dir` folder as well.
-* It will also initialize the Workers listed in the config file to prepare the documents needed by each worker. The function `init_worker(args)` is customizable based on the workers you defined. Currently, it will automatically build the `RAGWorker` and the `DataBaseWorker` by using the function `build_rag()` and `build_database()` respectively. The needed documents will be saved under the `output-dir` folder.
-
-### Start Chatting
-
-```bash
-python run.py --input-dir ./examples/customer_service
-```
-
-* Fields:
-  * `--input-dir`: The directory that contains the generated files
-  * `--llm_provider`: The LLM provider you wish to use.
-    * Options: `openai` (default), `gemini`, `anthropic`
-  * `--model`: The model type used to generate bot response. The default is `gpt-4o`.
-    * You can change this to other models like:
-      * `gpt-4o-mini`
-      * `gemini-2.0-flash`
-      * `claude-3-5-haiku-20241022`
-
-* It will first automatically start the nluapi and slotapi services through `start_apis()` function. By default, this will start the `NLUModelAPI` and `SlotFillModelAPI` services defined under `./arklex/orchestrator/NLU/api.py` file. You could customize the function based on the nlu and slot models you trained.
-* Then it will start the agent and you could chat with the agent
-
-### Evaluation
-
-* First, create api for the previous chatbot you built. It will start an api on the default port 8000.
-
-  ```bash
-  python model_api.py  --input-dir ./examples/customer_service
-  ```
-
-  * Fields:
-    * `--input-dir`: The directory that contains the generated files
-    * `--llm_provider`: The LLM provider you wish to use.
-      * Options: `openai` (default), `gemini`, `anthropic`
-    * `--model`: The model type used to generate bot response. The default is `gpt-4o`.
-      * You can change this to other models like:
-        * `gpt-4o-mini`,  `gemini-2.0-flash` , `claude-3-5-haiku-20241022`
-    * `--port`: The port number to start the api. Default is 8000.
-
-* Then, start the evaluation process:
-
-  ```bash
-  python eval.py \
-  --model_api http://127.0.0.1:8000/eval/chat \
+# Create your first agent
+python create.py \
   --config ./examples/customer_service/customer_service_config.json \
-  --documents_dir ./examples/customer_service \
-  --output-dir ./examples/customer_service
-  ```
+  --output-dir ./examples/customer_service \
+  --llm_provider openai \
+  --model gpt-4o-mini
 
-  * Fields:
-    * `--model_api`: The api url that you created in the previous step
-    * `--config`: The path to the config file
-    * `--documents_dir`: The directory that contains the generated files
-    * `--output-dir`: The directory to save the evaluation results
-    * `--num_convos`: Number of synthetic conversations to simulate. Default is 5.
-    * `--num_goals`: Number of goals/tasks to simulate. Default is 5.
-    * `--max_turns`: Maximum number of turns per conversation. Default is 5.
-    * `--llm_provider`: The LLM provider you wish to use.
-      * Options: `openai` (default), `gemini`, `anthropic`
-    * `--model`: The model type used to generate bot response. The default is `gpt-4o`.
-      * You can change this to other models like:
-        * `gpt-4o-mini`,  `gemini-2.0-flash` , `claude-3-5-haiku-20241022`
+# Run agent
+python run.py \
+  --input-dir ./examples/customer_service \
+  --query "How do I reset my password?"
 
-  * For more details, check out the [Evaluation README](https://github.com/arklexai/Agent-First-Organization/blob/main/arklex/evaluation/README.md).
+# Deploy as API (optional)
+python model_api.py --input-dir ./examples/customer_service
+```
 
-## API Service
+▶️ **[Watch: Build a Customer Service Agent in 20 Minutes](https://youtu.be/y1P2Ethvy0I)**
 
-A robust API service with comprehensive logging and error handling.
+---
 
-### Logging and Error Handling
+## ⚡ Key Features
 
-#### Logging Configuration
+- **🚀 90% Faster Development** — Deploy agents in days, not months
+- **🧠 Agent-First Design** — Purpose-built for multi-agent orchestration
+- **🔌 Model Agnostic** — OpenAI, Anthropic, Gemini, and more
+- **📊 Built-in Evaluation** — Comprehensive testing suite
+- **🛡️ Enterprise Security** — Authentication and rate limiting
+- **⚡ Production Ready** — Monitoring, logging, auto-scaling
 
-The application uses a centralized logging configuration that provides:
+---
 
-* Structured logging with consistent formatting
-* Log rotation with size limits
-* Request ID tracking for request tracing
-* Context-aware logging with custom filters
-* Different log levels (DEBUG, INFO, WARNING, ERROR, CRITICAL) for appropriate verbosity
-* Console and file output with customizable formats
-* JSON support for machine-readable logs
+## 🏗️ Architecture
 
-#### Error Handling
+```mermaid
+graph TB
+    A[Task Graph] --> B[Orchestrator]
+    B --> C[Workers]
+    B --> D[Tools]
+    C --> E[RAG Worker]
+    C --> F[Database Worker]
+    C --> G[Custom Workers]
+    D --> I[API Tools]
+    D --> J[External Tools]
+```
 
-The application implements a robust error handling system with:
+**Core Components:**
 
-* Custom exception hierarchy with proper inheritance
-* Consistent error response format with status codes
-* Detailed error messages and context
-* Proper error propagation and retry mechanisms
-* Request tracking for debugging
-* Validation error handling
+- **Task Graph** — Declarative DAG workflows
+- **Orchestrator** — Runtime engine with state management
+- **Workers** — RAG, database, web automation
+- **Tools** — Shopify, HubSpot, Google Calendar integrations
 
-#### Key Features
+---
 
-1. Centralized Logging
-   * Log files are stored in the `logs` directory
-   * Log rotation with 10MB size limit and 5 backup files
-   * Structured logging format with timestamps, log levels, and context
-   * Request ID and context filters for enhanced traceability
-   * Customizable log formats and handlers
+## 💡 Use Cases
 
-2. Request Tracking
-   * Unique request ID for each request
-   * Request ID included in response headers
-   * Request context preserved in logs
-   * Request timing information
-   * Retry mechanism for failed requests
+| **Domain** | **Capabilities** |
+|------------|------------------|
+| **Customer Service** | RAG chatbots, ticket routing, support workflows |
+| **E-commerce** | Order management, inventory tracking, recommendations |
+| **Business Process** | Scheduling, CRM operations, document processing |
 
-3. Error Handling
-   * Custom exception classes for different error types:
-     * `ArklexError`: Base exception class
-     * `AuthenticationError`: For authentication failures
-     * `ValidationError`: For input validation errors
-   * Consistent error response format with:
-     * Error message
-     * Error code
-     * HTTP status code
-     * Additional details
-   * Proper error propagation and logging
-   * Retry mechanism for transient errors
+---
 
-4. Middleware
-   * Request logging middleware with timing
-   * Error handling middleware with retry support
-   * CORS middleware
-   * Request ID generation and tracking
-   * Context preservation
+## 📚 Examples
 
-### Setup
+| **Example** | **Description** | **Complexity** |
+|-------------|-----------------|----------------|
+| [Customer Service](./examples/customer_service/) | RAG-powered support | ⭐⭐ |
+| [Shopify Integration](./examples/shopify/) | E-commerce management | ⭐⭐⭐ |
+| [HubSpot CRM](./examples/hubspot/) | Contact management | ⭐⭐⭐ |
+| [Calendar Booking](./examples/calendar/) | Scheduling system | ⭐⭐ |
+| [Human-in-the-Loop](./examples/hitl_server/) | Interactive workflows | ⭐⭐⭐⭐ |
 
-1. Install dependencies:
+### Quick Code Example
 
-   ```bash
-   pip install -r requirements.txt
-   ```
+```python
+from arklex import Orchestrator, TaskGraph
+from arklex.workers import RAGWorker
 
-2. Set up environment variables:
+orchestrator = Orchestrator(
+    llm_provider="openai",
+    model="gpt-4o",
+    api_key=os.getenv("OPENAI_API_KEY")
+)
 
-   ```bash
-   cp .env.example .env
-   # Edit .env with your configuration
-   ```
+task_graph = TaskGraph([
+    {"id": "search", "type": "rag_worker", "description": "Search knowledge base"},
+    {"id": "respond", "type": "llm_worker", "description": "Generate response", "dependencies": ["search"]}
+])
 
-3. Run the application:
+orchestrator.add_worker(RAGWorker(vector_db="milvus"))
+result = orchestrator.run(task_graph, query="How do I reset my password?")
+print(result.response)
+```
 
-   ```bash
-   uvicorn arklex.main:app --reload
-   ```
+---
 
-4. Run tests:
+## 🔧 Configuration
 
-   ```bash
-   pytest
-   ```
+**Requirements:** Python 3.10+, API keys
 
-   For test coverage report:
+```env
+# Required: Choose one LLM provider
+OPENAI_API_KEY=your_key_here
+# OR ANTHROPIC_API_KEY=your_key_here
+# OR GEMINI_API_KEY=your_key_here
 
-   ```bash
-   pytest --cov=arklex --cov-report=html
-   ```
+# Optional: Enhanced features
+MILVUS_URI=your_milvus_uri
+MYSQL_USERNAME=your_username
+TAVILY_API_KEY=your_tavily_key
+```
 
-### API Documentation
+---
 
-Once the application is running, you can access:
+## 📖 Documentation
 
-* API documentation at `/docs`
-* Alternative API documentation at `/redoc`
+- 📚 **[Full Documentation](https://arklexai.github.io/Agent-First-Organization/)**
+- 🚀 **[Quick Start](docs/QUICKSTART.md)**
+- 🛠️ **[API Reference](docs/API.md)**
+- 🏗️ **[Architecture](docs/ARCHITECTURE.md)**
+- 🚀 **[Deployment](docs/DEPLOYMENT.md)**
 
-### Logging Best Practices
+---
 
-1. Use Appropriate Log Levels
-   * CRITICAL: For critical errors that require immediate attention
-   * ERROR: For errors that need attention
-   * WARNING: For potentially harmful situations
-   * INFO: For general operational information
-   * DEBUG: For detailed debugging information
+## 🤝 Community
 
-2. Include Context
-   * Always include relevant context in log messages
-   * Use structured logging with extra fields
-   * Include request IDs in log messages
-   * Add timing information for performance tracking
-   * Include user and session information when available
+- 🐛 [Report Issues](https://github.com/arklexai/Agent-First-Organization/issues)
+- 💬 [Discord](https://discord.gg/kJkefzkRg5)
+- 🐦 [Twitter](https://twitter.com/arklexai)
+- 💼 [LinkedIn](https://www.linkedin.com/company/arklex)
+- 📧 [Email Support](mailto:support@arklex.ai)
 
-3. Error Handling
-   * Use appropriate exception types
-   * Include detailed error messages
-   * Add context to error responses
-   * Implement proper retry mechanisms
-   * Log all errors with full context
+---
 
-4. Performance Considerations
-   * Use appropriate log levels in production
-   * Implement log rotation
-   * Consider log aggregation for large deployments
-   * Monitor log file sizes
-   * Use async logging when possible
+## 📄 License
 
-5. Security
-   * Never log sensitive information
-   * Sanitize log messages
-   * Use appropriate log levels for security events
-   * Implement log access controls
-   * Monitor for suspicious logging patterns
+Arklex AI is released under the **MIT License**. See [LICENSE](LICENSE) for details.
+
+This means you can:
+
+- ✅ Use Arklex AI for commercial projects
+- ✅ Modify and distribute the code
+- ✅ Use it in proprietary applications
+- ✅ Sell applications built with Arklex AI
+
+The only requirement is that you include the original license and copyright notice.
+
+---
+
+## 🙏 Acknowledgments
+
+Thanks to all our contributors and the open-source community for making this project possible!
+
+### 🌟 Contributors
+
+<a href="https://github.com/arklexai/Agent-First-Organization/graphs/contributors">
+  <img src="https://contributors-img.web.app/image?repo=arklexai/Agent-First-Organization" />
+</a>
+
+### 🤝 Open Source Dependencies
+
+Arklex AI builds on the shoulders of giants:
+
+- **LangChain** — LLM framework and tooling
+- **FastAPI** — Modern web framework
+- **Pydantic** — Data validation
+- **SQLAlchemy** — Database ORM
+- **Milvus** — Vector database
+- **And many more...**
+
+---
+
+<div align="center">
+
+**Made with ❤️ by the Arklex AI Team**
+
+[Website](https://arklex.ai) • [Documentation](https://arklexai.github.io/Agent-First-Organization/) • [GitHub](https://github.com/arklexai/Agent-First-Organization) • [Discord](https://discord.gg/kJkefzkRg5) • [LinkedIn](https://www.linkedin.com/company/arklex)
+
+</div>

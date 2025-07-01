@@ -1245,15 +1245,15 @@ class TestTools:
 
         # Should have 3 slots now
         assert len(tool.slots) == 3
-        
+
         # Check that param1 was updated
         param1_slot = next(slot for slot in tool.slots if slot.name == "param1")
         assert param1_slot.required is True
-        
+
         # Check that param2 was preserved
         param2_slot = next(slot for slot in tool.slots if slot.name == "param2")
         assert param2_slot.required is False
-        
+
         # Check that param3 was added
         param3_slot = next(slot for slot in tool.slots if slot.name == "param3")
         assert param3_slot.required is True
@@ -1455,4 +1455,3 @@ class TestTools:
             assert result.status.value == "complete"
             # Should use previous slots since configuration didn't change
             assert tool.slots == previous_slots
-

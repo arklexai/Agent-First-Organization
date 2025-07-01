@@ -1754,3 +1754,66 @@ class TestBuildUserProfiles:
         # Edge case: attribute dict with multiple key-values
         result = attributes_to_text([{"a": 1, "b": 2}])
         assert all(isinstance(s, str) for s in result)
+
+    def test_get_label_unexpected_exception_branch_full(
+        self, monkeypatch: pytest.MonkeyPatch, mock_config: dict[str, Any]
+    ) -> None:
+        """Covers the except Exception branch in get_label (lines 914-915)."""
+        from arklex.evaluation.build_user_profiles import get_label
+
+        calls = {"count": 0}
+
+        class DummyEnv:
+            def __init__(self, *args: object, **kwargs: object) -> None:
+                pass
+
+            @property
+            def tools(self) -> dict[str, dict[str, object]]:
+                # Return a dict that will raise an exception when accessed
+                return {
+                    "tool1": {
+                        "execute": lambda: (_ for _ in ()).throw(
+                            Exception("unexpected error")
+                        )
+                    }
+                }
+
+        def dummy_log_error(msg: str, *args: object, **kwargs: object) -> None:
+            calls["count"] += 1
+
+        def mock_build_tool_list(
+            config: dict[str, object],
+        ) -> tuple[list[dict[str, object]], DummyEnv]:
+            # Return a tool list and an environment that will raise an exception
+            tool_list = [
+                {
+                    "tool_id": "tool1",
+                    "tool_description": "Test Tool",
+                    "tool_input": [],
+                    "tool_output": "Test output",
+                }
+            ]
+            return tool_list, DummyEnv()
+
+        monkeypatch.setattr(
+            "arklex.evaluation.build_user_profiles._build_tool_list",
+            mock_build_tool_list,
+        )
+        monkeypatch.setattr(
+            "arklex.evaluation.build_user_profiles.log_context",
+            type(
+                "Log", (), {"error": dummy_log_error, "warning": lambda *a, **kw: None}
+            )(),
+        )
+        attr = {"tool_id": "tool1", "goal": "test goal"}
+        config = {
+            "tools": [{"id": "tool1", "name": "Test Tool", "slots": []}],
+            "user_attributes": {},
+            "workers": [],
+            "client": Mock(),
+        }
+        # Should trigger the except Exception branch and retry
+        label, success = get_label(attr, config)
+        assert calls["count"] > 0
+        assert isinstance(label, list)
+        assert success is True

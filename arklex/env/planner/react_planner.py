@@ -891,9 +891,7 @@ class ReactPlanner(DefaultPlanner):
                 log_context.info(
                     f"planner calling tool {action.name} with kwargs {combined_kwargs}"
                 )
-                if not isinstance(observation, str):
-                    # Convert to string if not already
-                    observation = str(observation)
+                observation: str = str(observation)
                 log_context.info(f"tool call response: {str(observation)}")
 
             except Exception as e:
@@ -903,12 +901,9 @@ class ReactPlanner(DefaultPlanner):
         # workers_map indexed by worker name
         elif action.name in self.workers_map:
             try:
-                worker: Any = self.workers_map[action.name]["execute"]()
-                observation: Any = worker.execute(msg_state)
-                if not isinstance(observation, str):
-                    # Convert to string if not already
-                    observation = str(observation)
-
+                observation: str = str(
+                    self.workers_map[action.name]["execute"]().execute(msg_state)
+                )
             except Exception as e:
                 log_context.error(traceback.format_exc())
                 observation = f"Error: {e}"
