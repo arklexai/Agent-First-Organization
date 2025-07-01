@@ -64,11 +64,7 @@ npm run serve
 - **`docs/static/`** - Static assets (images, etc.)
 - **`docs/src/`** - Docusaurus source files
 
-## 🚀 Deployment
-
-The documentation is automatically deployed to GitHub Pages when changes are pushed to the main branch.
-
-### Manual Deployment
+### 🚀 Deployment
 
 ```bash
 # Set your GitHub username
