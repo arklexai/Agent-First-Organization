@@ -16,6 +16,31 @@ from arklex.utils.logging_utils import LogContext
 
 log_context = LogContext(__name__)
 
+def replace_placeholders(data, slot_map):
+    """
+    Recursively replace {{slot_name}} in all string values in data with slot_map[slot_name].
+    If the slot is not found, replace the value with None.
+    """
+    import re
+
+    if isinstance(data, dict):
+        return {k: replace_placeholders(v, slot_map) for k, v in data.items()}
+    elif isinstance(data, list):
+        return [replace_placeholders(item, slot_map) for item in data]
+    elif isinstance(data, str):
+        # If the string is exactly a single placeholder, replace with value or None
+        match = re.fullmatch(r"\{\{(\w+)\}\}", data)
+        if match:
+            slot_name = match.group(1)
+            return slot_map.get(slot_name, None)
+        # Otherwise, replace all placeholders in the string (for partials)
+        def repl(m):
+            slot_name = m.group(1)
+            return str(slot_map.get(slot_name, "")) if slot_name in slot_map else ""
+        return re.sub(r"\{\{(\w+)\}\}", repl, data)
+    else:
+        return data
+
 @register_tool(
     desc="Make HTTP requests to external APIs and handle responses",
     slots=[],
@@ -51,13 +76,17 @@ def http_tool(slots: list[dict[str, Any]] | None = None, **kwargs: dict[str, Any
                             params.params = {}
                         params.params[slot_name] = slot_value
                         log_context.info(f"Added slot '{slot_name}' with value '{slot_value}' to params")
-                    elif slot_target == "body":
-                        # Add to body
-                        if not params.body:
-                            params.body = {}
-                        params.body[slot_name] = slot_value
-                        log_context.info(f"Added slot '{slot_name}' with value '{slot_value}' to body")
-        
+
+            # Build slot_map once after all slots are processed
+            slot_map = {}
+            for slot in slots:
+                if isinstance(slot, dict):
+                    slot_map[slot.get("name")] = slot.get("value")
+                else:
+                    slot_map[getattr(slot, "name", None)] = getattr(slot, "value", None)
+            # Recursively replace placeholders in body
+            params.body = replace_placeholders(params.body, slot_map)
+
         # Remove any {{}} placeholders from params and body as these are optional parameters
         def remove_placeholders(data_dict: dict[str, Any] | None) -> None:
             if not data_dict:
@@ -71,7 +100,6 @@ def http_tool(slots: list[dict[str, Any]] | None = None, **kwargs: dict[str, Any
                 del data_dict[key]
         
         remove_placeholders(params.params)
-        remove_placeholders(params.body)
 
         log_context.info(
             f"Making a {params.method} request to {params.endpoint}, with body: {params.body} and params: {params.params}"
