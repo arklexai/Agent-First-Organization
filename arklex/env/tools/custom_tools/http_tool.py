@@ -19,7 +19,7 @@ log_context = LogContext(__name__)
 def replace_placeholders(data, slot_map):
     """
     Recursively replace {{slot_name}} in all string values in data with slot_map[slot_name].
-    If the slot is not found, replace the value with None.
+    If the slot is not found, replace the placeholder with None.
     """
     import re
 
@@ -28,15 +28,11 @@ def replace_placeholders(data, slot_map):
     elif isinstance(data, list):
         return [replace_placeholders(item, slot_map) for item in data]
     elif isinstance(data, str):
-        # If the string is exactly a single placeholder, replace with value or None
-        match = re.fullmatch(r"\{\{(\w+)\}\}", data)
-        if match:
-            slot_name = match.group(1)
-            return slot_map.get(slot_name, None)
-        # Otherwise, replace all placeholders in the string (for partials)
+        # Replace all placeholders in the string with values from slot_map
         def repl(m):
             slot_name = m.group(1)
-            return str(slot_map.get(slot_name, "")) if slot_name in slot_map else ""
+            value = slot_map.get(slot_name, None)
+            return str(value) if value is not None else None
         return re.sub(r"\{\{(\w+)\}\}", repl, data)
     else:
         return data
