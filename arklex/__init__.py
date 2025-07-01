@@ -15,4 +15,4 @@ Key Components:
 For more information, visit: https://github.com/Agent-First-Organization/Arklex
 """
 
-__version__ = "0.0.18-rc.3"
+__version__ = "0.0.18-rc.4"
