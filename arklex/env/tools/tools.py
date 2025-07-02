@@ -135,6 +135,7 @@ class Tool:
         self.slotfiller: SlotFiller | None = None
         self.info: dict[str, Any] = self.get_info(slots)
         self.slots: list[Slot] = [Slot.model_validate(slot) for slot in slots]
+        self.openai_slots: list[dict[str, Any]] = self._format_slots(slots)
         self.isResponse: bool = isResponse
         self.properties: dict[str, dict[str, Any]] = {}
         self.llm_config: dict[str, Any] = {}
@@ -531,6 +532,32 @@ class Tool:
             "parameters": parameters,
         }
 
+    def to_openai_tool_def_v2(self) -> dict:
+        parameters = {
+            "type": "object",
+            "properties": {},
+            "required": [slot.name for slot in self.openai_slots if slot.required],
+        }
+        for slot in self.openai_slots:
+            if hasattr(slot, "items") and slot.items:
+                parameters["properties"][slot.name] = {
+                    "type": "array",
+                    "items": slot.items,
+                }
+            else:
+                parameters["properties"][slot.name] = {
+                    "type": PYTHON_TO_JSON_SCHEMA[slot.type],
+                    "description": slot.description,
+                }
+        return {
+            "type": "function",
+            "function": {
+                "name": self.name,
+                "description": self.description,
+                "parameters": parameters,
+            },
+        }
+
     def __str__(self) -> str:
         """Get a string representation of the tool.
 
@@ -546,3 +573,19 @@ class Tool:
             str: A detailed string representation of the tool.
         """
         return f"{self.__class__.__name__}"
+
+    def _format_slots(self, slots: list) -> list[Slot]:
+        format_slots = []
+        for slot in slots:
+            format_slots.append(
+                Slot(
+                    name=slot["name"],
+                    type=slot["type"],
+                    value="",
+                    description=slot.get("description", ""),
+                    prompt=slot.get("prompt", ""),
+                    required=slot.get("required", False),
+                    items=slot.get("items", None),
+                )
+            )
+        return format_slots

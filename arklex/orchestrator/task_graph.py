@@ -234,6 +234,33 @@ class TaskGraph(TaskGraphBase):
             next_intent: str = list(self.graph.in_edges(curr_node, data="intent"))[0][2]
         return next_node, next_intent
 
+    def _build_neighbor_node_info(self, node_id: str) -> NodeInfo:
+        n = self.graph.nodes[node_id]
+        return NodeInfo(
+            node_id=node_id,
+            type=n.get("type", ""),
+            resource_id=n["resource"]["id"],
+            resource_name=n["resource"]["name"],
+            can_skipped=True,
+            is_leaf=len(list(self.graph.successors(node_id))) == 0,
+            attributes=n["attribute"],
+            add_flow_stack=False,
+            additional_args={
+                "tags": n["attribute"].get("tags", {}),
+                **{
+                    k2: v2
+                    for k, v in n["attribute"].get("node_specific_data", {}).items()
+                    if isinstance(v, dict)
+                    for k2, v2 in v.items()
+                },
+                **{
+                    k: v
+                    for k, v in n["attribute"].get("node_specific_data", {}).items()
+                    if not isinstance(v, dict)
+                },
+            },
+        )
+
     def _get_node(
         self, sample_node: str, params: Params, intent: str | None = None
     ) -> tuple[NodeInfo, Params]:
@@ -267,6 +294,15 @@ class TaskGraph(TaskGraphBase):
             attributes=node_info["attribute"],
             add_flow_stack=False,
             additional_args={
+                "successors": [
+                    self._build_neighbor_node_info(succ)
+                    for succ in self.graph.successors(sample_node)
+                ],
+                "predecessors": [
+                    self._build_neighbor_node_info(pred)
+                    for pred in self.graph.predecessors(sample_node)
+                ],
+                "prompt": node_info["attribute"].get("prompt", ""),
                 "tags": node_info["attribute"].get("tags", {}),
                 **{
                     k2: v2
@@ -402,6 +438,15 @@ class TaskGraph(TaskGraphBase):
                 is_leaf=len(list(self.graph.successors(curr_node))) == 0,
                 attributes=node_info["attribute"],
                 additional_args={
+                    "successors": [
+                        self._build_neighbor_node_info(succ)
+                        for succ in self.graph.successors(curr_node)
+                    ],
+                    "predecessors": [
+                        self._build_neighbor_node_info(pred)
+                        for pred in self.graph.predecessors(curr_node)
+                    ],
+                    "prompt": node_info["attribute"].get("prompt", ""),
                     "tags": node_info["attribute"].get("tags", {}),
                     **{
                         k2: v2

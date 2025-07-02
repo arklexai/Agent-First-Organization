@@ -248,6 +248,38 @@ class MockResourceInitializer:
         print(list(workers_map.keys()))
         return workers_map
 
+    @staticmethod
+    def init_agents(agents: list[dict[str, Any]]) -> dict[str, dict[str, Any]]:
+        """Initialize mock agents from configuration.
+        Args:
+            agents (List[Dict[str, Any]]): List of agent configurations
+        Returns:
+            Dict[str, Dict[str, Any]]: Dictionary mapping agent IDs to their configurations
+        """
+        print("\n=== Debug: MockResourceInitializer.init_agents ===")
+        print(f"Input agents: {json.dumps(agents, indent=2)}")
+
+        agents_map = {}
+        if not agents:
+            print("No agents provided, returning empty map")
+            return agents_map
+
+        for agent in agents:
+            name = agent.get("name", agent.get("id", "unnamed_agent"))
+            description = agent.get("description", "No description provided.")
+            print(f"\nProcessing agent: {name}")
+            print(f"Agent config: {json.dumps(agent, indent=2)}")
+
+            mock_tool = MockTool(name, description)
+            agent_id = agent.get("id", name)
+            agents_map[agent_id] = mock_tool
+            print(f"Added agent to map with ID: {agent_id}")
+            print(f"Agent entry: {json.dumps(agents_map[agent_id].__dict__, indent=2)}")
+
+        print("\nFinal agents map:")
+        print(json.dumps({k: v.__dict__ for k, v in agents_map.items()}, indent=2))
+        return agents_map
+
 
 @contextlib.contextmanager
 def mock_llm_invoke() -> Generator[None, None, None]:
@@ -437,6 +469,7 @@ class MockOrchestrator(ABC):
             self: object,
             tools: list[dict[str, Any]],
             workers: list[dict[str, Any]],
+            agents: list[dict[str, Any]] | None = None,
             slotsfillapi: str = "",
             resource_initializer: object | None = None,
             planner_enabled: bool = False,
@@ -448,6 +481,7 @@ class MockOrchestrator(ABC):
                 self,
                 tools,
                 workers,
+                agents,
                 slotsfillapi,
                 resource_initializer,
                 planner_enabled,

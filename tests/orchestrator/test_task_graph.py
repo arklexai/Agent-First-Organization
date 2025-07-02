@@ -2259,13 +2259,20 @@ class TestTaskGraphCoverage:
             sample_llm_config,
             model_service=always_valid_mock_model,
         )
-        tg.graph.add_node("n1")
+
+        tg.graph.add_node(
+            "n1",
+            type="task",
+            resource={"name": "n1", "id": "n1"},
+            attribute={"can_skipped": False, "tags": {}, "node_specific_data": {}},
+        )
         tg.graph.add_node(
             "n2",
             resource={"name": "r", "id": "id"},
             attribute={"can_skipped": False, "tags": {}, "node_specific_data": {}},
         )
         tg.graph.add_edge("n1", "n2", intent="none", attribute={"weight": 1.0})
+
         params = Params()
         orig_choice = np.random.choice
         np.random.choice = lambda arr, p=None: arr[0]

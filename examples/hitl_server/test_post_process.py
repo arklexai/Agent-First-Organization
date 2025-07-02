@@ -43,6 +43,7 @@ def config_and_env(
     env = Environment(
         tools=config.get("tools", []),
         workers=config.get("workers", []),
+        agents=config.get("agents", []),
         slot_fill_api=config["slotfillapi"],
         planner_enabled=True,
         model_service=model_service,

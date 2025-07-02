@@ -163,7 +163,8 @@ class Logic_Test(unittest.TestCase):
         self.env = Environment(
             tools=self.config.get("tools", []),
             workers=self.config.get("workers", []),
-            slotsfillapi=self.config["slotfillapi"],
+            agents=self.config.get("agents", []),
+            slot_fill_api=self.config["slotfillapi"],
             planner_enabled=True,
         )
 

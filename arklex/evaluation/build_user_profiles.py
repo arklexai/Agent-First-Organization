@@ -760,7 +760,11 @@ def _build_tool_list(config: ConfigDict) -> tuple[list[dict[str, Any]], Any]:
         - List of tool dictionaries with tool_id, description, input, and output
         - Environment object for tool execution
     """
-    env = Environment(tools=config["tools"], workers=config["workers"])
+    env = Environment(
+        tools=config["tools"],
+        workers=config["workers"],
+        agents=config.get("agents", []),
+    )
     tool_list: list[dict[str, Any]] = []
 
     for tool in config["tools"]:
