@@ -23,7 +23,7 @@ class DummyEnv(Environment):
     """Dummy environment for testing purposes."""
 
     def __init__(self) -> None:
-        super().__init__(tools=[], workers=[])
+        super().__init__(tools=[], workers=[], agents=[])
         self.model_service = Mock()
         self.planner = None
 

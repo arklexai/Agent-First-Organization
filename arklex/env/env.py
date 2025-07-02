@@ -11,6 +11,7 @@ from collections.abc import Callable
 from functools import partial
 from typing import Any
 
+from arklex.env.agents.agent import BaseAgent
 from arklex.env.planner.react_planner import DefaultPlanner, ReactPlanner
 from arklex.env.tools.tools import Tool
 from arklex.env.workers.worker import BaseWorker
@@ -38,10 +39,10 @@ class BaseResourceInitializer:
         """Initialize tools from configuration.
 
         Args:
-            tools: List of tool configurations
+            tools: list of tool configurations
 
         Returns:
-            Dictionary mapping tool IDs to their configurations
+            dictionary mapping tool IDs to their configurations
 
         Raises:
             NotImplementedError: Must be implemented by subclasses
@@ -53,10 +54,10 @@ class BaseResourceInitializer:
         """Initialize workers from configuration.
 
         Args:
-            workers: List of worker configurations
+            workers: list of worker configurations
 
         Returns:
-            Dictionary mapping worker IDs to their configurations
+            dictionary mapping worker IDs to their configurations
 
         Raises:
             NotImplementedError: Must be implemented by subclasses
@@ -76,10 +77,10 @@ class DefaultResourceInitializer(BaseResourceInitializer):
         """Initialize tools from configuration.
 
         Args:
-            tools: List of tool configurations
+            tools: list of tool configurations
 
         Returns:
-            Dictionary mapping tool IDs to their configurations
+            dictionary mapping tool IDs to their configurations
         """
         tool_registry: dict[str, dict[str, Any]] = {}
         for tool in tools:
@@ -107,10 +108,10 @@ class DefaultResourceInitializer(BaseResourceInitializer):
         """Initialize workers from configuration.
 
         Args:
-            workers: List of worker configurations
+            workers: list of worker configurations
 
         Returns:
-            Dictionary mapping worker IDs to their configurations
+            dictionary mapping worker IDs to their configurations
         """
         worker_registry: dict[str, dict[str, Any]] = {}
         for worker in workers:
@@ -131,6 +132,36 @@ class DefaultResourceInitializer(BaseResourceInitializer):
                 log_context.error(f"Worker {name} is not registered, error: {e}")
         return worker_registry
 
+    @staticmethod
+    def init_agents(agents: list[dict[str, Any]]) -> dict[str, dict[str, Any]]:
+        """Initialize agents from configuration.
+
+        Args:
+            agents: list of agent configurations
+
+        Returns:
+            dictionary mapping agent IDs to their configurations
+        """
+        agent_registry: dict[str, dict[str, Any]] = {}
+        for agent in agents:
+            agent_id: str = agent["id"]
+            name: str = agent["name"]
+            path: str = agent["path"]
+            try:
+                filepath: str = os.path.join("arklex.env.agents", path)
+                module_name: str = filepath.replace(os.sep, ".").rstrip(".py")
+                module = importlib.import_module(module_name)
+                func: Callable = getattr(module, name)
+                agent_registry[agent_id] = {
+                    "name": name,
+                    "description": func.description,
+                    "execute": partial(func, **agent.get("fixed_args", {})),
+                }
+            except Exception as e:
+                log_context.error(f"Agent {name} is not registered, error: {e}")
+                continue
+        return agent_registry
+
 
 class Environment:
     """Environment management for workers and tools.
@@ -143,6 +174,7 @@ class Environment:
         self,
         tools: list[dict[str, Any]],
         workers: list[dict[str, Any]],
+        agents: list[dict[str, Any]],
         slotsfillapi: str = "",
         resource_initializer: BaseResourceInitializer | None = None,
         planner_enabled: bool = False,
@@ -152,8 +184,8 @@ class Environment:
         """Initialize the environment.
 
         Args:
-            tools: List of tools to initialize
-            workers: List of workers to initialize
+            tools: list of tools to initialize
+            workers: list of workers to initialize
             slotsfillapi: API endpoint for slot filling
             resource_initializer: Resource initializer instance
             planner_enabled: Whether planning is enabled
@@ -168,13 +200,16 @@ class Environment:
         self.workers: dict[str, dict[str, Any]] = resource_initializer.init_workers(
             workers
         )
+        self.agents: dict[str, dict[str, Any]] = resource_initializer.init_agents(
+            agents
+        )
         self.name2id: dict[str, str] = {
             resource["name"]: id
-            for id, resource in {**self.tools, **self.workers}.items()
+            for id, resource in {**self.tools, **self.workers, **self.agents}.items()
         }
         self.id2name: dict[str, str] = {
             id: resource["name"]
-            for id, resource in {**self.tools, **self.workers}.items()
+            for id, resource in {**self.tools, **self.workers, **self.agents}.items()
         }
         self.model_service = model_service or DummyModelService(
             {
@@ -274,6 +309,23 @@ class Environment:
                     if response_state.response
                     else response_state.message_flow,
                 }
+            )
+            params.taskgraph.node_status[params.taskgraph.curr_node] = (
+                response_state.status
+            )
+
+        elif id in self.agents:
+            log_context.info(f"{self.agents[id]['name']} agent selected")
+            agent: BaseAgent = self.agents[id]["execute"](
+                successors=node_info.additional_args.get("successors", []),
+                predecessors=node_info.additional_args.get("predecessors", []),
+                tools=self.tools,
+                state=message_state,
+            )
+            response_state = agent.execute(message_state, **node_info.additional_args)
+            call_id: str = str(uuid.uuid4())
+            params.memory.function_calling_trajectory = (
+                response_state.function_calling_trajectory
             )
             params.taskgraph.node_status[params.taskgraph.curr_node] = (
                 response_state.status
