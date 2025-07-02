@@ -33,7 +33,7 @@ class NegotiationSingleIssueWorker(BaseWorker):
     
     description = "This worker should then be the only worker running for the rest of the conversation. This worker helps process the user's message and generate a response that moves the negotiation forward."
     
-    def __init__(self):
+    def __init__(self) -> None:
         """Initialize the NegotiationSingleIssueWorker with necessary attributes."""
         super().__init__()
         self.llm: Optional[BaseChatModel] = None
@@ -151,7 +151,7 @@ class NegotiationSingleIssueWorker(BaseWorker):
         log_context.info(f"Static prompt: {static_prompt}")
         return static_prompt, dynamic_prompt
     
-    def check_and_initialize_slots(self, state: MessageState, parameters: Dict[str, Any] = {}) -> MessageState:
+    def check_and_initialize_slots(self, state: MessageState, parameters: Dict[str, Any] | None = None) -> MessageState:
         """Initialize required negotiation slots if they don't exist.
         
         Args:
@@ -161,6 +161,8 @@ class NegotiationSingleIssueWorker(BaseWorker):
         Returns:
             MessageState: Updated message state with initialized slots
         """
+        if parameters is None:
+            parameters = {}
         log_context.info(f"parameters: {parameters}")
         self.unit_index = int(parameters["unit_index"])
         log_context.info("checking and initializing slots")
@@ -349,7 +351,7 @@ class NegotiationSingleIssueWorker(BaseWorker):
         workflow.add_edge("negotiation_initialization", "negotiation_response")
         return workflow
     
-    def _execute(self, msg_state: MessageState, **kwargs: Any) -> Dict[str, Any]:
+    def _execute(self, msg_state: MessageState, **kwargs: dict[str, Any]) -> Dict[str, Any]:
         """Execute the negotiation worker.
         
         Args:

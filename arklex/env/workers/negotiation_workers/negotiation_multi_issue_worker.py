@@ -34,7 +34,7 @@ class NegotiationMultiIssueWorker(BaseWorker):
     
     description = "This worker should then be the only worker running for the rest of the conversation. This worker helps process the user's message and generate a response that moves the negotiation forward."
     
-    def __init__(self):
+    def __init__(self) -> None:
         """Initialize the NegotiationMultiIssueWorker with necessary attributes and utilities."""
         super().__init__()
         self.llm: Optional[BaseChatModel] = None
@@ -57,7 +57,7 @@ class NegotiationMultiIssueWorker(BaseWorker):
         self._initialize_utilities()
         self._initialize_kde_models()
         
-    def _initialize_utilities(self):
+    def _initialize_utilities(self) -> None:
         """Initialize utility dictionaries for buyer and seller preferences."""
         self.buyer_utilities = {
             "LOCATION": {"Boston": 3200, "Philadelphia": 1600, "New York": 1600, "San Francisco": 1600, "Chicago": 0},
@@ -80,7 +80,7 @@ class NegotiationMultiIssueWorker(BaseWorker):
         self.payoff_schedule = self.seller_utilities.copy()
         self.walk_away_point = 10000
 
-    def _initialize_kde_models(self):
+    def _initialize_kde_models(self) -> None:
         """Initialize Kernel Density Estimation models for analyzing issue importance."""
         self.kde_models = {
             'SALARY': KernelDensity(kernel='gaussian', bandwidth=0.5),
@@ -115,14 +115,14 @@ class NegotiationMultiIssueWorker(BaseWorker):
         """
         word_count = len(response.split())
         if word_count < 30:
-            sleep_time = 2 * word_count
+            calculated_sleep = 2 * word_count
         elif word_count < 50:
-            sleep_time = 1.5 * word_count
+            calculated_sleep = 1.5 * word_count
         else:
-            sleep_time = word_count
+            calculated_sleep = word_count
         
         # Uncomment to enable delay
-        # time.sleep(max(0, sleep_time - time_elapsed))
+        # time.sleep(max(0, calculated_sleep - time_elapsed))
 
     def common_sense_importance(self) -> str:
         """Analyze issue importance based on common sense and utilities.
@@ -604,7 +604,7 @@ class NegotiationMultiIssueWorker(BaseWorker):
         workflow.add_edge(START, "negotiation_response")
         return workflow
     
-    def _execute(self, msg_state: MessageState, **kwargs: Any) -> Dict[str, Any]:
+    def _execute(self, msg_state: MessageState, **kwargs: dict[str, Any]) -> Dict[str, Any]:
         """Execute the negotiation worker.
         
         Args:
