@@ -377,4 +377,3 @@ class NegotiationSingleIssueWorker(BaseWorker):
         response_state.status = StatusEnum.STAY
             
         return response_state.model_dump()
-    
