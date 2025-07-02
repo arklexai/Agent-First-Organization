@@ -693,3 +693,184 @@ class TestChatGPTUtils:
             goals = ["goal1", "goal2"]
             _print_goals(goals)
             mock_print.assert_called_once_with(goals)
+
+    def test_chatgpt_chatbot_openai_branch(
+        self, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        from arklex.evaluation.chatgpt_utils import chatgpt_chatbot
+
+        class DummyOpenAI:
+            class chat:
+                class completions:
+                    @staticmethod
+                    def create(
+                        model: str, messages: list[dict[str, str]], temperature: float
+                    ) -> object:
+                        class Choice:
+                            class Message:
+                                content = "response"
+
+                            message = Message()
+
+                        class Result:
+                            choices = [Choice()]
+
+                        return Result()
+
+        messages = [{"role": "user", "content": "hi"}]
+        result = chatgpt_chatbot(messages, DummyOpenAI())
+        assert result == "response"
+
+    def test_chatgpt_chatbot_anthropic_branch(self) -> None:
+        """Explicitly test chatgpt_chatbot for Anthropic branch (lines 50-51)."""
+        from arklex.evaluation import chatgpt_utils
+
+        class DummyAnthropic:
+            class messages:
+                @staticmethod
+                def create(**kwargs: object) -> object:
+                    class Result:
+                        content = [type("Obj", (), {"text": "anthropic result"})()]
+
+                    return Result()
+
+        messages = [{"role": "user", "content": "hi"}]
+        # Patch MODEL to anthropic
+        orig_model = chatgpt_utils.MODEL.copy()
+        chatgpt_utils.MODEL["llm_provider"] = "anthropic"
+        try:
+            result = chatgpt_utils.chatgpt_chatbot(messages, DummyAnthropic())
+            assert result == "anthropic result"
+        finally:
+            chatgpt_utils.MODEL = orig_model
+
+    def test_format_chat_history_str_empty(self) -> None:
+        """Explicitly test format_chat_history_str for empty input (line 332)."""
+        from arklex.evaluation.chatgpt_utils import format_chat_history_str
+
+        assert format_chat_history_str([]) == ""
+
+    def test_create_client_with_anthropic_provider(self) -> None:
+        """Test create_client function with anthropic provider."""
+        from arklex.evaluation.chatgpt_utils import create_client
+
+        with (
+            patch(
+                "arklex.evaluation.chatgpt_utils.MODEL", {"llm_provider": "anthropic"}
+            ),
+            patch(
+                "arklex.evaluation.chatgpt_utils.anthropic.Anthropic"
+            ) as mock_anthropic,
+        ):
+            mock_client = Mock()
+            mock_anthropic.return_value = mock_client
+
+            result = create_client()
+
+            assert result == mock_client
+            mock_anthropic.assert_called_once()
+
+    def test_create_client_with_unknown_provider(self) -> None:
+        """Test create_client function with unknown provider."""
+        from arklex.evaluation.chatgpt_utils import create_client
+
+        with (
+            patch("arklex.evaluation.chatgpt_utils.MODEL", {"llm_provider": "unknown"}),
+            patch("arklex.evaluation.chatgpt_utils.OpenAI") as mock_openai,
+        ):
+            mock_client = Mock()
+            mock_openai.return_value = mock_client
+
+            with pytest.raises(ValueError, match="Unsupported LLM provider: unknown"):
+                create_client()
+
+    def test_main_function_with_import_error(self) -> None:
+        """Test main function when import fails."""
+        from arklex.evaluation.chatgpt_utils import main
+
+        with (
+            patch("builtins.__import__", side_effect=ImportError("Test import error")),
+            pytest.raises(ImportError, match="Test import error"),
+        ):
+            # Should raise an ImportError
+            main()
+
+    def test_main_function_with_sys_exit(self) -> None:
+        """Test main function when sys.exit is called."""
+        from arklex.evaluation.chatgpt_utils import main
+
+        with (
+            patch("sys.exit"),
+            pytest.raises(ModuleNotFoundError, match="No module named 'get_documents'"),
+        ):
+            # Should raise ModuleNotFoundError
+            main()
+
+    def test_generate_goal_calls_chatgpt_chatbot(
+        self, monkeypatch: pytest.MonkeyPatch, mock_client: Mock
+    ) -> None:
+        from arklex.evaluation import chatgpt_utils
+
+        called = {}
+
+        def fake_chatgpt_chatbot(
+            messages: list[dict[str, str]], client: object, model: str | None = None
+        ) -> str:
+            called["messages"] = messages
+            called["client"] = client
+            called["model"] = model
+            return "goal"
+
+        monkeypatch.setattr(chatgpt_utils, "chatgpt_chatbot", fake_chatgpt_chatbot)
+        doc_content = "Some content"
+        client = mock_client
+        result = chatgpt_utils.generate_goal(doc_content, client)
+        assert result == "goal"
+        assert called["messages"]
+        assert called["client"] is client
+
+    def test_generate_goals_return_line(
+        self, monkeypatch: pytest.MonkeyPatch, mock_client: Mock
+    ) -> None:
+        from arklex.evaluation import chatgpt_utils
+
+        # Patch generate_goal to return a fixed value
+        monkeypatch.setattr(chatgpt_utils, "generate_goal", lambda doc, client: "goal")
+        documents = [{"content": "doc1"}, {"content": "doc2"}]
+        params = {"num_goals": 2}
+        result = chatgpt_utils.generate_goals(documents, params, mock_client)
+        assert result == ["goal", "goal"]
+
+    def test_filter_convo_return_line_edge_case(self) -> None:
+        from arklex.evaluation.chatgpt_utils import filter_convo
+
+        # Edge case: convo with only two turns (should skip both)
+        convo = [
+            {"role": "user", "content": "hi"},
+            {"role": "assistant", "content": "hello"},
+        ]
+        result = filter_convo(convo)
+        assert result == []
+        # Edge case: convo with a user message after two turns
+        convo = [
+            {"role": "user", "content": "hi"},
+            {"role": "assistant", "content": "hello"},
+            {"role": "user", "content": "user content\nextra"},
+        ]
+        result = filter_convo(convo)
+        assert result[0]["content"] == "user content"
+
+    @patch("arklex.evaluation.chatgpt_utils.generate_goal")
+    def test_generate_goals_return_value(self, mock_generate_goal: Mock) -> None:
+        """Covers the return line of generate_goals (line 335)."""
+        from arklex.evaluation.chatgpt_utils import generate_goals
+
+        mock_generate_goal.side_effect = (
+            lambda doc_content, client: f"goal-for-{doc_content}"
+        )
+        documents = [{"content": "doc1"}, {"content": "doc2"}]
+        params = {"num_goals": 2}
+        client = Mock()
+        result = generate_goals(documents, params, client)
+        assert len(result) == 2
+        assert all(r.startswith("goal-for-") for r in result)

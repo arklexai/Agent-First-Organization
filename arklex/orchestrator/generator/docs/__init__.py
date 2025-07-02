@@ -50,5 +50,6 @@ Usage:
 """
 
 from .document_loader import DocumentLoader
+from .document_processor import DocumentProcessor
 
-__all__ = ["DocumentLoader"]
+__all__ = ["DocumentLoader", "DocumentProcessor"]

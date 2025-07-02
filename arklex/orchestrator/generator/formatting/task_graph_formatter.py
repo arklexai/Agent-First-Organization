@@ -659,8 +659,8 @@ class TaskGraphFormatter:
             if 0 <= step_index < len(steps) - 1:
                 next_step_node_id = f"{task_id}_step{step_index + 1}"
 
-                # Set the value attribute
-                ng_node_data["attribute"]["value"] = next_step_node_id
+                # Set the value attribute - create attribute dict if it doesn't exist
+                ng_node_data.setdefault("attribute", {})["value"] = next_step_node_id
 
                 # Create the edge
                 edges.append(

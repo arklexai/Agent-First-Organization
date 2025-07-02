@@ -355,3 +355,166 @@ def test_integration_generation_pipeline(always_valid_mock_model: Mock) -> None:
     assert "reusable_tasks" in result
     # The result contains the task graph directly, not under a "task_graph" key
     assert "nodes" in result or "edges" in result
+
+
+class TestGeneratorAdditionalCoverage:
+    """Additional test cases to cover missing lines in generator.py."""
+
+    def test_load_config_file_not_found(self) -> None:
+        """Test load_config when file is not found."""
+        from arklex.orchestrator.generator.generator import load_config
+
+        with pytest.raises(FileNotFoundError):
+            load_config("nonexistent_file.json")
+
+    def test_load_config_invalid_json(self) -> None:
+        """Test load_config with invalid JSON."""
+        # Create a temporary file with invalid JSON
+        import tempfile
+
+        from arklex.orchestrator.generator.generator import load_config
+
+        with tempfile.NamedTemporaryFile(mode="w", suffix=".json", delete=False) as f:
+            f.write("invalid json content")
+            temp_file = f.name
+
+        try:
+            with pytest.raises(
+                ValueError
+            ):  # JSONDecodeError is a subclass of ValueError
+                load_config(temp_file)
+        finally:
+            import os
+
+            os.unlink(temp_file)
+
+    def test_main_function_success(self, always_valid_mock_model: Mock) -> None:
+        """Test main function with successful execution."""
+        import json
+
+        # Create a temporary config file
+        import tempfile
+
+        from arklex.orchestrator.generator.generator import main
+
+        config = {
+            "role": "test_role",
+            "user_objective": "test_objective",
+            "instruction_docs": [],
+            "task_docs": [],
+            "workers": [],
+            "tools": [],
+            "output_path": "test_output.json",
+        }
+
+        with tempfile.NamedTemporaryFile(mode="w", suffix=".json", delete=False) as f:
+            json.dump(config, f)
+            temp_file = f.name
+
+        try:
+            # Mock the argument parser
+            with (
+                patch("sys.argv", ["test_generator.py", "--file_path", temp_file]),
+                patch(
+                    "arklex.orchestrator.generator.generator.PROVIDER_MAP"
+                ) as mock_provider_map,
+                patch(
+                    "arklex.orchestrator.generator.generator.ChatOpenAI"
+                ) as mock_chat_openai,
+                patch(
+                    "arklex.orchestrator.generator.generator.CoreGenerator"
+                ) as mock_core_generator,
+                patch("json.dump") as mock_json_dump,
+            ):
+                mock_provider_map.get.return_value = Mock()
+                mock_chat_instance = Mock()
+                mock_chat_openai.return_value = mock_chat_instance
+                mock_generator_instance = Mock()
+                mock_generator_instance.generate.return_value = {"test": "data"}
+                mock_core_generator.return_value = mock_generator_instance
+
+                # This should not raise an exception
+                main()
+
+                # Verify the generator was called
+                mock_core_generator.assert_called_once()
+                mock_generator_instance.generate.assert_called_once()
+                mock_json_dump.assert_called_once()
+
+        finally:
+            import os
+
+            os.unlink(temp_file)
+
+    def test_main_function_file_not_found(self) -> None:
+        """Test main function when config file is not found."""
+        from arklex.orchestrator.generator.generator import main
+
+        # Mock the argument parser with non-existent file
+        with (
+            patch("sys.argv", ["test_generator.py", "--file_path", "nonexistent.json"]),
+            patch("sys.exit") as mock_exit,
+            patch("arklex.orchestrator.generator.generator.__name__", "__main__"),
+        ):
+            # This should exit with error code 1
+            main()
+            mock_exit.assert_called_once_with(1)
+
+    def test_main_function_generation_error(
+        self, always_valid_mock_model: Mock
+    ) -> None:
+        """Test main function when generation fails."""
+        import json
+
+        # Create a temporary config file
+        import tempfile
+
+        from arklex.orchestrator.generator.generator import main
+
+        config = {
+            "role": "test_role",
+            "user_objective": "test_objective",
+            "instruction_docs": [],
+            "task_docs": [],
+            "workers": [],
+            "tools": [],
+            "output_path": "test_output.json",
+        }
+
+        with tempfile.NamedTemporaryFile(mode="w", suffix=".json", delete=False) as f:
+            json.dump(config, f)
+            temp_file = f.name
+
+        try:
+            # Mock the argument parser
+            with (
+                patch("sys.argv", ["test_generator.py", "--file_path", temp_file]),
+                patch(
+                    "arklex.orchestrator.generator.generator.PROVIDER_MAP"
+                ) as mock_provider_map,
+                patch(
+                    "arklex.orchestrator.generator.generator.ChatOpenAI"
+                ) as mock_chat_openai,
+                patch(
+                    "arklex.orchestrator.generator.generator.CoreGenerator"
+                ) as mock_core_generator,
+                patch("sys.exit") as mock_exit,
+                patch("arklex.orchestrator.generator.generator.__name__", "__main__"),
+            ):
+                mock_provider_map.get.return_value = Mock()
+                mock_chat_instance = Mock()
+                mock_chat_openai.return_value = mock_chat_instance
+                mock_generator_instance = Mock()
+                mock_generator_instance.generate.side_effect = Exception(
+                    "Generation failed"
+                )
+                mock_core_generator.return_value = mock_generator_instance
+
+                # This should exit with error code 1
+                main()
+                mock_exit.assert_called_once_with(1)
+
+        finally:
+            import os
+
+            os.unlink(temp_file)

@@ -289,7 +289,13 @@ class TaskGenerator:
             messages = [HumanMessage(content=prompt)]
         except ImportError:
             messages = [{"role": "user", "content": prompt}]
-        response = self.model.generate([messages])
+
+        try:
+            response = self.model.generate([messages])
+        except Exception as e:
+            log_context.error(f"Error generating tasks from objective: {e}")
+            return {"tasks": []}
+
         response_text: str | None = None
         if hasattr(response, "generations"):
             if hasattr(response.generations[0][0], "text"):

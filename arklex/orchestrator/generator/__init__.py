@@ -6,25 +6,23 @@ reusable tasks.
 
 The module has been refactored into specialized components:
 - Core: Main orchestration logic (Generator class)
-- UI: Interactive components for task editing
+- UI: Interactive components for task editing (TaskEditorApp, InputModal)
 - Tasks: Task generation, best practices, and reusable tasks
 - Docs: Document loading and processing
 - Formatting: Task graph structure formatting
 
 Key Components:
 - Generator: Main class for creating task graphs based on user objectives and documentation
-- TaskEditorApp: Text-based UI for editing tasks and their steps
-- InputModal: Modal dialog for editing task and step descriptions
+- TaskEditorApp: Text-based UI for editing tasks and their steps in a tree structure
+- InputModal: Modal dialog for editing task and step descriptions with callback support
 
 Features:
-- Natural language task generation
-- Interactive task editing
-- Reusable task management
-- Best practice integration
-- Documentation processing
-- Resource initialization
-- Task graph formatting
-- Configuration management
+- Natural language task generation from user objectives
+- Interactive task editing with keyboard shortcuts
+- Reusable task management and best practice integration
+- Documentation processing and resource initialization
+- Task graph formatting and configuration management
+- Graceful fallback when UI components are unavailable
 
 Usage:
     from arklex.orchestrator.generator import Generator
@@ -45,7 +43,7 @@ Usage:
         config=config,
         model=language_model,
         output_dir="output",
-        resource_inizializer=DefaultResourceInitializer()
+        resource_initializer=DefaultResourceInitializer()
     )
 
     # Generate task graph
@@ -55,41 +53,43 @@ Usage:
     output_path = generator.save_task_graph(task_graph)
 """
 
-# Import main classes for backward compatibility
+# Import the generator module for backward compatibility
+from . import core, docs, formatting, generator, tasks
 from .core import Generator
 
-# Make UI components optional to avoid dependency issues
+# Import UI components if available
 try:
     from .ui import InputModal, TaskEditorApp
 
     _UI_COMPONENTS = ["TaskEditorApp", "InputModal"]
+    from . import ui
+
+    # Set the ui attribute on the module and expose the components
+    globals()["ui"] = ui
+    # Also expose the components directly on the ui module for backward compatibility
+    ui.InputModal = InputModal
+    ui.TaskEditorApp = TaskEditorApp
+    _UI_AVAILABLE = True
 except ImportError:
-    # Create placeholder classes when UI dependencies are not available
-    class TaskEditorApp:
-        """Placeholder class when UI components are not available."""
-
-        def __init__(self, *args: object, **kwargs: object) -> None:
-            raise ImportError(
-                "TaskEditorApp requires 'textual' package to be installed"
-            )
-
-    class InputModal:
-        """Placeholder class when UI components are not available."""
-
-        def __init__(self, *args: object, **kwargs: object) -> None:
-            raise ImportError("InputModal requires 'textual' package to be installed")
-
+    # UI components not available (e.g., textual not installed)
     _UI_COMPONENTS = []
+    # Create a dummy ui module to prevent import errors
+    import types
 
-# Import specialized modules for advanced usage
-from . import core, docs, formatting, tasks, ui
+    ui = types.ModuleType("ui")
+    globals()["ui"] = ui
+    _UI_AVAILABLE = False
 
 __all__ = [
     "Generator",
     *_UI_COMPONENTS,
     "core",
-    "ui",
     "tasks",
     "docs",
     "formatting",
+    "generator",
 ]
+
+# Only add "ui" to __all__ if UI components are available
+if _UI_AVAILABLE:
+    __all__.append("ui")

@@ -47,5 +47,8 @@ Usage:
     # 4. Generate evaluation reports
 """
 
+# Import modules to make them available at package level
+from . import extract_conversation_info as extract_conversation_info
+
 # Note: This package contains tools for comprehensive evaluation of the Arklex framework,
 # including conversation simulation, user profile generation, and performance analysis.

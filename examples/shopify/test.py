@@ -24,6 +24,7 @@ class Logic_Test(unittest.TestCase):
         cls.env: Environment = Environment(
             tools=cls.config.get("tools", []),
             workers=cls.config.get("workers", []),
+            agents=cls.config.get("agents", []),
             slot_fill_api=cls.config["slotfillapi"],
         )
 

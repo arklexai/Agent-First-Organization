@@ -579,6 +579,30 @@ class TestMessageWorkerExecute:
         assert isinstance(result, dict)
         assert result["status"] == StatusEnum.INCOMPLETE
 
+    def test_execute_returns_dict_success(self) -> None:
+        """Test _execute method returns dict on success (covers line 237)."""
+        worker = MessageWorker()
+
+        # Mock the compiled graph to return a successful result
+        mock_compiled_graph = Mock()
+        mock_compiled_graph.invoke.return_value = {"status": StatusEnum.COMPLETE}
+        worker.action_graph.compile = Mock(return_value=mock_compiled_graph)
+
+        # Mock the LLM setup
+        with patch(
+            "arklex.env.workers.message_worker.PROVIDER_MAP"
+        ) as mock_provider_map:
+            mock_provider_map.get.return_value = Mock()
+
+            msg_state = MessageState()
+            msg_state.bot_config = VALID_BOT_CONFIG
+
+            result = worker._execute(msg_state)
+
+            # Should return the result from the compiled graph
+            assert isinstance(result, dict)
+            assert result["status"] == StatusEnum.COMPLETE
+
 
 class TestMessageWorkerEdgeCases:
     """Test edge cases and error conditions for MessageWorker."""

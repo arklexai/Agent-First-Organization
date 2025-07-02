@@ -760,7 +760,11 @@ def _build_tool_list(config: ConfigDict) -> tuple[list[dict[str, Any]], Any]:
         - List of tool dictionaries with tool_id, description, input, and output
         - Environment object for tool execution
     """
-    env = Environment(tools=config["tools"], workers=config["workers"])
+    env = Environment(
+        tools=config["tools"],
+        workers=config["workers"],
+        agents=config.get("agents", []),
+    )
     tool_list: list[dict[str, Any]] = []
 
     for tool in config["tools"]:
@@ -947,15 +951,24 @@ def augment_attributes(
                     "Here is a page from the company website: "
                     + random.choice(documents)["content"]
                 )
-
-            prompt = ADD_ATTRIBUTES.format(
-                user_profile="; ".join(
-                    f"{key}: {value}" for key, value in predefined_attributes.items()
-                ),
-                category=category,
-                company_summary=config["company_summary"],
-                company_doc=doc,
-            )
+                prompt = ADD_ATTRIBUTES.format(
+                    user_profile="; ".join(
+                        f"{key}: {value}"
+                        for key, value in predefined_attributes.items()
+                    ),
+                    category=category,
+                    company_summary=config["company_summary"],
+                    company_doc=doc,
+                )
+            else:
+                prompt = ADD_ATTRIBUTES_WO_DOC.format(
+                    user_profile="; ".join(
+                        f"{key}: {value}"
+                        for key, value in predefined_attributes.items()
+                    ),
+                    category=category,
+                    company_summary=config["company_summary"],
+                )
             response = chatgpt_chatbot(prompt, config["client"])
             new_values = [value.strip() for value in response.split(",")]
             augmented_attributes[category].extend(new_values)

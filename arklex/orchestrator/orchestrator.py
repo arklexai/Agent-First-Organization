@@ -160,6 +160,7 @@ class AgentOrg:
         self.env: Environment = env or Environment(
             tools=self.product_kwargs.get("tools", []),
             workers=self.product_kwargs.get("workers", []),
+            agents=self.product_kwargs.get("agents", []),
             slot_fill_api=self.product_kwargs.get("slot_fill_api", ""),
             planner_enabled=False,
         )

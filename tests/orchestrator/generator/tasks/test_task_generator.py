@@ -1599,20 +1599,20 @@ class TestTaskGenerator:
             # because the exception happens after the task is already validated
             assert len(result) == 1
 
-    def test_process_objective_with_exception_during_response_processing(
+    def test_process_objective_with_exception_handling(
         self, task_generator: TaskGenerator
     ) -> None:
-        """Test _process_objective with exception during response processing."""
-        with patch.object(task_generator.model, "generate") as mock_generate:
-            # Mock response that will cause an exception
-            mock_generate.side_effect = Exception("Model error")
+        """Test _process_objective with exception handling during response processing."""
+        # Mock model to raise an exception
+        with patch.object(
+            task_generator.model, "generate", side_effect=Exception("Model error")
+        ):
+            result = task_generator._process_objective(
+                "test objective", "test intro", "test docs"
+            )
 
-            import pytest
-
-            with pytest.raises(Exception, match="Model error"):
-                task_generator._process_objective(
-                    "test objective", "test intro", "test docs"
-                )
+            # Should return empty tasks list when exception occurs
+            assert result == {"tasks": []}
 
     def test_add_provided_tasks_adds_name_if_missing(
         self, task_generator: TaskGenerator
@@ -1726,3 +1726,92 @@ class TestTaskGenerator:
         task_generator._build_hierarchy(tasks)
         # Check that tasks are sorted by level (ascending)
         assert tasks[0]["level"] <= tasks[1]["level"] <= tasks[2]["level"]
+
+    def test_add_provided_tasks_with_exception_handling(
+        self, task_generator: TaskGenerator
+    ) -> None:
+        """Test add_provided_tasks with exception handling during task processing."""
+        # Create a task that will cause an exception during processing
+        user_tasks = [
+            {
+                "name": "Valid Task",
+                "description": "Valid description",
+                "steps": [{"task": "Step 1", "description": "Step 1 desc"}],
+            },
+            {
+                "name": "Invalid Task",
+                "description": "Invalid description",
+                "steps": None,  # This will cause an exception
+            },
+        ]
+
+        # Mock _validate_task_definition to raise an exception for the second task
+        with patch.object(task_generator, "_validate_task_definition") as mock_validate:
+            mock_validate.side_effect = [True, Exception("Validation error")]
+
+            result = task_generator.add_provided_tasks(user_tasks, "test intro")
+
+            # Should process the first task and skip the second due to exception
+            assert len(result) == 1
+            assert result[0]["name"] == "Valid Task"
+
+    def test_generate_high_level_tasks_with_exception_handling(
+        self, task_generator: TaskGenerator
+    ) -> None:
+        """Test _generate_high_level_tasks with exception handling."""
+        # Mock model to raise an exception
+        with patch.object(
+            task_generator.model, "invoke", side_effect=Exception("Model error")
+        ):
+            result = task_generator._generate_high_level_tasks("test intro")
+
+            # Should return empty list when exception occurs
+            assert result == []
+
+    def test_check_task_breakdown_original_with_exception_handling(
+        self, task_generator: TaskGenerator
+    ) -> None:
+        """Test _check_task_breakdown_original with exception handling."""
+        # Mock model to raise an exception
+        with patch.object(
+            task_generator.model, "invoke", side_effect=Exception("Model error")
+        ):
+            result = task_generator._check_task_breakdown_original(
+                "test task", "test intent"
+            )
+
+            # Should return True (default to breakdown) when exception occurs
+            assert result is True
+
+    def test_generate_task_steps_original_with_exception_handling(
+        self, task_generator: TaskGenerator
+    ) -> None:
+        """Test _generate_task_steps_original with exception handling."""
+        # Mock model to raise an exception
+        with patch.object(
+            task_generator.model, "invoke", side_effect=Exception("Model error")
+        ):
+            result = task_generator._generate_task_steps_original(
+                "test task", "test intent"
+            )
+
+            # Should return fallback steps when exception occurs
+            assert len(result) == 1
+            assert result[0]["task"] == "Execute test task"
+            assert result[0]["description"] == "Execute the task: test task"
+
+    def test_validate_tasks_missing_fields_and_invalid_steps(
+        self, task_generator: TaskGenerator
+    ) -> None:
+        # Task missing required fields
+        tasks = [{"name": "A"}]  # missing description and steps
+        result = task_generator._validate_tasks(tasks)
+        assert result == []
+        # Task steps not a list
+        tasks = [{"name": "A", "description": "desc", "steps": "notalist"}]
+        result = task_generator._validate_tasks(tasks)
+        assert result == []
+        # Task steps with non-dict step
+        tasks = [{"name": "A", "description": "desc", "steps": [123]}]
+        result = task_generator._validate_tasks(tasks)
+        assert result == []

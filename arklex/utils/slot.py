@@ -123,6 +123,7 @@ class Slot(BaseModel):
     required: bool = Field(default=False)
     verified: bool = Field(default=False)
     items: dict | None = None
+    target: str | None = None
 
 
 class SlotInput(BaseModel):

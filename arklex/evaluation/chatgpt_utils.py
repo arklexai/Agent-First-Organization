@@ -34,6 +34,7 @@ def create_client() -> OpenAI | anthropic.Anthropic:
 
     Raises:
         KeyError: If required environment variables are not set.
+        ValueError: If the configured provider is not supported.
     """
     try:
         org_key: str | None = os.environ["OPENAI_ORG_ID"]
@@ -49,6 +50,8 @@ def create_client() -> OpenAI | anthropic.Anthropic:
         )
     elif MODEL["llm_provider"] == "anthropic":
         client: anthropic.Anthropic = anthropic.Anthropic()
+    else:
+        raise ValueError(f"Unsupported LLM provider: {MODEL['llm_provider']}")
     return client
 
 

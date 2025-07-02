@@ -578,3 +578,28 @@ class TestShortTermMemory:
         # Assert
         assert not found
         assert intent is None
+
+    @patch.object(
+        ShortTermMemory, "_get_embedding", return_value=np.array([[0.1, 0.2, 0.3]])
+    )
+    def test_retrieve_intent_below_threshold(
+        self, mock_get_embedding: Mock, short_term_memory: ShortTermMemory
+    ) -> None:
+        """Test retrieve_intent when best score is below threshold (line 329)."""
+        # Setup - create a record with personalized intent that will have low similarity
+        record = ResourceRecord(
+            id="1",
+            intent="test_intent",
+            info={"attribute": {"task": "test_task"}},
+            personalized_intent="intent: low_similarity product: test_product attribute: test_attribute",
+        )
+        short_term_memory.trajectory = [[record]]
+
+        # Execute with a query that will have low similarity
+        found, intent = short_term_memory.retrieve_intent(
+            "completely different query", string_threshold=0.8
+        )
+
+        # Assert - should return False, None when best score is below threshold
+        assert not found
+        assert intent is None

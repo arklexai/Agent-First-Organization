@@ -1,3 +1,36 @@
+"""ReAct (Reasoning and Acting) planner implementation for the Arklex framework.
+
+This module provides a planner that uses the ReAct paradigm to choose tools and workers
+based on task requirements and chat history. It includes functionality for resource
+retrieval, trajectory planning, and action execution.
+
+Key Components:
+- ReactPlanner: Main planner class implementing ReAct methodology
+- DefaultPlanner: Base planner class for simple pass-through behavior
+- Action: Data model for planner actions
+- EnvResponse: Data model for environment responses
+- PlannerResource: Data model for planner resources
+
+Features:
+- Tool and worker selection based on task analysis
+- RAG-based resource retrieval
+- Trajectory planning and summarization
+- Multi-step action planning
+- Resource library management
+- Intent-based action selection
+
+Usage:
+    from arklex.env.planner.react_planner import ReactPlanner
+    from arklex.utils.graph_state import MessageState, LLMConfig
+
+    # Initialize planner
+    planner = ReactPlanner(tools_map, workers_map, name2id)
+    planner.set_llm_config_and_build_resource_library(llm_config)
+
+    # Execute planning
+    action, state, history = planner.execute(msg_state, msg_history)
+"""
+
 import json
 import traceback
 import uuid
@@ -27,32 +60,64 @@ from arklex.utils.model_provider_config import (
 
 log_context = LogContext(__name__)
 
-# If False, use shorter version of planner ReAct instruction without few-shot example(s)
+# Configuration flag for ReAct prompt type
 USE_FEW_SHOT_REACT_PROMPT: bool = True
 
-# Globals determining number of resources to retrieve based on step count of model
-# planning trajectory summary
+# Global constants for resource retrieval based on planning trajectory step count
 MIN_NUM_RETRIEVALS: int = 3
 MAX_NUM_RETRIEVALS: int = 15
 
 
-# Determines how to translate trajectory step count into number of relevant resources to retrieve;
-# note that num. retrievals should be >= num. steps to account for cases where each planning step
-# corresponds to a distinct tool/worker call and to increase tool selection robustness
 def NUM_STEPS_TO_NUM_RETRIEVALS(n_steps: int) -> int:
+    """Convert number of planning steps to number of resources to retrieve.
+
+    The number of retrievals should be >= number of steps to account for cases
+    where each planning step corresponds to a distinct tool/worker call and to
+    increase tool selection robustness.
+
+    Args:
+        n_steps: Number of planning steps in the trajectory
+
+    Returns:
+        Number of resources to retrieve (n_steps + 3)
+    """
     return n_steps + 3
 
 
 class Action(BaseModel):
+    """Data model for planner actions.
+
+    Attributes:
+        name: Name of the action to execute
+        kwargs: Keyword arguments for the action
+    """
+
     name: str
     kwargs: dict[str, Any]
 
 
 class EnvResponse(BaseModel):
+    """Data model for environment responses.
+
+    Attributes:
+        observation: Observation result from the environment
+    """
+
     observation: Any
 
 
 class PlannerResource(BaseModel):
+    """Data model for planner resources (tools and workers).
+
+    Attributes:
+        name: Name of the resource
+        type: Type of resource ("tool" or "worker")
+        description: Description of the resource functionality
+        parameters: List of parameter specifications
+        required: List of required parameter names
+        returns: Return value specification
+    """
+
     name: str
     type: Literal["tool", "worker"]
     description: str
@@ -61,6 +126,7 @@ class PlannerResource(BaseModel):
     returns: dict[str, Any]
 
 
+# Standard respond action resource for when user requests are satisfied
 RESPOND_ACTION_RESOURCE: PlannerResource = PlannerResource(
     name=RESPOND_ACTION_NAME,
     type="worker",
@@ -77,17 +143,26 @@ RESPOND_ACTION_RESOURCE: PlannerResource = PlannerResource(
     returns={},
 )
 
-log_context = LogContext(__name__)
-
-# Default LLM Config used on planner initialization, overwritten by
-# updated llm config info with planner.set_llm_config (invoked in
-# AgentOrg init)
+# Default LLM configuration used on planner initialization
 DEFAULT_LLM_CONFIG: LLMConfig = LLMConfig(
     model_type_or_path=MODEL["model_type_or_path"], llm_provider=MODEL["llm_provider"]
 )
 
 
 class DefaultPlanner:
+    """Default planner that returns unaltered MessageState on execute().
+
+    This is a simple pass-through planner that doesn't perform any planning
+    logic and just returns the input state unchanged.
+
+    Attributes:
+        tools_map: Mapping of tool names to tool instances
+        workers_map: Mapping of worker names to worker instances
+        name2id: Mapping of names to IDs
+        all_resources_info: Information about all available resources
+        llm_config: Language model configuration
+    """
+
     description: str = (
         "Default planner that returns unaltered MessageState on execute()"
     )
@@ -98,6 +173,13 @@ class DefaultPlanner:
         workers_map: dict[str, Any],
         name2id: dict[str, int],
     ) -> None:
+        """Initialize the default planner.
+
+        Args:
+            tools_map: Mapping of tool names to tool instances
+            workers_map: Mapping of worker names to worker instances
+            name2id: Mapping of names to IDs
+        """
         self.tools_map: dict[str, Any] = tools_map
         self.workers_map: dict[str, Any] = workers_map
         self.name2id: dict[str, int] = name2id
@@ -105,20 +187,31 @@ class DefaultPlanner:
         self.llm_config: LLMConfig = DEFAULT_LLM_CONFIG
 
     def set_llm_config_and_build_resource_library(self, llm_config: LLMConfig) -> None:
-        """
-        Update planner LLM model and provider info from default.
+        """Update planner LLM model and provider info from default.
 
         Note that in most cases, this must be invoked (again) after __init__(), because the LLMConfig info
         may be updated after planner is initialized, which may change the embedding model(s) used.
 
         The DefaultPlanner does nothing and has no need for retrieval steps, so it will not create RAG
         documents.
+
+        Args:
+            llm_config: Updated language model configuration
         """
         self.llm_config = llm_config
 
     def execute(
         self, msg_state: MessageState, msg_history: list[dict[str, Any]]
     ) -> tuple[dict[str, Any], MessageState, list[dict[str, Any]]]:
+        """Execute the planner (pass-through implementation).
+
+        Args:
+            msg_state: Current message state
+            msg_history: History of messages
+
+        Returns:
+            Tuple containing empty action, unaltered message state, and message history
+        """
         # Return empty action alongside unaltered msg_state and msg_history
         empty_action: dict[str, Any] = {
             "name": RESPOND_ACTION_NAME,
@@ -128,6 +221,22 @@ class DefaultPlanner:
 
 
 class ReactPlanner(DefaultPlanner):
+    """ReAct planner that chooses tools/workers based on task analysis and chat history.
+
+    This planner implements the ReAct (Reasoning and Acting) paradigm to intelligently
+    select appropriate tools and workers based on the current task and conversation
+    context. It uses RAG-based resource retrieval and trajectory planning to make
+    informed decisions about which actions to take.
+
+    Attributes:
+        llm: Language model instance for planning
+        llm_provider: Provider of the language model
+        model_name: Name of the language model
+        system_role: Role identifier for system messages
+        all_resources_info: Information about all available resources
+        resource_rag_docs_created: Flag indicating if RAG documents have been created
+    """
+
     description: str = "Choose tools/workers based on task and chat records if there is no specific worker/node for the user's query"
 
     def __init__(
@@ -136,6 +245,13 @@ class ReactPlanner(DefaultPlanner):
         workers_map: dict[str, Any],
         name2id: dict[str, int],
     ) -> None:
+        """Initialize the ReAct planner.
+
+        Args:
+            tools_map: Mapping of tool names to tool instances
+            workers_map: Mapping of worker names to worker instances
+            name2id: Mapping of names to IDs
+        """
         super().__init__(tools_map, workers_map, name2id)
         self.tools_map: dict[str, Any] = tools_map
         self.workers_map: dict[str, Any] = workers_map
@@ -176,12 +292,14 @@ class ReactPlanner(DefaultPlanner):
         self.resource_rag_docs_created: bool = False
 
     def set_llm_config_and_build_resource_library(self, llm_config: LLMConfig) -> None:
-        """
-        Update planner LLM model and provider info from default, and create RAG vector store for planner
+        """Update planner LLM model and provider info from default, and create RAG vector store for planner
         resource documents.
 
         Note that in most cases, this must be invoked (again) after __init__(), because the LLMConfig info
         may be updated after planner is initialized, which may change the embedding model(s) used.
+
+        Args:
+            llm_config: Updated language model configuration
         """
         self.llm_config = llm_config
 
@@ -226,8 +344,20 @@ class ReactPlanner(DefaultPlanner):
     def _format_worker_info(
         self, workers_map: dict[str, Any]
     ) -> dict[str, PlannerResource]:
-        """
-        Convert info on available workers to standardized format for planner ReAct prompt.
+        """Convert worker information to standardized format for planner ReAct prompt.
+
+        This method transforms the workers map into a standardized format that can be
+        used by the planner to understand available workers and their capabilities.
+
+        Args:
+            workers_map: Mapping of worker names to worker configurations
+
+        Returns:
+            Dictionary mapping worker names to PlannerResource objects
+
+        Note:
+            MessageWorker is removed from the available resources to avoid conflicts
+            with RESPOND_ACTION, as both return natural language responses.
         """
         formatted_worker_info: dict[str, PlannerResource] = {
             worker_name: PlannerResource(
@@ -252,8 +382,16 @@ class ReactPlanner(DefaultPlanner):
     def _format_tool_info(
         self, tools_map: dict[str, Any]
     ) -> dict[str, PlannerResource]:
-        """
-        Convert info on available tools to standardized format for planner ReAct prompt.
+        """Convert tool information to standardized format for planner ReAct prompt.
+
+        This method transforms the tools map into a standardized format that can be
+        used by the planner to understand available tools and their parameters.
+
+        Args:
+            tools_map: Mapping of tool IDs to tool configurations
+
+        Returns:
+            Dictionary mapping tool names to PlannerResource objects
         """
         formatted_tools_info: dict[str, PlannerResource] = {}
         for _tool_id, tool in tools_map.items():
@@ -306,9 +444,17 @@ class ReactPlanner(DefaultPlanner):
     def _create_resource_rag_docs(
         self, all_resources_info: dict[str, PlannerResource]
     ) -> list[Document]:
-        """
-        Given dict all_resources_info containing available tools and workers, return list of LangChain Documents
-        containing resource info (one tool/worker per document) to save as vector store for RAG retrieval.
+        """Create LangChain Documents for RAG retrieval from resource information.
+
+        Given a dictionary containing available tools and workers, this method creates
+        a list of LangChain Documents (one per tool/worker) to be used for vector store
+        RAG retrieval during planning.
+
+        Args:
+            all_resources_info: Dictionary mapping resource names to PlannerResource objects
+
+        Returns:
+            List of Document objects containing resource information for RAG
         """
         resource_docs: list[Document] = []
 
@@ -335,11 +481,18 @@ class ReactPlanner(DefaultPlanner):
     def _get_planning_trajectory_summary(
         self, state: MessageState, msg_history: list[dict[str, Any]]
     ) -> str:
-        """
-        Invoke model to get natural language summary of expected planning trajectory.
+        """Generate a natural language summary of the expected planning trajectory.
 
-        Response will be used as query to retrieve more detailed descriptions of relevant resources
-        (available tools/workers).
+        This method invokes the language model to create a summary of the expected
+        planning steps based on the current state and message history. The response
+        is used as a query to retrieve relevant resource descriptions.
+
+        Args:
+            state: Current message state containing user message and task
+            msg_history: History of previous messages
+
+        Returns:
+            Natural language summary of the expected planning trajectory
         """
         user_message: str = state.user_message.message
         task: str = state.orchestrator_message.attribute.get("task", "")
@@ -389,24 +542,37 @@ class ReactPlanner(DefaultPlanner):
         return response_text
 
     def _parse_trajectory_summary_to_steps(self, summary: str) -> list[str]:
-        """
-        Given bulleted list representing expected planning trajectory summary, remove list
-        formatting and return list of steps.
+        """Parse a bulleted list summary into individual planning steps.
+
+        Given a bulleted list representing the expected planning trajectory summary,
+        this method removes the list formatting and returns a list of individual steps.
+
+        Args:
+            summary: Bulleted list string representing planning trajectory
+
+        Returns:
+            List of individual planning steps
         """
         steps: list[str] = [step.strip() for step in summary.split("- ")]
         steps = [step for step in steps if len(step) > 0]
         return steps
 
     def _get_num_resource_retrievals(self, summary: str) -> int:
-        """
-        Given a str representing model summarization of expected planning trajectory,
-        determine number of planning trajectory steps and use step count to determine
-        number of resource signatures to retrieve (via RAG) for planner ReAct loop.
+        """Determine the number of resource signatures to retrieve based on planning trajectory.
 
-        Return value (number of resource signature docs to retrieve) will be in the range
-        [MIN_NUM_RETRIEVALS, MAX_NUM_RETRIEVALS].
+        Given a string representing the model's summarization of the expected planning
+        trajectory, this method determines the number of planning steps and uses that
+        to calculate how many resource signatures to retrieve via RAG for the planner
+        ReAct loop.
+
+        Args:
+            summary: String representing the planning trajectory summary
+
+        Returns:
+            Number of resource signature documents to retrieve (between MIN_NUM_RETRIEVALS
+            and MAX_NUM_RETRIEVALS)
         """
-        # Attempt to parse planning trajectoy summary into bulleted list of steps and use
+        # Attempt to parse planning trajectory summary into bulleted list of steps and use
         # step count to determine num. retrievals
         valid_summary: bool = True
         try:
@@ -440,15 +606,26 @@ class ReactPlanner(DefaultPlanner):
         user_message: str | None = None,
         task: str | None = None,
     ) -> list[Document]:
-        """
-        Given an int representing number of resource signature docs to retrieve, a summary of the expected
-        planning trajectory, and optionally a user message/query and a task description, retrieve the desired
-        number of resource signature docs most relevant to the planning trajectory to use with RAG during
-        planning ReAct loop.
+        """Retrieve relevant resource signature documents using RAG.
+
+        Given the number of resource signature documents to retrieve, a summary of the
+        expected planning trajectory, and optionally a user message and task description,
+        this method retrieves the most relevant resource signature documents for use
+        during the planning ReAct loop.
+
+        Args:
+            n_retrievals: Number of resource signature documents to retrieve
+            trajectory_summary: Summary of the expected planning trajectory
+            user_message: Optional user message for context
+            task: Optional task description for context
 
         Returns:
-            A list of Documents, each corresponding to a single resource/action (tool or worker to be called).
+            List of Document objects, each corresponding to a single resource/action
         """
+        # Return early if no retrievals requested
+        if n_retrievals <= 0:
+            return []
+
         # Format RAG query
         query: str = ""
         if user_message:
@@ -485,8 +662,17 @@ class ReactPlanner(DefaultPlanner):
         return signature_docs
 
     def _parse_response_action_to_json(self, response: str) -> dict[str, Any]:
-        """
-        Parse model response to planner ReAct instruction to extract tool/worker info as JSON.
+        """Parse model response to planner ReAct instruction to extract tool/worker info as JSON.
+
+        This method extracts the action information from the model's response to the
+        ReAct instruction and attempts to parse it as JSON. If parsing fails, it
+        returns a default respond action.
+
+        Args:
+            response: Raw response text from the language model
+
+        Returns:
+            Dictionary containing the parsed action information or default respond action
         """
         action_str: str = response.split("Action:\n")[-1]
         log_context.info(f"planner action_str: {action_str}")
@@ -505,6 +691,18 @@ class ReactPlanner(DefaultPlanner):
         self,
         message: dict[str, Any],
     ) -> list[Action]:
+        """Convert a message to a list of Action objects.
+
+        This method extracts the resource name and arguments from a planner action
+        message and validates that the selected resource is a valid worker or tool.
+        If validation fails, it returns a respond action with the message content.
+
+        Args:
+            message: Dictionary containing action information
+
+        Returns:
+            List of Action objects to be executed
+        """
         # Extract resource name and arguments from planner action
         resource_name: str | None = message.get("name")
         resource_id: int | None = self.name2id.get(resource_name, None)
@@ -534,6 +732,20 @@ class ReactPlanner(DefaultPlanner):
         msg_history: list[dict[str, Any]],
         max_num_steps: int = 3,
     ) -> tuple[list[dict[str, Any]], str, Any]:
+        """Execute the ReAct planning process.
+
+        This method implements the core ReAct planning loop. It generates a planning
+        trajectory summary, retrieves relevant resources using RAG, and executes
+        actions until completion or maximum steps reached.
+
+        Args:
+            state: Current message state
+            msg_history: History of previous messages
+            max_num_steps: Maximum number of planning steps to execute
+
+        Returns:
+            Tuple containing message history, final action name, and observation
+        """
         # Invoke model to get summary of planning trajectory to determine relevant resources
         # for which to retrieve more detailed info (from RAG documents)
         trajectory_summary: str = self._get_planning_trajectory_summary(
@@ -648,6 +860,19 @@ class ReactPlanner(DefaultPlanner):
         return msg_history, action.name, env_response.observation
 
     def step(self, action: Action, msg_state: MessageState) -> EnvResponse:
+        """Execute a single action step.
+
+        This method executes a single action by calling the appropriate tool or worker.
+        It handles different types of actions: respond actions, tool calls, and worker
+        executions. Error handling is included for each action type.
+
+        Args:
+            action: Action object containing the action to execute
+            msg_state: Current message state
+
+        Returns:
+            EnvResponse containing the observation from the action execution
+        """
         if action.name == RESPOND_ACTION_NAME:
             response: str = action.kwargs["content"]
             observation: str = response
@@ -666,9 +891,7 @@ class ReactPlanner(DefaultPlanner):
                 log_context.info(
                     f"planner calling tool {action.name} with kwargs {combined_kwargs}"
                 )
-                if not isinstance(observation, str):
-                    # Convert to string if not already
-                    observation = str(observation)
+                observation: str = str(observation)
                 log_context.info(f"tool call response: {str(observation)}")
 
             except Exception as e:
@@ -678,12 +901,9 @@ class ReactPlanner(DefaultPlanner):
         # workers_map indexed by worker name
         elif action.name in self.workers_map:
             try:
-                worker: Any = self.workers_map[action.name]["execute"]()
-                observation: Any = worker.execute(msg_state)
-                if not isinstance(observation, str):
-                    # Convert to string if not already
-                    observation = str(observation)
-
+                observation: str = str(
+                    self.workers_map[action.name]["execute"]().execute(msg_state)
+                )
             except Exception as e:
                 log_context.error(traceback.format_exc())
                 observation = f"Error: {e}"
@@ -696,6 +916,19 @@ class ReactPlanner(DefaultPlanner):
     def execute(
         self, msg_state: MessageState, msg_history: list[dict[str, Any]]
     ) -> tuple[dict[str, Any], MessageState, list[dict[str, Any]]]:
+        """Execute the planner with the given message state and history.
+
+        This method is the main entry point for the planner. It calls the plan method
+        to execute the ReAct planning process and updates the message state with the
+        final response.
+
+        Args:
+            msg_state: Current message state
+            msg_history: History of previous messages
+
+        Returns:
+            Tuple containing the final action, updated message state, and message history
+        """
         msg_history, action, response = self.plan(msg_state, msg_history)
         # msg_state["response"] = response
         msg_state.response = response
@@ -703,10 +936,30 @@ class ReactPlanner(DefaultPlanner):
 
 
 def aimessage_to_dict(ai_message: AIMessage | dict[str, Any]) -> dict[str, Any]:
-    message_dict: dict[str, Any] = {
-        "content": ai_message.content,
-        "role": "assistant" if isinstance(ai_message, AIMessage) else "user",
-        "function_call": None,
-        "tool_calls": None,
-    }
+    """Convert an AIMessage or dictionary to a standardized dictionary format.
+
+    This utility function converts either an AIMessage object or a dictionary
+    to a standardized dictionary format for consistent message handling.
+
+    Args:
+        ai_message: Either an AIMessage object or a dictionary containing message data
+
+    Returns:
+        Dictionary with standardized message format containing content, role,
+        function_call, and tool_calls fields
+    """
+    if isinstance(ai_message, dict):
+        message_dict: dict[str, Any] = {
+            "content": ai_message.get("content", ""),
+            "role": ai_message.get("role", "user"),
+            "function_call": ai_message.get("function_call", None),
+            "tool_calls": ai_message.get("tool_calls", None),
+        }
+    else:
+        message_dict: dict[str, Any] = {
+            "content": ai_message.content,
+            "role": "assistant",
+            "function_call": None,
+            "tool_calls": None,
+        }
     return message_dict

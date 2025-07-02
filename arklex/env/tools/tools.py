@@ -135,6 +135,7 @@ class Tool:
         self.slotfiller: SlotFiller | None = None
         self.info: dict[str, Any] = self.get_info(slots)
         self.slots: list[Slot] = [Slot.model_validate(slot) for slot in slots]
+        self.openai_slots: list[dict[str, Any]] = self._format_slots(slots)
         self.isResponse: bool = isResponse
         self.properties: dict[str, dict[str, Any]] = {}
         self.llm_config: dict[str, Any] = {}
@@ -220,6 +221,51 @@ class Tool:
 
         log_context.info(f"Slots after initialization are: {self.slots}")
 
+    def load_slots(self, slots: list[dict[str, Any]]) -> None:
+        """Load and merge slots with existing slots.
+
+        This method handles the merging of new slots with the tool's existing slots.
+        If a slot with the same name exists in both places, the new version takes precedence.
+        New slots are added to the existing slots.
+
+        Args:
+            slots (List[Dict[str, Any]]): List of slot definitions to merge with existing slots.
+
+        Example:
+            Existing slots:
+                [Slot(name="param1", type="str", required=True),
+                 Slot(name="param2", type="int", required=False)]
+
+            New slots:
+                [{"name": "param1", "type": "str", "required": False},
+                 {"name": "param3", "type": "bool", "required": True}]
+
+            Result:
+                [Slot(name="param1", type="str", required=False),  # Updated
+                 Slot(name="param2", type="int", required=False),  # Preserved
+                 Slot(name="param3", type="bool", required=True)]  # Added
+        """
+        if not slots:
+            return
+
+        # Create a dictionary of existing slots for easy lookup
+        existing_slots_dict = {slot.name: slot for slot in self.slots}
+
+        # Process new slots
+        for new_slot in slots:
+            slot_name = new_slot["name"]
+            if slot_name in existing_slots_dict:
+                # Update existing slot with new values
+                existing_slot = existing_slots_dict[slot_name]
+                for key, value in new_slot.items():
+                    setattr(existing_slot, key, value)
+            else:
+                # Add new slot
+                self.slots.append(Slot.model_validate(new_slot))
+
+        # Update tool info with merged slots
+        self.info = self.get_info([slot.model_dump() for slot in self.slots])
+
     def _execute(self, state: MessageState, **fixed_args: FixedArgs) -> MessageState:
         """Execute the tool with the current state and fixed arguments.
 
@@ -233,14 +279,33 @@ class Tool:
         Returns:
             MessageState: The updated message state after tool execution.
         """
+        response = ""  # Initialize as empty string
         slot_verification: bool = False
         reason: str = ""
         response: str = ""  # Initialize response variable
-        # if this tool has been called before, then load the previous slots status
+
+        # Check if we need to reset slots for a new node
+        # If this tool has been called before, check if the current slots are different
+        # from the previously stored slots (indicating a different node)
         if state.slots.get(self.name):
-            self.slots = state.slots[self.name]
+            previous_slots = state.slots[self.name]
+            current_slot_names = {slot.name for slot in self.slots}
+            previous_slot_names = {slot.name for slot in previous_slots}
+
+            # If the slot configurations are different, reset to current node's slots
+            if current_slot_names != previous_slot_names:
+                log_context.info(
+                    f"Slot configuration changed from {previous_slot_names} to {current_slot_names}, resetting slots"
+                )
+                # Reset slots to the current node's configuration
+                state.slots[self.name] = self.slots.copy()
+            else:
+                # Load previous slots if they're from the same node
+                self.slots = state.slots[self.name]
         else:
-            state.slots[self.name] = self.slots
+            # First time calling this tool, store the current slots
+            state.slots[self.name] = self.slots.copy()
+
         # init slot values saved in default slots
         self._init_slots(state)
         # do slotfilling
@@ -271,6 +336,7 @@ class Tool:
                         break
                     else:
                         slot.verified = True
+                        log_context.info(f"Slot '{slot.name}' verified successfully")
                 # if there is no extracted slots values, then should prompt the user to fill the slot
                 if not slot.value and slot.required:
                     response = slot.prompt
@@ -293,14 +359,22 @@ class Tool:
                 # Always include the slot value, even if None
                 kwargs[slot.name] = slot.value if slot.value is not None else ""
 
+            # Get the function signature to check parameters
+            sig = inspect.signature(self.func)
+
+            # Only include the slots list if the target function accepts it
+            if "slots" in sig.parameters:
+                kwargs["slots"] = [
+                    slot.model_dump() if hasattr(slot, "model_dump") else slot
+                    for slot in slots
+                ]
+
             combined_kwargs: dict[str, Any] = {
                 **kwargs,
                 **fixed_args,
                 **self.llm_config,
             }
             try:
-                # Get the function signature to check required arguments
-                sig = inspect.signature(self.func)
                 required_args = [
                     name
                     for name, param in sig.parameters.items()
@@ -347,7 +421,7 @@ class Tool:
                     "role": "tool",
                     "tool_call_id": call_id,
                     "name": self.name,
-                    "content": response,
+                    "content": str(response),
                 }
             )
             state.status = (
@@ -355,7 +429,7 @@ class Tool:
             )
 
         state.trajectory[-1][-1].input = slots
-        state.trajectory[-1][-1].output = response
+        state.trajectory[-1][-1].output = str(response)
 
         if tool_success:
             # Tool execution success
@@ -363,28 +437,45 @@ class Tool:
                 log_context.info(
                     "Tool exeuction COMPLETE, and the output is stored in response"
                 )
-                state.response = response
+                state.response = str(response)
             else:
                 log_context.info(
                     "Tool execution COMPLETE, and the output is stored in message flow"
                 )
                 state.message_flow = (
                     state.message_flow
-                    + f"Context from {self.name} tool execution: {response}\n"
+                    + f"Context from {self.name} tool execution: {str(response)}\n"
                 )
         else:
             # Tool execution failed
             if slot_verification:
                 log_context.info("Tool execution INCOMPLETE due to slot verification")
-                state.message_flow = f"Context from {self.name} tool execution: {response}\n Focus on the '{reason}' to generate the verification request in response please and make sure the request appear in the response."
+                state.message_flow = f"Context from {self.name} tool execution: {str(response)}\n Focus on the '{reason}' to generate the verification request in response please and make sure the request appear in the response."
             else:
                 log_context.info(
                     "Tool execution INCOMPLETE due to tool execution failure"
                 )
-                state.message_flow = (
-                    state.message_flow
-                    + f"Context from {self.name} tool execution: {response}\n"
-                )
+                # Make it clear that the LLM should ask the user for missing information
+                missing_slots = [
+                    slot.name for slot in slots if slot.required and not slot.value
+                ]
+                if missing_slots:
+                    slot_questions = [
+                        slot.prompt
+                        for slot in slots
+                        if slot.required and not slot.value
+                    ]
+                    questions_text = " ".join(slot_questions)
+                    state.message_flow = (
+                        state.message_flow
+                        + f"IMPORTANT: The tool cannot proceed without required information. You MUST ask the user for: {questions_text}\n"
+                        + "Do NOT provide any facts or information until you have collected this required information from the user.\n"
+                    )
+                else:
+                    state.message_flow = (
+                        state.message_flow
+                        + f"Context from {self.name} tool execution: {str(response)}\n"
+                    )
         state.slots[self.name] = slots
         return state
 
@@ -441,6 +532,32 @@ class Tool:
             "parameters": parameters,
         }
 
+    def to_openai_tool_def_v2(self) -> dict:
+        parameters = {
+            "type": "object",
+            "properties": {},
+            "required": [slot.name for slot in self.openai_slots if slot.required],
+        }
+        for slot in self.openai_slots:
+            if hasattr(slot, "items") and slot.items:
+                parameters["properties"][slot.name] = {
+                    "type": "array",
+                    "items": slot.items,
+                }
+            else:
+                parameters["properties"][slot.name] = {
+                    "type": PYTHON_TO_JSON_SCHEMA[slot.type],
+                    "description": slot.description,
+                }
+        return {
+            "type": "function",
+            "function": {
+                "name": self.name,
+                "description": self.description,
+                "parameters": parameters,
+            },
+        }
+
     def __str__(self) -> str:
         """Get a string representation of the tool.
 
@@ -456,3 +573,19 @@ class Tool:
             str: A detailed string representation of the tool.
         """
         return f"{self.__class__.__name__}"
+
+    def _format_slots(self, slots: list) -> list[Slot]:
+        format_slots = []
+        for slot in slots:
+            format_slots.append(
+                Slot(
+                    name=slot["name"],
+                    type=slot["type"],
+                    value="",
+                    description=slot.get("description", ""),
+                    prompt=slot.get("prompt", ""),
+                    required=slot.get("required", False),
+                    items=slot.get("items", None),
+                )
+            )
+        return format_slots

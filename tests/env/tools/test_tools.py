@@ -742,7 +742,7 @@ class TestTools:
             assert result.status.value == "incomplete"
             assert (
                 result.message_flow
-                == "Context from test_tool tool execution: Please provide param1\n"
+                == "IMPORTANT: The tool cannot proceed without required information. You MUST ask the user for: Please provide param1\nDo NOT provide any facts or information until you have collected this required information from the user.\n"
             )
 
     def test_execute_with_slot_verification_needed(self) -> None:
@@ -1163,3 +1163,295 @@ class TestTools:
                 result.message_flow
                 == "Context from test_tool tool execution: Result: test_value\n"
             )
+
+    def test_validate_intent_response_fallback(self) -> None:
+        from arklex.orchestrator.NLU.utils import validators
+
+        # Should return 'others' for unknown response
+        result = validators.validate_intent_response("not_in_map", {"1": "intent1"})
+        assert result == "others"
+
+    def test_validate_slot_response_invalid_json(self) -> None:
+        from arklex.orchestrator.NLU.utils import validators
+        from arklex.utils.slot import Slot
+
+        # Should return original slots on JSON error
+        slots = [Slot(name="foo", value=None, type="str")]
+        result = validators.validate_slot_response("not a json", slots)
+        assert result == slots
+
+    def test_validate_verification_response_invalid_json(self) -> None:
+        from arklex.orchestrator.NLU.utils import validators
+
+        # Should return (False, 'No need to verify') on JSON error
+        result = validators.validate_verification_response("not a json")
+        assert result == (False, "No need to verify")
+
+    def test_load_slots_with_new_slots(self) -> None:
+        """Test load_slots method with completely new slots."""
+
+        def test_function(param1: str) -> str:
+            return f"Result: {param1}"
+
+        tool = Tool(
+            func=test_function,
+            name="test_tool",
+            description="Test tool",
+            slots=[{"name": "param1", "type": "str"}],
+            outputs=["result"],
+            isResponse=False,
+        )
+
+        # Add new slots
+        new_slots = [
+            {"name": "param2", "type": "int", "required": True},
+            {"name": "param3", "type": "bool", "required": False},
+        ]
+
+        tool.load_slots(new_slots)
+
+        # Should have 3 slots now (1 original + 2 new)
+        assert len(tool.slots) == 3
+        slot_names = [slot.name for slot in tool.slots]
+        assert "param1" in slot_names
+        assert "param2" in slot_names
+        assert "param3" in slot_names
+
+    def test_load_slots_with_existing_slot_update(self) -> None:
+        """Test load_slots method updating existing slots."""
+
+        def test_function(param1: str, param2: int) -> str:
+            return f"Result: {param1}, {param2}"
+
+        tool = Tool(
+            func=test_function,
+            name="test_tool",
+            description="Test tool",
+            slots=[
+                {"name": "param1", "type": "str", "required": False},
+                {"name": "param2", "type": "int", "required": False},
+            ],
+            outputs=["result"],
+            isResponse=False,
+        )
+
+        # Update existing slots and add new one
+        new_slots = [
+            {"name": "param1", "type": "str", "required": True},  # Update existing
+            {"name": "param3", "type": "bool", "required": True},  # Add new
+        ]
+
+        tool.load_slots(new_slots)
+
+        # Should have 3 slots now
+        assert len(tool.slots) == 3
+
+        # Check that param1 was updated
+        param1_slot = next(slot for slot in tool.slots if slot.name == "param1")
+        assert param1_slot.required is True
+
+        # Check that param2 was preserved
+        param2_slot = next(slot for slot in tool.slots if slot.name == "param2")
+        assert param2_slot.required is False
+
+        # Check that param3 was added
+        param3_slot = next(slot for slot in tool.slots if slot.name == "param3")
+        assert param3_slot.required is True
+
+    def test_load_slots_with_empty_slots(self) -> None:
+        """Test load_slots method with empty slots list."""
+
+        def test_function(param1: str) -> str:
+            return f"Result: {param1}"
+
+        tool = Tool(
+            func=test_function,
+            name="test_tool",
+            description="Test tool",
+            slots=[{"name": "param1", "type": "str"}],
+            outputs=["result"],
+            isResponse=False,
+        )
+
+        original_slot_count = len(tool.slots)
+        tool.load_slots([])
+
+        # Should remain unchanged
+        assert len(tool.slots) == original_slot_count
+
+    def test_execute_with_slot_configuration_change(self) -> None:
+        """Test _execute method when slot configuration changes between calls."""
+
+        def test_function(param1: str) -> str:
+            return f"Result: {param1}"
+
+        tool = Tool(
+            func=test_function,
+            name="test_tool",
+            description="Test tool",
+            slots=[{"name": "param1", "type": "str", "required": True}],
+            outputs=["result"],
+            isResponse=False,
+        )
+
+        # Mock slotfiller
+        mock_slotfiller = Mock()
+        tool.slotfiller = mock_slotfiller
+
+        from arklex.utils.slot import Slot
+
+        # First execution with param1
+        filled_slots_1 = [
+            Slot(
+                name="param1",
+                value="test_value",
+                type="str",
+                verified=True,
+                required=True,
+            )
+        ]
+        mock_slotfiller.fill_slots.return_value = filled_slots_1
+
+        state = MessageState(
+            message_id="test-id",
+            user_id="test-user",
+            conversation_id="test-conversation",
+            slots={},
+            function_calling_trajectory=[],
+            trajectory=[[{"info": {}}]],
+        )
+
+        with patch.object(tool, "_init_slots"):
+            # First execution
+            result = tool._execute(state)
+            assert result.status.value == "complete"
+
+            # Now change the slot configuration
+            tool.slots = [
+                Slot(name="param2", type="int", required=True),  # Different slot
+            ]
+
+            # Second execution should detect configuration change
+            filled_slots_2 = [
+                Slot(
+                    name="param2",
+                    value=42,
+                    type="int",
+                    verified=True,
+                    required=True,
+                )
+            ]
+            mock_slotfiller.fill_slots.return_value = filled_slots_2
+
+            result = tool._execute(state)
+            # Should reset to current node's slots
+            assert len(tool.slots) == 1
+            assert tool.slots[0].name == "param2"
+
+    def test_execute_with_function_accepting_slots_parameter(self) -> None:
+        """Test _execute method with function that accepts slots parameter."""
+
+        def test_function_with_slots(param1: str, slots: list) -> str:
+            return f"Result: {param1}, Slots count: {len(slots)}"
+
+        tool = Tool(
+            func=test_function_with_slots,
+            name="test_tool",
+            description="Test tool",
+            slots=[{"name": "param1", "type": "str", "required": True}],
+            outputs=["result"],
+            isResponse=False,
+        )
+
+        # Mock slotfiller
+        mock_slotfiller = Mock()
+        tool.slotfiller = mock_slotfiller
+
+        from arklex.utils.slot import Slot
+
+        filled_slots = [
+            Slot(
+                name="param1",
+                value="test_value",
+                type="str",
+                verified=True,
+                required=True,
+            )
+        ]
+        mock_slotfiller.fill_slots.return_value = filled_slots
+
+        state = MessageState(
+            message_id="test-id",
+            user_id="test-user",
+            conversation_id="test-conversation",
+            slots={},
+            function_calling_trajectory=[],
+            trajectory=[[{"info": {}}]],
+        )
+
+        with patch.object(tool, "_init_slots"):
+            result = tool._execute(state)
+
+            assert result.status.value == "complete"
+            # Function should receive slots parameter
+            assert "Slots count: 1" in result.message_flow
+
+    def test_execute_with_slot_configuration_same_slots(self) -> None:
+        """Test _execute method when slot configuration remains the same."""
+
+        def test_function(param1: str) -> str:
+            return f"Result: {param1}"
+
+        tool = Tool(
+            func=test_function,
+            name="test_tool",
+            description="Test tool",
+            slots=[{"name": "param1", "type": "str", "required": True}],
+            outputs=["result"],
+            isResponse=False,
+        )
+
+        # Mock slotfiller
+        mock_slotfiller = Mock()
+        tool.slotfiller = mock_slotfiller
+
+        from arklex.utils.slot import Slot
+
+        # Create previous slots in state
+        previous_slots = [
+            Slot(
+                name="param1",
+                value="previous_value",
+                type="str",
+                verified=True,
+                required=True,
+            )
+        ]
+
+        state = MessageState(
+            message_id="test-id",
+            user_id="test-user",
+            conversation_id="test-conversation",
+            slots={"test_tool": previous_slots},  # Previous slots exist
+            function_calling_trajectory=[],
+            trajectory=[[{"info": {}}]],
+        )
+
+        # Mock filled slots
+        filled_slots = [
+            Slot(
+                name="param1",
+                value="new_value",
+                type="str",
+                verified=True,
+                required=True,
+            )
+        ]
+        mock_slotfiller.fill_slots.return_value = filled_slots
+
+        with patch.object(tool, "_init_slots"):
+            result = tool._execute(state)
+
+            assert result.status.value == "complete"
+            # Should use previous slots since configuration didn't change
+            assert tool.slots == previous_slots

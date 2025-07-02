@@ -193,17 +193,6 @@ class TaskGraph(TaskGraphBase):
         else:
             self.slotfillapi: SlotFiller = SlotFiller(slotfillapi)
 
-    def create_graph(self) -> None:
-        nodes: list[dict[str, Any]] = self.product_kwargs["nodes"]
-        edges: list[tuple[str, str, dict[str, Any]]] = self.product_kwargs["edges"]
-        # convert the intent into lowercase
-        for edge in edges:
-            edge[2]["intent"] = (
-                edge[2]["intent"].lower() if edge[2]["intent"] else "none"
-            )
-        self.graph.add_nodes_from(nodes)
-        self.graph.add_edges_from(edges)
-
     def get_initial_flow(self) -> str | None:
         services_nodes: dict[str, str] | None = self.product_kwargs.get(
             "services_nodes", None
@@ -234,22 +223,43 @@ class TaskGraph(TaskGraphBase):
             candidates_nodes_weights: list[float] = [
                 node["attribute"]["weight"] for node in candidates_nodes
             ]
-            if candidates_nodes:
-                next_node: str = np.random.choice(
-                    [node["target_node"] for node in candidates_nodes],
-                    p=normalize(candidates_nodes_weights),
-                )
-                next_intent: str = pred_intent
-            else:  # This is for protection, logically shouldn't enter this branch
-                next_node: str = curr_node
-                next_intent: str = list(self.graph.in_edges(curr_node, data="intent"))[
-                    0
-                ][2]
+            next_node: str = np.random.choice(
+                [node["target_node"] for node in candidates_nodes],
+                p=normalize(candidates_nodes_weights),
+            )
+            next_intent: str = pred_intent
         except Exception as e:
             log_context.error(f"Error in jump_to_node: {e}")
             next_node: str = curr_node
             next_intent: str = list(self.graph.in_edges(curr_node, data="intent"))[0][2]
         return next_node, next_intent
+
+    def _build_neighbor_node_info(self, node_id: str) -> NodeInfo:
+        n = self.graph.nodes[node_id]
+        return NodeInfo(
+            node_id=node_id,
+            type=n.get("type", ""),
+            resource_id=n["resource"]["id"],
+            resource_name=n["resource"]["name"],
+            can_skipped=True,
+            is_leaf=len(list(self.graph.successors(node_id))) == 0,
+            attributes=n["attribute"],
+            add_flow_stack=False,
+            additional_args={
+                "tags": n["attribute"].get("tags", {}),
+                **{
+                    k2: v2
+                    for k, v in n["attribute"].get("node_specific_data", {}).items()
+                    if isinstance(v, dict)
+                    for k2, v2 in v.items()
+                },
+                **{
+                    k: v
+                    for k, v in n["attribute"].get("node_specific_data", {}).items()
+                    if not isinstance(v, dict)
+                },
+            },
+        )
 
     def _get_node(
         self, sample_node: str, params: Params, intent: str | None = None
@@ -284,6 +294,15 @@ class TaskGraph(TaskGraphBase):
             attributes=node_info["attribute"],
             add_flow_stack=False,
             additional_args={
+                "successors": [
+                    self._build_neighbor_node_info(succ)
+                    for succ in self.graph.successors(sample_node)
+                ],
+                "predecessors": [
+                    self._build_neighbor_node_info(pred)
+                    for pred in self.graph.predecessors(sample_node)
+                ],
+                "prompt": node_info["attribute"].get("prompt", ""),
                 "tags": node_info["attribute"].get("tags", {}),
                 "parameters": node_info["attribute"].get("parameters", {}),
                 **{
@@ -420,6 +439,15 @@ class TaskGraph(TaskGraphBase):
                 is_leaf=len(list(self.graph.successors(curr_node))) == 0,
                 attributes=node_info["attribute"],
                 additional_args={
+                    "successors": [
+                        self._build_neighbor_node_info(succ)
+                        for succ in self.graph.successors(curr_node)
+                    ],
+                    "predecessors": [
+                        self._build_neighbor_node_info(pred)
+                        for pred in self.graph.predecessors(curr_node)
+                    ],
+                    "prompt": node_info["attribute"].get("prompt", ""),
                     "tags": node_info["attribute"].get("tags", {}),
                     "parameters": node_info["attribute"].get("parameters", {}),
                     **{
@@ -876,3 +904,21 @@ class TaskGraph(TaskGraphBase):
                 extra={"node": node},
             )
             raise TaskGraphError("Node next must be a list")
+
+    def create_graph(self) -> None:
+        nodes: list[dict[str, Any]] = self.product_kwargs["nodes"]
+        edges: list[tuple[str, str, dict[str, Any]]] = self.product_kwargs["edges"]
+        for edge in edges:
+            edge[2]["intent"] = (
+                edge[2]["intent"].lower() if edge[2]["intent"] else "none"
+            )
+        formatted_nodes = []
+        for node in nodes:
+            if isinstance(node, list | tuple) and len(node) == 2:
+                formatted_nodes.append(node)
+            elif isinstance(node, dict) and "id" in node:
+                formatted_nodes.append((node["id"], node))
+            else:
+                formatted_nodes.append(node)
+        self.graph.add_nodes_from(formatted_nodes)
+        self.graph.add_edges_from(edges)

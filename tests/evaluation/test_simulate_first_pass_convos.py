@@ -471,6 +471,7 @@ class TestSimulateFirstPassConvos:
             "custom_profile": False,
             "system_inputs": False,
             "company_summary": "Test company summary",
+            "rag_docs": [{"source": "https://example.com", "type": "url", "num": 1}],
             "user_attributes": {
                 "goal": {"values": ["goal1", "goal2", "goal3"]},
                 "system_attributes": {

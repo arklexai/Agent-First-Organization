@@ -89,18 +89,13 @@ def extract_task_completion_metrics(
     return metrics
 
 
-if __name__ == "__main__":
-    # with open('files/p1_sample_convos.json') as f:
-    #     data = json.load(f)
-
-    # model_api = "http://adaptation.cs.columbia.edu:55131/predict"
-    # model_params = {'bot_id' : 'richtech', 'bot_version': 'v1alpha1'}
-    # convos  = get_nlu_labels(data, model_api, model_params)
-    # with open('files/p1_sample_convos_labeled.json', 'w') as f:
-    #     json.dump(convos, f, indent=5)
-
-    with open("files/p1_sample_convos_labeled.json") as f:
+def print_edge_weights_from_file(path: str) -> None:
+    with open(path) as f:
         data: list[dict[str, Any]] = json.load(f)
     G: nx.DiGraph = build_intent_graph(data)
     for e in list(G.edges()):
         print(f"Weight for edge {e}: {G.get_edge_data(e[0], e[1])['weight']}")
+
+
+if __name__ == "__main__":
+    print_edge_weights_from_file("files/p1_sample_convos_labeled.json")

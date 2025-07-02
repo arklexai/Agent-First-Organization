@@ -757,8 +757,6 @@ class TestDocumentLoader:
 
     def test_load_task_document_html_fallback_no_title(self) -> None:
         """Test load_task_document with HTML content without title."""
-        loader = DocumentLoader(cache_dir=Path("/tmp"), validate_documents=False)
-
         # Create HTML content without title
         html_content = """
         <html>
@@ -770,16 +768,97 @@ class TestDocumentLoader:
         """
 
         with (
+            patch("pathlib.Path.read_text", return_value=html_content),
+            patch("pathlib.Path.exists", return_value=True),
+        ):
+            document_loader = DocumentLoader(cache_dir=Path("/tmp/cache"))
+            doc_path = Path("/path/to/document.html")
+            document = document_loader.load_task_document(doc_path)
+
+            # Should create a document with default title
+            assert document["task_id"] == "html_task"
+            assert document["name"] == "HTML Document"  # Default name when no title
+            assert document["description"] == "Document parsed from HTML"
+            assert len(document["steps"]) == 2
+
+    def test_load_task_document_html_fallback_exception_handling(self) -> None:
+        """Test HTML fallback exception handling in load_task_document."""
+        from pathlib import Path
+
+        from arklex.orchestrator.generator.docs.document_loader import DocumentLoader
+
+        # Create a document loader
+        loader = DocumentLoader(cache_dir=Path("/tmp/cache"))
+
+        # Create a mock HTML content that will cause BeautifulSoup to fail
+        html_content = "<html><body><p>Invalid HTML with unclosed tags<p>"
+
+        # Mock the file system to return HTML content
+        with (
             patch("builtins.open", mock_open(read_data=html_content)),
             patch("pathlib.Path.exists", return_value=True),
             patch("pathlib.Path.read_text", return_value=html_content),
+            patch(
+                "json.loads", side_effect=json.JSONDecodeError("Invalid JSON", "", 0)
+            ),
+            patch(
+                "arklex.orchestrator.generator.docs.document_loader.BeautifulSoup"
+            ) as mock_soup,
         ):
-            result = loader.load_task_document("test.html")
-            # Check that the HTML was parsed correctly with default title
+            # Make BeautifulSoup raise an exception
+            mock_soup.side_effect = Exception("BeautifulSoup parsing error")
+
+            # Test that the method raises a ValueError when HTML parsing fails
+            with pytest.raises(
+                ValueError,
+                match="Content at .* is neither valid JSON nor parseable HTML",
+            ):
+                loader.load_task_document(Path("/path/to/document.html"))
+
+    def test_load_task_document_html_fallback_with_paragraph_extraction(self) -> None:
+        """Test HTML fallback with paragraph extraction in load_task_document."""
+        from pathlib import Path
+
+        from arklex.orchestrator.generator.docs.document_loader import DocumentLoader
+
+        # Create a document loader
+        loader = DocumentLoader(cache_dir=Path("/tmp/cache"))
+
+        # Create HTML content with paragraphs
+        html_content = """
+        <html>
+        <head><title>Test Document</title></head>
+        <body>
+            <p>First paragraph content</p>
+            <p>Second paragraph content</p>
+            <p>Third paragraph content</p>
+        </body>
+        </html>
+        """
+
+        # Mock the file system to return HTML content
+        with (
+            patch("builtins.open", mock_open(read_data=html_content)),
+            patch("pathlib.Path.exists", return_value=True),
+            patch("pathlib.Path.read_text", return_value=html_content),
+            patch(
+                "json.loads", side_effect=json.JSONDecodeError("Invalid JSON", "", 0)
+            ),
+        ):
+            # Test that the method successfully parses HTML and extracts paragraphs
+            result = loader.load_task_document(Path("/path/to/document.html"))
+
+            # Verify the result structure
             assert result["task_id"] == "html_task"
-            assert result["name"] == "HTML Document"
+            assert result["name"] == "Test Document"
             assert result["description"] == "Document parsed from HTML"
-            assert len(result["steps"]) == 2
+            assert len(result["steps"]) == 3
+            assert result["steps"][0]["step_id"] == 1
+            assert result["steps"][0]["description"] == "First paragraph content"
+            assert result["steps"][1]["step_id"] == 2
+            assert result["steps"][1]["description"] == "Second paragraph content"
+            assert result["steps"][2]["step_id"] == 3
+            assert result["steps"][2]["description"] == "Third paragraph content"
 
 
 class TestDocumentProcessor:
@@ -1019,3 +1098,22 @@ def test_integration_document_pipeline(
     # Verify integration
     assert all("name" in section for section in formatted_doc["formatted_sections"])
     assert all("content" in section for section in formatted_doc["formatted_sections"])
+
+
+def test_load_document_invalid_json_error(tmp_path: Path) -> None:
+    import json
+
+    import pytest
+
+    # Create a file with invalid JSON
+    file_path = tmp_path / "invalid.json"
+    file_path.write_text("not a json")
+    # Should raise JSONDecodeError
+    # Create a new document loader with validation disabled to ensure JSONDecodeError is raised
+    loader = DocumentLoader(cache_dir=tmp_path, validate_documents=False)
+
+    with pytest.raises(json.JSONDecodeError) as exc_info:
+        loader.load_document(file_path)
+
+    # Verify it's a JSONDecodeError (even if re-raised with custom message)
+    assert isinstance(exc_info.value, json.JSONDecodeError)

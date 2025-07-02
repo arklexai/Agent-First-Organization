@@ -63,6 +63,11 @@ def load_docs(
                 raise ValueError(
                     "The config json file must have a key 'rag_docs' or 'task_docs' with a list of documents to load."
                 )
+
+            # If the docs array is empty, return empty list
+            if not rag_docs:
+                return []
+
             filepath: str = os.path.join(document_dir, filename)
             total_num_docs: int = sum(
                 [doc.get("num") if doc.get("num") else 1 for doc in rag_docs]
@@ -96,7 +101,7 @@ def load_docs(
                         )
                 Loader.save(filepath, docs)
             limit = total_num_docs // 5 if total_num_docs > 50 else 10
-            if isinstance(docs[0], CrawledObject):
+            if len(docs) > 0 and isinstance(docs[0], CrawledObject):
                 documents: list[dict[str, str]] = []
                 # Get candidate websites for only web urls
                 web_docs: list[CrawledObject] = list(
@@ -112,10 +117,15 @@ def load_docs(
                 documents.extend(file_docs)
                 documents.extend(text_docs)
                 documents = [doc.to_dict() for doc in documents]
-            else:
+            elif len(docs) > 0:
                 raise ValueError(
                     "The documents must be a list of CrawledObject objects."
                 )
+            else:
+                documents: list[dict[str, str]] = []
+        except ValueError as e:
+            # Re-raise ValueError exceptions
+            raise e
         except Exception as e:
             print(f"Error loading documents: {e}")
             documents: list[dict[str, str]] = []

@@ -22,6 +22,7 @@ Usage:
 import argparse
 import json
 import logging
+import sys
 from typing import Any
 
 from langchain_openai import ChatOpenAI
@@ -44,8 +45,10 @@ log_context = LogContext(__name__)
 # Make UI components optional to avoid dependency issues
 try:
     _UI_EXPORTS = ["TaskEditorApp"]
+    _UI_AVAILABLE = True
 except ImportError:
     _UI_EXPORTS = []
+    _UI_AVAILABLE = False
 
 # Export the main classes for backward compatibility
 __all__ = ["Generator", *_UI_EXPORTS]
@@ -74,38 +77,44 @@ def load_config(file_path: str) -> dict[str, Any]:
 
 def main() -> None:
     """Main function to run the task graph generator."""
-    parser = argparse.ArgumentParser(
-        description="Generate a task graph from a configuration file."
-    )
-    parser.add_argument(
-        "--file_path",
-        type=str,
-        required=True,
-        help="Path to the configuration JSON file.",
-    )
-    args = parser.parse_args()
+    try:
+        parser = argparse.ArgumentParser(
+            description="Generate a task graph from a configuration file."
+        )
+        parser.add_argument(
+            "--file_path",
+            type=str,
+            required=True,
+            help="Path to the configuration JSON file.",
+        )
+        args = parser.parse_args()
 
-    log_context.info(f"Loading configuration from {args.file_path}")
-    config = load_config(args.file_path)
+        log_context.info(f"Loading configuration from {args.file_path}")
+        config = load_config(args.file_path)
 
-    log_context.info("Initializing language model...")
-    model = PROVIDER_MAP.get(MODEL.get("llm_provider", "openai"), ChatOpenAI)(
-        model=MODEL.get("model_type_or_path", "gpt-4"), timeout=30000
-    )
+        log_context.info("Initializing language model...")
+        model = PROVIDER_MAP.get(MODEL.get("llm_provider", "openai"), ChatOpenAI)(
+            model=MODEL.get("model_type_or_path", "gpt-4"), timeout=30000
+        )
 
-    log_context.info("Initializing task graph generator...")
-    generator = CoreGenerator(config=config, model=model)
+        log_context.info("Initializing task graph generator...")
+        generator = CoreGenerator(config=config, model=model)
 
-    log_context.info("Generating task graph...")
-    task_graph = generator.generate()
+        log_context.info("Generating task graph...")
+        task_graph = generator.generate()
 
-    output_path = config.get("output_path", "taskgraph.json")
-    log_context.info(f"Saving task graph to {output_path}")
+        output_path = config.get("output_path", "taskgraph.json")
+        log_context.info(f"Saving task graph to {output_path}")
 
-    with open(output_path, "w") as f:
-        json.dump(task_graph, f, indent=4)
+        with open(output_path, "w") as f:
+            json.dump(task_graph, f, indent=4)
 
-    log_context.info("✅ Task graph generation complete.")
+        log_context.info("✅ Task graph generation complete.")
+    except Exception as e:
+        log_context.error(f"Error during task graph generation: {e}")
+        # Exit with error code only if this is the main module
+        if __name__ == "__main__":
+            sys.exit(1)
 
 
 if __name__ == "__main__":

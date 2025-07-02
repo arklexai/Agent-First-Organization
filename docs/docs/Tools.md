@@ -84,7 +84,7 @@ Tools are executed through the environment:
 from arklex.env.env import Environment
 
 # Initialize environment
-env = Environment(workers=[], tools=[my_tool])
+env = Environment(workers=[], tools=[my_tool], agents=[])
 
 # Execute tool
 result = env.execute_tool("my_tool", message_state)

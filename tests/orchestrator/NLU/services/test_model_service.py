@@ -7,7 +7,7 @@ verification, and utility methods.
 
 import json
 from typing import Any
-from unittest.mock import AsyncMock, MagicMock, patch
+from unittest.mock import AsyncMock, MagicMock, Mock, patch
 
 import pytest
 from langchain_core.messages import HumanMessage, SystemMessage
@@ -19,7 +19,7 @@ from arklex.orchestrator.NLU.services.model_service import (
     DummyModelService,
     ModelService,
 )
-from arklex.utils.exceptions import ModelError, ValidationError
+from arklex.utils.exceptions import ArklexError, ModelError, ValidationError
 
 
 @pytest.fixture
@@ -522,9 +522,10 @@ class TestDummyModelService:
         assert isinstance(response, str)
         assert len(response) > 0
 
-        # Test get_json_response - this will fail because "1) others" is not valid JSON
-        with pytest.raises(ValueError, match="Failed to parse JSON response"):
-            dummy_model_service.get_json_response("test prompt")
+        # Test get_json_response - now returns valid JSON
+        json_response = dummy_model_service.get_json_response("test prompt")
+        assert isinstance(json_response, dict)
+        assert "result" in json_response
 
     def test_dummy_model_service_with_none_config(self) -> None:
         """Test DummyModelService initialization with None config."""
@@ -551,17 +552,19 @@ class TestDummyModelService:
         self, dummy_model_service: DummyModelService
     ) -> None:
         """Test DummyModelService get_json_response with None prompt."""
-        # This will fail because "1) others" is not valid JSON
-        with pytest.raises(ValueError, match="Failed to parse JSON response"):
-            dummy_model_service.get_json_response(None)
+        # Now returns valid JSON instead of raising error
+        json_response = dummy_model_service.get_json_response(None)
+        assert isinstance(json_response, dict)
+        assert "result" in json_response
 
     def test_dummy_model_service_get_json_response_with_empty_prompt(
         self, dummy_model_service: DummyModelService
     ) -> None:
         """Test DummyModelService get_json_response with empty prompt."""
-        # This will fail because "1) others" is not valid JSON
-        with pytest.raises(ValueError, match="Failed to parse JSON response"):
-            dummy_model_service.get_json_response("")
+        # Now returns valid JSON instead of raising error
+        json_response = dummy_model_service.get_json_response("")
+        assert isinstance(json_response, dict)
+        assert "result" in json_response
 
 
 class TestModelServiceErrorHandling:
@@ -2250,3 +2253,131 @@ class TestModelServiceMissingCoverage:
             # Should call parent method
             mock_parent.assert_called_once_with("test response")
             assert result == (True, "Verified")
+
+    def test_model_config_get_model_instance_unsupported_provider(self) -> None:
+        """Test ModelConfig.get_model_instance with unsupported provider raises ValueError."""
+        from arklex.orchestrator.NLU.services.model_config import ModelConfig
+
+        invalid_config = {
+            "llm_provider": "unsupported_provider",
+            "model_type_or_path": "test_model",
+        }
+
+        with pytest.raises(
+            ValueError, match="Unsupported provider: unsupported_provider"
+        ):
+            ModelConfig.get_model_instance(invalid_config)
+
+    async def test_verify_slots_with_invalid_slots_type(
+        self, model_service_with_mock_model: ModelService
+    ) -> None:
+        """Test verify_slots with invalid slots type (not a dict)."""
+        from arklex.utils.exceptions import ValidationError
+
+        text = "test text"
+        invalid_slots = "not a dict"  # Invalid type
+
+        with pytest.raises(ValidationError, match="Invalid slots"):
+            await model_service_with_mock_model.verify_slots(text, invalid_slots)
+
+
+class TestModelServiceExtraCoverage:
+    async def test_process_text_invalid_input_type(
+        self, model_service: ModelService
+    ) -> None:
+        """Test process_text with invalid input type - covers lines 162-170"""
+        # Test with non-string input
+        with pytest.raises(ArklexError, match="Operation failed in process_text"):
+            await model_service.process_text(123)  # type: ignore
+
+    async def test_predict_intent_empty_response(
+        self, model_service: ModelService
+    ) -> None:
+        """Test predict_intent with empty response - covers lines 484-492"""
+        with patch.object(
+            model_service.model, "invoke", new_callable=AsyncMock
+        ) as mock_invoke:
+            # Mock empty response
+            mock_response = Mock()
+            mock_response.content = None
+            mock_invoke.return_value = mock_response
+
+            with pytest.raises(ModelError, match="Empty response from model"):
+                await model_service.predict_intent("test text")
+
+    async def test_predict_intent_invalid_json(
+        self, model_service: ModelService
+    ) -> None:
+        """Test predict_intent with invalid JSON response"""
+        with patch.object(
+            model_service.model, "invoke", new_callable=AsyncMock
+        ) as mock_invoke:
+            # Mock invalid JSON response
+            mock_response = Mock()
+            mock_response.content = "invalid json"
+            mock_invoke.return_value = mock_response
+
+            with pytest.raises(ModelError, match="Failed to parse model response"):
+                await model_service.predict_intent("test text")
+
+    async def test_predict_intent_validation_error(
+        self, model_service: ModelService
+    ) -> None:
+        """Test predict_intent with validation error in response"""
+        with patch.object(
+            model_service.model, "invoke", new_callable=AsyncMock
+        ) as mock_invoke:
+            # Mock response that will fail validation
+            mock_response = Mock()
+            mock_response.content = '{"invalid": "response"}'
+            mock_invoke.return_value = mock_response
+
+            with pytest.raises(ArklexError, match="Operation failed in predict_intent"):
+                await model_service.predict_intent("test text")
+
+    async def test_fill_slots_invalid_input(self, model_service: ModelService) -> None:
+        """Test fill_slots with invalid input"""
+        with pytest.raises(ValidationError, match="Invalid input text"):
+            await model_service.fill_slots("", "test_intent")
+
+    async def test_verify_slots_invalid_input(
+        self, model_service: ModelService
+    ) -> None:
+        """Test verify_slots with invalid input"""
+        with pytest.raises(ValidationError, match="Invalid input text"):
+            await model_service.verify_slots("", {"slot1": "value1"})
+
+    def test_get_response_with_note(self, model_service: ModelService) -> None:
+        """Test get_response with note parameter - covers line 661"""
+        with patch.object(model_service.model, "invoke") as mock_invoke:
+            mock_response = Mock()
+            mock_response.content = "test response"
+            mock_invoke.return_value = mock_response
+
+            result = model_service.get_response("test prompt", note="test note")
+            assert result == "test response"
+
+    def test_get_json_response_invalid_json(self, model_service: ModelService) -> None:
+        """Test get_json_response with invalid JSON"""
+        with patch.object(model_service.model, "invoke") as mock_invoke:
+            mock_response = Mock()
+            mock_response.content = "invalid json"
+            mock_invoke.return_value = mock_response
+
+            with pytest.raises(ValueError, match="Failed to parse JSON response"):
+                model_service.get_json_response("test prompt")
+
+    def test_format_intent_exemplars_empty(self) -> None:
+        from arklex.orchestrator.NLU.services.model_service import ModelService
+
+        ms = ModelService(
+            {
+                "model_name": "m",
+                "model_type_or_path": "m",
+                "llm_provider": "openai",
+                "api_key": "k",
+                "endpoint": "e",
+            }
+        )
+        result = ms._format_intent_exemplars("intent", [], 1)
+        assert result == ""

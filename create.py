@@ -242,10 +242,18 @@ def main() -> None:
         action="store_true",
         help="Disable nested graph generation (equivalent to --allow-nested-graph=False)",
     )
+    parser.add_argument(
+        "--no-ui",
+        action="store_true",
+        help="Disable interactive task editor (task editor is enabled by default)",
+    )
     args = parser.parse_args()
 
     # Handle nested graph flag
     allow_nested_graph = args.allow_nested_graph and not args.no_nested_graph
+
+    # Handle UI flag
+    interactable_with_user = not args.no_ui
 
     # Set up logging
     log_context.setLevel(getattr(logging, args.log_level.upper()))
@@ -276,8 +284,21 @@ def main() -> None:
 
     # Initialize generator with model and output_dir
     log_context.info("🔧 Initializing task graph generator...")
+    if interactable_with_user:
+        log_context.info(
+            "👤 Interactive task editor is ENABLED - you will be able to edit tasks"
+        )
+    else:
+        log_context.info(
+            "🚫 Interactive task editor is DISABLED - tasks will be generated automatically"
+        )
+
     generator = Generator(
-        config, model, output_dir, allow_nested_graph=allow_nested_graph
+        config,
+        model,
+        output_dir,
+        allow_nested_graph=allow_nested_graph,
+        interactable_with_user=interactable_with_user,
     )
 
     # Generate task graph

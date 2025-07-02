@@ -666,14 +666,30 @@ class TestReusableTaskManager:
         assert len(templates) > 0
 
     def test_generate_reusable_tasks_with_no_patterns_but_tasks_exist(self) -> None:
-        """Test the case where no patterns are identified but tasks exist."""
-        model = Mock()
-        manager = ReusableTaskManager(
-            model=model, role="test_role", user_objective="test objective"
+        """Test generate_reusable_tasks when no patterns are identified but tasks exist."""
+        from arklex.orchestrator.generator.tasks.reusable_task_manager import (
+            ReusableTaskManager,
         )
-        # Create a task that will result in no patterns but tasks exist
-        tasks = [{"name": "Task 1", "description": "Description 1", "steps": []}]
-        templates = manager.generate_reusable_tasks(tasks)
-        assert isinstance(templates, dict)
-        # The template will fail validation due to missing steps, so expect zero templates
-        assert len(templates) == 0
+
+        # Create a manager
+        manager = ReusableTaskManager(
+            model=Mock(), role="test_role", user_objective="test objective"
+        )
+
+        # Create tasks that will result in no patterns but tasks exist
+        tasks = [
+            {
+                "name": "Task 1",
+                "description": "Description 1",
+                "steps": [{"task": "Step 1", "description": "Step 1 desc"}],
+            }
+        ]
+
+        # Mock _identify_patterns to return empty list
+        with patch.object(manager, "_identify_patterns", return_value=[]):
+            templates = manager.generate_reusable_tasks(tasks)
+
+            # Should create a fallback pattern from the first task
+            assert isinstance(templates, dict)
+            # The template should be created from the first task
+            assert len(templates) > 0

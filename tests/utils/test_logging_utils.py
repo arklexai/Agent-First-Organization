@@ -714,10 +714,71 @@ class TestLogContextInternalMethods:
         assert custom_format in str(handler.formatter._fmt)
 
     def test_get_console_handler_none_format(self) -> None:
-        """Test _get_console_handler with None format (should use default)."""
+        """Test _get_console_handler with None format (covers line 150)."""
         context = LogContext("test")
+
+        # Test with None format
         handler = context._get_console_handler(None)
 
         assert isinstance(handler, logging.StreamHandler)
         assert handler.formatter is not None
+        # Should use default format when None is provided
         assert "%(levelname)s - %(message)s" in str(handler.formatter._fmt)
+
+    def test_get_console_handler_with_empty_string_format(self) -> None:
+        """Test _get_console_handler with empty string format (covers line 150)."""
+        context = LogContext("test")
+
+        # Test with empty string format
+        handler = context._get_console_handler("")
+
+        assert isinstance(handler, logging.StreamHandler)
+        assert handler.formatter is not None
+        # Should use default format when empty string is provided
+        assert "%(levelname)s - %(message)s" in str(handler.formatter._fmt)
+
+    def test_get_console_handler_with_custom_format_string(self) -> None:
+        """Test _get_console_handler with custom format string (covers line 150)."""
+        context = LogContext("test")
+
+        # Test with custom format
+        custom_format = "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
+        handler = context._get_console_handler(custom_format)
+
+        assert isinstance(handler, logging.StreamHandler)
+        assert handler.formatter is not None
+        # Should use the custom format
+        assert custom_format in str(handler.formatter._fmt)
+
+    def test_get_console_handler_with_special_characters_format(self) -> None:
+        """Test _get_console_handler with format containing special characters (covers line 150)."""
+        context = LogContext("test")
+
+        # Test with format containing special characters
+        special_format = (
+            "%(levelname)s [%(name)s] %(message)s - %(funcName)s:%(lineno)d"
+        )
+        handler = context._get_console_handler(special_format)
+
+        assert isinstance(handler, logging.StreamHandler)
+        assert handler.formatter is not None
+        # Should use the special format
+        assert special_format in str(handler.formatter._fmt)
+
+    def test_log_context_parent_property_with_numeric_level_handling(self) -> None:
+        """Test LogContext parent property with numeric level handling (covers line 150)."""
+        # Create a parent context with a numeric level
+        parent_context = LogContext("parent")
+        parent_context.log_context.setLevel(logging.WARNING)  # Set numeric level
+
+        # Create a child context
+        child_context = LogContext("child")
+        child_context.log_context.parent = parent_context.log_context
+
+        # Access the parent property - this should handle the numeric level
+        parent = child_context.parent
+
+        # Should return a LogContext with the parent's name and level
+        assert parent is not None
+        assert parent.name == "parent"
+        assert parent.level == logging.WARNING
