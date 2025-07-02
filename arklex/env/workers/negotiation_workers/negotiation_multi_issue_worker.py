@@ -22,7 +22,7 @@ logger = logging.getLogger(__name__)
 
 @register_worker
 class NegotiationMultiIssueWorker(BaseWorker):
-    """Worker for handling multi-issue negotiations between a buyer and seller.
+    """Worker for dealing with multi-issue negotiations between a buyer and seller.
 
     This worker manages complex negotiations involving multiple issues (location, salary,
     healthcare, vacation, moving expenses, and job assignment). It tracks the negotiation
