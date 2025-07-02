@@ -8,7 +8,7 @@ workers that handle different types of tasks and operations within the system.
 
 import traceback
 from abc import ABC, abstractmethod
-from typing import Any, TypedDict, TypeVar, Dict
+from typing import Any, TypedDict, TypeVar
 
 from arklex.utils.graph_state import MessageState, ResourceRecord, StatusEnum
 from arklex.utils.logging_utils import LogContext
@@ -129,23 +129,23 @@ class BaseWorker(ABC):
             return msg_state
 
     @classmethod
-    def get_parameters_schema(cls) -> Dict[str, Any]:
+    def get_parameters_schema(cls) -> dict[str, Any]:
         """Get the parameters schema for this worker class.
-        
+
         Returns:
             Dict[str, Any]: The parameters schema, or empty dict if not defined
         """
-        return getattr(cls, 'parameters_schema', {})
-    
+        return getattr(cls, "parameters_schema", {})
+
     @classmethod
-    def get_worker_info(cls) -> Dict[str, Any]:
+    def get_worker_info(cls) -> dict[str, Any]:
         """Get comprehensive information about this worker class.
-        
+
         Returns:
             Dict[str, Any]: Worker information including name, description, and parameters schema
         """
         return {
             "name": cls.__name__,
-            "description": getattr(cls, 'description', ''),
-            "parameters_schema": cls.get_parameters_schema()
+            "description": getattr(cls, "description", ""),
+            "parameters_schema": cls.get_parameters_schema(),
         }

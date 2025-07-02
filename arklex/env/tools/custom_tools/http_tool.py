@@ -16,6 +16,7 @@ from arklex.utils.logging_utils import LogContext
 
 log_context = LogContext(__name__)
 
+
 def replace_placeholders(
     data: dict[str, object] | list[object] | str | object,
     slot_map: dict[str, object],
@@ -44,6 +45,7 @@ def replace_placeholders(
                 slot_name = m.group(1)
                 value = slot_map.get(slot_name)
                 return str(value) if value is not None else "None"
+
             return re.sub(r"\{\{(\w+)\}\}", repl, data)
     else:
         return data
@@ -81,12 +83,19 @@ def http_tool(
                     slot_value = slot.get("value")
                     slot_target = slot.get("target")
 
-                if slot_name and slot_value is not None and slot_target and slot_target == "params":
+                if (
+                    slot_name
+                    and slot_value is not None
+                    and slot_target
+                    and slot_target == "params"
+                ):
                     # Add to params
                     if not params.params:
                         params.params = {}
                     params.params[slot_name] = slot_value
-                    log_context.info(f"Added slot '{slot_name}' with value '{slot_value}' to params")
+                    log_context.info(
+                        f"Added slot '{slot_name}' with value '{slot_value}' to params"
+                    )
 
             # Build slot_map once after all slots are processed
             slot_map = {}
