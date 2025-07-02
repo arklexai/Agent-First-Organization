@@ -227,7 +227,7 @@ class NegotiationSingleIssueWorker(BaseWorker):
             "reservation_price",
         ]
         # Check if any required slots are missing
-        if not hasattr(state, "slots"):
+        if not hasattr(state, "slots") or state.slots is None:
             state.slots = {}
 
         for slot_name in required_slots:

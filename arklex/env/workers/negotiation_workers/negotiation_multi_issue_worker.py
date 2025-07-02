@@ -410,7 +410,7 @@ class NegotiationMultiIssueWorker(BaseWorker):
             "current_target",
         ]
 
-        if not hasattr(state, "slots"):
+        if not hasattr(state, "slots") or state.slots is None:
             state.slots = {}
 
         for slot_name in required_slots:
