@@ -22,8 +22,11 @@ jobs:
       MIN_COVERAGE_THRESHOLD: '99.1'
 
     steps:
-      - name: Checkout
+      - name: Checkout PR branch
         uses: actions/checkout@v4
+        with:
+          ref: ${{ github.head_ref }}
+          token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Set up Python 3.10
         uses: actions/setup-python@v4
@@ -36,34 +39,33 @@ jobs:
           pip install -e '.[milvus,shopify,hubspot]' --quiet
 
       - name: Run tests and check coverage threshold
+        id: coverage-check
         run: |
-          # Run tests with coverage and generate all reports
           pytest tests/ --cov=arklex --cov-report=term-missing --cov-report=html --cov-report=xml --no-cov-on-fail
-          
-          # Extract coverage percentage from the XML report
+
           python -c "
           import xml.etree.ElementTree as ET
           import os
-          
+
           try:
               tree = ET.parse('coverage.xml')
               root = tree.getroot()
               coverage = float(root.attrib['line-rate']) * 100
               print(f'Coverage: {coverage:.1f}%')
-              
-              # Get minimum coverage threshold from environment variable
+
               min_coverage = float(os.environ.get('MIN_COVERAGE_THRESHOLD', '99.1'))
               print(f'Minimum coverage threshold: {min_coverage}%')
-              
+
               if coverage < min_coverage:
                   print(f'❌ Coverage ({coverage:.1f}%) is below minimum threshold ({min_coverage}%)')
-                  print('This PR will be blocked until coverage is improved.')
                   exit(1)
               else:
                   print(f'✅ Coverage ({coverage:.1f}%) meets minimum threshold ({min_coverage}%)')
+
+              with open(os.environ.get('GITHUB_OUTPUT', '/dev/null'), 'a') as f:
+                  f.write(f'coverage={coverage:.1f}\\n')
           except Exception as e:
               print(f'Error reading coverage data: {e}')
-              print('❌ Could not determine coverage. Please check the test output.')
               exit(1)
           "
 
@@ -79,9 +81,34 @@ jobs:
           name: htmlcov
           path: htmlcov/
 
-      - name: Display coverage
+      - name: Display coverage comment
+        id: coverage
         uses: py-cov-action/python-coverage-comment-action@v3
         with:
           GITHUB_TOKEN: ${{ github.token }}
           MINIMUM_GREEN: 99.1
           MINIMUM_ORANGE: 70
+
+      - name: Update README badge
+        run: |
+          COVERAGE=${{ steps.coverage-check.outputs.coverage }}
+
+          COLOR=$(python -c "
+          coverage = float('$COVERAGE')
+          if coverage < 90:
+              print('red')
+          elif coverage < 99:
+              print('orange')
+          else:
+              print('green')
+          ")
+
+          sed -i "s/coverage-[0-9]\+\.[0-9]%25-[a-z]*/coverage-${COVERAGE}%25-${COLOR}/g" README.md
+
+          if ! git diff --quiet; then
+            git config user.name "github-actions[bot]"
+            git config user.email "github-actions[bot]@users.noreply.github.com"
+            git add README.md
+            git commit -m "chore: update README with ${COVERAGE}% test coverage"
+            git push origin HEAD:${{ github.head_ref }}
+          fi

@@ -1,0 +1,169 @@
+name: Diff-Based Coverage Check
+
+on:
+  pull_request:
+    types: [labeled]
+
+jobs:
+  coverage-check:
+    name: Check Coverage on New Lines
+    if: github.base_ref == 'main' && github.event.label.name == 'run-diff-coverage-tests'
+    runs-on: ubuntu-latest
+
+    permissions:
+      pull-requests: write
+      contents: write
+
+    env:
+      SHOPIFY_FIXED_ARGS: ${{ secrets.SHOPIFY_FIXED_ARGS }}
+      OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0  # Required for diff comparison
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.10'
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -e '.[milvus,shopify,hubspot]' --quiet
+          pip install diff-cover coverage
+
+      - name: Install system dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y bc
+
+      - name: Run tests with coverage
+        run: |
+          # Run tests with coverage, excluding certain directories if needed
+          coverage run --source=arklex -m pytest tests/ -v --tb=short
+          coverage xml
+          coverage report > coverage.txt
+          echo "Coverage report generated:"
+          cat coverage.txt
+
+      - name: Fetch main branch
+        run: git fetch origin main
+
+      - name: Generate diff coverage report and extract metrics
+        id: coverage_check
+        run: |
+          set -e
+          diff-cover coverage.xml --compare-branch=origin/main --html-report diff_coverage.html --fail-under=100 > diff_output.txt 2>&1 || true
+          
+          # Extract coverage percentage with better error handling
+          DIFF_COVERAGE=$(grep -oE 'Diff coverage.*[0-9]+\.*[0-9]*%' diff_output.txt | grep -oE '[0-9]+\.*[0-9]*' || echo "0")
+          
+          # Handle case where no coverage data is found
+          if [ "$DIFF_COVERAGE" = "0" ] && ! grep -q "Diff coverage" diff_output.txt; then
+            echo "No diff coverage data found, checking if this is expected..."
+            if git diff --name-only origin/main...HEAD | grep -E '\.(py|js|ts|jsx|tsx)$' > /dev/null; then
+              echo "Code changes detected but no coverage data - this might indicate missing tests"
+              DIFF_COVERAGE="0"
+            else
+              echo "No code changes detected"
+              DIFF_COVERAGE="100"
+            fi
+          fi
+          
+          echo "Diff coverage: $DIFF_COVERAGE%"
+          echo "diff_coverage=$DIFF_COVERAGE" >> $GITHUB_OUTPUT
+          
+          # Show detailed diff coverage info
+          echo "=== Diff Coverage Details ==="
+          cat diff_output.txt
+          echo "=============================="
+          
+          if (( $(echo "$DIFF_COVERAGE < 100" | bc -l) )); then
+            echo "coverage_low=true" >> $GITHUB_OUTPUT
+            echo "⚠️ Diff coverage is below threshold!"
+          else
+            echo "coverage_low=false" >> $GITHUB_OUTPUT
+            echo "✅ Diff coverage meets threshold."
+          fi
+
+      # Optional: Fail the workflow if diff coverage < 100%
+      - name: Fail if coverage is below 100%
+        if: steps.coverage_check.outputs.coverage_low == 'true'
+        run: |
+          echo "❌ Failing job due to insufficient diff coverage."
+          echo "Current diff coverage: ${{ steps.coverage_check.outputs.diff_coverage }}%"
+          echo "Required: 100%"
+          exit 1
+
+      - name: Post comment on PR if coverage is low
+        if: steps.coverage_check.outputs.coverage_low == 'true'
+        uses: peter-evans/create-or-update-comment@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          issue-number: ${{ github.event.pull_request.number }}
+          body: |
+            ⚠️ **Diff coverage is ${{ steps.coverage_check.outputs.diff_coverage }}%**, which is below the required 100%.
+            Please add or update tests to cover newly added or changed lines.
+            📊 **Coverage Report**: [View detailed report](https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }})
+            
+      - name: Upload diff coverage report
+        uses: actions/upload-artifact@v4
+        with:
+          name: diff-coverage-report
+          path: |
+            diff_coverage.html
+            coverage.txt
+            diff_output.txt
+
+      - name: Update README badge
+        if: always() && github.ref == 'refs/heads/main'
+        run: |
+          if [ -f coverage.txt ]; then
+            TOTAL_COVERAGE=$(grep -E '^TOTAL' coverage.txt | awk '{print $4}' | tr -d '%' || echo "0")
+            echo "Total coverage: ${TOTAL_COVERAGE}%"
+            
+            # Validate coverage value
+            if ! [[ "$TOTAL_COVERAGE" =~ ^[0-9]+\.?[0-9]*$ ]]; then
+              echo "Invalid coverage value: $TOTAL_COVERAGE"
+              exit 1
+            fi
+
+            if (( $(echo "$TOTAL_COVERAGE < 90" | bc -l) )); then
+              COLOR="red"
+            elif (( $(echo "$TOTAL_COVERAGE < 99" | bc -l) )); then
+              COLOR="orange"
+            else
+              COLOR="green"
+            fi
+
+            NEW_BADGE="coverage-${TOTAL_COVERAGE}%25-${COLOR}"
+            CURRENT_BADGE=$(grep -oE 'coverage-[0-9]+\.[0-9]+%25-[a-z]+' README.md || echo "")
+
+            if [[ "$CURRENT_BADGE" != "$NEW_BADGE" ]]; then
+              echo "Updating README badge from $CURRENT_BADGE to $NEW_BADGE"
+              sed -i "s|coverage-[0-9]\+\.[0-9]\+%25-[a-z]\+|$NEW_BADGE|g" README.md
+
+              git config user.name "github-actions[bot]"
+              git config user.email "github-actions[bot]@users.noreply.github.com"
+              git add README.md
+              git commit -m "chore: update README with ${TOTAL_COVERAGE}% test coverage"
+              git push
+            else
+              echo "Badge already reflects current coverage."
+            fi
+          else
+            echo "coverage.txt not found, skipping badge update."
+          fi
+
+      - name: Summary
+        if: always()
+        run: |
+          echo "## Coverage Check Summary" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "- **Diff Coverage**: ${{ steps.coverage_check.outputs.diff_coverage }}%" >> $GITHUB_STEP_SUMMARY
+          echo "- **Status**: ${{ steps.coverage_check.outputs.coverage_low == 'true' && '❌ Below threshold' || '✅ Meets threshold' }}" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "📊 [View detailed coverage report](https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }})" >> $GITHUB_STEP_SUMMARY
