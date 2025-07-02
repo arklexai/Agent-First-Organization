@@ -106,24 +106,6 @@ class NegotiationMultiIssueWorker(BaseWorker):
         with open(file_path, "r") as f:
             return json.load(f)
 
-    def delay_response(self, response: str, time_elapsed: float = 0) -> None:
-        """Add a delay based on response length to simulate natural typing.
-        
-        Args:
-            response: The response text
-            time_elapsed: Time already elapsed in processing (default: 0)
-        """
-        word_count = len(response.split())
-        if word_count < 30:
-            calculated_sleep = 2 * word_count
-        elif word_count < 50:
-            calculated_sleep = 1.5 * word_count
-        else:
-            calculated_sleep = word_count
-        
-        # Uncomment to enable delay
-        # time.sleep(max(0, calculated_sleep - time_elapsed))
-
     def common_sense_importance(self) -> str:
         """Analyze issue importance based on common sense and utilities.
         
@@ -432,7 +414,6 @@ class NegotiationMultiIssueWorker(BaseWorker):
             """
             
             response = self.llm.invoke(prompt).content.strip()
-            self.delay_response(response, time.time() - start_time)
             state.response = response
             
         else:
@@ -511,7 +492,6 @@ class NegotiationMultiIssueWorker(BaseWorker):
             """
             
             response = self.llm.invoke(prompt).content.strip()
-            self.delay_response(response, time.time() - start_time)
             state.response = response
         
         # Check if episode should end
