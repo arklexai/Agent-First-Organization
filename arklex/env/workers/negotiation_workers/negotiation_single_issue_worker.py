@@ -1,24 +1,18 @@
-import logging
 import json
-import random
-import string
 import os
-from tkinter import END
-from typing import Dict, Any, Optional
-from datetime import datetime
+import random
 from functools import partial
-from langchain_core.language_models import BaseChatModel
+from typing import Any
 
-from langgraph.graph import StateGraph, START
+from langchain_core.language_models import BaseChatModel
 from langchain_openai import ChatOpenAI
+from langgraph.graph import START, StateGraph
 
 from arklex.env.workers.worker import BaseWorker, register_worker
 from arklex.utils.graph_state import MessageState, StatusEnum
-from arklex.utils.model_config import MODEL
+from arklex.utils.logging_utils import LogContext
 from arklex.utils.model_provider_config import PROVIDER_MAP
 from arklex.utils.slot import Slot
-from arklex.utils.logging_utils import LogContext
-
 
 log_context = LogContext(__name__)
 
@@ -36,7 +30,7 @@ class NegotiationSingleIssueWorker(BaseWorker):
     def __init__(self) -> None:
         """Initialize the NegotiationSingleIssueWorker with necessary attributes."""
         super().__init__()
-        self.llm: Optional[BaseChatModel] = None
+        self.llm: BaseChatModel | None = None
         self.action_graph = None  # Will be created in _execute with parameters
         self.unit_index = 0
         self.parameters = {}
@@ -47,7 +41,7 @@ class NegotiationSingleIssueWorker(BaseWorker):
         log_context.info(f"Current directory: {self.current_dir}")
         log_context.info("NegotiationSingleIssueWorkerSeller initialized successfully")
 
-    def read_json(self, file_path: str) -> Dict:
+    def read_json(self, file_path: str) -> dict:
         """Read and parse a JSON file.
         
         Args:
@@ -56,7 +50,7 @@ class NegotiationSingleIssueWorker(BaseWorker):
         Returns:
             Dict: Parsed JSON content
         """
-        with open(file_path, "r") as f:
+        with open(file_path) as f:
             return json.load(f)
 
     def random_in_last_third(self, max_perceived_marketPrice: float, max_market_price: float, reservationPrice: float) -> float:
@@ -151,7 +145,7 @@ class NegotiationSingleIssueWorker(BaseWorker):
         log_context.info(f"Static prompt: {static_prompt}")
         return static_prompt, dynamic_prompt
     
-    def check_and_initialize_slots(self, state: MessageState, parameters: Dict[str, Any] | None = None) -> MessageState:
+    def check_and_initialize_slots(self, state: MessageState, parameters: dict[str, Any] | None = None) -> MessageState:
         """Initialize required negotiation slots if they don't exist.
         
         Args:
@@ -333,7 +327,7 @@ class NegotiationSingleIssueWorker(BaseWorker):
             
         return state
     
-    def _create_action_graph(self,parameters: Dict[str, Any]) -> StateGraph:
+    def _create_action_graph(self,parameters: dict[str, Any]) -> StateGraph:
         """Create a processing flow for the negotiation strategy.
         
         Returns:
@@ -351,7 +345,7 @@ class NegotiationSingleIssueWorker(BaseWorker):
         workflow.add_edge("negotiation_initialization", "negotiation_response")
         return workflow
     
-    def _execute(self, msg_state: MessageState, **kwargs: dict[str, Any]) -> Dict[str, Any]:
+    def _execute(self, msg_state: MessageState, **kwargs: dict[str, Any]) -> dict[str, Any]:
         """Execute the negotiation worker.
         
         Args:

@@ -1,24 +1,21 @@
 import json
 import logging
 import os
-from os.path import dirname, abspath
 import random
-import time
 import re
 from itertools import product
-from typing import Any, Dict, List, Optional, Tuple
-from langgraph.graph import StateGraph, START
+from os.path import abspath, dirname
+from typing import Any
 
-from langchain_openai import ChatOpenAI
+import numpy as np
 from langchain_core.language_models import BaseChatModel
+from langchain_openai import ChatOpenAI
+from langgraph.graph import START, StateGraph
+from sklearn.neighbors import KernelDensity
 
 from arklex.env.workers.worker import BaseWorker, register_worker
 from arklex.utils.graph_state import MessageState, Slot, StatusEnum
-from arklex.utils.model_config import MODEL
 from arklex.utils.model_provider_config import PROVIDER_MAP
-
-import numpy as np
-from sklearn.neighbors import KernelDensity
 
 logger = logging.getLogger(__name__)
 
@@ -37,7 +34,7 @@ class NegotiationMultiIssueWorker(BaseWorker):
     def __init__(self) -> None:
         """Initialize the NegotiationMultiIssueWorker with necessary attributes and utilities."""
         super().__init__()
-        self.llm: Optional[BaseChatModel] = None
+        self.llm: BaseChatModel | None = None
         self.action_graph = self._create_action_graph()
         
         logger.info("NegotiationMultiIssueWorkerSeller initialized successfully")
@@ -94,7 +91,7 @@ class NegotiationMultiIssueWorker(BaseWorker):
             'MOVING EXPENSES': [],
         }
 
-    def read_json(self, file_path: str) -> Dict:
+    def read_json(self, file_path: str) -> dict:
         """Read and parse a JSON file.
         
         Args:
@@ -103,7 +100,7 @@ class NegotiationMultiIssueWorker(BaseWorker):
         Returns:
             Dict: Parsed JSON content
         """
-        with open(file_path, "r") as f:
+        with open(file_path) as f:
             return json.load(f)
 
     def common_sense_importance(self) -> str:
@@ -222,7 +219,7 @@ class NegotiationMultiIssueWorker(BaseWorker):
 
         # Filter combinations that meet the walk-away point
         valid_combinations = [
-            {issue: choice[0] for issue, choice in zip(self.payoff_schedule.keys(), combination)}
+            {issue: choice[0] for issue, choice in zip(self.payoff_schedule.keys(), combination, strict=False)}
             for combination in combinations
             if sum(choice[1] for choice in combination) >= self.walk_away_point
         ]
@@ -232,7 +229,7 @@ class NegotiationMultiIssueWorker(BaseWorker):
         top_combos = valid_combinations[:sample_size]
 
         # Convert the combinations to a string
-        result_str = f"Valid Combinations:\n"
+        result_str = "Valid Combinations:\n"
         for i, combo in enumerate(top_combos, 1):
             result_str += f"Combination {i}: {combo}\n"
             
@@ -373,7 +370,6 @@ class NegotiationMultiIssueWorker(BaseWorker):
             MessageState: Updated message state with response
         """
         self.check_and_initialize_slots(state)
-        start_time = time.time()
         
         # Update turn counter
         current_turn = state.slots["turn"][0].value
@@ -500,7 +496,7 @@ class NegotiationMultiIssueWorker(BaseWorker):
         
         return state
 
-    def calculate_scores(self, final_outcomes: Dict[str, str]) -> Tuple[int, int]:
+    def calculate_scores(self, final_outcomes: dict[str, str]) -> tuple[int, int]:
         """Calculate final utility scores for buyer and seller.
         
         Args:
@@ -519,7 +515,7 @@ class NegotiationMultiIssueWorker(BaseWorker):
 
         return buyer_score, seller_score
 
-    def monitor_instance(self, state: MessageState, issues: List[str]) -> Optional[Dict[str, str]]:
+    def monitor_instance(self, state: MessageState, issues: list[str]) -> dict[str, str] | None:
         """Monitor negotiation progress and track resolved issues.
         
         Args:
@@ -584,7 +580,7 @@ class NegotiationMultiIssueWorker(BaseWorker):
         workflow.add_edge(START, "negotiation_response")
         return workflow
     
-    def _execute(self, msg_state: MessageState, **kwargs: dict[str, Any]) -> Dict[str, Any]:
+    def _execute(self, msg_state: MessageState, **kwargs: dict[str, Any]) -> dict[str, Any]:
         """Execute the negotiation worker.
         
         Args:
