@@ -30,7 +30,7 @@ async def citation_finder(input: CitationQuery) -> str:
             authors = ", ".join(a["name"] for a in top_paper.get("authors", []))
             paper_url = top_paper.get("url", "No URL")
 
-            return f"📘 **{title}**\n👥 {authors}\n🔗 {paper_url}"
+            return f"**{title}**\n {authors}\n {paper_url}"
 
     except Exception as e:
         return f"Error fetching citation: {e}"

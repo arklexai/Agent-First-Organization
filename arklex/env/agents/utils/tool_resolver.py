@@ -1,7 +1,8 @@
 from inspect import isclass
 
 from agents import Tool, WebSearchTool
-from tools import citation_finder
+
+from arklex.env.agents.utils.tools import citation_finder
 
 # A mapping from string names to actual tool functions
 TOOL_REGISTRY = {
@@ -16,5 +17,5 @@ def resolve_tool(name: str) -> Tool:
     if tool_cls_or_func is None:
         return None
     if isclass(tool_cls_or_func):
-        return tool_cls_or_func()  # instantiate if it's a class
-    return tool_cls_or_func  # return function tool as is
+        return tool_cls_or_func()
+    return tool_cls_or_func

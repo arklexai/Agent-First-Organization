@@ -1,5 +1,6 @@
 from agents import Agent, Tool
-from common.tool_resolver import resolve_tool
+
+from arklex.env.agents.utils.tool_resolver import resolve_tool
 
 
 def build_agents(agent_configs: list[dict], llm_config: dict) -> list[Agent]:

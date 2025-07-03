@@ -156,6 +156,7 @@ class DefaultResourceInitializer(BaseResourceInitializer):
                     "name": name,
                     "description": func.description,
                     "execute": partial(func, **agent.get("fixed_args", {})),
+                    "config": agent.get("config", None),
                 }
             except Exception as e:
                 log_context.error(f"Agent {name} is not registered, error: {e}")
@@ -316,11 +317,13 @@ class Environment:
 
         elif id in self.agents:
             log_context.info(f"{self.agents[id]['name']} agent selected")
+            agent_config = self.agents[id].get("config", {})
             agent: BaseAgent = self.agents[id]["execute"](
                 successors=node_info.additional_args.get("successors", []),
                 predecessors=node_info.additional_args.get("predecessors", []),
                 tools=self.tools,
                 state=message_state,
+                **({"multiagent_config": agent_config} if agent_config else {}),
             )
             response_state = agent.execute(message_state, **node_info.additional_args)
             call_id: str = str(uuid.uuid4())
