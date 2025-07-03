@@ -1,7 +1,7 @@
 # from patterns.judge import run_judge_flow
 # from patterns.routing import run_routing_flow
 # from patterns.parallel import run_parallel_flow
-from patterns.agent_as_tools import run_agent_as_tools_flow
+from patterns.agents_as_tools import run_agents_as_tools_flow
 from patterns.deterministic import run_deterministic_flow
 
 PATTERN_DISPATCHER = {
@@ -9,7 +9,7 @@ PATTERN_DISPATCHER = {
     # "judge": run_judge_flow,
     # "routing": run_routing_flow,
     # "parallel": run_parallel_flow,
-    "agent_as_tools": run_agent_as_tools_flow,
+    "agents_as_tools": run_agents_as_tools_flow,
 }
 
 
