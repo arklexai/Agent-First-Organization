@@ -19,26 +19,26 @@ class MultiAgent(BaseAgent):
         predecessors: list,
         tools: list,
         state: MessageState,
-        multiagent_config: dict[str, Any],
+        multi_agent_config: dict[str, Any],
     ) -> None:
         super().__init__()
+        self.state = state
         self.workflow = None
-        self.initialized = False
-        self.multiagent_config: dict[str, Any] = multiagent_config
-        self._prepare(state)
+        self.multi_agent_config: dict[str, Any] = multi_agent_config
+        self._load_multi_agent_system()
+        log_context.info(
+            f"MultiAgent initialized with {self.multi_agent_config.get('pattern')} pattern."
+        )
 
-    def _prepare(self, state: MessageState) -> None:
-        """Prepare and compile the MAS system once."""
+    def _load_multi_agent_system(self) -> None:
+        """Loading the Multi-Agent System based on the specified pattern in the config."""
         try:
             log_context.info("Preparing MultiAgent...")
 
-            if not self.multiagent_config:
+            if not self.multi_agent_config:
                 raise ValueError("MultiAgent config not found in agent.config")
-
-            # Compile MAS system once
-            self.workflow = dispatch_pattern(self.multiagent_config)
-            self.initialized = True
-            log_context.info("MultiAgent system compiled successfully.")
+            self.multi_agent_config["llm_config"] = self.state.bot_config.llm_config
+            self.workflow = dispatch_pattern(self.multi_agent_config)
 
         except Exception:
             log_context.error(
@@ -46,17 +46,11 @@ class MultiAgent(BaseAgent):
             )
 
     def _execute(self, msg_state: MessageState, **kwargs: Any) -> dict[str, Any]:  # noqa: ANN401
-        """Execute the pre-compiled MAS workflow."""
-        if not self.initialized or self.workflow is None:
-            log_context.error("[MultiAgent] System not initialized.")
-            return msg_state.model_dump()
-
         try:
             log_context.info("[MultiAgent] Executing MAS workflow...")
             graph = self.workflow.compile()
             result = graph.invoke(msg_state)
             return dict(result)
-
         except Exception as e:
             log_context.error(f"[MultiAgent] Execution error: {traceback.format_exc()}")
             msg_state.response = f"[MultiAgent Error] {e}"

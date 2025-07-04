@@ -1,9 +1,10 @@
 from agents import Agent, Tool
 
 from arklex.env.agents.utils.tool_resolver import resolve_tool
+from arklex.utils.graph_state import LLMConfig
 
 
-def build_agents(agent_configs: list[dict], llm_config: dict) -> list[Agent]:
+def build_agents(agent_configs: list[dict], llm_config: LLMConfig) -> list[Agent]:
     agents = []
     for cfg in agent_configs:
         tools = [resolve_tool(t) for t in cfg.get("tools", []) if resolve_tool(t)]
@@ -11,14 +12,14 @@ def build_agents(agent_configs: list[dict], llm_config: dict) -> list[Agent]:
             name=cfg["name"],
             instructions=cfg["instructions"],
             tools=tools,
-            model=llm_config.get("model", "gpt-4o-mini"),
+            model=llm_config.model_type_or_path,
         )
         agents.append(agent)
     return agents
 
 
 def build_tool_wrapped_agents(
-    agent_configs: list[dict], llm_config: dict
+    agent_configs: list[dict], llm_config: LLMConfig
 ) -> tuple[list[Agent], list[Tool]]:
     """
     Builds agents using `build_agents`, then wraps each as a tool.

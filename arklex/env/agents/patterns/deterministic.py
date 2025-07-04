@@ -6,7 +6,7 @@ from arklex.utils.graph_state import MessageState
 
 
 def build_deterministic_flow(config: dict) -> StateGraph:
-    agents = build_agents(config["agents"], config["llm_config"])
+    agents = build_agents(config["sub_agents"], config["llm_config"])
 
     def step_fn(state: MessageState) -> MessageState:
         input_items = state.function_calling_trajectory

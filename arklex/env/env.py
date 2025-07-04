@@ -323,7 +323,7 @@ class Environment:
                 predecessors=node_info.additional_args.get("predecessors", []),
                 tools=self.tools,
                 state=message_state,
-                **({"multiagent_config": agent_config} if agent_config else {}),
+                **({"multi_agent_config": agent_config} if agent_config else {}),
             )
             response_state = agent.execute(message_state, **node_info.additional_args)
             call_id: str = str(uuid.uuid4())
