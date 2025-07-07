@@ -304,7 +304,11 @@ class TaskGraph(TaskGraphBase):
                 ],
                 "prompt": node_info["attribute"].get("prompt", ""),
                 "tags": node_info["attribute"].get("tags", {}),
-                "parameters": node_info["attribute"].get("parameters", {}),
+                "fixedArgs": {
+                    arg["key"]: arg["value"]
+                    for arg in node_info["attribute"].get("fixedArgs", [])
+                    if isinstance(arg, dict) and "key" in arg and "value" in arg
+                },
                 **{
                     k2: v2
                     for k, v in node_info["attribute"]
@@ -449,7 +453,11 @@ class TaskGraph(TaskGraphBase):
                     ],
                     "prompt": node_info["attribute"].get("prompt", ""),
                     "tags": node_info["attribute"].get("tags", {}),
-                    "parameters": node_info["attribute"].get("parameters", {}),
+                    "fixedArgs": {
+                        arg["key"]: arg["value"]
+                        for arg in node_info["attribute"].get("fixedArgs", [])
+                        if isinstance(arg, dict) and "key" in arg and "value" in arg
+                    },
                     **{
                         k2: v2
                         for k, v in node_info["attribute"]

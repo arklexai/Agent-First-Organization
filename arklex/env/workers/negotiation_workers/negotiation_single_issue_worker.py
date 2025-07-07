@@ -466,12 +466,13 @@ class NegotiationSingleIssueWorker(BaseWorker):
         )(model=msg_state.bot_config.llm_config.model_type_or_path)
         # Debug the incoming state
 
-        # Handle both parameter names for backward compatibility
-        self.fixed_args = kwargs.get("fixedArgs", kwargs.get("fixed_args", {}))
+        # Only read from fixedArgs parameter
+        self.fixed_args = kwargs.get("fixedArgs", {})
         log_context.info(f"Using fixedArgs: {self.fixed_args}")
 
         if not self.fixed_args:
             log_context.error("No fixedArgs provided!")
+            log_context.error("Available kwargs keys: %s", list(kwargs.keys()))
             raise ValueError("fixedArgs parameter is required but not provided")
 
         self.action_graph = self._create_action_graph(self.fixed_args)
