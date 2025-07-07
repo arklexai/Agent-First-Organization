@@ -31,9 +31,9 @@ class NegotiationSingleIssueWorker(BaseWorker):
         """Initialize the NegotiationSingleIssueWorker with necessary attributes."""
         super().__init__()
         self.llm: BaseChatModel | None = None
-        self.action_graph = None  # Will be created in _execute with parameters
+        self.action_graph = None  # Will be created in _execute with fixed_args
         self.unit_index = 0
-        self.parameters = {}
+        self.fixed_args = {}
         self.static_prompt = ""
         self.dynamic_prompt = ""
         # Get absolute path to the directory containing this file
@@ -202,21 +202,21 @@ class NegotiationSingleIssueWorker(BaseWorker):
         return static_prompt, dynamic_prompt
 
     def check_and_initialize_slots(
-        self, state: MessageState, parameters: dict[str, Any] | None = None
+        self, state: MessageState, fixed_args: dict[str, Any] | None = None
     ) -> MessageState:
         """Initialize required negotiation slots if they don't exist.
 
         Args:
             state: Current message state
-            parameters: parameters containing configuration parameters
+            fixed_args: fixed_args containing configuration parameters
 
         Returns:
             MessageState: Updated message state with initialized slots
         """
-        if parameters is None:
-            parameters = {}
-        log_context.info(f"parameters: {parameters}")
-        self.unit_index = int(parameters["unit_index"])
+        if fixed_args is None:
+            fixed_args = {}
+        log_context.info(f"fixed_args: {fixed_args}")
+        self.unit_index = int(fixed_args["unit_index"])
         log_context.info("checking and initializing slots")
         required_slots = [
             "turn",
@@ -265,7 +265,7 @@ class NegotiationSingleIssueWorker(BaseWorker):
                         Slot(
                             name="max_perceived_marketPrice",
                             type="string",
-                            value=int(parameters["max_perceived_marketPrice"]),
+                            value=int(fixed_args["max_perceived_marketPrice"]),
                             enum=[],
                             description="This is the maximum perceived market price.",
                             prompt="",
@@ -279,7 +279,7 @@ class NegotiationSingleIssueWorker(BaseWorker):
                         Slot(
                             name="reservation_price",
                             type="string",
-                            value=int(parameters["reservation_price"]),
+                            value=int(fixed_args["reservation_price"]),
                             enum=[],
                             description="This is the reservation price for the negotiation.",
                             prompt="",
@@ -293,7 +293,7 @@ class NegotiationSingleIssueWorker(BaseWorker):
                         Slot(
                             name="max_market_price",
                             type="string",
-                            value=int(parameters["max_marketPrice"]),
+                            value=int(fixed_args["max_marketPrice"]),
                             enum=[],
                             description="This is the maximum market price.",
                             prompt="",
@@ -304,9 +304,9 @@ class NegotiationSingleIssueWorker(BaseWorker):
 
         self.get_current_target(
             state,
-            int(parameters["max_perceived_marketPrice"]),
-            int(parameters["max_marketPrice"]),
-            int(parameters["reservation_price"]),
+            int(fixed_args["max_perceived_marketPrice"]),
+            int(fixed_args["max_marketPrice"]),
+            int(fixed_args["reservation_price"]),
         )
 
         return state
@@ -424,7 +424,7 @@ class NegotiationSingleIssueWorker(BaseWorker):
 
         return state
 
-    def _create_action_graph(self, parameters: dict[str, Any]) -> StateGraph:
+    def _create_action_graph(self, fixed_args: dict[str, Any]) -> StateGraph:
         """Create a processing flow for the negotiation strategy.
 
         Returns:
@@ -432,12 +432,12 @@ class NegotiationSingleIssueWorker(BaseWorker):
         """
         workflow = StateGraph(MessageState)
 
-        check_and_initialize_slots_with_parameters = partial(
-            self.check_and_initialize_slots, parameters=parameters
+        check_and_initialize_slots_with_fixed_args = partial(
+            self.check_and_initialize_slots, fixed_args=fixed_args
         )
 
         workflow.add_node(
-            "negotiation_initialization", check_and_initialize_slots_with_parameters
+            "negotiation_initialization", check_and_initialize_slots_with_fixed_args
         )
         workflow.add_node("negotiation_response", self.get_response)
 
@@ -465,8 +465,8 @@ class NegotiationSingleIssueWorker(BaseWorker):
         )(model=msg_state.bot_config.llm_config.model_type_or_path)
         # Debug the incoming state
 
-        self.parameters = kwargs.get("parameters", {})
-        self.action_graph = self._create_action_graph(self.parameters)
+        self.fixed_args = kwargs.get("fixed_args", {})
+        self.action_graph = self._create_action_graph(self.fixed_args)
         graph = self.action_graph.compile()
         result = graph.invoke(msg_state)
 
