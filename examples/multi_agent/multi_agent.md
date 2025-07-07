@@ -46,7 +46,7 @@ Goal: Help a user investigate a topic using real-time search and generate a deta
                 {
                     "name": "SearchAgent",
                     "instructions": "Search the web and summarize findings.",
-                    "tools": ["web_search"]
+                     "tools": [{"id": "web_search", "path": null}]
                 },
                 {
                     "name": "WriterAgent",
@@ -71,14 +71,15 @@ Goal: Help a user investigate a topic using real-time search and generate a deta
                 "pattern": "agents_as_tools",
                 "task": "Research a topic by combining real-time web summaries with academic citations for credibility and depth.",
             "sub_agents": [
-                    {
+                     {
                         "name": "SearchAgent",
-                        "instructions": "Search the web and summarize findings. Make sure to search for the most up to date information"
+                        "instructions": "Search the web and summarize findings. Make sure to search for the most up to date information",
+                        "tools": [{"id": "web_search", "path": null}]
                     },
                     {
                         "name": "CitationFinderAgent",
                         "instructions": "You receive a paragraph or claim and return one or more credible sources (academic or journalistic) that support the content.",
-                        "tools": ["citation_finder"]
+                        "tools": [{"id": "citation_finder", "path": "multi_agent/citation_finder.py"}]
                     }
                 ]
             }

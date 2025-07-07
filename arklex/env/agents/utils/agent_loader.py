@@ -1,13 +1,13 @@
 from agents import Agent, Tool
 
-from arklex.env.agents.utils.tool_resolver import resolve_tool
+from arklex.env.agents.utils.tool_resolver import resolve_tools_for_agent
 from arklex.utils.graph_state import LLMConfig
 
 
 def build_agents(agent_configs: list[dict], llm_config: LLMConfig) -> list[Agent]:
     agents = []
     for cfg in agent_configs:
-        tools = [resolve_tool(t) for t in cfg.get("tools", []) if resolve_tool(t)]
+        tools = resolve_tools_for_agent(cfg.get("tools", []))
         agent = Agent(
             name=cfg["name"],
             instructions=cfg["instructions"],
