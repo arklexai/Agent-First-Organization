@@ -913,68 +913,12 @@ class TaskGraph(TaskGraphBase):
                 edge[2]["intent"].lower() if edge[2]["intent"] else "none"
             )
         formatted_nodes = []
-        for i, node in enumerate(nodes):
-            log_context.info(
-                f"Processing node {i}: type={type(node)}, keys={list(node.keys()) if isinstance(node, dict) else 'not_dict'}"
-            )
+        for node in nodes:
             if isinstance(node, list | tuple) and len(node) == 2:
-                log_context.info(f"Node {i} is list/tuple format")
-                # Process the node data to map UI data fields to attribute fields
-                node_data = self._process_ui_node_data(node[1])
-                formatted_nodes.append((node[0], node_data))
+                formatted_nodes.append(node)
             elif isinstance(node, dict) and "id" in node:
-                log_context.info(f"Node {i} is dict with id format")
-                # Process the node to map UI data fields to attribute fields
-                processed_node = self._process_ui_node_data(node)
-                formatted_nodes.append((node["id"], processed_node))
+                formatted_nodes.append((node["id"], node))
             else:
-                log_context.info(f"Node {i} doesn't match expected formats")
                 formatted_nodes.append(node)
         self.graph.add_nodes_from(formatted_nodes)
         self.graph.add_edges_from(edges)
-
-    def _process_ui_node_data(self, node_data: dict[str, Any]) -> dict[str, Any]:
-        """Process UI dialog flow node data to extract fixedArgs from data field.
-
-        Args:
-            node_data: Node data from UI dialog flow
-
-        Returns:
-            Processed node data with fixedArgs properly formatted in attribute field
-        """
-        # Create a copy to avoid modifying the original
-        processed_data = node_data.copy()
-
-        # Debug logging to see the actual node structure
-        log_context.info(f"Processing node data: {node_data}")
-
-        # If the node has a 'data' field with fixedArgs, process it
-        if "data" in processed_data and "fixedArgs" in processed_data["data"]:
-            ui_fixed_args = processed_data["data"]["fixedArgs"]
-            log_context.info(f"Found fixedArgs in data field: {ui_fixed_args}")
-
-            # Ensure attribute field exists
-            if "attribute" not in processed_data:
-                processed_data["attribute"] = {}
-
-            # Convert fixedArgs array format to dictionary format
-            if isinstance(ui_fixed_args, list):
-                # Convert from [{'key': 'max_marketPrice', 'value': '15000'}, ...]
-                # to {'max_marketPrice': '15000', ...}
-                processed_data["attribute"]["fixedArgs"] = {
-                    arg["key"]: arg["value"]
-                    for arg in ui_fixed_args
-                    if isinstance(arg, dict) and "key" in arg and "value" in arg
-                }
-                log_context.info(
-                    f"Converted fixedArgs to dict: {processed_data['attribute']['fixedArgs']}"
-                )
-            else:
-                # If it's already in dict format, use as-is
-                processed_data["attribute"]["fixedArgs"] = ui_fixed_args
-        else:
-            log_context.info(
-                f"No fixedArgs found in data field. Data keys: {processed_data.get('data', {}).keys()}"
-            )
-
-        return processed_data
