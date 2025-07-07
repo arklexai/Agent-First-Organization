@@ -658,5 +658,6 @@ Answer with only 'yes' or 'no'"""
         Returns:
             Dict[str, Any]: A dictionary containing the response, parameters, and metadata.
         """
+        log_context.info(f"Inputs: {inputs}")
         orchestrator_response = self._get_response(inputs, stream_type, message_queue)
         return orchestrator_response.model_dump()

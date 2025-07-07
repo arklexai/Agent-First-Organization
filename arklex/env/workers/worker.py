@@ -127,3 +127,25 @@ class BaseWorker(ABC):
             log_context.error(traceback.format_exc())
             msg_state.status = StatusEnum.INCOMPLETE
             return msg_state
+
+    @classmethod
+    def get_parameters_schema(cls) -> dict[str, Any]:
+        """Get the parameters schema for this worker class.
+
+        Returns:
+            Dict[str, Any]: The parameters schema, or empty dict if not defined
+        """
+        return getattr(cls, "parameters_schema", {})
+
+    @classmethod
+    def get_worker_info(cls) -> dict[str, Any]:
+        """Get comprehensive information about this worker class.
+
+        Returns:
+            Dict[str, Any]: Worker information including name, description, and parameters schema
+        """
+        return {
+            "name": cls.__name__,
+            "description": getattr(cls, "description", ""),
+            "parameters_schema": cls.get_parameters_schema(),
+        }

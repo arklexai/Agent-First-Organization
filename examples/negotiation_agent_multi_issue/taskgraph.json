@@ -1,0 +1,66 @@
+{
+    "nodes": [
+        [
+            "0",
+            {
+                "resource": {
+                    "id": "153eabb5-8cf2-47f2-a825-64bd07377950",
+                    "name": "NegotiationMultiIssueWorker"
+                },
+                "attribute": {
+                    "value": "Hello J. Roberts, a pleasure to meet with you today. I hope you're having a great day. I'm looking forward to discussing the opportunity of having you join our team here at Global Consulting. Let's work together to find a package that aligns with both your career aspirations and our organizational needs. Before we dive into specifics, let me know which areas are top of mind for you as we embark on this negotiation journey.",
+                    "task": "start_message",
+                    "directed": false
+                },
+                "limit": 1,
+                "type": "start"
+            }
+        ],
+        [
+            "1",
+            {
+                "resource": {
+                    "id": "153eabb5-8cf2-47f2-a825-64bd07377950",
+                    "name": "NegotiationMultiIssueWorker"
+                },
+                "attribute": {
+                    "value": "Would you be interested in discussing your offer package?",
+                    "task": "Facilitate a multi-issue negotiation conversation",
+                    "directed": false
+                }
+            }
+        ]
+    ],
+    "edges": [
+        [
+            "0",
+            "1",
+            {
+                "intent": "user engages in conversation",
+                "attribute": {
+                    "weight": 1,
+                    "pred": true,
+                    "definition": "",
+                    "sample_utterances": []
+                }
+            }
+        ]
+    ],
+    "role": "Multi-Issue Negotiation Agent",
+    "user_objective": "The objective for the user is to participate in a smooth negotiation process to reach a deal on multiple aspects of a car purchase, including financing, warranty, color, and price.",
+    "builder_objective": "The objective for the builder is to create an agent that can handle multi-issue negotiations effectively, considering the interdependencies between different issues while maintaining a natural conversation flow. The agent should start with casual conversation before diving into negotiations.",
+    "domain": "car sales negotiation",
+    "intro": "Hi, how are you today?",
+    "rag_docs": [{}],
+    "tasks": [],
+    "workers": [
+        {
+            "id": "153eabb5-8cf2-47f2-a825-64bd07377950",
+            "name": "NegotiationMultiIssueWorker",
+            "path": "negotiation_workers/negotiation_multi_issue_worker.py"
+        }
+    ],
+    "tools": [],
+    "nluapi": "",
+    "slotfillapi": ""
+} 
