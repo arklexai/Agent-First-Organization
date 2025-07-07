@@ -459,13 +459,21 @@ class NegotiationSingleIssueWorker(BaseWorker):
             Dict[str, Any]: Updated message state as dictionary
         """
         log_context.info("Executing negotiation response worker")
+        log_context.info(f"Received kwargs: {kwargs}")
 
         self.llm = PROVIDER_MAP.get(
             msg_state.bot_config.llm_config.llm_provider, ChatOpenAI
         )(model=msg_state.bot_config.llm_config.model_type_or_path)
         # Debug the incoming state
 
-        self.fixed_args = kwargs.get("fixedArgs", {})
+        # Handle both parameter names for backward compatibility
+        self.fixed_args = kwargs.get("fixedArgs", kwargs.get("fixed_args", {}))
+        log_context.info(f"Using fixedArgs: {self.fixed_args}")
+
+        if not self.fixed_args:
+            log_context.error("No fixedArgs provided!")
+            raise ValueError("fixedArgs parameter is required but not provided")
+
         self.action_graph = self._create_action_graph(self.fixed_args)
         graph = self.action_graph.compile()
         result = graph.invoke(msg_state)
