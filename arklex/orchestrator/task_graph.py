@@ -939,9 +939,13 @@ class TaskGraph(TaskGraphBase):
         # Create a copy to avoid modifying the original
         processed_data = node_data.copy()
 
+        # Debug logging to see the actual node structure
+        log_context.info(f"Processing node data: {node_data}")
+
         # If the node has a 'data' field with fixedArgs, process it
         if "data" in processed_data and "fixedArgs" in processed_data["data"]:
             ui_fixed_args = processed_data["data"]["fixedArgs"]
+            log_context.info(f"Found fixedArgs in data field: {ui_fixed_args}")
 
             # Ensure attribute field exists
             if "attribute" not in processed_data:
@@ -956,8 +960,15 @@ class TaskGraph(TaskGraphBase):
                     for arg in ui_fixed_args
                     if isinstance(arg, dict) and "key" in arg and "value" in arg
                 }
+                log_context.info(
+                    f"Converted fixedArgs to dict: {processed_data['attribute']['fixedArgs']}"
+                )
             else:
                 # If it's already in dict format, use as-is
                 processed_data["attribute"]["fixedArgs"] = ui_fixed_args
+        else:
+            log_context.info(
+                f"No fixedArgs found in data field. Data keys: {processed_data.get('data', {}).keys()}"
+            )
 
         return processed_data
