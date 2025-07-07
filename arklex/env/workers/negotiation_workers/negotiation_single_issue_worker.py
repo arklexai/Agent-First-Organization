@@ -470,11 +470,6 @@ class NegotiationSingleIssueWorker(BaseWorker):
         self.fixed_args = kwargs.get("fixedArgs", {})
         log_context.info(f"Using fixedArgs: {self.fixed_args}")
 
-        if not self.fixed_args:
-            log_context.error("No fixedArgs provided!")
-            log_context.error("Available kwargs keys: %s", list(kwargs.keys()))
-            raise ValueError("fixedArgs parameter is required but not provided")
-
         self.action_graph = self._create_action_graph(self.fixed_args)
         graph = self.action_graph.compile()
         result = graph.invoke(msg_state)

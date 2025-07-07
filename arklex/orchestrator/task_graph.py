@@ -304,7 +304,7 @@ class TaskGraph(TaskGraphBase):
                 ],
                 "prompt": node_info["attribute"].get("prompt", ""),
                 "tags": node_info["attribute"].get("tags", {}),
-                "fixedArgs": node_info["attribute"].get("fixedArgs", {}),
+                "fixedArgs": node_info["attribute"].get("fixed_args", {}),
                 **{
                     k2: v2
                     for k, v in node_info["attribute"]
