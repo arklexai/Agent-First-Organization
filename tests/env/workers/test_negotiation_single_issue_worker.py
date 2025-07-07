@@ -55,14 +55,14 @@ class TestNegotiationSingleIssueWorkerSlotManagement:
 
     def test_check_and_initialize_slots_creates_required_slots(self) -> None:
         """Test that required slots are created."""
-        fixed_args = {
+        fixedArgs = {
             "unit_index": "0",
             "max_perceived_marketPrice": "1000",
             "max_marketPrice": "1200",
             "reservation_price": "800",
         }
 
-        result = self.worker.check_and_initialize_slots(self.msg_state, fixed_args)
+        result = self.worker.check_and_initialize_slots(self.msg_state, fixedArgs)
 
         required_slots = [
             "turn",
@@ -78,15 +78,15 @@ class TestNegotiationSingleIssueWorkerSlotManagement:
             assert len(result.slots[slot_name]) == 1
             assert isinstance(result.slots[slot_name][0], Slot)
 
-    def test_check_and_initialize_slots_with_default_fixed_args(self) -> None:
-        """Test slot initialization with default fixed_args."""
-        fixed_args = {
+    def test_check_and_initialize_slots_with_default_fixedArgs(self) -> None:
+        """Test slot initialization with default fixedArgs."""
+        fixedArgs = {
             "unit_index": "0",
             "max_perceived_marketPrice": "1000",
             "max_marketPrice": "1200",
             "reservation_price": "800",
         }
-        result = self.worker.check_and_initialize_slots(self.msg_state, fixed_args)
+        result = self.worker.check_and_initialize_slots(self.msg_state, fixedArgs)
 
         # Should create slots with provided values
         assert "turn" in result.slots
@@ -121,13 +121,13 @@ class TestNegotiationSingleIssueWorkerSlotManagement:
             ]
         }
 
-        fixed_args = {
+        fixedArgs = {
             "unit_index": "0",
             "max_perceived_marketPrice": "1000",
             "max_marketPrice": "1200",
             "reservation_price": "800",
         }
-        result = self.worker.check_and_initialize_slots(self.msg_state, fixed_args)
+        result = self.worker.check_and_initialize_slots(self.msg_state, fixedArgs)
 
         # Existing slot should be preserved
         assert result.slots["turn"][0].value == 5
@@ -135,8 +135,8 @@ class TestNegotiationSingleIssueWorkerSlotManagement:
         assert "episode_done" in result.slots
         assert "current_target" in result.slots
 
-    def test_check_and_initialize_slots_none_fixed_args(self) -> None:
-        """Test slot initialization with None fixed_args."""
+    def test_check_and_initialize_slots_none_fixedArgs(self) -> None:
+        """Test slot initialization with None fixedArgs."""
         # This should raise a KeyError because unit_index is required
         with pytest.raises(KeyError):
             self.worker.check_and_initialize_slots(self.msg_state, None)
@@ -166,14 +166,14 @@ class TestNegotiationSingleIssueWorkerResponseGeneration:
             "I accept your offer of $900"
         )
 
-        # Initialize slots with required fixed_args
-        fixed_args = {
+        # Initialize slots with required fixedArgs
+        fixedArgs = {
             "unit_index": "0",
             "max_perceived_marketPrice": "1000",
             "max_marketPrice": "1200",
             "reservation_price": "800",
         }
-        self.worker.check_and_initialize_slots(self.msg_state, fixed_args)
+        self.worker.check_and_initialize_slots(self.msg_state, fixedArgs)
 
         with patch("builtins.open"), patch("os.path.join"):
             result = self.worker.get_response(self.msg_state)
@@ -183,14 +183,14 @@ class TestNegotiationSingleIssueWorkerResponseGeneration:
 
     def test_get_response_with_negotiation_context(self) -> None:
         """Test response generation with negotiation context."""
-        # Initialize slots with required fixed_args
-        fixed_args = {
+        # Initialize slots with required fixedArgs
+        fixedArgs = {
             "unit_index": "0",
             "max_perceived_marketPrice": "1000",
             "max_marketPrice": "1200",
             "reservation_price": "800",
         }
-        self.worker.check_and_initialize_slots(self.msg_state, fixed_args)
+        self.worker.check_and_initialize_slots(self.msg_state, fixedArgs)
 
         self.mock_llm.invoke.return_value.content.strip.return_value = (
             "Let's meet in the middle at $1000"
@@ -204,13 +204,13 @@ class TestNegotiationSingleIssueWorkerResponseGeneration:
 
     def test_get_response_increments_round(self) -> None:
         """Test that response generation increments the turn."""
-        fixed_args = {
+        fixedArgs = {
             "unit_index": "0",
             "max_perceived_marketPrice": "1000",
             "max_marketPrice": "1200",
             "reservation_price": "800",
         }
-        self.worker.check_and_initialize_slots(self.msg_state, fixed_args)
+        self.worker.check_and_initialize_slots(self.msg_state, fixedArgs)
         initial_turn = self.msg_state.slots["turn"][0].value
 
         self.mock_llm.invoke.return_value.content.strip.return_value = "Counter offer"
@@ -248,7 +248,7 @@ class TestNegotiationSingleIssueWorkerExecution:
             slots={},
         )
 
-        fixed_args = {
+        fixedArgs = {
             "unit_index": "0",
             "max_perceived_marketPrice": "1000",
             "max_marketPrice": "1200",
@@ -264,15 +264,15 @@ class TestNegotiationSingleIssueWorkerExecution:
             mock_provider_map.get.return_value = lambda model: mock_llm
 
             with patch("builtins.open"), patch("os.path.join"):
-                result_dict = self.worker.execute(msg_state, fixed_args=fixed_args)
+                result_dict = self.worker.execute(msg_state, fixedArgs=fixedArgs)
                 result = MessageState.model_validate(result_dict)
 
         # Test that the worker executed successfully
         assert "turn" in result.slots
         assert result.slots["turn"][0].value == 1
 
-    def test_execute_without_fixed_args(self) -> None:
-        """Test execution without required fixed_args."""
+    def test_execute_without_fixedArgs(self) -> None:
+        """Test execution without required fixedArgs."""
         bot_config = BotConfig(
             bot_id="test_bot",
             version="1.0.0",
@@ -298,13 +298,13 @@ class TestNegotiationSingleIssueWorkerExecution:
         ) as mock_provider_map:
             mock_provider_map.get.return_value = lambda model: mock_llm
 
-            # The worker should handle missing fixed_args - either by raising an error or handling gracefully
+            # The worker should handle missing fixedArgs - either by raising an error or handling gracefully
             try:
                 result = self.worker.execute(msg_state)
                 # If no exception is raised, verify it's a valid response
                 assert isinstance(result, dict)
             except Exception:
-                # Expected behavior when missing required fixed_args - any exception is acceptable
+                # Expected behavior when missing required fixedArgs - any exception is acceptable
                 pass
 
 
@@ -324,7 +324,7 @@ class TestNegotiationSingleIssueWorkerEdgeCases:
             slots={},
         )
 
-        fixed_args = {
+        fixedArgs = {
             "unit_index": "0",
             "max_perceived_marketPrice": "1000",
             "max_marketPrice": "1200",
@@ -333,7 +333,7 @@ class TestNegotiationSingleIssueWorkerEdgeCases:
 
         # Test execution with missing bot_config - either raises error or handles gracefully
         try:
-            result = self.worker.execute(msg_state, fixed_args=fixed_args)
+            result = self.worker.execute(msg_state, fixedArgs=fixedArgs)
             # If no exception is raised, verify it's a valid response
             assert isinstance(result, dict)
         except Exception:
@@ -360,7 +360,7 @@ class TestNegotiationSingleIssueWorkerEdgeCases:
             slots={},
         )
 
-        fixed_args = {
+        fixedArgs = {
             "unit_index": "0",
             "max_perceived_marketPrice": "1000",
             "max_marketPrice": "1200",
@@ -377,7 +377,7 @@ class TestNegotiationSingleIssueWorkerEdgeCases:
 
             with patch("builtins.open"), patch("os.path.join"):
                 # Should work even without metadata as it's optional
-                result_dict = self.worker.execute(msg_state, fixed_args=fixed_args)
+                result_dict = self.worker.execute(msg_state, fixedArgs=fixedArgs)
                 result = MessageState.model_validate(result_dict)
                 assert "turn" in result.slots
 
@@ -390,14 +390,14 @@ class TestNegotiationSingleIssueWorkerEdgeCases:
         # Set slots to None to test the initialization logic
         msg_state.slots = None
 
-        fixed_args = {
+        fixedArgs = {
             "unit_index": "0",
             "max_perceived_marketPrice": "1000",
             "max_marketPrice": "1200",
             "reservation_price": "800",
         }
 
-        result = self.worker.check_and_initialize_slots(msg_state, fixed_args)
+        result = self.worker.check_and_initialize_slots(msg_state, fixedArgs)
 
         assert hasattr(result, "slots")
         assert isinstance(result.slots, dict)
@@ -431,7 +431,7 @@ class TestNegotiationSingleIssueWorkerIntegration:
             slots={},
         )
 
-        fixed_args = {
+        fixedArgs = {
             "unit_index": "0",
             "max_perceived_marketPrice": "1000",
             "max_marketPrice": "1200",
@@ -449,7 +449,7 @@ class TestNegotiationSingleIssueWorkerIntegration:
 
             with patch("builtins.open"), patch("os.path.join"):
                 # First execution
-                result_dict = self.worker.execute(msg_state, fixed_args=fixed_args)
+                result_dict = self.worker.execute(msg_state, fixedArgs=fixedArgs)
                 result = MessageState.model_validate(result_dict)
 
                 assert result.response == "Opening response"
@@ -457,7 +457,7 @@ class TestNegotiationSingleIssueWorkerIntegration:
 
                 # Simulate second turn
                 result.user_message.message = "How about $950?"
-                result_dict2 = self.worker.execute(result, fixed_args=fixed_args)
+                result_dict2 = self.worker.execute(result, fixedArgs=fixedArgs)
                 result2 = MessageState.model_validate(result_dict2)
 
                 assert result2.slots["turn"][0].value == 2
