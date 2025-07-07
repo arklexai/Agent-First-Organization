@@ -913,16 +913,22 @@ class TaskGraph(TaskGraphBase):
                 edge[2]["intent"].lower() if edge[2]["intent"] else "none"
             )
         formatted_nodes = []
-        for node in nodes:
+        for i, node in enumerate(nodes):
+            log_context.info(
+                f"Processing node {i}: type={type(node)}, keys={list(node.keys()) if isinstance(node, dict) else 'not_dict'}"
+            )
             if isinstance(node, list | tuple) and len(node) == 2:
+                log_context.info(f"Node {i} is list/tuple format")
                 # Process the node data to map UI data fields to attribute fields
                 node_data = self._process_ui_node_data(node[1])
                 formatted_nodes.append((node[0], node_data))
             elif isinstance(node, dict) and "id" in node:
+                log_context.info(f"Node {i} is dict with id format")
                 # Process the node to map UI data fields to attribute fields
                 processed_node = self._process_ui_node_data(node)
                 formatted_nodes.append((node["id"], processed_node))
             else:
+                log_context.info(f"Node {i} doesn't match expected formats")
                 formatted_nodes.append(node)
         self.graph.add_nodes_from(formatted_nodes)
         self.graph.add_edges_from(edges)
