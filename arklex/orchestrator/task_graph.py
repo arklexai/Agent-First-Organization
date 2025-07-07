@@ -304,11 +304,7 @@ class TaskGraph(TaskGraphBase):
                 ],
                 "prompt": node_info["attribute"].get("prompt", ""),
                 "tags": node_info["attribute"].get("tags", {}),
-                "fixedArgs": {
-                    arg["key"]: arg["value"]
-                    for arg in node_info["attribute"].get("fixedArgs", [])
-                    if isinstance(arg, dict) and "key" in arg and "value" in arg
-                },
+                "fixedArgs": node_info["attribute"].get("fixedArgs", {}),
                 **{
                     k2: v2
                     for k, v in node_info["attribute"]
@@ -453,11 +449,7 @@ class TaskGraph(TaskGraphBase):
                     ],
                     "prompt": node_info["attribute"].get("prompt", ""),
                     "tags": node_info["attribute"].get("tags", {}),
-                    "fixedArgs": {
-                        arg["key"]: arg["value"]
-                        for arg in node_info["attribute"].get("fixedArgs", [])
-                        if isinstance(arg, dict) and "key" in arg and "value" in arg
-                    },
+                    "fixedArgs": node_info["attribute"].get("fixedArgs", {}),
                     **{
                         k2: v2
                         for k, v in node_info["attribute"]
@@ -923,10 +915,49 @@ class TaskGraph(TaskGraphBase):
         formatted_nodes = []
         for node in nodes:
             if isinstance(node, list | tuple) and len(node) == 2:
-                formatted_nodes.append(node)
+                # Process the node data to map UI data fields to attribute fields
+                node_data = self._process_ui_node_data(node[1])
+                formatted_nodes.append((node[0], node_data))
             elif isinstance(node, dict) and "id" in node:
-                formatted_nodes.append((node["id"], node))
+                # Process the node to map UI data fields to attribute fields
+                processed_node = self._process_ui_node_data(node)
+                formatted_nodes.append((node["id"], processed_node))
             else:
                 formatted_nodes.append(node)
         self.graph.add_nodes_from(formatted_nodes)
         self.graph.add_edges_from(edges)
+
+    def _process_ui_node_data(self, node_data: dict[str, Any]) -> dict[str, Any]:
+        """Process UI dialog flow node data to extract fixedArgs from data field.
+
+        Args:
+            node_data: Node data from UI dialog flow
+
+        Returns:
+            Processed node data with fixedArgs properly formatted in attribute field
+        """
+        # Create a copy to avoid modifying the original
+        processed_data = node_data.copy()
+
+        # If the node has a 'data' field with fixedArgs, process it
+        if "data" in processed_data and "fixedArgs" in processed_data["data"]:
+            ui_fixed_args = processed_data["data"]["fixedArgs"]
+
+            # Ensure attribute field exists
+            if "attribute" not in processed_data:
+                processed_data["attribute"] = {}
+
+            # Convert fixedArgs array format to dictionary format
+            if isinstance(ui_fixed_args, list):
+                # Convert from [{'key': 'max_marketPrice', 'value': '15000'}, ...]
+                # to {'max_marketPrice': '15000', ...}
+                processed_data["attribute"]["fixedArgs"] = {
+                    arg["key"]: arg["value"]
+                    for arg in ui_fixed_args
+                    if isinstance(arg, dict) and "key" in arg and "value" in arg
+                }
+            else:
+                # If it's already in dict format, use as-is
+                processed_data["attribute"]["fixedArgs"] = ui_fixed_args
+
+        return processed_data
