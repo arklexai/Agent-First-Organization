@@ -265,7 +265,30 @@ class Environment:
             log_context.info(f"{self.tools[id]['name']} tool selected")
             tool: Tool = self.tools[id]["execute"]()
             tool.init_slotfiller(self.slotfillapi)
-            tool.load_slots(getattr(node_info, "attributes", {}).get("slots", []))
+            attributes = getattr(node_info, "attributes", {})
+            # --- Begin slot group merge logic ---
+            slots = attributes.get("slots", [])
+            slot_groups = attributes.get("slot_groups", [])
+            group_slots = []
+            for group in slot_groups:
+                # Generate prompt/description for the group
+                required_fields = [s["name"] for s in group.get("schema", []) if s.get("required", False)]
+                prompt = (
+                    f"Please provide at least one set of the following fields: {', '.join(required_fields)}."
+                    if required_fields else f"Please provide a set of values for group '{group['name']}'."
+                )
+                description = f"Slot group '{group['name']}' with schema: {[s['name'] for s in group.get('schema', [])]}"
+                group_slots.append({
+                    "name": group["name"],
+                    "type": "group",
+                    "schema": group.get("schema", []),
+                    "required": group.get("required", False),
+                    "repeatable": group.get("repeatable", True),
+                    "prompt": prompt,
+                    "description": description,
+                })
+            all_slots = slots + group_slots
+            tool.load_slots(all_slots)
             combined_args: dict[str, Any] = {
                 **self.tools[id]["fixed_args"],
                 **(node_info.additional_args or {}),

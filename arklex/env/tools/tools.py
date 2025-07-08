@@ -255,16 +255,316 @@ class Tool:
         for new_slot in slots:
             slot_name = new_slot["name"]
             if slot_name in existing_slots_dict:
-                # Update existing slot with new values
                 existing_slot = existing_slots_dict[slot_name]
                 for key, value in new_slot.items():
                     setattr(existing_slot, key, value)
             else:
-                # Add new slot
-                self.slots.append(Slot.model_validate(new_slot))
+                if new_slot.get("type") == "group":
+                    self.slots.append(Slot(
+                        name=new_slot["name"],
+                        type="group",
+                        schema=new_slot.get("schema", []),
+                        required=new_slot.get("required", False),
+                        repeatable=new_slot.get("repeatable", True),
+                        prompt=new_slot.get("prompt", ""),
+                        description=new_slot.get("description", ""),
+                        value=[],
+                        valueSource=new_slot.get("valueSource", None),
+                    ))
+                else:
+                    self.slots.append(Slot.model_validate(new_slot))
 
         # Update tool info with merged slots
         self.info = self.get_info([slot.model_dump() for slot in self.slots])
+
+    def _convert_value(self, value, type_str):
+        # Helper to convert string value to correct type
+        if value is None:
+            return value
+        try:
+            if type_str == "int":
+                return int(value)
+            elif type_str == "float":
+                return float(value)
+            elif type_str == "bool":
+                if isinstance(value, bool):
+                    return value
+                if isinstance(value, str):
+                    return value.lower() == "true"
+                return bool(value)
+            elif type_str == "str":
+                return str(value)
+            elif type_str.startswith("list["):
+                # Assume comma-separated string for lists
+                if isinstance(value, str):
+                    return [v.strip() for v in value.split(",") if v.strip()]
+                return list(value)
+            else:
+                return value
+        except Exception:
+            return value
+
+    def _fill_slots_recursive(self, slots, chat_history_str):
+        filled_slots = []
+        for slot in slots:
+            if slot.type == "group":
+                # Build a schema-driven prompt for the slot group
+                def build_group_prompt(slot):
+                    example_fields = []
+                    schema_lines = []
+                    for field in (slot.schema or []):
+                        field_type = field.get("type", "str")
+                        example_value = {
+                            "str": '"example string"',
+                            "int": "123",
+                            "float": "12.34",
+                            "bool": "true"
+                        }.get(field_type, '"example"')
+                        example_fields.append(f'"{field["name"]}": {example_value}')
+                        desc_or_prompt = field.get("description") or field.get("prompt") or ""
+                        schema_lines.append(
+                            f'- {field["name"]} ({field_type}): {desc_or_prompt}'
+                        )
+                    example_obj = "{" + ", ".join(example_fields) + "}"
+                    schema_str = "\n".join(schema_lines)
+                    return (
+                        f"Please provide a list of dictionaries (objects), e.g. [{{'key': 'value'}}], each matching this schema:\n"
+                        f"{schema_str}\n"
+                        f"Example:\n[{example_obj}]\n"
+                        f"IMPORTANT: Each object must have ALL the fields above, with the correct type. "
+                        f"Do not add extra fields. Do not return a dict of lists or a list of values. "
+                        f"Return a list of dicts, each matching the schema exactly. "
+                        f"Use the description for each field to determine where to find the value. The field name is the key in the dict."
+                    )
+                group_prompt = build_group_prompt(slot)
+                # Create a temporary slot for the group, with the prompt
+                temp_group_slot = Slot(
+                    name=slot.name,
+                    type="group",
+                    value=slot.value if slot.value else [],
+                    description=slot.description +" "+ group_prompt,
+                    required=slot.required,
+                    schema=slot.schema,
+                    repeatable=slot.repeatable,
+                )
+                # Use slotfiller to fill the group as a whole
+                filled = self.slotfiller.fill_slots([temp_group_slot], chat_history_str, self.llm_config)
+                group_value = filled[0].value
+                # If the value is a string, try to parse as JSON
+                if isinstance(group_value, str):
+                    try:
+                        group_value = json.loads(group_value)
+                    except Exception:
+                        raise ValueError(f"Slot group '{slot.name}' did not return a valid JSON list of objects: {group_value}")
+                # Enforce that the value is a list of dicts
+                if not (isinstance(group_value, list) and all(isinstance(item, dict) for item in group_value)):
+                    raise ValueError(f"Slot group '{slot.name}' must be a list of dicts, got: {group_value}")
+                # For each dict, apply valueSource logic as defined in the schema
+                for item in group_value:
+                    for field in (slot.schema or []):
+                        field_name = field["name"]
+                        val_source = field.get("valueSource", "Prompt User")
+                        field_type = field.get("type", "str")
+                        schema_value = field.get("value", "")
+                        if val_source == "fixed":
+                            item[field_name] = self._convert_value(schema_value, field_type)
+                        elif val_source == "default":
+                            if item.get(field_name) in [None, ""]:
+                                item[field_name] = self._convert_value(schema_value, field_type)
+                            else:
+                                item[field_name] = self._convert_value(item[field_name], field_type)
+                        else:  # Prompt User or missing
+                            item[field_name] = self._convert_value(item.get(field_name, ""), field_type)
+                slot.value = group_value
+                filled_slots.append(slot)
+            else:
+                val_source = getattr(slot, "valueSource", "Prompt User")
+                if val_source == "fixed":
+                    slot.value = self._convert_value(getattr(slot, "value", ""), slot.type)
+                elif val_source == "default":
+                    filled = self.slotfiller.fill_slots([slot], chat_history_str, self.llm_config)
+                    slot.value = self._convert_value(filled[0].value if filled[0].value not in [None, ""] else getattr(slot, "value", ""), slot.type)
+                else:  # Prompt User or missing
+                    filled = self.slotfiller.fill_slots([slot], chat_history_str, self.llm_config)
+                    slot.value = self._convert_value(filled[0].value, slot.type)
+                filled_slots.append(slot)
+        return filled_slots
+
+    def _any_missing_required_recursive(self, slots):
+        for slot in slots:
+            if slot.type == "group":
+                # For group, check if at least one item exists if required
+                if slot.required and (not slot.value or not isinstance(slot.value, list) or len(slot.value) == 0):
+                    return True
+                # For each item, check required fields
+                for item in (slot.value or []):
+                    for field in (slot.schema or []):
+                        if field.get("required", False) and (item.get(field["name"]) in [None, ""]):
+                            return True
+            else:
+                if slot.required and (not slot.value or not slot.verified):
+                    return True
+        return False
+
+    def _missing_slots_recursive(self, slots):
+        missing = []
+        for slot in slots:
+            if slot.type == "group":
+                if slot.required and (not slot.value or not isinstance(slot.value, list) or len(slot.value) == 0):
+                    missing.append(slot.prompt)
+                for idx, item in enumerate(slot.value or []):
+                    for field in (slot.schema or []):
+                        if field.get("required", False) and (item.get(field["name"]) in [None, ""]):
+                            missing.append(f"{field.get('prompt', field['name'])} (group '{slot.name}' item {idx+1})")
+            else:
+                if slot.required and (not slot.value or not slot.verified):
+                    missing.append(slot.prompt)
+        return missing
+
+    def execute(self, state: MessageState, **fixed_args: FixedArgs) -> MessageState:
+        """Execute the tool with the current state and fixed arguments.
+
+        This method is a wrapper around _execute that handles the execution flow
+        and state management.
+
+        Args:
+            state (MessageState): The current message state.
+            **fixed_args (FixedArgs): Additional fixed arguments for the tool.
+
+        Returns:
+            MessageState: The updated message state after tool execution.
+        """
+        self.llm_config = state.bot_config.llm_config.model_dump()
+        state = self._execute(state, **fixed_args)
+        return state
+
+    def to_openai_tool_def(self) -> dict:
+        """Convert the tool to an OpenAI tool definition.
+
+        Returns:
+            dict: The OpenAI tool definition.
+        """
+        parameters = {
+            "type": "object",
+            "properties": {},
+            "required": [
+                slot.name
+                for slot in self.slots
+                if slot.required and not (slot.verified and slot.value)
+            ],
+        }
+        for slot in self.slots:
+            # If the default slots have been populated and verified, then don't show the slot in the tool definition
+            if slot.verified and slot.value:
+                continue
+            if slot.type == "group":
+                # For group, define as array of objects with schema
+                group_properties = {}
+                group_required = []
+                for field in (slot.schema or []):
+                    group_properties[field["name"]] = {
+                        "type": PYTHON_TO_JSON_SCHEMA.get(field["type"], "string"),
+                        "description": field.get("description", ""),
+                    }
+                    if field.get("required", False):
+                        group_required.append(field["name"])
+                parameters["properties"][slot.name] = {
+                    "type": "array",
+                    "items": {
+                        "type": "object",
+                        "properties": group_properties,
+                        "required": group_required,
+                    },
+                    "description": slot.description,
+                }
+            elif slot.items:
+                parameters["properties"][slot.name] = {
+                    "type": "array",
+                    "items": slot.items,
+                }
+            else:
+                parameters["properties"][slot.name] = {
+                    "type": PYTHON_TO_JSON_SCHEMA[slot.type],
+                    "description": slot.description,
+                }
+        return {
+            "type": "function",
+            "name": self.name,
+            "description": self.description,
+            "parameters": parameters,
+        }
+
+    def to_openai_tool_def_v2(self) -> dict:
+        parameters = {
+            "type": "object",
+            "properties": {},
+            "required": [slot.name for slot in self.openai_slots if slot.required],
+        }
+        for slot in self.openai_slots:
+            if hasattr(slot, "items") and slot.items:
+                parameters["properties"][slot.name] = {
+                    "type": "array",
+                    "items": slot.items,
+                }
+            else:
+                parameters["properties"][slot.name] = {
+                    "type": PYTHON_TO_JSON_SCHEMA[slot.type],
+                    "description": slot.description,
+                }
+        return {
+            "type": "function",
+            "function": {
+                "name": self.name,
+                "description": self.description,
+                "parameters": parameters,
+            },
+        }
+
+    def __str__(self) -> str:
+        """Get a string representation of the tool.
+
+        Returns:
+            str: A string representation of the tool.
+        """
+        return f"{self.__class__.__name__}"
+
+    def __repr__(self) -> str:
+        """Get a detailed string representation of the tool.
+
+        Returns:
+            str: A detailed string representation of the tool.
+        """
+        return f"{self.__class__.__name__}"
+
+    def _format_slots(self, slots: list) -> list[Slot]:
+        format_slots = []
+        for slot in slots:
+            if slot.get("type") == "group":
+                format_slots.append(
+                    Slot(
+                        name=slot["name"],
+                        type="group",
+                        value=[],
+                        description=slot.get("description", ""),
+                        prompt=slot.get("prompt", ""),
+                        required=slot.get("required", False),
+                        schema=slot.get("schema", []),
+                        repeatable=slot.get("repeatable", True),
+                    )
+                )
+            else:
+                format_slots.append(
+                    Slot(
+                        name=slot["name"],
+                        type=slot["type"],
+                        value="",
+                        description=slot.get("description", ""),
+                        prompt=slot.get("prompt", ""),
+                        required=slot.get("required", False),
+                        items=slot.get("items", None),
+                    )
+                )
+        return format_slots
 
     def _execute(self, state: MessageState, **fixed_args: FixedArgs) -> MessageState:
         """Execute the tool with the current state and fixed arguments.
@@ -287,67 +587,84 @@ class Tool:
         # Check if we need to reset slots for a new node
         # If this tool has been called before, check if the current slots are different
         # from the previously stored slots (indicating a different node)
+        def slot_schema_signature(slots):
+            import json
+            return [
+                (
+                    slot.name,
+                    slot.type,
+                    json.dumps(slot.schema, sort_keys=True) if hasattr(slot, 'schema') and slot.schema else None
+                )
+                for slot in slots
+            ]
+
         if state.slots.get(self.name):
             previous_slots = state.slots[self.name]
-            current_slot_names = {slot.name for slot in self.slots}
-            previous_slot_names = {slot.name for slot in previous_slots}
-
-            # If the slot configurations are different, reset to current node's slots
-            if current_slot_names != previous_slot_names:
+            if slot_schema_signature(self.slots) != slot_schema_signature(previous_slots):
                 log_context.info(
-                    f"Slot configuration changed from {previous_slot_names} to {current_slot_names}, resetting slots"
+                    f"Slot configuration or schema changed, resetting slots"
                 )
                 # Reset slots to the current node's configuration
-                state.slots[self.name] = self.slots.copy()
+                state.slots[self.name] = [Slot.model_validate(slot.model_dump()) for slot in self.slots]
+                self.slots = state.slots[self.name]
             else:
-                # Load previous slots if they're from the same node
+                # Load previous slots if they're from the same node and schema
                 self.slots = state.slots[self.name]
         else:
-            # First time calling this tool, store the current slots
-            state.slots[self.name] = self.slots.copy()
+            state.slots[self.name] = [Slot.model_validate(slot.model_dump()) for slot in self.slots]
+            self.slots = state.slots[self.name]
 
         # init slot values saved in default slots
         self._init_slots(state)
-        # do slotfilling
+        # do slotfilling (now with valueSource logic)
         chat_history_str: str = format_chat_history(state.function_calling_trajectory)
-        slots: list[Slot] = self.slotfiller.fill_slots(
-            self.slots, chat_history_str, self.llm_config
-        )
+        slots: list[Slot] = self._fill_slots_recursive(self.slots, chat_history_str)
         log_context.info(f"{slots=}")
 
-        # Check if any required slots are missing or unverified
-        missing_required = any(
-            not (slot.value and slot.verified) for slot in slots if slot.required
-        )
+        # Check if any required slots are missing or unverified (including groups)
+        missing_required = self._any_missing_required_recursive(slots)
         if missing_required:
             for slot in slots:
-                # if there is extracted slots values but haven't been verified
-                if slot.value and not slot.verified:
-                    # check whether it verified or not
-                    verification_needed: bool
-                    thought: str
-                    verification_needed, thought = self.slotfiller.verify_slot(
-                        slot.model_dump(), chat_history_str, self.llm_config
-                    )
-                    if verification_needed:
-                        response: str = slot.prompt + "The reason is: " + thought
-                        slot_verification = True
-                        reason = thought
+                if slot.type == "group":
+                    # For group, check each item in value list
+                    if not slot.value or not isinstance(slot.value, list):
+                        response = slot.prompt
                         break
-                    else:
-                        slot.verified = True
-                        log_context.info(f"Slot '{slot.name}' verified successfully")
-                # if there is no extracted slots values, then should prompt the user to fill the slot
-                if not slot.value and slot.required:
-                    response = slot.prompt
-                    break
+                    for idx, item in enumerate(slot.value):
+                        missing_fields = [
+                            field["name"]
+                            for field in (slot.schema or [])
+                            if field.get("required", False) and (item.get(field["name"]) in [None, ""])
+                        ]
+                        if missing_fields:
+                            response = f"Please provide the following fields for group '{slot.name}' item {idx+1}: {', '.join(missing_fields)}."
+                            break
+                else:
+                    # if there is extracted slots values but haven't been verified
+                    if slot.value and not slot.verified:
+                        # check whether it verified or not
+                        verification_needed: bool
+                        thought: str
+                        verification_needed, thought = self.slotfiller.verify_slot(
+                            slot.model_dump(), chat_history_str, self.llm_config
+                        )
+                        if verification_needed:
+                            response: str = slot.prompt + "The reason is: " + thought
+                            slot_verification = True
+                            reason = thought
+                            break
+                        else:
+                            slot.verified = True
+                            log_context.info(f"Slot '{slot.name}' verified successfully")
+                    # if there is no extracted slots values, then should prompt the user to fill the slot
+                    if not slot.value and slot.required:
+                        response = slot.prompt
+                        break
 
             state.status = StatusEnum.INCOMPLETE
 
         # Re-check if any required slots are still missing after verification
-        missing_required = any(
-            not (slot.value and slot.verified) for slot in slots if slot.required
-        )
+        missing_required = self._any_missing_required_recursive(slots)
 
         # if all required slots are filled and verified, then execute the function
         tool_success: bool = False
@@ -456,16 +773,9 @@ class Tool:
                     "Tool execution INCOMPLETE due to tool execution failure"
                 )
                 # Make it clear that the LLM should ask the user for missing information
-                missing_slots = [
-                    slot.name for slot in slots if slot.required and not slot.value
-                ]
+                missing_slots = self._missing_slots_recursive(slots)
                 if missing_slots:
-                    slot_questions = [
-                        slot.prompt
-                        for slot in slots
-                        if slot.required and not slot.value
-                    ]
-                    questions_text = " ".join(slot_questions)
+                    questions_text = " ".join(missing_slots)
                     state.message_flow = (
                         state.message_flow
                         + f"IMPORTANT: The tool cannot proceed without required information. You MUST ask the user for: {questions_text}\n"
@@ -479,113 +789,31 @@ class Tool:
         state.slots[self.name] = slots
         return state
 
-    def execute(self, state: MessageState, **fixed_args: FixedArgs) -> MessageState:
-        """Execute the tool with the current state and fixed arguments.
 
-        This method is a wrapper around _execute that handles the execution flow
-        and state management.
-
-        Args:
-            state (MessageState): The current message state.
-            **fixed_args (FixedArgs): Additional fixed arguments for the tool.
-
-        Returns:
-            MessageState: The updated message state after tool execution.
-        """
-        self.llm_config = state.bot_config.llm_config.model_dump()
-        state = self._execute(state, **fixed_args)
-        return state
-
-    def to_openai_tool_def(self) -> dict:
-        """Convert the tool to an OpenAI tool definition.
-
-        Returns:
-            dict: The OpenAI tool definition.
-        """
-        parameters = {
-            "type": "object",
-            "properties": {},
-            "required": [
-                slot.name
-                for slot in self.slots
-                if slot.required and not (slot.verified and slot.value)
-            ],
-        }
-        for slot in self.slots:
-            # If the default slots have been populated and verified, then don't show the slot in the tool definition
-            if slot.verified and slot.value:
-                continue
-            if slot.items:
-                parameters["properties"][slot.name] = {
-                    "type": "array",
-                    "items": slot.items,
-                }
-            else:
-                parameters["properties"][slot.name] = {
-                    "type": PYTHON_TO_JSON_SCHEMA[slot.type],
-                    "description": slot.description,
-                }
-        return {
-            "type": "function",
-            "name": self.name,
-            "description": self.description,
-            "parameters": parameters,
-        }
-
-    def to_openai_tool_def_v2(self) -> dict:
-        parameters = {
-            "type": "object",
-            "properties": {},
-            "required": [slot.name for slot in self.openai_slots if slot.required],
-        }
-        for slot in self.openai_slots:
-            if hasattr(slot, "items") and slot.items:
-                parameters["properties"][slot.name] = {
-                    "type": "array",
-                    "items": slot.items,
-                }
-            else:
-                parameters["properties"][slot.name] = {
-                    "type": PYTHON_TO_JSON_SCHEMA[slot.type],
-                    "description": slot.description,
-                }
-        return {
-            "type": "function",
-            "function": {
-                "name": self.name,
-                "description": self.description,
-                "parameters": parameters,
-            },
-        }
-
-    def __str__(self) -> str:
-        """Get a string representation of the tool.
-
-        Returns:
-            str: A string representation of the tool.
-        """
-        return f"{self.__class__.__name__}"
-
-    def __repr__(self) -> str:
-        """Get a detailed string representation of the tool.
-
-        Returns:
-            str: A detailed string representation of the tool.
-        """
-        return f"{self.__class__.__name__}"
-
-    def _format_slots(self, slots: list) -> list[Slot]:
-        format_slots = []
-        for slot in slots:
-            format_slots.append(
-                Slot(
-                    name=slot["name"],
-                    type=slot["type"],
-                    value="",
-                    description=slot.get("description", ""),
-                    prompt=slot.get("prompt", ""),
-                    required=slot.get("required", False),
-                    items=slot.get("items", None),
-                )
-            )
-        return format_slots
+def build_group_prompt(slot):
+    # Build a schema-driven prompt for the slot group
+    example_fields = []
+    for field in (slot.schema or []):
+        # Use the field's type, prompt, and description
+        example_value = {
+            "str": "\"example string\"",
+            "int": "123",
+            "float": "12.34",
+            "bool": "true"
+        }.get(field.get("type", "str"), "\"example\"")
+        example_fields.append(f'"{field["name"]}": {example_value}')
+    example_obj = "{" + ", ".join(example_fields) + "}"
+    schema_lines = []
+    for field in (slot.schema or []):
+        schema_lines.append(
+            f'- {field["name"]} ({field.get("type", "str")}): {field.get("description", field.get("prompt", ""))}'
+        )
+    schema_str = "\n".join(schema_lines)
+    return (
+        f"Please provide a list of dictionaries (objects), e.g. [{{'key': 'value'}}], each matching this schema:\n"
+        f"{schema_str}\n"
+        f"Example:\n[{example_obj}]\n"
+        f"IMPORTANT: Each object must have ALL the fields above, with the correct type. "
+        f"Do not add extra fields. Return a list of dicts, each matching the schema exactly. "
+        f"IMPORTANT: The field name is just a key, don't use it to find for the value. The value you provide must match the field's description and prompt, even if the user never says it directly.\n"
+    )

@@ -102,21 +102,25 @@ class Slot(BaseModel):
     2. Value validation through enums
     3. Metadata for slot description and prompting
     4. Verification status tracking
+    5. Support for slot groups (type='group') with a schema and list-of-dict value
 
     Attributes:
         name (str): The name of the slot.
-        type (str): The type of the slot value (default: "str").
-        value (Union[str, int, float, bool, List[str], None]): The current value of the slot.
+        type (str): The type of the slot value (default: "str"). Can be 'group' for slot groups.
+        value (Union[str, int, float, bool, List[str], List[dict], None]): The current value of the slot.
         enum (Optional[List[Union[str, int, float, bool, None]]]): List of valid values.
         description (str): Description of the slot's purpose.
         prompt (str): Prompt to use when filling the slot.
         required (bool): Whether the slot must be filled.
         verified (bool): Whether the slot's value has been verified.
+        schema (Optional[List[dict]]): For slot groups, the schema of the group (list of slot definitions).
+        repeatable (Optional[bool]): For slot groups, whether the group is repeatable.
+        valueSource (str | None): Source of the slot's value ('fixed', 'default', 'Prompt User', etc.).
     """
 
     name: str
-    type: str = Field(default="str")
-    value: str | int | float | bool | list[str] | None = Field(default=None)
+    type: str = Field(default="str")  # can be 'str', 'int', 'float', 'bool', 'group', etc.
+    value: str | int | float | bool | list[str] | list[dict] | None = Field(default=None)
     enum: list[str | int | float | bool | None] | None = Field(default=[])
     description: str = Field(default="")
     prompt: str = Field(default="")
@@ -124,6 +128,9 @@ class Slot(BaseModel):
     verified: bool = Field(default=False)
     items: dict | None = None
     target: str | None = None
+    schema: list[dict] | None = None  # For slot groups
+    repeatable: bool | None = None    # For slot groups
+    valueSource: str | None = None  # 'fixed', 'default', 'Prompt User', etc.
 
 
 class SlotInput(BaseModel):

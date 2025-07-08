@@ -23,7 +23,7 @@ def replace_placeholders(
 ) -> dict[str, object] | list[object] | str | object:
     """
     Recursively replace {{slot_name}} in all string values in data with slot_map[slot_name].
-    If the slot is not found, replace the placeholder with None.
+    If the slot is not found, replace the placeholder with None (or [] if the expected type is list).
     """
     import re
 
@@ -38,13 +38,23 @@ def replace_placeholders(
         if match:
             slot_name = match.group(1)
             value = slot_map.get(slot_name)
-            return value if value is not None else None
+            if value is not None:
+                return value
+            elif slot_name in slot_map and isinstance(slot_map[slot_name], list):
+                return []
+            else:
+                return None
         else:
             # Replace all placeholders in the string with values from slot_map
             def repl(m: re.Match) -> str:
                 slot_name = m.group(1)
                 value = slot_map.get(slot_name)
-                return str(value) if value is not None else "None"
+                if value is not None:
+                    return str(value)
+                elif slot_name in slot_map and isinstance(slot_map[slot_name], list):
+                    return "[]"
+                else:
+                    return "None"
 
             return re.sub(r"\{\{(\w+)\}\}", repl, data)
     else:
