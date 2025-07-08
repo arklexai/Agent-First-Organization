@@ -352,9 +352,11 @@ class Tool:
                 group_value = filled[0].value
                 # If the value is a string, try to parse as JSON
                 if isinstance(group_value, str):
+                    log_context.debug(f"Attempting to parse group_value as JSON for slot '{slot.name}': {group_value}")
                     try:
                         group_value = json.loads(group_value)
-                    except Exception:
+                    except Exception as e:
+                        log_context.error(f"Failed to parse group_value as JSON for slot '{slot.name}': {group_value}. Error: {e}")
                         raise ValueError(f"Slot group '{slot.name}' did not return a valid JSON list of objects: {group_value}")
                 # Enforce that the value is a list of dicts
                 if not (isinstance(group_value, list) and all(isinstance(item, dict) for item in group_value)):
@@ -378,15 +380,8 @@ class Tool:
                 slot.value = group_value
                 filled_slots.append(slot)
             else:
-                val_source = getattr(slot, "valueSource", "Prompt User")
-                if val_source == "fixed":
-                    slot.value = self._convert_value(getattr(slot, "value", ""), slot.type)
-                elif val_source == "default":
-                    filled = self.slotfiller.fill_slots([slot], chat_history_str, self.llm_config)
-                    slot.value = self._convert_value(filled[0].value if filled[0].value not in [None, ""] else getattr(slot, "value", ""), slot.type)
-                else:  # Prompt User or missing
-                    filled = self.slotfiller.fill_slots([slot], chat_history_str, self.llm_config)
-                    slot.value = self._convert_value(filled[0].value, slot.type)
+                filled = self.slotfiller.fill_slots([slot], chat_history_str, self.llm_config)
+                slot.value = self._convert_value(filled[0].value, slot.type)
                 filled_slots.append(slot)
         return filled_slots
 
