@@ -22,17 +22,29 @@ The agent is initialized with a `taskgraph` containing `agents` field with:
 ---
 
 ## 🛠 How Tools Work
-Each sub-agent in a multi-agent configuration can optionally use one or more tools to perform specialized tasks (e.g., search Shopify, retrieve user info, search the web). Tools are functions or wrapped function objects that an agent can invoke with structured inputs.
+Each sub-agent in a multi-agent configuration can optionally use one or more tools to perform specialized tasks (e.g., search Shopify, retrieve user info, search the web). 
+### 🔗 Tool Types
+A tool can be defined in one of the following ways:
 
-🔗 Tool Definition
+- **Regular Python function**
 
-A tool can either be:
+    Automatically wrapped as a `FunctionTool` when used in a sub-agent.
 
-- A regular Python function
+- **`FunctionTool` instance**
 
-- A wrapped function using FunctionTool
+    Explicitly wrapped function using the `FunctionTool` class.
 
-- Or a built-in tool provided by the OpenAI Agent SDK (no path required)
+- **Built-in OpenAI Agent SDK tool**
+
+    Tools like `web_search` that require no path; just reference them by id.
+
+- **Arklex-defined tool (e.g., Shopify)**
+
+    Domain-specific tools like search_products or get_user_details_admin.
+    These are automatically converted to `FunctionTool` and can accept fixed_args (e.g., API credentials).
+
+>💡 For Arklex tools, pass required credentials or config as `fixed_args` in your sub-agent definition. These will be injected at runtime, so the function does not need to read them from environment variables.
+
 
 ### Tool Configuration for Sub-Agents
 Each tool used by a sub-agent should be configured like this:
@@ -40,8 +52,8 @@ Each tool used by a sub-agent should be configured like this:
 ```jsonc
 "tools": [
   {
-    "id": "search_products",        // ID = name of the tool function
-    "path": "multi_agent/shopify/search_products.py", // Path to the module (relative to `arklex.env.tools`)
+    "id": "get_user_details_admin",        // ID = name of the tool function
+    "path": "shopify/get_user_details_admin.py", // Path to the module (relative to `arklex.env.tools`)
     "fixed_args": {                       // Optional: constant args passed at runtime
       "admin_token": "<shopify_admin_token>",
       "shop_url": "<your-shopify-shop-url>",
@@ -156,11 +168,13 @@ Goal: Help users find products and account info.
                         "tools": [
                             {
                                 "id": "search_products",
-                                "path": "multi_agent/shopify/search_products.py",
+                                "path": "shopify/search_products.py",
                                 "fixed_args": {
                                     "admin_token": "<shopify_admin_token>",
 									 "shop_url": "<your-shopify-shop-url>",
-                                    "api_version": "2024-10"
+                                    "api_version": "2024-10",
+                                    "llm_provider":"openai",
+                                    "model_type_or_path":"gpt-4o-mini"
                                 }
                             }
                         ]
@@ -171,7 +185,7 @@ Goal: Help users find products and account info.
                         "tools": [
                           {
                             "id": "get_user_details_admin",
-                            "path": "multi_agent/shopify/get_user_details_admin.py",
+                            "path": "shopify/get_user_details_admin.py",
                             "fixed_args": {
                                "admin_token": "<shopify_admin_token>",
 							   "shop_url": "<your-shopify-shop-url>",

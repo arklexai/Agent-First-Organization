@@ -6,6 +6,7 @@ from typing import Any
 
 from agents import FunctionTool, RunContextWrapper, Tool, WebSearchTool
 from pydantic import BaseModel, create_model
+from undecorated import undecorated
 
 # OpenAI Agent SDK built-in tools
 BUILT_IN_TOOLS = {
@@ -55,8 +56,13 @@ def resolve_tool(
         tool_func_or_cls = getattr(module, tool_id)
 
         if fixed_args and inspect.isfunction(tool_func_or_cls):
-            sig = inspect.signature(tool_func_or_cls)
+            # wrapped with register_tool wrapper, we want to undecorate
+            try:
+                tool_func_or_cls = undecorated(tool_func_or_cls)
+            except Exception:
+                tool_func_or_cls = tool_func_or_cls
 
+            sig = inspect.signature(tool_func_or_cls)
             user_param_names = [
                 name
                 for name, param in sig.parameters.items()
