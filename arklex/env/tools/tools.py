@@ -360,7 +360,16 @@ class Tool:
                         raise ValueError(f"Slot group '{slot.name}' did not return a valid JSON list of objects: {group_value}")
                 # Enforce that the value is a list of dicts
                 if not (isinstance(group_value, list) and all(isinstance(item, dict) for item in group_value)):
-                    raise ValueError(f"Slot group '{slot.name}' must be a list of dicts, got: {group_value}")
+                    # Handle case where group_value is None or not a list
+                    if group_value is None:
+                        log_context.warning(f"Slot group '{slot.name}' returned None, converting to empty list")
+                        group_value = []
+                    elif isinstance(group_value, dict):
+                        log_context.warning(f"Slot group '{slot.name}' returned a single dict, converting to list")
+                        group_value = [group_value]
+                    else:
+                        log_context.error(f"Slot group '{slot.name}' returned invalid format: {type(group_value)} - {group_value}")
+                        raise ValueError(f"Slot group '{slot.name}' must be a list of dicts, got: {group_value}")
                 # For each dict, apply valueSource logic as defined in the schema
                 for item in group_value:
                     for field in (slot.schema or []):

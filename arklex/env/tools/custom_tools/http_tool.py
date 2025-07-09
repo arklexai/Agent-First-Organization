@@ -17,13 +17,73 @@ from arklex.utils.logging_utils import LogContext
 log_context = LogContext(__name__)
 
 
+def clean_json_data(data: dict[str, Any]) -> dict[str, Any]:
+    """
+    Clean JSON data by removing or replacing invalid values that could cause parsing errors.
+    
+    Args:
+        data: Dictionary to clean
+        
+    Returns:
+        Cleaned dictionary with valid JSON values
+    """
+    if not isinstance(data, dict):
+        return data
+    
+    cleaned_data = {}
+    for key, value in data.items():
+        if isinstance(value, dict):
+            cleaned_data[key] = clean_json_data(value)
+        elif isinstance(value, list):
+            cleaned_data[key] = [clean_json_data(item) if isinstance(item, dict) else item for item in value]
+        elif isinstance(value, str):
+            # Remove any remaining placeholders that might cause JSON parsing issues
+            if "{{" in value and "}}" in value:
+                # Replace with empty string to avoid JSON parsing errors
+                cleaned_data[key] = ""
+            else:
+                cleaned_data[key] = value
+        else:
+            cleaned_data[key] = value
+    
+    return cleaned_data
+
+
+def validate_request_body(body: dict[str, Any] | None) -> dict[str, Any] | None:
+    """
+    Validate and clean the request body to ensure it's valid JSON.
+    
+    Args:
+        body: Request body to validate
+        
+    Returns:
+        Cleaned and validated request body
+    """
+    if body is None:
+        return None
+    
+    try:
+        # First clean the data
+        cleaned_body = clean_json_data(body)
+        
+        # Test JSON serialization to catch any remaining issues
+        import json
+        json.dumps(cleaned_body)
+        
+        return cleaned_body
+    except (TypeError, ValueError) as e:
+        log_context.error(f"Invalid request body after cleaning: {str(e)}")
+        # Return a minimal valid body if cleaning fails
+        return {"error": "Invalid request body", "details": str(e)}
+
+
 def replace_placeholders(
     data: dict[str, object] | list[object] | str | object,
     slot_map: dict[str, object],
 ) -> dict[str, object] | list[object] | str | object:
     """
     Recursively replace {{slot_name}} in all string values in data with slot_map[slot_name].
-    If the slot is not found, replace the placeholder with None (or [] if the expected type is list).
+    If the slot is not found, replace the placeholder with appropriate default values based on type.
     """
     import re
 
@@ -37,24 +97,53 @@ def replace_placeholders(
         match = re.match(placeholder_pattern, data)
         if match:
             slot_name = match.group(1)
-            value = slot_map.get(slot_name)
-            if value is not None:
-                return value
-            elif slot_name in slot_map and isinstance(slot_map[slot_name], list):
-                return []
+            slot_info = slot_map.get(slot_name)
+            if slot_info is not None:
+                value = slot_info.get("value")
+                slot_type = slot_info.get("type")
+                if value is not None:
+                    return value
+                # Use type to determine default
+                if slot_type == "list":
+                    return []
+                elif slot_type in ("str", "string"):
+                    return ""
+                elif slot_type in ("int", "integer"):
+                    return 0
+                elif slot_type == "float":
+                    return 0.0
+                elif slot_type in ("bool", "boolean"):
+                    return False
+                else:
+                    return None
             else:
-                return None
+                # If slot not found in slot_map, return appropriate default
+                return ""
         else:
             # Replace all placeholders in the string with values from slot_map
             def repl(m: re.Match) -> str:
                 slot_name = m.group(1)
-                value = slot_map.get(slot_name)
-                if value is not None:
-                    return str(value)
-                elif slot_name in slot_map and isinstance(slot_map[slot_name], list):
-                    return "[]"
+                slot_info = slot_map.get(slot_name)
+                if slot_info is not None:
+                    value = slot_info.get("value")
+                    slot_type = slot_info.get("type")
+                    if value is not None:
+                        return str(value)
+                    if slot_type == "list":
+                        return "[]"
+                    elif slot_type in ("str", "string"):
+                        return ""
+                    elif slot_type in ("int", "integer"):
+                        return "0"
+                    elif slot_type == "float":
+                        return "0.0"
+                    elif slot_type in ("bool", "boolean"):
+                        return "false"
+                    else:
+                        return ""
                 else:
-                    return "None"
+                    # For unknown slots, return empty string to avoid JSON parsing errors
+                    return ""
 
             return re.sub(r"\{\{(\w+)\}\}", repl, data)
     else:
@@ -111,12 +200,24 @@ def http_tool(
             slot_map = {}
             for slot in slots:
                 if isinstance(slot, dict):
-                    slot_map[slot.get("name")] = slot.get("value")
+                    slot_map[slot.get("name")] = {
+                        "value": slot.get("value"),
+                        "type": slot.get("type"),
+                        "description": slot.get("description"),
+                    }
                 else:
-                    slot_map[getattr(slot, "name", None)] = getattr(slot, "value", None)
+                    slot_map[getattr(slot, "name", None)] = {
+                        "value": getattr(slot, "value", None),
+                        "type": getattr(slot, "type", None),
+                        "description": getattr(slot, "description", None),
+                    }
             # Recursively replace placeholders in body
             params.body = replace_placeholders(params.body, slot_map)
 
+        # Clean and validate JSON data to prevent parsing errors
+        if params.body:
+            params.body = validate_request_body(params.body)
+        
         # Remove any {{}} placeholders from params and body as these are optional parameters
         def remove_placeholders(data_dict: dict[str, Any] | None) -> None:
             if not data_dict:
@@ -140,6 +241,15 @@ def http_tool(
         log_context.info(
             f"Making a {params.method} request to {params.endpoint}, with body: {params.body} and params: {params.params}"
         )
+        
+        # Log the final cleaned body for debugging
+        if params.body:
+            try:
+                import json
+                json_str = json.dumps(params.body, indent=2)
+                log_context.info(f"Final request body (JSON): {json_str}")
+            except Exception as e:
+                log_context.error(f"Failed to serialize request body to JSON: {str(e)}")
         response: requests.Response = requests.request(
             method=params.method,
             url=params.endpoint,
@@ -148,7 +258,15 @@ def http_tool(
             params=params.params,
         )
         response.raise_for_status()
-        response_data: dict[str, Any] | list[Any] = response.json()
+        
+        # Handle JSON parsing with better error handling
+        try:
+            response_data: dict[str, Any] | list[Any] = response.json()
+        except ValueError as json_error:
+            log_context.error(f"Failed to parse JSON response: {str(json_error)}")
+            # Return the raw text if JSON parsing fails
+            response_data = {"raw_response": response.text, "error": "JSON parsing failed"}
+        
         log_context.info(
             f"Response from the {params.endpoint} for body: {params.body} and params: {params.params} is: {response_data}"
         )
