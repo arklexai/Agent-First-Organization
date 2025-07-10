@@ -15,11 +15,8 @@ from arklex.env.agents.agent import BaseAgent
 from arklex.env.planner.react_planner import DefaultPlanner, ReactPlanner
 from arklex.env.tools.tools import Tool
 from arklex.env.workers.worker import BaseWorker
-from arklex.orchestrator.entities.msg_state_entities import (
-    MessageState,
-    NodeInfo,
-    Params,
-)
+from arklex.orchestrator.entities.orch_entities import MessageState, Params
+from arklex.orchestrator.entities.taskgraph_entities import NodeInfo
 from arklex.orchestrator.NLU.core.slot import SlotFiller
 from arklex.orchestrator.NLU.services.api_service import APIClientService
 from arklex.orchestrator.NLU.services.model_service import (

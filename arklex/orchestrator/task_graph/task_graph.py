@@ -48,13 +48,9 @@ import networkx as nx
 import numpy as np
 
 from arklex.env.nested_graph.nested_graph import NestedGraph
-from arklex.orchestrator.entities.msg_state_entities import (
-    LLMConfig,
-    NodeInfo,
-    Params,
-    PathNode,
-    StatusEnum,
-)
+from arklex.orchestrator.entities.msg_state_entities import LLMConfig, StatusEnum
+from arklex.orchestrator.entities.orch_entities import Params
+from arklex.orchestrator.entities.taskgraph_entities import NodeInfo, PathNode
 from arklex.orchestrator.NLU.core.intent import IntentDetector
 from arklex.orchestrator.NLU.core.slot import SlotFiller
 from arklex.orchestrator.NLU.services.model_service import (

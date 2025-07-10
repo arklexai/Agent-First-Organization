@@ -10,7 +10,7 @@ import traceback
 from abc import ABC, abstractmethod
 from typing import Any, TypedDict, TypeVar
 
-from arklex.orchestrator.entities.msg_state_entities import (
+from arklex.orchestrator.entities.orch_entities import (
     MessageState,
     ResourceRecord,
     StatusEnum,

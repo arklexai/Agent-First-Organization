@@ -43,7 +43,8 @@ from langchain_core.documents import Document
 from langchain_openai import OpenAIEmbeddings
 from pydantic import BaseModel
 
-from arklex.orchestrator.entities.msg_state_entities import LLMConfig, MessageState
+from arklex.orchestrator.entities.msg_state_entities import LLMConfig
+from arklex.orchestrator.entities.orch_entities import MessageState
 from arklex.orchestrator.prompts import (
     PLANNER_REACT_INSTRUCTION_FEW_SHOT,
     PLANNER_REACT_INSTRUCTION_ZERO_SHOT,

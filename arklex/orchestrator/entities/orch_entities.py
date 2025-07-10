@@ -19,10 +19,10 @@ from arklex.orchestrator.entities.msg_state_entities import (
     Metadata,
     OrchestratorMessage,
     StatusEnum,
-    StreamType,
 )
 from arklex.orchestrator.entities.taskgraph_entities import Taskgraph
 from arklex.orchestrator.NLU.entities.slot_entities import Slot
+from arklex.types import StreamType
 
 
 class MessageState(BaseModel):

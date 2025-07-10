@@ -68,19 +68,20 @@ from langchain_core.runnables import RunnableLambda
 from arklex.env.env import Environment
 from arklex.env.nested_graph.nested_graph import NESTED_GRAPH_ID, NestedGraph
 from arklex.env.tools.utils import ToolGenerator
+from arklex.memory.entities.memory_entities import ResourceRecord
 from arklex.orchestrator.entities.msg_state_entities import (
     BotConfig,
     ConvoMessage,
     LLMConfig,
-    MessageState,
-    NodeInfo,
-    NodeTypeEnum,
     OrchestratorMessage,
     OrchestratorResp,
-    Params,
-    PathNode,
-    ResourceRecord,
     StatusEnum,
+)
+from arklex.orchestrator.entities.orch_entities import MessageState, Params
+from arklex.orchestrator.entities.taskgraph_entities import (
+    NodeInfo,
+    NodeTypeEnum,
+    PathNode,
 )
 from arklex.orchestrator.post_process import post_process_response
 from arklex.orchestrator.task_graph.task_graph import TaskGraph
