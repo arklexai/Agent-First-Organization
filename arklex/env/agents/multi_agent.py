@@ -49,6 +49,8 @@ class MultiAgent(BaseAgent):
         try:
             log_context.info("[MultiAgent] Executing MAS workflow...")
             graph = self.workflow.compile()
+            # make this flexible invoke(synchronous) or ainvoke(asynchronous)
+            # need to figure out to do with parallelization pattern
             result = graph.invoke(msg_state)
             return dict(result)
         except Exception as e:
