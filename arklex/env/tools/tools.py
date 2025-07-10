@@ -447,8 +447,43 @@ class Tool:
                     slot.value = group_value
                 filled_slots.append(slot)
             else:
-                filled = self.slotfiller.fill_slots([slot], chat_history_str, self.llm_config)
-                slot.value = self._convert_value(filled[0].value, slot.type)
+                # Handle regular slots (non-group, non-nested_group)
+                if hasattr(slot, 'repeatable') and slot.repeatable:
+                    # For repeatable regular slots, expect a list of values
+                    # Build a prompt for repeatable regular slots
+                    repeatable_prompt = self._build_repeatable_regular_slot_prompt(slot)
+                    temp_slot = Slot(
+                        name=slot.name,
+                        type=slot.type,
+                        value=slot.value if slot.value else [],
+                        description=slot.description + " " + repeatable_prompt,
+                        required=slot.required,
+                        repeatable=slot.repeatable,
+                    )
+                    filled = self.slotfiller.fill_slots([temp_slot], chat_history_str, self.llm_config)
+                    slot_value = filled[0].value
+                    
+                    # Handle repeatable flag for regular slots
+                    if isinstance(slot_value, str):
+                        try:
+                            slot_value = json.loads(slot_value)
+                        except Exception as e:
+                            log_context.error(f"Failed to parse repeatable slot '{slot.name}' as JSON: {slot_value}. Error: {e}")
+                            raise ValueError(f"Repeatable slot '{slot.name}' did not return a valid JSON array: {slot_value}")
+                    
+                    if not isinstance(slot_value, list):
+                        if slot_value is None:
+                            log_context.warning(f"Repeatable slot '{slot.name}' returned None, converting to empty list")
+                            slot_value = []
+                        else:
+                            log_context.warning(f"Repeatable slot '{slot.name}' returned single value, converting to list")
+                            slot_value = [slot_value]
+                    
+                    slot.value = [self._convert_value(val, slot.type) for val in slot_value]
+                else:
+                    # For non-repeatable regular slots, expect a single value
+                    filled = self.slotfiller.fill_slots([slot], chat_history_str, self.llm_config)
+                    slot.value = self._convert_value(filled[0].value, slot.type)
                 filled_slots.append(slot)
         
         # Now process nested slot groups to build unified structure
@@ -1502,8 +1537,20 @@ class Tool:
                         if self._check_nested_required_fields(slot.value, slot.nested_schema):
                             return True
             else:
-                if slot.required and (not slot.value or not slot.verified):
-                    return True
+                # Handle regular slots (non-group, non-nested_group)
+                if hasattr(slot, 'repeatable') and slot.repeatable:
+                    # For repeatable regular slots, check if at least one item exists if required
+                    if slot.required and (not slot.value or not isinstance(slot.value, list) or len(slot.value) == 0):
+                        return True
+                    # Check each value in the list
+                    if slot.value and isinstance(slot.value, list):
+                        for val in slot.value:
+                            if val in [None, ""]:
+                                return True
+                else:
+                    # For non-repeatable regular slots
+                    if slot.required and (not slot.value or not slot.verified):
+                        return True
         return False
 
     def _check_nested_required_fields(self, item, nested_schema):
@@ -1598,8 +1645,19 @@ class Tool:
                         nested_missing = self._get_nested_missing_fields(slot.value, slot.nested_schema, slot.name, 1)
                         missing.extend(nested_missing)
             else:
-                if slot.required and (not slot.value or not slot.verified):
-                    missing.append(slot.prompt)
+                # Handle regular slots (non-group, non-nested_group)
+                if hasattr(slot, 'repeatable') and slot.repeatable:
+                    # For repeatable regular slots, check list structure
+                    if slot.required and (not slot.value or not isinstance(slot.value, list) or len(slot.value) == 0):
+                        missing.append(slot.prompt)
+                    elif slot.value and isinstance(slot.value, list):
+                        for idx, val in enumerate(slot.value):
+                            if val in [None, ""]:
+                                missing.append(f"{slot.prompt} (item {idx+1})")
+                else:
+                    # For non-repeatable regular slots
+                    if slot.required and (not slot.value or not slot.verified):
+                        missing.append(slot.prompt)
         return missing
 
     def _get_nested_missing_fields(self, item, nested_schema, group_name, item_idx):
@@ -1734,6 +1792,30 @@ class Tool:
         
         return missing
 
+    def _build_repeatable_regular_slot_prompt(self, slot):
+        """Build a prompt for repeatable regular slots.
+        
+        Args:
+            slot: The repeatable regular slot
+            
+        Returns:
+            str: The prompt for the repeatable regular slot
+        """
+        type_example = {
+            "str": '"example string"',
+            "int": "123",
+            "float": "12.34",
+            "bool": "true"
+        }.get(slot.type, '"example"')
+        
+        return (
+            f"IMPORTANT: This slot is repeatable and expects a list of {slot.type} values. "
+            f"Please provide a JSON array of values, e.g. [{type_example}, {type_example}]. "
+            f"Extract ALL matching values from the conversation into the array. "
+            f"Do not return a single value - return an array even if there's only one value. "
+            f"Return an empty array [] if no values are found."
+        )
+
     def _normalize_nested_structure(self, item, nested_schema):
         """Normalize a nested structure to match the expected schema.
         
@@ -1846,10 +1928,22 @@ class Tool:
                     "items": slot.items,
                 }
             else:
-                parameters["properties"][slot.name] = {
-                    "type": PYTHON_TO_JSON_SCHEMA[slot.type],
-                    "description": slot.description,
-                }
+                # Handle regular slots (non-group, non-nested_group)
+                if hasattr(slot, 'repeatable') and slot.repeatable:
+                    # For repeatable regular slots, define as array
+                    parameters["properties"][slot.name] = {
+                        "type": "array",
+                        "items": {
+                            "type": PYTHON_TO_JSON_SCHEMA[slot.type],
+                        },
+                        "description": slot.description,
+                    }
+                else:
+                    # For non-repeatable regular slots, define as single value
+                    parameters["properties"][slot.name] = {
+                        "type": PYTHON_TO_JSON_SCHEMA[slot.type],
+                        "description": slot.description,
+                    }
         return {
             "type": "function",
             "name": self.name,
@@ -1870,10 +1964,22 @@ class Tool:
                     "items": slot.items,
                 }
             else:
-                parameters["properties"][slot.name] = {
-                    "type": PYTHON_TO_JSON_SCHEMA[slot.type],
-                    "description": slot.description,
-                }
+                # Handle regular slots (non-group, non-nested_group)
+                if hasattr(slot, 'repeatable') and slot.repeatable:
+                    # For repeatable regular slots, define as array
+                    parameters["properties"][slot.name] = {
+                        "type": "array",
+                        "items": {
+                            "type": PYTHON_TO_JSON_SCHEMA[slot.type],
+                        },
+                        "description": slot.description,
+                    }
+                else:
+                    # For non-repeatable regular slots, define as single value
+                    parameters["properties"][slot.name] = {
+                        "type": PYTHON_TO_JSON_SCHEMA[slot.type],
+                        "description": slot.description,
+                    }
         return {
             "type": "function",
             "function": {
@@ -1929,15 +2035,17 @@ class Tool:
                     )
                 )
             else:
+                # Handle regular slots (non-group, non-nested_group)
                 format_slots.append(
                     Slot(
                         name=slot["name"],
                         type=slot["type"],
-                        value="",
+                        value=[] if slot.get("repeatable", False) else "",
                         description=slot.get("description", ""),
                         prompt=slot.get("prompt", ""),
                         required=slot.get("required", False),
                         items=slot.get("items", None),
+                        repeatable=slot.get("repeatable", False),
                     )
                 )
         return format_slots
@@ -2052,26 +2160,39 @@ class Tool:
                             response = f"Please provide the following fields for nested group '{slot.name}': {', '.join(missing_fields)}."
                             break
                 else:
-                    # if there is extracted slots values but haven't been verified
-                    if slot.value and not slot.verified:
-                        # check whether it verified or not
-                        verification_needed: bool
-                        thought: str
-                        verification_needed, thought = self.slotfiller.verify_slot(
-                            slot.model_dump(), chat_history_str, self.llm_config
-                        )
-                        if verification_needed:
-                            response: str = slot.prompt + "The reason is: " + thought
-                            slot_verification = True
-                            reason = thought
+                    # Handle regular slots (non-group, non-nested_group)
+                    if hasattr(slot, 'repeatable') and slot.repeatable:
+                        # For repeatable regular slots, check list structure
+                        if not slot.value or not isinstance(slot.value, list) or len(slot.value) == 0:
+                            response = slot.prompt
                             break
-                        else:
-                            slot.verified = True
-                            log_context.info(f"Slot '{slot.name}' verified successfully")
-                    # if there is no extracted slots values, then should prompt the user to fill the slot
-                    if not slot.value and slot.required:
-                        response = slot.prompt
-                        break
+                        # Check each value in the list
+                        for idx, val in enumerate(slot.value):
+                            if val in [None, ""]:
+                                response = f"Please provide a value for {slot.prompt} (item {idx+1})"
+                                break
+                    else:
+                        # For non-repeatable regular slots
+                        # if there is extracted slots values but haven't been verified
+                        if slot.value and not slot.verified:
+                            # check whether it verified or not
+                            verification_needed: bool
+                            thought: str
+                            verification_needed, thought = self.slotfiller.verify_slot(
+                                slot.model_dump(), chat_history_str, self.llm_config
+                            )
+                            if verification_needed:
+                                response: str = slot.prompt + "The reason is: " + thought
+                                slot_verification = True
+                                reason = thought
+                                break
+                            else:
+                                slot.verified = True
+                                log_context.info(f"Slot '{slot.name}' verified successfully")
+                        # if there is no extracted slots values, then should prompt the user to fill the slot
+                        if not slot.value and slot.required:
+                            response = slot.prompt
+                            break
 
             state.status = StatusEnum.INCOMPLETE
 
