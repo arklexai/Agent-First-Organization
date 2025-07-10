@@ -5,7 +5,7 @@ from unittest.mock import Mock, patch
 import pytest
 
 from arklex.env.tools.utils import ToolGenerator, execute_tool, trace
-from arklex.orchestrator.entities.msg_state_entities import MessageState
+from arklex.orchestrator.entities.orch_entities import MessageState
 
 
 class TestGetPromptTemplate:

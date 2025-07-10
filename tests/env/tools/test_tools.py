@@ -8,7 +8,7 @@ from typing import Any
 from unittest.mock import Mock, patch
 
 from arklex.env.tools.tools import Tool, register_tool
-from arklex.orchestrator.entities.msg_state_entities import MessageState
+from arklex.orchestrator.entities.orch_entities import MessageState
 from arklex.utils.exceptions import AuthenticationError, ToolExecutionError
 
 

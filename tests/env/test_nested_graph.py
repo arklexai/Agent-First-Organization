@@ -10,7 +10,8 @@ from unittest.mock import Mock
 import pytest
 
 from arklex.env.nested_graph.nested_graph import NestedGraph
-from arklex.orchestrator.entities.msg_state_entities import NodeInfo, Params, PathNode
+from arklex.orchestrator.entities.orch_entities import Params
+from arklex.orchestrator.entities.taskgraph_entities import NodeInfo, PathNode
 
 
 class TestNestedGraph:

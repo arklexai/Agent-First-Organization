@@ -2,12 +2,9 @@ from unittest.mock import Mock, patch
 
 import pytest
 
-from arklex.orchestrator.entities.msg_state_entities import (
-    MessageState,
-    Metadata,
-    Params,
-    ResourceRecord,
-)
+from arklex.memory.entities.memory_entities import ResourceRecord
+from arklex.orchestrator.entities.msg_state_entities import Metadata
+from arklex.orchestrator.entities.orch_entities import MessageState, Params
 from arklex.orchestrator.post_process import (
     RAG_NODES_STEPS,
     TRIGGER_LIVE_CHAT_PROMPT,

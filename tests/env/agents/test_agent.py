@@ -4,7 +4,7 @@ from unittest.mock import Mock, patch
 import pytest
 
 from arklex.env.agents.agent import BaseAgent, register_agent
-from arklex.orchestrator.entities.msg_state_entities import MessageState, StatusEnum
+from arklex.orchestrator.entities.orch_entities import MessageState, StatusEnum
 
 
 class TestRegisterAgent:

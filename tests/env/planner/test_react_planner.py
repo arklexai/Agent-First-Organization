@@ -22,9 +22,9 @@ from arklex.env.planner.react_planner import (
 from arklex.orchestrator.entities.msg_state_entities import (
     ConvoMessage,
     LLMConfig,
-    MessageState,
     OrchestratorMessage,
 )
+from arklex.orchestrator.entities.orch_entities import MessageState
 from arklex.types import StreamType
 
 

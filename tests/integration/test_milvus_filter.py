@@ -10,7 +10,7 @@ integration workflow from user input to filtered response generation.
 from typing import Any
 from unittest.mock import Mock, patch
 
-from arklex.orchestrator.entities.msg_state_entities import MessageState
+from arklex.orchestrator.entities.orch_entities import MessageState
 from tests.integration.integration_test_utils import MilvusTestHelper
 
 

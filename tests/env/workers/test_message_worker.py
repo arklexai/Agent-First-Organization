@@ -20,10 +20,10 @@ from arklex.orchestrator.entities.msg_state_entities import (
     BotConfig,
     ConvoMessage,
     LLMConfig,
-    MessageState,
     OrchestratorMessage,
     StatusEnum,
 )
+from arklex.orchestrator.entities.orch_entities import MessageState
 from arklex.types import StreamType
 
 # Test configuration constants

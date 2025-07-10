@@ -19,7 +19,8 @@ from langchain_openai import OpenAIEmbeddings
 
 from arklex.env.prompts import load_prompts
 from arklex.env.tools.utils import trace
-from arklex.orchestrator.entities.msg_state_entities import LLMConfig, MessageState
+from arklex.orchestrator.entities.msg_state_entities import LLMConfig
+from arklex.orchestrator.entities.orch_entities import MessageState
 from arklex.utils.logging_utils import LogContext
 from arklex.utils.model_provider_config import (
     PROVIDER_EMBEDDING_MODELS,

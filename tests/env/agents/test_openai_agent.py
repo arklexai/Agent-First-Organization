@@ -3,7 +3,7 @@ from unittest.mock import Mock, patch
 import pytest
 
 from arklex.env.agents.openai_agent import OpenAIAgent, end_conversation
-from arklex.orchestrator.entities.msg_state_entities import MessageState, StatusEnum
+from arklex.orchestrator.entities.orch_entities import MessageState, StatusEnum
 
 
 @pytest.fixture

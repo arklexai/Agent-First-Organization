@@ -14,7 +14,7 @@ from unittest.mock import MagicMock, Mock
 import pytest
 
 from arklex.env.env import Environment
-from arklex.orchestrator.entities.msg_state_entities import MessageState
+from arklex.orchestrator.entities.orch_entities import MessageState
 
 
 class MockResponse:

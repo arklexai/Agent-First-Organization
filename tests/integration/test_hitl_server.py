@@ -17,12 +17,12 @@ from arklex.orchestrator.entities.msg_state_entities import (
     BotConfig,
     ConvoMessage,
     LLMConfig,
-    MessageState,
     Metadata,
     OrchestratorMessage,
     StatusEnum,
     Timing,
 )
+from arklex.orchestrator.entities.orch_entities import MessageState
 from arklex.orchestrator.NLU.services.model_service import ModelService
 from arklex.orchestrator.orchestrator import AgentOrg
 

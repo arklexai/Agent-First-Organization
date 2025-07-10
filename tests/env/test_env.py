@@ -4,12 +4,12 @@ import pytest
 
 from arklex.env.env import DefaultResourceInitializer, Environment
 from arklex.env.planner.react_planner import ReactPlanner
-from arklex.orchestrator.entities.msg_state_entities import (
+from arklex.orchestrator.entities.orch_entities import (
     MessageState,
-    NodeInfo,
     Params,
     StatusEnum,
 )
+from arklex.orchestrator.entities.taskgraph_entities import NodeInfo
 from arklex.orchestrator.NLU.core.slot import SlotFiller
 from arklex.orchestrator.NLU.services.model_service import DummyModelService
 
