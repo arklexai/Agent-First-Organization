@@ -764,12 +764,15 @@ class Tool:
                 for field in nsg.get('schema', []):
                     field_type = field.get('type', 'str')
                     required = field.get('required', False)
+                    field_repeatable = field.get('repeatable', False)
                     description = field.get('description', '')
                     group_ref = field.get('groupRef', '')
                     if group_ref and group_ref != 'none':
-                        prompt_parts.append(f"      - {field['name']} (references group '{group_ref}'){' [REQUIRED]' if required else ''}: {description}")
+                        repeatable_text = ' [REPEATABLE]' if field_repeatable else ''
+                        prompt_parts.append(f"      - {field['name']} (references group '{group_ref}'){' [REQUIRED]' if required else ''}{repeatable_text}: {description}")
                     else:
-                        prompt_parts.append(f"      - {field['name']} ({field_type}){' [REQUIRED]' if required else ''}: {description}")
+                        repeatable_text = ' [REPEATABLE]' if field_repeatable else ''
+                        prompt_parts.append(f"      - {field['name']} ({field_type}){' [REQUIRED]' if required else ''}{repeatable_text}: {description}")
                 prompt_parts.append("")
         
         # Explain how groupRef works
@@ -786,6 +789,16 @@ class Tool:
         prompt_parts.append("- Example: if 'courses' is repeatable=True, then it should be: [{'course_name': 'Math101', 'modules': [...]}, {'course_name': 'CS101', 'modules': [...]}]")
         prompt_parts.append("- Example: if 'courses' is repeatable=False, then it should be: {'course_name': 'Math101', 'modules': [...]}")
         prompt_parts.append("")
+        prompt_parts.append("IMPORTANT - REPEATABLE FIELDS:")
+        prompt_parts.append("- Individual fields within schemas can also be repeatable")
+        prompt_parts.append("- If a field has repeatable=True, it becomes an ARRAY of values")
+        prompt_parts.append("- If a field has repeatable=False, it becomes a SINGLE value")
+        prompt_parts.append("- Example: if 'term' field is repeatable=True, use: \"term\": [\"Fall 2024\", \"Spring 2025\"]")
+        prompt_parts.append("- Example: if 'term' field is repeatable=False, use: \"term\": \"Fall 2024\"")
+        prompt_parts.append("- ALWAYS check the example structure to see which fields are arrays vs single values")
+        prompt_parts.append("- For repeatable fields, extract ALL values from the conversation and put them in an array")
+        prompt_parts.append("- Even if there's only one value, if the field is repeatable, it must be in an array")
+        prompt_parts.append("")
         
         # Build example structure for the specific slot
         prompt_parts.append(f"REQUIRED STRUCTURE FOR '{slot.name}':")
@@ -800,6 +813,10 @@ class Tool:
         prompt_parts.append("- Do NOT add extra fields not in the schema")
         prompt_parts.append("- Do NOT change field names (e.g., use 'term' not 'semester', 'terms')")
         prompt_parts.append("- Follow the exact structure shown above")
+        prompt_parts.append("- Pay attention to ARRAYS vs SINGLE VALUES in the example structure")
+        prompt_parts.append("- If the example shows an array (e.g., \"term\": [\"example\"]), use an array in your response")
+        prompt_parts.append("- If the example shows a single value (e.g., \"term\": \"example\"), use a single value")
+        prompt_parts.append("- REPEATABLE FIELDS MUST BE ARRAYS - even if there's only one value")
         prompt_parts.append("- Extract data from the conversation to populate the values")
         prompt_parts.append("- Return ONLY valid JSON, no explanations")
         
@@ -873,8 +890,18 @@ class Tool:
                     # Unknown reference, create basic example
                     example[field_name] = [{"example_field": "example_value"}]
             else:
-                # Regular field
-                example[field_name] = self._example_value_for_type(field_type, field_name)
+                # Regular field - check if it's repeatable
+                field_repeatable = field.get("repeatable", False)
+                if field_repeatable:
+                    # If field is repeatable, make it an array of multiple values to make it obvious
+                    example[field_name] = [
+                        self._example_value_for_type(field_type, field_name),
+                        f"another_{field_name}",
+                        f"third_{field_name}"
+                    ]
+                else:
+                    # If field is not repeatable, make it a single value
+                    example[field_name] = self._example_value_for_type(field_type, field_name)
         
         # Handle repeatable flag
         if repeatable:
@@ -974,17 +1001,27 @@ class Tool:
             field_name = field["name"]
             field_type = field.get("type", "str")
             group_ref = field.get("groupRef", "")
+            field_repeatable = field.get("repeatable", False)
             
             if group_ref and group_ref != "none":
                 # This is a nested group reference
-                example[field_name] = [
-                    {
-                        "example_field": "example_value"
-                    }
-                ]
+                if field_repeatable:
+                    example[field_name] = [
+                        {"example_field": "example_value"}
+                    ]
+                else:
+                    example[field_name] = {"example_field": "example_value"}
             else:
                 # Regular field
-                example[field_name] = self._example_value_for_type(field_type, field_name)
+                if field_repeatable:
+                    # Make it an array of multiple values to make it obvious
+                    example[field_name] = [
+                        self._example_value_for_type(field_type, field_name),
+                        f"another_{field_name}",
+                        f"third_{field_name}"
+                    ]
+                else:
+                    example[field_name] = self._example_value_for_type(field_type, field_name)
         
         return example
 
@@ -1346,6 +1383,7 @@ class Tool:
             field_name = field["name"]
             field_type = field.get("type", "str")
             group_ref = field.get("groupRef", "")
+            field_repeatable = field.get("repeatable", False)
             
             if group_ref and group_ref != "none":
                 # This is a nested group reference
@@ -1357,7 +1395,6 @@ class Tool:
                         if slot.name == group_ref and slot.type == "group":
                             referenced_slot = slot
                             break
-                    
                     if referenced_slot and not referenced_slot.repeatable:
                         # If it's a non-repeatable regular slot group, use its schema directly
                         group_properties = {}
@@ -1369,13 +1406,23 @@ class Tool:
                             }
                             if schema_field.get("required", False):
                                 group_required.append(schema_field["name"])
-                        
-                        properties[field_name] = {
-                            "type": "object",
-                            "properties": group_properties,
-                            "required": group_required,
-                            "description": field.get("description", ""),
-                        }
+                        if field_repeatable:
+                            properties[field_name] = {
+                                "type": "array",
+                                "items": {
+                                    "type": "object",
+                                    "properties": group_properties,
+                                    "required": group_required,
+                                },
+                                "description": field.get("description", ""),
+                            }
+                        else:
+                            properties[field_name] = {
+                                "type": "object",
+                                "properties": group_properties,
+                                "required": group_required,
+                                "description": field.get("description", ""),
+                            }
                     else:
                         # If it's a repeatable group or nested group, use array
                         nested_properties = self._build_nested_openai_schema(ref_schema)
@@ -1398,10 +1445,19 @@ class Tool:
                     }
             else:
                 # Regular field
-                properties[field_name] = {
-                    "type": PYTHON_TO_JSON_SCHEMA.get(field_type, "string"),
-                    "description": field.get("description", ""),
-                }
+                if field_repeatable:
+                    properties[field_name] = {
+                        "type": "array",
+                        "items": {
+                            "type": PYTHON_TO_JSON_SCHEMA.get(field_type, "string"),
+                        },
+                        "description": field.get("description", ""),
+                    }
+                else:
+                    properties[field_name] = {
+                        "type": PYTHON_TO_JSON_SCHEMA.get(field_type, "string"),
+                        "description": field.get("description", ""),
+                    }
         
         return properties
 
@@ -1466,30 +1522,43 @@ class Tool:
         for field in (nested_schema or []):
             field_name = field["name"]
             group_ref = field.get("groupRef", "")
+            field_repeatable = field.get("repeatable", False)
             
             if group_ref and group_ref != "none":
                 # This is a nested group reference - check if the referenced group field exists
                 if field.get("required", False):
-                    # The field name in the data should match the field name from the nested schema
-                    # For example, if field_name is "category" and groupRef is "subcategories",
-                    # we should look for "category" in the data, which contains data from "subcategories" group
                     if field_name not in item or not item[field_name]:
                         return True
                     # Recursively check the nested group
-                    if isinstance(item[field_name], list):
+                    if field_repeatable:
+                        if not isinstance(item[field_name], list) or len(item[field_name]) == 0:
+                            return True
                         for nested_item in item[field_name]:
                             ref_schema = self._find_group_schema(group_ref, nested_schema)
                             if ref_schema and self._check_nested_required_fields(nested_item, ref_schema):
                                 return True
-                    elif isinstance(item[field_name], dict):
-                        # Handle non-repeatable regular slot groups
+                    else:
+                        if isinstance(item[field_name], list):
+                            if len(item[field_name]) == 0:
+                                return True
+                            nested_value = item[field_name][0]
+                        else:
+                            nested_value = item[field_name]
                         ref_schema = self._find_group_schema(group_ref, nested_schema)
-                        if ref_schema and self._check_nested_required_fields(item[field_name], ref_schema):
+                        if ref_schema and self._check_nested_required_fields(nested_value, ref_schema):
                             return True
             else:
                 # Regular field
-                if field.get("required", False) and (item.get(field_name) in [None, ""]):
-                    return True
+                if field.get("required", False):
+                    if field_repeatable:
+                        if field_name not in item or not isinstance(item[field_name], list) or len(item[field_name]) == 0:
+                            return True
+                        for val in item[field_name]:
+                            if val in [None, ""]:
+                                return True
+                    else:
+                        if item.get(field_name) in [None, ""]:
+                            return True
         
         return False
 
@@ -1553,26 +1622,52 @@ class Tool:
         for field in (nested_schema or []):
             field_name = field["name"]
             group_ref = field.get("groupRef", "")
+            field_repeatable = field.get("repeatable", False)
             
             if group_ref and group_ref != "none":
                 # This is a nested group reference
                 if field.get("required", False):
-                    # The field name in the data should match the field name from the nested schema
                     if field_name not in item or not item[field_name]:
                         missing.append(f"{field.get('prompt', field_name)} (nested group '{group_name}' item {item_idx})")
-                    # Recursively check the nested group
-                    elif isinstance(item[field_name], list):
-                        for nested_idx, nested_item in enumerate(item[field_name]):
+                    else:
+                        if field_repeatable:
+                            if not isinstance(item[field_name], list) or len(item[field_name]) == 0:
+                                missing.append(f"{field.get('prompt', field_name)} (nested group '{group_name}' item {item_idx})")
+                            else:
+                                for nested_idx, nested_item in enumerate(item[field_name]):
+                                    ref_schema = self._find_group_schema(group_ref, nested_schema)
+                                    if ref_schema:
+                                        nested_missing = self._get_nested_missing_fields(
+                                            nested_item, ref_schema, f"{group_name}.{field_name}", nested_idx + 1
+                                        )
+                                        missing.extend(nested_missing)
+                        else:
+                            if isinstance(item[field_name], list):
+                                if len(item[field_name]) == 0:
+                                    missing.append(f"{field.get('prompt', field_name)} (nested group '{group_name}' item {item_idx})")
+                                else:
+                                    nested_value = item[field_name][0]
+                            else:
+                                nested_value = item[field_name]
                             ref_schema = self._find_group_schema(group_ref, nested_schema)
                             if ref_schema:
                                 nested_missing = self._get_nested_missing_fields(
-                                    nested_item, ref_schema, f"{group_name}.{field_name}", nested_idx + 1
+                                    nested_value, ref_schema, f"{group_name}.{field_name}", 1
                                 )
                                 missing.extend(nested_missing)
             else:
                 # Regular field
-                if field.get("required", False) and (item.get(field_name) in [None, ""]):
-                    missing.append(f"{field.get('prompt', field_name)} (nested group '{group_name}' item {item_idx})")
+                if field.get("required", False):
+                    if field_repeatable:
+                        if field_name not in item or not isinstance(item[field_name], list) or len(item[field_name]) == 0:
+                            missing.append(f"{field.get('prompt', field_name)} (nested group '{group_name}' item {item_idx})")
+                        else:
+                            for val in item[field_name]:
+                                if val in [None, ""]:
+                                    missing.append(f"{field.get('prompt', field_name)} (nested group '{group_name}' item {item_idx})")
+                    else:
+                        if item.get(field_name) in [None, ""]:
+                            missing.append(f"{field.get('prompt', field_name)} (nested group '{group_name}' item {item_idx})")
         
         return missing
 
@@ -1594,24 +1689,48 @@ class Tool:
         for field in (nested_schema or []):
             field_name = field["name"]
             group_ref = field.get("groupRef", "")
+            field_repeatable = field.get("repeatable", False)
             
             if group_ref and group_ref != "none":
                 # This is a nested group reference
                 if field.get("required", False):
-                    # The field name in the data should match the field name from the nested schema
                     if field_name not in item or not item[field_name]:
                         missing.append(field_name)
-                    # Recursively check the nested group
-                    elif isinstance(item[field_name], list):
-                        for nested_item in item[field_name]:
+                    else:
+                        if field_repeatable:
+                            if not isinstance(item[field_name], list) or len(item[field_name]) == 0:
+                                missing.append(field_name)
+                            else:
+                                for nested_item in item[field_name]:
+                                    ref_schema = self._find_group_schema(group_ref, nested_schema)
+                                    if ref_schema:
+                                        nested_missing = self._get_nested_missing_field_names(nested_item, ref_schema)
+                                        missing.extend(nested_missing)
+                        else:
+                            if isinstance(item[field_name], list):
+                                if len(item[field_name]) == 0:
+                                    missing.append(field_name)
+                                else:
+                                    nested_value = item[field_name][0]
+                            else:
+                                nested_value = item[field_name]
                             ref_schema = self._find_group_schema(group_ref, nested_schema)
                             if ref_schema:
-                                nested_missing = self._get_nested_missing_field_names(nested_item, ref_schema)
+                                nested_missing = self._get_nested_missing_field_names(nested_value, ref_schema)
                                 missing.extend(nested_missing)
             else:
                 # Regular field
-                if field.get("required", False) and (item.get(field_name) in [None, ""]):
-                    missing.append(field_name)
+                if field.get("required", False):
+                    if field_repeatable:
+                        if field_name not in item or not isinstance(item[field_name], list) or len(item[field_name]) == 0:
+                            missing.append(field_name)
+                        else:
+                            for val in item[field_name]:
+                                if val in [None, ""]:
+                                    missing.append(field_name)
+                    else:
+                        if item.get(field_name) in [None, ""]:
+                            missing.append(field_name)
         
         return missing
 
