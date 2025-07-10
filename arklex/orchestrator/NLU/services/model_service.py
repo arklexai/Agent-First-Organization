@@ -958,18 +958,32 @@ Please choose the most appropriate intent by providing the corresponding intent 
                 # Handle both dict and Pydantic model inputs
                 if isinstance(slot, dict):
                     slot_name = slot.get("name", "")
-                    if slot_name in extracted_values:
-                        slot["value"] = extracted_values[slot_name]
-                    else:
-                        slot["value"] = None
+                    value = None
+                    if isinstance(extracted_values, dict):
+                        if slot_name in extracted_values:
+                            value = extracted_values[slot_name]
+                    elif isinstance(extracted_values, list):
+                        for item in extracted_values:
+                            if isinstance(item, dict) and slot_name in item:
+                                value = item[slot_name]
+                                break
+                    log_context.info(f"Assigning to slot dict: {slot_name} value: {value} from extracted_values: {extracted_values}")
+                    slot["value"] = value
                 else:
                     slot_name = getattr(slot, "name", "")
-                    if slot_name in extracted_values:
-                        slot.value = extracted_values[slot_name]
-                    else:
-                        slot.value = None
+                    value = None
+                    if isinstance(extracted_values, dict):
+                        if slot_name in extracted_values:
+                            value = extracted_values[slot_name]
+                    elif isinstance(extracted_values, list):
+                        for item in extracted_values:
+                            if isinstance(item, dict) and slot_name in item:
+                                value = item[slot_name]
+                                break
+                    log_context.info(f"Assigning to slot object: {slot_name} value: {value} from extracted_values: {extracted_values}")
+                    slot.value = value
 
-            return slots
+                return slots
         except json.JSONDecodeError as e:
             log_context.error(f"Error parsing slot filling response: {str(e)}")
             raise ValueError(f"Failed to parse slot filling response: {str(e)}") from e

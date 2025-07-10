@@ -269,6 +269,8 @@ class Environment:
             # --- Begin slot group merge logic ---
             slots = attributes.get("slots", [])
             slot_groups = attributes.get("slot_groups", [])
+            nested_slot_groups = attributes.get("nested_slot_groups", [])
+            
             group_slots = []
             for group in slot_groups:
                 # Generate prompt/description for the group
@@ -287,7 +289,30 @@ class Environment:
                     "prompt": prompt,
                     "description": description,
                 })
-            all_slots = slots + group_slots
+            
+            # Process nested slot groups
+            nested_group_slots = []
+            for nested_group in nested_slot_groups:
+                # Generate prompt/description for the nested group
+                # Use "schema" field from the nested slot group definition
+                schema = nested_group.get("schema", [])
+                required_fields = [s["name"] for s in schema if s.get("required", False)]
+                prompt = (
+                    f"Please provide a nested structure with the following fields: {', '.join(required_fields)}."
+                    if required_fields else f"Please provide a nested structure for group '{nested_group['name']}'."
+                )
+                description = f"Nested slot group '{nested_group['name']}' with nested schema"
+                nested_group_slots.append({
+                    "name": nested_group["name"],
+                    "type": "nested_group",
+                    "nested_schema": schema,  # Use the "schema" field as nested_schema
+                    "required": nested_group.get("required", False),
+                    "repeatable": nested_group.get("repeatable", True),
+                    "prompt": prompt,
+                    "description": description,
+                })
+            
+            all_slots = slots + group_slots + nested_group_slots
             tool.load_slots(all_slots)
             combined_args: dict[str, Any] = {
                 **self.tools[id]["fixed_args"],

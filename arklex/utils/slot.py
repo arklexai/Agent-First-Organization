@@ -107,7 +107,7 @@ class Slot(BaseModel):
     Attributes:
         name (str): The name of the slot.
         type (str): The type of the slot value (default: "str"). Can be 'group' for slot groups.
-        value (Union[str, int, float, bool, List[str], List[dict], None]): The current value of the slot.
+        value (Union[str, int, float, bool, List[str], List[dict], dict, None]): The current value of the slot.
         enum (Optional[List[Union[str, int, float, bool, None]]]): List of valid values.
         description (str): Description of the slot's purpose.
         prompt (str): Prompt to use when filling the slot.
@@ -120,7 +120,7 @@ class Slot(BaseModel):
 
     name: str
     type: str = Field(default="str")  # can be 'str', 'int', 'float', 'bool', 'group', etc.
-    value: str | int | float | bool | list[str] | list[dict] | None = Field(default=None)
+    value: str | int | float | bool | list[str] | list[dict] | dict | None = Field(default=None)
     enum: list[str | int | float | bool | None] | None = Field(default=[])
     description: str = Field(default="")
     prompt: str = Field(default="")
@@ -129,6 +129,7 @@ class Slot(BaseModel):
     items: dict | None = None
     target: str | None = None
     schema: list[dict] | None = None  # For slot groups
+    nested_schema: list[dict] | None = None  # For nested slot groups
     repeatable: bool | None = None    # For slot groups
     valueSource: str | None = None  # 'fixed', 'default', 'Prompt User', etc.
 
@@ -147,13 +148,13 @@ class SlotInput(BaseModel):
 
     Attributes:
         name (str): The name of the slot.
-        value (Union[str, int, float, bool, List[str], None]): The current value.
+        value (Union[str, int, float, bool, List[str], dict, None]): The current value.
         enum (Optional[List[Union[str, int, float, bool, None]]]): Valid values.
         description (str): Description of the slot's purpose.
     """
 
     name: str
-    value: str | int | float | bool | list[str] | None
+    value: str | int | float | bool | list[str] | dict | None
     enum: list[str | int | float | bool | None] | None
     description: str
 
