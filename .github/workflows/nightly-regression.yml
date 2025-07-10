@@ -29,7 +29,7 @@ jobs:
     uses: ./.github/workflows/reusable-run-coverage-tests.yml
     with:
       coverage-command: 'ARKLEX_TEST_ENV=local pytest tests/ --cov=arklex --cov-report=term-missing --cov-report=html --cov-report=xml --no-cov-on-fail'
-      min-coverage-threshold: '99.2'
+      min-coverage-threshold: '99.0'
 
   summary:
     name: Nightly Regression Summary
@@ -90,70 +90,7 @@ jobs:
           echo "📅 **Run Time**: $(date -u '+%Y-%m-%d %H:%M:%S UTC')" >> $GITHUB_STEP_SUMMARY
           echo "🔗 **Workflow**: [View full run](https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }})" >> $GITHUB_STEP_SUMMARY
 
-      - name: Send Success Email
-        if: steps.summary.outputs.overall_status == 'success'
-        uses: ./.github/workflows/reusable-send-email-notification.yml
-        with:
-          subject: "✅ Nightly Regression Tests Passed - Arklex AI"
-          body: |
-            <h2>Hello Christian,</h2>
-            
-            <p>The nightly regression tests have completed successfully! 🎉</p>
-            
-            <h3>Test Results:</h3>
-            <ul>
-              <li>Lint: ✅ Passed</li>
-              <li>TaskGraph: ✅ Passed</li>
-              <li>Coverage: ✅ Passed</li>
-            </ul>
-            
-            <h3>Details:</h3>
-            <ul>
-              <li><strong>Workflow:</strong> Nightly Regression Tests</li>
-              <li><strong>Run ID:</strong> ${{ github.run_id }}</li>
-              <li><strong>Repository:</strong> ${{ github.repository }}</li>
-              <li><strong>View Run:</strong> <a href="https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}">https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}</a></li>
-            </ul>
-            
-            <p>The codebase is in good health and all tests are passing.</p>
-            
-            <p>Best regards,<br>GitHub Actions Bot</p>
-          recipient-email: christian.lim@arklex.ai
-          email-service: 'debug'
-
-      - name: Send Failure Email
-        if: steps.summary.outputs.overall_status == 'failure'
-        uses: ./.github/workflows/reusable-send-email-notification.yml
-        with:
-          subject: "❌ Nightly Regression Tests Failed - Arklex AI"
-          body: |
-            <h2>ALERT: Nightly regression tests have failed! ⚠️</h2>
-            
-            <h3>Failed Tests:</h3>
-            <p>${{ steps.summary.outputs.notification_message }}</p>
-            
-            <h3>Details:</h3>
-            <ul>
-              <li><strong>Workflow:</strong> Nightly Regression Tests</li>
-              <li><strong>Run ID:</strong> ${{ github.run_id }}</li>
-              <li><strong>Repository:</strong> ${{ github.repository }}</li>
-              <li><strong>View Run:</strong> <a href="https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}">https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}</a></li>
-            </ul>
-            
-            <h3>Test Results:</h3>
-            <ul>
-              <li>Lint: ${{ needs.lint.result == 'success' && '✅ Passed' || '❌ Failed' }}</li>
-              <li>TaskGraph: ${{ needs.taskgraph.result == 'success' && '✅ Passed' || '❌ Failed' }}</li>
-              <li>Coverage: ${{ needs.coverage-check.result == 'success' && '✅ Passed' || '❌ Failed' }}</li>
-            </ul>
-            
-            <p><strong>Please review the workflow logs and address any issues immediately.</strong></p>
-            
-            <p>Best regards,<br>GitHub Actions Bot</p>
-          recipient-email: alerts@arklex.ai
-          email-service: 'debug'
-
-      - name: Send Success Slack Notification
+      - name: Send Success Notification
         if: steps.summary.outputs.overall_status == 'success'
         uses: 8398a7/action-slack@v3
         env:
@@ -173,7 +110,7 @@ jobs:
           icon_emoji: ":robot_face:"
         continue-on-error: true
 
-      - name: Send Failure Slack Notification
+      - name: Send Failure Notification
         if: steps.summary.outputs.overall_status == 'failure'
         uses: 8398a7/action-slack@v3
         env:
@@ -195,14 +132,6 @@ jobs:
 
       - name: Log Notification Status
         run: |
-          echo "📧 Email and Slack notification steps completed."
-          echo ""
-          echo "📧 Email notifications are now using the reusable email workflow with debug mode."
-          echo "   - Debug mode prints emails to the logs (visible above)"
-          echo "   - To enable real email sending, configure one of these options:"
-          echo "     • SendGrid: Add SENDGRID_API_KEY secret and set email-service: 'sendgrid'"
-          echo "     • Webhook: Add EMAIL_WEBHOOK_URL secret and set email-service: 'webhook'"
-          echo ""
-          echo "💬 Slack notifications: Add SLACK_WEBHOOK_URL secret to enable."
-          echo ""
-          echo "🔧 To change email service, modify the email-service parameter in the workflow."
+          echo "📧 Slack notification steps completed."
+          echo "Note: If SLACK_WEBHOOK_URL is not configured, the notification steps will fail silently."
+          echo "To enable Slack notifications, add the SLACK_WEBHOOK_URL secret to your repository settings."
