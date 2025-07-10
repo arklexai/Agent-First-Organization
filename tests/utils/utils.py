@@ -550,7 +550,7 @@ class MockOrchestrator(ABC):
         # Apply the patches
         with (
             patch(
-                "arklex.orchestrator.task_graph.TaskGraph.__init__",
+                "arklex.orchestrator.task_graph.task_graph.TaskGraph.__init__",
                 patched_taskgraph_init,
             ),
             patch(
