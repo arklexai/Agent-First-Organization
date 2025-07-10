@@ -13,9 +13,7 @@ from unittest.mock import Mock, patch
 import pytest
 
 from arklex.env.env import Environment
-from arklex.orchestrator.NLU.services.model_service import ModelService
-from arklex.orchestrator.orchestrator import AgentOrg
-from arklex.utils.graph_state import (
+from arklex.orchestrator.entities.msg_state_entities import (
     BotConfig,
     ConvoMessage,
     LLMConfig,
@@ -25,6 +23,8 @@ from arklex.utils.graph_state import (
     StatusEnum,
     Timing,
 )
+from arklex.orchestrator.NLU.services.model_service import ModelService
+from arklex.orchestrator.orchestrator import AgentOrg
 
 
 class TestHITLServerIntegration:

@@ -43,13 +43,13 @@ from langchain_core.documents import Document
 from langchain_openai import OpenAIEmbeddings
 from pydantic import BaseModel
 
+from arklex.orchestrator.entities.msg_state_entities import LLMConfig, MessageState
 from arklex.orchestrator.prompts import (
     PLANNER_REACT_INSTRUCTION_FEW_SHOT,
     PLANNER_REACT_INSTRUCTION_ZERO_SHOT,
     PLANNER_SUMMARIZE_TRAJECTORY_PROMPT,
     RESPOND_ACTION_NAME,
 )
-from arklex.utils.graph_state import LLMConfig, MessageState
 from arklex.utils.logging_utils import LogContext
 from arklex.utils.model_provider_config import (
     PROVIDER_EMBEDDING_MODELS,

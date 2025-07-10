@@ -4,9 +4,14 @@ import pytest
 
 from arklex.env.env import DefaultResourceInitializer, Environment
 from arklex.env.planner.react_planner import ReactPlanner
+from arklex.orchestrator.entities.msg_state_entities import (
+    MessageState,
+    NodeInfo,
+    Params,
+    StatusEnum,
+)
 from arklex.orchestrator.NLU.core.slot import SlotFiller
 from arklex.orchestrator.NLU.services.model_service import DummyModelService
-from arklex.utils.graph_state import MessageState, NodeInfo, Params, StatusEnum
 
 
 def test_environment_uses_dummy_model_service() -> None:

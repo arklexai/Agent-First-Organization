@@ -10,8 +10,8 @@ from typing import Any
 import requests
 
 from arklex.env.tools.tools import register_tool
+from arklex.orchestrator.entities.msg_state_entities import HTTPParams
 from arklex.utils.exceptions import ToolExecutionError
-from arklex.utils.graph_state import HTTPParams
 from arklex.utils.logging_utils import LogContext
 
 log_context = LogContext(__name__)

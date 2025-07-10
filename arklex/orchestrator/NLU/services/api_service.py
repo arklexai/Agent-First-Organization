@@ -10,10 +10,10 @@ from typing import Any
 
 import httpx
 
+from arklex.orchestrator.NLU.entities.slot_entities import Slot
 from arklex.orchestrator.NLU.utils.validators import validate_intent_response
 from arklex.utils.exceptions import APIError, ValidationError
 from arklex.utils.logging_utils import LogContext, handle_exceptions
-from arklex.utils.slot import Slot
 
 log_context = LogContext(__name__)
 

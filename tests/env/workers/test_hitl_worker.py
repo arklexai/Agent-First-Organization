@@ -11,8 +11,12 @@ from arklex.env.workers.hitl_worker import (
     HITLWorkerTestChat,
     HITLWorkerTestMC,
 )
+from arklex.orchestrator.entities.msg_state_entities import (
+    MessageState,
+    Metadata,
+    StatusEnum,
+)
 from arklex.orchestrator.NLU.core.slot import SlotFiller
-from arklex.utils.graph_state import MessageState, Metadata, StatusEnum
 
 
 class TestHITLWorker:

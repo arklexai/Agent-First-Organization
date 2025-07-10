@@ -10,7 +10,7 @@ from arklex.env.agents.agent import BaseAgent, register_agent
 from arklex.env.prompts import load_prompts
 from arklex.env.tools.tools import register_tool
 from arklex.env.tools.utils import trace
-from arklex.utils.graph_state import MessageState, StatusEnum
+from arklex.orchestrator.entities.msg_state_entities import MessageState, StatusEnum
 from arklex.utils.logging_utils import LogContext
 from arklex.utils.provider_utils import validate_and_get_model_class
 

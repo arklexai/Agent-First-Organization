@@ -4,8 +4,8 @@ This module tests the validation utilities for NLU operations including
 intent detection, slot filling, and slot verification responses.
 """
 
+from arklex.orchestrator.NLU.entities.slot_entities import Slot
 from arklex.orchestrator.NLU.utils import validators
-from arklex.utils.slot import Slot
 
 
 class TestValidateIntentResponse:

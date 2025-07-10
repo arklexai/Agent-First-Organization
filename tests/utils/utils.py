@@ -14,7 +14,7 @@ from collections.abc import Callable, Generator
 from typing import Any
 from unittest.mock import patch
 
-from arklex.utils.graph_state import StatusEnum
+from arklex.orchestrator.entities.msg_state_entities import StatusEnum
 
 
 class MockMessageState:

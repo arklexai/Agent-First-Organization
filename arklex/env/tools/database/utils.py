@@ -19,7 +19,12 @@ from langchain_core.output_parsers import StrOutputParser
 from langchain_openai import ChatOpenAI
 
 from arklex.env.prompts import load_prompts
-from arklex.utils.graph_state import MessageState, Slot, SlotDetail, StatusEnum
+from arklex.orchestrator.entities.msg_state_entities import (
+    MessageState,
+    Slot,
+    SlotDetail,
+    StatusEnum,
+)
 from arklex.utils.logging_utils import LogContext
 from arklex.utils.model_config import MODEL
 from arklex.utils.utils import chunk_string

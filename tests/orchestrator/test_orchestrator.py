@@ -6,9 +6,7 @@ import pytest
 
 from arklex.env.env import Environment
 from arklex.env.nested_graph.nested_graph import NESTED_GRAPH_ID
-from arklex.orchestrator.orchestrator import AgentOrg
-from arklex.types import StreamType
-from arklex.utils.graph_state import (
+from arklex.orchestrator.entities.msg_state_entities import (
     BotConfig,
     MessageState,
     NodeInfo,
@@ -17,6 +15,8 @@ from arklex.utils.graph_state import (
     Params,
     StatusEnum,
 )
+from arklex.orchestrator.orchestrator import AgentOrg
+from arklex.types import StreamType
 
 
 class DummyEnv(Environment):

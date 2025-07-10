@@ -18,7 +18,7 @@ from Levenshtein import ratio
 from sklearn.metrics.pairwise import cosine_similarity
 
 from arklex.memory.prompts import final_examples, intro, output_instructions
-from arklex.utils.graph_state import LLMConfig, ResourceRecord
+from arklex.orchestrator.entities.msg_state_entities import LLMConfig, ResourceRecord
 from arklex.utils.model_provider_config import (
     PROVIDER_EMBEDDING_MODELS,
     PROVIDER_EMBEDDINGS,

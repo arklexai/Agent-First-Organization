@@ -40,8 +40,8 @@ from langgraph.graph import START, StateGraph
 
 from arklex.env.workers.utils.chat_client import ChatClient
 from arklex.env.workers.worker import BaseWorker, register_worker
+from arklex.orchestrator.entities.msg_state_entities import MessageState, StatusEnum
 from arklex.orchestrator.NLU.core.slot import SlotFiller
-from arklex.utils.graph_state import MessageState, StatusEnum
 from arklex.utils.logging_utils import LogContext
 
 log_context = LogContext(__name__)

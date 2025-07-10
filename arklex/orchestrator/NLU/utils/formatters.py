@@ -14,7 +14,7 @@ Key features:
 
 from typing import Any
 
-from arklex.utils.slot import Slot, SlotInputList
+from arklex.orchestrator.NLU.entities.slot_entities import Slot, SlotInputList
 
 
 def _format_slot_description(slot: Slot) -> str:

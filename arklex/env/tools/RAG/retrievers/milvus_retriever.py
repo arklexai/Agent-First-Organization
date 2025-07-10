@@ -32,7 +32,7 @@ from arklex.env.tools.RAG.retrievers.retriever_document import (
     embed_retriever_document,
 )
 from arklex.env.tools.utils import trace
-from arklex.utils.graph_state import MessageState
+from arklex.orchestrator.entities.msg_state_entities import MessageState
 from arklex.utils.logging_utils import LogContext
 from arklex.utils.mysql import mysql_pool
 from arklex.utils.provider_utils import validate_and_get_model_class

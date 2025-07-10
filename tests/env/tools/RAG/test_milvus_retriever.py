@@ -23,7 +23,7 @@ from arklex.env.tools.RAG.retrievers.retriever_document import (
     RetrieverDocumentType,
     RetrieverResult,
 )
-from arklex.utils.graph_state import MessageState
+from arklex.orchestrator.entities.msg_state_entities import MessageState
 
 
 @pytest.fixture
