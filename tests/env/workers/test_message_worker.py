@@ -24,7 +24,7 @@ from arklex.orchestrator.entities.msg_state_entities import (
     OrchestratorMessage,
     StatusEnum,
 )
-from arklex.types import StreamType
+from arklex.types.stream_types import StreamType
 
 # Test configuration constants
 VALID_BOT_CONFIG: BotConfig = BotConfig(

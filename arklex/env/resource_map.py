@@ -1,7 +1,7 @@
 from collections.abc import Mapping
 
-from arklex.env.tools.google.calendar import create_event
-from arklex.env.tools.hubspot import (
+from arklex.env.tools.google.calendar.tool_collection import create_event
+from arklex.env.tools.hubspot.tool_collection import (
     check_availability,
     check_available,
     create_meeting,
@@ -9,7 +9,7 @@ from arklex.env.tools.hubspot import (
     find_contact_by_email,
     find_owner_id_by_contact_id,
 )
-from arklex.env.tools.shopify import (
+from arklex.env.tools.shopify.tool_collection import (
     cancel_order,
     cart_add_items,
     find_user_id_by_email,
@@ -20,7 +20,7 @@ from arklex.env.tools.shopify import (
     return_products,
     search_products,
 )
-from arklex.env.workers import (
+from arklex.env.workers.worker_collection import (
     FaissRAGWorker,
     HITLWorkerChatFlag,
     MessageWorker,
