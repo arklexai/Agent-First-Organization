@@ -415,7 +415,7 @@ class Tool:
                 slot.value = group_value
                 filled_slots.append(slot)
             else:
-                # Handle regular slots (non-group, non-nested_group)
+                # Handle regular slots (non-group)
                 if hasattr(slot, 'repeatable') and slot.repeatable:
                     # For repeatable regular slots, expect a list of values
                     # Build a prompt for repeatable regular slots
@@ -479,7 +479,7 @@ class Tool:
                                 if item.get(field["name"]) in [None, ""]:
                                     return True
             else:
-                # Handle regular slots (non-group, non-nested_group)
+                # Handle regular slots (non-group)
                 if hasattr(slot, 'repeatable') and slot.repeatable:
                     # For repeatable regular slots, check if at least one item exists if required
                     if slot.required and (not slot.value or not isinstance(slot.value, list) or len(slot.value) == 0):
@@ -506,7 +506,7 @@ class Tool:
                         if field.get("required", False) and (item.get(field["name"]) in [None, ""]):
                             missing.append(f"{field.get('prompt', field['name'])} (group '{slot.name}' item {idx+1})")
             else:
-                # Handle regular slots (non-group, non-nested_group)
+                # Handle regular slots (non-group)
                 if hasattr(slot, 'repeatable') and slot.repeatable:
                     # For repeatable regular slots, check list structure
                     if slot.required and (not slot.value or not isinstance(slot.value, list) or len(slot.value) == 0):
@@ -595,7 +595,7 @@ class Tool:
                     "items": slot.items,
                 }
             else:
-                # Handle regular slots (non-group, non-nested_group)
+                # Handle regular slots (non-group)
                 if hasattr(slot, 'repeatable') and slot.repeatable:
                     # For repeatable regular slots, define as array
                     parameters["properties"][slot.name] = {
@@ -631,7 +631,7 @@ class Tool:
                     "items": slot.items,
                 }
             else:
-                # Handle regular slots (non-group, non-nested_group)
+                # Handle regular slots (non-group)
                 if hasattr(slot, 'repeatable') and slot.repeatable:
                     # For repeatable regular slots, define as array
                     parameters["properties"][slot.name] = {
@@ -689,7 +689,7 @@ class Tool:
                     )
                 )
             else:
-                # Handle regular slots (non-group, non-nested_group)
+                # Handle regular slots (non-group)
                 format_slots.append(
                     Slot(
                         name=slot["name"],
@@ -790,7 +790,7 @@ class Tool:
                             response = f"Please provide the following fields for group '{slot.name}' item {idx+1}: {', '.join(missing_fields)}."
                             break
                 else:
-                    # Handle regular slots (non-group, non-nested_group)
+                    # Handle regular slots (non-group)
                     if hasattr(slot, 'repeatable') and slot.repeatable:
                         # For repeatable regular slots, check list structure
                         if not slot.value or not isinstance(slot.value, list) or len(slot.value) == 0:

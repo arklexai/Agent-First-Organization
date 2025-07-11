@@ -16,67 +16,6 @@ from arklex.utils.logging_utils import LogContext
 
 log_context = LogContext(__name__)
 
-
-def clean_json_data(data: dict[str, Any]) -> dict[str, Any]:
-    """
-    Clean JSON data by removing or replacing invalid values that could cause parsing errors.
-    
-    Args:
-        data: Dictionary to clean
-        
-    Returns:
-        Cleaned dictionary with valid JSON values
-    """
-    if not isinstance(data, dict):
-        return data
-    
-    cleaned_data = {}
-    for key, value in data.items():
-        if isinstance(value, dict):
-            cleaned_data[key] = clean_json_data(value)
-        elif isinstance(value, list):
-            cleaned_data[key] = [clean_json_data(item) if isinstance(item, dict) else item for item in value]
-        elif isinstance(value, str):
-            # Remove any remaining placeholders that might cause JSON parsing issues
-            if "{{" in value and "}}" in value:
-                # Replace with empty string to avoid JSON parsing errors
-                cleaned_data[key] = ""
-            else:
-                cleaned_data[key] = value
-        else:
-            cleaned_data[key] = value
-    
-    return cleaned_data
-
-
-def validate_request_body(body: dict[str, Any] | None) -> dict[str, Any] | None:
-    """
-    Validate and clean the request body to ensure it's valid JSON.
-    
-    Args:
-        body: Request body to validate
-        
-    Returns:
-        Cleaned and validated request body
-    """
-    if body is None:
-        return None
-    
-    try:
-        # First clean the data
-        cleaned_body = clean_json_data(body)
-        
-        # Test JSON serialization to catch any remaining issues
-        import json
-        json.dumps(cleaned_body)
-        
-        return cleaned_body
-    except (TypeError, ValueError) as e:
-        log_context.error(f"Invalid request body after cleaning: {str(e)}")
-        # Return a minimal valid body if cleaning fails
-        return {"error": "Invalid request body", "details": str(e)}
-
-
 def replace_placeholders(
     data: dict[str, object] | list[object] | str | object,
     slot_map: dict[str, object],
@@ -214,10 +153,6 @@ def http_tool(
             # Recursively replace placeholders in body
             params.body = replace_placeholders(params.body, slot_map)
 
-        # Clean and validate JSON data to prevent parsing errors
-        if params.body:
-            params.body = validate_request_body(params.body)
-        
         # Remove any {{}} placeholders from params and body as these are optional parameters
         def remove_placeholders(data_dict: dict[str, Any] | None) -> None:
             if not data_dict:
@@ -237,19 +172,12 @@ def http_tool(
                 del data_dict[key]
 
         remove_placeholders(params.params)
+        remove_placeholders(params.body)
 
         log_context.info(
             f"Making a {params.method} request to {params.endpoint}, with body: {params.body} and params: {params.params}"
         )
         
-        # Log the final cleaned body for debugging
-        if params.body:
-            try:
-                import json
-                json_str = json.dumps(params.body, indent=2)
-                log_context.info(f"Final request body (JSON): {json_str}")
-            except Exception as e:
-                log_context.error(f"Failed to serialize request body to JSON: {str(e)}")
         response: requests.Response = requests.request(
             method=params.method,
             url=params.endpoint,
@@ -259,13 +187,7 @@ def http_tool(
         )
         response.raise_for_status()
         
-        # Handle JSON parsing with better error handling
-        try:
-            response_data: dict[str, Any] | list[Any] = response.json()
-        except ValueError as json_error:
-            log_context.error(f"Failed to parse JSON response: {str(json_error)}")
-            # Return the raw text if JSON parsing fails
-            response_data = {"raw_response": response.text, "error": "JSON parsing failed"}
+        response_data: dict[str, Any] | list[Any] = response.json()
         
         log_context.info(
             f"Response from the {params.endpoint} for body: {params.body} and params: {params.params} is: {response_data}"
