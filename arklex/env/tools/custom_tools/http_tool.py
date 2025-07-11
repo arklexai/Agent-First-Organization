@@ -237,7 +237,7 @@ def http_tool(
                 del data_dict[key]
 
         remove_placeholders(params.params)
-
+        remove_placeholders(params.body)
         log_context.info(
             f"Making a {params.method} request to {params.endpoint}, with body: {params.body} and params: {params.params}"
         )
