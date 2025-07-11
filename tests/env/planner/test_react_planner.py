@@ -21,11 +21,11 @@ from arklex.env.planner.react_planner import (
 )
 from arklex.orchestrator.entities.msg_state_entities import (
     ConvoMessage,
-    LLMConfig,
     MessageState,
     OrchestratorMessage,
 )
-from arklex.types import StreamType
+from arklex.types.llm_config_entities import LLMConfig
+from arklex.types.stream_types import StreamType
 
 
 @pytest.fixture

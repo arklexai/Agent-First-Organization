@@ -86,7 +86,7 @@ from arklex.orchestrator.entities.taskgraph_entities import (
 )
 from arklex.orchestrator.post_process import post_process_response
 from arklex.orchestrator.task_graph.task_graph import TaskGraph
-from arklex.types import StreamType
+from arklex.types.stream_types import StreamType
 from arklex.utils.logging_utils import LogContext
 from arklex.utils.model_config import MODEL
 from arklex.utils.provider_utils import validate_and_get_model_class

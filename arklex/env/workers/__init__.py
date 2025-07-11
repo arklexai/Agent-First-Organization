@@ -50,3 +50,20 @@ Usage:
 
 # Note: Each worker implementation provides specialized functionality
 # while adhering to the common interface defined in the base worker class.
+
+from .faiss_rag_worker import FaissRAGWorker
+from .hitl_worker import HITLWorkerChatFlag
+from .message_worker import MessageWorker
+from .milvus_rag_worker import MilvusRAGWorker
+from .rag_message_worker import RagMsgWorker, RagMsgWorkerKwargs
+from .search_worker import SearchWorker
+
+__all__ = [
+    "FaissRAGWorker",
+    "HITLWorkerChatFlag",
+    "MessageWorker",
+    "MilvusRAGWorker",
+    "RagMsgWorker",
+    "RagMsgWorkerKwargs",
+    "SearchWorker",
+]
