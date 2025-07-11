@@ -30,7 +30,8 @@ from pydantic import BaseModel, Field
 
 from arklex.memory.entities.memory_entities import ResourceRecord
 from arklex.orchestrator.NLU.entities.slot_entities import Slot
-from arklex.types import LLMConfig, StreamType
+from arklex.types.model_types import LLMConfig
+from arklex.types.stream_types import StreamType
 
 
 # Bot-related classes

@@ -5,8 +5,6 @@ This module contains type definitions and enums used throughout the Arklex frame
 
 from enum import Enum
 
-from pydantic import BaseModel
-
 
 class StreamType(str, Enum):
     """Enumeration of supported stream types.
@@ -63,23 +61,3 @@ class EventType(str, Enum):
     AUDIO_CHUNK = "audio"
     # ERROR is used to denote an error
     ERROR = "error"
-
-
-class LLMConfig(BaseModel):
-    """Configuration for language model settings.
-
-    This class defines the configuration parameters for language models used in the system.
-    It specifies which model to use and from which provider.
-
-    The class provides:
-    1. Model selection and configuration
-    2. Provider specification
-    3. Type-safe configuration management
-
-    Attributes:
-        model_type_or_path (str): The model identifier or path to use.
-        llm_provider (str): The provider of the language model (e.g., 'openai', 'anthropic').
-    """
-
-    model_type_or_path: str
-    llm_provider: str

@@ -24,7 +24,7 @@ from arklex.orchestrator.entities.msg_state_entities import (
     MessageState,
     OrchestratorMessage,
 )
-from arklex.types.llm_config_entities import LLMConfig
+from arklex.types.model_types import LLMConfig
 from arklex.types.stream_types import StreamType
 
 
