@@ -17,7 +17,7 @@ from arklex.orchestrator.entities.orchestrator_params_entities import (
 )
 from arklex.orchestrator.entities.taskgraph_entities import NodeInfo, NodeTypeEnum
 from arklex.orchestrator.orchestrator import AgentOrg
-from arklex.types import StreamType
+from arklex.types.stream_types import StreamType
 
 
 class DummyEnv(Environment):
