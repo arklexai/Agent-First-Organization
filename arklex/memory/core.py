@@ -19,7 +19,7 @@ from sklearn.metrics.pairwise import cosine_similarity
 
 from arklex.memory.entities.memory_entities import ResourceRecord
 from arklex.memory.prompts import final_examples, intro, output_instructions
-from arklex.types import LLMConfig
+from arklex.types.model_types import LLMConfig
 from arklex.utils.model_provider_config import (
     PROVIDER_EMBEDDING_MODELS,
     PROVIDER_EMBEDDINGS,

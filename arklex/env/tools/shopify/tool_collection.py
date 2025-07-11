@@ -1,7 +1,8 @@
 """
-Shopify tools package for the Arklex framework.
+Shopify tools collection for the Arklex framework.
 
-This package contains tool implementations for e-commerce operations and Shopify API integration in the Arklex framework.
+This module contains all tool implementations for e-commerce operations and Shopify API integration.
+Import this module to access all Shopify tools without treating the directory as a package.
 """
 
 from .cancel_order import cancel_order
