@@ -28,7 +28,7 @@ from arklex.env.workers import (
     RagMsgWorker,
     SearchWorker,
 )
-from arklex.types.resource_enums import (
+from arklex.types.resource_types import (
     Item,
     Resource,
     ResourceType,
