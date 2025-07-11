@@ -126,10 +126,15 @@ class TestMainFunction:
 
         mock_load_config.return_value = sample_config
         mock_provider_map.get.return_value = mock_chat_openai
-        mock_model_config.get.side_effect = lambda key, default: {
-            "llm_provider": "openai",
-            "model_type_or_path": "gpt-4",
-        }.get(key, default)
+
+        def mock_model_get(key: str, default: str | None = None) -> str | None:
+            config = {
+                "llm_provider": "openai",
+                "model_type_or_path": "gpt-4",
+            }
+            return config.get(key, default)
+
+        mock_model_config.get.side_effect = mock_model_get
         mock_chat_openai.return_value = mock_model
 
         mock_generator_instance = Mock()
@@ -144,7 +149,7 @@ class TestMainFunction:
         mock_parser_instance.add_argument.assert_called()
         mock_parser_instance.parse_args.assert_called_once()
         mock_load_config.assert_called_once_with("test_config.json")
-        mock_provider_map.get.assert_called_once_with("openai", mock_chat_openai)
+        mock_provider_map.get.assert_called_once_with("openai")
         mock_chat_openai.assert_called_once_with(model="gpt-4", timeout=30000)
         mock_core_generator.assert_called_once_with(
             config=sample_config, model=mock_model
@@ -185,10 +190,15 @@ class TestMainFunction:
         }
         mock_load_config.return_value = config_with_custom_output
         mock_provider_map.get.return_value = mock_chat_openai
-        mock_model_config.get.side_effect = lambda key, default: {
-            "llm_provider": "openai",
-            "model_type_or_path": "gpt-4",
-        }.get(key, default)
+
+        def mock_model_get(key: str, default: str | None = None) -> str | None:
+            config = {
+                "llm_provider": "openai",
+                "model_type_or_path": "gpt-4",
+            }
+            return config.get(key, default)
+
+        mock_model_config.get.side_effect = mock_model_get
         mock_chat_openai.return_value = mock_model
 
         mock_generator_instance = Mock()
@@ -231,10 +241,15 @@ class TestMainFunction:
         }
         mock_load_config.return_value = config_without_output_path
         mock_provider_map.get.return_value = mock_chat_openai
-        mock_model_config.get.side_effect = lambda key, default: {
-            "llm_provider": "openai",
-            "model_type_or_path": "gpt-4",
-        }.get(key, default)
+
+        def mock_model_get(key: str, default: str | None = None) -> str | None:
+            config = {
+                "llm_provider": "openai",
+                "model_type_or_path": "gpt-4",
+            }
+            return config.get(key, default)
+
+        mock_model_config.get.side_effect = mock_model_get
         mock_chat_openai.return_value = mock_model
 
         mock_generator_instance = Mock()
@@ -298,10 +313,15 @@ class TestMainFunction:
 
         mock_load_config.return_value = sample_config
         mock_provider_map.get.return_value = mock_chat_openai
-        mock_model_config.get.side_effect = lambda key, default: {
-            "llm_provider": "openai",
-            "model_type_or_path": "gpt-4",
-        }.get(key, default)
+
+        def mock_model_get(key: str, default: str | None = None) -> str | None:
+            config = {
+                "llm_provider": "openai",
+                "model_type_or_path": "gpt-4",
+            }
+            return config.get(key, default)
+
+        mock_model_config.get.side_effect = mock_model_get
         mock_chat_openai.return_value = mock_model
 
         # Make generator.generate() raise an error

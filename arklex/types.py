@@ -1,26 +1,11 @@
 """Type definitions for the Arklex framework.
 
-This module contains enumerations and type definitions used throughout the Arklex framework,
-particularly for handling different types of data streams and events. It provides standardized
-type definitions for stream processing and event handling across the system.
-
-Key Components:
-1. StreamType: Defines different types of data streams (audio, text, speech)
-2. EventType: Defines different types of events in stream processing
-
-Usage:
-    # Check stream type
-    if stream_type == StreamType.AUDIO:
-        process_audio_stream()
-
-    # Handle events
-    if event_type == EventType.CHUNK:
-        process_data_chunk()
-    elif event_type == EventType.LAST:
-        finalize_processing()
+This module contains type definitions and enums used throughout the Arklex framework.
 """
 
 from enum import Enum
+
+from pydantic import BaseModel
 
 
 class StreamType(str, Enum):
@@ -34,11 +19,9 @@ class StreamType(str, Enum):
         AUDIO: Audio data streams (e.g., voice input/output)
         TEXT: Text data streams (e.g., chat messages)
         SPEECH: Speech data streams (e.g., speech-to-text)
-
-    Example:
-        stream_type = StreamType.AUDIO
-        if stream_type == StreamType.AUDIO:
-            configure_audio_processing()
+        OPENAI_REALTIME_AUDIO: OpenAI real-time audio streams
+        NON_STREAM: Non-stream types
+        STREAM: Stream types
     """
 
     # AUDIO is used to denote audio streams
@@ -51,6 +34,8 @@ class StreamType(str, Enum):
     OPENAI_REALTIME_AUDIO = "openai_realtime_audio"
     # NON_STREAM is used to denote non-stream types
     NON_STREAM = "non_stream"
+    # STREAM is used to denote stream types
+    STREAM = "stream"
 
 
 class EventType(str, Enum):
@@ -66,13 +51,6 @@ class EventType(str, Enum):
         TEXT: Text-only data chunk
         AUDIO_CHUNK: Audio data chunk
         ERROR: Error event in the stream
-
-    Example:
-        event_type = EventType.CHUNK
-        if event_type == EventType.CHUNK:
-            process_data_chunk()
-        elif event_type == EventType.ERROR:
-            handle_error()
     """
 
     # LAST is used to denote the last event in the stream
@@ -85,3 +63,23 @@ class EventType(str, Enum):
     AUDIO_CHUNK = "audio"
     # ERROR is used to denote an error
     ERROR = "error"
+
+
+class LLMConfig(BaseModel):
+    """Configuration for language model settings.
+
+    This class defines the configuration parameters for language models used in the system.
+    It specifies which model to use and from which provider.
+
+    The class provides:
+    1. Model selection and configuration
+    2. Provider specification
+    3. Type-safe configuration management
+
+    Attributes:
+        model_type_or_path (str): The model identifier or path to use.
+        llm_provider (str): The provider of the language model (e.g., 'openai', 'anthropic').
+    """
+
+    model_type_or_path: str
+    llm_provider: str

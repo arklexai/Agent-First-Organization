@@ -21,10 +21,10 @@ from arklex.orchestrator.NLU.core.base import (
     SlotResponse,
     VerificationResponse,
 )
+from arklex.orchestrator.NLU.entities.slot_entities import Slot, Verification
 from arklex.orchestrator.NLU.services.model_service import ModelService
 from arklex.utils.exceptions import ModelError, ValidationError
 from arklex.utils.logging_utils import LOG_MESSAGES, LogContext, handle_exceptions
-from arklex.utils.slot import Slot, Verification
 
 log_context = LogContext(__name__)
 app = FastAPI()

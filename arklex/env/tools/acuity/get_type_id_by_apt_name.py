@@ -64,6 +64,12 @@ def get_type_id_by_apt_name(apt_name: str, **kwargs: dict[str, Any]) -> str:
         apt_type_id: int | None = next(
             (item["id"] for item in data if item["name"].strip() == apt_name), None
         )
+
+        if apt_type_id is None:
+            raise ToolExecutionError(
+                func_name, AcuityExceptionPrompt.GET_TYPE_ID_PROMPT
+            )
+
         response_str: str = f"The appointment type id is {apt_type_id}\n"
         return response_str
     else:

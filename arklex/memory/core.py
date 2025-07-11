@@ -13,17 +13,18 @@ import asyncio
 import re
 
 import numpy as np
-from langchain_openai import ChatOpenAI, OpenAIEmbeddings
+from langchain_openai import OpenAIEmbeddings
 from Levenshtein import ratio
 from sklearn.metrics.pairwise import cosine_similarity
 
+from arklex.memory.entities.memory_entities import ResourceRecord
 from arklex.memory.prompts import final_examples, intro, output_instructions
-from arklex.utils.graph_state import LLMConfig, ResourceRecord
+from arklex.types import LLMConfig
 from arklex.utils.model_provider_config import (
     PROVIDER_EMBEDDING_MODELS,
     PROVIDER_EMBEDDINGS,
-    PROVIDER_MAP,
 )
+from arklex.utils.provider_utils import validate_and_get_model_class
 
 
 class ShortTermMemory:
@@ -76,9 +77,9 @@ class ShortTermMemory:
             if llm_config.llm_provider != "anthropic"
             else {"model_name": PROVIDER_EMBEDDING_MODELS[llm_config.llm_provider]}
         )
-        self.llm = PROVIDER_MAP.get(llm_config.llm_provider, ChatOpenAI)(
-            model=llm_config.model_type_or_path
-        )
+        model_class = validate_and_get_model_class(llm_config)
+
+        self.llm = model_class(model=llm_config.model_type_or_path)
 
         # Initialize embedding cache
         self._embedding_cache = {}

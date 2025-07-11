@@ -119,11 +119,50 @@ class ModelService:
                     "operation": "config_validation",
                 },
             )
-        # Use default values for api_key and endpoint if not provided
-        if "api_key" not in self.model_config:
-            self.model_config["api_key"] = MODEL["api_key"]
+
+        # Ensure API key is provided and not set to None or empty
+        if "api_key" not in self.model_config or not self.model_config["api_key"]:
+            # Don't set a default value - require explicit API key
+            log_context.error(
+                "API key is missing or empty",
+                extra={
+                    "operation": "config_validation",
+                },
+            )
+            raise ValidationError(
+                "API key is missing or empty",
+                details={
+                    "operation": "config_validation",
+                },
+            )
+
+        # Set endpoint if not provided
         if "endpoint" not in self.model_config:
             self.model_config["endpoint"] = MODEL["endpoint"]
+
+        # Validate API key presence
+        from arklex.utils.provider_utils import validate_api_key_presence
+
+        try:
+            validate_api_key_presence(
+                self.model_config.get("llm_provider", ""),
+                self.model_config.get("api_key", ""),
+            )
+        except ValueError as e:
+            log_context.error(
+                "API key validation failed",
+                extra={
+                    "error": str(e),
+                    "operation": "config_validation",
+                },
+            )
+            raise ValidationError(
+                "API key validation failed",
+                details={
+                    "error": str(e),
+                    "operation": "config_validation",
+                },
+            ) from e
 
     @handle_exceptions()
     async def process_text(

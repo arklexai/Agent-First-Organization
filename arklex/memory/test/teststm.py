@@ -2,7 +2,12 @@ import asyncio
 from typing import Any
 
 from arklex.memory.core import ShortTermMemory
-from arklex.utils.graph_state import BotConfig, LLMConfig, MessageState, ResourceRecord
+from arklex.orchestrator.entities.msg_state_entities import (
+    BotConfig,
+    LLMConfig,
+    MessageState,
+    ResourceRecord,
+)
 from arklex.utils.model_config import MODEL
 
 # class ResourceRecord(BaseModel):

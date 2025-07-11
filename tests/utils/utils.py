@@ -14,7 +14,7 @@ from collections.abc import Callable, Generator
 from typing import Any
 from unittest.mock import patch
 
-from arklex.utils.graph_state import StatusEnum
+from arklex.orchestrator.entities.msg_state_entities import StatusEnum
 
 
 class MockMessageState:
@@ -550,7 +550,7 @@ class MockOrchestrator(ABC):
         # Apply the patches
         with (
             patch(
-                "arklex.orchestrator.task_graph.TaskGraph.__init__",
+                "arklex.orchestrator.task_graph.task_graph.TaskGraph.__init__",
                 patched_taskgraph_init,
             ),
             patch(

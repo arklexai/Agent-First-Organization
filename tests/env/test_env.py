@@ -4,9 +4,11 @@ import pytest
 
 from arklex.env.env import DefaultResourceInitializer, Environment
 from arklex.env.planner.react_planner import ReactPlanner
+from arklex.orchestrator.entities.msg_state_entities import MessageState, StatusEnum
+from arklex.orchestrator.entities.orchestrator_params_entities import OrchestratorParams
+from arklex.orchestrator.entities.taskgraph_entities import NodeInfo
 from arklex.orchestrator.NLU.core.slot import SlotFiller
 from arklex.orchestrator.NLU.services.model_service import DummyModelService
-from arklex.utils.graph_state import MessageState, NodeInfo, Params, StatusEnum
 
 
 def test_environment_uses_dummy_model_service() -> None:
@@ -79,7 +81,7 @@ def test_environment_step_tool_executes_and_updates_params() -> None:
         env = Environment(tools=tools, workers=[], agents=[])
 
         # Setup params and state
-        class DummyParams:
+        class DummyOrchestratorParams:
             memory = MagicMock()
             taskgraph = MagicMock()
             taskgraph.dialog_states = {}
@@ -90,7 +92,7 @@ def test_environment_step_tool_executes_and_updates_params() -> None:
             additional_args = {"foo": "bar"}
 
         state = MagicMock()
-        params = DummyParams()
+        params = DummyOrchestratorParams()
         node_info = DummyNodeInfo()
         env.tools["t1"]["fixed_args"] = {"baz": 1}
         result_state, result_params = env.step("t1", state, params, node_info)
@@ -103,7 +105,7 @@ def test_environment_step_invalid_id_raises() -> None:
     # The step method doesn't raise KeyError for invalid IDs, it falls back to planner
     # So we should test that it doesn't raise an exception
     message_state = MessageState()
-    params = Params()
+    params = OrchestratorParams()
     node_info = NodeInfo()
 
     # This should not raise an exception, it should use the planner
@@ -111,7 +113,7 @@ def test_environment_step_invalid_id_raises() -> None:
         "not_a_tool", message_state, params, node_info
     )
     assert isinstance(response_state, MessageState)
-    assert isinstance(updated_params, Params)
+    assert isinstance(updated_params, OrchestratorParams)
 
 
 def test_environment_step_worker_executes_and_updates_params() -> None:
@@ -129,7 +131,7 @@ def test_environment_step_worker_executes_and_updates_params() -> None:
     }
     env.id2name = {"worker1": "test_worker"}
     message_state = MessageState()
-    params = Params()
+    params = OrchestratorParams()
     params.memory.function_calling_trajectory = []
     params.taskgraph.curr_node = "node1"
     node_info = NodeInfo()
@@ -156,7 +158,7 @@ def test_environment_step_worker_without_init_slotfilling() -> None:
     }
     env.id2name = {"worker1": "test_worker"}
     message_state = MessageState()
-    params = Params()
+    params = OrchestratorParams()
     params.memory.function_calling_trajectory = []
     params.taskgraph.curr_node = "node1"
     node_info = NodeInfo()
@@ -181,7 +183,7 @@ def test_environment_step_worker_with_response_content() -> None:
     }
     env.id2name = {"worker1": "test_worker"}
     message_state = MessageState()
-    params = Params()
+    params = OrchestratorParams()
     params.memory.function_calling_trajectory = []
     params.taskgraph.curr_node = "node1"
     node_info = NodeInfo()
@@ -211,7 +213,7 @@ def test_environment_step_worker_with_message_flow() -> None:
     }
     env.id2name = {"worker1": "test_worker"}
     message_state = MessageState()
-    params = Params()
+    params = OrchestratorParams()
     params.memory.function_calling_trajectory = []
     params.taskgraph.curr_node = "node1"
     node_info = NodeInfo()
@@ -233,7 +235,7 @@ def test_environment_step_planner_executes() -> None:
     env = Environment(tools=[], workers=[], agents=[])
     env.planner = mock_planner
     message_state = MessageState()
-    params = Params()
+    params = OrchestratorParams()
     params.memory.function_calling_trajectory = []
     node_info = NodeInfo()
     result_state, result_params = env.step(
@@ -269,7 +271,7 @@ def test_environment_step_agent_executes() -> None:
     env.id2name = {"agent1": "test_agent"}
 
     message_state = MessageState()
-    params = Params()
+    params = OrchestratorParams()
     params.memory.function_calling_trajectory = []
     params.taskgraph.curr_node = "node1"
     params.taskgraph.node_status = {}
@@ -341,7 +343,7 @@ def test_environment_step_agent_with_empty_additional_args() -> None:
     env.agents = {"agent1": {"name": "test_agent", "execute": mock_agent_class}}
 
     message_state = MessageState()
-    params = Params()
+    params = OrchestratorParams()
     params.memory.function_calling_trajectory = []
     params.taskgraph.curr_node = "node1"
     params.taskgraph.node_status = {}
@@ -544,3 +546,65 @@ def test_base_resource_initializer_init_workers_not_implemented() -> None:
 
     with pytest.raises(NotImplementedError):
         BaseResourceInitializer.init_workers([])
+
+
+def test_default_resource_initializer_init_agents_with_exception() -> None:
+    """Test init_agents method handles exceptions during agent registration."""
+    agents = [
+        {"id": "a1", "name": "fake_agent", "path": "fake_path"},
+        {"id": "a2", "name": "bad_agent", "path": "bad_path"},
+    ]
+    with patch("importlib.import_module") as mock_import:
+        fake_module = MagicMock()
+        fake_func = MagicMock(description="desc")
+        fake_module.fake_agent = fake_func
+        mock_import.side_effect = [fake_module, Exception("fail")]
+        registry = DefaultResourceInitializer.init_agents(agents)
+        assert "a1" in registry
+        assert "a2" not in registry  # error case is skipped
+
+
+def test_default_resource_initializer_init_agents_with_import_error() -> None:
+    """Test init_agents method handles import errors during agent registration."""
+    agents = [
+        {"id": "a1", "name": "fake_agent", "path": "fake_path"},
+        {"id": "a2", "name": "bad_agent", "path": "bad_path"},
+    ]
+    with patch("importlib.import_module") as mock_import:
+        fake_module = MagicMock()
+        fake_func = MagicMock(description="desc")
+        fake_module.fake_agent = fake_func
+        mock_import.side_effect = [fake_module, ImportError("Module not found")]
+        registry = DefaultResourceInitializer.init_agents(agents)
+        assert "a1" in registry
+        assert "a2" not in registry  # import error case is skipped
+
+
+def test_default_resource_initializer_init_agents_with_attribute_error() -> None:
+    """Test init_agents method handles attribute errors during agent registration."""
+    agents = [
+        {"id": "a1", "name": "fake_agent", "path": "fake_path"},
+        {"id": "a2", "name": "bad_agent", "path": "bad_path"},
+    ]
+    with patch("importlib.import_module") as mock_import:
+        fake_module = MagicMock()
+        fake_func = MagicMock(description="desc")
+        fake_module.fake_agent = fake_func
+        mock_import.side_effect = [fake_module, AttributeError("No such attribute")]
+        registry = DefaultResourceInitializer.init_agents(agents)
+        assert "a1" in registry
+        assert "a2" not in registry  # attribute error case is skipped
+
+
+def test_default_resource_initializer_init_agents_logs_error() -> None:
+    """Test init_agents method logs error when agent registration fails."""
+    agents = [
+        {"id": "a1", "name": "bad_agent", "path": "bad_path"},
+    ]
+    with patch("importlib.import_module") as mock_import:
+        mock_import.side_effect = Exception("Test error")
+        registry = DefaultResourceInitializer.init_agents(agents)
+        assert len(registry) == 0
+        # The error is logged in the except block at lines 154-155
+        # We can't easily test the logging since it happens in the real code
+        # But we can verify that the agent was not registered due to the exception

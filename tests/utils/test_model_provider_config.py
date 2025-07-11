@@ -57,28 +57,28 @@ class TestModelProviderConfig:
 
     def test_llm_providers_list(self) -> None:
         """Test LLM_PROVIDERS list contains expected providers."""
-        expected_providers = ["openai", "gemini", "anthropic", "huggingface"]
+        expected_providers = ["openai", "google", "anthropic", "huggingface"]
 
         for provider in expected_providers:
             assert provider in LLM_PROVIDERS
 
     def test_provider_map_contains_all_providers(self) -> None:
         """Test PROVIDER_MAP contains all expected providers."""
-        expected_providers = ["anthropic", "gemini", "openai", "huggingface", "dummy"]
+        expected_providers = ["anthropic", "google", "openai", "huggingface", "dummy"]
 
         for provider in expected_providers:
             assert provider in PROVIDER_MAP
 
     def test_provider_embeddings_contains_all_providers(self) -> None:
         """Test PROVIDER_EMBEDDINGS contains all expected providers."""
-        expected_providers = ["anthropic", "gemini", "openai", "huggingface"]
+        expected_providers = ["anthropic", "google", "openai", "huggingface"]
 
         for provider in expected_providers:
             assert provider in PROVIDER_EMBEDDINGS
 
     def test_provider_embedding_models_contains_all_providers(self) -> None:
         """Test PROVIDER_EMBEDDING_MODELS contains all expected providers."""
-        expected_providers = ["anthropic", "gemini", "openai", "huggingface"]
+        expected_providers = ["anthropic", "google", "openai", "huggingface"]
 
         for provider in expected_providers:
             assert provider in PROVIDER_EMBEDDING_MODELS

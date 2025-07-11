@@ -100,27 +100,59 @@ def get_cart(cart_id: str, **kwargs: GetCartParams) -> str:
             }}
         }}
     """
-    response = requests.post(
-        auth["storefront_url"],
-        json={"query": query, "variables": variable},
-        headers=headers,
-    )
+    try:
+        response = requests.post(
+            auth["storefront_url"],
+            json={"query": query, "variables": variable},
+            headers=headers,
+        )
+    except Exception:
+        raise ToolExecutionError(
+            func_name,
+            extra_message=ShopifyExceptionPrompt.CART_NOT_FOUND_ERROR_PROMPT,
+        ) from None
+
     if response.status_code == 200:
-        response = response.json()
-        cart_data = response["data"]["cart"]
+        try:
+            response_data = response.json()
+        except Exception as err:
+            raise ToolExecutionError(
+                func_name,
+                extra_message=ShopifyExceptionPrompt.CART_NOT_FOUND_ERROR_PROMPT,
+            ) from err
+
+        # Check if response has the expected structure
+        if "data" not in response_data:
+            raise ToolExecutionError(
+                func_name,
+                extra_message=ShopifyExceptionPrompt.CART_NOT_FOUND_ERROR_PROMPT,
+            )
+
+        cart_data = response_data["data"].get("cart")
         if not cart_data:
             raise ToolExecutionError(
                 func_name,
                 extra_message=ShopifyExceptionPrompt.CART_NOT_FOUND_ERROR_PROMPT,
             )
+
         response_text = ""
         response_text += f"Checkout URL: {cart_data['checkoutUrl']}\n"
-        lines = cart_data["lines"]
-        for line in lines["nodes"]:
-            product = line.get("merchandise", {}).get("product", {})
-            if product:
-                response_text += f"Product ID: {product['id']}\n"
-                response_text += f"Product Title: {product['title']}\n"
+
+        # Safely handle lines data
+        lines = cart_data.get("lines")
+        if lines and isinstance(lines, dict) and "nodes" in lines:
+            for line in lines["nodes"]:
+                product = line.get("merchandise", {}).get("product", {})
+                if product:
+                    response_text += f"Product ID: {product['id']}\n"
+                    response_text += f"Product Title: {product['title']}\n"
+        elif lines is None or not isinstance(lines, dict) or "nodes" not in lines:
+            # Handle malformed lines data
+            raise ToolExecutionError(
+                func_name,
+                extra_message=ShopifyExceptionPrompt.CART_NOT_FOUND_ERROR_PROMPT,
+            )
+
         return response_text
     else:
         raise ToolExecutionError(

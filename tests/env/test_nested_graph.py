@@ -7,8 +7,11 @@ including nested graph component node identification and path traversal.
 from contextlib import suppress
 from unittest.mock import Mock
 
+import pytest
+
 from arklex.env.nested_graph.nested_graph import NestedGraph
-from arklex.utils.graph_state import NodeInfo, Params, PathNode
+from arklex.orchestrator.entities.orchestrator_params_entities import OrchestratorParams
+from arklex.orchestrator.entities.taskgraph_entities import NodeInfo, PathNode
 
 
 class TestNestedGraph:
@@ -59,7 +62,7 @@ class TestNestedGraph:
     def test_get_nested_graph_component_node_main_graph(self) -> None:
         """Test get_nested_graph_component_node when node is in main graph."""
         # Setup
-        params = Mock(spec=Params)
+        params = Mock(spec=OrchestratorParams)
         params.taskgraph = Mock()
         params.taskgraph.path = [
             PathNode(
@@ -90,7 +93,7 @@ class TestNestedGraph:
     def test_get_nested_graph_component_node_nested_graph_not_leaf(self) -> None:
         """Test get_nested_graph_component_node when nested graph component is not a leaf."""
         # Setup
-        params = Mock(spec=Params)
+        params = Mock(spec=OrchestratorParams)
         params.taskgraph = Mock()
         params.taskgraph.path = [
             PathNode(
@@ -121,7 +124,7 @@ class TestNestedGraph:
     def test_get_nested_graph_component_node_nested_graph_leaf(self) -> None:
         """Test get_nested_graph_component_node when nested graph component is a leaf."""
         # Setup
-        params = Mock(spec=Params)
+        params = Mock(spec=OrchestratorParams)
         params.taskgraph = Mock()
         params.taskgraph.path = [
             PathNode(
@@ -151,7 +154,7 @@ class TestNestedGraph:
 
     def test_get_nested_graph_component_node_with_leaf_jump(self) -> None:
         """Test get_nested_graph_component_node with nested_graph_leaf_jump."""
-        params = Params()
+        params = OrchestratorParams()
         path_node1 = PathNode(node_id="node1", nested_graph_leaf_jump=0)
         path_node2 = PathNode(node_id="node2", nested_graph_node_value="node1")
         params.taskgraph.path = [path_node1, path_node2]
@@ -172,7 +175,7 @@ class TestNestedGraph:
 
     def test_get_nested_graph_component_node_complex_nested_structure(self) -> None:
         """Test get_nested_graph_component_node with complex nested structure."""
-        params = Params()
+        params = OrchestratorParams()
         path_node1 = PathNode(node_id="node1", nested_graph_node_value="node2")
         path_node2 = PathNode(node_id="node2", nested_graph_node_value="node3")
         path_node3 = PathNode(node_id="node3")
@@ -192,7 +195,7 @@ class TestNestedGraph:
 
     def test_get_nested_graph_component_node_updates_node_status(self) -> None:
         """Test that get_nested_graph_component_node updates node status correctly."""
-        params = Params()
+        params = OrchestratorParams()
         path_node1 = PathNode(node_id="node1")
         path_node2 = PathNode(node_id="node2", nested_graph_node_value="node1")
         params.taskgraph.path = [path_node1, path_node2]
@@ -214,7 +217,7 @@ class TestNestedGraph:
 
     def test_get_nested_graph_component_node_empty_path(self) -> None:
         """Test get_nested_graph_component_node with empty path."""
-        params = Params()
+        params = OrchestratorParams()
         params.taskgraph.path = []
 
         def is_leaf_func(node_id: str) -> bool:
@@ -229,7 +232,7 @@ class TestNestedGraph:
 
     def test_get_nested_graph_component_node_single_node_path(self) -> None:
         """Test get_nested_graph_component_node with single node path."""
-        params = Params()
+        params = OrchestratorParams()
         path_node = PathNode(node_id="node1")
         params.taskgraph.path = [path_node]
 
@@ -245,7 +248,7 @@ class TestNestedGraph:
 
     def test_get_nested_graph_component_node_multiple_nested_levels(self) -> None:
         """Test get_nested_graph_component_node with multiple nested levels."""
-        params = Params()
+        params = OrchestratorParams()
         path_node1 = PathNode(node_id="node1", nested_graph_node_value="node2")
         path_node2 = PathNode(node_id="node2", nested_graph_node_value="node3")
         path_node3 = PathNode(node_id="node3", nested_graph_node_value="node4")
@@ -266,7 +269,7 @@ class TestNestedGraph:
 
     def test_get_nested_graph_component_node_no_nested_graph_found(self) -> None:
         """Test get_nested_graph_component_node when no nested graph is found."""
-        params = Params()
+        params = OrchestratorParams()
         path_node1 = PathNode(node_id="node1")
         path_node2 = PathNode(node_id="node2")
         params.taskgraph.path = [path_node1, path_node2]
@@ -285,7 +288,7 @@ class TestNestedGraph:
 
     def test_get_nested_graph_component_node_with_updated_path(self) -> None:
         """Test get_nested_graph_component_node with path that gets updated during processing."""
-        params = Params()
+        params = OrchestratorParams()
         path_node1 = PathNode(node_id="node1")
         path_node2 = PathNode(node_id="node2", nested_graph_node_value="node1")
         params.taskgraph.path = [path_node1, path_node2]
@@ -306,7 +309,7 @@ class TestNestedGraph:
 
     def test_get_nested_graph_component_node_complex_leaf_jump_scenario(self) -> None:
         """Test get_nested_graph_component_node with complex leaf jump scenario."""
-        params = Params()
+        params = OrchestratorParams()
         # Create a valid scenario where the leaf jump points to a valid index
         path_node1 = PathNode(
             node_id="node1", nested_graph_leaf_jump=0
@@ -408,7 +411,7 @@ class TestNestedGraph:
     def test_get_nested_graph_component_node_none_is_leaf_func(self) -> None:
         """Test get_nested_graph_component_node with None is_leaf_func."""
         # Setup
-        params = Params()
+        params = OrchestratorParams()
         params.taskgraph.path = [PathNode(node_id="node1")]
 
         # Execute - The code actually handles None gracefully
@@ -425,7 +428,7 @@ class TestNestedGraph:
     ) -> None:
         """Test get_nested_graph_component_node when is_leaf_func raises an exception."""
         # Setup
-        params = Params()
+        params = OrchestratorParams()
         params.taskgraph.path = [PathNode(node_id="node1")]
 
         def is_leaf_func(node_id: str) -> bool:
@@ -443,7 +446,7 @@ class TestNestedGraph:
     def test_get_nested_graph_component_node_path_with_none_nodes(self) -> None:
         """Test get_nested_graph_component_node with None nodes in path."""
         # Setup
-        params = Params()
+        params = OrchestratorParams()
         params.taskgraph.path = [None, PathNode(node_id="node1")]
 
         def is_leaf_func(node_id: str) -> bool:
@@ -463,7 +466,7 @@ class TestNestedGraph:
     ) -> None:
         """Test when nested_graph_node_value points to a node that doesn't exist in path."""
         # Setup
-        params = Params()
+        params = OrchestratorParams()
         path_node1 = PathNode(node_id="node1")
         path_node2 = PathNode(
             node_id="node2", nested_graph_node_value="nonexistent_node"
@@ -487,7 +490,7 @@ class TestNestedGraph:
     def test_get_nested_graph_component_node_negative_leaf_jump(self) -> None:
         """Test get_nested_graph_component_node with negative nested_graph_leaf_jump."""
         # Setup
-        params = Params()
+        params = OrchestratorParams()
         path_node1 = PathNode(node_id="node1", nested_graph_leaf_jump=-1)
         path_node2 = PathNode(node_id="node2")
         params.taskgraph.path = [path_node1, path_node2]
@@ -507,7 +510,7 @@ class TestNestedGraph:
     def test_get_nested_graph_component_node_leaf_jump_out_of_bounds(self) -> None:
         """Test get_nested_graph_component_node with nested_graph_leaf_jump out of bounds."""
         # Setup
-        params = Params()
+        params = OrchestratorParams()
         path_node1 = PathNode(
             node_id="node1", nested_graph_leaf_jump=10
         )  # Out of bounds
@@ -527,7 +530,7 @@ class TestNestedGraph:
     def test_get_nested_graph_component_node_missing_taskgraph_attributes(self) -> None:
         """Test get_nested_graph_component_node when taskgraph is missing required attributes."""
         # Setup
-        params = Mock(spec=Params)
+        params = Mock(spec=OrchestratorParams)
         params.taskgraph = Mock()
         # Configure the mock to raise AttributeError when accessing path
         params.taskgraph.path = Mock()
@@ -550,7 +553,7 @@ class TestNestedGraph:
     def test_get_nested_graph_component_node_missing_node_status(self) -> None:
         """Test get_nested_graph_component_node when node_status is missing."""
         # Setup
-        params = Params()
+        params = OrchestratorParams()
         path_node1 = PathNode(node_id="node1")
         path_node2 = PathNode(node_id="node2", nested_graph_node_value="node1")
         params.taskgraph.path = [path_node1, path_node2]
@@ -571,7 +574,7 @@ class TestNestedGraph:
     def test_get_nested_graph_component_node_circular_reference(self) -> None:
         """Test get_nested_graph_component_node with circular nested graph references."""
         # Setup
-        params = Params()
+        params = OrchestratorParams()
         path_node1 = PathNode(node_id="node1", nested_graph_node_value="node2")
         path_node2 = PathNode(node_id="node2", nested_graph_node_value="node1")
         params.taskgraph.path = [path_node1, path_node2]
@@ -594,7 +597,7 @@ class TestNestedGraph:
     ) -> None:
         """Test get_nested_graph_component_node with PathNode having None attributes."""
         # Setup
-        params = Params()
+        params = OrchestratorParams()
         path_node1 = PathNode(
             node_id="node1", nested_graph_leaf_jump=None, nested_graph_node_value=None
         )
@@ -618,7 +621,7 @@ class TestNestedGraph:
 
     def test_get_nested_graph_component_node_empty_path_triggers_none(self) -> None:
         """Test get_nested_graph_component_node returns None when path is empty."""
-        params = Params()
+        params = OrchestratorParams()
         params.taskgraph.path = []
         params.taskgraph.node_status = {}
 
@@ -634,7 +637,7 @@ class TestNestedGraph:
 
     def test_get_nested_graph_component_node_final_return_none_params(self) -> None:
         """Test the final return None, params branch with empty path."""
-        params = Params()
+        params = OrchestratorParams()
         params.taskgraph.path = []
 
         def is_leaf_func(node_id: str) -> bool:
@@ -648,7 +651,7 @@ class TestNestedGraph:
 
     def test_get_nested_graph_component_node_all_nodes_are_leaves(self) -> None:
         """Test get_nested_graph_component_node fallback branch"""
-        params = Params()
+        params = OrchestratorParams()
         # Provide an empty path to trigger the fallback branch
         params.taskgraph.path = []
         params.taskgraph.node_status = {}
@@ -666,7 +669,7 @@ class TestNestedGraph:
 
     def test_get_nested_graph_component_node_none_return(self) -> None:
         """Test get_nested_graph_component_node returns the first node when all nodes are leaves in circular pattern."""
-        params = Params()
+        params = OrchestratorParams()
         # Create a path where all nodes are leaves and form nested graph patterns
         # but the algorithm exhausts all possibilities
         path_node1 = PathNode(node_id="node1", nested_graph_node_value="node2")
@@ -689,7 +692,7 @@ class TestNestedGraph:
 
     def test_get_nested_graph_component_node_empty_path_returns_none(self) -> None:
         """Test get_nested_graph_component_node returns None with empty path."""
-        params = Params()
+        params = OrchestratorParams()
         params.taskgraph.path = []
         params.taskgraph.node_status = {}
 
@@ -706,7 +709,7 @@ class TestNestedGraph:
 
     def test_get_nested_graph_component_node_fallback_return_none(self) -> None:
         """Test get_nested_graph_component_node fallback return None, params branch."""
-        params = Params()
+        params = OrchestratorParams()
         # Create a scenario where all nodes are leaves and nested graph component is found
         # but the algorithm exhausts all possibilities and reaches the fallback return
         path_node1 = PathNode(node_id="node1", nested_graph_node_value="node2")
@@ -733,7 +736,7 @@ class TestNestedGraph:
         self,
     ) -> None:
         """Explicitly test fallback return (None, params) with empty path (line 92)."""
-        params = Params()
+        params = OrchestratorParams()
         params.taskgraph.path = []
 
         def is_leaf_func(node_id: str) -> bool:
@@ -749,7 +752,7 @@ class TestNestedGraph:
         self,
     ) -> None:
         """Test fallback return (None, params) when all nodes are leaves (line 92)."""
-        params = Params()
+        params = OrchestratorParams()
         params.taskgraph.path = []
 
         def is_leaf_func(node_id: str) -> bool:
@@ -765,7 +768,7 @@ class TestNestedGraph:
         self,
     ) -> None:
         """Test fallback return (None, params) with None is_leaf_func (line 92)."""
-        params = Params()
+        params = OrchestratorParams()
         params.taskgraph.path = []
         result_node, result_params = NestedGraph.get_nested_graph_component_node(
             params, None
@@ -777,7 +780,7 @@ class TestNestedGraph:
         self,
     ) -> None:
         """Test fallback return (None, params) with path containing only None (line 92)."""
-        params = Params()
+        params = OrchestratorParams()
         params.taskgraph.path = [None]
 
         def is_leaf_func(node_id: str) -> bool:
@@ -786,22 +789,51 @@ class TestNestedGraph:
         with suppress(AttributeError):
             NestedGraph.get_nested_graph_component_node(params, is_leaf_func)
 
-    def test_get_nested_graph_component_node_fallback_none_params_path_with_non_pathnode(
+    def test_get_nested_graph_component_node_fallback_return_none_params_path_with_non_pathnode(
         self,
     ) -> None:
-        """Test fallback return (None, params) with path containing non-PathNode (line 92)."""
-        params = Params()
-        params.taskgraph.path = [123]
+        """Test get_nested_graph_component_node with path containing non-PathNode objects."""
+        params = Mock(spec=OrchestratorParams)
+        params.taskgraph = Mock()
+        # Create a path with invalid elements that will cause the algorithm to fail
+        params.taskgraph.path = [Mock()]  # Invalid path element
+        params.taskgraph.node_status = {}
 
         def is_leaf_func(node_id: str) -> bool:
-            return False
+            return True  # All nodes are leaves, which will cause the algorithm to continue searching
 
-        with suppress(AttributeError):
+        # This should trigger the fallback return None, params when the algorithm
+        # encounters invalid path elements
+        with pytest.raises((AttributeError, TypeError)):
             NestedGraph.get_nested_graph_component_node(params, is_leaf_func)
+
+    def test_get_nested_graph_component_node_fallback_return_none_edge_case(
+        self,
+    ) -> None:
+        """Test get_nested_graph_component_node edge case that triggers the fallback return None."""
+        params = Mock(spec=OrchestratorParams)
+        params.taskgraph = Mock()
+        # Create an empty path to trigger the fallback return None
+        params.taskgraph.path = []
+        params.taskgraph.node_status = {}
+
+        def is_leaf_func(node_id: str) -> bool:
+            # This function won't be called with an empty path
+            return True
+
+        # This should trigger the fallback return None, params when the path is empty
+        # and cur_node_i becomes -1 (len(path) - 1 = -1)
+        result_node, result_params = NestedGraph.get_nested_graph_component_node(
+            params, is_leaf_func
+        )
+
+        # The fallback should return None, params when the path is empty
+        assert result_node is None
+        assert result_params == params
 
     def test_get_nested_graph_component_node_not_leaf_branch(self) -> None:
         """Covers the branch where is_leaf_func returns False, triggering the return at line 92."""
-        params = Params()
+        params = OrchestratorParams()
         # Create a path with two nodes, the second is a nested graph component
         path_node1 = PathNode(node_id="node1")
         path_node2 = PathNode(node_id="node2", nested_graph_node_value="node1")

@@ -81,24 +81,52 @@ def cart_add_items(
         }
     }
     """
-    response = requests.post(
-        auth["storefront_url"],
-        json={"query": query, "variables": variable},
-        headers=headers,
-    )
-    if response.status_code == 200:
-        cart_data = response.json()
-        if "errors" in cart_data:
+    try:
+        response = requests.post(
+            auth["storefront_url"],
+            json={"query": query, "variables": variable},
+            headers=headers,
+        )
+        if response.status_code == 200:
+            cart_data = response.json()
+            if "errors" in cart_data:
+                raise ToolExecutionError(
+                    func_name,
+                    extra_message=ShopifyExceptionPrompt.CART_ADD_ITEMS_ERROR_PROMPT,
+                )
+            else:
+                # Check for required keys in the response
+                if "data" not in cart_data:
+                    raise ToolExecutionError(
+                        func_name,
+                        extra_message=ShopifyExceptionPrompt.CART_ADD_ITEMS_ERROR_PROMPT,
+                    )
+
+                if "cartLinesAdd" not in cart_data["data"]:
+                    raise ToolExecutionError(
+                        func_name,
+                        extra_message=ShopifyExceptionPrompt.CART_ADD_ITEMS_ERROR_PROMPT,
+                    )
+
+                cart_lines_add = cart_data["data"]["cartLinesAdd"]
+                if "cart" not in cart_lines_add or cart_lines_add["cart"] is None:
+                    raise ToolExecutionError(
+                        func_name,
+                        extra_message=ShopifyExceptionPrompt.CART_ADD_ITEMS_ERROR_PROMPT,
+                    )
+
+                return (
+                    "Items are successfully added to the shopping cart. "
+                    + json.dumps(cart_lines_add["cart"])
+                )
+        else:
             raise ToolExecutionError(
                 func_name,
                 extra_message=ShopifyExceptionPrompt.CART_ADD_ITEMS_ERROR_PROMPT,
             )
-        else:
-            return "Items are successfully added to the shopping cart. " + json.dumps(
-                cart_data["data"]["cartLinesAdd"]["cart"]
-            )
-    else:
+    except (requests.RequestException, Exception) as e:
+        log_context.error(f"Cart add items failed: {e}")
         raise ToolExecutionError(
             func_name,
             extra_message=ShopifyExceptionPrompt.CART_ADD_ITEMS_ERROR_PROMPT,
-        )
+        ) from e

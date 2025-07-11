@@ -6,12 +6,12 @@ intent detection, slot filling, and slot verification prompt formatting.
 
 from unittest.mock import Mock
 
+from arklex.orchestrator.NLU.entities.slot_entities import Slot
 from arklex.orchestrator.NLU.utils.formatters import (
     format_intent_input,
     format_slot_input,
     format_verification_input,
 )
-from arklex.utils.slot import Slot
 
 
 class TestFormatIntentInput:

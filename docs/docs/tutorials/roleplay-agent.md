@@ -83,7 +83,7 @@ It will initialize the service (e.g. NLU apis) you need to start the bot and you
 
 Here is a sample conversation of the roleplay bot:
 
-```
+```bash
 > Bot: Greetings, foolish adventurer! I am the mighty red dragon, guardian of the secrets you seek. Turn back now, lest you join the countless knights who have perished before you. What brings you to my fiery domain in pursuit of the elusive holy grail?
 
 > User: I am questing for the holy grail for the hand of the princess!
@@ -101,4 +101,19 @@ Here is a sample conversation of the roleplay bot:
 > User: I am powered by true love and I know that with her protection charm she has given me, I would conquer you and retrieve the grail!   
 
 > Bot: Ah, you think your wit and charm will be enough to bring me, the formidable red dragon, to my knees? Many have tried to outsmart and sway me with their clever words, only to meet their end in my fiery domain. What makes you so confident that your quest for the holy grail and the princess's hand will lead to a different fate?
-```
+
+## Evaluation
+
+For a task-oriented dialogue system, you could use the evaluation script to automatically generate synthetic conversations, extracting task completion metrics for evaluating the whole system. For more details, please refer to the [evaluation](../Evaluation/UserSimulator.md) documentation.
+
+1. First, create an API for the Agent you built. It will start an API on the default port 8000 (defaults to OpenAI with "gpt-4o-mini" model):
+
+  ```bash
+    python model_api.py --input-dir ./examples/roleplay
+  ```
+
+2. Then, start the evaluation process (in a separate terminal):
+
+  ```bash
+    python eval.py --model_api http://127.0.0.1:8000/eval/chat --config "examples/roleplay/roleplay_config.json" --documents_dir "examples/roleplay" --model "claude-3-haiku-20240307" --llm_provider "anthropic" --task "all"
+  ```

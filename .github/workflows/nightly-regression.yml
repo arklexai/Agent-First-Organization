@@ -8,6 +8,7 @@ on:
 
 permissions:
   contents: write
+  id-token: write
 
 jobs:
   lint:
@@ -25,9 +26,10 @@ jobs:
       OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
 
   coverage-check:
-    uses: ./.github/workflows/reusable-readme-coverage-badge-update.yml
-    secrets:
-      github-token: ${{ github.token }}
+    uses: ./.github/workflows/reusable-run-coverage-tests.yml
+    with:
+      coverage-command: 'ARKLEX_TEST_ENV=local pytest tests/ --cov=arklex --cov-report=term-missing --cov-report=html --cov-report=xml --no-cov-on-fail'
+      min-coverage-threshold: '99.0'
 
   summary:
     name: Nightly Regression Summary
@@ -36,6 +38,9 @@ jobs:
     if: always()
     
     steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
       - name: Generate Summary
         id: summary
         run: |
@@ -64,16 +69,21 @@ jobs:
             # Build detailed failure message
             FAILED_TESTS=""
             if [[ "${{ needs.lint.result }}" != "success" ]]; then
-              FAILED_TESTS="$FAILED_TESTS• Lint checks"
+              FAILED_TESTS="${FAILED_TESTS}• Lint checks"
             fi
             if [[ "${{ needs.taskgraph.result }}" != "success" ]]; then
-              FAILED_TESTS="$FAILED_TESTS• TaskGraph generation/validation"
+              FAILED_TESTS="${FAILED_TESTS}• TaskGraph generation/validation"
             fi
             if [[ "${{ needs.coverage-check.result }}" != "success" ]]; then
-              FAILED_TESTS="$FAILED_TESTS• Coverage checks"
+              FAILED_TESTS="${FAILED_TESTS}• Coverage checks"
             fi
             
-            echo "notification_message=The following tests failed:$FAILED_TESTS. Please review the workflow logs for details." >> $GITHUB_OUTPUT
+            # Handle case where no tests failed (shouldn't happen but just in case)
+            if [[ -z "$FAILED_TESTS" ]]; then
+              FAILED_TESTS="• Unknown test failures"
+            fi
+            
+            echo "notification_message=The following tests failed:${FAILED_TESTS}. Please review the workflow logs for details." >> $GITHUB_OUTPUT
           fi
           
           echo "" >> $GITHUB_STEP_SUMMARY
@@ -82,26 +92,46 @@ jobs:
 
       - name: Send Success Notification
         if: steps.summary.outputs.overall_status == 'success'
-        uses: ./.github/workflows/reusable-send-notifications.yml
+        uses: 8398a7/action-slack@v3
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
         with:
-          notification-type: ${{ steps.summary.outputs.notification_type }}
-          title: ${{ steps.summary.outputs.notification_title }}
-          message: ${{ steps.summary.outputs.notification_message }}
-          workflow-name: 'Nightly Regression Tests'
-          workflow-run-id: ${{ github.run_id }}
-          workflow-run-url: https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}
-          enable-email: 'true'
-          enable-slack: 'true'
+          status: success
+          text: |
+            ${{ steps.summary.outputs.notification_title }}
+
+            ${{ steps.summary.outputs.notification_message }}
+
+            Workflow: Nightly Regression Tests
+            Run ID: ${{ github.run_id }}
+            View Run: https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}
+          channel: "#builds"
+          username: "GitHub Actions"
+          icon_emoji: ":robot_face:"
+        continue-on-error: true
 
       - name: Send Failure Notification
         if: steps.summary.outputs.overall_status == 'failure'
-        uses: ./.github/workflows/reusable-send-notifications.yml
+        uses: 8398a7/action-slack@v3
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
         with:
-          notification-type: ${{ steps.summary.outputs.notification_type }}
-          title: ${{ steps.summary.outputs.notification_title }}
-          message: ${{ steps.summary.outputs.notification_message }}
-          workflow-name: 'Nightly Regression Tests'
-          workflow-run-id: ${{ github.run_id }}
-          workflow-run-url: https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}
-          enable-email: 'true'
-          enable-slack: 'true'
+          status: failure
+          text: |
+            ${{ steps.summary.outputs.notification_title }}
+
+            ${{ steps.summary.outputs.notification_message }}
+
+            Workflow: Nightly Regression Tests
+            Run ID: ${{ github.run_id }}
+            View Run: https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}
+          channel: "#builds"
+          username: "GitHub Actions"
+          icon_emoji: ":robot_face:"
+        continue-on-error: true
+
+      - name: Log Notification Status
+        run: |
+          echo "📧 Slack notification steps completed."
+          echo "Note: If SLACK_WEBHOOK_URL is not configured, the notification steps will fail silently."
+          echo "To enable Slack notifications, add the SLACK_WEBHOOK_URL secret to your repository settings."

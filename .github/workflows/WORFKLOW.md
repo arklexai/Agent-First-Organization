@@ -45,7 +45,7 @@ Reusable workflow to run tests with coverage checking.
 **Inputs:**
 
 - `coverage-command`: Command to run tests with coverage (default: pytest with coverage)
-- `min-coverage-threshold`: Minimum coverage percentage to pass (default: 99.1)
+- `min-coverage-threshold`: Minimum coverage percentage to pass (default: 99.2)
 
 #### 4. `reusable-diff-based-test-coverage.yml`
 
@@ -142,14 +142,7 @@ jobs:
   run-coverage:
     uses: ./.github/workflows/reusable-run-coverage-tests.yml
     with:
-      min-coverage-threshold: '99.1'
-```
-
-### Event-Triggered Workflows
-
-```yaml
-# These workflows are triggered by events like push, pull_request, etc.
-# They don't need to be called explicitly
+      min-coverage-threshold: '99.2'
 ```
 
 ## Setup Instructions

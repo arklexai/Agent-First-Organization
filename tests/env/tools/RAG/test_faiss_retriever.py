@@ -7,7 +7,7 @@ from arklex.env.tools.RAG.retrievers.faiss_retriever import (
     FaissRetrieverExecutor,
     RetrieveEngine,
 )
-from arklex.utils.graph_state import LLMConfig, MessageState
+from arklex.orchestrator.entities.msg_state_entities import LLMConfig, MessageState
 
 
 @pytest.fixture

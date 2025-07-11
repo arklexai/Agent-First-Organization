@@ -160,20 +160,21 @@ It will initialize the service (e.g. NLU apis) you need to start the agent and y
 
 For a task-oriented dialogue system, you could use the evaluation script to automatically generate synthetic conversations, extracting task completion metrics for evaluating the whole system. For more details, please refer to the [evaluation](../Evaluation/UserSimulator.md) documentation.
 
-1. First, create an API for the Agent you built. It will start an API on the default port 8000.
+1. First, create an API for the Agent you built. It will start an API on the default port 8000 (defaults to OpenAI with "gpt-4o-mini" model):
 
+    ```bash
+    python model_api.py --input-dir ./examples/customer_service
     ```
-    python model_api.py  --input-dir ./examples/customer_service
-    ```
 
-2. Then, start the evaluation process:
+2. Then, start the evaluation process (in a separate terminal):
 
-   ```
-    python eval.py \
-    --model_api http://127.0.0.1:8000/eval/chat \
-    --config ./examples/customer_service_config.json \
-    --documents_dir ./examples/customer_service \
-    --output_dir ./examples/customer_service
+   ```bash
+    python eval.py --model_api http://127.0.0.1:8000/eval/chat \
+        --config "examples/customer_service/customer_service_config.json" \
+        --documents_dir "examples/customer_service" \
+        --model "claude-3-haiku-20240307" \
+        --llm_provider "anthropic" \
+        --task "all"
     ```
 
 ## Evaluation Results

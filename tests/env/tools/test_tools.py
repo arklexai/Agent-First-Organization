@@ -8,8 +8,8 @@ from typing import Any
 from unittest.mock import Mock, patch
 
 from arklex.env.tools.tools import Tool, register_tool
+from arklex.orchestrator.entities.msg_state_entities import MessageState
 from arklex.utils.exceptions import AuthenticationError, ToolExecutionError
-from arklex.utils.graph_state import MessageState
 
 
 class TestTools:
@@ -388,7 +388,7 @@ class TestTools:
             isResponse=False,
         )
 
-        from arklex.utils.slot import Slot
+        from arklex.orchestrator.NLU.entities.slot_entities import Slot
 
         default_slots = [Slot(name="param1", value="default_value", type="str")]
 
@@ -413,7 +413,7 @@ class TestTools:
             isResponse=False,
         )
 
-        from arklex.utils.slot import Slot
+        from arklex.orchestrator.NLU.entities.slot_entities import Slot
 
         default_slots = [
             Slot(name="different_param", value="default_value", type="str")
@@ -439,7 +439,7 @@ class TestTools:
             isResponse=False,
         )
 
-        from arklex.utils.slot import Slot
+        from arklex.orchestrator.NLU.entities.slot_entities import Slot
 
         default_slots = [Slot(name="param1", value="default_value", type="str")]
 
@@ -652,7 +652,7 @@ class TestTools:
         tool.slotfiller = mock_slotfiller
 
         # Mock slots that are filled and verified
-        from arklex.utils.slot import Slot
+        from arklex.orchestrator.NLU.entities.slot_entities import Slot
 
         filled_slots = [
             Slot(
@@ -713,7 +713,7 @@ class TestTools:
         tool.slotfiller = mock_slotfiller
 
         # Mock slots that are missing values
-        from arklex.utils.slot import Slot
+        from arklex.orchestrator.NLU.entities.slot_entities import Slot
 
         empty_slots = [
             Slot(
@@ -772,7 +772,7 @@ class TestTools:
         tool.slotfiller = mock_slotfiller
 
         # Mock slots that need verification
-        from arklex.utils.slot import Slot
+        from arklex.orchestrator.NLU.entities.slot_entities import Slot
 
         unverified_slots = [
             Slot(
@@ -827,7 +827,7 @@ class TestTools:
         tool.slotfiller = mock_slotfiller
 
         # Mock slots that are filled and verified
-        from arklex.utils.slot import Slot
+        from arklex.orchestrator.NLU.entities.slot_entities import Slot
 
         filled_slots = [
             Slot(
@@ -875,7 +875,7 @@ class TestTools:
         tool.slotfiller = mock_slotfiller
 
         # Mock slots that are filled and verified
-        from arklex.utils.slot import Slot
+        from arklex.orchestrator.NLU.entities.slot_entities import Slot
 
         filled_slots = [
             Slot(
@@ -923,7 +923,7 @@ class TestTools:
         tool.slotfiller = mock_slotfiller
 
         # Mock slots that are filled and verified
-        from arklex.utils.slot import Slot
+        from arklex.orchestrator.NLU.entities.slot_entities import Slot
 
         filled_slots = [
             Slot(
@@ -971,7 +971,7 @@ class TestTools:
         tool.slotfiller = mock_slotfiller
 
         # Mock slots that are filled and verified
-        from arklex.utils.slot import Slot
+        from arklex.orchestrator.NLU.entities.slot_entities import Slot
 
         filled_slots = [
             Slot(
@@ -1019,7 +1019,7 @@ class TestTools:
         tool.slotfiller = mock_slotfiller
 
         # Mock slots that are filled and verified
-        from arklex.utils.slot import Slot
+        from arklex.orchestrator.NLU.entities.slot_entities import Slot
 
         existing_slots = [
             Slot(
@@ -1070,7 +1070,7 @@ class TestTools:
         tool.slotfiller = mock_slotfiller
 
         # Mock slots that are filled and verified
-        from arklex.utils.slot import Slot
+        from arklex.orchestrator.NLU.entities.slot_entities import Slot
 
         filled_slots = [
             Slot(
@@ -1129,7 +1129,7 @@ class TestTools:
         tool.slotfiller = mock_slotfiller
 
         # Mock slots that need verification
-        from arklex.utils.slot import Slot
+        from arklex.orchestrator.NLU.entities.slot_entities import Slot
 
         unverified_slots = [
             Slot(
@@ -1172,8 +1172,8 @@ class TestTools:
         assert result == "others"
 
     def test_validate_slot_response_invalid_json(self) -> None:
+        from arklex.orchestrator.NLU.entities.slot_entities import Slot
         from arklex.orchestrator.NLU.utils import validators
-        from arklex.utils.slot import Slot
 
         # Should return original slots on JSON error
         slots = [Slot(name="foo", value=None, type="str")]
@@ -1298,7 +1298,7 @@ class TestTools:
         mock_slotfiller = Mock()
         tool.slotfiller = mock_slotfiller
 
-        from arklex.utils.slot import Slot
+        from arklex.orchestrator.NLU.entities.slot_entities import Slot
 
         # First execution with param1
         filled_slots_1 = [
@@ -1367,7 +1367,7 @@ class TestTools:
         mock_slotfiller = Mock()
         tool.slotfiller = mock_slotfiller
 
-        from arklex.utils.slot import Slot
+        from arklex.orchestrator.NLU.entities.slot_entities import Slot
 
         filled_slots = [
             Slot(
@@ -1415,7 +1415,7 @@ class TestTools:
         mock_slotfiller = Mock()
         tool.slotfiller = mock_slotfiller
 
-        from arklex.utils.slot import Slot
+        from arklex.orchestrator.NLU.entities.slot_entities import Slot
 
         # Create previous slots in state
         previous_slots = [

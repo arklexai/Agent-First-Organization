@@ -67,7 +67,7 @@ There are several steps for the implementation of this function:
 * If the user is not an existing customer, `USER_NOT_FOUND_ERROR` will be returned. If the user is the existing customer, the response of search_api is shown below.
 The structure of a contact is demonstrated inside the `results` field.
 
-  ```
+  ```bash
   {'paging': None,
    'results': [{'archived': False,
                 'archived_at': None,
@@ -114,7 +114,7 @@ The structure of a contact is demonstrated inside the `results` field.
   
   The structure of the **communication** object is shown below:
 
-  ```
+  ```bash
    {'archived': False,
    'archived_at': None,
    'created_at': datetime.datetime(2025, 2, 25, 0, 26, 48, 751000, tzinfo=tzutc()),
@@ -171,7 +171,7 @@ After associating, the `'lastmodifieddate'` and `'updated_at'` of contact will b
   
   The structure of the association object is shown below:
 
-  ```
+  ```bash
   {'from_object_id': '84246479604',
    'from_object_type_id': '0-1',
    'labels': [],
@@ -217,7 +217,7 @@ There are several steps for the implementation of this function:
 
   The structure of the created **ticket** is like:
 
-  ```
+  ```bash
   {'archived': False,
    'archived_at': None,
    'created_at': datetime.datetime(2025, 2, 25, 0, 35, 5, 747000, tzinfo=tzutc()),
@@ -789,11 +789,27 @@ So the taskgraph to handle these two cases is shown below:
 When the taskgraph is generated, you could use the following command to run the chatbot (suppose the `./examples/hubspot` contains the taskgraph):
 `python run.py --input-dir ./examples/hubspot`
 
+## Evaluation
+
+For evaluation and testing, you can also use the model API server:
+
+1. First, start the model API server (defaults to OpenAI with "gpt-4o-mini" model):
+
+  ```bash
+  python model_api.py --input-dir ./examples/hubspot
+  ```
+
+2. Then run evaluation (in a separate terminal):
+
+  ```bash
+  python eval.py --model_api http://127.0.0.1:8000/eval/chat --config "examples/hubspot/hubspot_config.json" --documents_dir "examples/hubspot" --model "claude-3-haiku-20240307" --llm_provider "anthropic" --task "all"
+  ```
+
 ## Sample conversation
 
 (1) 1st case (When user has questions about the product)
 
-```
+```bash
 Bot: Hello! Welcome to Richtech. How can I assist you today?
 Customer: I want to know more about your product: Adam
 Bot: "Thanks for your interest in the ADAM robot! Could you please provide your email or phone number so we can send you more detailed information?"
@@ -805,7 +821,7 @@ Bot: The pricing for the ADAM robot can vary based on the specific configuration
 
 (2) 2nd case (When user needs technical support/repair service/exchange service)
 
-```
+```bash
 Bot: Hello! Welcome to Richtech. How can I assist you today?
 Customer: I have a issue in installing the DUST-E robot
 Bot: Thank you for reaching out about the issue with installing the DUST-E robot. To assist you further, could you please provide your email or phone number? This will help us get in touch with you and offer more detailed support.

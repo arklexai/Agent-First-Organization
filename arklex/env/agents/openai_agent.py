@@ -4,16 +4,15 @@ from typing import Any
 from langchain.prompts import PromptTemplate
 from langchain_core.language_models import BaseChatModel
 from langchain_core.messages import AIMessage, SystemMessage, ToolMessage
-from langchain_openai import ChatOpenAI
 from langgraph.graph import START, StateGraph
 
 from arklex.env.agents.agent import BaseAgent, register_agent
 from arklex.env.prompts import load_prompts
 from arklex.env.tools.tools import register_tool
 from arklex.env.tools.utils import trace
-from arklex.utils.graph_state import MessageState, StatusEnum
+from arklex.orchestrator.entities.msg_state_entities import MessageState, StatusEnum
 from arklex.utils.logging_utils import LogContext
-from arklex.utils.model_provider_config import PROVIDER_MAP
+from arklex.utils.provider_utils import validate_and_get_model_class
 
 log_context = LogContext(__name__)
 
@@ -30,9 +29,9 @@ def end_conversation(state: MessageState) -> str:
     """
     log_context.info("Ending the conversation.")
     state.status = StatusEnum.COMPLETE
-    llm = PROVIDER_MAP.get(state.bot_config.llm_config.llm_provider, ChatOpenAI)(
-        model=state.bot_config.llm_config.model_type_or_path
-    )
+    model_class = validate_and_get_model_class(state.bot_config.llm_config)
+
+    llm = model_class(model=state.bot_config.llm_config.model_type_or_path)
     try:
         return llm.invoke(
             [
@@ -148,10 +147,10 @@ class OpenAIAgent(BaseAgent):
         return workflow
 
     def _execute(self, msg_state: MessageState, **kwargs: Any) -> dict[str, Any]:  # noqa: ANN401
-        self.llm = PROVIDER_MAP.get(
-            msg_state.bot_config.llm_config.llm_provider, ChatOpenAI
-        )(model=msg_state.bot_config.llm_config.model_type_or_path)
-        self.llm = self.llm.bind_tools(self.tool_defs)
+        model_class = validate_and_get_model_class(msg_state.bot_config.llm_config)
+
+        llm = model_class(model=msg_state.bot_config.llm_config.model_type_or_path)
+        llm = llm.bind_tools(self.tool_defs)
         self.prompt: str = kwargs.get("prompt", "")
         graph = self.action_graph.compile()
         result = graph.invoke(msg_state)

@@ -21,7 +21,6 @@ from multiprocessing.pool import Pool
 import numpy as np
 from langchain.prompts import PromptTemplate
 from langchain_core.output_parsers import StrOutputParser
-from langchain_openai.chat_models import ChatOpenAI
 from pymilvus import Collection, DataType, MilvusClient, connections
 
 from arklex.env.prompts import load_prompts
@@ -33,10 +32,10 @@ from arklex.env.tools.RAG.retrievers.retriever_document import (
     embed_retriever_document,
 )
 from arklex.env.tools.utils import trace
-from arklex.utils.graph_state import MessageState
+from arklex.orchestrator.entities.msg_state_entities import MessageState
 from arklex.utils.logging_utils import LogContext
-from arklex.utils.model_provider_config import PROVIDER_MAP
 from arklex.utils.mysql import mysql_pool
+from arklex.utils.provider_utils import validate_and_get_model_class
 
 EMBED_DIMENSION = 1536
 MAX_TEXT_LENGTH = 65535
@@ -755,9 +754,9 @@ class MilvusRetriever:
 class MilvusRetrieverExecutor:
     def __init__(self, bot_config: object) -> None:
         self.bot_config = bot_config
-        self.llm = PROVIDER_MAP.get(bot_config.llm_config.llm_provider, ChatOpenAI)(
-            model=bot_config.llm_config.model_type_or_path
-        )
+        model_class = validate_and_get_model_class(bot_config.llm_config)
+
+        self.llm = model_class(model=bot_config.llm_config.model_type_or_path)
 
     def generate_thought(self, retriever_results: list[RetrieverResult]) -> str:
         # post process list of documents into str

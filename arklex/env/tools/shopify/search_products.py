@@ -13,7 +13,6 @@ import json
 from typing import TypedDict
 
 import shopify
-from langchain_openai import ChatOpenAI
 
 from arklex.env.tools.shopify._exception_prompt import ShopifyExceptionPrompt
 from arklex.env.tools.shopify.utils import authorify_admin
@@ -128,17 +127,24 @@ def search_products(product_query: str, **kwargs: SearchProductsKwargs) -> str:
                     "link_url": product.get("onlineStoreUrl")
                     if product.get("onlineStoreUrl")
                     else f"{auth['domain']}/products/{product.get('handle')}",
-                    "image_url": product.get("images", {})
-                    .get("edges", [{}])[0]
+                    "image_url": product.get("images", {}).get("edges", [])
+                    and product.get("images", {})
+                    .get("edges", [])[0]
                     .get("node", {})
-                    .get("src", ""),
+                    .get("src", "")
+                    or "",
                     "variants": product.get("variants", {}).get("nodes", []),
                 }
                 card_list.append(product_dict)
             if card_list:
-                llm = PROVIDER_MAP.get(kwargs["llm_provider"], ChatOpenAI)(
-                    model=kwargs["model_type_or_path"], temperature=0.7
-                )
+                if not kwargs.get("llm_provider"):
+                    raise ValueError("llm_provider must be explicitly specified")
+
+                model_class = PROVIDER_MAP.get(kwargs["llm_provider"])
+                if not model_class:
+                    raise ValueError(f"Unsupported provider: {kwargs['llm_provider']}")
+
+                llm = model_class(model=kwargs["model_type_or_path"], temperature=0.7)
                 message = [
                     {
                         "role": "user",

@@ -39,7 +39,7 @@ from arklex.utils.logging_utils import LogContext
 
 log_context = LogContext(__name__)
 
-CHROME_DRIVER_VERSION = "137.0.7151.69"
+CHROME_DRIVER_VERSION = "138.0.7204.94"
 MISTRAL_API_KEY = os.getenv("MISTRAL_API_KEY")
 
 

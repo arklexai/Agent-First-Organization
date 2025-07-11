@@ -7,8 +7,8 @@ from arklex.env.tools import tools
 from arklex.env.tools.tools import Tool, register_tool
 
 # Mocks for dependencies
-from arklex.utils.graph_state import MessageState, StatusEnum
-from arklex.utils.slot import Slot
+from arklex.orchestrator.entities.msg_state_entities import MessageState, StatusEnum
+from arklex.orchestrator.NLU.entities.slot_entities import Slot
 
 
 def dummy_func(a: object = None, b: object = None) -> str:

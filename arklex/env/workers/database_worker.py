@@ -1,14 +1,15 @@
+from typing import Any
+
 from langchain.prompts import PromptTemplate
 from langchain_core.language_models import BaseChatModel
 from langchain_core.output_parsers import StrOutputParser
-from langchain_openai import ChatOpenAI
 from langgraph.graph import START, StateGraph
 
 from arklex.env.prompts import load_prompts
 from arklex.env.tools.database.utils import DatabaseActions
 from arklex.env.tools.utils import ToolGenerator
 from arklex.env.workers.worker import BaseWorker, register_worker
-from arklex.utils.graph_state import MessageState
+from arklex.orchestrator.entities.msg_state_entities import MessageState
 from arklex.utils.logging_utils import LogContext
 from arklex.utils.model_config import MODEL
 from arklex.utils.utils import chunk_string
@@ -20,10 +21,51 @@ log_context = LogContext(__name__)
 class DataBaseWorker(BaseWorker):
     description: str = "Help the user with actions related to customer support like a booking system with structured data, always involving search, insert, update, and delete operations."
 
-    def __init__(self) -> None:
-        self.llm: BaseChatModel = ChatOpenAI(
-            model=MODEL["model_type_or_path"], timeout=30000
-        )
+    def __init__(self, model_config: dict[str, Any] | None = None) -> None:
+        """Initialize the database worker.
+
+        Args:
+            model_config: Model configuration dictionary. If None, will use default model.
+        """
+        if model_config is None:
+            # Use default model configuration if none provided
+            from arklex.utils.model_config import MODEL
+
+            model_config = MODEL
+
+        # Store the model_config for access by tests
+        self.model_config = model_config
+
+        # Initialize LLM with provided configuration
+        from arklex.utils.model_provider_config import PROVIDER_MAP
+
+        provider = model_config.get("llm_provider")
+        model_name = model_config.get("model_type_or_path")
+
+        if not provider:
+            raise ValueError(
+                "llm_provider must be explicitly specified in model_config"
+            )
+        if not model_name:
+            raise ValueError("Model name must be specified in model_config")
+
+        model_class = PROVIDER_MAP.get(provider)
+        if not model_class:
+            raise ValueError(f"Unsupported provider: {provider}")
+
+        if provider == "google":
+            # Google models use google_api_key parameter
+            self.llm: BaseChatModel = model_class(
+                model=model_name,
+                google_api_key=model_config.get("api_key"),
+                timeout=30000,
+            )
+        else:
+            # Other providers use api_key parameter
+            self.llm: BaseChatModel = model_class(
+                model=model_name, api_key=model_config.get("api_key"), timeout=30000
+            )
+
         self.actions: dict[str, str] = {
             "SearchShow": "Search for shows",
             "BookShow": "Book a show",

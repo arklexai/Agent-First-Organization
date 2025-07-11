@@ -2219,6 +2219,7 @@ class TestErrorHandling:
         generator = Generator(
             config=patched_sample_config,
             model=always_valid_mock_model,
+            interactable_with_user=False,
         )
 
         with (

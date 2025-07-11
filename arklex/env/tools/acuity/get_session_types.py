@@ -54,11 +54,23 @@ def get_session_types(**kwargs: dict[str, Any]) -> str:
         data: list[dict[str, Any]] = response.json()
         response_text: str = "The information below is the details of all info session types. You must include the list of all session names in the following response at least.\n"
 
+        # Collect session names for the list
+        session_names = []
+
         for session in data:
+            session_id = session.get("id")
+            session_name = session.get("name")
+            response_text += f"Info session ID (Appointment Type ID):{session_id}\n"
+            response_text += f"Info session Name: {session_name}\n"
+            if session_name:
+                session_names.append(session_name)
+
+        # Add the list of session names
+        if session_names:
             response_text += (
-                f"Info session ID (Appointment Type ID):{session.get('id')}\n"
+                f"\nList of all session names: {', '.join(session_names)}\n"
             )
-            response_text += f"Info session Name: {session.get('name')}\n"
+
         return response_text
     else:
         raise ToolExecutionError(
