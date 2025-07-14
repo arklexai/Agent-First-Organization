@@ -9,8 +9,8 @@ from arklex.orchestrator.entities.msg_state_entities import MessageState, Status
 from arklex.orchestrator.entities.orchestrator_params_entities import OrchestratorParams
 from arklex.orchestrator.entities.taskgraph_entities import NodeInfo
 from arklex.orchestrator.NLU.core.slot import SlotFiller
-from arklex.orchestrator.NLU.services.model_service import DummyModelService
 from arklex.orchestrator.NLU.entities.slot_entities import Slot
+from arklex.orchestrator.NLU.services.model_service import DummyModelService
 
 
 def test_environment_uses_dummy_model_service() -> None:

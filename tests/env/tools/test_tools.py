@@ -7,6 +7,8 @@ including Tool class creation, registration, and various parameter handling scen
 from typing import Any, NoReturn
 from unittest.mock import Mock, patch
 
+import pytest
+
 from arklex.env.tools.tools import Tool, register_tool
 from arklex.orchestrator.entities.msg_state_entities import MessageState, StatusEnum
 from arklex.orchestrator.NLU.entities.slot_entities import Slot
@@ -2299,3 +2301,257 @@ class TestToolEdgeCases:
         
         assert str_repr == "Tool"
         assert repr_repr == "Tool"
+
+    def test_group_slot_invalid_json(self) -> None:
+        tool = Tool(
+            func=lambda group: group,
+            name="test_tool",
+            description="Test tool",
+            slots=[{"name": "group", "type": "group", "schema": [{"name": "field1", "type": "str"}]}],
+            outputs=["result"],
+            isResponse=False,
+        )
+        tool.slotfiller = Mock()
+        # Return a string that's not valid JSON
+        tool.slotfiller.fill_slots.return_value = [Slot(name="group", value="not a json", type="group")]
+        with pytest.raises(ValueError):
+            tool._fill_slots_recursive(tool.slots, "")
+
+    def test_group_slot_single_dict(self) -> None:
+        tool = Tool(
+            func=lambda group: group,
+            name="test_tool",
+            description="Test tool",
+            slots=[{"name": "group", "type": "group", "schema": [{"name": "field1", "type": "str"}]}],
+            outputs=["result"],
+            isResponse=False,
+        )
+        tool.slotfiller = Mock()
+        # Return a single dict
+        tool.slotfiller.fill_slots.return_value = [Slot(name="group", value={"field1": "val"}, type="group")]
+        slots = tool._fill_slots_recursive(tool.slots, "")
+        assert isinstance(slots[0].value, list)
+        assert slots[0].value[0]["field1"] == "val"
+
+    def test_group_slot_invalid_type(self) -> None:
+        tool = Tool(
+            func=lambda group: group,
+            name="test_tool",
+            description="Test tool",
+            slots=[{"name": "group", "type": "group", "schema": [{"name": "field1", "type": "str"}]}],
+            outputs=["result"],
+            isResponse=False,
+        )
+        tool.slotfiller = Mock()
+        # Return an int
+        tool.slotfiller.fill_slots.return_value = [Slot(name="group", value=123, type="group")]
+        with pytest.raises(ValueError):
+            tool._fill_slots_recursive(tool.slots, "")
+
+    def test_group_slot_value_source_fixed_and_default(self) -> None:
+        tool = Tool(
+            func=lambda group: group,
+            name="test_tool",
+            description="Test tool",
+            slots=[{"name": "group", "type": "group", "schema": [
+                {"name": "fixed_field", "type": "str", "valueSource": "fixed", "value": "fixed_val"},
+                {"name": "default_field", "type": "str", "valueSource": "default", "value": "default_val"},
+            ]}],
+            outputs=["result"],
+            isResponse=False,
+        )
+        tool.slotfiller = Mock()
+        # Return a list of dicts with missing values
+        tool.slotfiller.fill_slots.return_value = [Slot(name="group", value=[{}], type="group")]
+        slots = tool._fill_slots_recursive(tool.slots, "")
+        item = slots[0].value[0]
+        assert item["fixed_field"] == "fixed_val"
+        assert item["default_field"] == "default_val"
+
+    def test_repeatable_regular_slot_invalid_json(self) -> None:
+        tool = Tool(
+            func=lambda repeat: repeat,
+            name="test_tool",
+            description="Test tool",
+            slots=[{"name": "repeat", "type": "str", "repeatable": True}],
+            outputs=["result"],
+            isResponse=False,
+        )
+        tool.slotfiller = Mock()
+        # Return a string that's not valid JSON
+        tool.slotfiller.fill_slots.return_value = [Slot(name="repeat", value="not a json", type="str")]
+        with pytest.raises(ValueError):
+            tool._fill_slots_recursive(tool.slots, "")
+
+    def test_repeatable_regular_slot_none(self) -> None:
+        tool = Tool(
+            func=lambda repeat: repeat,
+            name="test_tool",
+            description="Test tool",
+            slots=[{"name": "repeat", "type": "str", "repeatable": True}],
+            outputs=["result"],
+            isResponse=False,
+        )
+        tool.slotfiller = Mock()
+        # Return None
+        tool.slotfiller.fill_slots.return_value = [Slot(name="repeat", value=None, type="str")]
+        slots = tool._fill_slots_recursive(tool.slots, "")
+        assert slots[0].value == []
+
+    def test_repeatable_regular_slot_single_value(self) -> None:
+        tool = Tool(
+            func=lambda repeat: repeat,
+            name="test_tool",
+            description="Test tool",
+            slots=[{"name": "repeat", "type": "str", "repeatable": True}],
+            outputs=["result"],
+            isResponse=False,
+        )
+        tool.slotfiller = Mock()
+        # Return a single value
+        tool.slotfiller.fill_slots.return_value = [Slot(name="repeat", value="single", type="str")]
+        slots = tool._fill_slots_recursive(tool.slots, "")
+        assert slots[0].value == ["single"]
+
+    def test_to_openai_tool_def_with_items(self) -> None:
+        tool = Tool(
+            func=lambda param: param,
+            name="test_tool",
+            description="Test tool",
+            slots=[{"name": "param", "type": "str", "items": {"type": "string"}, "required": True}],
+            outputs=["result"],
+            isResponse=False,
+        )
+        tool_def = tool.to_openai_tool_def()
+        assert tool_def["parameters"]["properties"]["param"]["type"] == "array"
+        assert tool_def["parameters"]["properties"]["param"]["items"] == {"type": "string"}
+        tool_def_v2 = tool.to_openai_tool_def_v2()
+        assert tool_def_v2["function"]["parameters"]["properties"]["param"]["type"] == "array"
+        assert tool_def_v2["function"]["parameters"]["properties"]["param"]["items"] == {"type": "string"}
+
+    def test_format_slots_group_and_regular(self) -> None:
+        tool = Tool(
+            func=lambda param: param,
+            name="test_tool",
+            description="Test tool",
+            slots=[],
+            outputs=["result"],
+            isResponse=False,
+        )
+        group_slot = {"name": "group", "type": "group", "schema": []}
+        regular_slot = {"name": "param", "type": "str"}
+        formatted = tool._format_slots([group_slot, regular_slot])
+        assert formatted[0].type == "group"
+        assert formatted[1].type == "str"
+
+    def test_execute_slot_schema_change(self) -> None:
+        tool = Tool(
+            func=lambda param: param,
+            name="test_tool",
+            description="Test tool",
+            slots=[{"name": "param", "type": "str"}],
+            outputs=["result"],
+            isResponse=False,
+        )
+        tool.slotfiller = Mock()
+        mock_filled_slot = Mock()
+        mock_filled_slot.value = "val"
+        tool.slotfiller.fill_slots.return_value = [mock_filled_slot]
+        state = MessageState()
+        state.slots = {}
+        state.function_calling_trajectory = []
+        mock_traj_obj = Mock()
+        mock_traj_obj.input = None
+        state.trajectory = [[mock_traj_obj]]
+        state.bot_config = Mock()
+        state.bot_config.llm_config = Mock()
+        state.bot_config.llm_config.model_dump = lambda: {"test": "config"}
+        # First call
+        tool.execute(state)
+        # Change slots
+        tool.slots = [Slot(name="param2", type="int")]
+        tool.execute(state)
+        assert tool.slots[0].name == "param2"
+
+    def test_execute_missing_required_args(self) -> None:
+        def func_with_required_args(required_arg: object, **kwargs: object) -> str:
+            return f"Got: {required_arg}"
+        tool = Tool(
+            func=func_with_required_args,
+            name="test_tool",
+            description="Test tool",
+            slots=[{"name": "param", "type": "str"}],
+            outputs=["result"],
+            isResponse=False,
+        )
+        tool.slotfiller = Mock()
+        mock_filled_slot = Mock()
+        mock_filled_slot.value = "val"
+        tool.slotfiller.fill_slots.return_value = [mock_filled_slot]
+        state = MessageState()
+        state.slots = {}
+        state.function_calling_trajectory = []
+        mock_traj_obj = Mock()
+        mock_traj_obj.input = None
+        state.trajectory = [[mock_traj_obj]]
+        state.bot_config = Mock()
+        state.bot_config.llm_config = Mock()
+        state.bot_config.llm_config.model_dump = lambda: {"test": "config"}
+        result = tool.execute(state)
+        assert result.status.value == "incomplete"
+
+    def test_execute_slot_verification_needed(self) -> None:
+        tool = Tool(
+            func=lambda param: param,
+            name="test_tool",
+            description="Test tool",
+            slots=[{"name": "param", "type": "str", "required": True, "prompt": "Prompt"}],
+            outputs=["result"],
+            isResponse=False,
+        )
+        tool.slotfiller = Mock()
+        mock_filled_slot = Mock()
+        mock_filled_slot.value = "val"
+        tool.slotfiller.fill_slots.return_value = [mock_filled_slot]
+        tool.slotfiller.verify_slot.return_value = (True, "Reason")
+        state = MessageState()
+        state.slots = {}
+        state.function_calling_trajectory = []
+        mock_traj_obj = Mock()
+        mock_traj_obj.input = None
+        state.trajectory = [[mock_traj_obj]]
+        state.bot_config = Mock()
+        state.bot_config.llm_config = Mock()
+        state.bot_config.llm_config.model_dump = lambda: {"test": "config"}
+        result = tool.execute(state)
+        assert result.status.value == "incomplete"
+
+    def test_build_repeatable_regular_slot_prompt(self) -> None:
+        tool = Tool(
+            func=lambda param: param,
+            name="test_tool",
+            description="Test tool",
+            slots=[],
+            outputs=["result"],
+            isResponse=False,
+        )
+        for t in ["str", "int", "float", "bool", "unknown"]:
+            slot = Slot(name="repeat", type=t, repeatable=True)
+            prompt = tool._build_repeatable_regular_slot_prompt(slot)
+            assert "IMPORTANT: This slot is repeatable" in prompt
+            assert t in prompt
+
+    def test_build_group_prompt(self) -> None:
+        from arklex.env.tools.tools import build_group_prompt
+        slot = Slot(
+            name="group",
+            type="group",
+            schema=[
+                {"name": "field1", "type": "str", "required": True, "description": "desc1"},
+                {"name": "field2", "type": "int", "repeatable": True, "description": "desc2"},
+            ]
+        )
+        prompt = build_group_prompt(slot)
+        assert "field1" in prompt
+        assert "field2" in prompt
+        assert "REPEATABLE FIELDS" in prompt
