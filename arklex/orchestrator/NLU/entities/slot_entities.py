@@ -11,6 +11,7 @@ Key Components:
 """
 
 from pydantic import BaseModel, Field
+from typing import Any
 
 
 class Slot(BaseModel):
@@ -29,7 +30,7 @@ class Slot(BaseModel):
     Attributes:
         name (str): The name of the slot.
         type (str): The type of the slot value (default: "str").
-        value (Union[str, int, float, bool, List[str], None]): The current value of the slot.
+        value (Any): The current value of the slot (can be primitive, list, dict, or list of dicts).
         enum (Optional[List[Union[str, int, float, bool, None]]]): List of valid values.
         description (str): Description of the slot's purpose.
         prompt (str): Prompt to use when filling the slot.
@@ -39,12 +40,14 @@ class Slot(BaseModel):
 
     name: str
     type: str = Field(default="str")
-    value: str | int | float | bool | list[str] | None = Field(default=None)
+    value: Any = Field(default=None)
     enum: list[str | int | float | bool | None] | None = Field(default=[])
     description: str = Field(default="")
     prompt: str = Field(default="")
     required: bool = Field(default=False)
     verified: bool = Field(default=False)
+    repeatable: bool = Field(default=False)
+    schema: list[dict] | None = None
     items: dict | None = None
     target: str | None = None
 
