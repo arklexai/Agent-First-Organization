@@ -664,6 +664,7 @@ class TestTools:
             )
         ]
         mock_slotfiller.fill_slots.return_value = filled_slots
+        mock_slotfiller.verify_slot.return_value = (False, "Slot is valid")
 
         state = MessageState(
             message_id="test-id",
@@ -726,6 +727,7 @@ class TestTools:
             )
         ]
         mock_slotfiller.fill_slots.return_value = empty_slots
+        mock_slotfiller.verify_slot.return_value = (False, "Slot is valid")
 
         state = MessageState(
             message_id="test-id",
@@ -839,6 +841,7 @@ class TestTools:
             )
         ]
         mock_slotfiller.fill_slots.return_value = filled_slots
+        mock_slotfiller.verify_slot.return_value = (False, "Slot is valid")
 
         state = MessageState(
             message_id="test-id",
@@ -887,6 +890,7 @@ class TestTools:
             )
         ]
         mock_slotfiller.fill_slots.return_value = filled_slots
+        mock_slotfiller.verify_slot.return_value = (False, "Slot is valid")
 
         state = MessageState(
             message_id="test-id",
@@ -935,6 +939,7 @@ class TestTools:
             )
         ]
         mock_slotfiller.fill_slots.return_value = filled_slots
+        mock_slotfiller.verify_slot.return_value = (False, "Slot is valid")
 
         state = MessageState(
             message_id="test-id",
@@ -983,6 +988,7 @@ class TestTools:
             )
         ]
         mock_slotfiller.fill_slots.return_value = filled_slots
+        mock_slotfiller.verify_slot.return_value = (False, "Slot is valid")
 
         state = MessageState(
             message_id="test-id",
@@ -1031,6 +1037,7 @@ class TestTools:
             )
         ]
         mock_slotfiller.fill_slots.return_value = existing_slots
+        mock_slotfiller.verify_slot.return_value = (False, "Slot is valid")
 
         state = MessageState(
             message_id="test-id",
@@ -1082,6 +1089,7 @@ class TestTools:
             )
         ]
         mock_slotfiller.fill_slots.return_value = filled_slots
+        mock_slotfiller.verify_slot.return_value = (False, "Slot is valid")
 
         state = MessageState(
             message_id="test-id",
@@ -1311,6 +1319,7 @@ class TestTools:
             )
         ]
         mock_slotfiller.fill_slots.return_value = filled_slots_1
+        mock_slotfiller.verify_slot.return_value = (False, "Slot is valid")
 
         state = MessageState(
             message_id="test-id",
@@ -1342,6 +1351,7 @@ class TestTools:
                 )
             ]
             mock_slotfiller.fill_slots.return_value = filled_slots_2
+            mock_slotfiller.verify_slot.return_value = (False, "Slot is valid")
 
             result = tool._execute(state)
             # Should reset to current node's slots
@@ -1379,6 +1389,7 @@ class TestTools:
             )
         ]
         mock_slotfiller.fill_slots.return_value = filled_slots
+        mock_slotfiller.verify_slot.return_value = (False, "Slot is valid")
 
         state = MessageState(
             message_id="test-id",
@@ -1448,6 +1459,7 @@ class TestTools:
             )
         ]
         mock_slotfiller.fill_slots.return_value = filled_slots
+        mock_slotfiller.verify_slot.return_value = (False, "Slot is valid")
 
         with patch.object(tool, "_init_slots"):
             result = tool._execute(state)

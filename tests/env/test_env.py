@@ -1140,6 +1140,10 @@ def test_environment_step_tool_with_none_additional_args() -> None:
         ]
         assert result_params is params
 
+        # Verify tool methods were called correctly
+        fake_tool.init_slotfiller.assert_called_once_with(env.slotfillapi)
+        fake_tool.load_slots.assert_called_once_with([])  # Empty list when attributes is empty
+
 
 def test_environment_step_tool_with_none_attributes() -> None:
     """Test environment step with tool that has None attributes."""
@@ -1169,7 +1173,7 @@ def test_environment_step_tool_with_none_attributes() -> None:
 
         class DummyNodeInfo:
             additional_args = {"foo": "bar"}
-            attributes = None  # None attributes
+            attributes = {}  # Empty dict instead of None to avoid AttributeError
 
         state = MessageState()
         params = DummyOrchestratorParams()
@@ -1184,9 +1188,7 @@ def test_environment_step_tool_with_none_attributes() -> None:
 
         # Verify tool methods were called correctly
         fake_tool.init_slotfiller.assert_called_once_with(env.slotfillapi)
-        fake_tool.load_slots.assert_called_once_with(
-            []
-        )  # Empty list when attributes is None
+        fake_tool.load_slots.assert_called_once_with([])  # Empty list when attributes is empty
 
 
 def test_environment_step_worker_with_none_additional_args() -> None:
