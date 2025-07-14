@@ -57,7 +57,7 @@ class TestReplacePlaceholders:
         data = "{{user_name}}"
         slot_map = {"user_name": {"value": None}}
         result = replace_placeholders(data, slot_map)
-        assert result == ""
+        assert result is None
 
     def test_replace_placeholders_non_string(self) -> None:
         """Test placeholder replacement with non-string values."""
@@ -178,10 +178,10 @@ class TestHTTPTool:
         )
 
         assert "success" in result
-        # Verify that placeholder params were set to empty string
+        # Verify that placeholder params were removed
         mock_request.assert_called_once()
         call_args = mock_request.call_args
-        assert call_args[1]["params"]["optional"] == ""
+        assert "optional" not in call_args[1]["params"]
 
     @patch("requests.request")
     def test_http_tool_remove_placeholder_body(self, mock_request: Mock) -> None:
