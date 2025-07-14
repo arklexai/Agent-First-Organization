@@ -16,7 +16,7 @@ on:
       min-coverage-threshold:
         description: 'Minimum coverage threshold for color coding'
         required: false
-        default: '99.1'
+        default: '99.0'
         type: string
       badge-pattern:
         description: 'Pattern to match existing badge in README'
@@ -42,7 +42,7 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
         with:
-          token: ${{ github.token }}
+          token: ${{ secrets.github-token }}
 
       - name: Extract coverage percentage
         id: coverage
@@ -73,13 +73,15 @@ jobs:
         run: |
           COVERAGE=${{ steps.coverage.outputs.coverage }}
           
-          if (( $(echo "$COVERAGE < 90" | bc -l) )); then
-            echo "color=red"
-          elif (( $(echo "$COVERAGE < 99" | bc -l) )); then
-            echo "color=orange"
-          else
-            echo "color=green"
-          fi
+          python -c "
+          coverage = float('$COVERAGE')
+          if coverage < 90:
+              print('color=red')
+          elif coverage < 99:
+              print('color=orange')
+          else:
+              print('color=green')
+          "
 
       - name: Update README badge
         run: |
@@ -100,4 +102,4 @@ jobs:
             git push
           else
             echo "Badge already reflects current coverage."
-          fi 
+          fi

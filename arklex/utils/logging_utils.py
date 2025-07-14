@@ -93,14 +93,17 @@ class LogContext:
     def __init__(
         self,
         name: str,
-        level: str | None = None,
+        level: str | int | None = None,
         base_context: dict[str, Any] | None = None,
         log_format: str | None = None,
     ) -> None:
         self.log_context = logging.getLogger(name)
         # Set the log level only if explicitly provided
         if level is not None:
-            self.log_context.setLevel(getattr(logging, level))
+            if isinstance(level, str):
+                self.log_context.setLevel(getattr(logging, level))
+            else:
+                self.log_context.setLevel(level)
         self.log_context.propagate = True
         self.base_context = base_context or {}
         handler = self._get_console_handler(log_format)

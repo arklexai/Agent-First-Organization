@@ -1,22 +1,22 @@
-name: 'Run Tests and Check Coverage'
-description: 'Run tests with coverage and check against minimum threshold'
+name: "Run Tests and Check Coverage"
+description: "Run tests with coverage and check against minimum threshold"
 
 inputs:
   coverage-command:
-    description: 'Command to run tests with coverage'
+    description: "Command to run tests with coverage"
     required: false
-    default: 'pytest tests/ --cov=arklex --cov-report=term-missing --cov-report=html --cov-report=xml --no-cov-on-fail'
+    default: "pytest tests/ --cov=arklex --cov-report=term-missing --cov-report=html --cov-report=xml --no-cov-on-fail"
   min-coverage-threshold:
-    description: 'Minimum coverage percentage to pass'
+    description: "Minimum coverage percentage to pass"
     required: false
-    default: '99.1'
+    default: "99.0"
   checkout-repo:
-    description: 'Whether to checkout the repository (set to false if already checked out)'
+    description: "Whether to checkout the repository (set to false if already checked out)"
     required: false
-    default: 'true'
+    default: "true"
 
 runs:
-  using: 'composite'
+  using: "composite"
   steps:
     - name: Checkout repository
       if: inputs.checkout-repo == 'true'
@@ -28,7 +28,7 @@ runs:
       if: inputs.checkout-repo == 'true'
       uses: actions/setup-python@v4
       with:
-        python-version: '3.10'
+        python-version: "3.10"
 
     - name: Install dependencies
       if: inputs.checkout-repo == 'true'

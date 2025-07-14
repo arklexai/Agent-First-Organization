@@ -12,14 +12,13 @@ from typing import Any, Protocol, TypedDict
 
 from langchain.prompts import PromptTemplate
 from langchain_core.output_parsers import StrOutputParser
-from langchain_openai import ChatOpenAI
 
 from arklex.env.prompts import load_prompts
+from arklex.orchestrator.entities.msg_state_entities import MessageState
 from arklex.types import EventType, StreamType
 from arklex.utils.exceptions import ToolError
-from arklex.utils.graph_state import MessageState
 from arklex.utils.logging_utils import LogContext
-from arklex.utils.model_provider_config import PROVIDER_MAP
+from arklex.utils.provider_utils import validate_and_get_model_class
 
 log_context = LogContext(__name__)
 
@@ -58,9 +57,9 @@ class ToolGenerator:
         llm_config: dict[str, Any] = state.bot_config.llm_config
         user_message: Any = state.user_message
 
-        llm: Any = PROVIDER_MAP.get(llm_config.llm_provider, ChatOpenAI)(
-            model=llm_config.model_type_or_path, temperature=0.1
-        )
+        model_class = validate_and_get_model_class(llm_config)
+
+        llm: Any = model_class(model=llm_config.model_type_or_path, temperature=0.1)
         prompt: PromptTemplate = get_prompt_template(state, "generator_prompt")
         input_prompt: Any = prompt.invoke(
             {"sys_instruct": state.sys_instruct, "formatted_chat": user_message.history}
@@ -75,9 +74,10 @@ class ToolGenerator:
     @staticmethod
     def context_generate(state: MessageState) -> MessageState:
         llm_config: dict[str, Any] = state.bot_config.llm_config
-        llm: Any = PROVIDER_MAP.get(llm_config.llm_provider, ChatOpenAI)(
-            model=llm_config.model_type_or_path, temperature=0.1
-        )
+
+        model_class = validate_and_get_model_class(llm_config)
+
+        llm: Any = model_class(model=llm_config.model_type_or_path, temperature=0.1)
         # get the input message
         user_message: Any = state.user_message
         message_flow: str = state.message_flow
@@ -130,9 +130,10 @@ class ToolGenerator:
     @staticmethod
     def stream_context_generate(state: MessageState) -> MessageState:
         llm_config: dict[str, Any] = state.bot_config.llm_config
-        llm: Any = PROVIDER_MAP.get(llm_config.llm_provider, ChatOpenAI)(
-            model=llm_config.model_type_or_path, temperature=0.1
-        )
+
+        model_class = validate_and_get_model_class(llm_config)
+
+        llm: Any = model_class(model=llm_config.model_type_or_path, temperature=0.1)
         # get the input message
         user_message: Any = state.user_message
         message_flow: str = state.message_flow
@@ -192,9 +193,10 @@ class ToolGenerator:
         user_message: Any = state.user_message
 
         llm_config: dict[str, Any] = state.bot_config.llm_config
-        llm: Any = PROVIDER_MAP.get(llm_config.llm_provider, ChatOpenAI)(
-            model=llm_config.model_type_or_path, temperature=0.1
-        )
+
+        model_class = validate_and_get_model_class(llm_config)
+
+        llm: Any = model_class(model=llm_config.model_type_or_path, temperature=0.1)
         prompt: PromptTemplate = get_prompt_template(state, "generator_prompt")
         input_prompt: Any = prompt.invoke(
             {"sys_instruct": state.sys_instruct, "formatted_chat": user_message.history}

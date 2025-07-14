@@ -36,7 +36,7 @@ app = create_app()
 
 ```python
 from arklex.orchestrator.NLU.core.slot import SlotFiller
-from arklex.utils.slot import Slot
+from arklex.orchestrator.NLU.entities.slot_entities import Slot
 
 # Initialize slot filler
 slot_filler = SlotFiller(url="http://localhost:8000")

@@ -42,7 +42,7 @@ OPENAI_ORG_ID=your_org_id
 
 # Backup providers
 ANTHROPIC_API_KEY=your_anthropic_key
-GEMINI_API_KEY=your_gemini_key
+GOOGLE_API_KEY=your_gemini_key
 
 # =============================================================================
 # REQUIRED: Database Configuration

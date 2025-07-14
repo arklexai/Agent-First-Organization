@@ -15,6 +15,19 @@ from fastapi.testclient import TestClient
 from arklex.main import app
 from arklex.utils.logging_config import setup_logging
 
+# Mock the mysql module BEFORE any other imports to prevent connection issues
+# This prevents actual database connections during testing
+if os.getenv("ARKLEX_TEST_ENV") == "local":
+    sys.modules["arklex.utils.mysql"] = MagicMock()
+
+# Set up common environment variables for local testing
+if os.getenv("ARKLEX_TEST_ENV") == "local":
+    os.environ.setdefault("MYSQL_USERNAME", "test_user")
+    os.environ.setdefault("MYSQL_PASSWORD", "test_password")
+    os.environ.setdefault("MYSQL_HOSTNAME", "localhost")
+    os.environ.setdefault("MYSQL_PORT", "3306")
+    os.environ.setdefault("MYSQL_DB_NAME", "test_db")
+
 
 # Mock OpenAI API key for testing
 @pytest.fixture(autouse=True)

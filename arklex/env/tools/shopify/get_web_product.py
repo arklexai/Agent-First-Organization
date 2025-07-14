@@ -142,7 +142,7 @@ def get_web_product(web_product_id: str, **kwargs: GetWebProductParams) -> str:
             )
             response_text += f"Options: {product.get('options', 'None')}\n"
             response_text += (
-                f"Category: {product.get('category', {}.get('name', 'None'))}\n"
+                f"Category: {product.get('category', {}).get('name', 'None')}\n"
             )
             response_text += "The following are several variants of the product:\n"
             for variant in product.get("variants", {}).get("nodes", []):

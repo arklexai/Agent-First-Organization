@@ -4,9 +4,11 @@ import pytest
 
 from arklex.env.env import DefaultResourceInitializer, Environment
 from arklex.env.planner.react_planner import ReactPlanner
+from arklex.orchestrator.entities.msg_state_entities import MessageState, StatusEnum
+from arklex.orchestrator.entities.orchestrator_params_entities import OrchestratorParams
+from arklex.orchestrator.entities.taskgraph_entities import NodeInfo
 from arklex.orchestrator.NLU.core.slot import SlotFiller
 from arklex.orchestrator.NLU.services.model_service import DummyModelService
-from arklex.utils.graph_state import MessageState, NodeInfo, Params, StatusEnum
 
 
 def test_environment_uses_dummy_model_service() -> None:
@@ -79,7 +81,7 @@ def test_environment_step_tool_executes_and_updates_params() -> None:
         env = Environment(tools=tools, workers=[], agents=[])
 
         # Setup params and state
-        class DummyParams:
+        class DummyOrchestratorParams:
             memory = MagicMock()
             taskgraph = MagicMock()
             taskgraph.dialog_states = {}
@@ -90,7 +92,7 @@ def test_environment_step_tool_executes_and_updates_params() -> None:
             additional_args = {"foo": "bar"}
 
         state = MagicMock()
-        params = DummyParams()
+        params = DummyOrchestratorParams()
         node_info = DummyNodeInfo()
         env.tools["t1"]["fixed_args"] = {"baz": 1}
         result_state, result_params = env.step("t1", state, params, node_info)
@@ -103,7 +105,7 @@ def test_environment_step_invalid_id_raises() -> None:
     # The step method doesn't raise KeyError for invalid IDs, it falls back to planner
     # So we should test that it doesn't raise an exception
     message_state = MessageState()
-    params = Params()
+    params = OrchestratorParams()
     node_info = NodeInfo()
 
     # This should not raise an exception, it should use the planner
@@ -111,7 +113,7 @@ def test_environment_step_invalid_id_raises() -> None:
         "not_a_tool", message_state, params, node_info
     )
     assert isinstance(response_state, MessageState)
-    assert isinstance(updated_params, Params)
+    assert isinstance(updated_params, OrchestratorParams)
 
 
 def test_environment_step_worker_executes_and_updates_params() -> None:
@@ -129,7 +131,7 @@ def test_environment_step_worker_executes_and_updates_params() -> None:
     }
     env.id2name = {"worker1": "test_worker"}
     message_state = MessageState()
-    params = Params()
+    params = OrchestratorParams()
     params.memory.function_calling_trajectory = []
     params.taskgraph.curr_node = "node1"
     node_info = NodeInfo()
@@ -156,7 +158,7 @@ def test_environment_step_worker_without_init_slotfilling() -> None:
     }
     env.id2name = {"worker1": "test_worker"}
     message_state = MessageState()
-    params = Params()
+    params = OrchestratorParams()
     params.memory.function_calling_trajectory = []
     params.taskgraph.curr_node = "node1"
     node_info = NodeInfo()
@@ -181,7 +183,7 @@ def test_environment_step_worker_with_response_content() -> None:
     }
     env.id2name = {"worker1": "test_worker"}
     message_state = MessageState()
-    params = Params()
+    params = OrchestratorParams()
     params.memory.function_calling_trajectory = []
     params.taskgraph.curr_node = "node1"
     node_info = NodeInfo()
@@ -211,7 +213,7 @@ def test_environment_step_worker_with_message_flow() -> None:
     }
     env.id2name = {"worker1": "test_worker"}
     message_state = MessageState()
-    params = Params()
+    params = OrchestratorParams()
     params.memory.function_calling_trajectory = []
     params.taskgraph.curr_node = "node1"
     node_info = NodeInfo()
@@ -233,7 +235,7 @@ def test_environment_step_planner_executes() -> None:
     env = Environment(tools=[], workers=[], agents=[])
     env.planner = mock_planner
     message_state = MessageState()
-    params = Params()
+    params = OrchestratorParams()
     params.memory.function_calling_trajectory = []
     node_info = NodeInfo()
     result_state, result_params = env.step(
@@ -269,7 +271,7 @@ def test_environment_step_agent_executes() -> None:
     env.id2name = {"agent1": "test_agent"}
 
     message_state = MessageState()
-    params = Params()
+    params = OrchestratorParams()
     params.memory.function_calling_trajectory = []
     params.taskgraph.curr_node = "node1"
     params.taskgraph.node_status = {}
@@ -341,7 +343,7 @@ def test_environment_step_agent_with_empty_additional_args() -> None:
     env.agents = {"agent1": {"name": "test_agent", "execute": mock_agent_class}}
 
     message_state = MessageState()
-    params = Params()
+    params = OrchestratorParams()
     params.memory.function_calling_trajectory = []
     params.taskgraph.curr_node = "node1"
     params.taskgraph.node_status = {}
@@ -544,3 +546,191 @@ def test_base_resource_initializer_init_workers_not_implemented() -> None:
 
     with pytest.raises(NotImplementedError):
         BaseResourceInitializer.init_workers([])
+
+
+def test_default_resource_initializer_init_agents_with_exception() -> None:
+    """Test init_agents method handles exceptions during agent registration."""
+    agents = [
+        {"id": "a1", "name": "fake_agent", "path": "fake_path"},
+        {"id": "a2", "name": "bad_agent", "path": "bad_path"},
+    ]
+    with patch("importlib.import_module") as mock_import:
+        fake_module = MagicMock()
+        fake_func = MagicMock(description="desc")
+        fake_module.fake_agent = fake_func
+        mock_import.side_effect = [fake_module, Exception("fail")]
+        registry = DefaultResourceInitializer.init_agents(agents)
+        assert "a1" in registry
+        assert "a2" not in registry  # error case is skipped
+
+
+def test_default_resource_initializer_init_agents_with_import_error() -> None:
+    """Test init_agents method handles import errors during agent registration."""
+    agents = [
+        {"id": "a1", "name": "fake_agent", "path": "fake_path"},
+        {"id": "a2", "name": "bad_agent", "path": "bad_path"},
+    ]
+    with patch("importlib.import_module") as mock_import:
+        fake_module = MagicMock()
+        fake_func = MagicMock(description="desc")
+        fake_module.fake_agent = fake_func
+        mock_import.side_effect = [fake_module, ImportError("Module not found")]
+        registry = DefaultResourceInitializer.init_agents(agents)
+        assert "a1" in registry
+        assert "a2" not in registry  # import error case is skipped
+
+
+def test_default_resource_initializer_init_agents_with_attribute_error() -> None:
+    """Test init_agents method handles attribute errors during agent registration."""
+    agents = [
+        {"id": "a1", "name": "fake_agent", "path": "fake_path"},
+        {"id": "a2", "name": "bad_agent", "path": "bad_path"},
+    ]
+    with patch("importlib.import_module") as mock_import:
+        fake_module = MagicMock()
+        fake_func = MagicMock(description="desc")
+        fake_module.fake_agent = fake_func
+        mock_import.side_effect = [fake_module, AttributeError("No such attribute")]
+        registry = DefaultResourceInitializer.init_agents(agents)
+        assert "a1" in registry
+        assert "a2" not in registry  # attribute error case is skipped
+
+
+def test_default_resource_initializer_init_agents_logs_error() -> None:
+    """Test that init_agents logs error when worker registration fails."""
+    agents = [
+        {"id": "a1", "name": "bad_agent", "path": "bad_path"},
+    ]
+    with (
+        patch("importlib.import_module") as mock_import,
+        patch("arklex.env.env.log_context.error") as mock_error,
+    ):
+        mock_import.side_effect = Exception("import error")
+        registry = DefaultResourceInitializer.init_agents(agents)
+        assert registry == {}
+        mock_error.assert_called_once()
+
+
+def test_model_aware_resource_initializer_init_workers_with_model_config() -> None:
+    """Test ModelAwareResourceInitializer.init_workers with model_config parameter."""
+    from arklex.env.env import ModelAwareResourceInitializer
+
+    workers = [
+        {"id": "w1", "name": "test_worker", "path": "test_path"},
+    ]
+
+    # Create a mock worker class that accepts model_config
+    class MockWorkerClass:
+        def __init__(self, model_config: object | None = None) -> None:
+            self.model_config = model_config
+
+        description = "Test worker"
+
+    with (
+        patch("importlib.import_module") as mock_import,
+        patch("inspect.signature") as mock_signature,
+    ):
+        mock_module = Mock()
+        mock_module.test_worker = MockWorkerClass
+        mock_import.return_value = mock_module
+
+        # Mock signature to include model_config parameter
+        mock_sig = Mock()
+        mock_sig.parameters = {"model_config": Mock()}
+        mock_signature.return_value = mock_sig
+
+        initializer = ModelAwareResourceInitializer(model_config={"test": "config"})
+        registry = initializer.init_workers(workers)
+
+        assert "w1" in registry
+        # Verify that model_config was passed to the worker
+        worker_instance = registry["w1"]["execute"]()
+        assert worker_instance.model_config == {"test": "config"}
+
+
+def test_model_aware_resource_initializer_init_workers_without_model_config_parameter() -> (
+    None
+):
+    """Test ModelAwareResourceInitializer.init_workers when worker doesn't accept model_config."""
+    from arklex.env.env import ModelAwareResourceInitializer
+
+    workers = [
+        {"id": "w1", "name": "test_worker", "path": "test_path"},
+    ]
+
+    # Create a mock worker class that doesn't accept model_config
+    class MockWorkerClass:
+        def __init__(self, other_param: object | None = None) -> None:
+            self.other_param = other_param
+
+        description = "Test worker"
+
+    with (
+        patch("importlib.import_module") as mock_import,
+        patch("inspect.signature") as mock_signature,
+    ):
+        mock_module = Mock()
+        mock_module.test_worker = MockWorkerClass
+        mock_import.return_value = mock_module
+
+        # Mock signature to NOT include model_config parameter
+        mock_sig = Mock()
+        mock_sig.parameters = {"other_param": Mock()}
+        mock_signature.return_value = mock_sig
+
+        initializer = ModelAwareResourceInitializer(model_config={"test": "config"})
+        registry = initializer.init_workers(workers)
+
+        assert "w1" in registry
+        # Verify that model_config was NOT passed to the worker
+        worker_instance = registry["w1"]["execute"]()
+        assert not hasattr(worker_instance, "model_config")
+
+
+def test_model_aware_resource_initializer_init_workers_with_exception() -> None:
+    """Test ModelAwareResourceInitializer.init_workers with exception handling."""
+    from arklex.env.env import ModelAwareResourceInitializer
+
+    workers = [
+        {"id": "w1", "name": "bad_worker", "path": "bad_path"},
+    ]
+
+    with (
+        patch("importlib.import_module") as mock_import,
+        patch("arklex.env.env.log_context.error") as mock_error,
+    ):
+        mock_import.side_effect = Exception("import error")
+
+        initializer = ModelAwareResourceInitializer(model_config={"test": "config"})
+        registry = initializer.init_workers(workers)
+
+        assert registry == {}
+        mock_error.assert_called_once()
+
+
+def test_model_aware_resource_initializer_init_workers_without_model_config() -> None:
+    """Test ModelAwareResourceInitializer.init_workers when model_config is None."""
+    from arklex.env.env import ModelAwareResourceInitializer
+
+    workers = [
+        {"id": "w1", "name": "test_worker", "path": "test_path"},
+    ]
+
+    class MockWorkerClass:
+        def __init__(self) -> None:
+            pass
+
+        description = "Test worker"
+
+    with patch("importlib.import_module") as mock_import:
+        mock_module = Mock()
+        mock_module.test_worker = MockWorkerClass
+        mock_import.return_value = mock_module
+
+        initializer = ModelAwareResourceInitializer(model_config=None)
+        registry = initializer.init_workers(workers)
+
+        assert "w1" in registry
+        # Verify that no model_config was passed
+        worker_instance = registry["w1"]["execute"]()
+        assert not hasattr(worker_instance, "model_config")

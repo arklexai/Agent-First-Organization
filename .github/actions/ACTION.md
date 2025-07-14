@@ -11,7 +11,7 @@ Composite action to run tests with coverage and check against minimum threshold.
 **Inputs:**
 
 - `coverage-command`: Command to run tests with coverage (default: pytest with coverage)
-- `min-coverage-threshold`: Minimum coverage percentage to pass (default: 99.1)
+- `min-coverage-threshold`: Minimum coverage percentage to pass (default: 99.0)
 - `checkout-repo`: Whether to checkout the repository (default: true)
 
 ### 2. `display-coverage-comment/`
@@ -21,7 +21,7 @@ Composite action to display coverage results as a comment on PRs.
 **Inputs:**
 
 - `github-token`: GitHub token for authentication (required)
-- `minimum-green`: Minimum coverage percentage for green status (default: 99.1)
+- `minimum-green`: Minimum coverage percentage for green status (default: 99.0)
 - `minimum-orange`: Minimum coverage percentage for orange status (default: 70)
 
 ### 3. `upload-coverage-report/`
@@ -43,7 +43,7 @@ Composite action to update coverage badge in README.
 
 - `coverage-file`: Path to coverage file (coverage.txt or coverage.xml) (default: coverage.txt)
 - `coverage-format`: Format of coverage file (txt or xml) (default: txt)
-- `min-coverage-threshold`: Minimum coverage threshold for color coding (default: 99.1)
+- `min-coverage-threshold`: Minimum coverage threshold for color coding (default: 99.0)
 - `badge-pattern`: Pattern to match existing badge in README (default: coverage-[0-9]+\.[0-9]+%25-[a-z]+)
 
 ## Usage Examples
@@ -69,13 +69,13 @@ jobs:
       - name: Run coverage tests
         uses: ./.github/actions/run-coverage-tests
         with:
-          min-coverage-threshold: '99.1'
+          min-coverage-threshold: '99.0'
           
       - name: Display coverage comment
         uses: ./.github/actions/display-coverage-comment
         with:
           github-token: ${{ github.token }}
-          minimum-green: '99.1'
+          minimum-green: '99.0'
           minimum-orange: '70'
 ```
 

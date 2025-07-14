@@ -59,7 +59,7 @@ OPENAI_ORG_ID=your_org_id_here  # Optional
 ANTHROPIC_API_KEY=your_anthropic_key_here
 
 # Google Gemini (alternative)
-GEMINI_API_KEY=your_gemini_key_here
+GOOGLE_API_KEY=your_gemini_key_here
 
 # Mistral (alternative)
 MISTRAL_API_KEY=your_mistral_key_here
@@ -174,6 +174,18 @@ python run.py \
   --llm_provider openai \
   --model gpt-4o-mini \
   --query "Hello! What can you help me with?"
+
+# For evaluation and testing, you can also use the model API server:
+# 1. Start the model API server (defaults to OpenAI with "gpt-4o-mini" model):
+python model_api.py --input-dir ./examples/customer_service
+
+# 2. Run evaluation (in a separate terminal):
+python eval.py --model_api http://127.0.0.1:8000/eval/chat \
+  --config "examples/customer_service/customer_service_config.json" \
+  --documents_dir "examples/customer_service" \
+  --model "claude-3-haiku-20240307" \
+  --llm_provider "anthropic" \
+  --task "all"
 ```
 
 ## 🧠 Building a RAG-Powered Agent

@@ -12,11 +12,11 @@ import uuid
 from collections.abc import Callable
 from typing import Any, TypedDict
 
+from arklex.orchestrator.entities.msg_state_entities import MessageState, StatusEnum
 from arklex.orchestrator.NLU.core.slot import SlotFiller
+from arklex.orchestrator.NLU.entities.slot_entities import Slot
 from arklex.utils.exceptions import AuthenticationError, ToolExecutionError
-from arklex.utils.graph_state import MessageState, StatusEnum
 from arklex.utils.logging_utils import LogContext
-from arklex.utils.slot import Slot
 from arklex.utils.utils import format_chat_history
 
 log_context = LogContext(__name__)

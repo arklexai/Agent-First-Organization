@@ -1,3 +1,5 @@
+import json
+
 PAGEINFO_SLOTS = [
     {
         "name": "limit",
@@ -45,13 +47,20 @@ def cursorify(kwargs: dict) -> dict:
         if not pageInfo:
             return NAVIGATE_WITH_NO_CURSOR, False
 
+        # Parse pageInfo if it's a JSON string
+        if isinstance(pageInfo, str):
+            try:
+                pageInfo = json.loads(pageInfo)
+            except json.JSONDecodeError:
+                return NAVIGATE_WITH_NO_CURSOR, False
+
         if navigate == "next":
-            if not pageInfo["hasNextPage"]:
+            if not pageInfo.get("hasNextPage", False):
                 return NO_NEXT_PAGE, False
             nav_param = f'first: {limit}, after: "{pageInfo["endCursor"]}"'
 
         elif navigate == "prev":
-            if not pageInfo["hasPreviousPage"]:
+            if not pageInfo.get("hasPreviousPage", False):
                 return NO_PREV_PAGE, False
             nav_param = f'last: {limit}, before: "{pageInfo["startCursor"]}"'
 

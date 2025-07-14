@@ -49,7 +49,9 @@ def get_available_times(
 
     if response.status_code == 200:
         data = response.json()
-        return json.dumps(data)
+        # Filter out unavailable times and return only available ones
+        available_times = [item for item in data if item.get("available", False)]
+        return json.dumps(available_times)
     else:
         raise ToolExecutionError(
             func_name, AcuityExceptionPrompt.AVAILABLE_DATES_EXCEPTION_PROMPT

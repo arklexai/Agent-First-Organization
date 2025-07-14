@@ -18,8 +18,8 @@ from langgraph.graph import START, StateGraph
 from arklex.env.prompts import load_prompts
 from arklex.env.tools.utils import trace
 from arklex.env.workers.worker import BaseWorker, register_worker
+from arklex.orchestrator.entities.msg_state_entities import MessageState
 from arklex.types import EventType, StreamType
-from arklex.utils.graph_state import MessageState
 from arklex.utils.logging_utils import LogContext
 from arklex.utils.model_provider_config import PROVIDER_MAP
 

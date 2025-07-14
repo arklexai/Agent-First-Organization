@@ -5,6 +5,7 @@ from unittest.mock import Mock, patch
 import pytest
 
 from arklex.evaluation.chatgpt_utils import (
+    _convert_messages_to_gemini_format,
     chatgpt_chatbot,
     filter_convo,
     flip_hist,
@@ -29,6 +30,10 @@ class TestChatGPTUtils:
         return client
 
     @patch("arklex.evaluation.chatgpt_utils.create_client")
+    @patch(
+        "arklex.evaluation.chatgpt_utils.MODEL",
+        {"llm_provider": "openai", "model_type_or_path": "gpt-3.5-turbo"},
+    )
     def test_chatgpt_chatbot_with_messages(
         self, mock_create_client: Mock, mock_client: Mock
     ) -> None:
@@ -48,6 +53,10 @@ class TestChatGPTUtils:
         mock_client.chat.completions.create.assert_called_once()
 
     @patch("arklex.evaluation.chatgpt_utils.create_client")
+    @patch(
+        "arklex.evaluation.chatgpt_utils.MODEL",
+        {"llm_provider": "openai", "model_type_or_path": "gpt-3.5-turbo"},
+    )
     def test_chatgpt_chatbot_with_string(
         self, mock_create_client: Mock, mock_client: Mock
     ) -> None:
@@ -64,6 +73,10 @@ class TestChatGPTUtils:
         mock_client.chat.completions.create.assert_called_once()
 
     @patch("arklex.evaluation.chatgpt_utils.create_client")
+    @patch(
+        "arklex.evaluation.chatgpt_utils.MODEL",
+        {"llm_provider": "openai", "model_type_or_path": "gpt-3.5-turbo"},
+    )
     def test_chatgpt_chatbot_with_model_parameter(
         self, mock_create_client: Mock, mock_client: Mock
     ) -> None:
@@ -191,6 +204,10 @@ class TestChatGPTUtils:
         assert result[3]["role"] == "user"
 
     @patch("arklex.evaluation.chatgpt_utils.create_client")
+    @patch(
+        "arklex.evaluation.chatgpt_utils.MODEL",
+        {"llm_provider": "openai", "model_type_or_path": "gpt-3.5-turbo"},
+    )
     def test_chatgpt_chatbot_error_handling(
         self, mock_create_client: Mock, mock_client: Mock
     ) -> None:
@@ -286,28 +303,35 @@ class TestChatGPTUtils:
 
     @patch("arklex.evaluation.chatgpt_utils.OpenAI")
     @patch("arklex.evaluation.chatgpt_utils.anthropic.Anthropic")
+    @patch("google.generativeai")
+    @patch("arklex.evaluation.chatgpt_utils.GenerativeModel")
     @patch(
         "arklex.evaluation.chatgpt_utils.MODEL",
-        {"llm_provider": "gemini", "model_type_or_path": "gemini-pro"},
+        {"llm_provider": "google", "model_type_or_path": "gemini-pro"},
     )
     def test_create_client_gemini(
-        self, mock_anthropic: Mock, mock_openai: Mock
+        self,
+        mock_generative_model: Mock,
+        mock_genai: Mock,
+        mock_anthropic: Mock,
+        mock_openai: Mock,
     ) -> None:
-        """Test create_client with Gemini provider."""
+        """Test create_client with Google Generative AI provider."""
         # Mock environment variables
-        with patch.dict("os.environ", {"GEMINI_API_KEY": "test_key"}):
+        with patch.dict("os.environ", {"GOOGLE_API_KEY": "test_key"}):
             from arklex.evaluation.chatgpt_utils import create_client
 
             create_client()
 
-            # Verify OpenAI client was created with Gemini base URL
-            mock_openai.assert_called_once_with(
-                api_key="test_key",
-                base_url="https://generativelanguage.googleapis.com/v1beta/openai/",
-                organization=None,
-            )
+            # Verify Google Generative AI was configured and client was created
+            mock_genai.configure.assert_called_once_with(api_key="test_key")
+            mock_generative_model.assert_called_once_with("gemini-pro")
 
     @patch("arklex.evaluation.chatgpt_utils.chatgpt_chatbot")
+    @patch(
+        "arklex.evaluation.chatgpt_utils.MODEL",
+        {"llm_provider": "openai", "model_type_or_path": "gpt-3.5-turbo"},
+    )
     def test_adjust_goal(self, mock_chatgpt_chatbot: Mock) -> None:
         """Test adjust_goal returns a string."""
         from arklex.evaluation.chatgpt_utils import adjust_goal
@@ -379,7 +403,9 @@ class TestChatGPTUtils:
 
             from arklex.evaluation.chatgpt_utils import chatgpt_chatbot
 
-            result = chatgpt_chatbot(messages, client=mock_client)
+            result = chatgpt_chatbot(
+                messages, client=mock_client, model="claude-3-sonnet"
+            )
 
             # Verify the correct kwargs were passed to Anthropic
             mock_client.messages.create.assert_called_once_with(
@@ -418,7 +444,9 @@ class TestChatGPTUtils:
 
             from arklex.evaluation.chatgpt_utils import chatgpt_chatbot
 
-            result = chatgpt_chatbot(messages, client=mock_client)
+            result = chatgpt_chatbot(
+                messages, client=mock_client, model="claude-3-sonnet"
+            )
 
             # Verify the correct kwargs were passed to Anthropic
             mock_client.messages.create.assert_called_once_with(
@@ -567,7 +595,6 @@ class TestChatGPTUtils:
             # Verify OpenAI client was created with organization
             mock_openai.assert_called_once_with(
                 api_key="test_key",
-                base_url=None,
                 organization="org_test",
             )
 
@@ -588,9 +615,168 @@ class TestChatGPTUtils:
             # Verify OpenAI client was created without organization
             mock_openai.assert_called_once_with(
                 api_key="test_key",
-                base_url=None,
                 organization=None,
             )
+
+    @patch("arklex.evaluation.chatgpt_utils.create_client")
+    def test_chatgpt_chatbot_google_provider(self, mock_create_client: Mock) -> None:
+        """Test chatgpt_chatbot with Google Gemini provider."""
+        # Setup
+        mock_client = Mock()
+        mock_response = Mock()
+        mock_response.text = "gemini result"
+        mock_client.generate_content.return_value = mock_response
+        mock_create_client.return_value = mock_client
+
+        messages = [
+            {"role": "user", "content": "Hello"},
+            {"role": "assistant", "content": "Hi there"},
+        ]
+
+        # Mock MODEL to use google provider
+        with patch(
+            "arklex.evaluation.chatgpt_utils.MODEL",
+            {"llm_provider": "google", "model_type_or_path": "gemini-pro"},
+        ):
+            # Execute
+            result = chatgpt_chatbot(messages, client=mock_client)
+
+            # Assert
+            assert result == "gemini result"
+            mock_client.generate_content.assert_called_once()
+            call_args = mock_client.generate_content.call_args
+            assert len(call_args[0]) == 1  # First argument is the messages
+            assert call_args[1]["generation_config"]["temperature"] == 0.1
+            assert call_args[1]["generation_config"]["max_output_tokens"] == 1024
+
+    @patch("arklex.evaluation.chatgpt_utils.create_client")
+    def test_chatgpt_chatbot_google_provider_with_system_message(
+        self, mock_create_client: Mock
+    ) -> None:
+        """Test chatgpt_chatbot with Google Gemini provider and system message."""
+        # Setup
+        mock_client = Mock()
+        mock_response = Mock()
+        mock_response.text = "gemini result with system"
+        mock_client.generate_content.return_value = mock_response
+        mock_create_client.return_value = mock_client
+
+        messages = [
+            {"role": "system", "content": "You are a helpful assistant"},
+            {"role": "user", "content": "Hello"},
+            {"role": "assistant", "content": "Hi there"},
+        ]
+
+        # Mock MODEL to use google provider
+        with patch(
+            "arklex.evaluation.chatgpt_utils.MODEL",
+            {"llm_provider": "google", "model_type_or_path": "gemini-pro"},
+        ):
+            # Execute
+            result = chatgpt_chatbot(messages, client=mock_client)
+
+            # Assert
+            assert result == "gemini result with system"
+            mock_client.generate_content.assert_called_once()
+
+    @patch("arklex.evaluation.chatgpt_utils.create_client")
+    def test_chatgpt_chatbot_unsupported_provider(
+        self, mock_create_client: Mock
+    ) -> None:
+        """Test chatgpt_chatbot with unsupported provider raises ValueError."""
+        # Setup
+        mock_client = Mock()
+        mock_create_client.return_value = mock_client
+
+        messages = [{"role": "user", "content": "Hello"}]
+
+        # Mock MODEL to use unsupported provider
+        with (
+            patch(
+                "arklex.evaluation.chatgpt_utils.MODEL",
+                {"llm_provider": "unsupported", "model_type_or_path": "test-model"},
+            ),
+            pytest.raises(ValueError, match="Unsupported LLM provider: unsupported"),
+        ):
+            chatgpt_chatbot(messages, client=mock_client)
+
+    def test_convert_messages_to_gemini_format_basic(self) -> None:
+        """Test _convert_messages_to_gemini_format with basic messages."""
+        # Setup
+        messages = [
+            {"role": "user", "content": "Hello"},
+            {"role": "assistant", "content": "Hi there"},
+            {"role": "user", "content": "How are you?"},
+        ]
+
+        # Execute
+        result = _convert_messages_to_gemini_format(messages)
+
+        # Assert
+        assert len(result) == 3
+        assert result[0]["role"] == "user"
+        assert result[0]["parts"][0]["text"] == "Hello"
+        assert result[1]["role"] == "model"
+        assert result[1]["parts"][0]["text"] == "Hi there"
+        assert result[2]["role"] == "user"
+        assert result[2]["parts"][0]["text"] == "How are you?"
+
+    def test_convert_messages_to_gemini_format_with_system_message(self) -> None:
+        """Test _convert_messages_to_gemini_format with system message."""
+        # Setup
+        messages = [
+            {"role": "system", "content": "You are a helpful assistant"},
+            {"role": "user", "content": "Hello"},
+            {"role": "assistant", "content": "Hi there"},
+        ]
+
+        # Execute
+        result = _convert_messages_to_gemini_format(messages)
+
+        # Assert
+        assert len(result) == 2
+        assert result[0]["role"] == "user"
+        assert result[0]["parts"][0]["text"] == "You are a helpful assistant\n\nHello"
+        assert result[1]["role"] == "model"
+        assert result[1]["parts"][0]["text"] == "Hi there"
+
+    def test_convert_messages_to_gemini_format_system_message_no_user(self) -> None:
+        """Test _convert_messages_to_gemini_format with system message but no user message."""
+        # Setup
+        messages = [
+            {"role": "system", "content": "You are a helpful assistant"},
+            {"role": "assistant", "content": "Hi there"},
+        ]
+
+        # Execute
+        result = _convert_messages_to_gemini_format(messages)
+
+        # Assert
+        assert len(result) == 1
+        assert result[0]["role"] == "model"
+        assert result[0]["parts"][0]["text"] == "Hi there"
+
+    def test_convert_messages_to_gemini_format_empty_messages(self) -> None:
+        """Test _convert_messages_to_gemini_format with empty messages list."""
+        # Setup
+        messages = []
+
+        # Execute
+        result = _convert_messages_to_gemini_format(messages)
+
+        # Assert
+        assert result == []
+
+    def test_convert_messages_to_gemini_format_only_system(self) -> None:
+        """Test _convert_messages_to_gemini_format with only system message."""
+        # Setup
+        messages = [{"role": "system", "content": "You are a helpful assistant"}]
+
+        # Execute
+        result = _convert_messages_to_gemini_format(messages)
+
+        # Assert
+        assert result == []
 
     def test_flip_hist_with_system_message_continue_statement(self) -> None:
         """Test flip_hist function with system message to cover continue statement (line 142)."""
@@ -694,6 +880,10 @@ class TestChatGPTUtils:
             _print_goals(goals)
             mock_print.assert_called_once_with(goals)
 
+    @patch(
+        "arklex.evaluation.chatgpt_utils.MODEL",
+        {"llm_provider": "openai", "model_type_or_path": "gpt-3.5-turbo"},
+    )
     def test_chatgpt_chatbot_openai_branch(
         self, monkeypatch: pytest.MonkeyPatch
     ) -> None:
@@ -738,6 +928,7 @@ class TestChatGPTUtils:
         # Patch MODEL to anthropic
         orig_model = chatgpt_utils.MODEL.copy()
         chatgpt_utils.MODEL["llm_provider"] = "anthropic"
+        chatgpt_utils.MODEL["model_type_or_path"] = "claude-3-sonnet-20240229"
         try:
             result = chatgpt_utils.chatgpt_chatbot(messages, DummyAnthropic())
             assert result == "anthropic result"
@@ -761,6 +952,7 @@ class TestChatGPTUtils:
             patch(
                 "arklex.evaluation.chatgpt_utils.anthropic.Anthropic"
             ) as mock_anthropic,
+            patch.dict("os.environ", {"ANTHROPIC_API_KEY": "test-key"}),
         ):
             mock_client = Mock()
             mock_anthropic.return_value = mock_client

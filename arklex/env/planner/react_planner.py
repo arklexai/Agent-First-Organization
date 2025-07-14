@@ -40,23 +40,22 @@ from langchain.prompts import PromptTemplate
 from langchain.schema import AIMessage
 from langchain_community.vectorstores.faiss import FAISS
 from langchain_core.documents import Document
-from langchain_openai import ChatOpenAI, OpenAIEmbeddings
+from langchain_openai import OpenAIEmbeddings
 from pydantic import BaseModel
 
+from arklex.orchestrator.entities.msg_state_entities import LLMConfig, MessageState
 from arklex.orchestrator.prompts import (
     PLANNER_REACT_INSTRUCTION_FEW_SHOT,
     PLANNER_REACT_INSTRUCTION_ZERO_SHOT,
     PLANNER_SUMMARIZE_TRAJECTORY_PROMPT,
     RESPOND_ACTION_NAME,
 )
-from arklex.utils.graph_state import LLMConfig, MessageState
 from arklex.utils.logging_utils import LogContext
-from arklex.utils.model_config import MODEL
 from arklex.utils.model_provider_config import (
     PROVIDER_EMBEDDING_MODELS,
     PROVIDER_EMBEDDINGS,
-    PROVIDER_MAP,
 )
+from arklex.utils.provider_utils import validate_and_get_model_class
 
 log_context = LogContext(__name__)
 
@@ -144,8 +143,9 @@ RESPOND_ACTION_RESOURCE: PlannerResource = PlannerResource(
 )
 
 # Default LLM configuration used on planner initialization
+# This will be updated by the orchestrator with actual model configuration
 DEFAULT_LLM_CONFIG: LLMConfig = LLMConfig(
-    model_type_or_path=MODEL["model_type_or_path"], llm_provider=MODEL["llm_provider"]
+    model_type_or_path="placeholder", llm_provider="placeholder"
 )
 
 
@@ -265,11 +265,11 @@ class ReactPlanner(DefaultPlanner):
         # Set initial model and provider info
         self.llm_provider: str = self.llm_config.llm_provider
         self.model_name: str = self.llm_config.model_type_or_path
-        self.llm: Any = PROVIDER_MAP.get(self.llm_provider, ChatOpenAI)(
-            model=self.model_name,
-            temperature=0.0,
+        # Initialize LLM lazily to avoid API key issues during initialization
+        self.llm: Any = None
+        self.system_role: str = (
+            "system"  # Default to system, will be updated when LLM is initialized
         )
-        self.system_role: str = "user" if self.llm_provider == "gemini" else "system"
 
         # Store worker and tool info in single resources dict with standardized formatting
         formatted_worker_info: dict[str, PlannerResource] = self._format_worker_info(
@@ -291,6 +291,19 @@ class ReactPlanner(DefaultPlanner):
         # these will be created in AgentOrg.__init__() once model info is provided
         self.resource_rag_docs_created: bool = False
 
+    def _initialize_llm(self) -> None:
+        """Initialize the LLM if it hasn't been initialized yet."""
+        if self.llm is None:
+            # Create a temporary config object for validation
+            temp_config = type("TempConfig", (), {"llm_provider": self.llm_provider})()
+            model_class = validate_and_get_model_class(temp_config)
+
+            self.llm = model_class(
+                model=self.model_name,
+                temperature=0.0,
+            )
+            self.system_role = "user" if self.llm_provider == "google" else "system"
+
     def set_llm_config_and_build_resource_library(self, llm_config: LLMConfig) -> None:
         """Update planner LLM model and provider info from default, and create RAG vector store for planner
         resource documents.
@@ -306,11 +319,8 @@ class ReactPlanner(DefaultPlanner):
         # Update model provider info
         self.llm_provider: str = self.llm_config.llm_provider
         self.model_name: str = self.llm_config.model_type_or_path
-        self.llm: Any = PROVIDER_MAP.get(self.llm_provider, ChatOpenAI)(
-            model=self.model_name,
-            temperature=0.0,
-        )
-        self.system_role: str = "user" if self.llm_provider == "gemini" else "system"
+        # Initialize LLM with updated configuration
+        self._initialize_llm()
 
         # Create documents containing tool/worker info
         resource_docs: list[Document] = self._create_resource_rag_docs(
@@ -525,7 +535,7 @@ class ReactPlanner(DefaultPlanner):
         # contain a single user message with system instructions.
         # If model provider is Anthropic, messages can contain a system prompt, but must also
         # contain at least one user message.
-        messages: list[dict[str, Any]]
+        messages: list[dict[str, Any]] = []
         if self.llm_provider.lower() in ["openai", "gemini"]:
             messages = [{"role": self.system_role, "content": system_prompt.text}]
         elif self.llm_provider.lower() == "anthropic":
@@ -533,7 +543,12 @@ class ReactPlanner(DefaultPlanner):
                 {"role": self.system_role, "content": system_prompt.text},
                 {"role": "user", "content": user_message},
             ]
+        else:
+            # Default case for unknown providers
+            messages = [{"role": self.system_role, "content": system_prompt.text}]
 
+        # Initialize LLM if needed
+        self._initialize_llm()
         # Invoke model to get response to ReAct instruction
         res: Any = self.llm.invoke(messages)
         message: dict[str, Any] = aimessage_to_dict(res)
@@ -803,6 +818,8 @@ class ReactPlanner(DefaultPlanner):
         messages.extend(msg_history)
 
         for _ in range(max_num_steps):
+            # Initialize LLM if needed
+            self._initialize_llm()
             # Invoke model to get response to ReAct instruction
             res: Any = self.llm.invoke(messages)
             message: dict[str, Any] = aimessage_to_dict(res)

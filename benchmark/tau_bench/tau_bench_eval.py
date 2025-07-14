@@ -280,7 +280,9 @@ if __name__ == "__main__":
     parser.add_argument(
         "--model_api", type=str, default="http://127.0.0.1:8000/eval/chat"
     )
-    parser.add_argument("--model", type=str, default=MODEL["model_type_or_path"])
+    parser.add_argument(
+        "--model", type=str, default="gpt-4o-mini", help="Model to use for evaluation"
+    )
     parser.add_argument(
         "--log-level",
         type=str,

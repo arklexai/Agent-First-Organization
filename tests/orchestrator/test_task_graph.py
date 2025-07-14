@@ -12,15 +12,19 @@ from unittest.mock import Mock, patch
 import networkx as nx
 import pytest
 
+from arklex.orchestrator.entities.msg_state_entities import LLMConfig, StatusEnum
+from arklex.orchestrator.entities.orchestrator_params_entities import (
+    OrchestratorParams as Params,
+)
+from arklex.orchestrator.entities.taskgraph_entities import NodeInfo, PathNode
 from arklex.orchestrator.NLU.core.intent import IntentDetector
 from arklex.orchestrator.NLU.core.slot import SlotFiller
 from arklex.orchestrator.NLU.services.model_service import (
     DummyModelService,
     ModelService,
 )
-from arklex.orchestrator.task_graph import TaskGraph, TaskGraphBase
+from arklex.orchestrator.task_graph.task_graph import TaskGraph, TaskGraphBase
 from arklex.utils.exceptions import TaskGraphError
-from arklex.utils.graph_state import LLMConfig, NodeInfo, Params, PathNode, StatusEnum
 
 
 @pytest.fixture
@@ -612,8 +616,9 @@ class TestTaskGraphIntentHandling:
         sample_params.taskgraph.available_global_intents = {"existing_intent": []}
         available_intents = task_graph.get_available_global_intents(sample_params)
         assert "existing_intent" in available_intents
-        # The method should return the existing intents as-is
-        assert len(available_intents) == 1
+        # The method should return the existing intents plus the unsure intent
+        assert len(available_intents) == 2
+        assert "others" in available_intents
 
     def test_update_node_limit(
         self,
@@ -1179,7 +1184,9 @@ class TestTaskGraphSpecialHandling:
             sample_llm_config,
             model_service=always_valid_mock_model,
         )
-        with patch("arklex.orchestrator.task_graph.NestedGraph") as mock_nested_graph:
+        with patch(
+            "arklex.orchestrator.task_graph.task_graph.NestedGraph"
+        ) as mock_nested_graph:
             mock_nested_graph.get_nested_graph_component_node.return_value = (
                 NodeInfo(
                     node_id="nested_node",
@@ -1545,7 +1552,9 @@ class TestTaskGraphEdgeCases:
             sample_llm_config,
             model_service=always_valid_mock_model,
         )
-        with patch("arklex.orchestrator.task_graph.NestedGraph") as mock_nested_graph:
+        with patch(
+            "arklex.orchestrator.task_graph.task_graph.NestedGraph"
+        ) as mock_nested_graph:
             mock_nested_graph.get_nested_graph_component_node.return_value = (
                 NodeInfo(
                     node_id="nested_node",
@@ -2001,7 +2010,7 @@ class TestTaskGraphCoverage:
     def test__postprocess_intent_with_idx(
         self, sample_llm_config: LLMConfig, always_valid_mock_model: Mock
     ) -> None:
-        from arklex.orchestrator.task_graph import TaskGraph
+        from arklex.orchestrator.task_graph.task_graph import TaskGraph
 
         task_graph = TaskGraph(
             "test",
@@ -2017,7 +2026,7 @@ class TestTaskGraphCoverage:
     def test__postprocess_intent_similarity(
         self, sample_llm_config: LLMConfig, always_valid_mock_model: Mock
     ) -> None:
-        from arklex.orchestrator.task_graph import TaskGraph
+        from arklex.orchestrator.task_graph.task_graph import TaskGraph
 
         task_graph = TaskGraph(
             "test",
@@ -2039,7 +2048,7 @@ class TestTaskGraphCoverage:
         always_valid_mock_model: Mock,
         sample_params: Params,
     ) -> None:
-        from arklex.orchestrator.task_graph import NodeInfo
+        from arklex.orchestrator.task_graph.task_graph import NodeInfo
 
         task_graph = TaskGraph(
             "test_graph",
@@ -2120,7 +2129,7 @@ class TestTaskGraphCoverage:
     def test_validate_node_all_errors(
         self, sample_llm_config: LLMConfig, always_valid_mock_model: Mock
     ) -> None:
-        from arklex.orchestrator.task_graph import TaskGraphError
+        from arklex.orchestrator.task_graph.task_graph import TaskGraphError
 
         config = {
             "nodes": [
@@ -2150,8 +2159,10 @@ class TestTaskGraphCoverage:
         sample_llm_config: LLMConfig,
         always_valid_mock_model: Mock,
     ) -> None:
-        from arklex.orchestrator.task_graph import TaskGraph
-        from arklex.utils.graph_state import Params
+        from arklex.orchestrator.entities.orchestrator_params_entities import (
+            OrchestratorParams as Params,
+        )
+        from arklex.orchestrator.task_graph.task_graph import TaskGraph
 
         tg = TaskGraph(
             "g",
@@ -2171,8 +2182,10 @@ class TestTaskGraphCoverage:
         sample_llm_config: LLMConfig,
         always_valid_mock_model: Mock,
     ) -> None:
-        from arklex.orchestrator.task_graph import TaskGraph
-        from arklex.utils.graph_state import Params
+        from arklex.orchestrator.entities.orchestrator_params_entities import (
+            OrchestratorParams as Params,
+        )
+        from arklex.orchestrator.task_graph.task_graph import TaskGraph
 
         tg = TaskGraph(
             "g",
@@ -2198,8 +2211,10 @@ class TestTaskGraphCoverage:
         always_valid_mock_model: Mock,
         sample_params: Params,
     ) -> None:
-        from arklex.orchestrator.task_graph import TaskGraph
-        from arklex.utils.graph_state import Params
+        from arklex.orchestrator.entities.orchestrator_params_entities import (
+            OrchestratorParams as Params,
+        )
+        from arklex.orchestrator.task_graph.task_graph import TaskGraph
 
         tg = TaskGraph(
             "g",
@@ -2219,8 +2234,10 @@ class TestTaskGraphCoverage:
         always_valid_mock_model: Mock,
         sample_params: Params,
     ) -> None:
-        from arklex.orchestrator.task_graph import TaskGraph
-        from arklex.utils.graph_state import Params
+        from arklex.orchestrator.entities.orchestrator_params_entities import (
+            OrchestratorParams as Params,
+        )
+        from arklex.orchestrator.task_graph.task_graph import TaskGraph
 
         tg = TaskGraph(
             "g",
@@ -2241,8 +2258,11 @@ class TestTaskGraphCoverage:
         always_valid_mock_model: Mock,
         sample_params: Params,
     ) -> None:
-        from arklex.orchestrator.task_graph import TaskGraph
-        from arklex.utils.graph_state import NodeInfo, Params
+        from arklex.orchestrator.entities.orchestrator_params_entities import (
+            OrchestratorParams as Params,
+        )
+        from arklex.orchestrator.entities.taskgraph_entities import NodeInfo
+        from arklex.orchestrator.task_graph.task_graph import TaskGraph
 
         tg = TaskGraph(
             "g",
@@ -2272,8 +2292,10 @@ class TestTaskGraphCoverage:
     ) -> None:
         import numpy as np
 
-        from arklex.orchestrator.task_graph import TaskGraph
-        from arklex.utils.graph_state import Params
+        from arklex.orchestrator.entities.orchestrator_params_entities import (
+            OrchestratorParams as Params,
+        )
+        from arklex.orchestrator.task_graph.task_graph import TaskGraph
 
         tg = TaskGraph(
             "g",
@@ -2401,7 +2423,9 @@ class TestTaskGraphCoverage:
             model_service=always_valid_mock_model,
         )
         sample_params.taskgraph.curr_node = "leaf_node"
-        with patch("arklex.orchestrator.task_graph.NestedGraph") as mock_nested_graph:
+        with patch(
+            "arklex.orchestrator.task_graph.task_graph.NestedGraph"
+        ) as mock_nested_graph:
             mock_node_info = Mock()
             mock_node_info.node_id = "nested_node"
             mock_nested_graph.get_nested_graph_component_node.return_value = (
@@ -2956,7 +2980,9 @@ class TestTaskGraphMissingCoverage:
             mock_graph.successors.return_value = []
 
             # Mock NestedGraph to return None
-            with patch("arklex.orchestrator.task_graph.NestedGraph") as mock_nested:
+            with patch(
+                "arklex.orchestrator.task_graph.task_graph.NestedGraph"
+            ) as mock_nested:
                 mock_nested.get_nested_graph_component_node.return_value = (
                     None,
                     sample_params,
@@ -3251,7 +3277,7 @@ class TestTaskGraphAdditionalCoverage:
         mock_node_info.node_id = "leaf_node"  # This node has no successors
 
         with patch(
-            "arklex.orchestrator.task_graph.NestedGraph.get_nested_graph_component_node"
+            "arklex.orchestrator.task_graph.task_graph.NestedGraph.get_nested_graph_component_node"
         ) as mock_get_nested:
             mock_get_nested.return_value = (mock_node_info, sample_params)
 
@@ -3604,7 +3630,7 @@ class TestTaskGraphAdditionalCoverage:
         mock_node_info.node_id = "task_node"  # This node has successors
 
         with patch(
-            "arklex.orchestrator.task_graph.NestedGraph.get_nested_graph_component_node"
+            "arklex.orchestrator.task_graph.task_graph.NestedGraph.get_nested_graph_component_node"
         ) as mock_get_nested:
             mock_get_nested.return_value = (mock_node_info, sample_params)
 
@@ -3736,7 +3762,7 @@ class TestTaskGraphAdditionalCoverage:
     def test__get_node_removes_intent_from_available_global_intents(
         self, sample_params: Params
     ) -> None:
-        from arklex.orchestrator.task_graph import TaskGraph
+        from arklex.orchestrator.task_graph.task_graph import TaskGraph
 
         g = TaskGraph.__new__(TaskGraph)
         g.graph = nx.DiGraph()
@@ -3823,8 +3849,6 @@ class TestTaskGraphFinalCoverage:
         assert isinstance(has_random_next, bool)
         # node_output can be either a NodeInfo object or an empty dict
         if has_random_next:
-            from arklex.orchestrator.task_graph import NodeInfo
-
             assert isinstance(node_output, NodeInfo)
             # Should have updated the NLU record if candidates were found
             assert updated_params.taskgraph.nlu_records[-1]["no_intent"] is True
@@ -4186,7 +4210,7 @@ class TestTaskGraphRemainingCoverage:
 
             # Mock NestedGraph.get_nested_graph_component_node to return None
             with patch(
-                "arklex.orchestrator.task_graph.NestedGraph.get_nested_graph_component_node"
+                "arklex.orchestrator.task_graph.task_graph.NestedGraph.get_nested_graph_component_node"
             ) as mock_nested:
                 mock_nested.return_value = (None, sample_params)
 
@@ -4216,7 +4240,7 @@ class TestTaskGraphRemainingCoverage:
         # Patch get_local_intent at the class level to always return {}
         with (
             patch(
-                "arklex.orchestrator.task_graph.TaskGraph.get_local_intent",
+                "arklex.orchestrator.task_graph.task_graph.TaskGraph.get_local_intent",
                 return_value={},
             ),
             patch.object(task_graph, "handle_random_next_node") as mock_random,
@@ -4517,7 +4541,7 @@ class TestTaskGraphRemainingCoverage:
 
 
 class TestTaskGraphFinalCoverageGaps:
-    """Test cases to cover the final missing lines for 99.2% coverage."""
+    """Test cases to cover the final missing lines for 99.0% coverage."""
 
     def test_postprocess_intent_exception_handling(
         self,

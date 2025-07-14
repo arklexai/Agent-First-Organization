@@ -482,3 +482,16 @@ class SearchError(ArklexError):
             details: Optional dictionary with additional error details.
         """
         super().__init__(message, "SEARCH_ERROR", 500, details)
+
+
+class ShopifyError(ArklexError):
+    """Raised when Shopify operations fail."""
+
+    def __init__(self, message: str, details: dict[str, Any] | None = None) -> None:
+        """Initialize the ShopifyError.
+
+        Args:
+            message: The error message.
+            details: Optional dictionary with additional error details.
+        """
+        super().__init__(message, "SHOPIFY_ERROR", 500, details)

@@ -9,13 +9,13 @@ from unittest.mock import Mock, patch
 import httpx
 import pytest
 
+from arklex.orchestrator.NLU.entities.slot_entities import Slot
 from arklex.orchestrator.NLU.services.api_service import (
     DEFAULT_TIMEOUT,
     HTTP_METHOD_POST,
     APIClientService,
 )
 from arklex.utils.exceptions import APIError, ValidationError
-from arklex.utils.slot import Slot
 
 
 class TestAPIClientServiceInitialization:

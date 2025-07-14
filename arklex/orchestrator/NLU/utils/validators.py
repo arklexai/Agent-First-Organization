@@ -14,8 +14,8 @@ Key features:
 
 import json
 
+from arklex.orchestrator.NLU.entities.slot_entities import Slot
 from arklex.utils.logging_utils import LOG_MESSAGES, LogContext
-from arklex.utils.slot import Slot
 
 log_context = LogContext(__name__)
 

@@ -4,25 +4,29 @@ on:
   pull_request:
     types: [labeled]
 
-permissions:
-  contents: write
-  pull-requests: write
-
 jobs:
-  setup:
-    name: Setup Environment
+  test:
+    name: run tests and display coverage
+
     if: github.base_ref == 'main' && github.event.label.name == 'run-coverage-tests'
+
     runs-on: ubuntu-latest
+
+    permissions:
+      pull-requests: write
+      contents: write
+
     env:
+      SHOPIFY_FIXED_ARGS: ${{ secrets.SHOPIFY_FIXED_ARGS }}
       OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
-    outputs:
-      coverage-percentage: ${{ steps.coverage-check.outputs.coverage }}
+      MIN_COVERAGE_THRESHOLD: '99.0'
+
     steps:
       - name: Checkout PR branch
         uses: actions/checkout@v4
         with:
           ref: ${{ github.head_ref }}
-          token: ${{ github.token }}
+          token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Set up Python 3.10
         uses: actions/setup-python@v4
@@ -36,33 +40,75 @@ jobs:
 
       - name: Run tests and check coverage threshold
         id: coverage-check
-        uses: ./.github/actions/run-coverage-tests
+        run: |
+          pytest tests/ --cov=arklex --cov-report=term-missing --cov-report=html --cov-report=xml --no-cov-on-fail
+
+          python -c "
+          import xml.etree.ElementTree as ET
+          import os
+
+          try:
+              tree = ET.parse('coverage.xml')
+              root = tree.getroot()
+              coverage = float(root.attrib['line-rate']) * 100
+              print(f'Coverage: {coverage:.1f}%')
+
+              min_coverage = float(os.environ.get('MIN_COVERAGE_THRESHOLD', '99.0'))
+              print(f'Minimum coverage threshold: {min_coverage}%')
+
+              if coverage < min_coverage:
+                  print(f'❌ Coverage ({coverage:.1f}%) is below minimum threshold ({min_coverage}%)')
+                  exit(1)
+              else:
+                  print(f'✅ Coverage ({coverage:.1f}%) meets minimum threshold ({min_coverage}%)')
+
+              with open(os.environ.get('GITHUB_OUTPUT', '/dev/null'), 'a') as f:
+                  f.write(f'coverage={coverage:.1f}\\n')
+          except Exception as e:
+              print(f'Error reading coverage data: {e}')
+              exit(1)
+          "
+
+      - name: Upload coverage report
+        uses: actions/upload-artifact@v4
         with:
-          coverage-command: 'ARKLEX_TEST_ENV=local pytest tests/ --cov=arklex --cov-report=term-missing --cov-report=html --cov-report=xml --no-cov-on-fail'
-          min-coverage-threshold: '99.1'
+          name: coverage-report
+          path: coverage.xml
 
-  upload-coverage:
-    name: Upload Coverage Report
-    needs: setup
-    if: github.base_ref == 'main' && github.event.label.name == 'run-coverage-tests'
-    uses: ./.github/workflows/reusable-upload-coverage-report.yml
+      - name: Upload HTML coverage report
+        uses: actions/upload-artifact@v4
+        with:
+          name: htmlcov
+          path: htmlcov/
 
-  display-coverage:
-    name: Display Coverage Comment
-    needs: setup
-    if: github.base_ref == 'main' && github.event.label.name == 'run-coverage-tests'
-    uses: ./.github/workflows/reusable-display-coverage-comment.yml
-    with:
-      github-token: ${{ github.token }}
-      minimum-green: '99.1'
-      minimum-orange: '70'
+      - name: Display coverage comment
+        id: coverage
+        uses: py-cov-action/python-coverage-comment-action@v3
+        with:
+          GITHUB_TOKEN: ${{ github.token }}
+          MINIMUM_GREEN: 99.0
+          MINIMUM_ORANGE: 70
 
-  update-badge:
-    name: Update README Badge
-    needs: setup
-    if: github.base_ref == 'main' && github.event.label.name == 'run-coverage-tests' && github.ref == 'refs/heads/main'
-    uses: ./.github/workflows/reusable-update-badge.yml
-    with:
-      coverage-file: 'coverage.xml'
-      coverage-format: 'xml'
-      min-coverage-threshold: '99.1'
+      - name: Update README badge
+        run: |
+          COVERAGE=${{ steps.coverage-check.outputs.coverage }}
+
+          COLOR=$(python -c "
+          coverage = float('$COVERAGE')
+          if coverage < 90:
+              print('red')
+          elif coverage < 99:
+              print('orange')
+          else:
+              print('green')
+          ")
+
+          sed -i "s/coverage-[0-9]\+\.[0-9]%25-[a-z]*/coverage-${COVERAGE}%25-${COLOR}/g" README.md
+
+          if ! git diff --quiet; then
+            git config user.name "github-actions[bot]"
+            git config user.email "github-actions[bot]@users.noreply.github.com"
+            git add README.md
+            git commit -m "chore: update README with ${COVERAGE}% test coverage"
+            git push origin HEAD:${{ github.head_ref }}
+          fi

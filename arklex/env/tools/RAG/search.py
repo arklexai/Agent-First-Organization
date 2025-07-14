@@ -11,13 +11,12 @@ from typing import Any, Literal, TypedDict
 from langchain.prompts import PromptTemplate
 from langchain_community.tools import TavilySearchResults
 from langchain_core.output_parsers import StrOutputParser
-from langchain_openai import ChatOpenAI
 
 from arklex.env.prompts import load_prompts
+from arklex.orchestrator.entities.msg_state_entities import LLMConfig, MessageState
 from arklex.utils.exceptions import SearchError
-from arklex.utils.graph_state import LLMConfig, MessageState
 from arklex.utils.logging_utils import LogContext
-from arklex.utils.model_provider_config import PROVIDER_MAP
+from arklex.utils.provider_utils import validate_and_get_model_class
 
 log_context = LogContext(__name__)
 
@@ -47,9 +46,9 @@ class TavilySearchExecutor:
         llm_config: LLMConfig,
         **kwargs: SearchConfig,
     ) -> None:
-        self.llm: Any = PROVIDER_MAP.get(llm_config.llm_provider, ChatOpenAI)(
-            model=llm_config.model_type_or_path
-        )
+        model_class = validate_and_get_model_class(llm_config)
+
+        self.llm: Any = model_class(model=llm_config.model_type_or_path)
         self.search_tool: TavilySearchResults = TavilySearchResults(
             max_results=kwargs.get("max_results", 5),
             search_depth=kwargs.get("search_depth", "advanced"),

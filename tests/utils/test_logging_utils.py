@@ -421,15 +421,35 @@ class TestLogContextMethods:
 
     def test_log_context_merge_extra_preserves_exc_info(self) -> None:
         """Test _merge_extra preserves exc_info."""
-        context = LogContext("test_logger")
-        kwargs = {"exc_info": True, "other_key": "other_value"}
-        context_data = {"context_key": "context_value"}
+        context = get_test_context()
+        context_data = {"test": "value"}
+        kwargs = {"extra": {"user": "data"}, "exc_info": True, "other": "field"}
 
         result = context._merge_extra(context_data, kwargs)
 
-        assert result["context"] == context_data
-        assert result["other_key"] == "other_value"
+        # exc_info should be preserved in kwargs, not merged into extra
+        assert "exc_info" in kwargs
         assert kwargs["exc_info"] is True
+        assert "exc_info" not in result
+        assert result["other"] == "field"
+        assert result["user"] == "data"
+        assert result["context"] == context_data
+
+    def test_log_context_merge_extra_excludes_exc_info_from_extra(self) -> None:
+        """Test _merge_extra excludes exc_info from extra dict."""
+        context = get_test_context()
+        context_data = {"test": "value"}
+        kwargs = {"exc_info": True, "method": "GET", "status": 200}
+
+        result = context._merge_extra(context_data, kwargs)
+
+        # exc_info should be preserved in kwargs, not merged into extra
+        assert "exc_info" in kwargs
+        assert kwargs["exc_info"] is True
+        assert "exc_info" not in result
+        assert result["method"] == "GET"
+        assert result["status"] == 200
+        assert result["context"] == context_data
 
     def test_log_context_debug_method(self) -> None:
         """Test LogContext debug method."""
@@ -766,19 +786,22 @@ class TestLogContextInternalMethods:
         assert special_format in str(handler.formatter._fmt)
 
     def test_log_context_parent_property_with_numeric_level_handling(self) -> None:
-        """Test LogContext parent property with numeric level handling (covers line 150)."""
-        # Create a parent context with a numeric level
-        parent_context = LogContext("parent")
-        parent_context.log_context.setLevel(logging.WARNING)  # Set numeric level
+        """Test parent property with numeric level handling."""
+        # Create a parent with numeric level
+        parent = LogContext("parent", level=logging.INFO)
+        child = LogContext("child", level=logging.DEBUG)
+        child.log_context.parent = parent.log_context
 
-        # Create a child context
-        child_context = LogContext("child")
-        child_context.log_context.parent = parent_context.log_context
+        result = child.parent
+        assert result is not None
+        assert result.name == "parent"
+        assert result.level == logging.INFO
 
-        # Access the parent property - this should handle the numeric level
-        parent = child_context.parent
+    def test_log_context_parent_property_without_parent(self) -> None:
+        """Test parent property when there's no parent."""
+        context = get_test_context()
+        # Ensure no parent is set
+        context.log_context.parent = None
 
-        # Should return a LogContext with the parent's name and level
-        assert parent is not None
-        assert parent.name == "parent"
-        assert parent.level == logging.WARNING
+        result = context.parent
+        assert result is None

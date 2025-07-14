@@ -19,7 +19,7 @@ Each tool in the Arklex framework follows a standard structure:
 ```python
 from arklex.env.tools.tools import BaseTool
 from arklex.utils.graph_state import MessageState
-from arklex.utils.slot import Slot
+from arklex.orchestrator.NLU.entities.slot_entities import Slot
 
 class MyTool(BaseTool):
     def __init__(self):

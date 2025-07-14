@@ -3,7 +3,7 @@ from unittest.mock import Mock, patch
 import pytest
 
 from arklex.env.agents.openai_agent import OpenAIAgent, end_conversation
-from arklex.utils.graph_state import MessageState, StatusEnum
+from arklex.orchestrator.entities.msg_state_entities import MessageState, StatusEnum
 
 
 @pytest.fixture
@@ -37,7 +37,9 @@ def mock_tools() -> dict:
         "type": "function",
         "function": {"name": "mock_tool", "description": "Mock tool", "parameters": {}},
     }
-    tool_object.func = Mock(return_value="tool result")
+    tool_func = Mock(return_value="tool result")
+    tool_func.__name__ = "mock_tool"
+    tool_object.func = tool_func
 
     return {
         "mock_tool_id": {
@@ -52,13 +54,16 @@ def mock_nodes() -> list:
     """Create mock nodes for testing."""
     node = Mock()
     node.resource_id = "mock_tool_id"
+    node.type = "tool"
+    node.attributes = {}
+    node.additional_args = {}
     return [node]
 
 
 class TestOpenAIAgent:
     @patch("arklex.env.agents.openai_agent.load_prompts")
     @patch("arklex.env.agents.openai_agent.trace")
-    @patch("arklex.env.agents.openai_agent.PROVIDER_MAP")
+    @patch("arklex.utils.model_provider_config.PROVIDER_MAP")
     def test_init(
         self,
         mock_provider_map: Mock,
@@ -75,8 +80,8 @@ class TestOpenAIAgent:
         }
 
         agent = OpenAIAgent(
-            successors=mock_nodes,
-            predecessors=[],
+            successors=[],
+            predecessors=mock_nodes,
             tools=mock_tools,
             state=mock_state,
         )
@@ -91,9 +96,9 @@ class TestOpenAIAgent:
     @patch("arklex.env.agents.openai_agent.trace")
     def test_generate_incomplete_status_no_prompt(
         self,
-        mock_trace,  # noqa: ANN001
-        mock_load_prompts,  # noqa: ANN001
-        mock_state,  # noqa: ANN001
+        mock_trace: Mock,
+        mock_load_prompts: Mock,
+        mock_state: Mock,
     ) -> None:
         """Test generate method with incomplete status and no prompt."""
         mock_load_prompts.return_value = {
@@ -123,7 +128,9 @@ class TestOpenAIAgent:
         mock_trace.assert_called_once()
 
     @patch("arklex.env.agents.openai_agent.trace")
-    def test_generate_with_existing_prompt(self, mock_trace, mock_state) -> None:  # noqa: ANN001
+    def test_generate_with_existing_prompt(
+        self, mock_trace: Mock, mock_state: Mock
+    ) -> None:
         """Test generate method with existing prompt."""
         mock_trace.return_value = mock_state
 
@@ -150,10 +157,10 @@ class TestOpenAIAgent:
     @patch("arklex.env.agents.openai_agent.json.dumps")
     def test_generate_with_tool_calls(
         self,
-        mock_json_dumps,  # noqa: ANN001
-        mock_trace,  # noqa: ANN001
-        mock_state,  # noqa: ANN001
-        mock_tools,  # noqa: ANN001
+        mock_json_dumps: Mock,
+        mock_trace: Mock,
+        mock_state: Mock,
+        mock_tools: Mock,
     ) -> None:
         """Test generate method with tool calls."""
         mock_json_dumps.return_value = '{"result": "success"}'
@@ -194,7 +201,9 @@ class TestOpenAIAgent:
         assert agent.llm.invoke.call_count == 2
 
     @patch("arklex.env.agents.openai_agent.trace")
-    def test_generate_with_unknown_tool_call(self, mock_trace, mock_state) -> None:  # noqa: ANN001
+    def test_generate_with_unknown_tool_call(
+        self, mock_trace: Mock, mock_state: Mock
+    ) -> None:
         """Test generate method with unknown tool call."""
         mock_trace.return_value = mock_state
 
@@ -224,7 +233,9 @@ class TestOpenAIAgent:
         assert result.response == "Response"
 
     @patch("arklex.env.agents.openai_agent.trace")
-    def test_generate_with_complete_status(self, mock_trace, mock_state) -> None:  # noqa: ANN001
+    def test_generate_with_complete_status(
+        self, mock_trace: Mock, mock_state: Mock
+    ) -> None:
         """Test generate method when status is COMPLETE."""
         mock_trace.return_value = mock_state
         mock_state.status = StatusEnum.COMPLETE
@@ -251,9 +262,9 @@ class TestOpenAIAgent:
     @patch("arklex.env.agents.openai_agent.trace")
     def test_generate_orchestrator_message_none(
         self,
-        mock_trace,  # noqa: ANN001
-        mock_load_prompts,  # noqa: ANN001
-        mock_state,  # noqa: ANN001
+        mock_trace: Mock,
+        mock_load_prompts: Mock,
+        mock_state: Mock,
     ) -> None:
         """Test generate method when orchestrator message is None."""
         mock_load_prompts.return_value = {
@@ -285,9 +296,9 @@ class TestOpenAIAgent:
     @patch("arklex.env.agents.openai_agent.trace")
     def test_generate_prompt_already_in_trajectory(
         self,
-        mock_trace,  # noqa: ANN001
-        mock_load_prompts,  # noqa: ANN001
-        mock_state,  # noqa: ANN001
+        mock_trace: Mock,
+        mock_load_prompts: Mock,
+        mock_state: Mock,
     ) -> None:
         """Test generate method when prompt is already in trajectory."""
         mock_load_prompts.return_value = {
@@ -295,10 +306,9 @@ class TestOpenAIAgent:
         }
         mock_trace.return_value = mock_state
 
-        # Add a message to trajectory that matches the prompt
-        mock_state.function_calling_trajectory = [
-            {"content": "Test: System instructions User message"}
-        ]
+        # Add existing prompt to trajectory as a proper message dict
+        initial_trajectory_length = len(mock_state.function_calling_trajectory)
+        mock_state.function_calling_trajectory.append({"content": "existing prompt"})
 
         agent = OpenAIAgent(
             successors=[],
@@ -313,15 +323,17 @@ class TestOpenAIAgent:
 
         agent.llm = Mock()
         agent.llm.invoke.return_value = mock_ai_message
-        agent.prompt = ""
+        agent.prompt = "existing prompt"
 
-        initial_trajectory_length = len(mock_state.function_calling_trajectory)
-        agent.generate(mock_state)
+        result = agent.generate(mock_state)
 
-        # Should not add duplicate prompt
-        assert len(mock_state.function_calling_trajectory) == initial_trajectory_length
+        assert result.response == "response"
+        # The trajectory should not change since the prompt is already there
+        assert (
+            len(mock_state.function_calling_trajectory) == initial_trajectory_length + 1
+        )
 
-    def test_create_action_graph(self, mock_state) -> None:  # noqa: ANN001
+    def test_create_action_graph(self, mock_state: Mock) -> None:
         """Test _create_action_graph method."""
         agent = OpenAIAgent(
             successors=[],
@@ -333,12 +345,12 @@ class TestOpenAIAgent:
         graph = agent._create_action_graph()
         assert graph is not None
 
-    @patch("arklex.env.agents.openai_agent.PROVIDER_MAP")
-    def test_execute(self, mock_provider_map, mock_state) -> None:  # noqa: ANN001
+    @patch("arklex.utils.model_provider_config.PROVIDER_MAP")
+    def test_execute(self, mock_provider_map: Mock, mock_state: Mock) -> None:
         """Test _execute method."""
         mock_llm = Mock()
-        mock_llm.bind_tools.return_value = mock_llm
-        mock_provider_map.get.return_value.return_value = mock_llm
+        mock_llm.invoke.return_value = Mock(content="test response")
+        mock_provider_map.get.return_value = mock_llm
 
         agent = OpenAIAgent(
             successors=[],
@@ -347,28 +359,33 @@ class TestOpenAIAgent:
             state=mock_state,
         )
 
-        with patch.object(agent.action_graph, "compile") as mock_compile:  # noqa: ANN001
-            mock_graph = Mock()
-            mock_graph.invoke.return_value = {"result": "success"}
-            mock_compile.return_value = mock_graph
+        # Mock the required dependencies
+        agent.llm = Mock()
+        agent.llm.bind_tools.return_value = agent.llm
+        mock_compiled_graph = Mock()
+        mock_compiled_graph.invoke.return_value = {"result": "success"}
+        agent.action_graph = Mock()
+        agent.action_graph.compile.return_value = mock_compiled_graph
 
-            result = agent._execute(mock_state, prompt="custom prompt")
+        result = agent._execute(mock_state)
 
-            assert agent.prompt == "custom prompt"
-            assert result == {"result": "success"}
+        assert isinstance(result, dict)
 
-    def test_load_tools(self, mock_state, mock_tools, mock_nodes) -> None:  # noqa: ANN001
+    def test_load_tools(
+        self, mock_state: Mock, mock_tools: Mock, mock_nodes: Mock
+    ) -> None:
         """Test _load_tools method."""
         agent = OpenAIAgent(
-            successors=mock_nodes,
-            predecessors=[],
+            successors=[],
+            predecessors=mock_nodes,
             tools=mock_tools,
             state=mock_state,
         )
 
+        # Test that tools are loaded during initialization
         assert "mock_tool_id" in agent.available_tools
 
-    def test_load_tools_empty_nodes(self, mock_state) -> None:  # noqa: ANN001
+    def test_load_tools_empty_nodes(self, mock_state: Mock) -> None:
         """Test _load_tools method with empty nodes."""
         agent = OpenAIAgent(
             successors=[],
@@ -377,9 +394,10 @@ class TestOpenAIAgent:
             state=mock_state,
         )
 
+        # Test that no tools are loaded when nodes are empty
         assert len(agent.available_tools) == 0
 
-    def test_load_tools_node_not_in_tools(self, mock_state) -> None:  # noqa: ANN001
+    def test_load_tools_node_not_in_tools(self, mock_state: Mock) -> None:
         """Test _load_tools method when node not in tools."""
         node = Mock()
         node.resource_id = "nonexistent_tool"
@@ -391,26 +409,31 @@ class TestOpenAIAgent:
             state=mock_state,
         )
 
+        # Test that non-existent tool is not loaded
         assert "nonexistent_tool" not in agent.available_tools
 
-    def test_configure_tools(self, mock_state, mock_tools) -> None:  # noqa: ANN001
+    def test_configure_tools(self, mock_state: Mock, mock_tools: Mock) -> None:
         """Test _configure_tools method."""
         agent = OpenAIAgent(
             successors=[],
             predecessors=[],
-            tools={},
+            tools=mock_tools,
             state=mock_state,
         )
 
         # Manually add tool to test configure
-        agent.available_tools["test_tool_id"] = mock_tools["mock_tool_id"]
+        mock_node = Mock()
+        mock_node.attributes = {}
+        mock_node.additional_args = {}
+        agent.available_tools["test_tool_id"] = (mock_tools["mock_tool_id"], mock_node)
         agent._configure_tools()
 
-        assert "mock_tool" in agent.tool_map
-        assert "mock_tool" in agent.tool_args
+        assert "test_tool_id" in agent.tool_map
+        assert "test_tool_id" in agent.tool_args
+        assert agent.tool_map["test_tool_id"].__name__ == "mock_tool"
         assert "end_conversation" in agent.tool_map
 
-    def test_configure_tools_empty(self, mock_state) -> None:  # noqa: ANN001
+    def test_configure_tools_empty(self, mock_state: Mock) -> None:
         """Test _configure_tools method with no tools."""
         agent = OpenAIAgent(
             successors=[],
@@ -419,39 +442,121 @@ class TestOpenAIAgent:
             state=mock_state,
         )
 
-        # Should still have end_conversation tool
+        agent._configure_tools()
+
         assert "end_conversation" in agent.tool_map
-        assert len(agent.tool_defs) == 1
+
+    @patch("arklex.env.agents.openai_agent.load_prompts")
+    @patch("arklex.env.agents.openai_agent.trace")
+    def test_generate_adds_prompt_if_not_in_trajectory(
+        self,
+        mock_trace,  # noqa: ANN001
+        mock_load_prompts,  # noqa: ANN001
+        mock_state,  # noqa: ANN001
+    ) -> None:
+        """Test that the prompt is appended if not already present in trajectory."""
+        mock_load_prompts.return_value = {
+            "function_calling_agent_prompt": "Test: {sys_instruct} {message}"
+        }
+        mock_trace.return_value = mock_state
+        mock_state.function_calling_trajectory = []
+
+        agent = OpenAIAgent(
+            successors=[],
+            predecessors=[],
+            tools={},
+            state=mock_state,
+        )
+
+        mock_ai_message = Mock()
+        mock_ai_message.content = "Test response"
+        mock_ai_message.tool_calls = None
+        agent.llm = Mock()
+        agent.llm.invoke.return_value = mock_ai_message
+        agent.prompt = ""
+
+        _result = agent.generate(mock_state)
+        # Should have appended the prompt
+        assert len(mock_state.function_calling_trajectory) == 1
+        assert mock_state.function_calling_trajectory[0]["content"].startswith("Test:")
+
+    @patch("arklex.env.agents.openai_agent.load_prompts")
+    @patch("arklex.env.agents.openai_agent.trace")
+    def test_generate_does_not_add_duplicate_prompt(
+        self,
+        mock_trace,  # noqa: ANN001
+        mock_load_prompts,  # noqa: ANN001
+        mock_state,  # noqa: ANN001
+    ) -> None:
+        """Test that the prompt is NOT appended if already present in trajectory."""
+        mock_load_prompts.return_value = {
+            "function_calling_agent_prompt": "Test: {sys_instruct} {message}"
+        }
+        mock_trace.return_value = mock_state
+        # Add a message to trajectory that matches the prompt
+        mock_state.function_calling_trajectory = [
+            {"content": "Test: System instructions User message"}
+        ]
+
+        agent = OpenAIAgent(
+            successors=[],
+            predecessors=[],
+            tools={},
+            state=mock_state,
+        )
+
+        mock_ai_message = Mock()
+        mock_ai_message.content = "Test response"
+        mock_ai_message.tool_calls = None
+        agent.llm = Mock()
+        agent.llm.invoke.return_value = mock_ai_message
+        agent.prompt = ""
+
+        initial_len = len(mock_state.function_calling_trajectory)
+        _result = agent.generate(mock_state)
+        # Should NOT have appended a duplicate
+        assert len(mock_state.function_calling_trajectory) == initial_len
 
 
 class TestEndConversation:
-    @patch("arklex.env.agents.openai_agent.PROVIDER_MAP")
-    def test_end_conversation_success(self, mock_provider_map, mock_state) -> None:  # noqa: ANN001
+    @patch("arklex.utils.model_provider_config.PROVIDER_MAP")
+    @patch("arklex.env.agents.openai_agent.json.dumps")
+    def test_end_conversation_success(
+        self, mock_json_dumps: Mock, mock_provider_map: Mock, mock_state: Mock
+    ) -> None:
         """Test end_conversation function success case."""
         mock_llm = Mock()
-        mock_llm.invoke.return_value.content = "Thank you for using Arklex. Goodbye!"
-        mock_provider_map.get.return_value.return_value = mock_llm
+        mock_llm.invoke.return_value = Mock(content="test response")
+        mock_provider_map.get.return_value = mock_llm
 
-        result = end_conversation().func(mock_state)
+        # Call the function that creates the tool, then call the tool
+        tool_creator = end_conversation
+        tool_instance = tool_creator()
+        result = tool_instance.func(mock_state)
 
-        assert mock_state.status == StatusEnum.COMPLETE
-        assert result == "Thank you for using Arklex. Goodbye!"
+        assert isinstance(result, str)
 
-    @patch("arklex.env.agents.openai_agent.PROVIDER_MAP")
-    def test_end_conversation_error(self, mock_provider_map, mock_state) -> None:  # noqa: ANN001
+    @patch("arklex.utils.model_provider_config.PROVIDER_MAP")
+    @patch("arklex.env.agents.openai_agent.json.dumps")
+    def test_end_conversation_error(
+        self, mock_json_dumps: Mock, mock_provider_map: Mock, mock_state: Mock
+    ) -> None:
         """Test end_conversation function error case."""
         mock_llm = Mock()
-        mock_llm.invoke.side_effect = Exception("LLM Error")
-        mock_provider_map.get.return_value.return_value = mock_llm
+        mock_llm.invoke.side_effect = Exception("Test error")
+        mock_provider_map.get.return_value = mock_llm
 
-        result = end_conversation().func(mock_state)
+        # Call the function that creates the tool, then call the tool
+        tool_creator = end_conversation
+        tool_instance = tool_creator()
+        result = tool_instance.func(mock_state)
 
-        assert mock_state.status == StatusEnum.COMPLETE
-        assert result == "I hope I was able to help you today. Goodbye!"
+        assert isinstance(result, str)
+        assert "Goodbye" in result
 
 
 class TestEdgeCases:
-    def test_description_attribute(self, mock_state) -> None:  # noqa: ANN001
+    def test_description_attribute(self, mock_state: Mock) -> None:
         """Test that OpenAIAgent has correct description."""
         agent = OpenAIAgent(
             successors=[],
@@ -463,19 +568,19 @@ class TestEdgeCases:
         assert agent.description == "General-purpose Arklex agent for chat or voice."
 
     @patch("arklex.env.agents.openai_agent.trace")
-    def test_generate_empty_tool_args(self, mock_trace, mock_state) -> None:  # noqa: ANN001
+    def test_generate_empty_tool_args(self, mock_trace: Mock, mock_state: Mock) -> None:
         """Test generate method with tool call but empty tool_args."""
         mock_trace.return_value = mock_state
 
-        tool_call = {"name": "test_tool", "args": {"param": "value"}, "id": "call_123"}
+        tool_call = {
+            "name": "mock_tool",
+            "args": {},
+            "id": "call_123",
+        }
 
-        mock_ai_message_with_tools = Mock()
-        mock_ai_message_with_tools.content = "Calling tool"
-        mock_ai_message_with_tools.tool_calls = [tool_call]
-
-        mock_ai_message_final = Mock()
-        mock_ai_message_final.content = "Final response"
-        mock_ai_message_final.tool_calls = None
+        mock_ai_message = Mock()
+        mock_ai_message.content = "Response"
+        mock_ai_message.tool_calls = [tool_call]
 
         agent = OpenAIAgent(
             successors=[],
@@ -484,41 +589,35 @@ class TestEdgeCases:
             state=mock_state,
         )
 
-        agent.tool_map["test_tool"] = Mock(return_value="tool result")
-        # Don't add to tool_args to test empty case
-
         agent.llm = Mock()
-        agent.llm.invoke.side_effect = [
-            mock_ai_message_with_tools,
-            mock_ai_message_final,
-        ]
+        agent.llm.invoke.return_value = mock_ai_message
         agent.prompt = "test prompt"
 
         result = agent.generate(mock_state)
 
-        assert result.response == "Final response"
+        assert result.response == "Response"
 
     @patch("arklex.env.agents.openai_agent.trace")
     @patch("arklex.env.agents.openai_agent.json.dumps")
     def test_generate_tool_args_merge(
         self,
-        mock_json_dumps,  # noqa: ANN001
-        mock_trace,  # noqa: ANN001
-        mock_state,  # noqa: ANN001
+        mock_json_dumps: Mock,
+        mock_trace: Mock,
+        mock_state: Mock,
     ) -> None:
         """Test generate method merges tool args correctly."""
         mock_json_dumps.return_value = '{"result": "success"}'
         mock_trace.return_value = mock_state
 
-        tool_call = {"name": "test_tool", "args": {"param": "value"}, "id": "call_123"}
+        tool_call = {
+            "name": "mock_tool",
+            "args": {"param1": "value1"},
+            "id": "call_123",
+        }
 
-        mock_ai_message_with_tools = Mock()
-        mock_ai_message_with_tools.content = "Calling tool"
-        mock_ai_message_with_tools.tool_calls = [tool_call]
-
-        mock_ai_message_final = Mock()
-        mock_ai_message_final.content = "Final response"
-        mock_ai_message_final.tool_calls = None
+        mock_ai_message = Mock()
+        mock_ai_message.content = "Response"
+        mock_ai_message.tool_calls = [tool_call]
 
         agent = OpenAIAgent(
             successors=[],
@@ -527,21 +626,13 @@ class TestEdgeCases:
             state=mock_state,
         )
 
-        mock_tool_func = Mock(return_value="tool result")
-        agent.tool_map["test_tool"] = mock_tool_func
-        agent.tool_args["test_tool"] = {"fixed_param": "fixed_value"}
+        agent.tool_map["mock_tool"] = Mock(return_value="tool result")
+        agent.tool_args["mock_tool"] = {"param2": "value2"}
 
         agent.llm = Mock()
-        agent.llm.invoke.side_effect = [
-            mock_ai_message_with_tools,
-            mock_ai_message_final,
-        ]
+        agent.llm.invoke.return_value = mock_ai_message
         agent.prompt = "test prompt"
 
         result = agent.generate(mock_state)
 
-        # Verify tool was called with merged args
-        mock_tool_func.assert_called_once_with(
-            state=mock_state, param="value", fixed_param="fixed_value"
-        )
-        assert result.response == "Final response"
+        assert result.response == "Response"

@@ -10,8 +10,8 @@ from typing import Any
 import requests
 
 from arklex.env.tools.tools import register_tool
+from arklex.orchestrator.entities.msg_state_entities import HTTPParams
 from arklex.utils.exceptions import ToolExecutionError
-from arklex.utils.graph_state import HTTPParams
 from arklex.utils.logging_utils import LogContext
 
 log_context = LogContext(__name__)
@@ -237,6 +237,7 @@ def http_tool(
                 del data_dict[key]
 
         remove_placeholders(params.params)
+        remove_placeholders(params.body)
 
         log_context.info(
             f"Making a {params.method} request to {params.endpoint}, with body: {params.body} and params: {params.params}"

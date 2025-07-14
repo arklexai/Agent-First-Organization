@@ -31,8 +31,8 @@ LabelDict = dict[str, Any]
 
 ATTR_TO_PROFILE: str = "Convert the following list user attributes in to a text description of a customer profile for the following company:\n{company_summary}\nThe user attributes are here:\n{user_attr}"
 ADAPT_GOAL: str = "Assume you are planning to speak to a chatbot with the following goal in mind:\n{goal}\nUsing the company information below, re-write this goal into one that is more specific to the company and align with your profile. The new goal should be more specific either relevent to your profile or the company's details. Here is a summary of the company:\n{company_summary}\n{doc}\n{user_profile}"
-ADD_ATTRIBUTES: str = "Your job is to add attributes to a customer profile. Here is an example of an existing profile with the categories on the left and the attributes on the right:\n{user_profile}\nSuggest three attributes for the following category:\n{category}\nThese attributes should be specific values that are relevant to the category and apply to potential customers of the company. You should return a comma separated list of attributes without any descriptions of the attributes. Generated the attributes based on a summary of the company and the company webpage and what kind of customers the compnay is likely targeting. Here is the summary fo the company:\n{company_summary}\nHere is the webpage:\n{company_doc}"
-ADD_ATTRIBUTES_WO_DOC: str = "Your job is to add attributes to a customer profile. Here is an example of an existing profile with the categories on the left and the attributes on the right:\n{user_profile}\nSuggest three attributes for the following category:\n{category}\nThese attributes should be specific values that are relevant to the category and apply to potential customers of the company. You should return a comma separated list of attributes without any descriptions of the attributes. Generated the attributes based on a summary of the company and what kind of customers the compnay is likely targeting. Here is the summary fo the company:\n{company_summary}"
+ADD_ATTRIBUTES: str = "Your job is to add attributes to a customer profile. Here is an example of an existing profile with the categories on the left and the attributes on the right:\n{user_profile}\nSuggest three attributes for the following category:\n{category}\nThese attributes should be specific values that are relevant to the category and apply to potential customers of the company. You should return a comma separated list of attributes without any descriptions of the attributes. Generated the attributes based on a summary of the company and the company webpage and what kind of customers the company is likely targeting. Here is the summary of the company:\n{company_summary}\nHere is the webpage:\n{company_doc}"
+ADD_ATTRIBUTES_WO_DOC: str = "Your job is to add attributes to a customer profile. Here is an example of an existing profile with the categories on the left and the attributes on the right:\n{user_profile}\nSuggest three attributes for the following category:\n{category}\nThese attributes should be specific values that are relevant to the category and apply to potential customers of the company. You should return a comma separated list of attributes without any descriptions of the attributes. Generated the attributes based on a summary of the company and what kind of customers the company is likely targeting. Here is the summary of the company:\n{company_summary}"
 
 log_context: LogContext = LogContext(__name__)
 
@@ -577,7 +577,25 @@ def _select_random_attributes(
     for category, values in attributes.items():
         if category == "goal":
             continue
-        selected_attributes[category] = random.choice(values)
+        # Handle empty values by providing a default value
+        if not values:
+            # For empty values, use a generic default based on the category
+            if "budget" in category.lower():
+                selected_attributes[category] = "medium"
+            elif "location" in category.lower():
+                selected_attributes[category] = "United States"
+            elif "history" in category.lower():
+                selected_attributes[category] = "none"
+            elif "job" in category.lower():
+                selected_attributes[category] = "professional"
+            elif "business" in category.lower():
+                selected_attributes[category] = "small business"
+            elif "size" in category.lower():
+                selected_attributes[category] = "10-50 employees"
+            else:
+                selected_attributes[category] = "default"
+        else:
+            selected_attributes[category] = random.choice(values)
 
     return selected_attributes, goal
 
@@ -647,20 +665,24 @@ def adapt_goal(goal: str, config: ConfigDict, doc: str, user_profile: str) -> st
 
     Args:
         goal: The original goal to be adapted.
-        config: Configuration dictionary containing company_summary and client.
+        config: Configuration dictionary containing intro/company_summary and client.
         doc: Company document content for context.
         user_profile: Formatted user profile string.
 
     Returns:
         Adapted goal string that is more specific to the company context.
     """
+    # Use 'intro' if available, otherwise fall back to 'company_summary'
+    company_summary = config.get("intro", config.get("company_summary", ""))
     prompt = ADAPT_GOAL.format(
         goal=goal,
-        company_summary=config["company_summary"],
+        company_summary=company_summary,
         doc=doc,
         user_profile=user_profile,
     )
-    adapted_goal = chatgpt_chatbot(prompt, config["client"])
+    adapted_goal = chatgpt_chatbot(
+        [{"role": "user", "content": prompt}], config["client"]
+    )
     return adapted_goal
 
 
@@ -931,7 +953,7 @@ def augment_attributes(
 
     Args:
         predefined_attributes: Dictionary of predefined attributes with their values.
-        config: Configuration dictionary containing company_summary and client.
+        config: Configuration dictionary containing intro/company_summary and client.
         documents: List of company documents for context.
 
     Returns:
@@ -942,36 +964,80 @@ def augment_attributes(
         configuration. Uses company documents for context when available.
     """
     augmented_attributes: dict[str, list[str]] = {}
-    for category, values in predefined_attributes.items():
-        augmented_attributes[category] = values["values"]
-        if "augment" in values and values["augment"]:
-            doc = ""
-            if documents and len(documents) > 0:
-                doc = (
-                    "Here is a page from the company website: "
-                    + random.choice(documents)["content"]
+    # Use 'intro' if available, otherwise fall back to 'company_summary'
+    company_summary = config.get("intro", config.get("company_summary", ""))
+
+    for category, category_data in predefined_attributes.items():
+        # Handle nested structure where category contains subcategories
+        if isinstance(category_data, dict) and "values" not in category_data:
+            # This is a nested category (like "generic", "b2b", "b2c")
+            # Flatten the nested structure
+            for subcategory, subcategory_data in category_data.items():
+                if isinstance(subcategory_data, dict) and "values" in subcategory_data:
+                    augmented_attributes[subcategory] = subcategory_data["values"]
+                    if "augment" in subcategory_data and subcategory_data["augment"]:
+                        doc = ""
+                        if documents and len(documents) > 0:
+                            doc = (
+                                "Here is a page from the company website: "
+                                + random.choice(documents)["content"]
+                            )
+                            prompt = ADD_ATTRIBUTES.format(
+                                user_profile="; ".join(
+                                    f"{key}: {value}"
+                                    for key, value in predefined_attributes.items()
+                                ),
+                                category=subcategory,
+                                company_summary=company_summary,
+                                company_doc=doc,
+                            )
+                        else:
+                            prompt = ADD_ATTRIBUTES_WO_DOC.format(
+                                user_profile="; ".join(
+                                    f"{key}: {value}"
+                                    for key, value in predefined_attributes.items()
+                                ),
+                                category=subcategory,
+                                company_summary=company_summary,
+                            )
+                        response = chatgpt_chatbot(
+                            [{"role": "user", "content": prompt}], config["client"]
+                        )
+                        new_values = [value.strip() for value in response.split(",")]
+                        augmented_attributes[subcategory].extend(new_values)
+        else:
+            # This is a flat category with direct "values" key
+            augmented_attributes[category] = category_data["values"]
+            if "augment" in category_data and category_data["augment"]:
+                doc = ""
+                if documents and len(documents) > 0:
+                    doc = (
+                        "Here is a page from the company website: "
+                        + random.choice(documents)["content"]
+                    )
+                    prompt = ADD_ATTRIBUTES.format(
+                        user_profile="; ".join(
+                            f"{key}: {value}"
+                            for key, value in predefined_attributes.items()
+                        ),
+                        category=category,
+                        company_summary=company_summary,
+                        company_doc=doc,
+                    )
+                else:
+                    prompt = ADD_ATTRIBUTES_WO_DOC.format(
+                        user_profile="; ".join(
+                            f"{key}: {value}"
+                            for key, value in predefined_attributes.items()
+                        ),
+                        category=category,
+                        company_summary=company_summary,
+                    )
+                response = chatgpt_chatbot(
+                    [{"role": "user", "content": prompt}], config["client"]
                 )
-                prompt = ADD_ATTRIBUTES.format(
-                    user_profile="; ".join(
-                        f"{key}: {value}"
-                        for key, value in predefined_attributes.items()
-                    ),
-                    category=category,
-                    company_summary=config["company_summary"],
-                    company_doc=doc,
-                )
-            else:
-                prompt = ADD_ATTRIBUTES_WO_DOC.format(
-                    user_profile="; ".join(
-                        f"{key}: {value}"
-                        for key, value in predefined_attributes.items()
-                    ),
-                    category=category,
-                    company_summary=config["company_summary"],
-                )
-            response = chatgpt_chatbot(prompt, config["client"])
-            new_values = [value.strip() for value in response.split(",")]
-            augmented_attributes[category].extend(new_values)
+                new_values = [value.strip() for value in response.split(",")]
+                augmented_attributes[category].extend(new_values)
     return augmented_attributes
 
 
@@ -1013,16 +1079,18 @@ def convert_attributes_to_profile(attributes: AttributeDict, config: ConfigDict)
 
     Args:
         attributes: Dictionary containing user attributes.
-        config: Configuration dictionary containing company_summary and client.
+        config: Configuration dictionary containing intro/company_summary and client.
 
     Returns:
         Formatted profile description string generated by LLM.
     """
     user_attr = "; ".join(f"{key}: {value}" for key, value in attributes.items())
+    # Use 'intro' if available, otherwise fall back to 'company_summary'
+    company_summary = config.get("intro", config.get("company_summary", ""))
     prompt = ATTR_TO_PROFILE.format(
-        company_summary=config["company_summary"], user_attr=user_attr
+        company_summary=company_summary, user_attr=user_attr
     )
-    profile = chatgpt_chatbot(prompt, config["client"])
+    profile = chatgpt_chatbot([{"role": "user", "content": prompt}], config["client"])
     return profile
 
 
