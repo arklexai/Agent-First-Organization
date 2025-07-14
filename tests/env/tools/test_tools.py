@@ -2408,10 +2408,11 @@ class TestToolEdgeCases:
             isResponse=False,
         )
         tool.slotfiller = Mock()
-        # Return a single value
+        # Return a single value (not valid JSON array)
         tool.slotfiller.fill_slots.return_value = [Slot(name="repeat", value="single", type="str")]
-        slots = tool._fill_slots_recursive(tool.slots, "")
-        assert slots[0].value == ["single"]
+        import pytest
+        with pytest.raises(ValueError, match="Repeatable slot 'repeat' did not return a valid JSON array: single"):
+            tool._fill_slots_recursive(tool.slots, "")
 
     def test_to_openai_tool_def_with_items(self) -> None:
         tool = Tool(
