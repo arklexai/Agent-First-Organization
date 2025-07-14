@@ -10,8 +10,9 @@ Key Components:
 - Verification: Represents the result of verifying a slot value.
 """
 
-from pydantic import BaseModel, Field
 from typing import Any
+
+from pydantic import BaseModel, Field
 
 
 class Slot(BaseModel):
