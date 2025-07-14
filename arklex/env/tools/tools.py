@@ -185,9 +185,9 @@ class Tool:
         """
         self.slotfiller = slotfiller_api
 
-    def init_default_slots(self, default_slots: list[Slot]) -> None:
+    def init_default_slots(self, default_slots: list[Slot]) -> dict[str, Any]:
         """Initializes the default slots as provided and returns a dictionary of slots which have been populated."""
-        populated_slots: dict[str:Any] = {}
+        populated_slots: dict[str, Any] = {}
         for default_slot in default_slots:
             populated_slots[default_slot.name] = default_slot.value
             for slot in self.slots:
@@ -277,7 +277,7 @@ class Tool:
         # Update tool info with merged slots
         self.info = self.get_info([slot.model_dump() for slot in self.slots])
 
-    def _convert_value(self, value, type_str):
+    def _convert_value(self, value: Any, type_str: str) -> Any:  # noqa: ANN401
         # Helper to convert string value to correct type
         if value is None:
             return value
@@ -304,15 +304,15 @@ class Tool:
         except Exception:
             return value
 
-    def _fill_slots_recursive(self, slots, chat_history_str):
+    def _fill_slots_recursive(self, slots: list[Slot], chat_history_str: str) -> list[Slot]:
         filled_slots = []
         for slot in slots:
             if slot.type == "group":
                 # Build a schema-driven prompt for the slot group
-                def build_group_prompt(slot):
+                def build_group_prompt(slot: Slot) -> str:
                     example_fields = []
                     schema_lines = []
-                    for field in (slot.schema if hasattr(slot, 'schema') and isinstance(slot.schema, (list, tuple)) else []):
+                    for field in (slot.schema if hasattr(slot, 'schema') and isinstance(slot.schema, list | tuple) else []):
                         field_type = field.get("type", "str")
                         field_repeatable = field.get("repeatable", False)
                         example_value = {
@@ -361,7 +361,7 @@ class Tool:
                         group_value = json.loads(group_value)
                     except Exception as e:
                         log_context.error(f"Failed to parse group_value as JSON for slot '{slot.name}': {group_value}. Error: {e}")
-                        raise ValueError(f"Slot group '{slot.name}' did not return a valid JSON list of objects: {group_value}")
+                        raise ValueError(f"Slot group '{slot.name}' did not return a valid JSON list of objects: {group_value}") from e
                 # Enforce that the value is a list of dicts
                 if not (isinstance(group_value, list) and all(isinstance(item, dict) for item in group_value)):
                     # Handle case where group_value is None or not a list
@@ -376,7 +376,7 @@ class Tool:
                         raise ValueError(f"Slot group '{slot.name}' must be a list of dicts, got: {group_value}")
                 # For each dict, apply valueSource logic as defined in the schema
                 for item in group_value:
-                    for field in (slot.schema if hasattr(slot, 'schema') and isinstance(slot.schema, (list, tuple)) else []):
+                    for field in (slot.schema if hasattr(slot, 'schema') and isinstance(slot.schema, list | tuple) else []):
                         field_name = field["name"]
                         field_repeatable = field.get("repeatable", False)
                         val_source = field.get("valueSource", "Prompt User")
@@ -441,7 +441,7 @@ class Tool:
                             slot_value = json.loads(slot_value)
                         except Exception as e:
                             log_context.error(f"Failed to parse repeatable slot '{slot.name}' as JSON: {slot_value}. Error: {e}")
-                            raise ValueError(f"Repeatable slot '{slot.name}' did not return a valid JSON array: {slot_value}")
+                            raise ValueError(f"Repeatable slot '{slot.name}' did not return a valid JSON array: {slot_value}") from e
                     
                     if not isinstance(slot_value, list):
                         if slot_value is None:
@@ -459,7 +459,7 @@ class Tool:
                 filled_slots.append(slot)
         return filled_slots
 
-    def _any_missing_required_recursive(self, slots):
+    def _any_missing_required_recursive(self, slots: list[Slot]) -> bool:
         for slot in slots:
             if slot.type == "group":
                 # For group, check if at least one item exists if required
@@ -467,7 +467,7 @@ class Tool:
                     return True
                 # For each item, check required fields
                 for item in (slot.value or []):
-                    for field in (slot.schema if hasattr(slot, 'schema') and isinstance(slot.schema, (list, tuple)) else []):
+                    for field in (slot.schema if hasattr(slot, 'schema') and isinstance(slot.schema, list | tuple) else []):
                         field_repeatable = field.get("repeatable", False)
                         if field.get("required", False):
                             if field_repeatable:
@@ -499,14 +499,14 @@ class Tool:
                         return True
         return False
 
-    def _missing_slots_recursive(self, slots):
+    def _missing_slots_recursive(self, slots: list[Slot]) -> list[str]:
         missing = []
         for slot in slots:
             if slot.type == "group":
                 if slot.required and (not slot.value or not isinstance(slot.value, list) or len(slot.value) == 0):
                     missing.append(slot.prompt)
                 for idx, item in enumerate(slot.value or []):
-                    for field in (slot.schema if hasattr(slot, 'schema') and isinstance(slot.schema, (list, tuple)) else []):
+                    for field in (slot.schema if hasattr(slot, 'schema') and isinstance(slot.schema, list | tuple) else []):
                         if field.get("required", False) and (item.get(field["name"]) in [None, ""]):
                             missing.append(f"{field.get('prompt', field['name'])} (group '{slot.name}' item {idx+1})")
             else:
@@ -565,12 +565,12 @@ class Tool:
                 # For group, define as array of objects with schema
                 group_properties = {}
                 group_required = []
-                for field in (slot.schema if hasattr(slot, 'schema') and isinstance(slot.schema, (list, tuple)) else []):
+                for field in (slot.schema if hasattr(slot, 'schema') and isinstance(slot.schema, list | tuple) else []):
                     field_repeatable = field.get("repeatable", False)
                     if field_repeatable:
                         # If field is repeatable, make it an array
                         group_properties[field["name"]] = {
-                            "type": "array",
+                            "type": PYTHON_TO_JSON_SCHEMA.get(field["type"], "string"),
                             "items": {
                                 "type": PYTHON_TO_JSON_SCHEMA.get(field["type"], "string"),
                             },
@@ -729,10 +729,10 @@ class Tool:
         # Check if we need to reset slots for a new node
         # If this tool has been called before, check if the current slots are different
         # from the previously stored slots (indicating a different node)
-        def slot_schema_signature(slots):
+        def slot_schema_signature(slots: list[Slot]) -> list[tuple[str, str, str | None]]:
             import json
-            def safe_schema_dump(slot):
-                if hasattr(slot, 'schema') and isinstance(slot.schema, (list, tuple)):
+            def safe_schema_dump(slot: Slot) -> list[dict[str, Any]]:
+                if hasattr(slot, 'schema') and isinstance(slot.schema, list | tuple):
                     return [
                         field.model_dump() if hasattr(field, 'model_dump') else dict(field) if not isinstance(field, dict) else field
                         for field in slot.schema
@@ -751,7 +751,7 @@ class Tool:
             previous_slots = state.slots[self.name]
             if slot_schema_signature(self.slots) != slot_schema_signature(previous_slots):
                 log_context.info(
-                    f"Slot configuration or schema changed, resetting slots"
+                    "Slot configuration or schema changed, resetting slots"
                 )
                 # Reset slots to the current node's configuration
                 state.slots[self.name] = [Slot.model_validate(slot.model_dump()) for slot in self.slots]
@@ -781,7 +781,7 @@ class Tool:
                         break
                     for idx, item in enumerate(slot.value):
                         missing_fields = []
-                        for field in (slot.schema if hasattr(slot, 'schema') and isinstance(slot.schema, (list, tuple)) else []):
+                        for field in (slot.schema if hasattr(slot, 'schema') and isinstance(slot.schema, list | tuple) else []):
                             field_repeatable = field.get("repeatable", False)
                             if field.get("required", False):
                                 if field_repeatable:
@@ -963,7 +963,7 @@ class Tool:
         state.slots[self.name] = slots
         return state
 
-    def _build_repeatable_regular_slot_prompt(self, slot):
+    def _build_repeatable_regular_slot_prompt(self, slot: Slot) -> str:
         """Build a prompt for repeatable regular slots.
         
         Args:
@@ -988,13 +988,12 @@ class Tool:
         )
 
 
-def build_group_prompt(slot):
+def build_group_prompt(slot: Slot) -> str:
     # Build a schema-driven prompt for the slot group
     example_fields = []
     schema_lines = []
-    for field in (slot.schema if hasattr(slot, 'schema') and isinstance(slot.schema, (list, tuple)) else []):
+    for field in (slot.schema if hasattr(slot, 'schema') and isinstance(slot.schema, list | tuple) else []):
         field_type = field.get("type", "str")
-        required = field.get("required", False)
         field_repeatable = field.get("repeatable", False)
         description = field.get("description", "")
         
@@ -1013,8 +1012,6 @@ def build_group_prompt(slot):
             example_fields.append(f'"{field["name"]}": {example_value}')
         
         # Build schema line with repeatable indicator
-        repeatable_text = ' [REPEATABLE]' if field_repeatable else ''
-        required_text = ' [REQUIRED]' if required else ''
         schema_lines.append(
             f'- {field["name"]} ({field_type}){" [REQUIRED]" if field.get("required", False) else ""}{" [REPEATABLE]" if field_repeatable else ""}: {description}'
         )
