@@ -376,7 +376,9 @@ class Environment:
             worker: BaseWorker = self.workers[id]["execute"]()
             if hasattr(worker, "init_slotfilling"):
                 worker.init_slotfilling(self.slotfillapi)
-            response_state = worker.execute(message_state, **node_info.additional_args)
+            response_state = worker.execute(
+                message_state, **(node_info.additional_args or {})
+            )
             call_id: str = str(uuid.uuid4())
             params.memory.function_calling_trajectory.append(
                 {
@@ -419,11 +421,15 @@ class Environment:
             params.memory.function_calling_trajectory = (
                 response_state.function_calling_trajectory
             )
+            params.taskgraph.dialog_states = response_state.slots
             params.taskgraph.node_status[params.taskgraph.curr_node] = (
                 response_state.status
             )
         else:
-            log_context.info("planner selected")
+            # Resource not found in any registry, use planner as fallback
+            log_context.info(
+                f"Resource {id} not found in registries, using planner as fallback"
+            )
             action: str
             response_state: MessageState
             msg_history: list[dict[str, Any]]

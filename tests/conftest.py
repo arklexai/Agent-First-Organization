@@ -60,10 +60,14 @@ def mock_shopify() -> Generator[MagicMock, None, None]:
 
 # Mock OpenAI LLM and Embeddings for testing
 @pytest.fixture(autouse=True)
-def mock_openai_llm_and_embeddings() -> Generator[None, None, None]:
+def mock_openai_llm_and_embeddings(
+    request: pytest.FixtureRequest,
+) -> Generator[None, None, None]:
     """Mock LangChain OpenAI LLM and Embeddings for testing."""
-    # Only mock if we're in test mode
-    if os.getenv("ARKLEX_TEST_ENV") == "local":
+    # Only mock if we're in test mode and not marked to skip LLM mocking
+    if os.getenv("ARKLEX_TEST_ENV") == "local" and not request.node.get_closest_marker(
+        "no_llm_mock"
+    ):
         with (
             patch("langchain_openai.ChatOpenAI") as mock_llm,
             patch("langchain_openai.OpenAIEmbeddings") as mock_embeddings,
@@ -86,10 +90,12 @@ def mock_openai_llm_and_embeddings() -> Generator[None, None, None]:
 
 # Patch openai client to prevent real API calls
 @pytest.fixture(autouse=True)
-def mock_openai_client() -> Generator[None, None, None]:
+def mock_openai_client(request: pytest.FixtureRequest) -> Generator[None, None, None]:
     """Mock openai.OpenAI and openai.resources.embeddings.Embeddings.create for all tests."""
-    # Only mock if we're in test mode
-    if os.getenv("ARKLEX_TEST_ENV") == "local":
+    # Only mock if we're in test mode and not marked to skip LLM mocking
+    if os.getenv("ARKLEX_TEST_ENV") == "local" and not request.node.get_closest_marker(
+        "no_llm_mock"
+    ):
         from unittest.mock import MagicMock, patch
 
         import openai

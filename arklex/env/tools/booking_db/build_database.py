@@ -233,7 +233,8 @@ def build_database(folder_path: str) -> None:
     conn.close()
 
 
-if __name__ == "__main__":
+def main() -> None:
+    """Main function to handle command-line interface."""
     parser: argparse.ArgumentParser = argparse.ArgumentParser()
     parser.add_argument(
         "--folder_path", required=True, type=str, help="location to save the documents"
@@ -244,3 +245,7 @@ if __name__ == "__main__":
         os.makedirs(args.folder_path)
 
     build_database(args.folder_path)
+
+
+if __name__ == "__main__":
+    main()

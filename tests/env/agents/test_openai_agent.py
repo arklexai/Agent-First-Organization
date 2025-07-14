@@ -636,3 +636,626 @@ class TestEdgeCases:
         result = agent.generate(mock_state)
 
         assert result.response == "Response"
+
+    def test_execute_tool_http_tool_with_slots(self, mock_state: Mock) -> None:
+        """Test _execute_tool method with http_tool and slots."""
+        agent = OpenAIAgent(
+            successors=[],
+            predecessors=[],
+            tools={},
+            state=mock_state,
+        )
+
+        # Mock slot objects
+        mock_slot1 = Mock()
+        mock_slot1.name = "param1"
+        mock_slot2 = Mock()
+        mock_slot2.name = "param2"
+
+        agent.tool_slots["http_tool_example"] = [mock_slot1, mock_slot2]
+        agent.tool_map["http_tool_example"] = Mock(return_value="http result")
+
+        tool_args = {"param1": "value1", "param3": "value3"}
+
+        result = agent._execute_tool("http_tool_example", mock_state, tool_args)
+
+        assert result == "http result"
+        # Verify the tool was called with slots parameter
+        agent.tool_map["http_tool_example"].assert_called_once()
+        call_args = agent.tool_map["http_tool_example"].call_args
+        assert "slots" in call_args.kwargs
+        slots = call_args.kwargs["slots"]
+        assert len(slots) == 3  # param1, param3, and param2 (missing slot)
+        assert {"name": "param1", "value": "value1"} in slots
+        assert {"name": "param3", "value": "value3"} in slots
+        assert {"name": "param2", "value": None} in slots
+
+    def test_execute_tool_http_tool_with_slots_excluding_slots_param(
+        self, mock_state: Mock
+    ) -> None:
+        """Test _execute_tool method with http_tool when 'slots' is in tool_args."""
+        agent = OpenAIAgent(
+            successors=[],
+            predecessors=[],
+            tools={},
+            state=mock_state,
+        )
+
+        # Mock slot objects
+        mock_slot1 = Mock()
+        mock_slot1.name = "param1"
+
+        agent.tool_slots["http_tool_example"] = [mock_slot1]
+        agent.tool_map["http_tool_example"] = Mock(return_value="http result")
+
+        tool_args = {"param1": "value1", "slots": "existing_slots"}
+
+        result = agent._execute_tool("http_tool_example", mock_state, tool_args)
+
+        assert result == "http result"
+        # Verify the tool was called with slots parameter
+        agent.tool_map["http_tool_example"].assert_called_once()
+        call_args = agent.tool_map["http_tool_example"].call_args
+        assert "slots" in call_args.kwargs
+        slots = call_args.kwargs["slots"]
+        assert len(slots) == 1  # Only param1, slots param excluded
+        assert {"name": "param1", "value": "value1"} in slots
+
+    def test_execute_tool_http_tool_with_empty_slots(self, mock_state: Mock) -> None:
+        """Test _execute_tool method with http_tool and empty slots."""
+        agent = OpenAIAgent(
+            successors=[],
+            predecessors=[],
+            tools={},
+            state=mock_state,
+        )
+
+        agent.tool_slots["http_tool_example"] = []
+        agent.tool_map["http_tool_example"] = Mock(return_value="http result")
+
+        tool_args = {"param1": "value1"}
+
+        result = agent._execute_tool("http_tool_example", mock_state, tool_args)
+
+        assert result == "http result"
+        # Verify the tool was called with empty slots
+        agent.tool_map["http_tool_example"].assert_called_once()
+        call_args = agent.tool_map["http_tool_example"].call_args
+        assert "slots" in call_args.kwargs
+        slots = call_args.kwargs["slots"]
+        assert len(slots) == 1
+        assert {"name": "param1", "value": "value1"} in slots
+
+    def test_execute_tool_http_tool_with_missing_slots(self, mock_state: Mock) -> None:
+        """Test _execute_tool method with http_tool and missing slots."""
+        agent = OpenAIAgent(
+            successors=[],
+            predecessors=[],
+            tools={},
+            state=mock_state,
+        )
+
+        # Mock slot objects
+        mock_slot1 = Mock()
+        mock_slot1.name = "required_param"
+        mock_slot2 = Mock()
+        mock_slot2.name = "optional_param"
+
+        agent.tool_slots["http_tool_example"] = [mock_slot1, mock_slot2]
+        agent.tool_map["http_tool_example"] = Mock(return_value="http result")
+
+        tool_args = {"provided_param": "value"}
+
+        result = agent._execute_tool("http_tool_example", mock_state, tool_args)
+
+        assert result == "http result"
+        # Verify the tool was called with all slots including missing ones
+        agent.tool_map["http_tool_example"].assert_called_once()
+        call_args = agent.tool_map["http_tool_example"].call_args
+        assert "slots" in call_args.kwargs
+        slots = call_args.kwargs["slots"]
+        assert len(slots) == 3  # provided_param, required_param, optional_param
+        assert {"name": "provided_param", "value": "value"} in slots
+        assert {"name": "required_param", "value": None} in slots
+        assert {"name": "optional_param", "value": None} in slots
+
+    def test_execute_tool_non_http_tool(self, mock_state: Mock) -> None:
+        """Test _execute_tool method with non-http tool."""
+        agent = OpenAIAgent(
+            successors=[],
+            predecessors=[],
+            tools={},
+            state=mock_state,
+        )
+
+        agent.tool_map["regular_tool"] = Mock(return_value="regular result")
+
+        tool_args = {"param1": "value1", "param2": "value2"}
+
+        result = agent._execute_tool("regular_tool", mock_state, tool_args)
+
+        assert result == "regular result"
+        # Verify the tool was called with state and tool_args
+        agent.tool_map["regular_tool"].assert_called_once_with(
+            state=mock_state, param1="value1", param2="value2"
+        )
+
+    def test_execute_tool_non_http_tool_empty_args(self, mock_state: Mock) -> None:
+        """Test _execute_tool method with non-http tool and empty args."""
+        agent = OpenAIAgent(
+            successors=[],
+            predecessors=[],
+            tools={},
+            state=mock_state,
+        )
+
+        agent.tool_map["regular_tool"] = Mock(return_value="regular result")
+
+        tool_args = {}
+
+        result = agent._execute_tool("regular_tool", mock_state, tool_args)
+
+        assert result == "regular result"
+        # Verify the tool was called with only state
+        agent.tool_map["regular_tool"].assert_called_once_with(state=mock_state)
+
+    def test_load_tools_with_task_attribute(self, mock_state: Mock) -> None:
+        """Test _load_tools method with task attribute in node."""
+        agent = OpenAIAgent(
+            successors=[],
+            predecessors=[],
+            tools={},
+            state=mock_state,
+        )
+
+        # Create mock node with task attribute
+        mock_node = Mock()
+        mock_node.resource_id = "test_tool"
+        mock_node.type = "tool"
+        mock_node.attributes = {"task": "test_task"}
+        mock_node.additional_args = {}
+
+        mock_tools = {
+            "test_tool": {
+                "execute": lambda: Mock(),
+                "fixed_args": {},
+            }
+        }
+
+        agent._load_tools(successors=[], predecessors=[mock_node], tools=mock_tools)
+
+        # Verify tool_id is created with task
+        assert "test_tool_test_task" in agent.available_tools
+
+    def test_load_tools_with_special_characters(self, mock_state: Mock) -> None:
+        """Test _load_tools method with special characters in resource_id."""
+        agent = OpenAIAgent(
+            successors=[],
+            predecessors=[],
+            tools={},
+            state=mock_state,
+        )
+
+        # Create mock node with special characters
+        mock_node = Mock()
+        mock_node.resource_id = "test tool/with spaces"
+        mock_node.type = "tool"
+        mock_node.attributes = {}
+        mock_node.additional_args = {}
+
+        mock_tools = {
+            "test tool/with spaces": {
+                "execute": lambda: Mock(),
+                "fixed_args": {},
+            }
+        }
+
+        agent._load_tools(successors=[], predecessors=[mock_node], tools=mock_tools)
+
+        # Verify tool_id has special characters replaced
+        assert "test_tool_with_spaces" in agent.available_tools
+
+    def test_configure_tools_with_slots(self, mock_state: Mock) -> None:
+        """Test _configure_tools method with slots configuration."""
+        agent = OpenAIAgent(
+            successors=[],
+            predecessors=[],
+            tools={},
+            state=mock_state,
+        )
+
+        # Mock tool object with slots
+        mock_tool_object = Mock()
+        mock_tool_object.func.__name__ = "test_tool"
+        mock_tool_object.slots = ["slot1", "slot2"]
+        mock_tool_object.to_openai_tool_def_v2.return_value = {
+            "type": "function",
+            "function": {
+                "name": "test_tool",
+                "description": "Test tool",
+                "parameters": {},
+            },
+        }
+
+        # Mock node with slots
+        mock_node = Mock()
+        mock_node.attributes = {"slots": ["slot1", "slot2"]}
+        mock_node.additional_args = {"extra_arg": "value"}
+
+        agent.available_tools["test_tool"] = (
+            {
+                "execute": lambda: mock_tool_object,
+                "fixed_args": {"fixed_param": "value"},
+            },
+            mock_node,
+        )
+
+        agent._configure_tools()
+
+        assert "test_tool" in agent.tool_map
+        assert "test_tool" in agent.tool_slots
+        assert "test_tool" in agent.tool_args
+        assert agent.tool_args["test_tool"]["fixed_param"] == "value"
+        assert agent.tool_args["test_tool"]["extra_arg"] == "value"
+
+    def test_configure_tools_without_additional_args(self, mock_state: Mock) -> None:
+        """Test _configure_tools method without additional_args."""
+        agent = OpenAIAgent(
+            successors=[],
+            predecessors=[],
+            tools={},
+            state=mock_state,
+        )
+
+        # Mock tool object
+        mock_tool_object = Mock()
+        mock_tool_object.func.__name__ = "test_tool"
+        mock_tool_object.slots = []
+        mock_tool_object.to_openai_tool_def_v2.return_value = {
+            "type": "function",
+            "function": {
+                "name": "test_tool",
+                "description": "Test tool",
+                "parameters": {},
+            },
+        }
+
+        # Mock node without additional_args
+        mock_node = Mock()
+        mock_node.attributes = {}
+        mock_node.additional_args = None
+
+        agent.available_tools["test_tool"] = (
+            {
+                "execute": lambda: mock_tool_object,
+                "fixed_args": {"fixed_param": "value"},
+            },
+            mock_node,
+        )
+
+        agent._configure_tools()
+
+        assert "test_tool" in agent.tool_map
+        assert agent.tool_args["test_tool"]["fixed_param"] == "value"
+        # Should not have additional_args
+        assert "extra_arg" not in agent.tool_args["test_tool"]
+
+    def test_generate_with_multiple_tool_calls(self, mock_state: Mock) -> None:
+        """Test generate method with multiple tool calls."""
+        from unittest.mock import patch
+
+        with patch("arklex.env.agents.openai_agent.trace") as mock_trace:
+            mock_trace.return_value = mock_state
+
+            tool_call1 = {"name": "tool1", "args": {"param1": "value1"}, "id": "call_1"}
+            tool_call2 = {"name": "tool2", "args": {"param2": "value2"}, "id": "call_2"}
+
+            # Mock AI messages for multiple tool calls
+            mock_ai_message_with_tools = Mock()
+            mock_ai_message_with_tools.content = "Calling tools"
+            mock_ai_message_with_tools.tool_calls = [tool_call1, tool_call2]
+
+            mock_ai_message_final = Mock()
+            mock_ai_message_final.content = "Final response"
+            mock_ai_message_final.tool_calls = None
+
+            agent = OpenAIAgent(
+                successors=[],
+                predecessors=[],
+                tools={},
+                state=mock_state,
+            )
+
+            # Setup tool maps
+            agent.tool_map["tool1"] = Mock(return_value="tool1 result")
+            agent.tool_map["tool2"] = Mock(return_value="tool2 result")
+            agent.tool_args["tool1"] = {}
+            agent.tool_args["tool2"] = {}
+
+            agent.llm = Mock()
+            # Create a list of responses that will be returned in sequence
+            # Need 3 responses: initial call, after tool1, after tool2
+            agent.llm.invoke.side_effect = [
+                mock_ai_message_with_tools,
+                mock_ai_message_final,  # After tool1 execution
+                mock_ai_message_final,  # After tool2 execution
+            ]
+            agent.prompt = "test prompt"
+
+            result = agent.generate(mock_state)
+
+            assert result.response == "Final response"
+            # Should have been called multiple times: initial + after each tool call
+            assert agent.llm.invoke.call_count >= 2
+            # Verify both tools were called
+            agent.tool_map["tool1"].assert_called_once()
+            agent.tool_map["tool2"].assert_called_once()
+
+    def test_generate_with_tool_call_no_id(self, mock_state: Mock) -> None:
+        """Test generate method with tool call that has no id."""
+        from unittest.mock import patch
+
+        with patch("arklex.env.agents.openai_agent.trace") as mock_trace:
+            mock_trace.return_value = mock_state
+
+            tool_call = {"name": "mock_tool", "args": {"param": "value"}}  # No id
+
+            mock_ai_message = Mock()
+            mock_ai_message.content = "Response"
+            mock_ai_message.tool_calls = [tool_call]
+
+            agent = OpenAIAgent(
+                successors=[],
+                predecessors=[],
+                tools={},
+                state=mock_state,
+            )
+
+            agent.llm = Mock()
+            agent.llm.invoke.return_value = mock_ai_message
+            agent.prompt = "test prompt"
+            agent.tool_map["mock_tool"] = Mock(return_value="tool result")
+            agent.tool_args["mock_tool"] = {}
+
+            result = agent.generate(mock_state)
+
+            assert result.response == "Response"
+
+    def test_generate_with_tool_call_no_args(self, mock_state: Mock) -> None:
+        """Test generate method with tool call that has no args."""
+        from unittest.mock import patch
+
+        with patch("arklex.env.agents.openai_agent.trace") as mock_trace:
+            mock_trace.return_value = mock_state
+
+            tool_call = {"name": "mock_tool", "id": "call_123"}  # No args
+
+            mock_ai_message = Mock()
+            mock_ai_message.content = "Response"
+            mock_ai_message.tool_calls = [tool_call]
+
+            agent = OpenAIAgent(
+                successors=[],
+                predecessors=[],
+                tools={},
+                state=mock_state,
+            )
+
+            agent.llm = Mock()
+            agent.llm.invoke.return_value = mock_ai_message
+            agent.prompt = "test prompt"
+            agent.tool_map["mock_tool"] = Mock(return_value="tool result")
+            agent.tool_args["mock_tool"] = {}
+
+            result = agent.generate(mock_state)
+
+            assert result.response == "Response"
+
+    @pytest.mark.no_llm_mock
+    def test_end_conversation_with_exception_during_llm_invoke(
+        self, mock_state: Mock
+    ) -> None:
+        """Test end_conversation function when LLM invoke raises an exception."""
+        from unittest.mock import patch
+
+        with patch(
+            "arklex.utils.provider_utils.validate_and_get_model_class"
+        ) as mock_validate:
+            mock_llm_class = Mock()
+            mock_llm = Mock()
+            # Patch at a lower level to override global fixture
+            mock_llm.invoke.side_effect = Exception("LLM error")
+            mock_llm_class.return_value = mock_llm
+            mock_validate.return_value = mock_llm_class
+
+            result = end_conversation().func(mock_state)
+            print(f"DEBUG: result = {result}, type = {type(result)}")
+
+            # Should return the fallback message when exception occurs
+            assert "I hope I was able to help you today" in str(result)
+
+    @pytest.mark.no_llm_mock
+    def test_end_conversation_with_invalid_llm_response(self, mock_state: Mock) -> None:
+        """Test end_conversation function when LLM returns invalid response."""
+        from unittest.mock import patch
+
+        with patch(
+            "arklex.utils.provider_utils.validate_and_get_model_class"
+        ) as mock_validate:
+            mock_llm_class = Mock()
+            mock_llm = Mock()
+            # Mock LLM to return None (invalid response)
+            mock_llm.invoke.return_value = None
+            mock_llm_class.return_value = mock_llm
+            mock_validate.return_value = mock_llm_class
+
+            result = end_conversation().func(mock_state)
+
+            # Should return a fallback message
+            assert "I hope I was able to help you today" in str(result)
+
+    @pytest.mark.no_llm_mock
+    def test_end_conversation_with_empty_llm_response(self, mock_state: Mock) -> None:
+        """Test end_conversation function when LLM returns empty response."""
+        from unittest.mock import patch
+
+        with patch(
+            "arklex.utils.provider_utils.validate_and_get_model_class"
+        ) as mock_validate:
+            mock_llm_class = Mock()
+            mock_llm = Mock()
+            # Mock LLM to return empty string
+            mock_llm.invoke.return_value = ""
+            mock_llm_class.return_value = mock_llm
+            mock_validate.return_value = mock_llm_class
+
+            result = end_conversation().func(mock_state)
+
+            # Should return a fallback message
+            assert "I hope I was able to help you today" in str(result)
+
+    @pytest.mark.no_llm_mock
+    def test_end_conversation_with_different_model_config(
+        self, mock_state: Mock
+    ) -> None:
+        """Test end_conversation function with different model configuration."""
+        from unittest.mock import patch
+
+        with patch(
+            "arklex.env.agents.openai_agent.validate_and_get_model_class"
+        ) as mock_validate:
+            mock_llm_class = Mock()
+            mock_llm = Mock()
+            mock_response = Mock()
+            mock_response.content = "Thank you for using our service. Goodbye!"
+            # Patch at a lower level to override global fixture
+            mock_llm.invoke.return_value = mock_response
+            mock_llm_class.return_value = mock_llm
+            mock_validate.return_value = mock_llm_class
+
+            # Change model config
+            mock_state.bot_config.llm_config.model_type_or_path = "gpt-4"
+
+            result = end_conversation().func(mock_state)
+            print(f"DEBUG: end_conversation result = {result!r}, type={type(result)}")
+            assert result == "Thank you for using our service. Goodbye!"
+            assert mock_state.status == StatusEnum.COMPLETE
+            mock_llm_class.assert_called_once_with(model="gpt-4")
+
+    def test_agent_inheritance(self, mock_state: Mock) -> None:
+        """Test that OpenAIAgent properly inherits from BaseAgent."""
+        from arklex.env.agents.agent import BaseAgent
+
+        agent = OpenAIAgent(
+            successors=[],
+            predecessors=[],
+            tools={},
+            state=mock_state,
+        )
+
+        assert isinstance(agent, BaseAgent)
+        assert hasattr(agent, "action_graph")
+        assert hasattr(agent, "llm")
+        assert hasattr(agent, "available_tools")
+        assert hasattr(agent, "tool_map")
+        assert hasattr(agent, "tool_defs")
+        assert hasattr(agent, "tool_args")
+        assert hasattr(agent, "tool_slots")
+
+    def test_agent_registration(self, mock_state: Mock) -> None:
+        """Test that OpenAIAgent is properly registered as an agent."""
+        # This test checks that the agent can be instantiated and has the expected attributes
+        agent = OpenAIAgent(
+            successors=[],
+            predecessors=[],
+            tools={},
+            state=mock_state,
+        )
+
+        # The agent should have the expected attributes
+        assert hasattr(agent, "action_graph")
+        assert hasattr(agent, "llm")
+        assert hasattr(agent, "available_tools")
+        assert hasattr(agent, "tool_map")
+        assert hasattr(agent, "tool_defs")
+        assert hasattr(agent, "tool_args")
+        assert hasattr(agent, "tool_slots")
+
+    @pytest.mark.no_llm_mock
+    def test_end_conversation_tool_registration(self, mock_state: Mock) -> None:
+        """Test that end_conversation is properly registered as a tool."""
+        from unittest.mock import patch
+
+        with patch(
+            "arklex.env.agents.openai_agent.validate_and_get_model_class"
+        ) as mock_validate:
+            mock_llm_class = Mock()
+            mock_llm = Mock()
+            mock_response = Mock()
+            mock_response.content = "Thank you for using our service. Goodbye!"
+            # Patch at a lower level to override global fixture
+            mock_llm.invoke.return_value = mock_response
+            mock_llm_class.return_value = mock_llm
+            mock_validate.return_value = mock_llm_class
+
+            result = end_conversation().func(mock_state)
+            print(f"DEBUG: end_conversation result = {result!r}, type={type(result)}")
+            assert result == "Thank you for using our service. Goodbye!"
+            assert mock_state.status == StatusEnum.COMPLETE
+
+    def test_agent_with_complex_tool_configuration(self, mock_state: Mock) -> None:
+        """Test agent initialization with complex tool configuration."""
+        from unittest.mock import patch
+
+        with patch("arklex.env.agents.openai_agent.load_prompts") as mock_load_prompts:
+            mock_load_prompts.return_value = {
+                "function_calling_agent_prompt": "Test prompt"
+            }
+
+            # Create complex tool configuration
+            mock_tool_object = Mock()
+            mock_tool_object.func.__name__ = "complex_tool"
+            mock_tool_object.slots = ["slot1", "slot2", "slot3"]
+            mock_tool_object.to_openai_tool_def_v2.return_value = {
+                "type": "function",
+                "function": {
+                    "name": "complex_tool",
+                    "description": "Complex tool with multiple slots",
+                    "parameters": {
+                        "type": "object",
+                        "properties": {
+                            "slot1": {"type": "string"},
+                            "slot2": {"type": "string"},
+                            "slot3": {"type": "string"},
+                        },
+                    },
+                },
+            }
+
+            mock_node = Mock()
+            mock_node.resource_id = "complex_tool"
+            mock_node.type = "tool"
+            mock_node.attributes = {"slots": ["slot1", "slot2", "slot3"]}
+            mock_node.additional_args = {"extra_param": "extra_value"}
+
+            mock_tools = {
+                "complex_tool": {
+                    "execute": lambda: mock_tool_object,
+                    "fixed_args": {"fixed_param": "fixed_value"},
+                }
+            }
+
+            agent = OpenAIAgent(
+                successors=[],
+                predecessors=[mock_node],
+                tools=mock_tools,
+                state=mock_state,
+            )
+
+            assert "complex_tool" in agent.available_tools
+            assert "complex_tool" in agent.tool_map
+            assert "complex_tool" in agent.tool_slots
+            assert "complex_tool" in agent.tool_args
+            assert agent.tool_args["complex_tool"]["fixed_param"] == "fixed_value"
+            assert agent.tool_args["complex_tool"]["extra_param"] == "extra_value"
+            assert len(agent.tool_defs) >= 2  # complex_tool + end_conversation

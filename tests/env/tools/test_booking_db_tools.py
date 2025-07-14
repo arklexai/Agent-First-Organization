@@ -453,29 +453,36 @@ class TestBookingDBBuildDatabase:
 
             conn.close()
 
-    def test_build_database_removes_existing_database(self) -> None:
-        """Test that build_database removes existing database before creating new one."""
+    def test_build_database_removes_existing_file(self) -> None:
+        """Test that build_database removes existing database file before creating new one."""
         with tempfile.TemporaryDirectory() as temp_dir:
-            # Create a dummy database file first
             db_path = os.path.join(temp_dir, "show_booking_db.sqlite")
+
+            # Create a dummy database file first
             with open(db_path, "w") as f:
                 f.write("dummy content")
 
+            # Verify file exists
             assert os.path.exists(db_path)
 
-            # Build database should remove and recreate
+            # Call build_database - should remove existing file and create new one
             build_database(temp_dir)
 
-            # Verify new database was created (different content)
+            # Verify new database was created and is a proper SQLite database
             assert os.path.exists(db_path)
-            assert os.path.getsize(db_path) > 0
 
-            # Verify it's a valid SQLite database
+            # Try to connect to verify it's a valid SQLite database
             conn = sqlite3.connect(db_path)
             cursor = conn.cursor()
+
+            # Check if tables exist
             cursor.execute("SELECT name FROM sqlite_master WHERE type='table'")
             tables = [row[0] for row in cursor.fetchall()]
-            assert len(tables) >= 3  # show, user, booking tables
+
+            assert "show" in tables
+            assert "user" in tables
+            assert "booking" in tables
+
             conn.close()
 
     def test_build_database_creates_correct_table_schema(self) -> None:
@@ -823,6 +830,94 @@ class TestBookingDBBuildDatabase:
             finally:
                 # Clean up
                 os.chmod(read_only_dir, 0o755)
+
+    @patch("arklex.env.tools.booking_db.build_database.build_database")
+    @patch("arklex.env.tools.booking_db.build_database.os.makedirs")
+    @patch("arklex.env.tools.booking_db.build_database.os.path.exists")
+    @patch("arklex.env.tools.booking_db.build_database.argparse.ArgumentParser")
+    def test_main_function_creates_directory_and_calls_build_database(
+        self,
+        mock_parser: Mock,
+        mock_exists: Mock,
+        mock_makedirs: Mock,
+        mock_build_database: Mock,
+    ) -> None:
+        """Test the main function when directory doesn't exist."""
+        # Mock the argument parser
+        mock_args = Mock()
+        mock_args.folder_path = "/test/path"
+        mock_parser_instance = Mock()
+        mock_parser_instance.parse_args.return_value = mock_args
+        mock_parser.return_value = mock_parser_instance
+
+        # Mock os.path.exists to return False (directory doesn't exist)
+        mock_exists.return_value = False
+
+        # Import and call the main function directly
+        from arklex.env.tools.booking_db.build_database import main
+
+        main()
+
+        # Verify the argument parser was called correctly
+        mock_parser.assert_called_once()
+        mock_parser_instance.add_argument.assert_called_once_with(
+            "--folder_path",
+            required=True,
+            type=str,
+            help="location to save the documents",
+        )
+        mock_parser_instance.parse_args.assert_called_once()
+
+        # Verify os.path.exists was called
+        mock_exists.assert_called_once_with("/test/path")
+
+        # Verify os.makedirs was called (since directory doesn't exist)
+        mock_makedirs.assert_called_once_with("/test/path")
+
+        # Verify build_database was called
+        mock_build_database.assert_called_once_with("/test/path")
+
+    @patch("arklex.env.tools.booking_db.build_database.build_database")
+    @patch("arklex.env.tools.booking_db.build_database.os.makedirs")
+    @patch("arklex.env.tools.booking_db.build_database.os.path.exists")
+    @patch("arklex.env.tools.booking_db.build_database.argparse.ArgumentParser")
+    def test_main_function_skips_directory_creation_when_exists(
+        self,
+        mock_parser: Mock,
+        mock_exists: Mock,
+        mock_makedirs: Mock,
+        mock_build_database: Mock,
+    ) -> None:
+        """Test that the main function doesn't create directory when it already exists."""
+        # Mock the argument parser
+        mock_args = Mock()
+        mock_args.folder_path = "/test/path"
+        mock_parser_instance = Mock()
+        mock_parser_instance.parse_args.return_value = mock_args
+        mock_parser.return_value = mock_parser_instance
+
+        # Mock os.path.exists to return True (directory exists)
+        mock_exists.return_value = True
+
+        # Import and call the main function directly
+        from arklex.env.tools.booking_db.build_database import main
+
+        main()
+
+        # Verify os.path.exists was called
+        mock_exists.assert_called_once_with("/test/path")
+
+        # Verify os.makedirs was NOT called (since directory exists)
+        mock_makedirs.assert_not_called()
+
+        # Verify build_database was called
+        mock_build_database.assert_called_once_with("/test/path")
+
+    def test_main_function_exists(self) -> None:
+        """Test that the main function exists and can be imported."""
+        from arklex.env.tools.booking_db.build_database import main
+
+        assert callable(main)
 
 
 class TestBookingDBIntegration:

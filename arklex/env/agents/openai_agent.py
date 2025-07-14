@@ -114,16 +114,27 @@ class OpenAIAgent(BaseAgent):
             for tool_call in ai_message.tool_calls:
                 tool_name = tool_call.get("name")
                 if tool_name in self.tool_map:
+                    # Ensure tool_call has proper structure
+                    tool_call_id = tool_call.get("id", f"call_{tool_name}")
+                    tool_call_args = tool_call.get("args", {})
+
+                    # Create properly structured tool call
+                    structured_tool_call = {
+                        "name": tool_name,
+                        "args": tool_call_args,
+                        "id": tool_call_id,
+                    }
+
                     state.function_calling_trajectory.append(
                         AIMessage(
                             content=f"Calling tool: {tool_name}",
-                            tool_calls=[tool_call],
+                            tool_calls=[structured_tool_call],
                         ).model_dump()
                     )
 
                     # Prepare arguments for tool execution
                     tool_args = {
-                        **tool_call.get("args", {}),
+                        **tool_call_args,
                         **self.tool_args.get(tool_name, {}),
                     }
 
@@ -134,7 +145,7 @@ class OpenAIAgent(BaseAgent):
                         ToolMessage(
                             name=tool_name,
                             content=json.dumps(tool_response),
-                            tool_call_id=tool_call.get("id"),
+                            tool_call_id=tool_call_id,
                         ).model_dump()
                     )
                     ai_message = final_chain.invoke(state.function_calling_trajectory)
@@ -240,8 +251,9 @@ class OpenAIAgent(BaseAgent):
                 if slot.name not in tool_args:
                     slots.append({"name": slot.name, "value": None})
 
-            # Call http_tool with slots parameter
-            return self.tool_map[tool_name](slots=slots, **tool_args)
+            # Call http_tool with slots parameter, excluding slots from tool_args
+            filtered_args = {k: v for k, v in tool_args.items() if k != "slots"}
+            return self.tool_map[tool_name](slots=slots, **filtered_args)
         else:
             # Call other tools with state parameter
             return self.tool_map[tool_name](state=state, **tool_args)
