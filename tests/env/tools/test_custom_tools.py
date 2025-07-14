@@ -762,7 +762,7 @@ class TestHTTPToolAdvanced:
         mock_request.return_value = mock_response
 
         class ComplexSlotObject:
-            def __init__(self, name: str, value: str, target: str, type: str = "str", description: str = ""):
+            def __init__(self, name: str, value: str, target: str, type: str = "str", description: str = "") -> None:
                 self.name = name
                 self.value = value
                 self.target = target
@@ -838,7 +838,7 @@ class TestHTTPToolAdvanced:
 
         # Create a body that would cause JSON serialization issues
         class ProblematicObject:
-            def __str__(self):
+            def __str__(self) -> str:
                 raise Exception("Serialization error")
 
         result = http_tool().func(
