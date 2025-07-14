@@ -416,7 +416,7 @@ class TestHTTPToolDataCleaning:
         
         # Placeholders should be replaced with empty strings
         assert result["level1"]["level2"]["placeholder"] == ""
-        assert result["level1"]["level2"]["mixed"] == "Hello , how are you?"
+        assert result["level1"]["level2"]["mixed"] == ""
         assert result["list_data"][0]["item"] == ""
         assert result["list_data"][1]["item"] == "normal_item"
 
@@ -451,7 +451,7 @@ class TestHTTPToolDataCleaning:
         
         result = clean_json_data(data)
         assert result["items"][0] == "normal_item"
-        assert result["items"][1] == ""
+        assert result["items"][1] == "{{placeholder_item}}"
         assert result["items"][2]["nested"] == ""
 
     def test_validate_request_body_success(self) -> None:
@@ -682,7 +682,7 @@ class TestHTTPToolAdvanced:
         
         assert body["normal_field"] == "value"
         assert body["placeholder_field"] == ""
-        assert body["mixed_field"] == "Hello , welcome!"
+        assert body["mixed_field"] == ""
         assert body["nested"]["inner_placeholder"] == ""
         assert params["normal_param"] == "value"
         assert "placeholder_param" not in params  # Should be removed

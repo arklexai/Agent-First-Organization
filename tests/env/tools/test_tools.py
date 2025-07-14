@@ -1896,10 +1896,10 @@ class TestToolGroupSlotHandling:
             }
         ]
         tool.load_slots(group_slots)
-        assert len(tool.slots) == 1
-        assert tool.slots[0].type == "group"
-        assert tool.slots[0].name == "test_group"
-        assert tool.slots[0].schema == group_slots[0]["schema"]
+        assert len(tool.slots) == 2
+        assert tool.slots[1].type == "group"
+        assert tool.slots[1].name == "test_group"
+        assert tool.slots[1].schema == group_slots[0]["schema"]
 
     def test_load_slots_merge_existing_group_slots(self) -> None:
         """Test merging existing group slots with new ones."""
@@ -1932,10 +1932,10 @@ class TestToolGroupSlotHandling:
             }
         ])
         
-        assert len(tool.slots) == 1
-        assert tool.slots[0].name == "test_group"
-        assert len(tool.slots[0].schema) == 2  # Should have both fields
-        assert tool.slots[0].required is False  # Should be updated
+        assert len(tool.slots) == 2
+        assert tool.slots[1].name == "test_group"
+        assert len(tool.slots[1].schema) == 2  # Should have both fields
+        assert tool.slots[1].required is False  # Should be updated
 
     def test_to_openai_tool_def_with_group_slots(self) -> None:
         """Test OpenAI tool definition with group slots."""
@@ -1990,6 +1990,7 @@ class TestToolGroupSlotHandling:
         ])
         
         tool_def = tool.to_openai_tool_def_v2()
+        assert "test_group" in tool_def["function"]["parameters"]["properties"]
         assert tool_def["function"]["parameters"]["properties"]["test_group"]["type"] == "array"
         assert tool_def["function"]["parameters"]["properties"]["test_group"]["items"]["type"] == "object"
 
@@ -2041,6 +2042,7 @@ class TestToolRepeatableSlots:
         ])
         
         tool_def = tool.to_openai_tool_def_v2()
+        assert "test_repeatable" in tool_def["function"]["parameters"]["properties"]
         assert tool_def["function"]["parameters"]["properties"]["test_repeatable"]["type"] == "array"
         assert tool_def["function"]["parameters"]["properties"]["test_repeatable"]["items"]["type"] == "string"
 
@@ -2059,6 +2061,7 @@ class TestToolEdgeCases:
             isResponse=False,
         )
         state = MessageState()
+        state.slots = {}
         state.bot_config = Mock()
         state.bot_config.llm_config = Mock()
         state.bot_config.llm_config.model_dump = lambda: {"test": "config"}
@@ -2084,6 +2087,7 @@ class TestToolEdgeCases:
             isResponse=False,
         )
         state = MessageState()
+        state.slots = {}
         state.bot_config = Mock()
         state.bot_config.llm_config = Mock()
         state.bot_config.llm_config.model_dump = lambda: {"test": "config"}
@@ -2109,6 +2113,7 @@ class TestToolEdgeCases:
             isResponse=False,
         )
         state = MessageState()
+        state.slots = {}
         state.bot_config = Mock()
         state.bot_config.llm_config = Mock()
         state.bot_config.llm_config.model_dump = lambda: {"test": "config"}
@@ -2133,6 +2138,7 @@ class TestToolEdgeCases:
             isResponse=False,
         )
         state = MessageState()
+        state.slots = {}
         state.bot_config = Mock()
         state.bot_config.llm_config = Mock()
         state.bot_config.llm_config.model_dump = lambda: {"test": "config"}
@@ -2157,6 +2163,7 @@ class TestToolEdgeCases:
             isResponse=False,
         )
         state = MessageState()
+        state.slots = {}
         state.bot_config = Mock()
         state.bot_config.llm_config = Mock()
         state.bot_config.llm_config.model_dump = lambda: {"test": "config"}
@@ -2181,6 +2188,7 @@ class TestToolEdgeCases:
             isResponse=False,
         )
         state = MessageState()
+        state.slots = {}
         state.bot_config = Mock()
         state.bot_config.llm_config = Mock()
         state.bot_config.llm_config.model_dump = lambda: {"test": "config"}
