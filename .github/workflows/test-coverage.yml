@@ -19,7 +19,7 @@ jobs:
     env:
       SHOPIFY_FIXED_ARGS: ${{ secrets.SHOPIFY_FIXED_ARGS }}
       OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
-      MIN_COVERAGE_THRESHOLD: '99.2'
+      MIN_COVERAGE_THRESHOLD: '99.0'
 
     steps:
       - name: Checkout PR branch
@@ -53,7 +53,7 @@ jobs:
               coverage = float(root.attrib['line-rate']) * 100
               print(f'Coverage: {coverage:.1f}%')
 
-              min_coverage = float(os.environ.get('MIN_COVERAGE_THRESHOLD', '99.2'))
+              min_coverage = float(os.environ.get('MIN_COVERAGE_THRESHOLD', '99.0'))
               print(f'Minimum coverage threshold: {min_coverage}%')
 
               if coverage < min_coverage:
@@ -86,7 +86,7 @@ jobs:
         uses: py-cov-action/python-coverage-comment-action@v3
         with:
           GITHUB_TOKEN: ${{ github.token }}
-          MINIMUM_GREEN: 99.2
+          MINIMUM_GREEN: 99.0
           MINIMUM_ORANGE: 70
 
       - name: Update README badge

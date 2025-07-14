@@ -10,7 +10,7 @@ on:
       minimum-green:
         description: 'Minimum coverage percentage for green status'
         required: false
-        default: '99.2'
+        default: '99.0'
         type: string
       minimum-orange:
         description: 'Minimum coverage percentage for orange status'

@@ -50,15 +50,16 @@ class OpenAIAgent(BaseAgent):
     description: str = "General-purpose Arklex agent for chat or voice."
 
     def __init__(
-        self, successors: list, predecessors: list, tools: list, state: MessageState
+        self, successors: list, predecessors: list, tools: dict, state: MessageState
     ) -> None:
         super().__init__()
         self.action_graph: StateGraph = self._create_action_graph()
         self.llm: BaseChatModel | None = None
-        self.available_tools: dict[str, dict[str, Any]] = {}
+        self.available_tools: dict[str, tuple[dict[str, Any], Any]] = {}
         self.tool_map = {}
         self.tool_defs = []
         self.tool_args: dict[str, Any] = {}
+        self.tool_slots: dict[str, Any] = {}
 
         self._load_tools(successors=successors, predecessors=predecessors, tools=tools)
         self._configure_tools()
@@ -119,11 +120,16 @@ class OpenAIAgent(BaseAgent):
                             tool_calls=[tool_call],
                         ).model_dump()
                     )
-                    tool_response = self.tool_map[tool_name](
-                        state=state,
-                        **tool_call.get("args"),
+
+                    # Prepare arguments for tool execution
+                    tool_args = {
+                        **tool_call.get("args", {}),
                         **self.tool_args.get(tool_name, {}),
-                    )
+                    }
+
+                    # Call tool with unified interface
+                    tool_response = self._execute_tool(tool_name, state, tool_args)
+
                     state.function_calling_trajectory.append(
                         ToolMessage(
                             name=tool_name,
@@ -149,36 +155,93 @@ class OpenAIAgent(BaseAgent):
     def _execute(self, msg_state: MessageState, **kwargs: Any) -> dict[str, Any]:  # noqa: ANN401
         model_class = validate_and_get_model_class(msg_state.bot_config.llm_config)
 
-        llm = model_class(model=msg_state.bot_config.llm_config.model_type_or_path)
-        llm = llm.bind_tools(self.tool_defs)
+        self.llm = model_class(model=msg_state.bot_config.llm_config.model_type_or_path)
+        self.llm = self.llm.bind_tools(self.tool_defs)
         self.prompt: str = kwargs.get("prompt", "")
         graph = self.action_graph.compile()
         result = graph.invoke(msg_state)
         return result
 
-    def _load_tools(self, successors: list, predecessors: list, tools: list) -> None:
+    def _load_tools(self, successors: list, predecessors: list, tools: dict) -> None:
         """
         Load tools for the agent.
         This method is called during the initialization of the agent.
         """
-        for node in successors + predecessors:
-            if node.resource_id in tools:
-                self.available_tools[node.resource_id] = tools[node.resource_id]
+        for node in predecessors:
+            if node.type == "tool":
+                tool_id = (
+                    f"{node.resource_id}_{node.attributes['task']}"
+                    if node.attributes.get("task")
+                    else node.resource_id
+                )
+                tool_id = tool_id.replace(" ", "_").replace("/", "_")
+                self.available_tools[tool_id] = (tools[node.resource_id], node)
 
     def _configure_tools(self) -> None:
         """
         Configure tools for the agent.
         This method is called during the initialization of the agent.
         """
-        for _tool_id, tool in self.available_tools.items():
+        for tool_id, (tool, node_info) in self.available_tools.items():
             tool_object = tool["execute"]()
+            tool_object.load_slots(
+                getattr(node_info, "attributes", {}).get("slots", [])
+            )
+            log_context.info(
+                f"Configuring tool: {tool_object.func.__name__} with slots: {tool_object.slots}"
+            )
+            tool_object.openai_slots = tool_object.slots.copy()
             tool_def = tool_object.to_openai_tool_def_v2()
-            self.tool_defs.append(tool_object.to_openai_tool_def_v2())
-            self.tool_map[tool_def["function"]["name"]] = tool_object.func
-            self.tool_args[tool_def["function"]["name"]] = tool["fixed_args"]
+            tool_def["function"]["name"] = tool_id
+            self.tool_defs.append(tool_def)
+            self.tool_slots[tool_id] = tool_object.slots.copy()
+            self.tool_map[tool_id] = tool_object.func
+            combined_args: dict[str, Any] = {
+                **tool["fixed_args"],
+                **(node_info.additional_args or {}),
+            }
+            self.tool_args[tool_id] = combined_args
+        log_context.info(f"Tool Definitions: {self.tool_defs}")
 
         end_conversation_tool = end_conversation()
         end_conversation_tool_def = end_conversation_tool.to_openai_tool_def_v2()
         end_conversation_tool_def["function"]["name"] = "end_conversation"
         self.tool_defs.append(end_conversation_tool_def)
         self.tool_map["end_conversation"] = end_conversation_tool.func
+
+    def _execute_tool(
+        self, tool_name: str, state: MessageState, tool_args: dict[str, Any]
+    ) -> Any:  # noqa: ANN401
+        """Execute a tool with unified interface.
+
+        This method handles the different calling patterns for different types of tools.
+        For http_tool, it prepares the slots parameter. For other tools, it passes state directly.
+
+        Args:
+            tool_name: Name of the tool to execute
+            state: Current message state
+            tool_args: Arguments for the tool
+
+        Returns:
+            Tool execution result
+        """
+        if "http_tool" in tool_name:
+            # TODO: Use better way to determine if tool is http_tool
+            # or make the http_tool execution consistent with the rest of the tools
+            slots: list[dict[str, str]] = []
+            all_slots = self.tool_slots.get(tool_name, [])
+
+            for name, value in tool_args.items():
+                if name not in ["slots"]:
+                    slots.append({"name": name, "value": value})
+
+            # Add missing slots from tool configuration
+            for slot in all_slots:
+                if slot.name not in tool_args:
+                    slots.append({"name": slot.name, "value": None})
+
+            # Call http_tool with slots parameter
+            return self.tool_map[tool_name](slots=slots, **tool_args)
+        else:
+            # Call other tools with state parameter
+            return self.tool_map[tool_name](state=state, **tool_args)

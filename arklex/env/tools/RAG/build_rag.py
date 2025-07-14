@@ -93,5 +93,5 @@ if __name__ == "__main__":
 
     build_rag(
         folder_path=args.folder_path,
-        docs=[{"source": args.base_url, "num": args.max_num}],
+        rag_docs=[{"source": args.base_url, "type": "url", "num": args.max_num}],
     )
