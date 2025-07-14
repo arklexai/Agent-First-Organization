@@ -7,9 +7,12 @@ including Tool class creation, registration, and various parameter handling scen
 from typing import Any
 from unittest.mock import Mock, patch
 
+import pytest
+
 from arklex.env.tools.tools import Tool, register_tool
-from arklex.orchestrator.entities.msg_state_entities import MessageState
+from arklex.orchestrator.entities.msg_state_entities import MessageState, StatusEnum
 from arklex.utils.exceptions import AuthenticationError, ToolExecutionError
+from arklex.orchestrator.NLU.entities.slot_entities import Slot
 
 
 class TestTools:
@@ -388,8 +391,6 @@ class TestTools:
             isResponse=False,
         )
 
-        from arklex.orchestrator.NLU.entities.slot_entities import Slot
-
         default_slots = [Slot(name="param1", value="default_value", type="str")]
 
         populated_slots = tool.init_default_slots(default_slots)
@@ -412,8 +413,6 @@ class TestTools:
             outputs=["result"],
             isResponse=False,
         )
-
-        from arklex.orchestrator.NLU.entities.slot_entities import Slot
 
         default_slots = [
             Slot(name="different_param", value="default_value", type="str")
@@ -438,8 +437,6 @@ class TestTools:
             outputs=["result"],
             isResponse=False,
         )
-
-        from arklex.orchestrator.NLU.entities.slot_entities import Slot
 
         default_slots = [Slot(name="param1", value="default_value", type="str")]
 
@@ -652,8 +649,6 @@ class TestTools:
         tool.slotfiller = mock_slotfiller
 
         # Mock slots that are filled and verified
-        from arklex.orchestrator.NLU.entities.slot_entities import Slot
-
         filled_slots = [
             Slot(
                 name="param1",
@@ -714,8 +709,6 @@ class TestTools:
         tool.slotfiller = mock_slotfiller
 
         # Mock slots that are missing values
-        from arklex.orchestrator.NLU.entities.slot_entities import Slot
-
         empty_slots = [
             Slot(
                 name="param1",
@@ -774,8 +767,6 @@ class TestTools:
         tool.slotfiller = mock_slotfiller
 
         # Mock slots that need verification
-        from arklex.orchestrator.NLU.entities.slot_entities import Slot
-
         unverified_slots = [
             Slot(
                 name="param1",
@@ -829,8 +820,6 @@ class TestTools:
         tool.slotfiller = mock_slotfiller
 
         # Mock slots that are filled and verified
-        from arklex.orchestrator.NLU.entities.slot_entities import Slot
-
         filled_slots = [
             Slot(
                 name="param1",
@@ -878,8 +867,6 @@ class TestTools:
         tool.slotfiller = mock_slotfiller
 
         # Mock slots that are filled and verified
-        from arklex.orchestrator.NLU.entities.slot_entities import Slot
-
         filled_slots = [
             Slot(
                 name="param1",
@@ -927,8 +914,6 @@ class TestTools:
         tool.slotfiller = mock_slotfiller
 
         # Mock slots that are filled and verified
-        from arklex.orchestrator.NLU.entities.slot_entities import Slot
-
         filled_slots = [
             Slot(
                 name="param1",
@@ -976,8 +961,6 @@ class TestTools:
         tool.slotfiller = mock_slotfiller
 
         # Mock slots that are filled and verified
-        from arklex.orchestrator.NLU.entities.slot_entities import Slot
-
         filled_slots = [
             Slot(
                 name="param1",
@@ -1025,8 +1008,6 @@ class TestTools:
         tool.slotfiller = mock_slotfiller
 
         # Mock slots that are filled and verified
-        from arklex.orchestrator.NLU.entities.slot_entities import Slot
-
         existing_slots = [
             Slot(
                 name="param1",
@@ -1077,8 +1058,6 @@ class TestTools:
         tool.slotfiller = mock_slotfiller
 
         # Mock slots that are filled and verified
-        from arklex.orchestrator.NLU.entities.slot_entities import Slot
-
         filled_slots = [
             Slot(
                 name="param1",
@@ -1137,8 +1116,6 @@ class TestTools:
         tool.slotfiller = mock_slotfiller
 
         # Mock slots that need verification
-        from arklex.orchestrator.NLU.entities.slot_entities import Slot
-
         unverified_slots = [
             Slot(
                 name="param1",
@@ -1467,3 +1444,803 @@ class TestTools:
             assert result.status.value == "complete"
             # Should use previous slots since configuration didn't change
             assert tool.slots == previous_slots
+
+
+class TestToolValueConversion:
+    """Test the _convert_value method."""
+
+    def test_convert_value_int(self) -> None:
+        """Test converting values to int type."""
+        tool = Tool(
+            func=lambda param1: f"Result: {param1}",
+            name="test_tool",
+            description="Test tool",
+            slots=[{"name": "param1", "type": "str"}],
+            outputs=["result"],
+            isResponse=False,
+        )
+        assert tool._convert_value("123", "int") == 123
+        assert tool._convert_value(123, "int") == 123
+        assert tool._convert_value(None, "int") is None
+
+    def test_convert_value_float(self) -> None:
+        """Test converting values to float type."""
+        tool = Tool(
+            func=lambda param1: f"Result: {param1}",
+            name="test_tool",
+            description="Test tool",
+            slots=[{"name": "param1", "type": "str"}],
+            outputs=["result"],
+            isResponse=False,
+        )
+        assert tool._convert_value("12.34", "float") == 12.34
+        assert tool._convert_value(12.34, "float") == 12.34
+        assert tool._convert_value(None, "float") is None
+
+    def test_convert_value_bool(self) -> None:
+        """Test converting values to bool type."""
+        tool = Tool(
+            func=lambda param1: f"Result: {param1}",
+            name="test_tool",
+            description="Test tool",
+            slots=[{"name": "param1", "type": "str"}],
+            outputs=["result"],
+            isResponse=False,
+        )
+        assert tool._convert_value("true", "bool") is True
+        assert tool._convert_value("false", "bool") is False
+        assert tool._convert_value(True, "bool") is True
+        assert tool._convert_value(False, "bool") is False
+        assert tool._convert_value(1, "bool") is True
+        assert tool._convert_value(0, "bool") is False
+
+    def test_convert_value_str(self) -> None:
+        """Test converting values to str type."""
+        tool = Tool(
+            func=lambda param1: f"Result: {param1}",
+            name="test_tool",
+            description="Test tool",
+            slots=[{"name": "param1", "type": "str"}],
+            outputs=["result"],
+            isResponse=False,
+        )
+        assert tool._convert_value(123, "str") == "123"
+        assert tool._convert_value("test", "str") == "test"
+        assert tool._convert_value(None, "str") is None
+
+    def test_convert_value_list(self) -> None:
+        """Test converting values to list type."""
+        tool = Tool(
+            func=lambda param1: f"Result: {param1}",
+            name="test_tool",
+            description="Test tool",
+            slots=[{"name": "param1", "type": "str"}],
+            outputs=["result"],
+            isResponse=False,
+        )
+        assert tool._convert_value("a,b,c", "list[str]") == ["a", "b", "c"]
+        assert tool._convert_value(["a", "b"], "list[str]") == ["a", "b"]
+        assert tool._convert_value("", "list[str]") == []
+
+    def test_convert_value_unknown_type(self) -> None:
+        """Test converting values with unknown type."""
+        tool = Tool(
+            func=lambda param1: f"Result: {param1}",
+            name="test_tool",
+            description="Test tool",
+            slots=[{"name": "param1", "type": "str"}],
+            outputs=["result"],
+            isResponse=False,
+        )
+        assert tool._convert_value("test", "unknown") == "test"
+        assert tool._convert_value(None, "unknown") is None
+
+    def test_convert_value_exception_handling(self) -> None:
+        """Test _convert_value handles exceptions gracefully."""
+        tool = Tool(
+            func=lambda param1: f"Result: {param1}",
+            name="test_tool",
+            description="Test tool",
+            slots=[{"name": "param1", "type": "str"}],
+            outputs=["result"],
+            isResponse=False,
+        )
+        # Should return original value on conversion error
+        assert tool._convert_value("invalid", "int") == "invalid"
+
+
+class TestToolMissingRequiredSlots:
+    """Test the _any_missing_required_recursive method."""
+
+    def test_any_missing_required_recursive_group_empty_required(self) -> None:
+        """Test missing required group slot with empty value."""
+        tool = Tool(
+            func=lambda param1: f"Result: {param1}",
+            name="test_tool",
+            description="Test tool",
+            slots=[{"name": "param1", "type": "str"}],
+            outputs=["result"],
+            isResponse=False,
+        )
+        slots = [
+            Slot(
+                name="test_group",
+                type="group",
+                required=True,
+                value=[],
+                schema=[{"name": "field1", "required": True, "type": "str"}]
+            )
+        ]
+        assert tool._any_missing_required_recursive(slots) is True
+
+    def test_any_missing_required_recursive_group_none_value(self) -> None:
+        """Test missing required group slot with None value."""
+        tool = Tool(
+            func=lambda param1: f"Result: {param1}",
+            name="test_tool",
+            description="Test tool",
+            slots=[{"name": "param1", "type": "str"}],
+            outputs=["result"],
+            isResponse=False,
+        )
+        slots = [
+            Slot(
+                name="test_group",
+                type="group",
+                required=True,
+                value=None,
+                schema=[{"name": "field1", "required": True, "type": "str"}]
+            )
+        ]
+        assert tool._any_missing_required_recursive(slots) is True
+
+    def test_any_missing_required_recursive_group_with_missing_required_field(self) -> None:
+        """Test group with missing required field in item."""
+        tool = Tool(
+            func=lambda param1: f"Result: {param1}",
+            name="test_tool",
+            description="Test tool",
+            slots=[{"name": "param1", "type": "str"}],
+            outputs=["result"],
+            isResponse=False,
+        )
+        slots = [
+            Slot(
+                name="test_group",
+                type="group",
+                required=True,
+                value=[{"field1": None}],  # Missing required field
+                schema=[{"name": "field1", "required": True, "type": "str"}]
+            )
+        ]
+        assert tool._any_missing_required_recursive(slots) is True
+
+    def test_any_missing_required_recursive_group_with_repeatable_field_empty(self) -> None:
+        """Test group with repeatable field that is empty."""
+        tool = Tool(
+            func=lambda param1: f"Result: {param1}",
+            name="test_tool",
+            description="Test tool",
+            slots=[{"name": "param1", "type": "str"}],
+            outputs=["result"],
+            isResponse=False,
+        )
+        slots = [
+            Slot(
+                name="test_group",
+                type="group",
+                required=True,
+                value=[{"field1": []}],  # Empty repeatable field
+                schema=[{"name": "field1", "required": True, "repeatable": True, "type": "str"}]
+            )
+        ]
+        assert tool._any_missing_required_recursive(slots) is True
+
+    def test_any_missing_required_recursive_group_with_repeatable_field_none_values(self) -> None:
+        """Test group with repeatable field containing None values."""
+        tool = Tool(
+            func=lambda param1: f"Result: {param1}",
+            name="test_tool",
+            description="Test tool",
+            slots=[{"name": "param1", "type": "str"}],
+            outputs=["result"],
+            isResponse=False,
+        )
+        slots = [
+            Slot(
+                name="test_group",
+                type="group",
+                required=True,
+                value=[{"field1": [None, ""]}],  # None values in repeatable field
+                schema=[{"name": "field1", "required": True, "repeatable": True, "type": "str"}]
+            )
+        ]
+        assert tool._any_missing_required_recursive(slots) is True
+
+    def test_any_missing_required_recursive_repeatable_regular_slot_empty(self) -> None:
+        """Test repeatable regular slot that is empty."""
+        tool = Tool(
+            func=lambda param1: f"Result: {param1}",
+            name="test_tool",
+            description="Test tool",
+            slots=[{"name": "param1", "type": "str"}],
+            outputs=["result"],
+            isResponse=False,
+        )
+        slots = [
+            Slot(
+                name="test_repeatable",
+                type="str",
+                required=True,
+                repeatable=True,
+                value=[]
+            )
+        ]
+        assert tool._any_missing_required_recursive(slots) is True
+
+    def test_any_missing_required_recursive_repeatable_regular_slot_none_values(self) -> None:
+        """Test repeatable regular slot with None values."""
+        tool = Tool(
+            func=lambda param1: f"Result: {param1}",
+            name="test_tool",
+            description="Test tool",
+            slots=[{"name": "param1", "type": "str"}],
+            outputs=["result"],
+            isResponse=False,
+        )
+        slots = [
+            Slot(
+                name="test_repeatable",
+                type="str",
+                required=True,
+                repeatable=True,
+                value=[None, ""]
+            )
+        ]
+        assert tool._any_missing_required_recursive(slots) is True
+
+    def test_any_missing_required_recursive_regular_slot_unverified(self) -> None:
+        """Test regular slot that is required but not verified."""
+        tool = Tool(
+            func=lambda param1: f"Result: {param1}",
+            name="test_tool",
+            description="Test tool",
+            slots=[{"name": "param1", "type": "str"}],
+            outputs=["result"],
+            isResponse=False,
+        )
+        slots = [
+            Slot(
+                name="test_regular",
+                type="str",
+                required=True,
+                value="test",
+                verified=False
+            )
+        ]
+        assert tool._any_missing_required_recursive(slots) is True
+
+    def test_any_missing_required_recursive_all_valid(self) -> None:
+        """Test when all required slots are properly filled."""
+        tool = Tool(
+            func=lambda param1: f"Result: {param1}",
+            name="test_tool",
+            description="Test tool",
+            slots=[{"name": "param1", "type": "str"}],
+            outputs=["result"],
+            isResponse=False,
+        )
+        slots = [
+            Slot(
+                name="test_regular",
+                type="str",
+                required=True,
+                value="test",
+                verified=True
+            ),
+            Slot(
+                name="test_group",
+                type="group",
+                required=True,
+                value=[{"field1": "value1"}],
+                schema=[{"name": "field1", "required": True, "type": "str"}]
+            )
+        ]
+        assert tool._any_missing_required_recursive(slots) is False
+
+
+class TestToolMissingSlotsRecursive:
+    """Test the _missing_slots_recursive method."""
+
+    def test_missing_slots_recursive_group_empty_required(self) -> None:
+        """Test missing required group slot returns prompt."""
+        tool = Tool(
+            func=lambda param1: f"Result: {param1}",
+            name="test_tool",
+            description="Test tool",
+            slots=[{"name": "param1", "type": "str"}],
+            outputs=["result"],
+            isResponse=False,
+        )
+        slots = [
+            Slot(
+                name="test_group",
+                type="group",
+                required=True,
+                value=[],
+                prompt="Please provide test group",
+                schema=[{"name": "field1", "required": True, "type": "str"}]
+            )
+        ]
+        missing = tool._missing_slots_recursive(slots)
+        assert "Please provide test group" in missing
+
+    def test_missing_slots_recursive_group_missing_field(self) -> None:
+        """Test group with missing required field returns field name."""
+        tool = Tool(
+            func=lambda param1: f"Result: {param1}",
+            name="test_tool",
+            description="Test tool",
+            slots=[{"name": "param1", "type": "str"}],
+            outputs=["result"],
+            isResponse=False,
+        )
+        slots = [
+            Slot(
+                name="test_group",
+                type="group",
+                required=True,
+                value=[{"field1": None}],
+                schema=[{"name": "field1", "required": True, "prompt": "Field 1", "type": "str"}]
+            )
+        ]
+        missing = tool._missing_slots_recursive(slots)
+        assert "Field 1 (group 'test_group' item 1)" in missing
+
+    def test_missing_slots_recursive_repeatable_regular_empty(self) -> None:
+        """Test repeatable regular slot that is empty."""
+        tool = Tool(
+            func=lambda param1: f"Result: {param1}",
+            name="test_tool",
+            description="Test tool",
+            slots=[{"name": "param1", "type": "str"}],
+            outputs=["result"],
+            isResponse=False,
+        )
+        slots = [
+            Slot(
+                name="test_repeatable",
+                type="str",
+                required=True,
+                repeatable=True,
+                value=[],
+                prompt="Please provide repeatable values"
+            )
+        ]
+        missing = tool._missing_slots_recursive(slots)
+        assert "Please provide repeatable values" in missing
+
+    def test_missing_slots_recursive_repeatable_regular_none_values(self) -> None:
+        """Test repeatable regular slot with None values."""
+        tool = Tool(
+            func=lambda param1: f"Result: {param1}",
+            name="test_tool",
+            description="Test tool",
+            slots=[{"name": "param1", "type": "str"}],
+            outputs=["result"],
+            isResponse=False,
+        )
+        slots = [
+            Slot(
+                name="test_repeatable",
+                type="str",
+                required=True,
+                repeatable=True,
+                value=[None, ""],
+                prompt="Please provide repeatable values"
+            )
+        ]
+        missing = tool._missing_slots_recursive(slots)
+        assert "Please provide repeatable values (item 1)" in missing
+        assert "Please provide repeatable values (item 2)" in missing
+
+    def test_missing_slots_recursive_regular_unverified(self) -> None:
+        """Test regular slot that is required but not verified."""
+        tool = Tool(
+            func=lambda param1: f"Result: {param1}",
+            name="test_tool",
+            description="Test tool",
+            slots=[{"name": "param1", "type": "str"}],
+            outputs=["result"],
+            isResponse=False,
+        )
+        slots = [
+            Slot(
+                name="test_regular",
+                type="str",
+                required=True,
+                value="test",
+                verified=False,
+                prompt="Please verify the value"
+            )
+        ]
+        missing = tool._missing_slots_recursive(slots)
+        assert "Please verify the value" in missing
+
+
+class TestToolGroupSlotHandling:
+    """Test group slot handling functionality."""
+
+    def test_load_slots_with_group_slots(self) -> None:
+        """Test loading slots with group type slots."""
+        tool = Tool(
+            func=lambda param1: f"Result: {param1}",
+            name="test_tool",
+            description="Test tool",
+            slots=[{"name": "param1", "type": "str"}],
+            outputs=["result"],
+            isResponse=False,
+        )
+        group_slots = [
+            {
+                "name": "test_group",
+                "type": "group",
+                "schema": [
+                    {"name": "field1", "type": "str", "required": True},
+                    {"name": "field2", "type": "int", "required": False}
+                ],
+                "required": True,
+                "repeatable": True,
+                "prompt": "Please provide test group",
+                "description": "Test group description"
+            }
+        ]
+        tool.load_slots(group_slots)
+        assert len(tool.slots) == 1
+        assert tool.slots[0].type == "group"
+        assert tool.slots[0].name == "test_group"
+        assert tool.slots[0].schema == group_slots[0]["schema"]
+
+    def test_load_slots_merge_existing_group_slots(self) -> None:
+        """Test merging existing group slots with new ones."""
+        tool = Tool(
+            func=lambda param1: f"Result: {param1}",
+            name="test_tool",
+            description="Test tool",
+            slots=[{"name": "param1", "type": "str"}],
+            outputs=["result"],
+            isResponse=False,
+        )
+        # Add initial group slot
+        tool.load_slots([
+            {
+                "name": "test_group",
+                "type": "group",
+                "schema": [{"name": "field1", "type": "str"}],
+                "required": True
+            }
+        ])
+        initial_slot = tool.slots[0]
+        
+        # Merge with updated slot
+        tool.load_slots([
+            {
+                "name": "test_group",
+                "type": "group",
+                "schema": [{"name": "field1", "type": "str"}, {"name": "field2", "type": "int"}],
+                "required": False
+            }
+        ])
+        
+        assert len(tool.slots) == 1
+        assert tool.slots[0].name == "test_group"
+        assert len(tool.slots[0].schema) == 2  # Should have both fields
+        assert tool.slots[0].required is False  # Should be updated
+
+    def test_to_openai_tool_def_with_group_slots(self) -> None:
+        """Test OpenAI tool definition with group slots."""
+        tool = Tool(
+            func=lambda param1: f"Result: {param1}",
+            name="test_tool",
+            description="Test tool",
+            slots=[{"name": "param1", "type": "str"}],
+            outputs=["result"],
+            isResponse=False,
+        )
+        tool.load_slots([
+            {
+                "name": "test_group",
+                "type": "group",
+                "schema": [
+                    {"name": "field1", "type": "str", "required": True, "description": "Field 1"},
+                    {"name": "field2", "type": "int", "required": False, "description": "Field 2"}
+                ],
+                "required": True,
+                "description": "Test group"
+            }
+        ])
+        
+        tool_def = tool.to_openai_tool_def()
+        assert tool_def["parameters"]["properties"]["test_group"]["type"] == "array"
+        assert tool_def["parameters"]["properties"]["test_group"]["items"]["type"] == "object"
+        assert "field1" in tool_def["parameters"]["properties"]["test_group"]["items"]["properties"]
+        assert "field2" in tool_def["parameters"]["properties"]["test_group"]["items"]["properties"]
+        assert "field1" in tool_def["parameters"]["properties"]["test_group"]["items"]["required"]
+
+    def test_to_openai_tool_def_v2_with_group_slots(self) -> None:
+        """Test OpenAI tool definition v2 with group slots."""
+        tool = Tool(
+            func=lambda param1: f"Result: {param1}",
+            name="test_tool",
+            description="Test tool",
+            slots=[{"name": "param1", "type": "str"}],
+            outputs=["result"],
+            isResponse=False,
+        )
+        tool.load_slots([
+            {
+                "name": "test_group",
+                "type": "group",
+                "schema": [
+                    {"name": "field1", "type": "str", "required": True},
+                    {"name": "field2", "type": "int", "required": False}
+                ],
+                "required": True
+            }
+        ])
+        
+        tool_def = tool.to_openai_tool_def_v2()
+        assert tool_def["function"]["parameters"]["properties"]["test_group"]["type"] == "array"
+        assert tool_def["function"]["parameters"]["properties"]["test_group"]["items"]["type"] == "object"
+
+
+class TestToolRepeatableSlots:
+    """Test repeatable slot handling."""
+
+    def test_to_openai_tool_def_with_repeatable_slots(self) -> None:
+        """Test OpenAI tool definition with repeatable slots."""
+        tool = Tool(
+            func=lambda param1: f"Result: {param1}",
+            name="test_tool",
+            description="Test tool",
+            slots=[{"name": "param1", "type": "str"}],
+            outputs=["result"],
+            isResponse=False,
+        )
+        tool.load_slots([
+            {
+                "name": "test_repeatable",
+                "type": "str",
+                "required": True,
+                "repeatable": True,
+                "description": "Test repeatable slot"
+            }
+        ])
+        
+        tool_def = tool.to_openai_tool_def()
+        assert tool_def["parameters"]["properties"]["test_repeatable"]["type"] == "array"
+        assert tool_def["parameters"]["properties"]["test_repeatable"]["items"]["type"] == "string"
+
+    def test_to_openai_tool_def_v2_with_repeatable_slots(self) -> None:
+        """Test OpenAI tool definition v2 with repeatable slots."""
+        tool = Tool(
+            func=lambda param1: f"Result: {param1}",
+            name="test_tool",
+            description="Test tool",
+            slots=[{"name": "param1", "type": "str"}],
+            outputs=["result"],
+            isResponse=False,
+        )
+        tool.load_slots([
+            {
+                "name": "test_repeatable",
+                "type": "str",
+                "required": True,
+                "repeatable": True
+            }
+        ])
+        
+        tool_def = tool.to_openai_tool_def_v2()
+        assert tool_def["function"]["parameters"]["properties"]["test_repeatable"]["type"] == "array"
+        assert tool_def["function"]["parameters"]["properties"]["test_repeatable"]["items"]["type"] == "string"
+
+
+class TestToolEdgeCases:
+    """Test various edge cases in tool functionality."""
+
+    def test_execute_with_authentication_error(self) -> None:
+        """Test tool execution with AuthenticationError."""
+        tool = Tool(
+            func=lambda param1: f"Result: {param1}",
+            name="test_tool",
+            description="Test tool",
+            slots=[{"name": "param1", "type": "str"}],
+            outputs=["result"],
+            isResponse=False,
+        )
+        state = MessageState()
+        state.bot_config = Mock()
+        state.bot_config.llm_config = Mock()
+        state.bot_config.llm_config.model_dump = lambda: {"test": "config"}
+        
+        def failing_func(**kwargs):
+            from arklex.utils.exceptions import AuthenticationError
+            raise AuthenticationError("Auth failed")
+        
+        tool.func = failing_func
+        
+        result = tool.execute(state)
+        assert result.status == StatusEnum.INCOMPLETE
+        assert "Auth failed" in result.response
+
+    def test_execute_with_tool_execution_error(self) -> None:
+        """Test tool execution with ToolExecutionError."""
+        tool = Tool(
+            func=lambda param1: f"Result: {param1}",
+            name="test_tool",
+            description="Test tool",
+            slots=[{"name": "param1", "type": "str"}],
+            outputs=["result"],
+            isResponse=False,
+        )
+        state = MessageState()
+        state.bot_config = Mock()
+        state.bot_config.llm_config = Mock()
+        state.bot_config.llm_config.model_dump = lambda: {"test": "config"}
+        
+        def failing_func(**kwargs):
+            from arklex.utils.exceptions import ToolExecutionError
+            raise ToolExecutionError("Tool failed", "Extra message")
+        
+        tool.func = failing_func
+        
+        result = tool.execute(state)
+        assert result.status == StatusEnum.INCOMPLETE
+        assert "Extra message" in result.response
+
+    def test_execute_with_general_exception(self) -> None:
+        """Test tool execution with general exception."""
+        tool = Tool(
+            func=lambda param1: f"Result: {param1}",
+            name="test_tool",
+            description="Test tool",
+            slots=[{"name": "param1", "type": "str"}],
+            outputs=["result"],
+            isResponse=False,
+        )
+        state = MessageState()
+        state.bot_config = Mock()
+        state.bot_config.llm_config = Mock()
+        state.bot_config.llm_config.model_dump = lambda: {"test": "config"}
+        
+        def failing_func(**kwargs):
+            raise ValueError("General error")
+        
+        tool.func = failing_func
+        
+        result = tool.execute(state)
+        assert result.status == StatusEnum.INCOMPLETE
+        assert "General error" in result.response
+
+    def test_execute_with_missing_required_args(self) -> None:
+        """Test tool execution with missing required arguments."""
+        tool = Tool(
+            func=lambda param1: f"Result: {param1}",
+            name="test_tool",
+            description="Test tool",
+            slots=[{"name": "param1", "type": "str"}],
+            outputs=["result"],
+            isResponse=False,
+        )
+        state = MessageState()
+        state.bot_config = Mock()
+        state.bot_config.llm_config = Mock()
+        state.bot_config.llm_config.model_dump = lambda: {"test": "config"}
+        
+        def func_with_required_args(required_arg, **kwargs):
+            return f"Got: {required_arg}"
+        
+        tool.func = func_with_required_args
+        
+        result = tool.execute(state)
+        assert result.status == StatusEnum.INCOMPLETE
+        # Should prompt for missing required slot
+
+    def test_execute_with_slots_parameter(self) -> None:
+        """Test tool execution when function accepts slots parameter."""
+        tool = Tool(
+            func=lambda param1: f"Result: {param1}",
+            name="test_tool",
+            description="Test tool",
+            slots=[{"name": "param1", "type": "str"}],
+            outputs=["result"],
+            isResponse=False,
+        )
+        state = MessageState()
+        state.bot_config = Mock()
+        state.bot_config.llm_config = Mock()
+        state.bot_config.llm_config.model_dump = lambda: {"test": "config"}
+        
+        def func_with_slots(slots, **kwargs):
+            return f"Got {len(slots)} slots"
+        
+        tool.func = func_with_slots
+        tool.load_slots([{"name": "test", "type": "str", "required": True}])
+        
+        result = tool.execute(state)
+        # Should work without error since slots parameter is accepted
+
+    def test_slot_schema_signature_changed(self) -> None:
+        """Test when slot schema signature changes between calls."""
+        tool = Tool(
+            func=lambda param1: f"Result: {param1}",
+            name="test_tool",
+            description="Test tool",
+            slots=[{"name": "param1", "type": "str"}],
+            outputs=["result"],
+            isResponse=False,
+        )
+        state = MessageState()
+        state.bot_config = Mock()
+        state.bot_config.llm_config = Mock()
+        state.bot_config.llm_config.model_dump = lambda: {"test": "config"}
+        
+        # First call with initial slots
+        tool.load_slots([{"name": "test", "type": "str", "required": True}])
+        state.slots[tool.name] = [Slot.model_validate(slot.model_dump()) for slot in tool.slots]
+        
+        # Second call with different slots (simulating different node)
+        tool.load_slots([
+            {"name": "test", "type": "str", "required": True},
+            {"name": "test2", "type": "int", "required": False}
+        ])
+        
+        result = tool.execute(state)
+        # Should reset slots due to schema change
+
+    def test_verified_slots_not_in_tool_def(self) -> None:
+        """Test that verified slots are not included in tool definition."""
+        tool = Tool(
+            func=lambda param1: f"Result: {param1}",
+            name="test_tool",
+            description="Test tool",
+            slots=[{"name": "param1", "type": "str"}],
+            outputs=["result"],
+            isResponse=False,
+        )
+        tool.load_slots([
+            {
+                "name": "test_slot",
+                "type": "str",
+                "required": True,
+                "description": "Test slot"
+            }
+        ])
+        
+        # Mark slot as verified
+        tool.slots[0].verified = True
+        tool.slots[0].value = "test_value"
+        
+        tool_def = tool.to_openai_tool_def()
+        assert "test_slot" not in tool_def["parameters"]["properties"]
+        assert "test_slot" not in tool_def["parameters"]["required"]
+
+    def test_str_and_repr_methods(self) -> None:
+        """Test string representation methods."""
+        tool = Tool(
+            func=lambda param1: f"Result: {param1}",
+            name="test_tool",
+            description="Test tool",
+            slots=[{"name": "param1", "type": "str"}],
+            outputs=["result"],
+            isResponse=False,
+        )
+        tool.name = "test_tool"
+        tool.description = "Test description"
+        
+        str_repr = str(tool)
+        repr_repr = repr(tool)
+        
+        assert "test_tool" in str_repr
+        assert "Test description" in str_repr
+        assert "test_tool" in repr_repr

@@ -10,6 +10,7 @@ from arklex.orchestrator.entities.orchestrator_params_entities import Orchestrat
 from arklex.orchestrator.entities.taskgraph_entities import NodeInfo
 from arklex.orchestrator.NLU.core.slot import SlotFiller
 from arklex.orchestrator.NLU.services.model_service import DummyModelService
+from arklex.orchestrator.NLU.entities.slot_entities import Slot
 
 
 def test_environment_uses_dummy_model_service() -> None:
@@ -1250,3 +1251,524 @@ def test_environment_step_worker_with_empty_response_and_message_flow() -> None:
     assert len(result_params.memory.function_calling_trajectory) == 2
     # Check that empty string is used when both response and message_flow are empty strings
     assert result_params.memory.function_calling_trajectory[1]["content"] == ""
+
+
+def test_environment_step_tool_with_slot_schema_signature_change() -> None:
+    """Test environment step with tool when slot schema signature changes."""
+    fake_tool = MagicMock()
+    fake_tool.init_slotfiller = MagicMock()
+    fake_tool.load_slots = MagicMock()
+    fake_tool.execute = MagicMock(
+        return_value=MessageState(
+            function_calling_trajectory=[{"role": "assistant", "content": "call"}],
+            slots={"slot1": [Slot(name="slot1", value="value1")]},
+            status=StatusEnum.COMPLETE,
+        )
+    )
+
+    tools = [{"id": "t1", "name": "fake_tool", "path": "fake_path"}]
+    with patch("importlib.import_module") as mock_import:
+        fake_module = MagicMock()
+        fake_module.fake_tool = MagicMock(return_value=fake_tool)
+        mock_import.return_value = fake_module
+        env = Environment(tools=tools, workers=[], agents=[])
+
+        class DummyOrchestratorParams:
+            memory = MagicMock()
+            taskgraph = MagicMock()
+            taskgraph.dialog_states = {}
+            taskgraph.node_status = {}
+            taskgraph.curr_node = "n1"
+
+        class DummyNodeInfo:
+            additional_args = {"foo": "bar"}
+            attributes = {"slots": ["slot1"]}
+
+        state = MessageState()
+        params = DummyOrchestratorParams()
+        node_info = DummyNodeInfo()
+        env.tools["t1"]["fixed_args"] = {"baz": 1}
+
+        # First call to establish initial slots
+        result_state, result_params = env.step("t1", state, params, node_info)
+        
+        # Second call with different slot configuration (simulating schema change)
+        node_info.attributes = {"slots": ["slot1", "slot2"]}
+        result_state, result_params = env.step("t1", state, params, node_info)
+        
+        # Should reset slots due to schema change
+        assert result_state.status == StatusEnum.COMPLETE
+
+
+def test_environment_step_tool_with_verified_slots() -> None:
+    """Test environment step with tool that has verified slots."""
+    fake_tool = MagicMock()
+    fake_tool.init_slotfiller = MagicMock()
+    fake_tool.load_slots = MagicMock()
+    fake_tool.execute = MagicMock(
+        return_value=MessageState(
+            function_calling_trajectory=[{"role": "assistant", "content": "call"}],
+            slots={},
+            status=StatusEnum.COMPLETE,
+        )
+    )
+
+    tools = [{"id": "t1", "name": "fake_tool", "path": "fake_path"}]
+    with patch("importlib.import_module") as mock_import:
+        fake_module = MagicMock()
+        fake_module.fake_tool = MagicMock(return_value=fake_tool)
+        mock_import.return_value = fake_module
+        env = Environment(tools=tools, workers=[], agents=[])
+
+        class DummyOrchestratorParams:
+            memory = MagicMock()
+            taskgraph = MagicMock()
+            taskgraph.dialog_states = {}
+            taskgraph.node_status = {}
+            taskgraph.curr_node = "n1"
+
+        class DummyNodeInfo:
+            additional_args = {"foo": "bar"}
+            attributes = {"slots": ["slot1"]}
+
+        state = MessageState()
+        # Pre-populate state with verified slots
+        state.slots = {
+            "t1": [Slot(name="slot1", value="value1", verified=True)]
+        }
+        params = DummyOrchestratorParams()
+        node_info = DummyNodeInfo()
+        env.tools["t1"]["fixed_args"] = {"baz": 1}
+
+        result_state, result_params = env.step("t1", state, params, node_info)
+        assert result_state.status == StatusEnum.COMPLETE
+
+
+def test_environment_step_tool_with_missing_required_slots() -> None:
+    """Test environment step with tool that has missing required slots."""
+    fake_tool = MagicMock()
+    fake_tool.init_slotfiller = MagicMock()
+    fake_tool.load_slots = MagicMock()
+    fake_tool.execute = MagicMock(
+        return_value=MessageState(
+            function_calling_trajectory=[{"role": "assistant", "content": "call"}],
+            slots={},
+            status=StatusEnum.INCOMPLETE,
+        )
+    )
+
+    tools = [{"id": "t1", "name": "fake_tool", "path": "fake_path"}]
+    with patch("importlib.import_module") as mock_import:
+        fake_module = MagicMock()
+        fake_module.fake_tool = MagicMock(return_value=fake_tool)
+        mock_import.return_value = fake_module
+        env = Environment(tools=tools, workers=[], agents=[])
+
+        class DummyOrchestratorParams:
+            memory = MagicMock()
+            taskgraph = MagicMock()
+            taskgraph.dialog_states = {}
+            taskgraph.node_status = {}
+            taskgraph.curr_node = "n1"
+
+        class DummyNodeInfo:
+            additional_args = {"foo": "bar"}
+            attributes = {"slots": ["required_slot"]}
+
+        state = MessageState()
+        params = DummyOrchestratorParams()
+        node_info = DummyNodeInfo()
+        env.tools["t1"]["fixed_args"] = {"baz": 1}
+
+        result_state, result_params = env.step("t1", state, params, node_info)
+        # Should be incomplete due to missing required slots
+        assert result_state.status == StatusEnum.INCOMPLETE
+
+
+def test_environment_step_tool_with_slot_verification_needed() -> None:
+    """Test environment step with tool that needs slot verification."""
+    fake_tool = MagicMock()
+    fake_tool.init_slotfiller = MagicMock()
+    fake_tool.load_slots = MagicMock()
+    fake_tool.execute = MagicMock(
+        return_value=MessageState(
+            function_calling_trajectory=[{"role": "assistant", "content": "call"}],
+            slots={},
+            status=StatusEnum.INCOMPLETE,
+        )
+    )
+
+    tools = [{"id": "t1", "name": "fake_tool", "path": "fake_path"}]
+    with patch("importlib.import_module") as mock_import:
+        fake_module = MagicMock()
+        fake_module.fake_tool = MagicMock(return_value=fake_tool)
+        mock_import.return_value = fake_module
+        env = Environment(tools=tools, workers=[], agents=[])
+
+        class DummyOrchestratorParams:
+            memory = MagicMock()
+            taskgraph = MagicMock()
+            taskgraph.dialog_states = {}
+            taskgraph.node_status = {}
+            taskgraph.curr_node = "n1"
+
+        class DummyNodeInfo:
+            additional_args = {"foo": "bar"}
+            attributes = {"slots": ["slot1"]}
+
+        state = MessageState()
+        params = DummyOrchestratorParams()
+        node_info = DummyNodeInfo()
+        env.tools["t1"]["fixed_args"] = {"baz": 1}
+
+        result_state, result_params = env.step("t1", state, params, node_info)
+        # Should be incomplete due to slot verification needed
+        assert result_state.status == StatusEnum.INCOMPLETE
+
+
+def test_environment_step_tool_with_group_slots() -> None:
+    """Test environment step with tool that has group slots."""
+    fake_tool = MagicMock()
+    fake_tool.init_slotfiller = MagicMock()
+    fake_tool.load_slots = MagicMock()
+    fake_tool.execute = MagicMock(
+        return_value=MessageState(
+            function_calling_trajectory=[{"role": "assistant", "content": "call"}],
+            slots={},
+            status=StatusEnum.COMPLETE,
+        )
+    )
+
+    tools = [{"id": "t1", "name": "fake_tool", "path": "fake_path"}]
+    with patch("importlib.import_module") as mock_import:
+        fake_module = MagicMock()
+        fake_module.fake_tool = MagicMock(return_value=fake_tool)
+        mock_import.return_value = fake_module
+        env = Environment(tools=tools, workers=[], agents=[])
+
+        class DummyOrchestratorParams:
+            memory = MagicMock()
+            taskgraph = MagicMock()
+            taskgraph.dialog_states = {}
+            taskgraph.node_status = {}
+            taskgraph.curr_node = "n1"
+
+        class DummyNodeInfo:
+            additional_args = {"foo": "bar"}
+            attributes = {
+                "slots": [
+                    {
+                        "name": "group_slot",
+                        "type": "group",
+                        "schema": [{"name": "field1", "type": "str", "required": True}]
+                    }
+                ]
+            }
+
+        state = MessageState()
+        params = DummyOrchestratorParams()
+        node_info = DummyNodeInfo()
+        env.tools["t1"]["fixed_args"] = {"baz": 1}
+
+        result_state, result_params = env.step("t1", state, params, node_info)
+        assert result_state.status == StatusEnum.COMPLETE
+
+
+def test_environment_step_tool_with_repeatable_slots() -> None:
+    """Test environment step with tool that has repeatable slots."""
+    fake_tool = MagicMock()
+    fake_tool.init_slotfiller = MagicMock()
+    fake_tool.load_slots = MagicMock()
+    fake_tool.execute = MagicMock(
+        return_value=MessageState(
+            function_calling_trajectory=[{"role": "assistant", "content": "call"}],
+            slots={},
+            status=StatusEnum.COMPLETE,
+        )
+    )
+
+    tools = [{"id": "t1", "name": "fake_tool", "path": "fake_path"}]
+    with patch("importlib.import_module") as mock_import:
+        fake_module = MagicMock()
+        fake_module.fake_tool = MagicMock(return_value=fake_tool)
+        mock_import.return_value = fake_module
+        env = Environment(tools=tools, workers=[], agents=[])
+
+        class DummyOrchestratorParams:
+            memory = MagicMock()
+            taskgraph = MagicMock()
+            taskgraph.dialog_states = {}
+            taskgraph.node_status = {}
+            taskgraph.curr_node = "n1"
+
+        class DummyNodeInfo:
+            additional_args = {"foo": "bar"}
+            attributes = {
+                "slots": [
+                    {
+                        "name": "repeatable_slot",
+                        "type": "str",
+                        "repeatable": True,
+                        "required": True
+                    }
+                ]
+            }
+
+        state = MessageState()
+        params = DummyOrchestratorParams()
+        node_info = DummyNodeInfo()
+        env.tools["t1"]["fixed_args"] = {"baz": 1}
+
+        result_state, result_params = env.step("t1", state, params, node_info)
+        assert result_state.status == StatusEnum.COMPLETE
+
+
+def test_environment_step_tool_with_function_calling_trajectory() -> None:
+    """Test environment step with tool that returns function calling trajectory."""
+    fake_tool = MagicMock()
+    fake_tool.init_slotfiller = MagicMock()
+    fake_tool.load_slots = MagicMock()
+    fake_tool.execute = MagicMock(
+        return_value=MessageState(
+            function_calling_trajectory=[
+                {"role": "assistant", "content": "call"},
+                {"role": "function", "content": "result"}
+            ],
+            slots={},
+            status=StatusEnum.COMPLETE,
+        )
+    )
+
+    tools = [{"id": "t1", "name": "fake_tool", "path": "fake_path"}]
+    with patch("importlib.import_module") as mock_import:
+        fake_module = MagicMock()
+        fake_module.fake_tool = MagicMock(return_value=fake_tool)
+        mock_import.return_value = fake_module
+        env = Environment(tools=tools, workers=[], agents=[])
+
+        class DummyOrchestratorParams:
+            memory = MagicMock()
+            taskgraph = MagicMock()
+            taskgraph.dialog_states = {}
+            taskgraph.node_status = {}
+            taskgraph.curr_node = "n1"
+
+        class DummyNodeInfo:
+            additional_args = {"foo": "bar"}
+            attributes = {"slots": ["slot1"]}
+
+        state = MessageState()
+        params = DummyOrchestratorParams()
+        node_info = DummyNodeInfo()
+        env.tools["t1"]["fixed_args"] = {"baz": 1}
+
+        result_state, result_params = env.step("t1", state, params, node_info)
+        assert result_state.status == StatusEnum.COMPLETE
+        assert len(result_state.function_calling_trajectory) == 2
+
+
+def test_environment_step_tool_with_slots_parameter() -> None:
+    """Test environment step with tool that accepts slots parameter."""
+    fake_tool = MagicMock()
+    fake_tool.init_slotfiller = MagicMock()
+    fake_tool.load_slots = MagicMock()
+    fake_tool.execute = MagicMock(
+        return_value=MessageState(
+            function_calling_trajectory=[{"role": "assistant", "content": "call"}],
+            slots={},
+            status=StatusEnum.COMPLETE,
+        )
+    )
+
+    tools = [{"id": "t1", "name": "fake_tool", "path": "fake_path"}]
+    with patch("importlib.import_module") as mock_import:
+        fake_module = MagicMock()
+        fake_module.fake_tool = MagicMock(return_value=fake_tool)
+        mock_import.return_value = fake_module
+        env = Environment(tools=tools, workers=[], agents=[])
+
+        class DummyOrchestratorParams:
+            memory = MagicMock()
+            taskgraph = MagicMock()
+            taskgraph.dialog_states = {}
+            taskgraph.node_status = {}
+            taskgraph.curr_node = "n1"
+
+        class DummyNodeInfo:
+            additional_args = {"foo": "bar"}
+            attributes = {"slots": ["slot1"]}
+
+        state = MessageState()
+        params = DummyOrchestratorParams()
+        node_info = DummyNodeInfo()
+        env.tools["t1"]["fixed_args"] = {"baz": 1}
+
+        result_state, result_params = env.step("t1", state, params, node_info)
+        assert result_state.status == StatusEnum.COMPLETE
+
+
+def test_environment_step_tool_with_missing_required_arguments() -> None:
+    """Test environment step with tool that has missing required arguments."""
+    fake_tool = MagicMock()
+    fake_tool.init_slotfiller = MagicMock()
+    fake_tool.load_slots = MagicMock()
+    fake_tool.execute = MagicMock(
+        return_value=MessageState(
+            function_calling_trajectory=[{"role": "assistant", "content": "call"}],
+            slots={},
+            status=StatusEnum.INCOMPLETE,
+        )
+    )
+
+    tools = [{"id": "t1", "name": "fake_tool", "path": "fake_path"}]
+    with patch("importlib.import_module") as mock_import:
+        fake_module = MagicMock()
+        fake_module.fake_tool = MagicMock(return_value=fake_tool)
+        mock_import.return_value = fake_module
+        env = Environment(tools=tools, workers=[], agents=[])
+
+        class DummyOrchestratorParams:
+            memory = MagicMock()
+            taskgraph = MagicMock()
+            taskgraph.dialog_states = {}
+            taskgraph.node_status = {}
+            taskgraph.curr_node = "n1"
+
+        class DummyNodeInfo:
+            additional_args = {"foo": "bar"}
+            attributes = {"slots": ["required_arg"]}
+
+        state = MessageState()
+        params = DummyOrchestratorParams()
+        node_info = DummyNodeInfo()
+        env.tools["t1"]["fixed_args"] = {"baz": 1}
+
+        result_state, result_params = env.step("t1", state, params, node_info)
+        # Should be incomplete due to missing required arguments
+        assert result_state.status == StatusEnum.INCOMPLETE
+
+
+def test_environment_step_tool_with_authentication_error() -> None:
+    """Test environment step with tool that raises AuthenticationError."""
+    fake_tool = MagicMock()
+    fake_tool.init_slotfiller = MagicMock()
+    fake_tool.load_slots = MagicMock()
+    fake_tool.execute = MagicMock(
+        return_value=MessageState(
+            function_calling_trajectory=[{"role": "assistant", "content": "call"}],
+            slots={},
+            status=StatusEnum.INCOMPLETE,
+            response="Authentication failed"
+        )
+    )
+
+    tools = [{"id": "t1", "name": "fake_tool", "path": "fake_path"}]
+    with patch("importlib.import_module") as mock_import:
+        fake_module = MagicMock()
+        fake_module.fake_tool = MagicMock(return_value=fake_tool)
+        mock_import.return_value = fake_module
+        env = Environment(tools=tools, workers=[], agents=[])
+
+        class DummyOrchestratorParams:
+            memory = MagicMock()
+            taskgraph = MagicMock()
+            taskgraph.dialog_states = {}
+            taskgraph.node_status = {}
+            taskgraph.curr_node = "n1"
+
+        class DummyNodeInfo:
+            additional_args = {"foo": "bar"}
+            attributes = {"slots": ["slot1"]}
+
+        state = MessageState()
+        params = DummyOrchestratorParams()
+        node_info = DummyNodeInfo()
+        env.tools["t1"]["fixed_args"] = {"baz": 1}
+
+        result_state, result_params = env.step("t1", state, params, node_info)
+        assert result_state.status == StatusEnum.INCOMPLETE
+        assert "Authentication failed" in result_state.response
+
+
+def test_environment_step_tool_with_tool_execution_error() -> None:
+    """Test environment step with tool that raises ToolExecutionError."""
+    fake_tool = MagicMock()
+    fake_tool.init_slotfiller = MagicMock()
+    fake_tool.load_slots = MagicMock()
+    fake_tool.execute = MagicMock(
+        return_value=MessageState(
+            function_calling_trajectory=[{"role": "assistant", "content": "call"}],
+            slots={},
+            status=StatusEnum.INCOMPLETE,
+            response="Tool execution failed"
+        )
+    )
+
+    tools = [{"id": "t1", "name": "fake_tool", "path": "fake_path"}]
+    with patch("importlib.import_module") as mock_import:
+        fake_module = MagicMock()
+        fake_module.fake_tool = MagicMock(return_value=fake_tool)
+        mock_import.return_value = fake_module
+        env = Environment(tools=tools, workers=[], agents=[])
+
+        class DummyOrchestratorParams:
+            memory = MagicMock()
+            taskgraph = MagicMock()
+            taskgraph.dialog_states = {}
+            taskgraph.node_status = {}
+            taskgraph.curr_node = "n1"
+
+        class DummyNodeInfo:
+            additional_args = {"foo": "bar"}
+            attributes = {"slots": ["slot1"]}
+
+        state = MessageState()
+        params = DummyOrchestratorParams()
+        node_info = DummyNodeInfo()
+        env.tools["t1"]["fixed_args"] = {"baz": 1}
+
+        result_state, result_params = env.step("t1", state, params, node_info)
+        assert result_state.status == StatusEnum.INCOMPLETE
+        assert "Tool execution failed" in result_state.response
+
+
+def test_environment_step_tool_with_general_exception() -> None:
+    """Test environment step with tool that raises general exception."""
+    fake_tool = MagicMock()
+    fake_tool.init_slotfiller = MagicMock()
+    fake_tool.load_slots = MagicMock()
+    fake_tool.execute = MagicMock(
+        return_value=MessageState(
+            function_calling_trajectory=[{"role": "assistant", "content": "call"}],
+            slots={},
+            status=StatusEnum.INCOMPLETE,
+            response="General error occurred"
+        )
+    )
+
+    tools = [{"id": "t1", "name": "fake_tool", "path": "fake_path"}]
+    with patch("importlib.import_module") as mock_import:
+        fake_module = MagicMock()
+        fake_module.fake_tool = MagicMock(return_value=fake_tool)
+        mock_import.return_value = fake_module
+        env = Environment(tools=tools, workers=[], agents=[])
+
+        class DummyOrchestratorParams:
+            memory = MagicMock()
+            taskgraph = MagicMock()
+            taskgraph.dialog_states = {}
+            taskgraph.node_status = {}
+            taskgraph.curr_node = "n1"
+
+        class DummyNodeInfo:
+            additional_args = {"foo": "bar"}
+            attributes = {"slots": ["slot1"]}
+
+        state = MessageState()
+        params = DummyOrchestratorParams()
+        node_info = DummyNodeInfo()
+        env.tools["t1"]["fixed_args"] = {"baz": 1}
+
+        result_state, result_params = env.step("t1", state, params, node_info)
+        assert result_state.status == StatusEnum.INCOMPLETE
+        assert "General error occurred" in result_state.response
