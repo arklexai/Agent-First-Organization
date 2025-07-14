@@ -591,7 +591,7 @@ Answer with only 'yes' or 'no'"""
             if can_skip:
                 params = self.post_process_node(node_info, params, {"is_skipped": True})
                 continue
-            # log_context.info(f"The current node info is : {node_info}")
+            log_context.info(f"The current node info is : {node_info}")
 
             # handle direct node
             is_direct_node, direct_response, params = self.handl_direct_node(
