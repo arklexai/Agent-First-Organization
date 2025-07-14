@@ -20,28 +20,28 @@ class TestReplacePlaceholders:
     def test_replace_placeholders_dict(self) -> None:
         """Test placeholder replacement in dictionaries."""
         data = {"name": "{{user_name}}", "age": "{{user_age}}"}
-        slot_map = {"user_name": "John", "user_age": "30"}
+        slot_map = {"user_name": {"value": "John"}, "user_age": {"value": "30"}}
         result = replace_placeholders(data, slot_map)
         assert result == {"name": "John", "age": "30"}
 
     def test_replace_placeholders_list(self) -> None:
         """Test placeholder replacement in lists."""
         data = ["{{user_name}}", "{{user_age}}"]
-        slot_map = {"user_name": "John", "user_age": "30"}
+        slot_map = {"user_name": {"value": "John"}, "user_age": {"value": "30"}}
         result = replace_placeholders(data, slot_map)
         assert result == ["John", "30"]
 
     def test_replace_placeholders_string_full_placeholder(self) -> None:
         """Test placeholder replacement for full string placeholders."""
         data = "{{user_name}}"
-        slot_map = {"user_name": "John"}
+        slot_map = {"user_name": {"value": "John"}}
         result = replace_placeholders(data, slot_map)
         assert result == "John"
 
     def test_replace_placeholders_string_partial_placeholder(self) -> None:
         """Test placeholder replacement for partial string placeholders."""
         data = "Hello {{user_name}}, you are {{user_age}} years old"
-        slot_map = {"user_name": "John", "user_age": "30"}
+        slot_map = {"user_name": {"value": "John"}, "user_age": {"value": "30"}}
         result = replace_placeholders(data, slot_map)
         assert result == "Hello John, you are 30 years old"
 
@@ -50,21 +50,20 @@ class TestReplacePlaceholders:
         data = "{{user_name}}"
         slot_map = {}
         result = replace_placeholders(data, slot_map)
-        assert result is None
+        assert result == ""
 
     def test_replace_placeholders_none_value(self) -> None:
         """Test placeholder replacement with None value."""
         data = "{{user_name}}"
-        slot_map = {"user_name": None}
+        slot_map = {"user_name": {"value": None}}
         result = replace_placeholders(data, slot_map)
-        assert result is None
+        assert result == ""
 
     def test_replace_placeholders_non_string(self) -> None:
         """Test placeholder replacement with non-string values."""
         data = {"count": "{{count}}", "active": "{{active}}"}
-        slot_map = {"count": 42, "active": True}
+        slot_map = {"count": {"value": 42}, "active": {"value": True}}
         result = replace_placeholders(data, slot_map)
-        # The actual implementation returns the original values, not converted to strings
         assert result == {"count": 42, "active": True}
 
     def test_replace_placeholders_nested_dict(self) -> None:
@@ -73,7 +72,7 @@ class TestReplacePlaceholders:
             "user": {"name": "{{user_name}}", "age": "{{user_age}}"},
             "settings": {"theme": "{{theme}}"},
         }
-        slot_map = {"user_name": "John", "user_age": "30", "theme": "dark"}
+        slot_map = {"user_name": {"value": "John"}, "user_age": {"value": "30"}, "theme": {"value": "dark"}}
         result = replace_placeholders(data, slot_map)
         expected = {
             "user": {"name": "John", "age": "30"},
@@ -179,10 +178,10 @@ class TestHTTPTool:
         )
 
         assert "success" in result
-        # Verify that placeholder params were removed
+        # Verify that placeholder params were set to empty string
         mock_request.assert_called_once()
         call_args = mock_request.call_args
-        assert "optional" not in call_args[1]["params"]
+        assert call_args[1]["params"]["optional"] == ""
 
     @patch("requests.request")
     def test_http_tool_remove_placeholder_body(self, mock_request: Mock) -> None:
@@ -201,10 +200,10 @@ class TestHTTPTool:
         )
 
         assert "success" in result
-        # Verify that placeholder body fields were removed
+        # Verify that placeholder body fields were set to empty string
         mock_request.assert_called_once()
         call_args = mock_request.call_args
-        assert "optional" not in call_args[1]["json"]
+        assert call_args[1]["json"]["optional"] == ""
 
     @patch("requests.request")
     def test_http_tool_request_exception(self, mock_request: Mock) -> None:

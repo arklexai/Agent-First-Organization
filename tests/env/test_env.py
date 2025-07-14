@@ -1097,7 +1097,7 @@ def test_environment_step_tool_with_attributes_and_slots() -> None:
 
         # Verify tool methods were called correctly
         fake_tool.init_slotfiller.assert_called_once_with(env.slotfillapi)
-        fake_tool.load_slots.assert_called_once_with({"slots": ["slot1", "slot2"]})
+        fake_tool.load_slots.assert_called_once_with(["slot1", "slot2"])
 
 
 def test_environment_step_tool_with_none_additional_args() -> None:
