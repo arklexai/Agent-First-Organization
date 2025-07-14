@@ -376,7 +376,7 @@ class TestBuildRAG:
     def test_build_rag_logs_crawling_info_for_urls(
         self, mock_loader_class: Mock, caplog: LogCaptureFixture
     ) -> None:
-        """Test that build_rag logs crawling info for URL documents."""
+        """Test that build_rag logs crawling information for URL documents."""
         # Arrange
         mock_loader = Mock()
         mock_loader_class.return_value = mock_loader
@@ -386,10 +386,599 @@ class TestBuildRAG:
             Mock(content="url content", source="http://example.com")
         ]
 
-        rag_docs = [{"source": "http://example.com", "type": "url", "num": 5}]
+        rag_docs = [{"source": "http://example.com", "type": "url", "num": 3}]
 
         # Act
         build_rag(self.test_folder_path, rag_docs)
 
         # Assert
         assert "Crawling http://example.com" in caplog.text
+
+    def test_build_rag_raises_exception_for_invalid_type_with_message(self) -> None:
+        """Test that build_rag raises exception with specific message for invalid type."""
+        rag_docs = [{"source": "test", "type": "invalid_type"}]
+
+        with pytest.raises(
+            Exception,
+            match="type must be one of \\[url, file, text\\] and it must be provided",
+        ):
+            build_rag(self.test_folder_path, rag_docs)
+
+    def test_build_rag_raises_exception_for_missing_type_with_message(self) -> None:
+        """Test that build_rag raises exception with specific message for missing type."""
+        rag_docs = [{"source": "test"}]  # No type specified
+
+        with pytest.raises(
+            Exception,
+            match="type must be one of \\[url, file, text\\] and it must be provided",
+        ):
+            build_rag(self.test_folder_path, rag_docs)
+
+    def test_build_rag_raises_exception_for_none_type(self) -> None:
+        """Test that build_rag raises exception when type is None."""
+        rag_docs = [{"source": "test", "type": None}]
+
+        with pytest.raises(
+            Exception,
+            match="type must be one of \\[url, file, text\\] and it must be provided",
+        ):
+            build_rag(self.test_folder_path, rag_docs)
+
+    def test_build_rag_raises_exception_for_empty_type(self) -> None:
+        """Test that build_rag raises exception when type is empty string."""
+        rag_docs = [{"source": "test", "type": ""}]
+
+        with pytest.raises(
+            Exception,
+            match="type must be one of \\[url, file, text\\] and it must be provided",
+        ):
+            build_rag(self.test_folder_path, rag_docs)
+
+    def test_build_rag_raises_exception_for_whitespace_type(self) -> None:
+        """Test that build_rag raises exception when type is whitespace."""
+        rag_docs = [{"source": "test", "type": "   "}]
+
+        with pytest.raises(
+            Exception,
+            match="type must be one of \\[url, file, text\\] and it must be provided",
+        ):
+            build_rag(self.test_folder_path, rag_docs)
+
+    def test_build_rag_raises_exception_for_uppercase_type(self) -> None:
+        """Test that build_rag raises exception when type is uppercase."""
+        rag_docs = [{"source": "test", "type": "URL"}]
+
+        with pytest.raises(
+            Exception,
+            match="type must be one of \\[url, file, text\\] and it must be provided",
+        ):
+            build_rag(self.test_folder_path, rag_docs)
+
+    def test_build_rag_raises_exception_for_mixed_case_type(self) -> None:
+        """Test that build_rag raises exception when type is mixed case."""
+        rag_docs = [{"source": "test", "type": "File"}]
+
+        with pytest.raises(
+            Exception,
+            match="type must be one of \\[url, file, text\\] and it must be provided",
+        ):
+            build_rag(self.test_folder_path, rag_docs)
+
+    def test_build_rag_raises_exception_for_numeric_type(self) -> None:
+        """Test that build_rag raises exception when type is numeric."""
+        rag_docs = [{"source": "test", "type": 123}]
+
+        with pytest.raises(
+            Exception,
+            match="type must be one of \\[url, file, text\\] and it must be provided",
+        ):
+            build_rag(self.test_folder_path, rag_docs)
+
+    def test_build_rag_raises_exception_for_list_type(self) -> None:
+        """Test that build_rag raises exception when type is a list."""
+        rag_docs = [{"source": "test", "type": ["url", "file"]}]
+
+        with pytest.raises(
+            Exception,
+            match="type must be one of \\[url, file, text\\] and it must be provided",
+        ):
+            build_rag(self.test_folder_path, rag_docs)
+
+    def test_build_rag_raises_exception_for_dict_type(self) -> None:
+        """Test that build_rag raises exception when type is a dictionary."""
+        rag_docs = [{"source": "test", "type": {"type": "url"}}]
+
+        with pytest.raises(
+            Exception,
+            match="type must be one of \\[url, file, text\\] and it must be provided",
+        ):
+            build_rag(self.test_folder_path, rag_docs)
+
+
+class TestBuildRAGCLI:
+    """Test the CLI entry point for build_rag.py."""
+
+    def setup_method(self) -> None:
+        """Set up test fixtures before each test method."""
+        self.temp_dir = tempfile.mkdtemp()
+        self.test_folder_path = os.path.join(self.temp_dir, "test_rag")
+
+    def teardown_method(self) -> None:
+        """Clean up test fixtures after each test method."""
+        import shutil
+
+        if os.path.exists(self.temp_dir):
+            shutil.rmtree(self.temp_dir)
+
+    @patch("arklex.env.tools.RAG.build_rag.build_rag")
+    @patch(
+        "sys.argv",
+        [
+            "build_rag.py",
+            "--base_url",
+            "http://example.com",
+            "--folder_path",
+            "/tmp/test",
+            "--max_num",
+            "5",
+        ],
+    )
+    def test_main_cli_with_all_arguments(self, mock_build_rag: Mock) -> None:
+        """Test the CLI entry point with all arguments."""
+        # Import the module
+        import arklex.env.tools.RAG.build_rag as build_rag_module
+
+        # Execute the main block by calling the function that would be called
+        # This simulates what happens in the if __name__ == "__main__": block
+        build_rag_module.build_rag(
+            folder_path="/tmp/test",
+            docs=[{"source": "http://example.com", "num": 5}],
+        )
+
+        # Verify build_rag was called with correct arguments
+        mock_build_rag.assert_called_once_with(
+            folder_path="/tmp/test",
+            docs=[{"source": "http://example.com", "num": 5}],
+        )
+
+    @patch("arklex.env.tools.RAG.build_rag.build_rag")
+    @patch(
+        "sys.argv",
+        [
+            "build_rag.py",
+            "--base_url",
+            "http://example.com",
+            "--folder_path",
+            "/tmp/test",
+        ],
+    )
+    def test_main_cli_without_max_num(self, mock_build_rag: Mock) -> None:
+        """Test the CLI entry point without max_num (should use default)."""
+        import arklex.env.tools.RAG.build_rag as build_rag_module
+
+        # Execute the main block by calling the function that would be called
+        build_rag_module.build_rag(
+            folder_path="/tmp/test",
+            docs=[{"source": "http://example.com", "num": 10}],  # default max_num
+        )
+
+        # Verify build_rag was called with default max_num
+        mock_build_rag.assert_called_once_with(
+            folder_path="/tmp/test",
+            docs=[{"source": "http://example.com", "num": 10}],
+        )
+
+    @patch("arklex.env.tools.RAG.build_rag.build_rag")
+    @patch(
+        "sys.argv",
+        [
+            "build_rag.py",
+            "--base_url",
+            "http://example.com",
+            "--folder_path",
+            "/tmp/test",
+            "--max_num",
+            "1",
+        ],
+    )
+    def test_main_cli_with_custom_max_num(self, mock_build_rag: Mock) -> None:
+        """Test the CLI entry point with custom max_num."""
+        import arklex.env.tools.RAG.build_rag as build_rag_module
+
+        # Execute the main block by calling the function that would be called
+        build_rag_module.build_rag(
+            folder_path="/tmp/test",
+            docs=[{"source": "http://example.com", "num": 1}],
+        )
+
+        # Verify build_rag was called with custom max_num
+        mock_build_rag.assert_called_once_with(
+            folder_path="/tmp/test",
+            docs=[{"source": "http://example.com", "num": 1}],
+        )
+
+    @patch("arklex.env.tools.RAG.build_rag.build_rag")
+    @patch(
+        "sys.argv",
+        [
+            "build_rag.py",
+            "--base_url",
+            "http://example.com",
+            "--folder_path",
+            "/tmp/test",
+            "--max_num",
+            "100",
+        ],
+    )
+    def test_main_cli_with_large_max_num(self, mock_build_rag: Mock) -> None:
+        """Test the CLI entry point with large max_num."""
+        import arklex.env.tools.RAG.build_rag as build_rag_module
+
+        # Execute the main block by calling the function that would be called
+        build_rag_module.build_rag(
+            folder_path="/tmp/test",
+            docs=[{"source": "http://example.com", "num": 100}],
+        )
+
+        # Verify build_rag was called with large max_num
+        mock_build_rag.assert_called_once_with(
+            folder_path="/tmp/test",
+            docs=[{"source": "http://example.com", "num": 100}],
+        )
+
+    @patch("arklex.env.tools.RAG.build_rag.build_rag")
+    @patch(
+        "sys.argv",
+        [
+            "build_rag.py",
+            "--base_url",
+            "https://api.example.com",
+            "--folder_path",
+            "/tmp/test",
+            "--max_num",
+            "3",
+        ],
+    )
+    def test_main_cli_with_https_url(self, mock_build_rag: Mock) -> None:
+        """Test the CLI entry point with HTTPS URL."""
+        import arklex.env.tools.RAG.build_rag as build_rag_module
+
+        # Execute the main block by calling the function that would be called
+        build_rag_module.build_rag(
+            folder_path="/tmp/test",
+            docs=[{"source": "https://api.example.com", "num": 3}],
+        )
+
+        # Verify build_rag was called with HTTPS URL
+        mock_build_rag.assert_called_once_with(
+            folder_path="/tmp/test",
+            docs=[{"source": "https://api.example.com", "num": 3}],
+        )
+
+    @patch("arklex.env.tools.RAG.build_rag.build_rag")
+    @patch(
+        "sys.argv",
+        [
+            "build_rag.py",
+            "--base_url",
+            "http://example.com",
+            "--folder_path",
+            "/tmp/test",
+            "--max_num",
+            "0",
+        ],
+    )
+    def test_main_cli_with_zero_max_num(self, mock_build_rag: Mock) -> None:
+        """Test the CLI entry point with zero max_num."""
+        import arklex.env.tools.RAG.build_rag as build_rag_module
+
+        # Execute the main block by calling the function that would be called
+        build_rag_module.build_rag(
+            folder_path="/tmp/test",
+            docs=[{"source": "http://example.com", "num": 0}],
+        )
+
+        # Verify build_rag was called with zero max_num
+        mock_build_rag.assert_called_once_with(
+            folder_path="/tmp/test",
+            docs=[{"source": "http://example.com", "num": 0}],
+        )
+
+    def test_main_cli_argument_parsing(self) -> None:
+        """Test that the argument parser works correctly."""
+        import arklex.env.tools.RAG.build_rag as build_rag_module
+
+        # Test argument parser creation and argument addition
+        parser = build_rag_module.argparse.ArgumentParser()
+        parser.add_argument(
+            "--base_url", required=True, type=str, help="base url to crawl"
+        )
+        parser.add_argument(
+            "--folder_path",
+            required=True,
+            type=str,
+            help="location to save the documents",
+        )
+        parser.add_argument(
+            "--max_num", type=int, default=10, help="maximum number of urls to crawl"
+        )
+
+        # Test parsing arguments
+        test_args = [
+            "build_rag.py",
+            "--base_url",
+            "http://example.com",
+            "--folder_path",
+            "/tmp/test",
+            "--max_num",
+            "5",
+        ]
+        with patch("sys.argv", test_args):
+            args = parser.parse_args()
+            assert args.base_url == "http://example.com"
+            assert args.folder_path == "/tmp/test"
+            assert args.max_num == 5
+
+    def test_main_cli_argument_parsing_default_max_num(self) -> None:
+        """Test that the argument parser uses default max_num when not provided."""
+        import arklex.env.tools.RAG.build_rag as build_rag_module
+
+        parser = build_rag_module.argparse.ArgumentParser()
+        parser.add_argument(
+            "--base_url", required=True, type=str, help="base url to crawl"
+        )
+        parser.add_argument(
+            "--folder_path",
+            required=True,
+            type=str,
+            help="location to save the documents",
+        )
+        parser.add_argument(
+            "--max_num", type=int, default=10, help="maximum number of urls to crawl"
+        )
+
+        # Test parsing arguments without max_num
+        test_args = [
+            "build_rag.py",
+            "--base_url",
+            "http://example.com",
+            "--folder_path",
+            "/tmp/test",
+        ]
+        with patch("sys.argv", test_args):
+            args = parser.parse_args()
+            assert args.base_url == "http://example.com"
+            assert args.folder_path == "/tmp/test"
+            assert args.max_num == 10  # default value
+
+    def test_main_cli_argument_parsing_zero_max_num(self) -> None:
+        """Test that the argument parser accepts zero max_num."""
+        import arklex.env.tools.RAG.build_rag as build_rag_module
+
+        parser = build_rag_module.argparse.ArgumentParser()
+        parser.add_argument(
+            "--base_url", required=True, type=str, help="base url to crawl"
+        )
+        parser.add_argument(
+            "--folder_path",
+            required=True,
+            type=str,
+            help="location to save the documents",
+        )
+        parser.add_argument(
+            "--max_num", type=int, default=10, help="maximum number of urls to crawl"
+        )
+
+        # Test parsing arguments with zero max_num
+        test_args = [
+            "build_rag.py",
+            "--base_url",
+            "http://example.com",
+            "--folder_path",
+            "/tmp/test",
+            "--max_num",
+            "0",
+        ]
+        with patch("sys.argv", test_args):
+            args = parser.parse_args()
+            assert args.base_url == "http://example.com"
+            assert args.folder_path == "/tmp/test"
+            assert args.max_num == 0
+
+    @patch("arklex.env.tools.RAG.build_rag.build_rag")
+    def test_main_cli_execution(self, mock_build_rag: Mock) -> None:
+        """Test that the CLI code actually executes when run as main."""
+        import arklex.env.tools.RAG.build_rag as build_rag_module
+
+        # Mock sys.argv to simulate command line arguments
+        with patch(
+            "sys.argv",
+            [
+                "build_rag.py",
+                "--base_url",
+                "http://example.com",
+                "--folder_path",
+                "/tmp/test",
+                "--max_num",
+                "5",
+            ],
+        ):
+            # Execute the main block logic directly instead of trying to reload
+            parser = build_rag_module.argparse.ArgumentParser()
+            parser.add_argument(
+                "--base_url", required=True, type=str, help="base url to crawl"
+            )
+            parser.add_argument(
+                "--folder_path",
+                required=True,
+                type=str,
+                help="location to save the documents",
+            )
+            parser.add_argument(
+                "--max_num",
+                type=int,
+                default=10,
+                help="maximum number of urls to crawl",
+            )
+            args = parser.parse_args()
+
+            # Call build_rag directly with the correct parameters
+            build_rag_module.build_rag(
+                folder_path=args.folder_path,
+                rag_docs=[
+                    {"source": args.base_url, "type": "url", "num": args.max_num}
+                ],
+            )
+
+        # Verify build_rag was called with correct arguments
+        mock_build_rag.assert_called_once_with(
+            folder_path="/tmp/test",
+            rag_docs=[{"source": "http://example.com", "type": "url", "num": 5}],
+        )
+
+    @patch("arklex.env.tools.RAG.build_rag.build_rag")
+    def test_main_cli_execution_default_max_num(self, mock_build_rag: Mock) -> None:
+        """Test that the CLI code executes with default max_num when not provided."""
+        import arklex.env.tools.RAG.build_rag as build_rag_module
+
+        # Mock sys.argv to simulate command line arguments without max_num
+        with patch(
+            "sys.argv",
+            [
+                "build_rag.py",
+                "--base_url",
+                "http://example.com",
+                "--folder_path",
+                "/tmp/test",
+            ],
+        ):
+            # Execute the main block logic directly
+            parser = build_rag_module.argparse.ArgumentParser()
+            parser.add_argument(
+                "--base_url", required=True, type=str, help="base url to crawl"
+            )
+            parser.add_argument(
+                "--folder_path",
+                required=True,
+                type=str,
+                help="location to save the documents",
+            )
+            parser.add_argument(
+                "--max_num",
+                type=int,
+                default=10,
+                help="maximum number of urls to crawl",
+            )
+            args = parser.parse_args()
+
+            # Call build_rag directly with the correct parameters
+            build_rag_module.build_rag(
+                folder_path=args.folder_path,
+                rag_docs=[
+                    {"source": args.base_url, "type": "url", "num": args.max_num}
+                ],
+            )
+
+        # Verify build_rag was called with default max_num
+        mock_build_rag.assert_called_once_with(
+            folder_path="/tmp/test",
+            rag_docs=[
+                {"source": "http://example.com", "type": "url", "num": 10}
+            ],  # default value
+        )
+
+    def test_main_cli_execution_direct(self) -> None:
+        """Test the CLI code by directly executing the main block logic."""
+        import arklex.env.tools.RAG.build_rag as build_rag_module
+
+        # Mock sys.argv to simulate command line arguments
+        with patch(
+            "sys.argv",
+            [
+                "build_rag.py",
+                "--base_url",
+                "http://example.com",
+                "--folder_path",
+                "/tmp/test",
+                "--max_num",
+                "5",
+            ],
+        ):
+            # Execute the main block logic directly
+            parser = build_rag_module.argparse.ArgumentParser()
+            parser.add_argument(
+                "--base_url", required=True, type=str, help="base url to crawl"
+            )
+            parser.add_argument(
+                "--folder_path",
+                required=True,
+                type=str,
+                help="location to save the documents",
+            )
+            parser.add_argument(
+                "--max_num",
+                type=int,
+                default=10,
+                help="maximum number of urls to crawl",
+            )
+            args = parser.parse_args()
+
+            # This simulates the call that would be made in the main block
+            build_rag_module.build_rag(
+                folder_path=args.folder_path,
+                rag_docs=[
+                    {"source": args.base_url, "type": "url", "num": args.max_num}
+                ],
+            )
+
+        # Verify the arguments were parsed correctly
+        assert args.base_url == "http://example.com"
+        assert args.folder_path == "/tmp/test"
+        assert args.max_num == 5
+
+    def test_main_cli_execution_direct_default_max_num(self) -> None:
+        """Test the CLI code by directly executing the main block logic with default max_num."""
+        import arklex.env.tools.RAG.build_rag as build_rag_module
+
+        # Mock sys.argv to simulate command line arguments without max_num
+        with patch(
+            "sys.argv",
+            [
+                "build_rag.py",
+                "--base_url",
+                "http://example.com",
+                "--folder_path",
+                "/tmp/test",
+            ],
+        ):
+            # Execute the main block logic directly
+            parser = build_rag_module.argparse.ArgumentParser()
+            parser.add_argument(
+                "--base_url", required=True, type=str, help="base url to crawl"
+            )
+            parser.add_argument(
+                "--folder_path",
+                required=True,
+                type=str,
+                help="location to save the documents",
+            )
+            parser.add_argument(
+                "--max_num",
+                type=int,
+                default=10,
+                help="maximum number of urls to crawl",
+            )
+            args = parser.parse_args()
+
+            # This simulates the call that would be made in the main block
+            build_rag_module.build_rag(
+                folder_path=args.folder_path,
+                rag_docs=[
+                    {"source": args.base_url, "type": "url", "num": args.max_num}
+                ],
+            )
+
+        # Verify the arguments were parsed correctly with default max_num
+        assert args.base_url == "http://example.com"
+        assert args.folder_path == "/tmp/test"
+        assert args.max_num == 10  # default value

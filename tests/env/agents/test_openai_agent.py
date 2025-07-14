@@ -37,7 +37,9 @@ def mock_tools() -> dict:
         "type": "function",
         "function": {"name": "mock_tool", "description": "Mock tool", "parameters": {}},
     }
-    tool_object.func = Mock(return_value="tool result")
+    tool_func = Mock(return_value="tool result")
+    tool_func.__name__ = "mock_tool"
+    tool_object.func = tool_func
 
     return {
         "mock_tool_id": {
@@ -52,6 +54,9 @@ def mock_nodes() -> list:
     """Create mock nodes for testing."""
     node = Mock()
     node.resource_id = "mock_tool_id"
+    node.type = "tool"
+    node.attributes = {}
+    node.additional_args = {}
     return [node]
 
 
@@ -75,8 +80,8 @@ class TestOpenAIAgent:
         }
 
         agent = OpenAIAgent(
-            successors=mock_nodes,
-            predecessors=[],
+            successors=[],
+            predecessors=mock_nodes,
             tools=mock_tools,
             state=mock_state,
         )
@@ -371,8 +376,8 @@ class TestOpenAIAgent:
     ) -> None:
         """Test _load_tools method."""
         agent = OpenAIAgent(
-            successors=mock_nodes,
-            predecessors=[],
+            successors=[],
+            predecessors=mock_nodes,
             tools=mock_tools,
             state=mock_state,
         )
@@ -416,8 +421,16 @@ class TestOpenAIAgent:
             state=mock_state,
         )
 
+        # Manually add tool to test configure
+        mock_node = Mock()
+        mock_node.attributes = {}
+        mock_node.additional_args = {}
+        agent.available_tools["test_tool_id"] = (mock_tools["mock_tool_id"], mock_node)
         agent._configure_tools()
 
+        assert "test_tool_id" in agent.tool_map
+        assert "test_tool_id" in agent.tool_args
+        assert agent.tool_map["test_tool_id"].__name__ == "mock_tool"
         assert "end_conversation" in agent.tool_map
 
     def test_configure_tools_empty(self, mock_state: Mock) -> None:
@@ -432,6 +445,77 @@ class TestOpenAIAgent:
         agent._configure_tools()
 
         assert "end_conversation" in agent.tool_map
+
+    @patch("arklex.env.agents.openai_agent.load_prompts")
+    @patch("arklex.env.agents.openai_agent.trace")
+    def test_generate_adds_prompt_if_not_in_trajectory(
+        self,
+        mock_trace,  # noqa: ANN001
+        mock_load_prompts,  # noqa: ANN001
+        mock_state,  # noqa: ANN001
+    ) -> None:
+        """Test that the prompt is appended if not already present in trajectory."""
+        mock_load_prompts.return_value = {
+            "function_calling_agent_prompt": "Test: {sys_instruct} {message}"
+        }
+        mock_trace.return_value = mock_state
+        mock_state.function_calling_trajectory = []
+
+        agent = OpenAIAgent(
+            successors=[],
+            predecessors=[],
+            tools={},
+            state=mock_state,
+        )
+
+        mock_ai_message = Mock()
+        mock_ai_message.content = "Test response"
+        mock_ai_message.tool_calls = None
+        agent.llm = Mock()
+        agent.llm.invoke.return_value = mock_ai_message
+        agent.prompt = ""
+
+        _result = agent.generate(mock_state)
+        # Should have appended the prompt
+        assert len(mock_state.function_calling_trajectory) == 1
+        assert mock_state.function_calling_trajectory[0]["content"].startswith("Test:")
+
+    @patch("arklex.env.agents.openai_agent.load_prompts")
+    @patch("arklex.env.agents.openai_agent.trace")
+    def test_generate_does_not_add_duplicate_prompt(
+        self,
+        mock_trace,  # noqa: ANN001
+        mock_load_prompts,  # noqa: ANN001
+        mock_state,  # noqa: ANN001
+    ) -> None:
+        """Test that the prompt is NOT appended if already present in trajectory."""
+        mock_load_prompts.return_value = {
+            "function_calling_agent_prompt": "Test: {sys_instruct} {message}"
+        }
+        mock_trace.return_value = mock_state
+        # Add a message to trajectory that matches the prompt
+        mock_state.function_calling_trajectory = [
+            {"content": "Test: System instructions User message"}
+        ]
+
+        agent = OpenAIAgent(
+            successors=[],
+            predecessors=[],
+            tools={},
+            state=mock_state,
+        )
+
+        mock_ai_message = Mock()
+        mock_ai_message.content = "Test response"
+        mock_ai_message.tool_calls = None
+        agent.llm = Mock()
+        agent.llm.invoke.return_value = mock_ai_message
+        agent.prompt = ""
+
+        initial_len = len(mock_state.function_calling_trajectory)
+        _result = agent.generate(mock_state)
+        # Should NOT have appended a duplicate
+        assert len(mock_state.function_calling_trajectory) == initial_len
 
 
 class TestEndConversation:

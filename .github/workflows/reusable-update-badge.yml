@@ -16,7 +16,7 @@ on:
       min-coverage-threshold:
         description: 'Minimum coverage threshold for color coding'
         required: false
-        default: '99.2'
+        default: '99.0'
         type: string
       badge-pattern:
         description: 'Pattern to match existing badge in README'

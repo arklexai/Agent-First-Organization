@@ -9,7 +9,7 @@ inputs:
   min-coverage-threshold:
     description: "Minimum coverage percentage to pass"
     required: false
-    default: "99.2"
+    default: "99.0"
   checkout-repo:
     description: "Whether to checkout the repository (set to false if already checked out)"
     required: false

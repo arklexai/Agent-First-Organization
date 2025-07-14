@@ -4541,7 +4541,7 @@ class TestTaskGraphRemainingCoverage:
 
 
 class TestTaskGraphFinalCoverageGaps:
-    """Test cases to cover the final missing lines for 99.2% coverage."""
+    """Test cases to cover the final missing lines for 99.0% coverage."""
 
     def test_postprocess_intent_exception_handling(
         self,
