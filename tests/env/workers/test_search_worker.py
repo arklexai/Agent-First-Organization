@@ -9,7 +9,7 @@ from unittest.mock import Mock
 
 import pytest
 
-from arklex.env.workers.search_worker import SearchWorker
+from arklex.env.workers.search.search_worker import SearchWorker
 from arklex.orchestrator.entities.orch_state_entities import MessageState
 from arklex.utils.exceptions import SearchError
 

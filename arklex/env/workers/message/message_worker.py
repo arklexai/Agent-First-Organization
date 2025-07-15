@@ -40,7 +40,7 @@ class MessageWorker(BaseWorker):
         self.msg_worker_data: MessageWorkerData = input_data
 
     def _format_prompt(self) -> dict[str, str]:
-        user_message = self.msg_worker_data.orch_state.user_message
+        user_message = self.msg_worker_data.user_message
         orch_message = self.msg_worker_data.node_message
         message_flow = self.msg_worker_data.message_flow
 
@@ -56,7 +56,7 @@ class MessageWorker(BaseWorker):
                 )
             input_prompt = prompt.invoke(
                 {
-                    "sys_instruct": self.msg_worker_data.orch_state.sys_instruct,
+                    "sys_instruct": self.msg_worker_data.sys_instruct,
                     "message": orch_message,
                     "formatted_chat": user_message.history,
                     "context": message_flow,
@@ -73,7 +73,7 @@ class MessageWorker(BaseWorker):
                 )
             input_prompt = prompt.invoke(
                 {
-                    "sys_instruct": self.msg_worker_data.orch_state.sys_instruct,
+                    "sys_instruct": self.msg_worker_data.sys_instruct,
                     "message": orch_message,
                     "formatted_chat": user_message.history,
                 }
@@ -107,10 +107,10 @@ class MessageWorker(BaseWorker):
 
         input_prompt = self._format_prompt()
         model_class = validate_and_get_model_class(
-            self.msg_worker_data.orch_state.bot_config.llm_config
+            self.msg_worker_data.bot_config.llm_config
         )
         self.llm: Any = model_class(
-            model=self.msg_worker_data.orch_state.bot_config.llm_config.model_type_or_path,
+            model=self.msg_worker_data.bot_config.llm_config.model_type_or_path,
             temperature=0.1,
         )
         if (

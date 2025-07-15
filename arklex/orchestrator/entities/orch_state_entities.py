@@ -309,9 +309,9 @@ class OrchestratorState(BaseModel):
     function_calling_trajectory: list[dict[str, Any]] | None = Field(default=None)
     trajectory: list[list[ResourceRecord]] | None = Field(default=None)
     # message flow between different nodes
-    # message_flow: str = Field(
-    #     description="message flow between different nodes", default=""
-    # )
+    message_flow: str = Field(
+        description="message flow between different nodes", default=""
+    )
     # final response
     # response: str = Field(default="")
     # task-related params

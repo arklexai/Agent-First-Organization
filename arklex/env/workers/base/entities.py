@@ -1,20 +1,14 @@
-from abc import ABC
-
-from pydantic import BaseModel
-
 from arklex.orchestrator.entities.orch_state_entities import (
     OrchestratorState,
     StatusEnum,
 )
 
 
-class WorkerData(ABC, BaseModel):
+class WorkerData(OrchestratorState):
     """Base class for worker data."""
 
-    orch_state: OrchestratorState
 
-
-class WorkerResp(ABC, BaseModel):
+class WorkerResp(OrchestratorState):
     """Base class for worker response."""
 
     response: str
