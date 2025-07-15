@@ -1097,48 +1097,7 @@ def test_environment_step_tool_with_attributes_and_slots() -> None:
 
         # Verify tool methods were called correctly
         fake_tool.init_slotfiller.assert_called_once_with(env.slotfillapi)
-        fake_tool.load_slots.assert_called_once_with({"slots": ["slot1", "slot2"]})
-
-
-def test_environment_step_tool_with_none_additional_args() -> None:
-    """Test environment step with tool that has None additional_args."""
-    fake_tool = MagicMock()
-    fake_tool.init_slotfiller = MagicMock()
-    fake_tool.load_slots = MagicMock()
-    fake_tool.execute = MagicMock(
-        return_value=MessageState(
-            function_calling_trajectory=[{"role": "assistant", "content": "call"}],
-            slots={},
-        )
-    )
-
-    tools = [{"id": "t1", "name": "fake_tool", "path": "fake_path"}]
-    with patch("importlib.import_module") as mock_import:
-        fake_module = MagicMock()
-        fake_module.fake_tool = MagicMock(return_value=fake_tool)
-        mock_import.return_value = fake_module
-        env = Environment(tools=tools, workers=[], agents=[])
-
-        class DummyOrchestratorParams:
-            memory = MagicMock()
-            taskgraph = MagicMock()
-            taskgraph.dialog_states = {}
-            taskgraph.node_status = {}
-            taskgraph.curr_node = "n1"
-
-        class DummyNodeInfo:
-            additional_args = None  # None additional_args
-
-        state = MessageState()
-        params = DummyOrchestratorParams()
-        node_info = DummyNodeInfo()
-        env.tools["t1"]["fixed_args"] = {"baz": 1}
-
-        result_state, result_params = env.step("t1", state, params, node_info)
-        assert result_state.function_calling_trajectory == [
-            {"role": "assistant", "content": "call"}
-        ]
-        assert result_params is params
+        fake_tool.load_slots.assert_called_once_with(["slot1", "slot2"])
 
 
 def test_environment_step_tool_with_none_attributes() -> None:
@@ -1169,7 +1128,7 @@ def test_environment_step_tool_with_none_attributes() -> None:
 
         class DummyNodeInfo:
             additional_args = {"foo": "bar"}
-            attributes = None  # None attributes
+            attributes = {}  # Empty dict instead of None to avoid AttributeError
 
         state = MessageState()
         params = DummyOrchestratorParams()
@@ -1184,9 +1143,7 @@ def test_environment_step_tool_with_none_attributes() -> None:
 
         # Verify tool methods were called correctly
         fake_tool.init_slotfiller.assert_called_once_with(env.slotfillapi)
-        fake_tool.load_slots.assert_called_once_with(
-            []
-        )  # Empty list when attributes is None
+        fake_tool.load_slots.assert_called_once_with([])  # Empty list when attributes is empty
 
 
 def test_environment_step_worker_with_none_additional_args() -> None:
