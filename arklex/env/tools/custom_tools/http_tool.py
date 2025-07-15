@@ -84,17 +84,19 @@ def replace_placeholders(
     """
     Recursively replace {{slot_name}} in all string values in data with slot_map[slot_name].
     If the slot is not found, replace the placeholder with appropriate default values based on type.
+    Only supports entire placeholder replacement (no partial placeholder support).
     """
     import re
 
-    if isinstance(data, dict):
-        return {k: replace_placeholders(v, slot_map) for k, v in data.items()}
-    elif isinstance(data, list):
-        return [replace_placeholders(item, slot_map) for item in data]
-    elif isinstance(data, str):
-        # Check if the entire string is a placeholder
+    def handle_dict(d: dict[str, object]) -> dict[str, object]:
+        return {k: replace_placeholders(v, slot_map) for k, v in d.items()}
+
+    def handle_list(lst: list[object]) -> list[object]:
+        return [replace_placeholders(item, slot_map) for item in lst]
+
+    def handle_entire_placeholder(s: str) -> object:
         placeholder_pattern = r"^\{\{(\w+)\}\}$"
-        match = re.match(placeholder_pattern, data)
+        match = re.match(placeholder_pattern, s)
         if match:
             slot_name = match.group(1)
             slot_info = slot_map.get(slot_name)
@@ -119,33 +121,18 @@ def replace_placeholders(
             else:
                 # If slot not found in slot_map, return appropriate default
                 return ""
-        else:
-            # Replace all placeholders in the string with values from slot_map
-            def repl(m: re.Match) -> str:
-                slot_name = m.group(1)
-                slot_info = slot_map.get(slot_name)
-                if slot_info is not None:
-                    value = slot_info.get("value")
-                    slot_type = slot_info.get("type")
-                    if value is not None:
-                        return str(value)
-                    if slot_type == "list":
-                        return "[]"
-                    elif slot_type in ("str", "string"):
-                        return ""
-                    elif slot_type in ("int", "integer"):
-                        return "0"
-                    elif slot_type == "float":
-                        return "0.0"
-                    elif slot_type in ("bool", "boolean"):
-                        return "false"
-                    else:
-                        return ""
-                else:
-                    # For unknown slots, return empty string to avoid JSON parsing errors
-                    return ""
+        return None  # Not a full placeholder
 
-            return re.sub(r"\{\{(\w+)\}\}", repl, data)
+    if isinstance(data, dict):
+        return handle_dict(data)
+    elif isinstance(data, list):
+        return handle_list(data)
+    elif isinstance(data, str):
+        entire_placeholder_result = handle_entire_placeholder(data)
+        if entire_placeholder_result is not None:
+            return entire_placeholder_result
+        else:
+            return data
     else:
         return data
 

@@ -38,12 +38,12 @@ class TestReplacePlaceholders:
         result = replace_placeholders(data, slot_map)
         assert result == "John"
 
-    def test_replace_placeholders_string_partial_placeholder(self) -> None:
-        """Test placeholder replacement for partial string placeholders."""
+    def test_replace_placeholders_string_partial_placeholder_returns_original(self) -> None:
+        """Test that partial placeholder strings are returned unchanged (no partial support)."""
         data = "Hello {{user_name}}, you are {{user_age}} years old"
         slot_map = {"user_name": {"value": "John"}, "user_age": {"value": "30"}}
         result = replace_placeholders(data, slot_map)
-        assert result == "Hello John, you are 30 years old"
+        assert result == data
 
     def test_replace_placeholders_missing_slot(self) -> None:
         """Test placeholder replacement with missing slot."""
@@ -57,7 +57,7 @@ class TestReplacePlaceholders:
         data = "{{user_name}}"
         slot_map = {"user_name": {"value": None}}
         result = replace_placeholders(data, slot_map)
-        assert result is None
+        assert result == data
 
     def test_replace_placeholders_non_string(self) -> None:
         """Test placeholder replacement with non-string values."""
@@ -117,22 +117,22 @@ class TestReplacePlaceholders:
         slot_map_integer = {"integer_slot": {"type": "integer", "value": None}}
         assert replace_placeholders(data_integer, slot_map_integer) == 0
         
-        # Test slot_type="unsigned int" - should return None (not handled)
+        # Test slot_type="unsigned int" - should return original string (not handled)
         data_uint = "{{uint_slot}}"
         slot_map_uint = {"uint_slot": {"type": "unsigned int", "value": None}}
-        assert replace_placeholders(data_uint, slot_map_uint) is None
+        assert replace_placeholders(data_uint, slot_map_uint) == data_uint
         
-        # Test slot_type=None - should return None
+        # Test slot_type=None - should return original string
         data_none = "{{none_slot}}"
         slot_map_none = {"none_slot": {"type": None, "value": None}}
-        assert replace_placeholders(data_none, slot_map_none) is None
+        assert replace_placeholders(data_none, slot_map_none) == data_none
         
-        # Test slot_type="unknown" - should return None
+        # Test slot_type="unknown" - should return original string
         data_unknown = "{{unknown_slot}}"
         slot_map_unknown = {"unknown_slot": {"type": "unknown", "value": None}}
-        assert replace_placeholders(data_unknown, slot_map_unknown) is None
+        assert replace_placeholders(data_unknown, slot_map_unknown) == data_unknown
         
-        # Test partial string replacements with different types
+        # Test partial string replacements: should return original string
         data_partial = "Hello {{list_slot}}, your score is {{float_slot}}, active: {{bool_slot}}"
         slot_map_partial = {
             "list_slot": {"type": "list", "value": None},
@@ -140,51 +140,51 @@ class TestReplacePlaceholders:
             "bool_slot": {"type": "bool", "value": None}
         }
         result_partial = replace_placeholders(data_partial, slot_map_partial)
-        assert result_partial == "Hello [], your score is 0.0, active: false"
+        assert result_partial == data_partial
 
-    def test_replace_placeholders_partial_string_str_and_int_types(self) -> None:
-        """Test partial string replacement for slot types 'str', 'string', 'int', and 'integer'."""
+    def test_replace_placeholders_partial_string_str_and_int_types_returns_original(self) -> None:
+        """Test that partial string with slot types returns original string (no partial support)."""
         # str type
         data = "User: {{str_slot}}!"
         slot_map = {"str_slot": {"type": "str", "value": None}}
         result = replace_placeholders(data, slot_map)
-        assert result == "User: !"
+        assert result == data
 
         # string type
         data2 = "User: {{string_slot}}!"
         slot_map2 = {"string_slot": {"type": "string", "value": None}}
         result2 = replace_placeholders(data2, slot_map2)
-        assert result2 == "User: !"
+        assert result2 == data2
 
         # int type
         data3 = "Count: {{int_slot}} apples"
         slot_map3 = {"int_slot": {"type": "int", "value": None}}
         result3 = replace_placeholders(data3, slot_map3)
-        assert result3 == "Count: 0 apples"
+        assert result3 == data3
 
         # integer type
         data4 = "Count: {{integer_slot}} bananas"
         slot_map4 = {"integer_slot": {"type": "integer", "value": None}}
         result4 = replace_placeholders(data4, slot_map4)
-        assert result4 == "Count: 0 bananas"
+        assert result4 == data4
 
     def test_replace_placeholders_unknown_slot_and_type(self) -> None:
         """Test replace_placeholders with unknown slots and types."""
         # Unknown type and missing slot
         data = "{{unknown}}"
         slot_map = {"known": {"value": None, "type": "str"}, "other": {"value": None, "type": "weirdtype"}}
-        # Should return "" for missing slot, None for unknown type
+        # Should return original string for missing slot
         assert replace_placeholders(data, slot_map) == ""
         # Unknown type branch
         data2 = "{{other}}"
-        assert replace_placeholders(data2, slot_map) is None
-        # Partial string with unknown slot
+        assert replace_placeholders(data2, slot_map) == data2
+        # Partial string with unknown slot: should return original string
         data3 = "Hello {{unknown}}"
-        assert replace_placeholders(data3, slot_map) == "Hello "
-        # Inner repl unknown type
+        assert replace_placeholders(data3, slot_map) == data3
+        # Inner repl unknown type: should return original string
         data4 = "Value: {{foo}}"
         slot_map4 = {"foo": {"value": None, "type": "strange"}}
-        assert replace_placeholders(data4, slot_map4) == "Value: "
+        assert replace_placeholders(data4, slot_map4) == data4
         # Non-dict, non-list, non-str
         assert replace_placeholders(123, {}) == 123
         assert replace_placeholders(12.5, {}) == 12.5
