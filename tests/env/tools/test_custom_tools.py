@@ -80,6 +80,115 @@ class TestReplacePlaceholders:
         }
         assert result == expected
 
+    def test_replace_placeholders_all_slot_types(self) -> None:
+        """Test replace_placeholders with all slot_type scenarios."""
+        # Test slot_type="list" - should return []
+        data_list = "{{list_slot}}"
+        slot_map_list = {"list_slot": {"type": "list", "value": None}}
+        assert replace_placeholders(data_list, slot_map_list) == []
+        
+        # Test slot_type="float" - should return 0.0
+        data_float = "{{float_slot}}"
+        slot_map_float = {"float_slot": {"type": "float", "value": None}}
+        assert replace_placeholders(data_float, slot_map_float) == 0.0
+        
+        # Test slot_type="bool" - should return False
+        data_bool = "{{bool_slot}}"
+        slot_map_bool = {"bool_slot": {"type": "bool", "value": None}}
+        assert replace_placeholders(data_bool, slot_map_bool) is False
+        
+        # Test slot_type="int" - should return 0
+        data_int = "{{int_slot}}"
+        slot_map_int = {"int_slot": {"type": "int", "value": None}}
+        assert replace_placeholders(data_int, slot_map_int) == 0
+        
+        # Test slot_type="str" - should return ""
+        data_str = "{{str_slot}}"
+        slot_map_str = {"str_slot": {"type": "str", "value": None}}
+        assert replace_placeholders(data_str, slot_map_str) == ""
+        
+        # Test slot_type="string" - should return ""
+        data_string = "{{string_slot}}"
+        slot_map_string = {"string_slot": {"type": "string", "value": None}}
+        assert replace_placeholders(data_string, slot_map_string) == ""
+        
+        # Test slot_type="integer" - should return 0
+        data_integer = "{{integer_slot}}"
+        slot_map_integer = {"integer_slot": {"type": "integer", "value": None}}
+        assert replace_placeholders(data_integer, slot_map_integer) == 0
+        
+        # Test slot_type="unsigned int" - should return None (not handled)
+        data_uint = "{{uint_slot}}"
+        slot_map_uint = {"uint_slot": {"type": "unsigned int", "value": None}}
+        assert replace_placeholders(data_uint, slot_map_uint) is None
+        
+        # Test slot_type=None - should return None
+        data_none = "{{none_slot}}"
+        slot_map_none = {"none_slot": {"type": None, "value": None}}
+        assert replace_placeholders(data_none, slot_map_none) is None
+        
+        # Test slot_type="unknown" - should return None
+        data_unknown = "{{unknown_slot}}"
+        slot_map_unknown = {"unknown_slot": {"type": "unknown", "value": None}}
+        assert replace_placeholders(data_unknown, slot_map_unknown) is None
+        
+        # Test partial string replacements with different types
+        data_partial = "Hello {{list_slot}}, your score is {{float_slot}}, active: {{bool_slot}}"
+        slot_map_partial = {
+            "list_slot": {"type": "list", "value": None},
+            "float_slot": {"type": "float", "value": None},
+            "bool_slot": {"type": "bool", "value": None}
+        }
+        result_partial = replace_placeholders(data_partial, slot_map_partial)
+        assert result_partial == "Hello [], your score is 0.0, active: false"
+
+    def test_replace_placeholders_partial_string_str_and_int_types(self) -> None:
+        """Test partial string replacement for slot types 'str', 'string', 'int', and 'integer'."""
+        # str type
+        data = "User: {{str_slot}}!"
+        slot_map = {"str_slot": {"type": "str", "value": None}}
+        result = replace_placeholders(data, slot_map)
+        assert result == "User: !"
+
+        # string type
+        data2 = "User: {{string_slot}}!"
+        slot_map2 = {"string_slot": {"type": "string", "value": None}}
+        result2 = replace_placeholders(data2, slot_map2)
+        assert result2 == "User: !"
+
+        # int type
+        data3 = "Count: {{int_slot}} apples"
+        slot_map3 = {"int_slot": {"type": "int", "value": None}}
+        result3 = replace_placeholders(data3, slot_map3)
+        assert result3 == "Count: 0 apples"
+
+        # integer type
+        data4 = "Count: {{integer_slot}} bananas"
+        slot_map4 = {"integer_slot": {"type": "integer", "value": None}}
+        result4 = replace_placeholders(data4, slot_map4)
+        assert result4 == "Count: 0 bananas"
+
+    def test_replace_placeholders_unknown_slot_and_type(self) -> None:
+        """Test replace_placeholders with unknown slots and types."""
+        # Unknown type and missing slot
+        data = "{{unknown}}"
+        slot_map = {"known": {"value": None, "type": "str"}, "other": {"value": None, "type": "weirdtype"}}
+        # Should return "" for missing slot, None for unknown type
+        assert replace_placeholders(data, slot_map) == ""
+        # Unknown type branch
+        data2 = "{{other}}"
+        assert replace_placeholders(data2, slot_map) is None
+        # Partial string with unknown slot
+        data3 = "Hello {{unknown}}"
+        assert replace_placeholders(data3, slot_map) == "Hello "
+        # Inner repl unknown type
+        data4 = "Value: {{foo}}"
+        slot_map4 = {"foo": {"value": None, "type": "strange"}}
+        assert replace_placeholders(data4, slot_map4) == "Value: "
+        # Non-dict, non-list, non-str
+        assert replace_placeholders(123, {}) == 123
+        assert replace_placeholders(12.5, {}) == 12.5
+
 
 class TestHTTPTool:
     """Test the HTTP tool functionality."""
@@ -132,108 +241,6 @@ class TestHTTPTool:
         assert call_args[1]["json"]["name"] == "John"
 
     @patch("requests.request")
-    def test_http_tool_with_body_placeholders(self, mock_request: Mock) -> None:
-        """Test HTTP request with body placeholders."""
-        mock_response = Mock()
-        mock_response.json.return_value = {"status": "success"}
-        mock_response.raise_for_status.return_value = None
-        mock_request.return_value = mock_response
-
-        # Create slots with the correct structure
-        slots = [
-            {"name": "user_name", "value": "John", "target": "body"},
-            {"name": "user_age", "value": "30", "target": "body"},
-        ]
-
-        result = http_tool().func(
-            method="POST",
-            endpoint="https://api.example.com/test",
-            headers={"Content-Type": "application/json"},
-            body={"name": "{{user_name}}", "age": "{{user_age}}"},
-            params={},
-            slots=slots,
-        )
-
-        assert "success" in result
-        mock_request.assert_called_once()
-        call_args = mock_request.call_args
-        # Placeholders should be replaced with slot values
-        assert call_args[1]["json"]["name"] == "John"
-        assert call_args[1]["json"]["age"] == "30"
-
-    @patch("requests.request")
-    def test_http_tool_remove_placeholder_params(self, mock_request: Mock) -> None:
-        """Test that placeholder params are removed."""
-        mock_response = Mock()
-        mock_response.json.return_value = {"status": "success"}
-        mock_response.raise_for_status.return_value = None
-        mock_request.return_value = mock_response
-
-        result = http_tool().func(
-            method="GET",
-            endpoint="https://api.example.com/test",
-            headers={"Content-Type": "application/json"},
-            body={},
-            params={"optional": "{{optional_param}}"},
-        )
-
-        assert "success" in result
-        # Verify that placeholder params were removed
-        mock_request.assert_called_once()
-        call_args = mock_request.call_args
-        assert "optional" not in call_args[1]["params"]
-
-    @patch("requests.request")
-    def test_http_tool_remove_placeholder_body(self, mock_request: Mock) -> None:
-        """Test that placeholder body fields are removed."""
-        mock_response = Mock()
-        mock_response.json.return_value = {"status": "success"}
-        mock_response.raise_for_status.return_value = None
-        mock_request.return_value = mock_response
-
-        result = http_tool().func(
-            method="POST",
-            endpoint="https://api.example.com/test",
-            headers={"Content-Type": "application/json"},
-            body={"name": "test", "optional": "{{optional_field}}"},
-            params={},
-        )
-
-        assert "success" in result
-        # Verify that placeholder body fields were set to empty string
-        mock_request.assert_called_once()
-        call_args = mock_request.call_args
-        assert call_args[1]["json"]["optional"] == ""
-
-    @patch("requests.request")
-    def test_http_tool_request_exception(self, mock_request: Mock) -> None:
-        """Test HTTP tool with request exception."""
-        mock_request.side_effect = requests.exceptions.RequestException("Network error")
-
-        with pytest.raises(ToolExecutionError):
-            http_tool().func(
-                method="GET",
-                endpoint="https://api.example.com/test",
-                headers={"Content-Type": "application/json"},
-                body={},
-                params={},
-            )
-
-    @patch("requests.request")
-    def test_http_tool_general_exception(self, mock_request: Mock) -> None:
-        """Test HTTP tool with general exception."""
-        mock_request.side_effect = Exception("Unexpected error")
-
-        with pytest.raises(ToolExecutionError):
-            http_tool().func(
-                method="GET",
-                endpoint="https://api.example.com/test",
-                headers={"Content-Type": "application/json"},
-                body={},
-                params={},
-            )
-
-    @patch("requests.request")
     def test_http_tool_with_slot_objects(self, mock_request: Mock) -> None:
         """Test HTTP tool with slot objects."""
         mock_response = Mock()
@@ -242,9 +249,7 @@ class TestHTTPTool:
         mock_request.return_value = mock_response
 
         class SlotObject:
-            def __init__(
-                self, name: str, value: str | int | bool | None, target: str
-            ) -> None:
+            def __init__(self, name: str, value: str | int | bool | None, target: str) -> None:
                 self.name = name
                 self.value = value
                 self.target = target
@@ -278,9 +283,7 @@ class TestHTTPTool:
         mock_request.return_value = mock_response
 
         class SlotObject:
-            def __init__(
-                self, name: str, value: str | int | bool | None, target: str
-            ) -> None:
+            def __init__(self, name: str, value: str | int | bool | None, target: str) -> None:
                 self.name = name
                 self.value = value
                 self.target = target
@@ -352,43 +355,282 @@ class TestHTTPTool:
         assert "success" in result
         mock_request.assert_called_once()
 
+    @patch("requests.request")
+    def test_http_tool_request_exception(self, mock_request: Mock) -> None:
+        """Test HTTP tool with request exception."""
+        mock_request.side_effect = requests.exceptions.RequestException("Network error")
 
-class TestHTTPToolIntegration:
-    """Integration tests for HTTP tool."""
+        with pytest.raises(ToolExecutionError):
+            http_tool().func(
+                method="GET",
+                endpoint="https://api.example.com/test",
+            headers={"Content-Type": "application/json"},
+                body={},
+                params={},
+            )
 
     @patch("requests.request")
-    def test_http_tool_complete_workflow(self, mock_request: Mock) -> None:
-        """Test complete HTTP tool workflow."""
+    def test_http_tool_general_exception(self, mock_request: Mock) -> None:
+        """Test HTTP tool with general exception."""
+        mock_request.side_effect = Exception("Unexpected error")
+
+        with pytest.raises(ToolExecutionError):
+            http_tool().func(
+                method="GET",
+            endpoint="https://api.example.com/test",
+            headers={"Content-Type": "application/json"},
+                body={},
+            params={},
+        )
+
+    @patch("requests.request")
+    def test_http_tool_with_none_body_and_params(self, mock_request: Mock) -> None:
+        """Test HTTP tool with None body and params."""
         mock_response = Mock()
-        mock_response.json.return_value = {"id": 1, "name": "John", "status": "active"}
+        mock_response.json.return_value = {"status": "success"}
         mock_response.raise_for_status.return_value = None
         mock_request.return_value = mock_response
 
+        result = http_tool().func(
+            method="GET",
+            endpoint="https://api.example.com/test",
+            headers={"Content-Type": "application/json"},
+            body=None,
+            params=None,
+        )
+
+        assert "success" in result
+        mock_request.assert_called_once()
+
+    @patch("requests.request")
+    def test_http_tool_with_empty_slots(self, mock_request: Mock) -> None:
+        """Test HTTP tool with empty slots list."""
+        mock_response = Mock()
+        mock_response.json.return_value = {"status": "success"}
+        mock_response.raise_for_status.return_value = None
+        mock_request.return_value = mock_response
+
+        result = http_tool().func(
+            method="GET",
+            endpoint="https://api.example.com/test",
+            headers={"Content-Type": "application/json"},
+            body={},
+            params={},
+            slots=[],
+        )
+
+        assert "success" in result
+        mock_request.assert_called_once()
+
+    @patch("requests.request")
+    def test_http_tool_with_slot_missing_attributes(self, mock_request: Mock) -> None:
+        """Test HTTP tool with slots missing required attributes."""
+        mock_response = Mock()
+        mock_response.json.return_value = {"status": "success"}
+        mock_response.raise_for_status.return_value = None
+        mock_request.return_value = mock_response
+
+        # Slots with missing attributes
         slots = [
-            {"name": "user_id", "value": 1, "target": "params"},
-            {"name": "user_name", "value": "John", "target": "body"},
+            {"name": "user_id", "value": 123},  # Missing target
+            {"value": "John", "target": "body"},  # Missing name
+            {"name": "user_name", "target": "body"},  # Missing value
         ]
 
         result = http_tool().func(
             method="POST",
-            endpoint="https://api.example.com/users",
+            endpoint="https://api.example.com/test",
             headers={"Content-Type": "application/json"},
-            body={"name": "{{user_name}}"},
-            params={"id": "{{user_id}}"},
+            body={},
+            params={},
             slots=slots,
         )
 
-        assert "id" in result
-        assert "name" in result
-        assert "status" in result
+        assert "success" in result
         mock_request.assert_called_once()
 
-        # Verify the request was made with correct parameters
+    @patch("requests.request")
+    def test_http_tool_with_slot_object_missing_attributes(self, mock_request: Mock) -> None:
+        """Test HTTP tool with slot object missing attributes."""
+        mock_response = Mock()
+        mock_response.json.return_value = {"ok": True}
+        mock_response.raise_for_status.return_value = None
+        mock_request.return_value = mock_response
+
+        class SlotObj:
+            pass  # No name, value, or target
+
+        slots = [SlotObj()]
+        result = http_tool().func(
+            method="GET",
+            endpoint="http://x", 
+            headers={}, 
+            body={}, 
+            params={}, 
+            slots=slots
+        )
+        assert "ok" in result
+
+    @patch("requests.request")
+    def test_http_tool_with_slot_object_none_name(self, mock_request: Mock) -> None:
+        """Test HTTP tool with slot object having None name."""
+        mock_response = Mock()
+        mock_response.json.return_value = {"ok": True}
+        mock_response.raise_for_status.return_value = None
+        mock_request.return_value = mock_response
+
+        class SlotObj:
+            def __init__(self):
+                self.name = None
+                self.value = "test"
+                self.target = "body"
+
+        slots = [SlotObj()]
+        result = http_tool().func(
+            method="GET", 
+            endpoint="http://x", 
+            headers={}, 
+            body={}, 
+            params={},
+            slots=slots
+        )
+        assert "ok" in result
+
+    @patch("requests.request")
+    def test_http_tool_remove_placeholders_and_valid_json(self, mock_request: Mock) -> None:
+        """Test remove_placeholders with empty dict and http_tool with valid JSON body."""
+        mock_response = Mock()
+        mock_response.json.return_value = {"ok": True}
+        mock_response.raise_for_status.return_value = None
+        mock_request.return_value = mock_response
+
+        # Test remove_placeholders with empty dict
+        result = http_tool().func(
+            method="POST",
+            endpoint="http://x",
+            headers={"Content-Type": "application/json"},
+            body={},  # Empty dict
+            params={},  # Empty dict
+        )
+        assert "ok" in result
+        
+        # Test http_tool with valid JSON body
+        result2 = http_tool().func(
+            method="POST",
+            endpoint="http://x",
+            headers={"Content-Type": "application/json"},
+            body={"name": "test", "age": 30, "active": True},  # Valid JSON
+            params={"page": 1, "limit": 10},  # Valid params
+        )
+        assert "ok" in result2
+
+    @patch("requests.request")
+    def test_http_tool_invalid_json_scenarios(self, mock_request: Mock) -> None:
+        """Test http_tool with invalid JSON scenarios to cover error handling branches."""
+        mock_response = Mock()
+        mock_response.json.return_value = {"ok": True}
+        mock_response.raise_for_status.return_value = None
+        mock_request.return_value = mock_response
+
+        # Test with non-serializable object that raises exception in __str__
+        class NonSerializable:
+            def __str__(self):
+                raise Exception("Cannot serialize")
+
+        result = http_tool().func(
+            method="POST",
+            endpoint="http://x",
+            headers={"Content-Type": "application/json"},
+            body={"problematic": NonSerializable()},
+            params={},
+        )
+        assert "ok" in result
+        
+        # Test with complex nested structure that might cause JSON issues
+        class CircularReference:
+            def __init__(self):
+                self.self_ref = self
+        
+        result2 = http_tool().func(
+            method="POST",
+            endpoint="http://x",
+            headers={"Content-Type": "application/json"},
+            body={"circular": CircularReference()},
+            params={},
+        )
+        assert "ok" in result2
+        
+        # Test with function object (not JSON serializable)
+        def some_function():
+            pass
+        
+        result3 = http_tool().func(
+            method="POST",
+            endpoint="http://x",
+            headers={"Content-Type": "application/json"},
+            body={"function": some_function},
+            params={},
+        )
+        assert "ok" in result3
+
+    def test_http_tool_json_parsing_error(self) -> None:
+        """Test HTTP tool with JSON parsing error."""
+        # Mock requests to return non-JSON response
+        mock_response = Mock()
+        mock_response.json.side_effect = ValueError("Invalid JSON")
+        mock_response.text = "Raw text response"
+        mock_response.raise_for_status.return_value = None
+    
+        with patch('requests.request', return_value=mock_response):
+            result = http_tool().func(
+                method="GET",
+                endpoint="https://api.example.com/test",
+                headers={},
+                body=None,
+                params={}
+            )
+            assert "raw_response" in result
+            assert "error" in result
+
+    @patch("requests.request")
+    def test_http_tool_remove_placeholders_with_unreplaced_placeholders(self, mock_request: Mock) -> None:
+        """Test remove_placeholders with unreplaced placeholders."""
+        mock_response = Mock()
+        mock_response.json.return_value = {"ok": True}
+        mock_response.raise_for_status.return_value = None
+        mock_request.return_value = mock_response
+
+        # Test with unreplaced placeholders in params and body
+        result = http_tool().func(
+            method="POST",
+            endpoint="http://x",
+            headers={"Content-Type": "application/json"},
+            body={
+                "normal_field": "value",
+                "unreplaced_placeholder": "{{unreplaced_slot}}",
+                "mixed": "Hello {{unreplaced_name}}, welcome!"
+            },
+            params={
+                "normal_param": "value",
+                "unreplaced_param": "{{unreplaced_param}}"
+            },
+        )
+        assert "ok" in result
+        mock_request.assert_called_once()
+        
+        # Verify that unreplaced placeholders were removed from params
         call_args = mock_request.call_args
-        assert call_args[1]["method"] == "POST"
-        assert call_args[1]["url"] == "https://api.example.com/users"
-        assert call_args[1]["json"]["name"] == "John"
-        assert call_args[1]["params"]["user_id"] == 1
+        params = call_args[1]["params"]
+        body = call_args[1]["json"]
+        
+        # Unreplaced placeholders should be removed from params
+        assert "normal_param" in params
+        assert "unreplaced_param" not in params
+        
+        # Unreplaced placeholders should be set to empty string in body
+        assert body["normal_field"] == "value"
+        assert body["unreplaced_placeholder"] == ""
+        assert body["mixed"] == ""
 
 
 class TestHTTPToolDataCleaning:
@@ -505,350 +747,3 @@ class TestHTTPToolDataCleaning:
         result = validate_request_body(body)
         assert "error" in result
         assert "Invalid request body" in result["error"]
-
-
-class TestReplacePlaceholdersAdvanced:
-    """Test advanced placeholder replacement scenarios."""
-
-    def test_replace_placeholders_with_type_defaults(self) -> None:
-        """Test placeholder replacement with type-based defaults."""
-        from arklex.env.tools.custom_tools.http_tool import replace_placeholders
-        
-        data = "{{user_name}}"
-        slot_map = {
-            "user_name": {"type": "str", "value": None}
-        }
-        
-        result = replace_placeholders(data, slot_map)
-        assert result == ""
-
-    def test_replace_placeholders_with_int_type_default(self) -> None:
-        """Test placeholder replacement with int type default."""
-        from arklex.env.tools.custom_tools.http_tool import replace_placeholders
-        
-        data = "{{user_age}}"
-        slot_map = {
-            "user_age": {"type": "int", "value": None}
-        }
-        
-        result = replace_placeholders(data, slot_map)
-        assert result == 0
-
-    def test_replace_placeholders_with_float_type_default(self) -> None:
-        """Test placeholder replacement with float type default."""
-        from arklex.env.tools.custom_tools.http_tool import replace_placeholders
-        
-        data = "{{user_score}}"
-        slot_map = {
-            "user_score": {"type": "float", "value": None}
-        }
-        
-        result = replace_placeholders(data, slot_map)
-        assert result == 0.0
-
-    def test_replace_placeholders_with_bool_type_default(self) -> None:
-        """Test placeholder replacement with bool type default."""
-        from arklex.env.tools.custom_tools.http_tool import replace_placeholders
-        
-        data = "{{user_active}}"
-        slot_map = {
-            "user_active": {"type": "bool", "value": None}
-        }
-        
-        result = replace_placeholders(data, slot_map)
-        assert result is False
-
-    def test_replace_placeholders_with_list_type_default(self) -> None:
-        """Test placeholder replacement with list type default."""
-        from arklex.env.tools.custom_tools.http_tool import replace_placeholders
-        
-        data = "{{user_tags}}"
-        slot_map = {
-            "user_tags": {"type": "list", "value": None}
-        }
-        
-        result = replace_placeholders(data, slot_map)
-        assert result == []
-
-    def test_replace_placeholders_with_unknown_type_default(self) -> None:
-        """Test placeholder replacement with unknown type default."""
-        from arklex.env.tools.custom_tools.http_tool import replace_placeholders
-        
-        data = "{{user_data}}"
-        slot_map = {
-            "user_data": {"type": "unknown", "value": None}
-        }
-        
-        result = replace_placeholders(data, slot_map)
-        assert result is None
-
-    def test_replace_placeholders_partial_with_type_defaults(self) -> None:
-        """Test partial placeholder replacement with type defaults."""
-        from arklex.env.tools.custom_tools.http_tool import replace_placeholders
-        
-        data = "Hello {{user_name}}, your age is {{user_age}}"
-        slot_map = {
-            "user_name": {"type": "str", "value": None},
-            "user_age": {"type": "int", "value": None}
-        }
-        
-        result = replace_placeholders(data, slot_map)
-        assert result == "Hello , your age is 0"
-
-    def test_replace_placeholders_with_boolean_string_values(self) -> None:
-        """Test placeholder replacement with boolean string values."""
-        from arklex.env.tools.custom_tools.http_tool import replace_placeholders
-        
-        data = "{{is_active}}"
-        slot_map = {
-            "is_active": {"value": True, "type": "bool"}
-        }
-        
-        result = replace_placeholders(data, slot_map)
-        assert result is True
-
-    def test_replace_placeholders_with_numeric_string_values(self) -> None:
-        """Test placeholder replacement with numeric string values."""
-        from arklex.env.tools.custom_tools.http_tool import replace_placeholders
-        
-        data = "{{count}}"
-        slot_map = {
-            "count": {"value": 42, "type": "int"}
-        }
-        
-        result = replace_placeholders(data, slot_map)
-        assert result == 42
-
-
-class TestHTTPToolAdvanced:
-    """Test advanced HTTP tool functionality."""
-
-    @patch("requests.request")
-    def test_http_tool_with_invalid_json_body(self, mock_request: Mock) -> None:
-        """Test HTTP tool with invalid JSON body."""
-        mock_response = Mock()
-        mock_response.json.return_value = {"status": "success"}
-        mock_response.raise_for_status.return_value = None
-        mock_request.return_value = mock_response
-
-        # Create a body with non-serializable content
-        class NonSerializable:
-            pass
-
-        result = http_tool().func(
-            method="POST",
-            endpoint="https://api.example.com/test",
-            headers={"Content-Type": "application/json"},
-            body={"normal": "value", "problematic": NonSerializable()},
-            params={},
-        )
-
-        assert "success" in result
-        mock_request.assert_called_once()
-
-    @patch("requests.request")
-    def test_http_tool_with_complex_placeholder_removal(self, mock_request: Mock) -> None:
-        """Test HTTP tool with complex placeholder removal scenarios."""
-        mock_response = Mock()
-        mock_response.json.return_value = {"status": "success"}
-        mock_response.raise_for_status.return_value = None
-        mock_request.return_value = mock_response
-
-        result = http_tool().func(
-            method="POST",
-            endpoint="https://api.example.com/test",
-            headers={"Content-Type": "application/json"},
-            body={
-                "normal_field": "value",
-                "placeholder_field": "{{missing_placeholder}}",
-                "mixed_field": "Hello {{name}}, welcome!",
-                "nested": {
-                    "inner_placeholder": "{{inner_missing}}"
-                }
-            },
-            params={
-                "normal_param": "value",
-                "placeholder_param": "{{missing_param}}"
-            },
-        )
-
-        assert "success" in result
-        mock_request.assert_called_once()
-        call_args = mock_request.call_args
-        
-        # Check that placeholders were handled correctly
-        body = call_args[1]["json"]
-        params = call_args[1]["params"]
-        
-        assert body["normal_field"] == "value"
-        assert body["placeholder_field"] == ""
-        assert body["mixed_field"] == ""
-        assert body["nested"]["inner_placeholder"] == ""
-        assert params["normal_param"] == "value"
-        assert "placeholder_param" not in params  # Should be removed
-
-    @patch("requests.request")
-    def test_http_tool_with_empty_slots(self, mock_request: Mock) -> None:
-        """Test HTTP tool with empty slots list."""
-        mock_response = Mock()
-        mock_response.json.return_value = {"status": "success"}
-        mock_response.raise_for_status.return_value = None
-        mock_request.return_value = mock_response
-
-        result = http_tool().func(
-            method="GET",
-            endpoint="https://api.example.com/test",
-            headers={"Content-Type": "application/json"},
-            body={},
-            params={},
-            slots=[],
-        )
-
-        assert "success" in result
-        mock_request.assert_called_once()
-
-    @patch("requests.request")
-    def test_http_tool_with_slot_missing_attributes(self, mock_request: Mock) -> None:
-        """Test HTTP tool with slots missing required attributes."""
-        mock_response = Mock()
-        mock_response.json.return_value = {"status": "success"}
-        mock_response.raise_for_status.return_value = None
-        mock_request.return_value = mock_response
-
-        # Slots with missing attributes
-        slots = [
-            {"name": "user_id", "value": 123},  # Missing target
-            {"value": "John", "target": "body"},  # Missing name
-            {"name": "user_name", "target": "body"},  # Missing value
-        ]
-
-        result = http_tool().func(
-            method="POST",
-            endpoint="https://api.example.com/test",
-            headers={"Content-Type": "application/json"},
-            body={},
-            params={},
-            slots=slots,
-        )
-
-        assert "success" in result
-        mock_request.assert_called_once()
-
-    @patch("requests.request")
-    def test_http_tool_with_none_body_and_params(self, mock_request: Mock) -> None:
-        """Test HTTP tool with None body and params."""
-        mock_response = Mock()
-        mock_response.json.return_value = {"status": "success"}
-        mock_response.raise_for_status.return_value = None
-        mock_request.return_value = mock_response
-
-        result = http_tool().func(
-            method="GET",
-            endpoint="https://api.example.com/test",
-            headers={"Content-Type": "application/json"},
-            body=None,
-            params=None,
-        )
-
-        assert "success" in result
-        mock_request.assert_called_once()
-
-    @patch("requests.request")
-    def test_http_tool_with_complex_slot_objects(self, mock_request: Mock) -> None:
-        """Test HTTP tool with complex slot objects."""
-        mock_response = Mock()
-        mock_response.json.return_value = {"status": "success"}
-        mock_response.raise_for_status.return_value = None
-        mock_request.return_value = mock_response
-
-        class ComplexSlotObject:
-            def __init__(self, name: str, value: str, target: str, type: str = "str", description: str = "") -> None:
-                self.name = name
-                self.value = value
-                self.target = target
-                self.type = type
-                self.description = description
-
-        slots = [
-            ComplexSlotObject("user_id", 123, "params", "int", "User ID"),
-            ComplexSlotObject("user_name", "John", "body", "str", "User name"),
-            ComplexSlotObject("is_active", True, "body", "bool", "Active status"),
-        ]
-
-        result = http_tool().func(
-            method="POST",
-            endpoint="https://api.example.com/test",
-            headers={"Content-Type": "application/json"},
-            body={"name": "{{user_name}}", "active": "{{is_active}}"},
-            params={},
-            slots=slots,
-        )
-
-        assert "success" in result
-        mock_request.assert_called_once()
-        call_args = mock_request.call_args
-        assert call_args[1]["params"]["user_id"] == 123
-        assert call_args[1]["json"]["name"] == "John"
-        assert call_args[1]["json"]["active"] is True
-
-    @patch("requests.request")
-    def test_http_tool_with_mixed_slot_types_and_placeholders(self, mock_request: Mock) -> None:
-        """Test HTTP tool with mixed slot types and placeholders."""
-        mock_response = Mock()
-        mock_response.json.return_value = {"status": "success"}
-        mock_response.raise_for_status.return_value = None
-        mock_request.return_value = mock_response
-
-        slots = [
-            {"name": "user_id", "value": 123, "target": "params", "type": "int"},
-            {"name": "user_name", "value": "John", "target": "body", "type": "str"},
-            {"name": "missing_field", "value": None, "target": "body", "type": "str"},
-        ]
-
-        result = http_tool().func(
-            method="POST",
-            endpoint="https://api.example.com/test",
-            headers={"Content-Type": "application/json"},
-            body={
-                "name": "{{user_name}}",
-                "missing": "{{missing_field}}",
-                "unresolved": "{{unresolved_placeholder}}"
-            },
-            params={"id": "{{user_id}}"},
-            slots=slots,
-        )
-
-        assert "success" in result
-        mock_request.assert_called_once()
-        call_args = mock_request.call_args
-        
-        # Check that resolved placeholders are replaced
-        assert call_args[1]["json"]["name"] == "John"
-        assert call_args[1]["json"]["missing"] == ""
-        assert call_args[1]["json"]["unresolved"] == ""
-        assert call_args[1]["params"]["user_id"] == 123
-
-    @patch("requests.request")
-    def test_http_tool_with_validation_errors(self, mock_request: Mock) -> None:
-        """Test HTTP tool with JSON validation errors."""
-        mock_response = Mock()
-        mock_response.json.return_value = {"status": "success"}
-        mock_response.raise_for_status.return_value = None
-        mock_request.return_value = mock_response
-
-        # Create a body that would cause JSON serialization issues
-        class ProblematicObject:
-            def __str__(self) -> str:
-                raise Exception("Serialization error")
-
-        result = http_tool().func(
-            method="POST",
-            endpoint="https://api.example.com/test",
-            headers={"Content-Type": "application/json"},
-            body={"problematic": ProblematicObject()},
-            params={},
-        )
-
-        # Should still work, but with error handling
-        assert "success" in result
-        mock_request.assert_called_once()

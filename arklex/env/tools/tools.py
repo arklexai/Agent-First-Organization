@@ -293,6 +293,9 @@ class Tool:
                     return value.lower() == "true"
                 return bool(value)
             elif type_str == "str":
+                # If value is a dict or list, do not convert to string
+                if isinstance(value, (dict, list)):
+                    return value
                 return str(value)
             elif type_str.startswith("list["):
                 # Assume comma-separated string for lists
@@ -305,159 +308,390 @@ class Tool:
             return value
 
     def _fill_slots_recursive(self, slots: list[Slot], chat_history_str: str) -> list[Slot]:
+        """Fill slots recursively, handling both group and regular slots.
+        
+        Args:
+            slots: List of slots to fill
+            chat_history_str: Formatted chat history string
+            
+        Returns:
+            List of filled slots
+        """
         filled_slots = []
         for slot in slots:
             if slot.type == "group":
-                # Build a schema-driven prompt for the slot group
-                def build_group_prompt(slot: Slot) -> str:
-                    example_fields = []
-                    schema_lines = []
-                    for field in (slot.schema if hasattr(slot, 'schema') and isinstance(slot.schema, list | tuple) else []):
-                        field_type = field.get("type", "str")
-                        field_repeatable = field.get("repeatable", False)
-                        example_value = {
-                            "str": '"example string"',
-                            "int": "123",
-                            "float": "12.34",
-                            "bool": "true"
-                        }.get(field_type, '"example"')
-                        if field_repeatable:
-                            example_fields.append(f'"{field["name"]}": [{example_value}, "another_{field["name"]}", "third_{field["name"]}"]')
-                        else:
-                            example_fields.append(f'"{field["name"]}": {example_value}')
-                        desc_or_prompt = field.get("description") or field.get("prompt") or ""
-                        schema_lines.append(
-                            f'- {field["name"]} ({field_type}){" [REQUIRED]" if field.get("required", False) else ""}{" [REPEATABLE]" if field_repeatable else ""}: {desc_or_prompt}'
-                        )
-                    example_obj = "{" + ", ".join(example_fields) + "}"
-                    schema_str = "\n".join(schema_lines)
-                    return (
-                        f"Please provide a list of dictionaries (objects), e.g. [{{'key': 'value'}}], each matching this schema:\n"
-                        f"{schema_str}\n"
-                        f"Example:\n[{example_obj}]\n"
-                        f"IMPORTANT: Each object must have ALL the fields above, with the correct type. "
-                        f"Do not add extra fields. Do not return a dict of lists or a list of values. "
-                        f"Return a list of dicts, each matching the schema exactly. "
-                        f"Use the description for each field to determine where to find the value. The field name is the key in the dict."
-                    )
-                group_prompt = build_group_prompt(slot)
-                # Create a temporary slot for the group, with the prompt
-                temp_group_slot = Slot(
-                    name=slot.name,
-                    type="group",
-                    value=slot.value if slot.value else [],
-                    description=slot.description +" "+ group_prompt,
-                    required=slot.required,
-                    schema=slot.schema,
-                    repeatable=slot.repeatable,
-                )
-                # Use slotfiller to fill the group as a whole
-                filled = self.slotfiller.fill_slots([temp_group_slot], chat_history_str, self.llm_config)
-                group_value = filled[0].value
-                # If the value is a string, try to parse as JSON
-                if isinstance(group_value, str):
-                    log_context.debug(f"Attempting to parse group_value as JSON for slot '{slot.name}': {group_value}")
-                    try:
-                        group_value = json.loads(group_value)
-                    except Exception as e:
-                        log_context.error(f"Failed to parse group_value as JSON for slot '{slot.name}': {group_value}. Error: {e}")
-                        raise ValueError(f"Slot group '{slot.name}' did not return a valid JSON list of objects: {group_value}") from e
-                # Enforce that the value is a list of dicts
-                if not (isinstance(group_value, list) and all(isinstance(item, dict) for item in group_value)):
-                    # Handle case where group_value is None or not a list
-                    if group_value is None:
-                        log_context.warning(f"Slot group '{slot.name}' returned None, converting to empty list")
-                        group_value = []
-                    elif isinstance(group_value, dict):
-                        log_context.warning(f"Slot group '{slot.name}' returned a single dict, converting to list")
-                        group_value = [group_value]
-                    else:
-                        log_context.error(f"Slot group '{slot.name}' returned invalid format: {type(group_value)} - {group_value}")
-                        raise ValueError(f"Slot group '{slot.name}' must be a list of dicts, got: {group_value}")
-                # For each dict, apply valueSource logic as defined in the schema
-                for item in group_value:
-                    for field in (slot.schema if hasattr(slot, 'schema') and isinstance(slot.schema, list | tuple) else []):
-                        field_name = field["name"]
-                        field_repeatable = field.get("repeatable", False)
-                        val_source = field.get("valueSource", "Prompt User")
-                        field_type = field.get("type", "str")
-                        schema_value = field.get("value", "")
-                        
-                        if val_source == "fixed":
-                            if field_repeatable:
-                                # For repeatable fields, ensure it's an array
-                                if isinstance(schema_value, list):
-                                    item[field_name] = [self._convert_value(val, field_type) for val in schema_value]
-                                else:
-                                    item[field_name] = [self._convert_value(schema_value, field_type)]
-                            else:
-                                item[field_name] = self._convert_value(schema_value, field_type)
-                        elif val_source == "default":
-                            if field_repeatable:
-                                # For repeatable fields, ensure it's an array
-                                if item.get(field_name) in [None, ""] or not isinstance(item.get(field_name), list):
-                                    if isinstance(schema_value, list):
-                                        item[field_name] = [self._convert_value(val, field_type) for val in schema_value]
-                                    else:
-                                        item[field_name] = [self._convert_value(schema_value, field_type)]
-                                else:
-                                    item[field_name] = [self._convert_value(val, field_type) for val in item[field_name]]
-                            else:
-                                if item.get(field_name) in [None, ""]:
-                                    item[field_name] = self._convert_value(schema_value, field_type)
-                                else:
-                                    item[field_name] = self._convert_value(item[field_name], field_type)
-                        else:  # Prompt User or missing
-                            if field_repeatable:
-                                # For repeatable fields, ensure it's an array
-                                if item.get(field_name) in [None, ""] or not isinstance(item.get(field_name), list):
-                                    item[field_name] = []
-                                else:
-                                    item[field_name] = [self._convert_value(val, field_type) for val in item[field_name]]
-                            else:
-                                item[field_name] = self._convert_value(item.get(field_name, ""), field_type)
-                slot.value = group_value
-                filled_slots.append(slot)
+                filled_slot = self._fill_group_slot(slot, chat_history_str)
             else:
-                # Handle regular slots (non-group)
-                if getattr(slot, 'repeatable', False):
-                    # For repeatable regular slots, expect a list of values
-                    # Build a prompt for repeatable regular slots
-                    repeatable_prompt = self._build_repeatable_regular_slot_prompt(slot)
-                    temp_slot = Slot(
-                        name=slot.name,
-                        type=slot.type,
-                        value=slot.value if slot.value else [],
-                        description=slot.description + " " + repeatable_prompt,
-                        required=slot.required,
-                        repeatable=getattr(slot, 'repeatable', False),
-                    )
-                    filled = self.slotfiller.fill_slots([temp_slot], chat_history_str, self.llm_config)
-                    slot_value = filled[0].value
-                    
-                    # Handle repeatable flag for regular slots
-                    if isinstance(slot_value, str):
-                        try:
-                            slot_value = json.loads(slot_value)
-                        except Exception as e:
-                            log_context.error(f"Failed to parse repeatable slot '{slot.name}' as JSON: {slot_value}. Error: {e}")
-                            raise ValueError(f"Repeatable slot '{slot.name}' did not return a valid JSON array: {slot_value}") from e
-                    
-                    if not isinstance(slot_value, list):
-                        if slot_value is None:
-                            log_context.warning(f"Repeatable slot '{slot.name}' returned None, converting to empty list")
-                            slot_value = []
-                        else:
-                            log_context.warning(f"Repeatable slot '{slot.name}' returned single value, converting to list")
-                            slot_value = [slot_value]
-                    
-                    slot.value = [self._convert_value(val, slot.type) for val in slot_value]
-                else:
-                    # For non-repeatable regular slots, expect a single value
-                    filled = self.slotfiller.fill_slots([slot], chat_history_str, self.llm_config)
-                    slot.value = self._convert_value(filled[0].value, slot.type)
-                filled_slots.append(slot)
+                filled_slot = self._fill_regular_slot(slot, chat_history_str)
+            filled_slots.append(filled_slot)
         return filled_slots
+
+    def _fill_group_slot(self, slot: Slot, chat_history_str: str) -> Slot:
+        """Fill a group slot with its schema-based structure.
+        
+        Args:
+            slot: The group slot to fill
+            chat_history_str: Formatted chat history string
+            
+        Returns:
+            Filled group slot
+        """
+        group_prompt = self._build_group_prompt(slot)
+        temp_group_slot = self._create_temp_group_slot(slot, group_prompt)
+        
+        # Use slotfiller to fill the group as a whole
+        filled = self.slotfiller.fill_slots([temp_group_slot], chat_history_str, self.llm_config)
+        group_value = filled[0].value
+        
+        # Parse and validate group value
+        group_value = self._parse_and_validate_group_value(slot, group_value)
+        
+        # Apply valueSource logic to each item in the group
+        group_value = self._apply_valuesource_to_group_items(slot, group_value)
+        
+        slot.value = group_value
+        return slot
+
+    def _fill_regular_slot(self, slot: Slot, chat_history_str: str) -> Slot:
+        """Fill a regular (non-group) slot.
+        
+        Args:
+            slot: The regular slot to fill
+            chat_history_str: Formatted chat history string
+            
+        Returns:
+            Filled regular slot
+        """
+        if getattr(slot, 'repeatable', False):
+            return self._fill_repeatable_regular_slot(slot, chat_history_str)
+        else:
+            return self._fill_non_repeatable_regular_slot(slot, chat_history_str)
+
+    def _fill_repeatable_regular_slot(self, slot: Slot, chat_history_str: str) -> Slot:
+        """Fill a repeatable regular slot.
+        
+        Args:
+            slot: The repeatable regular slot to fill
+            chat_history_str: Formatted chat history string
+            
+        Returns:
+            Filled repeatable regular slot
+        """
+        repeatable_prompt = self._build_repeatable_regular_slot_prompt(slot)
+        temp_slot = self._create_temp_repeatable_slot(slot, repeatable_prompt)
+        
+        filled = self.slotfiller.fill_slots([temp_slot], chat_history_str, self.llm_config)
+        slot_value = filled[0].value
+        
+        # Parse and validate repeatable slot value
+        slot_value = self._parse_and_validate_repeatable_value(slot, slot_value)
+        
+        slot.value = [self._convert_value(val, slot.type) for val in slot_value]
+        return slot
+
+    def _fill_non_repeatable_regular_slot(self, slot: Slot, chat_history_str: str) -> Slot:
+        """Fill a non-repeatable regular slot.
+        
+        Args:
+            slot: The non-repeatable regular slot to fill
+            chat_history_str: Formatted chat history string
+            
+        Returns:
+            Filled non-repeatable regular slot
+        """
+        filled = self.slotfiller.fill_slots([slot], chat_history_str, self.llm_config)
+        slot.value = self._convert_value(filled[0].value, slot.type)
+        return slot
+
+    def _build_group_prompt(self, slot: Slot) -> str:
+        """Build a schema-driven prompt for a group slot.
+        
+        Args:
+            slot: The group slot
+            
+        Returns:
+            Formatted prompt string
+        """
+        example_fields = []
+        schema_lines = []
+        
+        for field in (slot.schema if hasattr(slot, 'schema') and isinstance(slot.schema, list | tuple) else []):
+            field_type = field.get("type", "str")
+            field_repeatable = field.get("repeatable", False)
+            example_value = self._get_example_value_for_type(field_type)
+            
+            if field_repeatable:
+                example_fields.append(f'"{field["name"]}": [{example_value}, "another_{field["name"]}", "third_{field["name"]}"]')
+            else:
+                example_fields.append(f'"{field["name"]}": {example_value}')
+                
+            desc_or_prompt = field.get("description") or field.get("prompt") or ""
+            schema_lines.append(
+                f'- {field["name"]} ({field_type}){" [REQUIRED]" if field.get("required", False) else ""}{" [REPEATABLE]" if field_repeatable else ""}: {desc_or_prompt}'
+            )
+            
+        example_obj = "{" + ", ".join(example_fields) + "}"
+        schema_str = "\n".join(schema_lines)
+        
+        # Add comprehensive explanation about repeatable fields
+        prompt = (
+            f"Please provide a list of dictionaries (objects), e.g. [{{'key': 'value'}}], each matching this schema:\n"
+            f"{schema_str}\n"
+            f"Example:\n[{example_obj}]\n"
+            f"IMPORTANT: Each object must have ALL the fields above, with the correct type. "
+            f"Do not add extra fields. Return a list of dicts, each matching the schema exactly. "
+            f"IMPORTANT: The field name is just a key, don't use it to find for the value. The value you provide must match the field's description and prompt, even if the user never says it directly.\n"
+            f"\n"
+            f"IMPORTANT - REPEATABLE FIELDS:\n"
+            f"- Individual fields within schemas can also be repeatable\n"
+            f"- If a field has repeatable=True, it becomes an ARRAY of values\n"
+            f"- If a field has repeatable=False, it becomes a SINGLE value\n"
+            f"- Example: if 'term' field is repeatable=True, use: \"term\": [\"Fall 2024\", \"Spring 2025\"]\n"
+            f"- Example: if 'term' field is repeatable=False, use: \"term\": \"Fall 2024\"\n"
+            f"- ALWAYS check the example structure to see which fields are arrays vs single values\n"
+            f"- For repeatable fields, extract ALL values from the conversation and put them in an array\n"
+            f"- Even if there's only one value, if the field is repeatable, it must be in an array\n"
+            f"\n"
+            f"REQUIRED STRUCTURE FOR '{slot.name}':\n"
+            f"- Follow the exact schema shown above\n"
+            f"- Do NOT add extra fields not in the schema\n"
+            f"- Do NOT change field names (e.g., use 'term' not 'semester', 'terms')\n"
+            f"- Follow the exact structure shown above\n"
+            f"- Pay attention to ARRAYS vs SINGLE VALUES in the example structure\n"
+            f"- If the example shows an array (e.g., \"term\": [\"example\"]), use an array in your response\n"
+            f"- If the example shows a single value (e.g., \"term\": \"example\"), use a single value\n"
+            f"- REPEATABLE FIELDS MUST BE ARRAYS - even if there's only one value\n"
+            f"- Extract data from the conversation to populate the values\n"
+            f"- Return ONLY valid JSON, no explanations"
+        )
+        
+        return prompt
+
+    def _create_temp_group_slot(self, slot: Slot, group_prompt: str) -> Slot:
+        """Create a temporary group slot for filling.
+        
+        Args:
+            slot: The original group slot
+            group_prompt: The prompt to add to the description
+            
+        Returns:
+            Temporary group slot
+        """
+        return Slot(
+            name=slot.name,
+            type="group",
+            value=slot.value if slot.value else [],
+            description=slot.description + " " + group_prompt,
+            required=slot.required,
+            schema=slot.schema,
+            repeatable=slot.repeatable,
+        )
+
+    def _create_temp_repeatable_slot(self, slot: Slot, repeatable_prompt: str) -> Slot:
+        """Create a temporary repeatable slot for filling.
+        
+        Args:
+            slot: The original repeatable slot
+            repeatable_prompt: The prompt to add to the description
+            
+        Returns:
+            Temporary repeatable slot
+        """
+        return Slot(
+            name=slot.name,
+            type=slot.type,
+            value=slot.value if slot.value else [],
+            description=slot.description + " " + repeatable_prompt,
+            required=slot.required,
+            repeatable=getattr(slot, 'repeatable', False),
+        )
+
+    def _parse_and_validate_group_value(self, slot: Slot, group_value: Any) -> list[dict[str, Any]]:
+        """Parse and validate a group value, ensuring it's a list of dictionaries.
+        
+        Args:
+            slot: The group slot
+            group_value: The raw group value
+            
+        Returns:
+            Validated list of dictionaries
+            
+        Raises:
+            ValueError: If the group value cannot be parsed or validated
+        """
+        # If the value is a string, try to parse as JSON
+        if isinstance(group_value, str):
+            log_context.debug(f"Attempting to parse group_value as JSON for slot '{slot.name}': {group_value}")
+            try:
+                group_value = json.loads(group_value)
+            except Exception as e:
+                log_context.error(f"Failed to parse group_value as JSON for slot '{slot.name}': {group_value}. Error: {e}")
+                raise ValueError(f"Slot group '{slot.name}' did not return a valid JSON list of objects: {group_value}") from e
+        
+        # Enforce that the value is a list of dicts
+        if not (isinstance(group_value, list) and all(isinstance(item, dict) for item in group_value)):
+            # Handle case where group_value is None or not a list
+            if group_value is None:
+                log_context.warning(f"Slot group '{slot.name}' returned None, converting to empty list")
+                group_value = []
+            elif isinstance(group_value, dict):
+                log_context.warning(f"Slot group '{slot.name}' returned a single dict, converting to list")
+                group_value = [group_value]
+            else:
+                log_context.error(f"Slot group '{slot.name}' returned invalid format: {type(group_value)} - {group_value}")
+                raise ValueError(f"Slot group '{slot.name}' must be a list of dicts, got: {group_value}")
+        
+        return group_value
+
+    def _parse_and_validate_repeatable_value(self, slot: Slot, slot_value: Any) -> list[Any]:
+        """Parse and validate a repeatable slot value, ensuring it's a list.
+        
+        Args:
+            slot: The repeatable slot
+            slot_value: The raw slot value
+            
+        Returns:
+            Validated list of values
+            
+        Raises:
+            ValueError: If the repeatable value cannot be parsed or validated
+        """
+        # Handle repeatable flag for regular slots
+        if isinstance(slot_value, str):
+            # Only try to parse as JSON if it looks like JSON (starts with [ or {)
+            if slot_value.strip().startswith(('[', '{')):
+                try:
+                    slot_value = json.loads(slot_value)
+                except Exception as e:
+                    log_context.error(f"Failed to parse repeatable slot '{slot.name}' as JSON: {slot_value}. Error: {e}")
+                    raise ValueError(f"Repeatable slot '{slot.name}' did not return a valid JSON array: {slot_value}") from e
+            else:
+                # Treat as a regular string value
+                slot_value = [slot_value]
+        if not isinstance(slot_value, list):
+            if slot_value is None:
+                log_context.warning(f"Repeatable slot '{slot.name}' returned None, converting to empty list")
+                slot_value = []
+            else:
+                log_context.warning(f"Repeatable slot '{slot.name}' returned single value, converting to list")
+                slot_value = [slot_value]
+        
+        return slot_value
+
+    def _apply_valuesource_to_group_items(self, slot: Slot, group_value: list[dict[str, Any]]) -> list[dict[str, Any]]:
+        """Apply valueSource logic to each item in a group.
+        
+        Args:
+            slot: The group slot
+            group_value: List of dictionaries representing group items
+            
+        Returns:
+            Updated group value with valueSource logic applied
+        """
+        for item in group_value:
+            for field in (slot.schema if hasattr(slot, 'schema') and isinstance(slot.schema, list | tuple) else []):
+                field_name = field["name"]
+                field_repeatable = field.get("repeatable", False)
+                val_source = field.get("valueSource", "Prompt User")
+                field_type = field.get("type", "str")
+                schema_value = field.get("value", "")
+                if val_source == "fixed":
+                    item[field_name] = self._apply_fixed_valuesource(field_repeatable, field_type, schema_value)
+                elif val_source == "default":
+                    item[field_name] = self._apply_default_valuesource(
+                        item.get(field_name), field_repeatable, field_type, schema_value
+                    )
+                else:  # Prompt User or missing
+                    item[field_name] = self._apply_prompt_user_valuesource(
+                        item.get(field_name), field_repeatable, field_type
+                    )
+        
+        return group_value
+
+    def _apply_fixed_valuesource(self, field_repeatable: bool, field_type: str, schema_value: Any) -> Any:
+        """Apply fixed valueSource logic.
+        
+        Args:
+            field_repeatable: Whether the field is repeatable
+            field_type: The field type
+            schema_value: The schema value
+            
+        Returns:
+            Processed value
+        """
+        if field_repeatable:
+            # For repeatable fields, ensure it's an array
+            if isinstance(schema_value, list):
+                return [self._convert_value(val, field_type) for val in schema_value]
+            else:
+                return [self._convert_value(schema_value, field_type)]
+        else:
+            return self._convert_value(schema_value, field_type)
+
+    def _apply_default_valuesource(self, current_value: Any, field_repeatable: bool, field_type: str, schema_value: Any) -> Any:
+        """Apply default valueSource logic.
+        
+        Args:
+            current_value: The current value in the item
+            field_repeatable: Whether the field is repeatable
+            field_type: The field type
+            schema_value: The schema value
+            
+        Returns:
+            Processed value
+        """
+        if field_repeatable:
+            # For repeatable fields, ensure it's an array
+            if current_value in [None, ""] or not isinstance(current_value, list):
+                if isinstance(schema_value, list):
+                    return [self._convert_value(val, field_type) for val in schema_value]
+                else:
+                    return [self._convert_value(schema_value, field_type)]
+            else:
+                return [self._convert_value(val, field_type) for val in current_value]
+        else:
+            if current_value in [None, ""]:
+                log_context.info(f"Current value is None/empty, using schema_value")
+                return self._convert_value(schema_value, field_type)
+            else:
+                log_context.info(f"Current value exists, converting it")
+                return self._convert_value(current_value, field_type)
+
+    def _apply_prompt_user_valuesource(self, current_value: Any, field_repeatable: bool, field_type: str) -> Any:
+        """Apply prompt user valueSource logic.
+        
+        Args:
+            current_value: The current value in the item
+            field_repeatable: Whether the field is repeatable
+            field_type: The field type
+            
+        Returns:
+            Processed value
+        """
+        if field_repeatable:
+            # For repeatable fields, ensure it's an array
+            if current_value in [None, ""] or not isinstance(current_value, list):
+                return []
+            else:
+                return [self._convert_value(val, field_type) for val in current_value]
+        else:
+            return self._convert_value(current_value or "", field_type)
+
+    def _get_example_value_for_type(self, field_type: str) -> str:
+        """Get an example value for a given field type.
+        
+        Args:
+            field_type: The field type
+            
+        Returns:
+            Example value string
+        """
+        return {
+            "str": '"example string"',
+            "int": "123",
+            "float": "12.34",
+            "bool": "true"
+        }.get(field_type, '"example"')
 
     def _any_missing_required_recursive(self, slots: list[Slot]) -> bool:
         for slot in slots:
@@ -732,12 +966,11 @@ class Tool:
         def slot_schema_signature(slots: list[Slot]) -> list[tuple[str, str, str | None]]:
             import json
             def safe_schema_dump(slot: Slot) -> list[dict[str, Any]]:
-                if hasattr(slot, 'schema') and isinstance(slot.schema, list | tuple):
-                    return [
-                        field.model_dump() if hasattr(field, 'model_dump') else dict(field) if not isinstance(field, dict) else field
-                        for field in slot.schema
-                    ]
-                return []
+                return [
+                    field.model_dump() if hasattr(field, 'model_dump') else dict(field) if not isinstance(field, dict) else field
+                    for field in slot.schema
+                ]
+                
             return [
                 (
                     slot.name,
@@ -773,69 +1006,12 @@ class Tool:
         # Check if any required slots are missing or unverified (including groups)
         missing_required = self._any_missing_required_recursive(slots)
         if missing_required:
-            for slot in slots:
-                if slot.type == "group":
-                    # For group, check each item in value list
-                    if not slot.value or not isinstance(slot.value, list):
-                        response = slot.prompt
-                        break
-                    for idx, item in enumerate(slot.value):
-                        missing_fields = []
-                        for field in (slot.schema if hasattr(slot, 'schema') and isinstance(slot.schema, list | tuple) else []):
-                            field_repeatable = field.get("repeatable", False)
-                            if field.get("required", False):
-                                if field_repeatable:
-                                    # For repeatable fields, check if array exists and has values
-                                    if field["name"] not in item or not isinstance(item[field["name"]], list) or len(item[field["name"]]) == 0:
-                                        missing_fields.append(f"{field['name']} (repeatable)")
-                                    else:
-                                        # Check each value in the array
-                                        for val_idx, val in enumerate(item[field["name"]]):
-                                            if val in [None, ""]:
-                                                missing_fields.append(f"{field['name']} (value {val_idx+1})")
-                                else:
-                                    # For non-repeatable fields, check single value
-                                    if item.get(field["name"]) in [None, ""]:
-                                        missing_fields.append(field["name"])
-                        if missing_fields:
-                            response = f"Please provide the following fields for group '{slot.name}' item {idx+1}: {', '.join(missing_fields)}."
-                            break
-                else:
-                    # Handle regular slots (non-group)
-                    if getattr(slot, 'repeatable', False):
-                        # For repeatable regular slots, check list structure
-                        if not slot.value or not isinstance(slot.value, list) or len(slot.value) == 0:
-                            response = slot.prompt
-                            break
-                        # Check each value in the list
-                        for idx, val in enumerate(slot.value):
-                            if val in [None, ""]:
-                                response = f"Please provide a value for {slot.prompt} (item {idx+1})"
-                                break
-                    else:
-                        # For non-repeatable regular slots
-                        # if there is extracted slots values but haven't been verified
-                        if slot.value and not slot.verified:
-                            # check whether it verified or not
-                            verification_needed: bool
-                            thought: str
-                            verification_needed, thought = self.slotfiller.verify_slot(
-                                slot.model_dump(), chat_history_str, self.llm_config
-                            )
-                            if verification_needed:
-                                response: str = slot.prompt + "The reason is: " + thought
-                                slot_verification = True
-                                reason = thought
-                                break
-                            else:
-                                slot.verified = True
-                                log_context.info(f"Slot '{slot.name}' verified successfully")
-                        # if there is no extracted slots values, then should prompt the user to fill the slot
-                        if not slot.value and slot.required:
-                            response = slot.prompt
-                            break
-
-            state.status = StatusEnum.INCOMPLETE
+            response, is_verification = self._handle_missing_required_slots(slots, chat_history_str)
+            if response:
+                state.status = StatusEnum.INCOMPLETE
+                if is_verification:
+                    slot_verification = True
+                    reason = response
 
         # Re-check if any required slots are still missing after verification
         missing_required = self._any_missing_required_recursive(slots)
@@ -987,68 +1163,98 @@ class Tool:
             f"Return an empty array [] if no values are found."
         )
 
+    def _ensure_repeatable_field_value(self, value, field_type):
+        """
+        Ensures that the value for a repeatable field is always a list of the correct type.
+        If value is None or empty, returns [].
+        If value is already a list, converts each element to the correct type.
+        Otherwise, wraps the value in a list and converts it to the correct type.
+        """
+        if value is None or value == "":
+            return []
+        if isinstance(value, list):
+            return [self._convert_value(v, field_type) for v in value]
+        return [self._convert_value(value, field_type)]
 
-def build_group_prompt(slot: Slot) -> str:
-    # Build a schema-driven prompt for the slot group
-    example_fields = []
-    schema_lines = []
-    for field in (slot.schema if hasattr(slot, 'schema') and isinstance(slot.schema, list | tuple) else []):
-        field_type = field.get("type", "str")
-        field_repeatable = field.get("repeatable", False)
-        description = field.get("description", "")
+    def _handle_missing_required_slots(self, slots: list[Slot], chat_history_str: str) -> tuple[str, bool]:
+        """Handle missing required slots and return appropriate response message.
         
-        # Create example value based on type and repeatable status
-        example_value = {
-            "str": '"example string"',
-            "int": "123",
-            "float": "12.34",
-            "bool": "true"
-        }.get(field_type, '"example"')
+        Args:
+            slots: List of slots to check
+            chat_history_str: Formatted chat history string
+            
+        Returns:
+            Tuple of (response_message, is_verification) where is_verification indicates
+            if this is a verification request (True) or missing slot request (False)
+        """
+        for slot in slots:
+            if slot.type == "group":
+                response = self._check_group_slot_missing_fields(slot)
+                if response:
+                    return response, False  # Group slots are missing, not verification
+            else:
+                # Handle regular slots (non-group)
+                if getattr(slot, 'repeatable', False):
+                    # For repeatable regular slots, check list structure
+                    if not slot.value or not isinstance(slot.value, list) or len(slot.value) == 0:
+                        return slot.prompt, False  # Missing slot
+                    # Check each value in the list
+                    for idx, val in enumerate(slot.value):
+                        if val in [None, ""]:
+                            return f"Please provide a value for {slot.prompt} (item {idx+1})", False  # Missing slot
+                else:
+                    # For non-repeatable regular slots
+                    # if there is extracted slots values but haven't been verified
+                    if slot.value and not slot.verified:
+                        # check whether it verified or not
+                        verification_needed: bool
+                        thought: str
+                        verification_needed, thought = self.slotfiller.verify_slot(
+                            slot.model_dump(), chat_history_str, self.llm_config
+                        )
+                        if verification_needed:
+                            return slot.prompt + "The reason is: " + thought, True  # Verification needed
+                        else:
+                            slot.verified = True
+                            log_context.info(f"Slot '{slot.name}' verified successfully")
+                    # if there is no extracted slots values, then should prompt the user to fill the slot
+                    if not slot.value and slot.required:
+                        return slot.prompt, False  # Missing slot
         
-        if field_repeatable:
-            # For repeatable fields, show array of multiple values
-            example_fields.append(f'"{field["name"]}": [{example_value}, "another_{field["name"]}", "third_{field["name"]}"]')
-        else:
-            example_fields.append(f'"{field["name"]}": {example_value}')
+        return "", False
+
+    def _check_group_slot_missing_fields(self, slot: Slot) -> str:
+        """Check for missing required fields in a group slot.
         
-        # Build schema line with repeatable indicator
-        schema_lines.append(
-            f'- {field["name"]} ({field_type}){" [REQUIRED]" if field.get("required", False) else ""}{" [REPEATABLE]" if field_repeatable else ""}: {description}'
-        )
-    
-    example_obj = "{" + ", ".join(example_fields) + "}"
-    schema_str = "\n".join(schema_lines)
-    
-    # Add comprehensive explanation about repeatable fields
-    prompt = (
-        f"Please provide a list of dictionaries (objects), e.g. [{{'key': 'value'}}], each matching this schema:\n"
-        f"{schema_str}\n"
-        f"Example:\n[{example_obj}]\n"
-        f"IMPORTANT: Each object must have ALL the fields above, with the correct type. "
-        f"Do not add extra fields. Return a list of dicts, each matching the schema exactly. "
-        f"IMPORTANT: The field name is just a key, don't use it to find for the value. The value you provide must match the field's description and prompt, even if the user never says it directly.\n"
-        f"\n"
-        f"IMPORTANT - REPEATABLE FIELDS:\n"
-        f"- Individual fields within schemas can also be repeatable\n"
-        f"- If a field has repeatable=True, it becomes an ARRAY of values\n"
-        f"- If a field has repeatable=False, it becomes a SINGLE value\n"
-        f"- Example: if 'term' field is repeatable=True, use: \"term\": [\"Fall 2024\", \"Spring 2025\"]\n"
-        f"- Example: if 'term' field is repeatable=False, use: \"term\": \"Fall 2024\"\n"
-        f"- ALWAYS check the example structure to see which fields are arrays vs single values\n"
-        f"- For repeatable fields, extract ALL values from the conversation and put them in an array\n"
-        f"- Even if there's only one value, if the field is repeatable, it must be in an array\n"
-        f"\n"
-        f"REQUIRED STRUCTURE FOR '{slot.name}':\n"
-        f"- Follow the exact schema shown above\n"
-        f"- Do NOT add extra fields not in the schema\n"
-        f"- Do NOT change field names (e.g., use 'term' not 'semester', 'terms')\n"
-        f"- Follow the exact structure shown above\n"
-        f"- Pay attention to ARRAYS vs SINGLE VALUES in the example structure\n"
-        f"- If the example shows an array (e.g., \"term\": [\"example\"]), use an array in your response\n"
-        f"- If the example shows a single value (e.g., \"term\": \"example\"), use a single value\n"
-        f"- REPEATABLE FIELDS MUST BE ARRAYS - even if there's only one value\n"
-        f"- Extract data from the conversation to populate the values\n"
-        f"- Return ONLY valid JSON, no explanations"
-    )
-    
-    return prompt
+        Args:
+            slot: The group slot to check
+            
+        Returns:
+            Response message if missing fields, empty string otherwise
+        """
+        # For group, check each item in value list
+        if not slot.value or not isinstance(slot.value, list):
+            return slot.prompt
+        
+        for idx, item in enumerate(slot.value):
+            missing_fields = []
+            for field in (slot.schema if hasattr(slot, 'schema') and isinstance(slot.schema, list | tuple) else []):
+                field_repeatable = field.get("repeatable", False)
+                if field.get("required", False):
+                    if field_repeatable:
+                        # For repeatable fields, check if array exists and has values
+                        if field["name"] not in item or not isinstance(item[field["name"]], list) or len(item[field["name"]]) == 0:
+                            missing_fields.append(f"{field['name']} (repeatable)")
+                        else:
+                            # Check each value in the array
+                            for val_idx, val in enumerate(item[field["name"]]):
+                                if val in [None, ""]:
+                                    missing_fields.append(f"{field['name']} (value {val_idx+1})")
+                    else:
+                        # For non-repeatable fields, check single value
+                        if item.get(field["name"]) in [None, ""]:
+                            missing_fields.append(field["name"])
+            if missing_fields:
+                return f"Please provide the following fields for group '{slot.name}' item {idx+1}: {', '.join(missing_fields)}."
+        
+        return ""

@@ -243,14 +243,6 @@ def http_tool(
             f"Making a {params.method} request to {params.endpoint}, with body: {params.body} and params: {params.params}"
         )
         
-        # Log the final cleaned body for debugging
-        if params.body:
-            try:
-                import json
-                json_str = json.dumps(params.body, indent=2)
-                log_context.info(f"Final request body (JSON): {json_str}")
-            except Exception as e:
-                log_context.error(f"Failed to serialize request body to JSON: {str(e)}")
         response: requests.Response = requests.request(
             method=params.method,
             url=params.endpoint,
