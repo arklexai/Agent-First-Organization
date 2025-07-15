@@ -11,7 +11,7 @@
 [![Python](https://img.shields.io/pypi/pyversions/arklex)](https://pypi.org/project/arklex)
 [![License](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE.md)
 [![Discord](https://img.shields.io/badge/discord-join%20community-7289da?logo=discord)](https://discord.gg/kJkefzkRg5)
-![Coverage](https://img.shields.io/badge/coverage-99.1%25-green)
+![Coverage](https://img.shields.io/badge/coverage-99.2%25-green)
 
 🚀 [Quick Start](#-get-started-in-5-minutes) • 📚 [Documentation](https://arklexai.github.io/Agent-First-Organization/) • 💡 [Examples](./examples/)
 
