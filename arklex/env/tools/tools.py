@@ -294,7 +294,7 @@ class Tool:
                 return bool(value)
             elif type_str == "str":
                 # If value is a dict or list, do not convert to string
-                if isinstance(value, (dict, list)):
+                if isinstance(value, dict | list):
                     return value
                 return str(value)
             elif type_str.startswith("list["):
@@ -506,7 +506,7 @@ class Tool:
             repeatable=getattr(slot, 'repeatable', False),
         )
 
-    def _parse_and_validate_group_value(self, slot: Slot, group_value: Any) -> list[dict[str, Any]]:
+    def _parse_and_validate_group_value(self, slot: Slot, group_value: object) -> list[dict[str, object]]:
         """Parse and validate a group value, ensuring it's a list of dictionaries.
         
         Args:
@@ -543,7 +543,7 @@ class Tool:
         
         return group_value
 
-    def _parse_and_validate_repeatable_value(self, slot: Slot, slot_value: Any) -> list[Any]:
+    def _parse_and_validate_repeatable_value(self, slot: Slot, slot_value: object) -> list[object]:
         """Parse and validate a repeatable slot value, ensuring it's a list.
         
         Args:
@@ -608,7 +608,7 @@ class Tool:
         
         return group_value
 
-    def _apply_fixed_valuesource(self, field_repeatable: bool, field_type: str, schema_value: Any) -> Any:
+    def _apply_fixed_valuesource(self, field_repeatable: bool, field_type: str, schema_value: object) -> object:
         """Apply fixed valueSource logic.
         
         Args:
@@ -628,7 +628,7 @@ class Tool:
         else:
             return self._convert_value(schema_value, field_type)
 
-    def _apply_default_valuesource(self, current_value: Any, field_repeatable: bool, field_type: str, schema_value: Any) -> Any:
+    def _apply_default_valuesource(self, current_value: object, field_repeatable: bool, field_type: str, schema_value: object) -> object:
         """Apply default valueSource logic.
         
         Args:
@@ -651,13 +651,13 @@ class Tool:
                 return [self._convert_value(val, field_type) for val in current_value]
         else:
             if current_value in [None, ""]:
-                log_context.info(f"Current value is None/empty, using schema_value")
+                log_context.info("Current value is None/empty, using schema_value")
                 return self._convert_value(schema_value, field_type)
             else:
-                log_context.info(f"Current value exists, converting it")
+                log_context.info("Current value exists, converting it")
                 return self._convert_value(current_value, field_type)
 
-    def _apply_prompt_user_valuesource(self, current_value: Any, field_repeatable: bool, field_type: str) -> Any:
+    def _apply_prompt_user_valuesource(self, current_value: object, field_repeatable: bool, field_type: str) -> object:
         """Apply prompt user valueSource logic.
         
         Args:
@@ -1163,7 +1163,7 @@ class Tool:
             f"Return an empty array [] if no values are found."
         )
 
-    def _ensure_repeatable_field_value(self, value, field_type):
+    def _ensure_repeatable_field_value(self, value: object, field_type: str) -> list[object]:
         """
         Ensures that the value for a repeatable field is always a list of the correct type.
         If value is None or empty, returns [].

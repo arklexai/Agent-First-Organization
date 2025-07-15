@@ -480,7 +480,7 @@ class TestHTTPTool:
         mock_request.return_value = mock_response
 
         class SlotObj:
-            def __init__(self):
+            def __init__(self) -> None:
                 self.name = None
                 self.value = "test"
                 self.target = "body"
@@ -534,7 +534,7 @@ class TestHTTPTool:
 
         # Test with non-serializable object that raises exception in __str__
         class NonSerializable:
-            def __str__(self):
+            def __str__(self) -> str:
                 raise Exception("Cannot serialize")
 
         result = http_tool().func(
@@ -548,7 +548,7 @@ class TestHTTPTool:
         
         # Test with complex nested structure that might cause JSON issues
         class CircularReference:
-            def __init__(self):
+            def __init__(self) -> None:
                 self.self_ref = self
         
         result2 = http_tool().func(
@@ -561,7 +561,7 @@ class TestHTTPTool:
         assert "ok" in result2
         
         # Test with function object (not JSON serializable)
-        def some_function():
+        def some_function() -> None:
             pass
         
         result3 = http_tool().func(

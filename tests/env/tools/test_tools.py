@@ -4,17 +4,15 @@ This module contains comprehensive test cases for the tools functionality,
 including Tool class creation, registration, and various parameter handling scenarios.
 """
 
-from typing import Any, NoReturn, Dict, List, Optional, Union
-from unittest.mock import Mock, patch, MagicMock
-import pytest
 from copy import deepcopy
-import json
+from typing import Any, NoReturn
+from unittest.mock import Mock, patch
 
-from arklex.env.tools.tools import Tool, register_tool, Slot
+import pytest
+
+from arklex.env.tools.tools import Slot, Tool, register_tool
 from arklex.orchestrator.entities.msg_state_entities import MessageState, StatusEnum
-from arklex.orchestrator.NLU.entities.slot_entities import Slot
 from arklex.utils.exceptions import AuthenticationError, ToolExecutionError
-from arklex.env.tools.custom_tools.http_tool import replace_placeholders
 
 
 class TestTools:
@@ -1358,7 +1356,7 @@ class TestTools:
             assert len(tool.slots) == 1
             assert tool.slots[0].name == "group1"
             assert hasattr(tool.slots[0], "schema")
-            assert isinstance(tool.slots[0].schema, (list, tuple))
+            assert isinstance(tool.slots[0].schema, list | tuple)
 
     def test_execute_with_function_accepting_slots_parameter(self) -> None:
         """Test _execute method with function that accepts slots parameter."""
@@ -2829,7 +2827,7 @@ class TestToolEdgeCases:
         # Test mixed types in list
         assert tool._ensure_repeatable_field_value([1, "2", 3], "str") == ["1", "2", "3"]
 
-    def test_parse_and_validate_repeatable_value_wraps_non_list(self):
+    def test_parse_and_validate_repeatable_value_wraps_non_list(self) -> None:
         tool = Tool(
             func=lambda x: x,
             name="test_tool",
@@ -2843,7 +2841,7 @@ class TestToolEdgeCases:
         print(f"result: {result}")
         assert result == ["single_value"]
 
-    def test_parse_and_validate_repeatable_value_none(self):
+    def test_parse_and_validate_repeatable_value_none(self) -> None:
         tool = Tool(
             func=lambda x: x,
             name="test_tool",
@@ -2856,7 +2854,7 @@ class TestToolEdgeCases:
         result = tool._parse_and_validate_repeatable_value(tool.slots[0], {"key": "value"})
         assert result == [{"key": "value"}]
 
-    def test_apply_valuesource_to_group_items_repeatable_dict_field(self):
+    def test_apply_valuesource_to_group_items_repeatable_dict_field(self) -> None:
         """Test _apply_valuesource_to_group_items with repeatable dict field."""
         tool = Tool(
             func=lambda group: group,
@@ -2883,7 +2881,7 @@ class TestToolEdgeCases:
         assert "repeatable_field4" in result[0]
         assert result[0]["repeatable_field4"] == {"key": "value"}
 
-    def test_handle_missing_required_slots_non_repeatable_verified(self):
+    def test_handle_missing_required_slots_non_repeatable_verified(self) -> None:
         """Test _handle_missing_required_slots with non-repeatable slot that is verified."""
         tool = Tool(
             func=lambda param: param,
@@ -2904,7 +2902,7 @@ class TestToolEdgeCases:
         assert result == ""
         assert is_verification is False
 
-    def test_handle_missing_required_slots_non_repeatable_unverified_verification_needed(self):
+    def test_handle_missing_required_slots_non_repeatable_unverified_verification_needed(self) -> None:
         """Test _handle_missing_required_slots with non-repeatable slot that needs verification."""
         tool = Tool(
             func=lambda param: param,
@@ -2926,7 +2924,7 @@ class TestToolEdgeCases:
         assert "Please verifyThe reason is: Please confirm this value" in result
         assert is_verification is True
 
-    def test_handle_missing_required_slots_non_repeatable_unverified_verification_not_needed(self):
+    def test_handle_missing_required_slots_non_repeatable_unverified_verification_not_needed(self) -> None:
         """Test _handle_missing_required_slots with non-repeatable slot that doesn't need verification."""
         tool = Tool(
             func=lambda param: param,
@@ -2948,7 +2946,7 @@ class TestToolEdgeCases:
         assert result == ""
         assert is_verification is False
 
-    def test_handle_missing_required_slots_non_repeatable_no_value_required(self):
+    def test_handle_missing_required_slots_non_repeatable_no_value_required(self) -> None:
         """Test _handle_missing_required_slots with non-repeatable slot that has no value but is required."""
         tool = Tool(
             func=lambda param: param,
@@ -2969,7 +2967,7 @@ class TestToolEdgeCases:
         assert result == "Please provide param"
         assert is_verification is False
 
-    def test_handle_missing_required_slots_non_repeatable_no_value_not_required(self):
+    def test_handle_missing_required_slots_non_repeatable_no_value_not_required(self) -> None:
         """Test _handle_missing_required_slots with non-repeatable slot that has no value but is not required."""
         tool = Tool(
             func=lambda param: param,
@@ -2990,7 +2988,7 @@ class TestToolEdgeCases:
         assert result == ""
         assert is_verification is False
 
-    def test_handle_missing_required_slots_all_slots_valid(self):
+    def test_handle_missing_required_slots_all_slots_valid(self) -> None:
         """Test _handle_missing_required_slots when all slots are valid (covers the final return statement)."""
         tool = Tool(
             func=lambda param: param,
@@ -3014,7 +3012,7 @@ class TestToolEdgeCases:
         assert result == ""
         assert is_verification is False
 
-    def test_handle_missing_required_slots_group_slot_missing_fields(self):
+    def test_handle_missing_required_slots_group_slot_missing_fields(self) -> None:
         """Test _handle_missing_required_slots with group slot that has missing fields (covers lines 1192-1194)."""
         tool = Tool(
             func=lambda group: group,
@@ -3044,7 +3042,7 @@ class TestToolEdgeCases:
         assert "Please provide the following fields for group 'group' item 1: field1" in result
         assert is_verification is False
 
-    def test_handle_missing_required_slots_repeatable_slot_empty_list(self):
+    def test_handle_missing_required_slots_repeatable_slot_empty_list(self) -> None:
         """Test _handle_missing_required_slots with repeatable slot that has empty list (covers lines 1199-1200)."""
         tool = Tool(
             func=lambda param: param,
@@ -3072,7 +3070,7 @@ class TestToolEdgeCases:
         assert result == "Please provide values"
         assert is_verification is False
 
-    def test_handle_missing_required_slots_repeatable_slot_none_value(self):
+    def test_handle_missing_required_slots_repeatable_slot_none_value(self) -> None:
         """Test _handle_missing_required_slots with repeatable slot that has None value (covers lines 1199-1200)."""
         tool = Tool(
             func=lambda param: param,
@@ -3100,7 +3098,7 @@ class TestToolEdgeCases:
         assert result == "Please provide values"
         assert is_verification is False
 
-    def test_handle_missing_required_slots_repeatable_slot_not_list(self):
+    def test_handle_missing_required_slots_repeatable_slot_not_list(self) -> None:
         """Test _handle_missing_required_slots with repeatable slot that has non-list value (covers lines 1199-1200)."""
         tool = Tool(
             func=lambda param: param,
@@ -3128,7 +3126,7 @@ class TestToolEdgeCases:
         assert result == "Please provide values"
         assert is_verification is False
 
-    def test_handle_missing_required_slots_repeatable_slot_empty_values(self):
+    def test_handle_missing_required_slots_repeatable_slot_empty_values(self) -> None:
         """Test _handle_missing_required_slots with repeatable slot that has empty values (covers lines 1202-1204)."""
         tool = Tool(
             func=lambda param: param,
@@ -3156,7 +3154,7 @@ class TestToolEdgeCases:
         assert "Please provide values (item 1)" in result
         assert is_verification is False
 
-    def test_check_group_slot_missing_fields_none_value(self):
+    def test_check_group_slot_missing_fields_none_value(self) -> None:
         """Test _check_group_slot_missing_fields with None value (covers line 1237)."""
         tool = Tool(
             func=lambda group: group,
@@ -3181,7 +3179,7 @@ class TestToolEdgeCases:
         # Should return the prompt since value is None
         assert result == "Please provide group"
 
-    def test_check_group_slot_missing_fields_empty_list(self):
+    def test_check_group_slot_missing_fields_empty_list(self) -> None:
         """Test _check_group_slot_missing_fields with empty list value (covers line 1237)."""
         tool = Tool(
             func=lambda group: group,
@@ -3206,7 +3204,7 @@ class TestToolEdgeCases:
         # Should return the prompt since value is empty list
         assert result == "Please provide group"
 
-    def test_check_group_slot_missing_fields_not_list(self):
+    def test_check_group_slot_missing_fields_not_list(self) -> None:
         """Test _check_group_slot_missing_fields with non-list value (covers line 1237)."""
         tool = Tool(
             func=lambda group: group,
@@ -3231,7 +3229,7 @@ class TestToolEdgeCases:
         # Should return the prompt since value is not a list
         assert result == "Please provide group"
 
-    def test_check_group_slot_missing_fields_repeatable_field_missing(self):
+    def test_check_group_slot_missing_fields_repeatable_field_missing(self) -> None:
         """Test _check_group_slot_missing_fields with missing repeatable field (covers lines 1246-1247)."""
         tool = Tool(
             func=lambda group: group,
@@ -3258,7 +3256,7 @@ class TestToolEdgeCases:
         # Should return message about missing repeatable field
         assert "repeatable_field (repeatable)" in result
 
-    def test_check_group_slot_missing_fields_repeatable_field_not_list(self):
+    def test_check_group_slot_missing_fields_repeatable_field_not_list(self) -> None:
         """Test _check_group_slot_missing_fields with repeatable field that is not a list (covers lines 1246-1247)."""
         tool = Tool(
             func=lambda group: group,
@@ -3285,7 +3283,7 @@ class TestToolEdgeCases:
         # Should return message about missing repeatable field
         assert "repeatable_field (repeatable)" in result
 
-    def test_check_group_slot_missing_fields_repeatable_field_empty_list(self):
+    def test_check_group_slot_missing_fields_repeatable_field_empty_list(self) -> None:
         """Test _check_group_slot_missing_fields with repeatable field that has empty list (covers lines 1246-1247)."""
         tool = Tool(
             func=lambda group: group,
@@ -3312,7 +3310,7 @@ class TestToolEdgeCases:
         # Should return message about missing repeatable field
         assert "repeatable_field (repeatable)" in result
 
-    def test_check_group_slot_missing_fields_repeatable_field_empty_values(self):
+    def test_check_group_slot_missing_fields_repeatable_field_empty_values(self) -> None:
         """Test _check_group_slot_missing_fields with repeatable field that has empty values (covers lines 1250-1252)."""
         tool = Tool(
             func=lambda group: group,
@@ -3340,7 +3338,7 @@ class TestToolEdgeCases:
         assert "repeatable_field (value 1)" in result
         assert "repeatable_field (value 2)" in result
 
-    def test_check_group_slot_missing_fields_all_valid(self):
+    def test_check_group_slot_missing_fields_all_valid(self) -> None:
         """Test _check_group_slot_missing_fields when all fields are valid (covers line 1260)."""
         tool = Tool(
             func=lambda group: group,
