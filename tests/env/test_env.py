@@ -1282,7 +1282,7 @@ def test_environment_step_tool_with_slot_schema_signature_change() -> None:
 
         class DummyNodeInfo:
             additional_args = {"foo": "bar"}
-            attributes = {"slots": ["slot1"]}
+            attributes = {"slots": ["slot1"], "slot_groups": [{"name": "group1", "schema": [{"name": "slot1", "type": "str"}]}]}
 
         state = MessageState()
         params = DummyOrchestratorParams()
