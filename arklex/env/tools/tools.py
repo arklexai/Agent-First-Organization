@@ -332,7 +332,7 @@ class Tool:
 
         if isinstance(slots, list) and all(isinstance(s, Slot) for s in slots):
             # scenario to handle pre-existing slots, turn into list[list[Slot]]
-            slots = [slots]
+            slots = [slots] if slots else []
 
         # Flatten the slots (list of lists) to a single list
         all_slots = [slot for slot_group in slots for slot in slot_group]
@@ -473,24 +473,18 @@ class Tool:
     ) -> list[dict[str, Any]]:
         """Call the tool for grouped slots"""
         all_responses = []
-        for slot_group in slots:
-            kwargs: dict[str, Any] = {}
-            # Extract values from slots
-            for slot in slot_group:
-                # Always include the slot value, even if None
-                kwargs[slot.name] = slot.value if slot.value is not None else ""
-
-            # Get the function signature to check parameters
+        if not slots:
             sig = inspect.signature(self.func)
-
-            # Only include the slots list if the target function accepts it
+            
             if "slots" in sig.parameters:
-                kwargs["slots"] = [
-                    slot.model_dump() if hasattr(slot, "model_dump") else slot
-                    for slot_group in slots
-                    for slot in slot_group
-                ]
-
+                kwargs = {
+                    "slots": [
+                        slot.model_dump() if hasattr(slot, "model_dump") else slot
+                        for slot_group in slots
+                        for slot in slot_group
+                    ]
+                }
+            
             combined_kwargs = {**kwargs, **fixed_args, **self.llm_config}
             # Ensure all required arguments are present
             for arg in required_args:
@@ -522,6 +516,58 @@ class Tool:
                     "success": tool_success,
                 }
             )
+            
+            
+        else:
+            for slot_group in slots:
+                kwargs: dict[str, Any] = {}
+                # Extract values from slots
+                for slot in slot_group:
+                    # Always include the slot value, even if None
+                    kwargs[slot.name] = slot.value if slot.value is not None else ""
+
+                # Get the function signature to check parameters
+                sig = inspect.signature(self.func)
+
+                # Only include the slots list if the target function accepts it
+                if "slots" in sig.parameters:
+                    kwargs["slots"] = [
+                        slot.model_dump() if hasattr(slot, "model_dump") else slot
+                        for slot_group in slots
+                        for slot in slot_group
+                    ]
+
+                combined_kwargs = {**kwargs, **fixed_args, **self.llm_config}
+                # Ensure all required arguments are present
+                for arg in required_args:
+                    if arg not in kwargs:
+                        kwargs[arg] = ""
+
+                tool_success: bool = False
+                try:
+                    response = self.func(**combined_kwargs)
+                    tool_success = True
+                except ToolExecutionError as tee:
+                    log_context.error(traceback.format_exc())
+                    response = tee.extra_message
+                except AuthenticationError as ae:
+                    log_context.error(traceback.format_exc())
+                    response = str(ae)
+                except Exception as e:
+                    log_context.error(traceback.format_exc())
+                    response = str(e)
+
+                call_id = str(uuid.uuid4())
+                log_context.info(f"Tool {self.name} response: {response}")
+                self._log_tool_call(state, kwargs, response, call_id)
+
+                all_responses.append(
+                    {
+                        "slot": kwargs,
+                        "response": response,
+                        "success": tool_success,
+                    }
+                )
         return all_responses
 
     def _log_tool_call(
