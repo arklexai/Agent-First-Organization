@@ -2,9 +2,13 @@ import asyncio
 
 from agents import Agent, ItemHelpers, Runner, trace
 from langgraph.graph import StateGraph
+from rich.console import Console
+from rich.panel import Panel
 
 from arklex.env.agents.utils.agent_loader import build_agents
 from arklex.utils.graph_state import LLMConfig, MessageState
+
+console = Console()
 
 
 def build_parallel_flow(config: dict) -> StateGraph:
@@ -20,17 +24,10 @@ def build_parallel_flow(config: dict) -> StateGraph:
     async def step_fn(state: MessageState) -> MessageState:
         input_items = state.function_calling_trajectory
         with trace(f"{config['role']}"):
-            # start with two parallelizations,
-            # figure out how to make this dynamic
+            # figure out how to make this more dynamic in the future
             res_1, res_2 = await asyncio.gather(
-                Runner.run(
-                    parallel_agent,
-                    input_items,
-                ),
-                Runner.run(
-                    parallel_agent,
-                    input_items,
-                ),
+                Runner.run(parallel_agent, input_items),
+                Runner.run(parallel_agent, input_items),
             )
 
             responses = [
@@ -38,16 +35,19 @@ def build_parallel_flow(config: dict) -> StateGraph:
                 ItemHelpers.text_message_outputs(res_2.new_items),
             ]
 
-            combined_responses = "\n\n".join(responses)
-            print(f"\n\nResponses:\n\n{combined_responses}")
+            # print each parallel response
+            console.print("\n[b cyan]Parallel Agent Responses:[/b cyan]\n")
+            for i, r in enumerate(responses, 1):
+                console.print(
+                    Panel(r, title=f"Agent #{i}", subtitle="Output", expand=False)
+                )
 
-            best_responsse = await Runner.run(
-                selector_agent,
-                f"Input: {input_items}\n\nResponses:\n{responses}",
-            )
+            # Run selection
+            selector_input = f"Input: {input_items}\n\nResponses:\n{responses}"
+            best_response = await Runner.run(selector_agent, selector_input)
 
-            state.response = best_responsse.final_output
-        breakpoint()
+            state.response = best_response.final_output
+
         return state
 
     graph = StateGraph(MessageState)
