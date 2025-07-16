@@ -334,7 +334,7 @@ class Environment:
             log_context.info(f"{self.tools[id]['name']} tool selected")
             tool: Tool = self.tools[id]["execute"]()
             tool.init_slotfiller(self.slotfillapi)
-            tool.load_slots(getattr(node_info, "attributes", {}) or {}.get("slots", []))
+            tool.load_slots(getattr(node_info, "attributes", {}).get("slots", []))
             combined_args: dict[str, Any] = {
                 **self.tools[id]["fixed_args"],
                 **(node_info.additional_args or {}),
