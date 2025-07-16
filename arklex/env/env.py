@@ -4,6 +4,7 @@ This module provides functionality for managing the environment, including
 worker initialization, tool management, and slot filling integration.
 """
 
+import asyncio
 import importlib
 import os
 import uuid
@@ -325,7 +326,16 @@ class Environment:
                 state=message_state,
                 **({"multi_agent_config": agent_config} if agent_config else {}),
             )
-            response_state = agent.execute(message_state, **node_info.additional_args)
+
+            if agent.is_async():
+                response_state = asyncio.run(
+                    agent.async_execute(message_state, **node_info.additional_args)
+                )
+            else:
+                response_state = agent.execute(
+                    message_state, **node_info.additional_args
+                )
+
             call_id: str = str(uuid.uuid4())
             params.memory.function_calling_trajectory = (
                 response_state.function_calling_trajectory

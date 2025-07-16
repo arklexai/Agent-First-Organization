@@ -1,3 +1,4 @@
+import inspect
 import traceback
 from typing import Any
 
@@ -24,36 +25,64 @@ class MultiAgent(BaseAgent):
         super().__init__()
         self.state = state
         self.workflow = None
-        self.multi_agent_config: dict[str, Any] = multi_agent_config
+        self.multi_agent_config = multi_agent_config
         self._load_multi_agent_system()
         log_context.info(
             f"MultiAgent initialized with {self.multi_agent_config.get('pattern')} pattern."
         )
 
+    def is_async(self) -> bool:
+        """Check if this multi-agent instance should be run asynchronously."""
+        return self.multi_agent_config.get("is_async", False)
+
     def _load_multi_agent_system(self) -> None:
-        """Loading the Multi-Agent System based on the specified pattern in the config."""
         try:
             log_context.info("Preparing MultiAgent...")
-
             if not self.multi_agent_config:
                 raise ValueError("MultiAgent config not found in agent.config")
             self.multi_agent_config["llm_config"] = self.state.bot_config.llm_config
             self.workflow = dispatch_pattern(self.multi_agent_config)
-
         except Exception:
             log_context.error(
                 f"[MultiAgent] Initialization error: {traceback.format_exc()}"
             )
 
     def _execute(self, msg_state: MessageState, **kwargs: Any) -> dict[str, Any]:  # noqa: ANN401
+        """Synchronous execution if config does not enable async."""
         try:
-            log_context.info("[MultiAgent] Executing MAS workflow...")
+            log_context.info("[MultiAgent] Executing MAS workflow (sync)...")
             graph = self.workflow.compile()
-            # make this flexible invoke(synchronous) or ainvoke(asynchronous)
-            # need to figure out to do with parallelization pattern
             result = graph.invoke(msg_state)
             return dict(result)
         except Exception as e:
-            log_context.error(f"[MultiAgent] Execution error: {traceback.format_exc()}")
+            log_context.error(
+                f"[MultiAgent] Sync execution error: {traceback.format_exc()}"
+            )
+            msg_state.response = f"[MultiAgent Error] {e}"
+            return msg_state.model_dump()
+
+    async def _async_execute(
+        self,
+        msg_state: MessageState,
+        **kwargs: Any,  # noqa: ANN401
+    ) -> dict[str, Any]:
+        """Asynchronous execution if enabled in config."""
+        try:
+            log_context.info("[MultiAgent] Executing MAS workflow (async)...")
+            graph = self.workflow.compile()
+
+            if hasattr(graph, "ainvoke") and inspect.iscoroutinefunction(graph.ainvoke):
+                result = await graph.ainvoke(msg_state)
+            else:
+                log_context.warning(
+                    "[MultiAgent] Graph does not support ainvoke, falling back to sync."
+                )
+                result = graph.invoke(msg_state)
+
+            return dict(result)
+        except Exception as e:
+            log_context.error(
+                f"[MultiAgent] Async execution error: {traceback.format_exc()}"
+            )
             msg_state.response = f"[MultiAgent Error] {e}"
             return msg_state.model_dump()

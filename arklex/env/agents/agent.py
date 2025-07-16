@@ -57,6 +57,10 @@ class BaseAgent(ABC):
         """
         return f"{self.__class__.__name__}"
 
+    def is_async(self) -> bool:
+        """Indicate whether this agent needs async execution."""
+        return False
+
     @abstractmethod
     def _execute(self, msg_state: MessageState, **kwargs: Any) -> dict[str, Any]:  # noqa: ANN401
         """Execute the agent's core functionality.
@@ -94,6 +98,33 @@ class BaseAgent(ABC):
                     response_state.response
                     if response_state.response
                     else response_state.message_flow
+                )
+            return response_state
+        except Exception:
+            log_context.error(traceback.format_exc())
+            return msg_state
+
+    async def _async_execute(
+        self,
+        msg_state: MessageState,
+        **kwargs: Any,  # noqa: ANN401
+    ) -> dict[str, Any]:
+        """Async version of _execute. Override in async agents."""
+        raise NotImplementedError("This agent does not support async execution")
+
+    async def async_execute(
+        self,
+        msg_state: MessageState,
+        **kwargs: Any,  # noqa: ANN401
+    ) -> MessageState:
+        """Public async method with error handling."""
+        try:
+            response_return = await self._async_execute(msg_state, **kwargs)
+            response_state = MessageState.model_validate(response_return)
+
+            if response_state.trajectory and response_state.trajectory[-1]:
+                response_state.trajectory[-1][-1].output = (
+                    response_state.response or response_state.message_flow
                 )
             return response_state
         except Exception:
