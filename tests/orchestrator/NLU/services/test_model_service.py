@@ -537,27 +537,6 @@ class TestModelServiceSlotProcessing:
         result = model_service.process_slot_response(json.dumps(response), slots)
         assert isinstance(result, list)
 
-    def test_process_slot_response_with_multiple_values(
-        self, model_service: ModelService
-    ) -> None:
-        """Test processing slot response where slot has multiple values."""
-        from arklex.orchestrator.NLU.entities.slot_entities import Slot
-
-        response = [{"location": "SF"}, {"location": "LA"}]
-        slots = [
-            Slot(name="location", type="str", value=None, verified=False, required=True)
-        ]
-
-        result = model_service.process_slot_response(json.dumps(response), slots)
-
-        assert len(result) == 2
-        assert all(isinstance(s, list) for s in result)
-        assert all(
-            isinstance(slot, Slot) for slot_group in result for slot in slot_group
-        )
-        assert {s.value for s in result[0]} == {"SF"}
-        assert {s.value for s in result[1]} == {"LA"}
-
 
 class TestModelServiceVerification:
     """Test cases for ModelService slot verification methods."""
@@ -937,8 +916,7 @@ class TestModelServiceProcessTextExceptions:
     ) -> None:
         """Test process_text with non-string input."""
         with pytest.raises(ValidationError) as exc_info:
-            # type: ignore
-            await model_service_with_mock_model.process_text(123)
+            await model_service_with_mock_model.process_text(123)  # type: ignore
         # Should raise ValidationError for invalid input
         assert "Invalid input text" in str(exc_info.value)
 
@@ -1296,7 +1274,7 @@ class TestModelServiceProcessSlotResponse:
 
     def test_process_slot_response_success(self, model_service: ModelService) -> None:
         """Test successful slot response processing."""
-        response = '[{"slot1": "value1", "slot2": "value2"}]'
+        response = '{"slot1": "value1", "slot2": "value2"}'
         slots = [
             {"name": "slot1", "type": "string"},
             {"name": "slot2", "type": "string"},
@@ -1305,9 +1283,10 @@ class TestModelServiceProcessSlotResponse:
 
         result = model_service.process_slot_response(response, slots)
 
-        assert len(result[0]) == 2
-        assert result[0][0]["value"] == "value1"
-        assert result[0][1]["value"] == "value2"
+        assert len(result) == 3
+        assert result[0]["value"] == "value1"
+        assert result[1]["value"] == "value2"
+        assert result[2]["value"] is None
 
     def test_process_slot_response_json_decode_error(
         self, model_service: ModelService
@@ -1441,13 +1420,13 @@ class TestDummyModelServiceExtended:
         self, dummy_model_service: DummyModelService
     ) -> None:
         """Test that DummyModelService.process_slot_response calls super method."""
-        response = '[{"slot1": "value1"}]'
+        response = '{"slot1": "value1"}'
         slots = [{"name": "slot1", "type": "string"}]
 
         result = dummy_model_service.process_slot_response(response, slots)
 
         assert len(result) == 1
-        assert result[0][0]["value"] == "value1"
+        assert result[0]["value"] == "value1"
 
     def test_dummy_model_service_format_verification_input_calls_super(
         self, dummy_model_service: DummyModelService
@@ -1640,7 +1619,7 @@ class TestModelServiceFormatSlotInput:
         assert isinstance(system_prompt, str)
         assert "test_slot" in user_prompt
         assert "value1, value2, value3" in user_prompt
-        assert "slot-filling assistant" in system_prompt
+        assert "slot filling assistant" in system_prompt
 
     def test_format_slot_input_with_dict_items(
         self, model_service: ModelService
@@ -1737,7 +1716,7 @@ class TestModelServiceProcessSlotResponseWithPydantic:
         self, model_service: ModelService
     ) -> None:
         """Test process_slot_response with Pydantic model slots."""
-        response = '[{"slot1": "value1", "slot2": "value2"}]'
+        response = '{"slot1": "value1", "slot2": "value2"}'
 
         # Create mock Pydantic-like objects
         slot1 = MagicMock()
@@ -1751,15 +1730,16 @@ class TestModelServiceProcessSlotResponseWithPydantic:
 
         result = model_service.process_slot_response(response, slots)
 
-        assert len(result[0]) == 2
-        assert result[0][0].value == "value1"
-        assert result[0][1].value == "value2"
+        assert len(result) == 3
+        assert result[0].value == "value1"
+        assert result[1].value == "value2"
+        assert result[2].value is None
 
     def test_process_slot_response_with_mixed_types(
         self, model_service: ModelService
     ) -> None:
         """Test process_slot_response with mixed dict and Pydantic model slots."""
-        response = '[{"slot1": "value1", "slot2": "value2"}]'
+        response = '{"slot1": "value1", "slot2": "value2"}'
 
         slot1 = {"name": "slot1", "type": "string"}
         slot2 = MagicMock()
@@ -1769,9 +1749,9 @@ class TestModelServiceProcessSlotResponseWithPydantic:
 
         result = model_service.process_slot_response(response, slots)
 
-        assert len(result[0]) == 2
-        assert result[0][0]["value"] == "value1"
-        assert result[0][1].value == "value2"
+        assert len(result) == 2
+        assert result[0]["value"] == "value1"
+        assert result[1].value == "value2"
 
 
 class TestModelServiceFormatVerificationInput:
@@ -2825,5 +2805,4 @@ class TestModelServiceExtraCoverage:
     ) -> None:
         """Test verify_slots with invalid slots type."""
         with pytest.raises(ValidationError, match="Invalid slots"):
-            # type: ignore
-            await model_service.verify_slots("test text", "invalid_slots")
+            await model_service.verify_slots("test text", "invalid_slots")  # type: ignore

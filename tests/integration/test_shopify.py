@@ -45,10 +45,12 @@ class TestShopifySearchProducts:
     """
 
     @patch("arklex.env.tools.shopify.search_products.shopify.Session.temp")
+    @patch("arklex.env.tools.shopify.search_products.PROVIDER_MAP")
     @patch("arklex.env.tools.shopify.search_products.shopify.GraphQL")
     def test_search_products_success(
         self,
         mock_graphql: Mock,
+        mock_provider_map: Mock,
         mock_session_temp: Mock,
         sample_shopify_product_data: dict,
     ) -> None:
@@ -74,6 +76,14 @@ class TestShopifySearchProducts:
         mock_graphql_instance.execute.return_value = json.dumps(mock_response)
         mock_graphql.return_value = mock_graphql_instance
 
+        # Mock LLM response for natural language processing
+        # This simulates the LLM provider generating a human-readable response
+        mock_llm = MagicMock()
+        mock_llm.invoke.return_value.content = (
+            "I found some great products for you! What size are you looking for?"
+        )
+        mock_provider_map.get.return_value.return_value = mock_llm
+
         # Execute the search_products function with test parameters
         # This tests the complete workflow from input to output
         result = search_products_func(
@@ -88,10 +98,17 @@ class TestShopifySearchProducts:
         # Parse the JSON result and validate the structure
         # This ensures the response format is correct
         result_data = json.loads(result)
+        assert "answer" in result_data, "Response should contain 'answer' field"
         assert "card_list" in result_data, "Response should contain 'card_list' field"
         assert len(result_data["card_list"]) == 1, "Should return exactly one product"
         assert result_data["card_list"][0]["title"] == "Test Product", (
             "Product title should match"
+        )
+
+        # Verify that the LLM-generated answer contains expected content
+        # This ensures the natural language processing worked correctly
+        assert "found" in result_data["answer"].lower(), (
+            "LLM response should mention finding products"
         )
 
     @patch("arklex.env.tools.shopify.search_products.shopify.Session.temp")

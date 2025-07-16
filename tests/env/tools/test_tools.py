@@ -4,7 +4,6 @@ This module contains comprehensive test cases for the tools functionality,
 including Tool class creation, registration, and various parameter handling scenarios.
 """
 
-import json
 from typing import Any
 from unittest.mock import Mock, patch
 
@@ -183,8 +182,7 @@ class TestTools:
             conversation_id="test-conversation",
             slots={},
             function_calling_trajectory=[],
-            # Use valid dict with required 'info' field
-            trajectory=[[{"info": {}}]],
+            trajectory=[[{"info": {}}]],  # Use valid dict with required 'info' field
         )
         # This should not raise an exception
         tool._init_slots(state)
@@ -451,8 +449,7 @@ class TestTools:
             conversation_id="test-conversation",
             slots={"default_slots": default_slots},
             function_calling_trajectory=[],
-            # Use valid dict with required 'info' field
-            trajectory=[[{"info": {}}]],
+            trajectory=[[{"info": {}}]],  # Use valid dict with required 'info' field
         )
 
         with patch.object(tool, "init_default_slots") as mock_init_default:
@@ -484,8 +481,7 @@ class TestTools:
             conversation_id="test-conversation",
             slots={},
             function_calling_trajectory=[],
-            # Use valid dict with required 'info' field
-            trajectory=[[{"info": {}}]],
+            trajectory=[[{"info": {}}]],  # Use valid dict with required 'info' field
         )
 
         tool._init_slots(state)
@@ -512,8 +508,7 @@ class TestTools:
             conversation_id="test-conversation",
             slots={},
             function_calling_trajectory=[],
-            # Use valid dict with required 'info' field
-            trajectory=[[{"info": {}}]],
+            trajectory=[[{"info": {}}]],  # Use valid dict with required 'info' field
         )
 
         # Mock bot_config.llm_config
@@ -559,8 +554,7 @@ class TestTools:
         assert (
             "param1" not in tool_def["parameters"]["properties"]
         )  # Should be excluded
-        # Should be included
-        assert "param2" in tool_def["parameters"]["properties"]
+        assert "param2" in tool_def["parameters"]["properties"]  # Should be included
         # The required list should be empty because param1 is verified and param2 is not required
         assert (
             tool_def["parameters"]["required"] == []
@@ -677,8 +671,7 @@ class TestTools:
             conversation_id="test-conversation",
             slots={},
             function_calling_trajectory=[],
-            # Use valid dict with required 'info' field
-            trajectory=[[{"info": {}}]],
+            trajectory=[[{"info": {}}]],  # Use valid dict with required 'info' field
         )
 
         with patch.object(tool, "_init_slots"):
@@ -740,8 +733,7 @@ class TestTools:
             conversation_id="test-conversation",
             slots={},
             function_calling_trajectory=[],
-            # Use valid dict with required 'info' field
-            trajectory=[[{"info": {}}]],
+            trajectory=[[{"info": {}}]],  # Use valid dict with required 'info' field
         )
 
         with patch.object(tool, "_init_slots"):
@@ -801,8 +793,7 @@ class TestTools:
             conversation_id="test-conversation",
             slots={},
             function_calling_trajectory=[],
-            # Use valid dict with required 'info' field
-            trajectory=[[{"info": {}}]],
+            trajectory=[[{"info": {}}]],  # Use valid dict with required 'info' field
         )
 
         with patch.object(tool, "_init_slots"):
@@ -810,7 +801,7 @@ class TestTools:
 
             assert result.status.value == "incomplete"
             assert (
-                "Please confirm param1 The reason is: Please confirm this value"
+                "Please confirm param1The reason is: Please confirm this value"
                 in result.message_flow
             )
 
@@ -855,8 +846,7 @@ class TestTools:
             conversation_id="test-conversation",
             slots={},
             function_calling_trajectory=[],
-            # Use valid dict with required 'info' field
-            trajectory=[[{"info": {}}]],
+            trajectory=[[{"info": {}}]],  # Use valid dict with required 'info' field
         )
 
         with patch.object(tool, "_init_slots"):
@@ -904,8 +894,7 @@ class TestTools:
             conversation_id="test-conversation",
             slots={},
             function_calling_trajectory=[],
-            # Use valid dict with required 'info' field
-            trajectory=[[{"info": {}}]],
+            trajectory=[[{"info": {}}]],  # Use valid dict with required 'info' field
         )
 
         with patch.object(tool, "_init_slots"):
@@ -953,8 +942,7 @@ class TestTools:
             conversation_id="test-conversation",
             slots={},
             function_calling_trajectory=[],
-            # Use valid dict with required 'info' field
-            trajectory=[[{"info": {}}]],
+            trajectory=[[{"info": {}}]],  # Use valid dict with required 'info' field
         )
 
         with patch.object(tool, "_init_slots"):
@@ -1002,8 +990,7 @@ class TestTools:
             conversation_id="test-conversation",
             slots={},
             function_calling_trajectory=[],
-            # Use valid dict with required 'info' field
-            trajectory=[[{"info": {}}]],
+            trajectory=[[{"info": {}}]],  # Use valid dict with required 'info' field
         )
 
         with patch.object(tool, "_init_slots"):
@@ -1011,71 +998,6 @@ class TestTools:
 
             assert result.status.value == "complete"
             assert result.response == "Result: test_value"
-
-    def test_execute_with_postprocess_tool(self) -> None:
-        """Test _execute method with a postProcess tool that uses generate_multi_slot_cohesive_response."""
-
-        def test_function(param1: str, **kwargs: object) -> str:
-            return "\n".join(
-                [
-                    json.dumps({"card_list": [{"id": 1, "name": "Product A"}]}),
-                    json.dumps({"card_list": [{"id": 2, "name": "Product B"}]}),
-                ]
-            )
-
-        tool = Tool(
-            func=test_function,
-            name="test_tool",
-            description="Test tool with post-processing",
-            slots=[{"name": "param1", "type": "str", "required": True}],
-            outputs=["result"],
-            isResponse=False,
-            postProcess=True,
-        )
-
-        # Mock slotfiller
-        mock_slotfiller = Mock()
-        tool.slotfiller = mock_slotfiller
-
-        from arklex.orchestrator.NLU.entities.slot_entities import Slot
-
-        filled_slots = [
-            Slot(
-                name="param1",
-                value="test_value",
-                type="str",
-                verified=True,
-                required=True,
-            )
-        ]
-        mock_slotfiller.fill_slots.return_value = filled_slots
-
-        state = MessageState(
-            message_id="test-id",
-            user_id="test-user",
-            conversation_id="test-conversation",
-            slots={},
-            function_calling_trajectory=[],
-            trajectory=[[{"info": {}}]],
-        )
-
-        # Mock bot_config.llm_config.model_dump()
-        state.bot_config = Mock()
-        state.bot_config.llm_config = Mock()
-        state.bot_config.llm_config.model_dump.return_value = {
-            "llm_provider": "openai",
-            "model_type_or_path": "gpt-4o-mini",
-        }
-
-        with patch.object(tool, "_init_slots"):
-            result = tool.execute(state)
-
-            assert result.status.value == "complete"
-            assert "answer" in result.response
-            response_json = json.loads(result.response)
-            assert isinstance(response_json["card_list"], list)
-            assert len(response_json["card_list"]) == 2
-            assert response_json["card_list"][0]["name"] == "Product A"
 
     def test_execute_with_existing_slots_in_state(self) -> None:
         """Test _execute method when slots already exist in state."""
@@ -1116,8 +1038,7 @@ class TestTools:
             conversation_id="test-conversation",
             slots={"test_tool": existing_slots},  # Slots already exist
             function_calling_trajectory=[],
-            # Use valid dict with required 'info' field
-            trajectory=[[{"info": {}}]],
+            trajectory=[[{"info": {}}]],  # Use valid dict with required 'info' field
         )
 
         with patch.object(tool, "_init_slots"):
@@ -1168,8 +1089,7 @@ class TestTools:
             conversation_id="test-conversation",
             slots={},
             function_calling_trajectory=[],
-            # Use valid dict with required 'info' field
-            trajectory=[[{"info": {}}]],
+            trajectory=[[{"info": {}}]],  # Use valid dict with required 'info' field
         )
 
         with patch.object(tool, "_init_slots"):
@@ -1231,8 +1151,7 @@ class TestTools:
             conversation_id="test-conversation",
             slots={},
             function_calling_trajectory=[],
-            # Use valid dict with required 'info' field
-            trajectory=[[{"info": {}}]],
+            trajectory=[[{"info": {}}]],  # Use valid dict with required 'info' field
         )
 
         with patch.object(tool, "_init_slots"):
@@ -1536,56 +1455,3 @@ class TestTools:
             assert result.status.value == "complete"
             # Should use previous slots since configuration didn't change
             assert tool.slots == previous_slots
-
-    def test_execute_tool_execution_failure(self) -> None:
-        """Test _execute method when call_tool_for_grouped_slots raises an exception."""
-
-        def test_function(param1: str) -> str:
-            return f"Result: {param1}"
-
-        tool = Tool(
-            func=test_function,
-            name="failing_tool",
-            description="Tool that simulates a failure",
-            slots=[{"name": "param1", "type": "str", "required": True}],
-            outputs=["result"],
-            isResponse=False,
-        )
-
-        # Mock slotfiller to return a valid filled slot
-        mock_slotfiller = Mock()
-        tool.slotfiller = mock_slotfiller
-
-        from arklex.orchestrator.NLU.entities.slot_entities import Slot
-
-        filled_slots = [
-            Slot(
-                name="param1",
-                value="test_value",
-                type="str",
-                verified=True,
-                required=True,
-            )
-        ]
-        mock_slotfiller.fill_slots.return_value = filled_slots
-
-        state = MessageState(
-            message_id="test-id",
-            user_id="test-user",
-            conversation_id="test-conversation",
-            slots={},
-            function_calling_trajectory=[],
-            trajectory=[[{"info": {}}]],
-        )
-
-        # Force call_tool_for_grouped_slots to fail
-        with patch.object(
-            tool,
-            "call_tool_for_grouped_slots",
-            side_effect=RuntimeError("fake execution error"),
-        ):
-            result = tool._execute(state)
-
-        # Verify the exception was caught and status is INCOMPLETE
-        assert result.status == "incomplete"
-        assert "fake execution error" in state.message_flow

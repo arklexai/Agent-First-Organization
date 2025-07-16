@@ -97,7 +97,7 @@ def test_tool_execute_successful() -> None:
     result = tool.execute(state)
     assert result.status == StatusEnum.COMPLETE
     assert "Context from toolname tool execution" in result.message_flow
-    assert result.slots["toolname"][0][0].value == "bar"
+    assert result.slots["toolname"][0].value == "bar"
 
 
 def test_tool_execute_incomplete_due_to_missing_slot() -> None:

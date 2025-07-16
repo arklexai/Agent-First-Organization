@@ -12,7 +12,6 @@ import uuid
 from collections.abc import Callable
 from typing import Any, TypedDict
 
-from arklex.env.tools.utils import generate_multi_slot_cohesive_response
 from arklex.orchestrator.entities.msg_state_entities import MessageState, StatusEnum
 from arklex.orchestrator.NLU.core.slot import SlotFiller
 from arklex.orchestrator.NLU.entities.slot_entities import Slot
@@ -35,7 +34,6 @@ def register_tool(
     slots: list[dict[str, Any]] | None = None,
     outputs: list[str] | None = None,
     isResponse: bool = False,
-    postProcess: bool = False,
 ) -> Callable:
     """Register a tool with the Arklex framework.
 
@@ -47,7 +45,6 @@ def register_tool(
         slots (List[Dict[str, Any]], optional): List of slot definitions. Defaults to None.
         outputs (List[str], optional): List of output field names. Defaults to None.
         isResponse (bool, optional): Whether the tool is a response tool. Defaults to False.
-        postProcess (bool, optional): Indicates whether the tool's output requires additional post-processing
 
     Returns:
         Callable: A function that creates and returns a Tool instance.
@@ -70,7 +67,7 @@ def register_tool(
         key: str = f"{relative_path}-{func.__name__}"
 
         def tool() -> "Tool":
-            return Tool(func, key, desc, slots, outputs, isResponse, postProcess)
+            return Tool(func, key, desc, slots, outputs, isResponse)
 
         return tool
 
@@ -108,7 +105,6 @@ class Tool:
         info (Dict[str, Any]): Tool information including parameters and requirements.
         slots (List[Slot]): List of slot instances.
         isResponse (bool): Whether the tool is a response tool.
-        postProcess (bool): Indicates whether the tool's output requires additional post-processing
         properties (Dict[str, Dict[str, Any]]): Tool properties.
         llm_config (Dict[str, Any]): Language model configuration.
     """
@@ -121,7 +117,6 @@ class Tool:
         slots: list[dict[str, Any]],
         outputs: list[str],
         isResponse: bool,
-        postProcess: bool = False,
     ) -> None:
         """Initialize a new Tool instance.
 
@@ -132,7 +127,6 @@ class Tool:
             slots (List[Dict[str, Any]]): List of slot definitions.
             outputs (List[str]): List of output field names.
             isResponse (bool): Whether the tool is a response tool.
-            postProcess (bool): Indicates whether the tool's output requires additional post-processing
         """
         self.func: Callable = func
         self.name: str = name
@@ -143,7 +137,6 @@ class Tool:
         self.slots: list[Slot] = [Slot.model_validate(slot) for slot in slots]
         self.openai_slots: list[dict[str, Any]] = self._format_slots(slots)
         self.isResponse: bool = isResponse
-        self.postProcess: bool = postProcess
         self.properties: dict[str, dict[str, Any]] = {}
         self.llm_config: dict[str, Any] = {}
         self.fixed_args = {}
@@ -252,7 +245,7 @@ class Tool:
                  Slot(name="param2", type="int", required=False),  # Preserved
                  Slot(name="param3", type="bool", required=True)]  # Added
         """
-        if not slots or not isinstance(slots, list):
+        if not slots:
             return
 
         # Create a dictionary of existing slots for easy lookup
@@ -296,18 +289,10 @@ class Tool:
         # from the previously stored slots (indicating a different node)
         if state.slots.get(self.name):
             previous_slots = state.slots[self.name]
-            # Flatten nested slot lists
-            if isinstance(previous_slots, list) and all(
-                isinstance(s, list) for s in previous_slots
-            ):
-                previous_slot_names = {
-                    slot.name for group in previous_slots for slot in group
-                }
-            else:
-                previous_slot_names = {slot.name for slot in previous_slots}
-
             current_slot_names = {slot.name for slot in self.slots}
+            previous_slot_names = {slot.name for slot in previous_slots}
 
+            # If the slot configurations are different, reset to current node's slots
             if current_slot_names != previous_slot_names:
                 log_context.info(
                     f"Slot configuration changed from {previous_slot_names} to {current_slot_names}, resetting slots"
@@ -325,91 +310,130 @@ class Tool:
         self._init_slots(state)
         # do slotfilling
         chat_history_str: str = format_chat_history(state.function_calling_trajectory)
-        slots: list[list[Slot]] = self.slotfiller.fill_slots(
+        slots: list[Slot] = self.slotfiller.fill_slots(
             self.slots, chat_history_str, self.llm_config
         )
         log_context.info(f"{slots=}")
 
-        if isinstance(slots, list) and all(isinstance(s, Slot) for s in slots):
-            # scenario to handle pre-existing slots, turn into list[list[Slot]]
-            slots = [slots]
-
-        # Flatten the slots (list of lists) to a single list
-        all_slots = [slot for slot_group in slots for slot in slot_group]
-
         # Check if any required slots are missing or unverified
         missing_required = any(
-            not (slot.value and slot.verified) for slot in all_slots if slot.required
+            not (slot.value and slot.verified) for slot in slots if slot.required
         )
         if missing_required:
-            for slot in all_slots:
-                # If slot has a value but is not verified, attempt verification
+            for slot in slots:
+                # if there is extracted slots values but haven't been verified
                 if slot.value and not slot.verified:
+                    # check whether it verified or not
+                    verification_needed: bool
+                    thought: str
                     verification_needed, thought = self.slotfiller.verify_slot(
                         slot.model_dump(), chat_history_str, self.llm_config
                     )
                     if verification_needed:
-                        response = slot.prompt + " The reason is: " + thought
-                        slot_verification = (
-                            True  # you might want to store this for further logic
-                        )
+                        response: str = slot.prompt + "The reason is: " + thought
+                        slot_verification = True
                         reason = thought
-                        break  # stop checking after verification needed
+                        break
                     else:
-                        # Mark slot as verified if verification passes
                         slot.verified = True
                         log_context.info(f"Slot '{slot.name}' verified successfully")
-
-                # If slot is required but has no value, prompt user to fill it
+                # if there is no extracted slots values, then should prompt the user to fill the slot
                 if not slot.value and slot.required:
                     response = slot.prompt
                     break
 
-            # Set status to incomplete since not all required slots are filled/verified
             state.status = StatusEnum.INCOMPLETE
 
-        # Re-check missing required slots after verification
+        # Re-check if any required slots are still missing after verification
         missing_required = any(
-            not (slot.value and slot.verified) for slot in all_slots if slot.required
+            not (slot.value and slot.verified) for slot in slots if slot.required
         )
 
         # if all required slots are filled and verified, then execute the function
         tool_success: bool = False
         if not missing_required:
             log_context.info("all required slots filled")
+            # Get all slot values, including optional ones that have values
+            kwargs: dict[str, Any] = {}
+            for slot in slots:
+                # Always include the slot value, even if None
+                kwargs[slot.name] = slot.value if slot.value is not None else ""
 
+            # Get the function signature to check parameters
+            sig = inspect.signature(self.func)
+
+            # Only include the slots list if the target function accepts it
+            if "slots" in sig.parameters:
+                kwargs["slots"] = [
+                    slot.model_dump() if hasattr(slot, "model_dump") else slot
+                    for slot in slots
+                ]
+
+            combined_kwargs: dict[str, Any] = {
+                **kwargs,
+                **fixed_args,
+                **self.llm_config,
+            }
             try:
-                required_args = self._get_required_args()
-                # Execute tool calls
-                all_responses = self.call_tool_for_grouped_slots(
-                    state, slots, fixed_args, required_args
-                )
-                tool_success = all(r.get("success") for r in all_responses)
-                response = "\n".join(f"{r.get('response')}" for r in all_responses)
-                state.status = (
-                    StatusEnum.COMPLETE if tool_success else StatusEnum.INCOMPLETE
-                )
+                required_args = [
+                    name
+                    for name, param in sig.parameters.items()
+                    if param.default == inspect.Parameter.empty
+                ]
+
+                # Ensure all required arguments are present
+                for arg in required_args:
+                    if arg not in kwargs:
+                        kwargs[arg] = ""
+
+                response = self.func(**combined_kwargs)
+                tool_success = True
+            except ToolExecutionError as tee:
+                log_context.error(traceback.format_exc())
+                response = tee.extra_message
+            except AuthenticationError as ae:
+                log_context.error(traceback.format_exc())
+                response = str(ae)
             except Exception as e:
-                log_context.error(f"Tool execution failed: {traceback.format_exc()}")
+                log_context.error(traceback.format_exc())
                 response = str(e)
-                state.status = StatusEnum.INCOMPLETE
+            log_context.info(f"Tool {self.name} response: {response}")
+            call_id: str = str(uuid.uuid4())
+            state.function_calling_trajectory.append(
+                {
+                    "content": None,
+                    "role": "assistant",
+                    "tool_calls": [
+                        {
+                            "function": {
+                                "arguments": json.dumps(kwargs),
+                                "name": self.name,
+                            },
+                            "id": call_id,
+                            "type": "function",
+                        }
+                    ],
+                    "function_call": None,
+                }
+            )
+            state.function_calling_trajectory.append(
+                {
+                    "role": "tool",
+                    "tool_call_id": call_id,
+                    "name": self.name,
+                    "content": str(response),
+                }
+            )
+            state.status = (
+                StatusEnum.COMPLETE if tool_success else StatusEnum.INCOMPLETE
+            )
 
         state.trajectory[-1][-1].input = slots
         state.trajectory[-1][-1].output = str(response)
+
         if tool_success:
             # Tool execution success
             if self.isResponse:
-                log_context.info(
-                    "Tool exeuction COMPLETE, and the output is stored in response"
-                )
-                state.response = str(response)
-            # Note: this is specifically for the `search_products` shopify tool that requires a specific output format
-            # Ideally once we modularize the tools, this will be a post hook under the shopify folder
-            elif self.postProcess:
-                response = generate_multi_slot_cohesive_response(
-                    response, self.llm_config
-                )
-
                 log_context.info(
                     "Tool exeuction COMPLETE, and the output is stored in response"
                 )
@@ -433,12 +457,12 @@ class Tool:
                 )
                 # Make it clear that the LLM should ask the user for missing information
                 missing_slots = [
-                    slot.name for slot in all_slots if slot.required and not slot.value
+                    slot.name for slot in slots if slot.required and not slot.value
                 ]
                 if missing_slots:
                     slot_questions = [
                         slot.prompt
-                        for slot in all_slots
+                        for slot in slots
                         if slot.required and not slot.value
                     ]
                     questions_text = " ".join(slot_questions)
@@ -454,104 +478,6 @@ class Tool:
                     )
         state.slots[self.name] = slots
         return state
-
-    def _get_required_args(self) -> list[str]:
-        """Extract the function signature to get required parameters"""
-        sig = inspect.signature(self.func)
-        return [
-            name
-            for name, param in sig.parameters.items()
-            if param.default == inspect.Parameter.empty
-        ]
-
-    def call_tool_for_grouped_slots(
-        self,
-        state: MessageState,
-        slots: list[list[Slot]],
-        fixed_args: FixedArgs,
-        required_args: list,
-    ) -> list[dict[str, Any]]:
-        """Call the tool for grouped slots"""
-        all_responses = []
-        for slot_group in slots:
-            kwargs: dict[str, Any] = {}
-            # Extract values from slots
-            for slot in slot_group:
-                # Always include the slot value, even if None
-                kwargs[slot.name] = slot.value if slot.value is not None else ""
-
-            # Get the function signature to check parameters
-            sig = inspect.signature(self.func)
-
-            # Only include the slots list if the target function accepts it
-            if "slots" in sig.parameters:
-                kwargs["slots"] = [
-                    slot.model_dump() if hasattr(slot, "model_dump") else slot
-                    for slot_group in slots
-                    for slot in slot_group
-                ]
-
-            combined_kwargs = {**kwargs, **fixed_args, **self.llm_config}
-            # Ensure all required arguments are present
-            for arg in required_args:
-                if arg not in kwargs:
-                    kwargs[arg] = ""
-
-            tool_success: bool = False
-            try:
-                response = self.func(**combined_kwargs)
-                tool_success = True
-            except ToolExecutionError as tee:
-                log_context.error(traceback.format_exc())
-                response = tee.extra_message
-            except AuthenticationError as ae:
-                log_context.error(traceback.format_exc())
-                response = str(ae)
-            except Exception as e:
-                log_context.error(traceback.format_exc())
-                response = str(e)
-
-            call_id = str(uuid.uuid4())
-            log_context.info(f"Tool {self.name} response: {response}")
-            self._log_tool_call(state, kwargs, response, call_id)
-
-            all_responses.append(
-                {
-                    "slot": kwargs,
-                    "response": response,
-                    "success": tool_success,
-                }
-            )
-        return all_responses
-
-    def _log_tool_call(
-        self, state: MessageState, kwargs: dict[str, Any], response: str, call_id: str
-    ) -> None:
-        state.function_calling_trajectory.append(
-            {
-                "content": None,
-                "role": "assistant",
-                "tool_calls": [
-                    {
-                        "function": {
-                            "arguments": json.dumps(kwargs),
-                            "name": self.name,
-                        },
-                        "id": call_id,
-                        "type": "function",
-                    }
-                ],
-                "function_call": None,
-            }
-        )
-        state.function_calling_trajectory.append(
-            {
-                "role": "tool",
-                "tool_call_id": call_id,
-                "name": self.name,
-                "content": str(response),
-            }
-        )
 
     def execute(self, state: MessageState, **fixed_args: FixedArgs) -> MessageState:
         """Execute the tool with the current state and fixed arguments.

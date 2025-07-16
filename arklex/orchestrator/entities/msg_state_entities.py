@@ -61,7 +61,7 @@ class BotConfig(BaseModel):
     llm_config: LLMConfig
 
 
-# Message-related classes
+### Message-related classes
 class ConvoMessage(BaseModel):
     """Represents a conversation message with history.
 
@@ -103,7 +103,7 @@ class OrchestratorMessage(BaseModel):
     attribute: dict[str, Any]
 
 
-# Task status-related classes
+### Task status-related classes
 class StatusEnum(str, Enum):
     """Enumeration of possible task statuses.
 

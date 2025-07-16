@@ -8,23 +8,16 @@ provide flexible response generation capabilities.
 """
 
 import inspect
-import json
-from typing import (
-    Any,
-    Protocol,
-    TypedDict,
-)
+from typing import Any, Protocol, TypedDict
 
 from langchain.prompts import PromptTemplate
 from langchain_core.output_parsers import StrOutputParser
-from langchain_openai import ChatOpenAI
 
 from arklex.env.prompts import load_prompts
 from arklex.orchestrator.entities.msg_state_entities import MessageState
 from arklex.types import EventType, StreamType
 from arklex.utils.exceptions import ToolError
 from arklex.utils.logging_utils import LogContext
-from arklex.utils.model_provider_config import PROVIDER_MAP
 from arklex.utils.provider_utils import validate_and_get_model_class
 
 log_context = LogContext(__name__)
@@ -258,42 +251,3 @@ def execute_tool(
     except Exception as e:
         log_context.error(f"Tool execution failed: {tool_name}, error: {e}")
         raise ToolError(f"Tool execution failed: {tool_name}") from e
-
-
-def generate_multi_slot_cohesive_response(
-    raw_data: str, llm_config: dict[str, Any]
-) -> str:
-    # combine raw data into a singular card list
-    json_objects = raw_data.strip().split("\n")
-    card_list = []
-
-    for obj in json_objects:
-        try:
-            data = json.loads(obj)
-            if "card_list" in data and isinstance(data["card_list"], list):
-                card_list.extend(data["card_list"])
-        except json.JSONDecodeError as e:
-            print(f"Skipping invalid JSON object: {e}")
-    card_list = dedupe_ordered(card_list)
-    llm = PROVIDER_MAP.get(llm_config["llm_provider"], ChatOpenAI)(
-        model=llm_config["model_type_or_path"], temperature=0.7
-    )
-    message = [
-        {
-            "role": "user",
-            "content": f"You are helping a customer search products based on the query and get results below and those results will be presented using product card format.\n\n{json.dumps(card_list)}\n\nGenerate a response to continue the conversation without explicitly mentioning contents of the search result. Include one or two questions about those products to know the user's preference. Keep the response within 50 words.\nDIRECTLY GIVE THE RESPONSE.",
-        },
-    ]
-    answer = llm.invoke(message).content
-    return json.dumps({"answer": answer, "card_list": card_list})
-
-
-def dedupe_ordered(items: list) -> list:
-    seen = set()
-    unique = []
-    for item in items:
-        key = json.dumps(item, sort_keys=True)
-        if key not in seen:
-            seen.add(key)
-            unique.append(item)
-    return unique
