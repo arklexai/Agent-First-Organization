@@ -1,0 +1,105 @@
+name: Reusable Badge Update
+
+on:
+  workflow_call:
+    inputs:
+      coverage-file:
+        description: 'Path to coverage file (coverage.txt or coverage.xml)'
+        required: false
+        default: 'coverage.xml'
+        type: string
+      coverage-format:
+        description: 'Format of coverage file (txt or xml)'
+        required: false
+        default: 'xml'
+        type: string
+      min-coverage-threshold:
+        description: 'Minimum coverage threshold for color coding'
+        required: false
+        default: '99.0'
+        type: string
+      badge-pattern:
+        description: 'Pattern to match existing badge in README'
+        required: false
+        default: 'coverage-[0-9]+\.[0-9]+%25-[a-z]+'
+        type: string
+    secrets:
+      github-token:
+        required: true
+
+jobs:
+  update-badge:
+    name: Update README Badge
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/main'
+    env:
+      OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+    
+    permissions:
+      contents: write
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.github-token }}
+
+      - name: Extract coverage percentage
+        id: coverage
+        run: |
+          if [ "${{ inputs.coverage-format }}" = "xml" ]; then
+            # Extract from XML coverage file
+            python -c "
+          import xml.etree.ElementTree as ET
+          import os
+          
+          try:
+              tree = ET.parse('${{ inputs.coverage-file }}')
+              root = tree.getroot()
+              coverage = float(root.attrib['line-rate']) * 100
+              print(f'coverage={coverage:.1f}')
+          except Exception as e:
+              print(f'Error reading coverage data: {e}')
+              exit(1)
+          "
+          else
+            # Extract from text coverage file
+            TOTAL_COVERAGE=$(grep -E '^TOTAL' ${{ inputs.coverage-file }} | awk '{print $4}' | tr -d '%' || echo "0")
+            echo "coverage=${TOTAL_COVERAGE}"
+          fi
+
+      - name: Determine badge color
+        id: color
+        run: |
+          COVERAGE=${{ steps.coverage.outputs.coverage }}
+          
+          python -c "
+          coverage = float('$COVERAGE')
+          if coverage < 90:
+              print('color=red')
+          elif coverage < 99:
+              print('color=orange')
+          else:
+              print('color=green')
+          "
+
+      - name: Update README badge
+        run: |
+          COVERAGE=${{ steps.coverage.outputs.coverage }}
+          COLOR=${{ steps.color.outputs.color }}
+          
+          NEW_BADGE="coverage-${COVERAGE}%25-${COLOR}"
+          CURRENT_BADGE=$(grep -oE '${{ inputs.badge-pattern }}' README.md || echo "")
+          
+          if [[ "$CURRENT_BADGE" != "$NEW_BADGE" ]]; then
+            echo "Updating README badge from $CURRENT_BADGE to $NEW_BADGE"
+            sed -i "s|${{ inputs.badge-pattern }}|$NEW_BADGE|g" README.md
+            
+            git config user.name "github-actions[bot]"
+            git config user.email "github-actions[bot]@users.noreply.github.com"
+            git add README.md
+            git commit -m "chore: update README with ${COVERAGE}% test coverage"
+            git push
+          else
+            echo "Badge already reflects current coverage."
+          fi

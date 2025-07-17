@@ -25,7 +25,14 @@ class ShopifyToolOrchestrator(MockOrchestrator):
             config_file_path (str): Path to the configuration file.
         """
         fixed_args: str = os.environ.get("SHOPIFY_FIXED_ARGS", "{}")
-        self.fixed_args: dict[str, Any] = json.loads(fixed_args)
+        # Handle case where environment variable might be empty or None
+        if not fixed_args or fixed_args.strip() == "":
+            fixed_args = "{}"
+        try:
+            self.fixed_args: dict[str, Any] = json.loads(fixed_args)
+        except json.JSONDecodeError:
+            # If JSON parsing fails, use empty dict as fallback
+            self.fixed_args = {}
         super().__init__(config_file_path, self.fixed_args)
         self.resource_initializer = MockResourceInitializer()
 

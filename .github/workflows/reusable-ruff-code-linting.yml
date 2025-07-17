@@ -1,0 +1,47 @@
+name: Reusable Lint Workflow
+
+on:
+  workflow_call:
+    inputs:
+      python-version:
+        description: 'Python version to use'
+        required: false
+        default: '3.10'
+        type: string
+      run-on-all-files:
+        description: 'Run on all files instead of just changed files'
+        required: false
+        default: false
+        type: boolean
+    secrets:
+      OPENAI_API_KEY:
+        required: false
+
+jobs:
+  lint:
+    name: Ruff Lint
+    runs-on: ubuntu-latest
+    env:
+      OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: ${{ inputs.python-version }}
+
+      - name: Install dependencies
+        run: pip install pre-commit
+
+      - name: Run Ruff
+        run: |
+          if [ "${{ inputs.run-on-all-files }}" = "true" ]; then
+            pre-commit run ruff --all-files
+          else
+            pre-commit run ruff --from-ref origin/main --to-ref HEAD
+          fi 

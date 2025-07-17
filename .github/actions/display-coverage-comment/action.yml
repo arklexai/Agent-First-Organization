@@ -1,0 +1,26 @@
+name: "Display Coverage Comment"
+description: "Display coverage comment using py-cov-action"
+
+inputs:
+  github-token:
+    description: "GitHub token for authentication"
+    required: true
+  minimum-green:
+    description: "Minimum coverage percentage for green status"
+    required: false
+    default: "99.0"
+  minimum-orange:
+    description: "Minimum coverage percentage for orange status"
+    required: false
+    default: "70"
+
+runs:
+  using: "composite"
+  steps:
+    - name: Display coverage comment
+      id: coverage
+      uses: py-cov-action/python-coverage-comment-action@v3
+      with:
+        GITHUB_TOKEN: ${{ inputs.github-token }}
+        MINIMUM_GREEN: ${{ inputs.minimum-green }}
+        MINIMUM_ORANGE: ${{ inputs.minimum-orange }}

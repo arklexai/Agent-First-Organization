@@ -1,0 +1,16 @@
+name: Ruff Lint
+
+on:
+  pull_request:
+    types: [opened, edited, synchronize]
+    paths:
+      - '**/*.py'
+
+jobs:
+  lint:
+    uses: ./.github/workflows/reusable-ruff-code-linting.yml
+    with:
+      python-version: '3.10'
+      run-on-all-files: false
+    secrets:
+      OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}

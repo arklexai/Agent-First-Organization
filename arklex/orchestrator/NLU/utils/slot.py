@@ -1,45 +1,32 @@
-"""Slot management and type handling for the Arklex framework.
+"""Slot utility functions and type handling for the Arklex framework.
 
-This module provides functionality for managing slots in the conversation system,
-including slot type definitions, value validation, and slot filling operations.
-It includes classes for representing slots, handling type conversions, and managing
-slot verification processes. The module supports various data types and provides
-utilities for structured input/output handling in slot filling operations.
+This module provides utility functions for managing slots in conversation systems,
+including type mapping, value validation, and slot formatting operations.
 
-The module is organized into several key components:
-1. TypeMapping: Handles conversion between string type names and Python types
-2. Slot: Represents a single slot with its properties and validation rules
-3. SlotInput/SlotInputList: Structures for slot filling operations
-4. Verification: Represents the result of slot value verification
-5. Utility functions for formatting slot inputs and outputs
+Key Components:
+    - TypeMapping: Maps string type names to Python types for type-safe conversion
+    - Slot formatting functions for input/output operations
+    - Value validation and type conversion utilities
+    - Dynamic Pydantic model generation for slot filling
 
-Key Features:
-- Type-safe slot value handling
-- Support for various data types (str, int, float, bool, and their list variants)
-- Structured input/output formatting for slot filling
-- Verification of slot values
-- Enum-based value validation
-- Dynamic type creation for slot outputs
-- Comprehensive logging for debugging
+Functions:
+    - structured_input_output(): Creates structured input/output formats for slot filling
+    - format_slotfiller_output(): Formats slot filler response output
+    - format_slot_output(): Formats slot output from various response types
+    - validate_slot_values(): Validates slot values against type and enum constraints
+    - convert_slot_values(): Converts slot values to their appropriate Python types
 
-Usage:
-    from arklex.utils.slot import Slot, structured_input_output, format_slotfilling_output
-
-    # Create slots
-    slots = [
-        Slot(name="name", type="str", description="User's name"),
-        Slot(name="age", type="int", description="User's age")
-    ]
-
-    # Format for slot filling
-    input_format, output_type = structured_input_output(slots)
-
-    # Process slot filling results
-    updated_slots = format_slotfilling_output(slots, response)
+The module supports basic Python types (str, int, float, bool) and their list variants,
+with enum-based value validation and dynamic type checking capabilities.
 """
 
-from pydantic import BaseModel, Field, create_model
+from pydantic import create_model
 
+from arklex.orchestrator.NLU.entities.slot_entities import (
+    Slot,
+    SlotInput,
+    SlotInputList,
+)
 from arklex.utils.logging_utils import LogContext
 
 log_context = LogContext(__name__)
@@ -88,106 +75,6 @@ class TypeMapping:
             Type: The corresponding Python type, or None if the type is not supported.
         """
         return cls.STRING_TO_TYPE.get(type_string)
-
-
-class Slot(BaseModel):
-    """Represents a slot in the conversation system.
-
-    A slot is a named container for a value of a specific type, with optional
-    validation rules and metadata. Slots are used to capture and validate user
-    input during conversations.
-
-    The class provides:
-    1. Type-safe value storage
-    2. Value validation through enums
-    3. Metadata for slot description and prompting
-    4. Verification status tracking
-
-    Attributes:
-        name (str): The name of the slot.
-        type (str): The type of the slot value (default: "str").
-        value (Union[str, int, float, bool, List[str], None]): The current value of the slot.
-        enum (Optional[List[Union[str, int, float, bool, None]]]): List of valid values.
-        description (str): Description of the slot's purpose.
-        prompt (str): Prompt to use when filling the slot.
-        required (bool): Whether the slot must be filled.
-        verified (bool): Whether the slot's value has been verified.
-    """
-
-    name: str
-    type: str = Field(default="str")
-    value: str | int | float | bool | list[str] | None = Field(default=None)
-    enum: list[str | int | float | bool | None] | None = Field(default=[])
-    description: str = Field(default="")
-    prompt: str = Field(default="")
-    required: bool = Field(default=False)
-    verified: bool = Field(default=False)
-    items: dict | None = None
-    target: str | None = None
-
-
-class SlotInput(BaseModel):
-    """Input structure for slot filling operations.
-
-    This class represents the input format for slot filling operations,
-    containing the essential information needed to process a slot.
-
-    The class provides:
-    1. Structured input format for slot filling
-    2. Type-safe value handling
-    3. Support for enum-based validation
-    4. Descriptive metadata
-
-    Attributes:
-        name (str): The name of the slot.
-        value (Union[str, int, float, bool, List[str], None]): The current value.
-        enum (Optional[List[Union[str, int, float, bool, None]]]): Valid values.
-        description (str): Description of the slot's purpose.
-    """
-
-    name: str
-    value: str | int | float | bool | list[str] | None
-    enum: list[str | int | float | bool | None] | None
-    description: str
-
-
-class SlotInputList(BaseModel):
-    """Container for a list of slot inputs.
-
-    This class serves as a container for multiple slot inputs that need to be
-    processed together in a slot filling operation.
-
-    The class provides:
-    1. Batch processing of multiple slots
-    2. Structured input format for slot filling operations
-    3. Type-safe handling of multiple slot inputs
-
-    Attributes:
-        slot_input_list (List[SlotInput]): List of slot inputs to process.
-    """
-
-    slot_input_list: list[SlotInput]
-
-
-class Verification(BaseModel):
-    """Verification result for a slot value.
-
-    This class represents the result of verifying a slot value, including
-    the reasoning behind the verification decision and whether additional
-    verification is needed.
-
-    The class provides:
-    1. Structured representation of verification results
-    2. Reasoning for verification decisions
-    3. Status tracking for additional verification needs
-
-    Attributes:
-        thought (str): Reasoning behind the verification decision.
-        verification_needed (bool): Whether additional verification is required.
-    """
-
-    thought: str
-    verification_needed: bool
 
 
 def structured_input_output(slots: list[Slot]) -> tuple[SlotInputList, type]:

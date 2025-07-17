@@ -510,11 +510,25 @@ class TestSimulateFirstPassConvos:
         synthetic_data_params = {"max_turns": 5}
         env_config = {"client": Mock()}
 
-        # Mock conversation return values
-        mock_conversation.side_effect = [
-            ([{"role": "user", "content": "test1"}], True),
-            ([{"role": "user", "content": "test2"}], False),
-        ]
+        # Mock conversation return values - use a deterministic approach
+        # Create a mock that returns different values based on the profile argument
+        def mock_conversation_side_effect(
+            model_api: str,
+            profile: str,
+            goal: str,
+            attr: dict[str, str],
+            sys_input: dict[str, str],
+            summary: str,
+            model_params: dict[str, str],
+            synthetic_data_params: dict[str, int],
+            env_config: dict[str, Mock],
+        ) -> tuple[list[dict[str, str]], bool]:
+            if profile == "profile1":
+                return ([{"role": "user", "content": "test1"}], True)
+            else:  # profile2
+                return ([{"role": "user", "content": "test2"}], False)
+
+        mock_conversation.side_effect = mock_conversation_side_effect
 
         # Mock filter_convo and flip_hist
         mock_filter_convo.return_value = [{"role": "user", "content": "filtered"}]
@@ -535,14 +549,20 @@ class TestSimulateFirstPassConvos:
 
         # Assert
         assert len(result) == 2
-        assert result[0]["id"] == 0
-        assert result[0]["profile"] == "profile1"
-        assert result[0]["goal"] == "goal1"
-        assert result[0]["goal_completion"] is True
-        assert result[1]["id"] == 1
-        assert result[1]["profile"] == "profile2"
-        assert result[1]["goal"] == "goal2"
-        assert result[1]["goal_completion"] is False
+
+        # Sort results by id to make the test deterministic
+        result.sort(key=lambda x: x["id"])
+
+        # Find the result with id=0 and id=1
+        result_0 = next(r for r in result if r["id"] == 0)
+        result_1 = next(r for r in result if r["id"] == 1)
+
+        assert result_0["profile"] == "profile1"
+        assert result_0["goal"] == "goal1"
+        assert result_0["goal_completion"] is True
+        assert result_1["profile"] == "profile2"
+        assert result_1["goal"] == "goal2"
+        assert result_1["goal_completion"] is False
 
         # Verify conversation was called for each input combination
         assert mock_conversation.call_count == 2

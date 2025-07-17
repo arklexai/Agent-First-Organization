@@ -127,7 +127,10 @@ class TestSimulateSecondPassConvos:
         }
 
         # Execute
-        result = interact(intent_path, summary, model_api, model_params, client)
+        env_config = {"workers": [], "tools": []}
+        result = interact(
+            intent_path, summary, model_api, model_params, client, env_config
+        )
 
         # Assert
         assert len(result) > 0
@@ -154,8 +157,9 @@ class TestSimulateSecondPassConvos:
         mock_flip_hist.return_value = [{"role": "user", "content": "Hello"}]
 
         # Execute
+        env_config = {"workers": [], "tools": []}
         result = generate_labeled_convos(
-            intent_paths, summary, model_api, model_params, client
+            intent_paths, summary, model_api, model_params, client, env_config
         )
 
         # Assert
@@ -175,7 +179,7 @@ class TestSimulateSecondPassConvos:
         model_api = "test_api"
         synthetic_data_params = {"num_convos": 2, "max_turns": 5}
         model_params = {}
-        config = {"intro": "Test company", "client": Mock()}
+        config = {"intro": "Test company", "client": Mock(), "workers": [], "tools": []}
 
         mock_graph = Mock()
         mock_build_graph.return_value = mock_graph
@@ -241,7 +245,10 @@ class TestSimulateSecondPassConvos:
         }
 
         # Execute
-        result = interact(intent_path, summary, model_api, model_params, client)
+        env_config = {"workers": [], "tools": []}
+        result = interact(
+            intent_path, summary, model_api, model_params, client, env_config
+        )
 
         # Assert
         assert len(result) > 0
@@ -271,7 +278,10 @@ class TestSimulateSecondPassConvos:
         }
 
         # Execute
-        result = interact(intent_path, summary, model_api, model_params, client)
+        env_config = {"workers": [], "tools": []}
+        result = interact(
+            intent_path, summary, model_api, model_params, client, env_config
+        )
 
         # Assert
         assert len(result) > 0

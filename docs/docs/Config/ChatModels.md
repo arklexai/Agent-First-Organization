@@ -2,151 +2,124 @@
 
 ## Supported Language Models
 
-### Providers
+### Providers and Models
 
-#### OpenAI (Default)
+| Provider | Models | Tool Calling Support |
+|----------|--------|---------------------|
+| **OpenAI** (Default) | `gpt-4o`, `gpt-4o-mini`, `gpt-4.5-preview` | ✅ Full support |
+| **Google Gemini** | `gemini-1.5-flash`, `gemini-2.0-flash`, `gemini-2.0-flash-lite` | ✅ Only `gemini-2.0-flash` |
+| **Anthropic** | `claude-3-5-haiku-20241022`, `claude-3-haiku-20240307`, `claude-3-7-sonnet-20250219` | ✅ Full support |
+| **Hugging Face** | `microsoft/Phi-3-mini-4k-instruct` | ❌ Not supported |
 
-- Models: `gpt-4o` (default), `gpt-4o-mini`, `gpt-4.5-preview`
+## Configuration
 
-#### Google Gemini
+### API Keys Setup
 
-- Models: `gemini-1.5-flash`, `gemini-2.0-flash`, `gemini-2.0-flash-lite`
+Add the appropriate API key to your `.env` file:
 
-- **NOTE:** Tool calling is only supported with `gemini-2.0-flash`
+- **OpenAI**: `OPEN_API_KEY`
+- **Google Gemini**: `GOOGLE_API_KEY`
+- **Anthropic**: `ANTHROPIC_API_KEY`
+- **Hugging Face**: `HUGGINGFACE_API_KEY` ([Get token here](https://huggingface.co/docs/api-inference/en/getting-started#getting-a-token))
 
-#### Anthropic
+## Usage
 
-- Models: `claude-3-5-haiku-20241022`, `claude-3-haiku-20240307`, `claude-3-7-sonnet-20250219`
+### Taskgraph Generation
 
-#### Hugging Face
+Generate taskgraphs using the `create.py` script:
 
-- Models: `microsoft/Phi-3-mini-4k-instruct`
-- **NOTE:** Tool calling is NOT supported for Hugging Face
+```bash
+python create.py --config ./examples/customer_service_config.json --output-dir ./examples/customer_service --model <MODEL> --llm_provider <PROVIDER>
+```
 
-## Taskgraph Generation
+**Examples:**
 
-### OpenAI (Default)
+- OpenAI: `--model gpt-4o-mini --llm_provider openai`
+- Google Gemini: `--model gemini-2.0-flash --llm_provider gemini`
+- Anthropic: `--model claude-3-5-haiku-20241022 --llm_provider anthropic`
 
-- Add your `OPEN_API_KEY` to the `.env` file
-- Example usage:
+**Note:** Hugging Face is not supported for taskgraph generation (will be implemented in the future).
 
-    ```
-    python create.py --config ./examples/customer_service_config.json --output-dir ./examples/customer_service --model gpt-4o-mini --llm-provider openai
-    ```
+### Running the Bot
 
-### Google Gemini
+Run the bot using the `run.py` script:
 
-- Add your `GOOGLE_API_KEY` and `GEMINI_API_KEY` to the `.env` file
-  - Note: Both API keys should be the same
-- Example usage:
+```bash
+python run.py --input-dir ./examples/customer_service --model <MODEL> --llm_provider <PROVIDER>
+```
 
-  ```
-  python create.py --config ./examples/customer_service_config.json --output-dir ./examples/customer_service --model gemini-2.0-flash --llm-provider gemini
-    ```
+**Examples:**
 
-### Anthropic
+- OpenAI: `--model gpt-4o-mini --llm_provider openai`
+- Google Gemini: `--model gemini-2.0-flash-lite --llm_provider gemini`
+- Anthropic: `--model claude-3-5-haiku-20241022 --llm_provider anthropic`
+- Hugging Face: `--model microsoft/Phi-3-mini-4k-instruct --llm_provider huggingface`
 
-- Add your `ANTHROPIC_API_KEY` to the `.env` file
-- Example usage:
+**Note:** For Hugging Face models, you may need to request access to specific models via the Hugging Face website.
 
-  ```
-  python create.py --config ./examples/customer_service_config.json --output-dir ./examples/customer_service --model claude-3-5-haiku-20241022 --llm-provider anthropic
-    ```
+## Evaluation
 
-### Hugging Face
+For evaluation and testing, you can also use the model API server:
 
-- Taskgraph generation is not supported for Hugging Face but will be implemented in the future.
+1. First, start the model API server (defaults to OpenAI with "gpt-4o-mini" model):
 
-## Running the Bot
+```bash
+python model_api.py --input-dir ./examples/customer_service
+```
 
-### OpenAI(Default)
+2. Then run evaluation (in a separate terminal):
 
-- Ensure your `OPEN_API_KEY` is in the `.env` file
-- Example usage:
+```bash
+python eval.py --model_api http://127.0.0.1:8000/eval/chat --config "examples/customer_service/customer_service_config.json" --documents_dir "examples/customer_service" --model "claude-3-haiku-20240307" --llm_provider "anthropic" --task "all"
+```
 
-    ```
-    python run.py --input-dir ./examples/customer_service --model gpt-4o-mini --llm-provider openai
-    ```
+## Sample Conversation
 
-### Google Gemini
+Run the bot with:
 
-- Ensure your `GOOGLE_API_KEY` and `GEMINI_API_KEY` are in the `.env` file
-- Example usage:
-
-     ```
-    python run.py --input-dir ./examples/customer_service --model gemini-2.0-flash-lite --llm-provider gemini
-    ```
-
-### Anthropic
-
-- Ensure your `ANTHROPIC_API_KEY` is in the `.env` file
-- Example usage:
-
-    ```
-    python run.py --input-dir ./examples/customer_service --model claude-3-5-haiku-20241022 --llm-provider anthropic
-    ```
-
-### Hugging Face
-
-- Uses the [Hugging Face Inference API](https://huggingface.co/docs/api-inference/en/getting-started).
-- Add your `HUGGINGFACE_API_KEY` to the `.env` file
-  - Follow these [instructions](https://huggingface.co/docs/api-inference/en/getting-started#getting-a-token) to get API key
-- Example usage:
-
-    ```
-    python run.py --input-dir ./examples/customer_service --model microsoft/Phi-3-mini-4k-instruct --llm-provider huggingface
-    ```
-
-- **NOTE** : You may need to request access to a specific model via the Hugging Face website
-
-## Sample conversation
-
-To run the bot, use the following command:
-
-  ```
-python run.py --input-dir ./examples/customer_service --model claude-3-5-haiku-20241022 --llm-provider anthropic
-  ```
+```bash
+python run.py --input-dir ./examples/customer_service --model claude-3-5-haiku-20241022 --llm_provider anthropic
+```
 
 ### Example Output
 
 > **ASSISTANT**: Hello! I'm your Customer Service Assistant. How can I assist you with your inquiries today? Whether you need information about our products, services, or policies, or require help resolving an issue, I'm here to help!
 >
-> **USER**:  What products do you offer?
+> **USER**: What products do you offer?
 >
 > **ASSISTANT**: At Richtech Robotics, we offer a range of advanced business-oriented robots across several categories:
 >
-> Worker Robots:
+> **Worker Robots:**
 >
 > - ADAM (multipurpose robot bartender for making tea, coffee, and cocktails)
 > - ARM
 > - ACE
 >
-> Delivery Robots:
+> **Delivery Robots:**
 >
 > - Matradee
 > - Matradee X
 > - Matradee L
 > - Richie
 >
-> Cleaning Robots:
+> **Cleaning Robots:**
 >
 > - DUST-E SX
 > - DUST-E MX
 >
-> Multipurpose Robots:
+> **Multipurpose Robots:**
 >
 > - Skylark
 >
 > Our robots are designed for business applications, not home use. The ADAM robot is particularly unique, as it's available for both purchase and rental, and we even operate the world's first robot milk tea shop, ClouTea, in Las Vegas using this robot.
 >
- >Can you please provide more details about the robot you are interested in, such as the model name or specific features you are curious about?'
+> Can you please provide more details about the robot you are interested in, such as the model name or specific features you are curious about?
 >
 > **USER**: Tell me more about the worker robots, what are their differences?
 >
-> **ASSISTANT**:
->Let me provide you with details about our worker robots:
+> **ASSISTANT**: Let me provide you with details about our worker robots:
 >
->ADAM Robot:
+> **ADAM Robot:**
 >
 > - Multipurpose bartending robot
 > - Can prepare tea, coffee, and cocktails
@@ -154,32 +127,29 @@ python run.py --input-dir ./examples/customer_service --model claude-3-5-haiku-2
 > - Featured in our ClouTea milk tea shop in Las Vegas
 > - Typical delivery time: 2 weeks
 >
-> ARM Robot:
+> **ARM Robot:**
 >
 > - Specialized worker robot
 > - Specific details would require further consultation
 > - Used in various industrial and business settings
 >
-> ACE Robot:
+> **ACE Robot:**
 >
 > - Another worker robot in our lineup
 > - Designed for specific industrial applications
 > - Detailed specifications would need a more in-depth discussion
 >
-> Do you need any further information or have additional questions about the robot?
->
-> Each of these robots has unique capabilities tailored to different business needs. Would you like me to elaborate on any specific features or help you determine which robot might best suit your requirements?'
+> Each of these robots has unique capabilities tailored to different business needs. Would you like me to elaborate on any specific features or help you determine which robot might best suit your requirements?
 >
 > **USER**: I'm interested in ADAM, can we book a demo?
 >
 > **ASSISTANT**: Absolutely! I can help you book a demo for our ADAM robot. We offer several ways to schedule a demonstration:
 >
-> 1. Online Booking: You can visit our robot rentals page at
- [https://www.richtechrobotics.com/robot-rentals#rent-new-form](https://www.richtechrobotics.com/robot-rentals#rent-new-form) to schedule a demo.
+> 1. **Online Booking**: Visit our robot rentals page at [https://www.richtechrobotics.com/robot-rentals#rent-new-form](https://www.richtechrobotics.com/robot-rentals#rent-new-form) to schedule a demo.
 >
-> 2. Contact Our Sales Team: You can reach our sales line at (866) 236-3835 to discuss a demo and explore how ADAM can benefit your business.
+> 2. **Contact Our Sales Team**: Reach our sales line at (866) 236-3835 to discuss a demo and explore how ADAM can benefit your business.
 >
->To proceed with booking a demo, I'll need a bit more information from you:
+> To proceed with booking a demo, I'll need a bit more information from you:
 >
 > - What is your name?
 > - What is your company name?

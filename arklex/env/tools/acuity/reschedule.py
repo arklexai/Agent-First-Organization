@@ -78,4 +78,4 @@ def reschedule(apt_id: str, time: str, **kwargs: dict[str, Any]) -> str:
         data: dict[str, Any] = response.json()
         return json.dumps(data)
     else:
-        return ToolExecutionError(func_name, AcuityExceptionPrompt.RESCHEDULE_PROMPT)
+        raise ToolExecutionError(func_name, AcuityExceptionPrompt.RESCHEDULE_PROMPT)

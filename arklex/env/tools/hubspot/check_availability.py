@@ -51,7 +51,7 @@ outputs: list[dict[str, Any]] = [
     {
         "name": "meeting_info",
         "type": "dict",
-        "decription": "The time and date of the meeting if available. If not, the function will return a list of available time slots to choose from. If no time slots are available, the function will say no times available.",
+        "description": "The time and date of the meeting if available. If not, the function will return a list of available time slots to choose from. If no time slots are available, the function will say no times available.",
     }
 ]
 

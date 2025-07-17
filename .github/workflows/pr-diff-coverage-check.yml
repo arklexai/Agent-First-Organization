@@ -1,0 +1,22 @@
+name: Diff-Based Coverage Check
+
+on:
+  pull_request:
+    types: [labeled]
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  coverage-check:
+    name: Check Coverage on New Lines
+    if: github.base_ref == 'main' && github.event.label.name == 'run-diff-coverage-tests'
+    uses: ./.github/workflows/reusable-diff-based-test-coverage.yml
+    with:
+      python-version: '3.10'
+      fail-under: '100'
+      is-pr-check: true
+    secrets:
+      OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+      SHOPIFY_FIXED_ARGS: ${{ secrets.SHOPIFY_FIXED_ARGS }}

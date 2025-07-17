@@ -72,14 +72,21 @@ def cancel_order(cancel_order_id: str, **kwargs: CancelOrderParams) -> dict[str,
             }}
             """)
             response = json.loads(response)["data"]
-            if not response.get("orderCancel", {}).get("userErrors"):
+            if "orderCancel" not in response:
+                raise ToolExecutionError(
+                    func_name, "Invalid response: missing orderCancel key"
+                )
+
+            order_cancel_response = response["orderCancel"]
+            user_errors = order_cancel_response.get("userErrors")
+            if not user_errors:
                 log_context.info(
                     f"Order cancellation completed for order: {cancel_order_id}"
                 )
                 return "The order is successfully cancelled. " + json.dumps(response)
             else:
                 raise ToolExecutionError(
-                    func_name, json.dumps(response["orderCancel"]["userErrors"])
+                    func_name, json.dumps(order_cancel_response["userErrors"])
                 )
 
     except Exception as e:

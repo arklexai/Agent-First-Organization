@@ -232,7 +232,14 @@ def generate_conversations(
             }
         )
 
+    print(
+        f"Starting conversation generation for {len(input_combinations)} combinations..."
+    )
+
     def worker(input_combo: dict[str, Any]) -> dict[str, Any]:
+        print(
+            f"Processing conversation {input_combo['id'] + 1}/{len(input_combinations)}"
+        )
         convo, goal_completion = conversation(
             model_api,
             input_combo["profile"],
@@ -245,6 +252,9 @@ def generate_conversations(
             env_config,
         )
         syn_convo = flip_hist(filter_convo(convo, filter_turns=False))
+        print(
+            f"Completed conversation {input_combo['id'] + 1} (goal completion: {goal_completion})"
+        )
         return {
             "id": input_combo["id"],
             "convo": syn_convo,
@@ -268,6 +278,7 @@ def generate_conversations(
         # Filter out None values and convert to final format
         convos = [r for r in results if r is not None]
 
+    print(f"Conversation generation completed. Generated {len(convos)} conversations.")
     return convos
 
 
@@ -277,12 +288,17 @@ def simulate_conversations(
     synthetic_data_params: dict[str, Any],
     config: dict[str, Any],
 ) -> tuple[list[dict[str, Any]], list[str]]:
-    if config["task"] == "first_pass":
+    print(f"Starting simulation with task: {config['task']}")
+
+    if config["task"] == "first_pass" or config["task"] == "all":
+        print("Building user profiles...")
         profiles, goals, attributes_list, system_inputs, labels_list = build_profile(
             synthetic_data_params, config
         )
+        print(f"Built {len(profiles)} profiles, {len(goals)} goals")
 
         # save the profiles, goals, attributes_list, system_inputs, labels_list in a json file
+        print("Saving profile data to files...")
         os.makedirs(os.path.join(config["output_dir"], "simulate_data"), exist_ok=True)
         with open(
             os.path.join(config["output_dir"], "simulate_data", "profiles.json"), "w"
@@ -306,8 +322,10 @@ def simulate_conversations(
             os.path.join(config["output_dir"], "simulate_data", "labels_list.json"), "w"
         ) as f:
             json.dump(labels_list, f, indent=4)
+        print("Profile data saved successfully.")
 
     elif config["task"] == "simulate_conv_only":
+        print("Loading existing profile data...")
         with open(
             os.path.join(config["output_dir"], "simulate_data", "profiles.json")
         ) as f:
@@ -328,6 +346,7 @@ def simulate_conversations(
             os.path.join(config["output_dir"], "simulate_data", "labels_list.json")
         ) as f:
             labels_list = json.load(f)
+        print("Profile data loaded successfully.")
 
     summary: str = config["intro"]
     env_config: dict[str, Any] = {
@@ -336,6 +355,7 @@ def simulate_conversations(
         "client": config["client"],
     }
 
+    print("Starting conversation generation...")
     conversations: list[dict[str, Any]] = generate_conversations(
         model_api,
         profiles,
@@ -347,6 +367,7 @@ def simulate_conversations(
         synthetic_data_params,
         env_config,
     )
+    print(f"Simulation completed. Generated {len(conversations)} conversations.")
     return conversations, goals
 
 

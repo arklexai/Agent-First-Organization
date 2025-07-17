@@ -16,8 +16,8 @@ from typing import Any
 from arklex.orchestrator.NLU.core.base import BaseNLU
 from arklex.orchestrator.NLU.services.api_service import APIClientService
 from arklex.orchestrator.NLU.services.model_service import ModelService
-from arklex.utils.exceptions import APIError, ValidationError
-from arklex.utils.logging_utils import LogContext, handle_exceptions
+from arklex.utils.exceptions import APIError, ArklexError, ValidationError
+from arklex.utils.logging_utils import LogContext
 
 log_context = LogContext(__name__)
 
@@ -82,13 +82,16 @@ class IntentDetector(BaseNLU):
             },
         )
 
-    @handle_exceptions()
     def _detect_intent_local(
         self,
         intents: dict[str, list[dict[str, Any]]],
         chat_history_str: str,
         model_config: dict[str, Any],
     ) -> str:
+        log_context.info(
+            "Entered _detect_intent_local",
+            extra={"operation": "intent_detection_local"},
+        )
         """Detect intent using local model.
 
         Args:
@@ -120,7 +123,10 @@ class IntentDetector(BaseNLU):
                 "operation": "intent_detection_local",
             },
         )
-
+        log_context.info(
+            "Calling get_response on model_service",
+            extra={"operation": "intent_detection_local"},
+        )
         # Get model response
         response = self.model_service.get_response(prompt)
         log_context.info(
@@ -180,7 +186,6 @@ class IntentDetector(BaseNLU):
         )
         return pred_intent
 
-    @handle_exceptions()
     def _detect_intent_remote(
         self,
         text: str,
@@ -255,7 +260,6 @@ class IntentDetector(BaseNLU):
                 },
             ) from e
 
-    @handle_exceptions()
     def predict_intent(
         self,
         text: str,
@@ -293,6 +297,10 @@ class IntentDetector(BaseNLU):
         )
 
         try:
+            log_context.info(
+                "Calling intent detection method",
+                extra={"operation": "intent_prediction"},
+            )
             if self.api_service:
                 intent = self._detect_intent_remote(
                     text, intents, chat_history_str, model_config
@@ -301,6 +309,10 @@ class IntentDetector(BaseNLU):
                 intent = self._detect_intent_local(
                     intents, chat_history_str, model_config
                 )
+            log_context.info(
+                "Intent detection method returned",
+                extra={"operation": "intent_prediction"},
+            )
 
             log_context.info(
                 "Intent prediction completed",
@@ -319,9 +331,16 @@ class IntentDetector(BaseNLU):
                     "operation": "intent_prediction",
                 },
             )
-            raise
+            raise ArklexError(
+                f"Intent prediction failed: {str(e)}",
+                details={
+                    "original_error": str(e),
+                    "error_type": type(e).__name__,
+                    "text": text,
+                    "operation": "intent_prediction",
+                },
+            ) from e
 
-    @handle_exceptions()
     def execute(
         self,
         text: str,

@@ -1,0 +1,95 @@
+name: Reusable Run Coverage Tests
+
+on:
+  workflow_call:
+    inputs:
+      coverage-command:
+        description: 'Command to run tests with coverage'
+        required: false
+        default: 'ARKLEX_TEST_ENV=local pytest tests/ --cov=arklex --cov-report=term-missing --cov-report=html --cov-report=xml --no-cov-on-fail'
+        type: string
+      min-coverage-threshold:
+        description: 'Minimum coverage percentage to pass'
+        required: false
+        default: '99.0'
+        type: string
+
+jobs:
+  test:
+    name: run tests and display coverage
+
+    runs-on: ubuntu-latest
+
+    permissions:
+      contents: write
+
+    env:
+      SHOPIFY_FIXED_ARGS: ${{ secrets.SHOPIFY_FIXED_ARGS }}
+      OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+
+    steps:
+      - name: Checkout PR branch
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.head_ref }}
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Set up Python 3.10
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.10'
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -e '.[milvus,shopify,hubspot]' --quiet
+
+      - name: Run tests and check coverage threshold
+        id: coverage-check
+        run: |
+          ${{ inputs.coverage-command }}
+
+          # Check if coverage.xml exists
+          if [ ! -f "coverage.xml" ]; then
+            echo "❌ coverage.xml file not found. Tests may have failed."
+            exit 1
+          fi
+
+          python -c "
+          import xml.etree.ElementTree as ET
+          import os
+          import sys
+
+          try:
+              tree = ET.parse('coverage.xml')
+              root = tree.getroot()
+              coverage = float(root.attrib['line-rate']) * 100
+              print(f'Coverage: {coverage:.1f}%')
+
+              min_coverage = float('${{ inputs.min-coverage-threshold }}')
+              print(f'Minimum coverage threshold: {min_coverage}%')
+
+              if coverage < min_coverage:
+                  print(f'❌ Coverage ({coverage:.1f}%) is below minimum threshold ({min_coverage}%)')
+                  exit(1)
+              else:
+                  print(f'✅ Coverage ({coverage:.1f}%) meets minimum threshold ({min_coverage}%)')
+
+              with open(os.environ.get('GITHUB_OUTPUT', '/dev/null'), 'a') as f:
+                  f.write(f'coverage={coverage:.1f}\\n')
+          except Exception as e:
+              print(f'Error reading coverage data: {e}')
+              exit(1)
+          "
+
+      - name: Upload coverage report
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage-report
+          path: coverage.xml
+
+      - name: Upload HTML coverage report
+        uses: actions/upload-artifact@v4
+        with:
+          name: htmlcov
+          path: htmlcov/

@@ -1,7 +1,9 @@
 from collections.abc import Callable
 from typing import Any
 
-from arklex.utils.graph_state import NodeInfo, Params, PathNode, StatusEnum
+from arklex.orchestrator.entities.msg_state_entities import StatusEnum
+from arklex.orchestrator.entities.orchestrator_params_entities import OrchestratorParams
+from arklex.orchestrator.entities.taskgraph_entities import NodeInfo, PathNode
 
 NESTED_GRAPH_ID: str = "nested_graph"
 
@@ -27,8 +29,8 @@ class NestedGraph:
 
     @staticmethod
     def get_nested_graph_component_node(
-        params: Params, is_leaf_func: Callable[[Any], bool]
-    ) -> tuple[PathNode | None, Params]:
+        params: OrchestratorParams, is_leaf_func: Callable[[Any], bool]
+    ) -> tuple[PathNode | None, OrchestratorParams]:
         """
         If in nested subgraph, locate and return the nested graph resource node
         If leaf in main graph, return current node
@@ -39,20 +41,20 @@ class NestedGraph:
         4) found nested graph component is a leaf (possibly its also in a nested graph component) -> redo from step 1
 
         Args:
-            params (Params): The parameters object that contains the current task graph, including its node path.
+            params (OrchestratorParams): The parameters object that contains the current task graph, including its node path.
             is_leaf_func (Callable[[Any], bool]): A function that takes a node ID and returns True if the node
                                                     is a leaf node in the nested graph structure, otherwise False.
 
         Returns:
-            Tuple[PathNode | None, Params]: A tuple where:
+            Tuple[PathNode | None, OrchestratorParams]: A tuple where:
                 - The first element is a PathNode instance representing the nested graph component node,
                   or None if no such node is identified.
                 - The second element is the updated params object, which may include modified task graph state.
         """
 
         def _get_nested_graph_component_node(
-            node_i: int, params: Params
-        ) -> tuple[int, Params]:
+            node_i: int, params: OrchestratorParams
+        ) -> tuple[int, OrchestratorParams]:
             """
             if node is in nested graph, return path index of nested graph resource node, params and update path
             if node in main graph, return -1, params

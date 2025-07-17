@@ -1,0 +1,109 @@
+name: Reusable Send Notifications
+
+on:
+  workflow_call:
+    inputs:
+      notification-type:
+        description: "Type of notification (success, failure, warning)"
+        required: true
+        default: "info"
+        type: string
+      title:
+        description: "Notification title"
+        required: true
+        type: string
+      message:
+        description: "Notification message content"
+        required: true
+        type: string
+      workflow-name:
+        description: "Name of the workflow that triggered the notification"
+        required: true
+        type: string
+      workflow-run-id:
+        description: "GitHub workflow run ID"
+        required: true
+        type: string
+      workflow-run-url:
+        description: "URL to the workflow run"
+        required: true
+        type: string
+      enable-email:
+        description: "Whether to send email notifications"
+        required: false
+        default: "true"
+        type: string
+      enable-slack:
+        description: "Whether to send Slack notifications"
+        required: false
+        default: "true"
+        type: string
+      email-service:
+        description: "Email service to use (sendgrid, webhook, or debug)"
+        required: false
+        default: "debug"
+        type: string
+      recipient-email:
+        description: "Email address to send notification to"
+        required: false
+        default: "christian.lim@arklexai.com"
+        type: string
+    secrets:
+      SLACK_WEBHOOK_URL:
+        required: false
+
+jobs:
+  send-notifications:
+    name: Send Notifications
+    runs-on: ubuntu-latest
+    env:
+      OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+    
+    steps:
+      - name: Send Slack Notification
+        if: inputs.enable-slack == 'true'
+        uses: 8398a7/action-slack@v3
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+        with:
+          status: ${{ inputs.notification-type }}
+          text: |
+            **${{ inputs.title }}**
+
+            ${{ inputs.message }}
+
+            **Workflow**: ${{ inputs.workflow-name }}
+            **Run ID**: ${{ inputs.workflow-run-id }}
+            **View Run**: ${{ inputs.workflow-run-url }}
+          channel: "#builds"
+          username: "GitHub Actions"
+          icon_emoji: ":robot_face:"
+
+      - name: Send Email Notification
+        if: inputs.enable-email == 'true'
+        uses: ./.github/workflows/reusable-send-email-notification.yml
+        with:
+          subject: ${{ inputs.title }}
+          body: |
+            <h2>${{ inputs.title }}</h2>
+            <p>${{ inputs.message }}</p>
+            <hr>
+            <p><strong>Workflow:</strong> ${{ inputs.workflow-name }}</p>
+            <p><strong>Run ID:</strong> ${{ inputs.workflow-run-id }}</p>
+            <p><strong>View Run:</strong> <a href="${{ inputs.workflow-run-url }}">${{ inputs.workflow-run-url }}</a></p>
+            <p><strong>Status:</strong> ${{ inputs.notification-type }}</p>
+            <hr>
+            <p><em>This notification was sent automatically by GitHub Actions.</em></p>
+          recipient-email: ${{ inputs.recipient-email }}
+          email-service: ${{ inputs.email-service }}
+
+      - name: Log Notification Sent
+        run: |
+          echo "✅ Notifications sent successfully"
+          echo "Type: ${{ inputs.notification-type }}"
+          echo "Title: ${{ inputs.title }}"
+          echo "Workflow: ${{ inputs.workflow-name }}"
+          echo "Run ID: ${{ inputs.workflow-run-id }}"
+          echo "Email enabled: ${{ inputs.enable-email }}"
+          echo "Slack enabled: ${{ inputs.enable-slack }}"
+        shell: bash 

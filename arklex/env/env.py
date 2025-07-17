@@ -16,13 +16,15 @@ from arklex.env.agents.agent import BaseAgent
 from arklex.env.planner.react_planner import DefaultPlanner, ReactPlanner
 from arklex.env.tools.tools import Tool
 from arklex.env.workers.worker import BaseWorker
+from arklex.orchestrator.entities.msg_state_entities import MessageState
+from arklex.orchestrator.entities.orchestrator_params_entities import OrchestratorParams
+from arklex.orchestrator.entities.taskgraph_entities import NodeInfo
 from arklex.orchestrator.NLU.core.slot import SlotFiller
 from arklex.orchestrator.NLU.services.api_service import APIClientService
 from arklex.orchestrator.NLU.services.model_service import (
     DummyModelService,
     ModelService,
 )
-from arklex.utils.graph_state import MessageState, NodeInfo, Params
 from arklex.utils.logging_utils import LogContext
 
 log_context = LogContext(__name__)
@@ -165,6 +167,61 @@ class DefaultResourceInitializer(BaseResourceInitializer):
         return agent_registry
 
 
+class ModelAwareResourceInitializer(DefaultResourceInitializer):
+    """Resource initializer that passes model configuration to workers.
+
+    This class extends DefaultResourceInitializer to pass model configuration
+    to workers that require it, ensuring proper model initialization.
+    """
+
+    def __init__(self, model_config: dict[str, Any] | None = None) -> None:
+        """Initialize the model-aware resource initializer.
+
+        Args:
+            model_config: Model configuration to pass to workers
+        """
+        self.model_config = model_config
+
+    def init_workers(self, workers: list[dict[str, Any]]) -> dict[str, dict[str, Any]]:
+        """Initialize workers from configuration with model configuration.
+
+        Args:
+            workers: list of worker configurations
+
+        Returns:
+            dictionary mapping worker IDs to their configurations
+        """
+        worker_registry: dict[str, dict[str, Any]] = {}
+        for worker in workers:
+            worker_id: str = worker["id"]
+            name: str = worker["name"]
+            path: str = worker["path"]
+            try:
+                filepath: str = os.path.join("arklex.env.workers", path)
+                module_name: str = filepath.replace(os.sep, ".").rstrip(".py")
+                module = importlib.import_module(module_name)
+                func: Callable = getattr(module, name)
+
+                # Add model_config to fixed_args if the worker accepts it
+                fixed_args = worker.get("fixed_args", {})
+                if self.model_config and hasattr(func, "__init__"):
+                    # Check if the worker's __init__ method accepts model_config
+                    import inspect
+
+                    sig = inspect.signature(func.__init__)
+                    if "model_config" in sig.parameters:
+                        fixed_args["model_config"] = self.model_config
+
+                worker_registry[worker_id] = {
+                    "name": name,
+                    "description": func.description,
+                    "execute": partial(func, **fixed_args),
+                }
+            except Exception as e:
+                log_context.error(f"Worker {name} is not registered, error: {e}")
+        return worker_registry
+
+
 class Environment:
     """Environment management for workers and tools.
 
@@ -196,8 +253,16 @@ class Environment:
         # Accept slot_fill_api as an alias for slotsfillapi for compatibility with tests
         if "slot_fill_api" in kwargs and not slotsfillapi:
             slotsfillapi = kwargs["slot_fill_api"]
+
+        # Use ModelAwareResourceInitializer if model_service is provided
         if resource_initializer is None:
-            resource_initializer = DefaultResourceInitializer()
+            if model_service and hasattr(model_service, "model_config"):
+                resource_initializer = ModelAwareResourceInitializer(
+                    model_config=model_service.model_config
+                )
+            else:
+                resource_initializer = DefaultResourceInitializer()
+
         self.tools: dict[str, dict[str, Any]] = resource_initializer.init_tools(tools)
         self.workers: dict[str, dict[str, Any]] = resource_initializer.init_workers(
             workers
@@ -249,8 +314,12 @@ class Environment:
             return SlotFiller(model_service=self.model_service)
 
     def step(
-        self, id: str, message_state: MessageState, params: Params, node_info: NodeInfo
-    ) -> tuple[MessageState, Params]:
+        self,
+        id: str,
+        message_state: MessageState,
+        params: OrchestratorParams,
+        node_info: NodeInfo,
+    ) -> tuple[MessageState, OrchestratorParams]:
         """Execute a step in the environment.
 
         Args:
@@ -286,7 +355,9 @@ class Environment:
             worker: BaseWorker = self.workers[id]["execute"]()
             if hasattr(worker, "init_slotfilling"):
                 worker.init_slotfilling(self.slotfillapi)
-            response_state = worker.execute(message_state, **node_info.additional_args)
+            response_state = worker.execute(
+                message_state, **(node_info.additional_args or {})
+            )
             call_id: str = str(uuid.uuid4())
             params.memory.function_calling_trajectory.append(
                 {
@@ -340,11 +411,15 @@ class Environment:
             params.memory.function_calling_trajectory = (
                 response_state.function_calling_trajectory
             )
+            params.taskgraph.dialog_states = response_state.slots
             params.taskgraph.node_status[params.taskgraph.curr_node] = (
                 response_state.status
             )
         else:
-            log_context.info("planner selected")
+            # Resource not found in any registry, use planner as fallback
+            log_context.info(
+                f"Resource {id} not found in registries, using planner as fallback"
+            )
             action: str
             response_state: MessageState
             msg_history: list[dict[str, Any]]

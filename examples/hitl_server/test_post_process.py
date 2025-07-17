@@ -29,7 +29,7 @@ def config_and_env(
     model = {
         "model_name": str(request.config.getoption("--model")),
         "model_type_or_path": str(request.config.getoption("--model")),
-        "llm_provider": str(request.config.getoption("--llm-provider")),
+        "llm_provider": str(request.config.getoption("--llm_provider")),
         "api_key": os.getenv("OPENAI_API_KEY", ""),
         "endpoint": "https://api.openai.com/v1",
     }

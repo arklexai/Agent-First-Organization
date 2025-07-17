@@ -1,0 +1,137 @@
+name: Nightly Regression Tests
+
+on:
+  schedule:
+    # Run every night at 2 AM UTC
+    - cron: '0 2 * * *'
+  workflow_dispatch:  # Allow manual triggering
+
+permissions:
+  contents: write
+  id-token: write
+
+jobs:
+  lint:
+    uses: ./.github/workflows/reusable-ruff-code-linting.yml
+    with:
+      python-version: '3.10'
+      run-on-all-files: true
+
+  taskgraph:
+    uses: ./.github/workflows/reusable-taskgraph-generation-validation.yml
+    with:
+      python-version: '3.10'
+      config-path: './examples/test/config.json'
+    secrets:
+      OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+
+  coverage-check:
+    uses: ./.github/workflows/reusable-run-coverage-tests.yml
+    with:
+      coverage-command: 'ARKLEX_TEST_ENV=local pytest tests/ --cov=arklex --cov-report=term-missing --cov-report=html --cov-report=xml --no-cov-on-fail'
+      min-coverage-threshold: '99.0'
+
+  summary:
+    name: Nightly Regression Summary
+    runs-on: ubuntu-latest
+    needs: [lint, taskgraph, coverage-check]
+    if: always()
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Generate Summary
+        id: summary
+        run: |
+          echo "## Nightly Regression Test Summary" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### Test Results:" >> $GITHUB_STEP_SUMMARY
+          echo "- **Lint**: ${{ needs.lint.result == 'success' && '✅ Passed' || '❌ Failed' }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **TaskGraph**: ${{ needs.taskgraph.result == 'success' && '✅ Passed' || '❌ Failed' }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **Coverage**: ${{ needs.coverage-check.result == 'success' && '✅ Passed' || '❌ Failed' }}" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### Overall Status:" >> $GITHUB_STEP_SUMMARY
+          
+          # Determine overall status
+          if [[ "${{ needs.lint.result }}" == "success" && "${{ needs.taskgraph.result }}" == "success" && "${{ needs.coverage-check.result }}" == "success" ]]; then
+            echo "🎉 **All tests passed!**" >> $GITHUB_STEP_SUMMARY
+            echo "overall_status=success" >> $GITHUB_OUTPUT
+            echo "notification_type=success" >> $GITHUB_OUTPUT
+            echo "notification_title=✅ Nightly Regression Tests Passed" >> $GITHUB_OUTPUT
+            echo "notification_message=All nightly regression tests have passed successfully. The codebase is in good health." >> $GITHUB_OUTPUT
+          else
+            echo "⚠️ **Some tests failed. Please review the logs above.**" >> $GITHUB_STEP_SUMMARY
+            echo "overall_status=failure" >> $GITHUB_OUTPUT
+            echo "notification_type=failure" >> $GITHUB_OUTPUT
+            echo "notification_title=❌ Nightly Regression Tests Failed" >> $GITHUB_OUTPUT
+            
+            # Build detailed failure message
+            FAILED_TESTS=""
+            if [[ "${{ needs.lint.result }}" != "success" ]]; then
+              FAILED_TESTS="${FAILED_TESTS}• Lint checks"
+            fi
+            if [[ "${{ needs.taskgraph.result }}" != "success" ]]; then
+              FAILED_TESTS="${FAILED_TESTS}• TaskGraph generation/validation"
+            fi
+            if [[ "${{ needs.coverage-check.result }}" != "success" ]]; then
+              FAILED_TESTS="${FAILED_TESTS}• Coverage checks"
+            fi
+            
+            # Handle case where no tests failed (shouldn't happen but just in case)
+            if [[ -z "$FAILED_TESTS" ]]; then
+              FAILED_TESTS="• Unknown test failures"
+            fi
+            
+            echo "notification_message=The following tests failed:${FAILED_TESTS}. Please review the workflow logs for details." >> $GITHUB_OUTPUT
+          fi
+          
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "📅 **Run Time**: $(date -u '+%Y-%m-%d %H:%M:%S UTC')" >> $GITHUB_STEP_SUMMARY
+          echo "🔗 **Workflow**: [View full run](https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }})" >> $GITHUB_STEP_SUMMARY
+
+      - name: Send Success Notification
+        if: steps.summary.outputs.overall_status == 'success'
+        uses: 8398a7/action-slack@v3
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+        with:
+          status: success
+          text: |
+            ${{ steps.summary.outputs.notification_title }}
+
+            ${{ steps.summary.outputs.notification_message }}
+
+            Workflow: Nightly Regression Tests
+            Run ID: ${{ github.run_id }}
+            View Run: https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}
+          channel: "#builds"
+          username: "GitHub Actions"
+          icon_emoji: ":robot_face:"
+        continue-on-error: true
+
+      - name: Send Failure Notification
+        if: steps.summary.outputs.overall_status == 'failure'
+        uses: 8398a7/action-slack@v3
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+        with:
+          status: failure
+          text: |
+            ${{ steps.summary.outputs.notification_title }}
+
+            ${{ steps.summary.outputs.notification_message }}
+
+            Workflow: Nightly Regression Tests
+            Run ID: ${{ github.run_id }}
+            View Run: https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}
+          channel: "#builds"
+          username: "GitHub Actions"
+          icon_emoji: ":robot_face:"
+        continue-on-error: true
+
+      - name: Log Notification Status
+        run: |
+          echo "📧 Slack notification steps completed."
+          echo "Note: If SLACK_WEBHOOK_URL is not configured, the notification steps will fail silently."
+          echo "To enable Slack notifications, add the SLACK_WEBHOOK_URL secret to your repository settings."

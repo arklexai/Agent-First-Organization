@@ -54,7 +54,9 @@ NO_BOOKING_MESSAGE: str = "You have not booked any show."
 
 class Booking:
     db_path: str | None = None
-    llm: ChatOpenAI = ChatOpenAI(model=MODEL["model_type_or_path"], timeout=30000)
+    # Use a default model if MODEL["model_type_or_path"] is None
+    model_name = MODEL["model_type_or_path"] or "gpt-3.5-turbo"
+    llm: ChatOpenAI = ChatOpenAI(model=model_name, timeout=30000)
     user_id: str = USER_ID
     # actions = {
     #     "SearchShow": "Search for shows",

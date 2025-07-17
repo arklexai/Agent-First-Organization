@@ -79,7 +79,8 @@ def build_rag(folder_path: str, rag_docs: list[dict[str, Any]]) -> None:
     Loader.save(filepath_chunk, chunked_docs)
 
 
-if __name__ == "__main__":
+def main() -> None:
+    """Main function that handles CLI argument parsing and calls build_rag."""
     parser: argparse.ArgumentParser = argparse.ArgumentParser()
 
     parser.add_argument("--base_url", required=True, type=str, help="base url to crawl")
@@ -93,5 +94,9 @@ if __name__ == "__main__":
 
     build_rag(
         folder_path=args.folder_path,
-        docs=[{"source": args.base_url, "num": args.max_num}],
+        rag_docs=[{"source": args.base_url, "type": "url", "num": args.max_num}],
     )
+
+
+if __name__ == "__main__":  # pragma: no cover
+    main()

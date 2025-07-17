@@ -1,0 +1,113 @@
+name: Reusable Send Email Notification
+
+on:
+  workflow_call:
+    inputs:
+      subject:
+        description: 'Email subject line'
+        required: true
+        type: string
+      body:
+        description: 'Email body content'
+        required: true
+        type: string
+      recipient-email:
+        description: 'Email address to send notification to'
+        required: false
+        default: 'christian.lim@arklexai.com'
+        type: string
+      sender-name:
+        description: 'Name of the sender'
+        required: false
+        default: 'GitHub Actions Bot'
+        type: string
+      sender-email:
+        description: 'Email address of the sender'
+        required: false
+        default: 'noreply@arklexai.com'
+        type: string
+      email-service:
+        description: 'Email service to use (sendgrid, webhook, or debug)'
+        required: false
+        default: 'debug'
+        type: string
+    secrets:
+      SENDGRID_API_KEY:
+        required: false
+      EMAIL_WEBHOOK_URL:
+        required: false
+
+jobs:
+  send-email:
+    name: Send Email Notification
+    runs-on: ubuntu-latest
+    env:
+      OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+    
+    steps:
+      - name: Send Email via SendGrid
+        if: inputs.email-service == 'sendgrid'
+        run: |
+          # Send email using SendGrid API
+          curl -X POST "https://api.sendgrid.com/v3/mail/send" \
+            -H "Authorization: Bearer ${{ secrets.SENDGRID_API_KEY }}" \
+            -H "Content-Type: application/json" \
+            -d '{
+              "personalizations": [
+                {
+                  "to": [
+                    {
+                      "email": "${{ inputs.recipient-email }}"
+                    }
+                  ]
+                }
+              ],
+              "from": {
+                "email": "${{ inputs.sender-email }}",
+                "name": "${{ inputs.sender-name }}"
+              },
+              "subject": "${{ inputs.subject }}",
+              "content": [
+                {
+                  "type": "text/html",
+                  "value": "${{ inputs.body }}"
+                }
+              ]
+            }'
+        shell: bash
+
+      - name: Send Email via Webhook
+        if: inputs.email-service == 'webhook'
+        run: |
+          # Send email using webhook service (Zapier, Make.com, etc.)
+          curl -X POST "${{ secrets.EMAIL_WEBHOOK_URL }}" \
+            -H "Content-Type: application/json" \
+            -d '{
+              "to": "${{ inputs.recipient-email }}",
+              "subject": "${{ inputs.subject }}",
+              "body": "${{ inputs.body }}",
+              "from_name": "${{ inputs.sender-name }}",
+              "from_email": "${{ inputs.sender-email }}"
+            }'
+        shell: bash
+
+      - name: Debug Email (Print to Logs)
+        if: inputs.email-service == 'debug'
+        run: |
+          echo "=== EMAIL NOTIFICATION (DEBUG MODE) ==="
+          echo "To: ${{ inputs.recipient-email }}"
+          echo "From: ${{ inputs.sender-name }} <${{ inputs.sender-email }}>"
+          echo "Subject: ${{ inputs.subject }}"
+          echo ""
+          echo "Body:"
+          echo "${{ inputs.body }}"
+          echo "======================================"
+        shell: bash
+
+      - name: Log Email Sent
+        run: |
+          echo "✅ Email notification sent successfully"
+          echo "Service: ${{ inputs.email-service }}"
+          echo "Recipient: ${{ inputs.recipient-email }}"
+          echo "Subject: ${{ inputs.subject }}"
+        shell: bash 

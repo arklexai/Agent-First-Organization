@@ -29,4 +29,4 @@ jobs:
 
       - name: Test with pytest
         run: |
-          pytest tests/ --cov=arklex --cov-report=term-missing --cov-report=html --no-cov-on-fail
+          ARKLEX_TEST_ENV=local pytest tests/ --cov=arklex --cov-report=term-missing --cov-report=html --no-cov-on-fail

@@ -20,7 +20,7 @@ Complete guide to configuring Arklex AI agents for different environments and us
 |--------------|-----------------|-------------|--------------|
 | `OPENAI_API_KEY` | OpenAI API key | `sk-...` | Yes (if using OpenAI) |
 | `ANTHROPIC_API_KEY` | Anthropic API key | `sk-ant-...` | Yes (if using Anthropic) |
-| `GEMINI_API_KEY` | Google Gemini API key | `AIza...` | Yes (if using Gemini) |
+| `GOOGLE_API_KEY` | Google Gemini API key | `AIza...` | Yes (if using Gemini) |
 | `MISTRAL_API_KEY` | Mistral API key | `...` | Yes (if using Mistral) |
 
 ### Optional Variables
@@ -72,7 +72,7 @@ OPENAI_ORG_ID=org-your-org-id-here
 ANTHROPIC_API_KEY=sk-ant-your-anthropic-key-here
 
 # Google Gemini (alternative)
-GEMINI_API_KEY=AIza-your-gemini-key-here
+GOOGLE_API_KEY=AIza-your-gemini-key-here
 
 # Mistral (alternative)
 MISTRAL_API_KEY=your-mistral-key-here
@@ -660,7 +660,19 @@ config.prod.json
 
 # Load based on environment
 export ENVIRONMENT=production
-python create.py --config config.${ENVIRONMENT}.json
+python create.py --config config.${ENVIRONMENT}.json --llm_provider openai --model gpt-4o
+
+# For evaluation and testing, you can also use the model API server:
+# 1. Start the model API server (defaults to OpenAI with "gpt-4o-mini" model):
+python model_api.py --input-dir ./examples/customer_service
+
+# 2. Run evaluation (in a separate terminal):
+python eval.py --model_api http://127.0.0.1:8000/eval/chat \
+  --config "examples/customer_service/customer_service_config.json" \
+  --documents_dir "examples/customer_service" \
+  --model "claude-3-haiku-20240307" \
+  --llm_provider "anthropic" \
+  --task "all"
 ```
 
 ### Configuration Validation

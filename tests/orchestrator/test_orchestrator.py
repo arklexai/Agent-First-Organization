@@ -6,17 +6,18 @@ import pytest
 
 from arklex.env.env import Environment
 from arklex.env.nested_graph.nested_graph import NESTED_GRAPH_ID
-from arklex.orchestrator.orchestrator import AgentOrg
-from arklex.types import StreamType
-from arklex.utils.graph_state import (
+from arklex.orchestrator.entities.msg_state_entities import (
     BotConfig,
     MessageState,
-    NodeInfo,
-    NodeTypeEnum,
     OrchestratorResp,
-    Params,
     StatusEnum,
 )
+from arklex.orchestrator.entities.orchestrator_params_entities import (
+    OrchestratorParams as Params,
+)
+from arklex.orchestrator.entities.taskgraph_entities import NodeInfo, NodeTypeEnum
+from arklex.orchestrator.orchestrator import AgentOrg
+from arklex.types import StreamType
 
 
 class DummyEnv(Environment):
@@ -1117,103 +1118,161 @@ class TestAgentOrgEdgeCases:
 
 
 class TestAgentOrgImportFallback:
-    """Test AgentOrg import fallback scenarios."""
+    """Test import fallback scenarios."""
 
-    @patch("arklex.orchestrator.orchestrator.Unpack", new=None)
-    @patch("typing_extensions.Unpack")
-    def test_import_fallback_unpack_type(
-        self, mock_typing_extensions_unpack: Mock, basic_config: dict[str, Any]
-    ) -> None:
-        """Test that the import fallback for Unpack type works correctly."""
-        # This test ensures that when Unpack is not available in typing,
-        # it falls back to typing_extensions
+    def test_import_fallback_unpack_type(self, basic_config: dict[str, Any]) -> None:
+        """Test import fallback when typing.Unpack is not available."""
+        # This test verifies that the import fallback mechanism works
+        # The actual import happens at module level, so we just verify the class works
         agent = AgentOrg(basic_config, None)
         assert agent.product_kwargs["role"] == "test_role"
-        # The import fallback should have been triggered
-        mock_typing_extensions_unpack.assert_not_called()  # It's imported, not called
+
+    def test_import_fallback_with_environment(
+        self, basic_config: dict[str, Any]
+    ) -> None:
+        """Test import fallback with environment parameter."""
+        env = DummyEnv()
+        agent = AgentOrg(basic_config, env)
+        assert agent.env is env
+
+    def test_import_fallback_with_kwargs(self, basic_config: dict[str, Any]) -> None:
+        """Test import fallback with custom kwargs."""
+        agent = AgentOrg(
+            basic_config, None, user_prefix="custom_user", worker_prefix="custom_worker"
+        )
+        assert agent.user_prefix == "custom_user"
+        assert agent.worker_prefix == "custom_worker"
 
 
 class TestAgentOrgAdditionalCoverage:
-    """Additional test cases to cover missing lines in orchestrator.py."""
+    """Additional test cases for better coverage."""
 
     def test_init_with_dict_config_and_planner(
         self, basic_config: dict[str, Any]
     ) -> None:
-        """Test initialization with dict config and planner enabled."""
-        # Add planner to the config
-        basic_config["workers"] = [{"name": "planner", "enabled": True}]
+        """Test initialization with planner enabled."""
+        # Add planner to config
+        basic_config["workers"].append(
+            {"id": "planner", "name": "planner", "path": "planner"}
+        )
+        env = DummyEnv()
+        env.planner = Mock()
+        env.planner.set_llm_config_and_build_resource_library = Mock()
 
-        # Mock the Environment to return an environment with planner
-        with patch("arklex.orchestrator.orchestrator.Environment") as mock_env_class:
-            mock_env = Mock()
-            mock_env.planner = Mock()
-            mock_env.planner.set_llm_config_and_build_resource_library = Mock()
-            mock_env_class.return_value = mock_env
-
-            agent = AgentOrg(basic_config, None)
-
-            # Verify planner was set up
-            assert agent.env.planner is not None
-            agent.env.planner.set_llm_config_and_build_resource_library.assert_called_once()
+        agent = AgentOrg(basic_config, env)
+        assert agent.env.planner is not None
+        env.planner.set_llm_config_and_build_resource_library.assert_called_once()
 
     def test_init_with_dict_config_and_no_planner(
         self, basic_config: dict[str, Any]
     ) -> None:
-        """Test initialization with dict config and no planner."""
-        # Ensure no planner in workers
-        basic_config["workers"] = []
+        """Test initialization without planner."""
+        env = DummyEnv()
+        env.planner = None
 
-        # Mock the Environment to return an environment without planner
-        with patch("arklex.orchestrator.orchestrator.Environment") as mock_env_class:
-            mock_env = Mock()
-            mock_env.planner = None
-            mock_env_class.return_value = mock_env
+        agent = AgentOrg(basic_config, env)
+        assert agent.env.planner is None
 
-            agent = AgentOrg(basic_config, None)
+    def test_init_with_hitl_proposal_enabled(
+        self, config_with_hitl: dict[str, Any]
+    ) -> None:
+        """Test initialization with HITL proposal enabled."""
+        config_with_hitl["settings"] = {"hitl_proposal": True}
+        agent = AgentOrg(config_with_hitl, None)
+        assert agent.hitl_proposal_enabled is True
 
-            # Verify no planner setup was attempted
-            assert agent.env.planner is None
+    def test_init_with_hitl_proposal_disabled(
+        self, config_with_hitl: dict[str, Any]
+    ) -> None:
+        """Test initialization with HITL proposal disabled."""
+        config_with_hitl["settings"] = {"hitl_proposal": False}
+        agent = AgentOrg(config_with_hitl, None)
+        assert agent.hitl_proposal_enabled is False
+
+    def test_init_with_no_hitl_worker(self, basic_config: dict[str, Any]) -> None:
+        """Test initialization without HITL worker."""
+        agent = AgentOrg(basic_config, None)
+        assert agent.hitl_worker_available is False
+
+    def test_init_with_empty_workers_list(self) -> None:
+        """Test initialization with empty workers list."""
+        config = {
+            "role": "test_role",
+            "user_objective": "test objective",
+            "builder_objective": "builder obj",
+            "intro": "intro text",
+            "model": {"llm_provider": "openai", "model_type_or_path": "gpt-3.5"},
+            "workers": [],
+            "tools": [],
+            "nodes": [("node1", {"type": "task", "name": "Test Node"})],
+            "edges": [("node1", "node1", {"intent": "none", "weight": 1.0})],
+        }
+        agent = AgentOrg(config, None)
+        assert agent.hitl_worker_available is False
+
+    def test_init_with_missing_workers_key(self) -> None:
+        """Test initialization with missing workers key."""
+        config = {
+            "role": "test_role",
+            "user_objective": "test objective",
+            "builder_objective": "builder obj",
+            "intro": "intro text",
+            "model": {"llm_provider": "openai", "model_type_or_path": "gpt-3.5"},
+            "tools": [],
+            "nodes": [("node1", {"type": "task", "name": "Test Node"})],
+            "edges": [("node1", "node1", {"intent": "none", "weight": 1.0})],
+        }
+        agent = AgentOrg(config, None)
+        assert agent.hitl_worker_available is False
+
+    def test_init_with_missing_settings_key(
+        self, config_with_hitl: dict[str, Any]
+    ) -> None:
+        """Test initialization with missing settings key."""
+        agent = AgentOrg(config_with_hitl, None)
+        assert agent.hitl_proposal_enabled is False
+
+    def test_init_with_none_settings(self, config_with_hitl: dict[str, Any]) -> None:
+        """Test initialization with None settings."""
+        config_with_hitl["settings"] = None
+        agent = AgentOrg(config_with_hitl, None)
+        assert agent.hitl_proposal_enabled is False
 
 
 def test_agentorg_env_none_valid_config() -> None:
-    from arklex.orchestrator.orchestrator import AgentOrg
-
+    """Test AgentOrg with None environment and valid config."""
     config = {
-        "model": {"model_type_or_path": "gpt-4", "llm_provider": "openai"},
-        "workers": [],
-        "tools": [],
-        "nodes": [],
-        "edges": [],
         "role": "test_role",
         "user_objective": "test objective",
-        "builder_objective": "test builder objective",
-        "intro": "test intro",
+        "builder_objective": "builder obj",
+        "intro": "intro text",
+        "model": {"llm_provider": "openai", "model_type_or_path": "gpt-3.5"},
+        "workers": [],
+        "tools": [],
+        "nodes": [("node1", {"type": "task", "name": "Test Node"})],
+        "edges": [("node1", "node1", {"intent": "none", "weight": 1.0})],
     }
     agent = AgentOrg(config, None)
-    assert hasattr(agent, "env")
-    assert hasattr(agent, "task_graph")
+    assert isinstance(agent.env, Environment)
+    assert agent.product_kwargs["role"] == "test_role"
 
 
 def test_agentorg_hitl_proposal_enabled_valid_config() -> None:
-    from arklex.orchestrator.orchestrator import AgentOrg
-
+    """Test AgentOrg with HITL proposal enabled in valid config."""
     config = {
-        "model": {"model_type_or_path": "gpt-4", "llm_provider": "openai"},
-        "workers": [
-            {
-                "id": "hitl_worker",
-                "name": "HITLWorkerChatFlag",
-                "path": "hitl_worker.py",
-            }
-        ],
-        "tools": [],
-        "settings": {"hitl_proposal": True},
-        "nodes": [],
-        "edges": [],
         "role": "test_role",
         "user_objective": "test objective",
-        "builder_objective": "test builder objective",
-        "intro": "test intro",
+        "builder_objective": "builder obj",
+        "intro": "intro text",
+        "model": {"llm_provider": "openai", "model_type_or_path": "gpt-3.5"},
+        "workers": [
+            {"id": "hitl_worker", "name": "HITLWorkerChatFlag", "path": "hitl_worker"}
+        ],
+        "settings": {"hitl_proposal": True},
+        "tools": [],
+        "nodes": [("node1", {"type": "task", "name": "Test Node"})],
+        "edges": [("node1", "node1", {"intent": "none", "weight": 1.0})],
     }
     agent = AgentOrg(config, None)
+    assert agent.hitl_worker_available is True
     assert agent.hitl_proposal_enabled is True

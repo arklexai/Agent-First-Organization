@@ -63,12 +63,15 @@ def get_apt_by_email(email: str, **kwargs: dict[str, Any]) -> str:
     if response.status_code == 200:
         data: list[dict[str, Any]] = response.json()
         today: datetime.date = datetime.now().date()
+        found_appointments = False
+
         for item in data:
             if item.get("email") == email:
                 apt_date: datetime.date = datetime.strptime(
                     item["date"], "%B %d, %Y"
                 ).date()
                 if apt_date > today:
+                    found_appointments = True
                     response_str += (
                         f"The appointment id of this appointment is: {item['id']}\n"
                     )
@@ -81,7 +84,8 @@ def get_apt_by_email(email: str, **kwargs: dict[str, Any]) -> str:
                     )
                     response_str += f"The appointment type: {item['type']}\n"
                     # response_str += f"The appointment type_id cannot be accessed for this tool\n"
-        if response_str.count("\n") == 1:
+
+        if not found_appointments:
             raise ToolExecutionError(
                 func_name, AcuityExceptionPrompt.GET_APT_BY_EMAIL_EXCEPTION_PROMPT_1
             )

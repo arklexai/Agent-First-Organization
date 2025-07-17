@@ -4,7 +4,7 @@ from unittest.mock import Mock, patch
 import pytest
 
 from arklex.env.agents.agent import BaseAgent, register_agent
-from arklex.utils.graph_state import MessageState, StatusEnum
+from arklex.orchestrator.entities.msg_state_entities import MessageState, StatusEnum
 
 
 class TestRegisterAgent:
@@ -409,8 +409,10 @@ class TestBaseAgent:
         assert child.description == "Child description"
 
     def test_execute_with_kwargs(self, mock_state: MessageState) -> None:
-        """Test that execute passes kwargs to _execute."""
+        """Test execute method with additional kwargs."""
+        from unittest.mock import patch
 
+        # Create a test agent that uses kwargs
         class KwargsTestAgent(BaseAgent):
             def _execute(
                 self,
@@ -419,7 +421,7 @@ class TestBaseAgent:
             ) -> dict[str, Any]:  # noqa: ANN401
                 return {
                     "status": StatusEnum.COMPLETE,
-                    "response": f"Received: {kwargs.get('test_param', 'None')}",
+                    "response": f"Response with {kwargs.get('test_param', 'default')}",
                     "message_flow": "",
                     "function_calling_trajectory": [],
                     "trajectory": msg_state.trajectory,
@@ -427,19 +429,115 @@ class TestBaseAgent:
 
         agent = KwargsTestAgent()
 
+        # Mock MessageState.model_validate to return a proper MessageState
         with patch(
             "arklex.env.agents.agent.MessageState.model_validate"
         ) as mock_validate:
             mock_response_state = Mock(spec=MessageState)
-            mock_response_state.response = "Received: test_value"
+            mock_response_state.response = "Response with custom_value"
             mock_response_state.message_flow = ""
             mock_response_state.trajectory = [[Mock()]]
             mock_response_state.trajectory[0][0].output = None
             mock_validate.return_value = mock_response_state
 
-            agent.execute(mock_state, test_param="test_value")
+            result = agent.execute(mock_state, test_param="custom_value")
 
-            assert mock_response_state.trajectory[0][0].output == "Received: test_value"
+            # Verify the result includes the custom parameter
+            assert "custom_value" in result.response
+
+    def test_execute_with_exception_returns_original_state(
+        self, mock_state: MessageState
+    ) -> None:
+        """Test execute method when _execute raises an exception - should return original state."""
+
+        # Create an agent that raises an exception in _execute
+        class ExceptionAgent(BaseAgent):
+            def _execute(
+                self,
+                msg_state: MessageState,
+                **kwargs: Any,  # noqa: ANN401
+            ) -> dict[str, Any]:  # noqa: ANN401
+                raise RuntimeError("Test exception")
+
+        agent = ExceptionAgent()
+        result = agent.execute(mock_state)
+
+        # Should return the original message state when exception occurs
+        assert result == mock_state
+
+    def test_execute_with_exception_logs_error(self, mock_state: MessageState) -> None:
+        """Test execute method logs error when _execute raises an exception."""
+        from unittest.mock import patch
+
+        # Create an agent that raises an exception in _execute
+        class ExceptionAgent(BaseAgent):
+            def _execute(
+                self,
+                msg_state: MessageState,
+                **kwargs: Any,  # noqa: ANN401
+            ) -> dict[str, Any]:  # noqa: ANN401
+                raise ValueError("Test exception")
+
+        agent = ExceptionAgent()
+
+        # Patch the log_context.error to verify it's called
+        with patch("arklex.env.agents.agent.log_context.error") as mock_error:
+            agent.execute(mock_state)
+
+            # Verify error was logged
+            mock_error.assert_called_once()
+            # Verify the call includes traceback.format_exc()
+            assert "Test exception" in mock_error.call_args[0][0]
+
+    def test_execute_with_exception_logs_traceback(
+        self, mock_state: MessageState
+    ) -> None:
+        """Test execute method logs traceback when _execute raises an exception."""
+        from unittest.mock import patch
+
+        # Create an agent that raises an exception in _execute
+        class ExceptionAgent(BaseAgent):
+            def _execute(
+                self,
+                msg_state: MessageState,
+                **kwargs: Any,  # noqa: ANN401
+            ) -> dict[str, Any]:  # noqa: ANN401
+                raise RuntimeError("Test runtime exception")
+
+        agent = ExceptionAgent()
+
+        # Patch both log_context.error and traceback.format_exc to verify they're called
+        with (
+            patch("arklex.env.agents.agent.log_context.error") as mock_error,
+            patch("arklex.env.agents.agent.traceback.format_exc") as mock_format_exc,
+        ):
+            mock_format_exc.return_value = "Test traceback"
+            agent.execute(mock_state)
+
+            # Verify traceback.format_exc was called
+            mock_format_exc.assert_called_once()
+            # Verify error was logged with the traceback
+            mock_error.assert_called_once_with("Test traceback")
+
+    def test_execute_with_exception_returns_original_state_different_exception(
+        self, mock_state: MessageState
+    ) -> None:
+        """Test execute method returns original state for different exception types."""
+
+        # Create an agent that raises a different exception in _execute
+        class DifferentExceptionAgent(BaseAgent):
+            def _execute(
+                self,
+                msg_state: MessageState,
+                **kwargs: Any,  # noqa: ANN401
+            ) -> dict[str, Any]:  # noqa: ANN401
+                raise TypeError("Test type error")
+
+        agent = DifferentExceptionAgent()
+        result = agent.execute(mock_state)
+
+        # Should return the original message state when exception occurs
+        assert result == mock_state
 
     def test_abstract_execute_method(self) -> None:
         """Test that BaseAgent cannot be instantiated due to abstract method."""

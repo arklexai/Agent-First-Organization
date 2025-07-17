@@ -9,7 +9,8 @@ from typing import Any, NoReturn
 import pytest
 
 from arklex.env.workers.worker import BaseWorker, WorkerKwargs, register_worker
-from arklex.utils.graph_state import MessageState, ResourceRecord, StatusEnum
+from arklex.memory.entities.memory_entities import ResourceRecord
+from arklex.orchestrator.entities.msg_state_entities import MessageState, StatusEnum
 
 
 class TestRegisterWorkerDecorator:

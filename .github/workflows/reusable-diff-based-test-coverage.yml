@@ -1,18 +1,37 @@
-name: Diff-Based Coverage Check
+name: Reusable Coverage Workflow
 
 on:
-  pull_request:
-    types: [labeled]
+  workflow_call:
+    inputs:
+      python-version:
+        description: 'Python version to use'
+        required: false
+        default: '3.10'
+        type: string
+      fail-under:
+        description: 'Minimum coverage percentage to pass'
+        required: false
+        default: '100'
+        type: string
+      is-pr-check:
+        description: 'Whether this is running as a PR check with PR-specific features'
+        required: false
+        default: false
+        type: boolean
+    secrets:
+      OPENAI_API_KEY:
+        required: true
+      SHOPIFY_FIXED_ARGS:
+        required: false
+
+permissions:
+  contents: write
+  pull-requests: write
 
 jobs:
   coverage-check:
-    name: Check Coverage on New Lines
-    if: github.base_ref == 'main' && github.event.label.name == 'run-diff-coverage-tests'
+    name: Diff-Based Coverage Check
     runs-on: ubuntu-latest
-
-    permissions:
-      pull-requests: write
-      contents: write
 
     env:
       SHOPIFY_FIXED_ARGS: ${{ secrets.SHOPIFY_FIXED_ARGS }}
@@ -27,7 +46,7 @@ jobs:
       - name: Set up Python
         uses: actions/setup-python@v4
         with:
-          python-version: '3.10'
+          python-version: ${{ inputs.python-version }}
 
       - name: Install dependencies
         run: |
@@ -43,7 +62,7 @@ jobs:
       - name: Run tests with coverage
         run: |
           # Run tests with coverage, excluding certain directories if needed
-          coverage run --source=arklex -m pytest tests/ -v --tb=short
+          ARKLEX_TEST_ENV=local coverage run --source=arklex -m pytest tests/ -v --tb=short
           coverage xml
           coverage report > coverage.txt
           echo "Coverage report generated:"
@@ -56,7 +75,7 @@ jobs:
         id: coverage_check
         run: |
           set -e
-          diff-cover coverage.xml --compare-branch=origin/main --html-report diff_coverage.html --fail-under=100 > diff_output.txt 2>&1 || true
+          diff-cover coverage.xml --compare-branch=origin/main --html-report diff_coverage.html --fail-under=${{ inputs.fail-under }} > diff_output.txt 2>&1 || true
           
           # Extract coverage percentage with better error handling
           DIFF_COVERAGE=$(grep -oE 'Diff coverage.*[0-9]+\.*[0-9]*%' diff_output.txt | grep -oE '[0-9]+\.*[0-9]*' || echo "0")
@@ -81,7 +100,7 @@ jobs:
           cat diff_output.txt
           echo "=============================="
           
-          if (( $(echo "$DIFF_COVERAGE < 100" | bc -l) )); then
+          if (( $(echo "$DIFF_COVERAGE < ${{ inputs.fail-under }}" | bc -l) )); then
             echo "coverage_low=true" >> $GITHUB_OUTPUT
             echo "⚠️ Diff coverage is below threshold!"
           else
@@ -89,26 +108,27 @@ jobs:
             echo "✅ Diff coverage meets threshold."
           fi
 
-      # Optional: Fail the workflow if diff coverage < 100%
-      - name: Fail if coverage is below 100%
+      # Optional: Fail the workflow if diff coverage < threshold
+      - name: Fail if coverage is below threshold
         if: steps.coverage_check.outputs.coverage_low == 'true'
         run: |
           echo "❌ Failing job due to insufficient diff coverage."
           echo "Current diff coverage: ${{ steps.coverage_check.outputs.diff_coverage }}%"
-          echo "Required: 100%"
+          echo "Required: ${{ inputs.fail-under }}%"
           exit 1
 
+      # Post comment on PR if coverage is low (only for PR checks)
       - name: Post comment on PR if coverage is low
-        if: steps.coverage_check.outputs.coverage_low == 'true'
+        if: steps.coverage_check.outputs.coverage_low == 'true' && inputs.is-pr-check == true
         uses: peter-evans/create-or-update-comment@v4
         with:
-          token: ${{ secrets.GITHUB_TOKEN }}
+          token: ${{ github.token }}
           issue-number: ${{ github.event.pull_request.number }}
           body: |
-            ⚠️ **Diff coverage is ${{ steps.coverage_check.outputs.diff_coverage }}%**, which is below the required 100%.
+            ⚠️ **Diff coverage is ${{ steps.coverage_check.outputs.diff_coverage }}%**, which is below the required ${{ inputs.fail-under }}%.
             Please add or update tests to cover newly added or changed lines.
             📊 **Coverage Report**: [View detailed report](https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }})
-            
+
       - name: Upload diff coverage report
         uses: actions/upload-artifact@v4
         with:
@@ -120,43 +140,11 @@ jobs:
 
       - name: Update README badge
         if: always() && github.ref == 'refs/heads/main'
-        run: |
-          if [ -f coverage.txt ]; then
-            TOTAL_COVERAGE=$(grep -E '^TOTAL' coverage.txt | awk '{print $4}' | tr -d '%' || echo "0")
-            echo "Total coverage: ${TOTAL_COVERAGE}%"
-            
-            # Validate coverage value
-            if ! [[ "$TOTAL_COVERAGE" =~ ^[0-9]+\.?[0-9]*$ ]]; then
-              echo "Invalid coverage value: $TOTAL_COVERAGE"
-              exit 1
-            fi
-
-            if (( $(echo "$TOTAL_COVERAGE < 90" | bc -l) )); then
-              COLOR="red"
-            elif (( $(echo "$TOTAL_COVERAGE < 99" | bc -l) )); then
-              COLOR="orange"
-            else
-              COLOR="green"
-            fi
-
-            NEW_BADGE="coverage-${TOTAL_COVERAGE}%25-${COLOR}"
-            CURRENT_BADGE=$(grep -oE 'coverage-[0-9]+\.[0-9]+%25-[a-z]+' README.md || echo "")
-
-            if [[ "$CURRENT_BADGE" != "$NEW_BADGE" ]]; then
-              echo "Updating README badge from $CURRENT_BADGE to $NEW_BADGE"
-              sed -i "s|coverage-[0-9]\+\.[0-9]\+%25-[a-z]\+|$NEW_BADGE|g" README.md
-
-              git config user.name "github-actions[bot]"
-              git config user.email "github-actions[bot]@users.noreply.github.com"
-              git add README.md
-              git commit -m "chore: update README with ${TOTAL_COVERAGE}% test coverage"
-              git push
-            else
-              echo "Badge already reflects current coverage."
-            fi
-          else
-            echo "coverage.txt not found, skipping badge update."
-          fi
+        uses: ./.github/workflows/reusable-update-badge.yml
+        with:
+          coverage-file: 'coverage.txt'
+          coverage-format: 'txt'
+          min-coverage-threshold: ${{ inputs.fail-under }}
 
       - name: Summary
         if: always()

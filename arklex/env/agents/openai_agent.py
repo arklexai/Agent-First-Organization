@@ -4,16 +4,15 @@ from typing import Any
 from langchain.prompts import PromptTemplate
 from langchain_core.language_models import BaseChatModel
 from langchain_core.messages import AIMessage, SystemMessage, ToolMessage
-from langchain_openai import ChatOpenAI
 from langgraph.graph import START, StateGraph
 
 from arklex.env.agents.agent import BaseAgent, register_agent
 from arklex.env.prompts import load_prompts
 from arklex.env.tools.tools import register_tool
 from arklex.env.tools.utils import trace
-from arklex.utils.graph_state import MessageState, StatusEnum
+from arklex.orchestrator.entities.msg_state_entities import MessageState, StatusEnum
 from arklex.utils.logging_utils import LogContext
-from arklex.utils.model_provider_config import PROVIDER_MAP
+from arklex.utils.provider_utils import validate_and_get_model_class
 
 log_context = LogContext(__name__)
 
@@ -30,9 +29,9 @@ def end_conversation(state: MessageState) -> str:
     """
     log_context.info("Ending the conversation.")
     state.status = StatusEnum.COMPLETE
-    llm = PROVIDER_MAP.get(state.bot_config.llm_config.llm_provider, ChatOpenAI)(
-        model=state.bot_config.llm_config.model_type_or_path
-    )
+    model_class = validate_and_get_model_class(state.bot_config.llm_config)
+
+    llm = model_class(model=state.bot_config.llm_config.model_type_or_path)
     try:
         return llm.invoke(
             [
@@ -51,15 +50,16 @@ class OpenAIAgent(BaseAgent):
     description: str = "General-purpose Arklex agent for chat or voice."
 
     def __init__(
-        self, successors: list, predecessors: list, tools: list, state: MessageState
+        self, successors: list, predecessors: list, tools: dict, state: MessageState
     ) -> None:
         super().__init__()
         self.action_graph: StateGraph = self._create_action_graph()
         self.llm: BaseChatModel | None = None
-        self.available_tools: dict[str, dict[str, Any]] = {}
+        self.available_tools: dict[str, tuple[dict[str, Any], Any]] = {}
         self.tool_map = {}
         self.tool_defs = []
         self.tool_args: dict[str, Any] = {}
+        self.tool_slots: dict[str, Any] = {}
 
         self._load_tools(successors=successors, predecessors=predecessors, tools=tools)
         self._configure_tools()
@@ -114,22 +114,38 @@ class OpenAIAgent(BaseAgent):
             for tool_call in ai_message.tool_calls:
                 tool_name = tool_call.get("name")
                 if tool_name in self.tool_map:
+                    # Ensure tool_call has proper structure
+                    tool_call_id = tool_call.get("id", f"call_{tool_name}")
+                    tool_call_args = tool_call.get("args", {})
+
+                    # Create properly structured tool call
+                    structured_tool_call = {
+                        "name": tool_name,
+                        "args": tool_call_args,
+                        "id": tool_call_id,
+                    }
+
                     state.function_calling_trajectory.append(
                         AIMessage(
                             content=f"Calling tool: {tool_name}",
-                            tool_calls=[tool_call],
+                            tool_calls=[structured_tool_call],
                         ).model_dump()
                     )
-                    tool_response = self.tool_map[tool_name](
-                        state=state,
-                        **tool_call.get("args"),
+
+                    # Prepare arguments for tool execution
+                    tool_args = {
+                        **tool_call_args,
                         **self.tool_args.get(tool_name, {}),
-                    )
+                    }
+
+                    # Call tool with unified interface
+                    tool_response = self._execute_tool(tool_name, state, tool_args)
+
                     state.function_calling_trajectory.append(
                         ToolMessage(
                             name=tool_name,
                             content=json.dumps(tool_response),
-                            tool_call_id=tool_call.get("id"),
+                            tool_call_id=tool_call_id,
                         ).model_dump()
                     )
                     ai_message = final_chain.invoke(state.function_calling_trajectory)
@@ -148,38 +164,96 @@ class OpenAIAgent(BaseAgent):
         return workflow
 
     def _execute(self, msg_state: MessageState, **kwargs: Any) -> dict[str, Any]:  # noqa: ANN401
-        self.llm = PROVIDER_MAP.get(
-            msg_state.bot_config.llm_config.llm_provider, ChatOpenAI
-        )(model=msg_state.bot_config.llm_config.model_type_or_path)
+        model_class = validate_and_get_model_class(msg_state.bot_config.llm_config)
+
+        self.llm = model_class(model=msg_state.bot_config.llm_config.model_type_or_path)
         self.llm = self.llm.bind_tools(self.tool_defs)
         self.prompt: str = kwargs.get("prompt", "")
         graph = self.action_graph.compile()
         result = graph.invoke(msg_state)
         return result
 
-    def _load_tools(self, successors: list, predecessors: list, tools: list) -> None:
+    def _load_tools(self, successors: list, predecessors: list, tools: dict) -> None:
         """
         Load tools for the agent.
         This method is called during the initialization of the agent.
         """
-        for node in successors + predecessors:
-            if node.resource_id in tools:
-                self.available_tools[node.resource_id] = tools[node.resource_id]
+        for node in predecessors:
+            if node.type == "tool":
+                tool_id = (
+                    f"{node.resource_id}_{node.attributes['task']}"
+                    if node.attributes.get("task")
+                    else node.resource_id
+                )
+                tool_id = tool_id.replace(" ", "_").replace("/", "_")
+                self.available_tools[tool_id] = (tools[node.resource_id], node)
 
     def _configure_tools(self) -> None:
         """
         Configure tools for the agent.
         This method is called during the initialization of the agent.
         """
-        for _tool_id, tool in self.available_tools.items():
+        for tool_id, (tool, node_info) in self.available_tools.items():
             tool_object = tool["execute"]()
+            tool_object.load_slots(
+                getattr(node_info, "attributes", {}).get("slots", [])
+            )
+            log_context.info(
+                f"Configuring tool: {tool_object.func.__name__} with slots: {tool_object.slots}"
+            )
+            tool_object.openai_slots = tool_object.slots.copy()
             tool_def = tool_object.to_openai_tool_def_v2()
-            self.tool_defs.append(tool_object.to_openai_tool_def_v2())
-            self.tool_map[tool_def["function"]["name"]] = tool_object.func
-            self.tool_args[tool_def["function"]["name"]] = tool["fixed_args"]
+            tool_def["function"]["name"] = tool_id
+            self.tool_defs.append(tool_def)
+            self.tool_slots[tool_id] = tool_object.slots.copy()
+            self.tool_map[tool_id] = tool_object.func
+            combined_args: dict[str, Any] = {
+                **tool["fixed_args"],
+                **(node_info.additional_args or {}),
+            }
+            self.tool_args[tool_id] = combined_args
+        log_context.info(f"Tool Definitions: {self.tool_defs}")
 
         end_conversation_tool = end_conversation()
         end_conversation_tool_def = end_conversation_tool.to_openai_tool_def_v2()
         end_conversation_tool_def["function"]["name"] = "end_conversation"
         self.tool_defs.append(end_conversation_tool_def)
         self.tool_map["end_conversation"] = end_conversation_tool.func
+
+    def _execute_tool(
+        self, tool_name: str, state: MessageState, tool_args: dict[str, Any]
+    ) -> Any:  # noqa: ANN401
+        """Execute a tool with unified interface.
+
+        This method handles the different calling patterns for different types of tools.
+        For http_tool, it prepares the slots parameter. For other tools, it passes state directly.
+
+        Args:
+            tool_name: Name of the tool to execute
+            state: Current message state
+            tool_args: Arguments for the tool
+
+        Returns:
+            Tool execution result
+        """
+        if "http_tool" in tool_name:
+            # TODO: Use better way to determine if tool is http_tool
+            # or make the http_tool execution consistent with the rest of the tools
+            slots: list[dict[str, str]] = []
+            all_slots = self.tool_slots.get(tool_name, [])
+
+            for name, value in tool_args.items():
+                if name not in ["slots"]:
+                    slots.append({"name": name, "value": value})
+
+            # Add missing slots from tool configuration
+            for slot in all_slots:
+                if slot.name not in tool_args:
+                    slots.append({"name": slot.name, "value": None})
+
+            # Call http_tool with slots parameter, excluding slots from tool_args
+            filtered_args = {k: v for k, v in tool_args.items() if k != "slots"}
+            return self.tool_map[tool_name](slots=slots, **filtered_args)
+        else:
+            # Call other tools with state parameter
+            return self.tool_map[tool_name](state=state, **tool_args)

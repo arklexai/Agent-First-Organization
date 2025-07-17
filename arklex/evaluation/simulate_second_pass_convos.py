@@ -56,6 +56,7 @@ def interact(
     model_api: str,
     model_params: dict[str, Any],
     client: OpenAI | anthropic.Anthropic,
+    env_config: dict[str, Any],
 ) -> list[dict[str, Any]]:
     history: list[dict[str, Any]] = []
     instructional_prompt: str = (
@@ -73,7 +74,7 @@ def interact(
         output: str = chatgpt_chatbot(history, client)
         history.append({"role": "assistant", "content": output, "intent": intent})
         response_data: dict[str, Any] = query_chatbot(
-            model_api, filter_convo(history), model_params
+            model_api, filter_convo(history), model_params, env_config
         )
         answer: str = response_data["answer"]
         answer = answer.replace("\n", " ")
@@ -98,12 +99,13 @@ def generate_labeled_convos(
     model_api: str,
     model_params: dict[str, Any],
     client: OpenAI | anthropic.Anthropic,
+    env_config: dict[str, Any],
 ) -> list[list[dict[str, Any]]]:
     convos: list[list[dict[str, Any]]] = []
     model_params = {}
     for intent_path in intent_paths:
         convo: list[dict[str, Any]] = interact(
-            intent_path, summary, model_api, model_params, client
+            intent_path, summary, model_api, model_params, client, env_config
         )
         convos.append(flip_hist(filter_convo(convo)))
     return convos
@@ -124,8 +126,13 @@ def get_labeled_convos(
     )
     summary: str = config["intro"]
     client: OpenAI | anthropic.Anthropic = config["client"]
+    env_config: dict[str, Any] = {
+        "workers": config["workers"],
+        "tools": config["tools"],
+        "client": config["client"],
+    }
     convos: list[list[dict[str, Any]]] = generate_labeled_convos(
-        intent_paths, summary, model_api, model_params, client
+        intent_paths, summary, model_api, model_params, client, env_config
     )
     return convos
 

@@ -15,17 +15,17 @@ from langchain.prompts import PromptTemplate
 from langchain_community.vectorstores.faiss import FAISS
 from langchain_core.documents import Document
 from langchain_core.output_parsers import StrOutputParser
-from langchain_openai import ChatOpenAI, OpenAIEmbeddings
+from langchain_openai import OpenAIEmbeddings
 
 from arklex.env.prompts import load_prompts
 from arklex.env.tools.utils import trace
-from arklex.utils.graph_state import LLMConfig, MessageState
+from arklex.orchestrator.entities.msg_state_entities import LLMConfig, MessageState
 from arklex.utils.logging_utils import LogContext
 from arklex.utils.model_provider_config import (
     PROVIDER_EMBEDDING_MODELS,
     PROVIDER_EMBEDDINGS,
-    PROVIDER_MAP,
 )
+from arklex.utils.provider_utils import validate_and_get_model_class
 
 log_context = LogContext(__name__)
 
@@ -69,9 +69,9 @@ class FaissRetrieverExecutor:
             if llm_config.llm_provider != "anthropic"
             else {"model_name": PROVIDER_EMBEDDING_MODELS[llm_config.llm_provider]}
         )
-        self.llm = PROVIDER_MAP.get(llm_config.llm_provider, ChatOpenAI)(
-            model=llm_config.model_type_or_path
-        )
+        model_class = validate_and_get_model_class(llm_config)
+
+        self.llm = model_class(model=llm_config.model_type_or_path)
         self.retriever = self._init_retriever()
 
     def _init_retriever(self, **kwargs: dict[str, object]) -> object:

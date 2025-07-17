@@ -205,10 +205,27 @@ class TestLoader:
         """Test converting URL list to CrawledObject list."""
         loader = Loader()
         urls = ["http://example.com", "http://test.com"]
-        result = loader.to_crawled_url_objs(urls)
-        assert len(result) == 2
-        assert result[0].source == "http://example.com"
-        assert result[1].source == "http://test.com"
+
+        # Mock the crawl_urls method to avoid actual web crawling
+        with patch.object(loader, "crawl_urls") as mock_crawl_urls:
+            mock_crawl_urls.return_value = [
+                CrawledObject("1", "http://example.com", "content1"),
+                CrawledObject("2", "http://test.com", "content2"),
+            ]
+
+            result = loader.to_crawled_url_objs(urls)
+
+            # Verify the method was called with the correct arguments
+            mock_crawl_urls.assert_called_once()
+            call_args = mock_crawl_urls.call_args[0][0]
+            assert len(call_args) == 2
+            assert call_args[0].source == "http://example.com"
+            assert call_args[1].source == "http://test.com"
+
+            # Verify the result
+            assert len(result) == 2
+            assert result[0].source == "http://example.com"
+            assert result[1].source == "http://test.com"
 
     def test_crawl_urls_selenium_success(self) -> None:
         """Test successful Selenium crawling."""

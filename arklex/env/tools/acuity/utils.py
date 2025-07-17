@@ -25,3 +25,20 @@ def authenticate_acuity(kwargs: dict[str, Any]) -> tuple[str, str]:
         raise AuthenticationError(ACUITY_AUTH_ERROR)
 
     return user_id, api_key
+
+
+def get_acuity_client() -> object:
+    """
+    Get an Acuity client instance.
+
+    Returns:
+        Acuity: An Acuity client instance for making API calls.
+    """
+    try:
+        from acuityscheduling import Acuity
+
+        return Acuity()
+    except ImportError as err:
+        raise ImportError(
+            "acuityscheduling package is required. Please install it with: pip install acuityscheduling"
+        ) from err

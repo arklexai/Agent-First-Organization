@@ -10,10 +10,10 @@ from unittest.mock import Mock, patch
 import pytest
 
 from arklex.orchestrator.NLU.core.slot import SlotFiller, create_slot_filler
+from arklex.orchestrator.NLU.entities.slot_entities import Slot
 from arklex.orchestrator.NLU.services.api_service import APIClientService
 from arklex.orchestrator.NLU.services.model_service import ModelService
 from arklex.utils.exceptions import APIError, ModelError, ValidationError
-from arklex.utils.slot import Slot
 
 
 @pytest.fixture

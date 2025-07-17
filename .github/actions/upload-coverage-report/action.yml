@@ -1,0 +1,35 @@
+name: "Upload Coverage Report"
+description: "Upload coverage reports as artifacts"
+
+inputs:
+  coverage-xml-path:
+    description: "Path to coverage.xml file"
+    required: false
+    default: "coverage.xml"
+  htmlcov-path:
+    description: "Path to htmlcov directory"
+    required: false
+    default: "htmlcov/"
+  artifact-name:
+    description: "Name for the coverage report artifact"
+    required: false
+    default: "coverage-report"
+  htmlcov-artifact-name:
+    description: "Name for the HTML coverage artifact"
+    required: false
+    default: "htmlcov"
+
+runs:
+  using: "composite"
+  steps:
+    - name: Upload coverage report
+      uses: actions/upload-artifact@v4
+      with:
+        name: ${{ inputs.artifact-name }}
+        path: ${{ inputs.coverage-xml-path }}
+
+    - name: Upload HTML coverage report
+      uses: actions/upload-artifact@v4
+      with:
+        name: ${{ inputs.htmlcov-artifact-name }}
+        path: ${{ inputs.htmlcov-path }}

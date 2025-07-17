@@ -14,11 +14,11 @@ The module includes:
 from typing import Any
 
 from arklex.orchestrator.NLU.core.base import BaseSlotFilling
+from arklex.orchestrator.NLU.entities.slot_entities import Slot
 from arklex.orchestrator.NLU.services.api_service import APIClientService
 from arklex.orchestrator.NLU.services.model_service import ModelService
 from arklex.utils.exceptions import APIError, ModelError, ValidationError
 from arklex.utils.logging_utils import LogContext, handle_exceptions
-from arklex.utils.slot import Slot
 
 log_context = LogContext(__name__)
 

@@ -1,0 +1,14 @@
+name: TaskGraph Generation and Validation
+
+on:
+  pull_request:
+    types: [opened, edited, synchronize]
+
+jobs:
+  taskgraph:
+    uses: ./.github/workflows/reusable-taskgraph-generation-validation.yml
+    with:
+      python-version: '3.10'
+      config-path: './examples/test/config.json'
+    secrets:
+      OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }} 

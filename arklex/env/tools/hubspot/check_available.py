@@ -151,8 +151,12 @@ def check_available(
                     )
 
         meeting_slug: str = meeting_links["slug"]
-        cal: parsedatetime.Calendar = parsedatetime.Calendar()
-        time_struct: tuple = cal.parse(meeting_date)[0]
+        cal: parsedatetime.Calendar = parsedatetime.Calendar(
+            version=parsedatetime.VERSION_CONTEXT_STYLE
+        )
+        # Use current date as base to ensure consistent parsing
+        current_date = datetime.now()
+        time_struct: tuple = cal.parse(meeting_date, current_date)[0]
         meeting_date: datetime = datetime(*time_struct[:3])
 
         last_day: int = calendar.monthrange(meeting_date.year, meeting_date.month)[1]
@@ -182,8 +186,12 @@ def check_available(
             ab_times: list[dict[str, int]] = []
 
             for slot in slots:
-                start_ts: int = slot["startMillisUtc"]
-                end_ts: int = slot["endMillisUtc"]
+                start_ts: int = slot.get("startMillisUtc")
+                end_ts: int = slot.get("endMillisUtc")
+
+                # Skip slots with missing timestamp data
+                if start_ts is None or end_ts is None:
+                    continue
 
                 ab_times.append({"start": start_ts, "end": end_ts})
             same_dt_info: dict[str, list[dict[str, str]]] = {"available_time_slots": []}
@@ -274,7 +282,9 @@ def parse_natural_date(
     Returns:
         datetime: Parsed datetime object
     """
-    cal: parsedatetime.Calendar = parsedatetime.Calendar()
+    cal: parsedatetime.Calendar = parsedatetime.Calendar(
+        version=parsedatetime.VERSION_CONTEXT_STYLE
+    )
     time_struct: tuple = cal.parse(date_str, base_date)[0]
     if date_input:
         parsed_dt: datetime = datetime(*time_struct[:3])
@@ -286,6 +296,12 @@ def parse_natural_date(
 
     if timezone:
         local_timezone: pytz.BaseTzInfo = pytz.timezone(timezone)
+        # For date-only inputs or when date_input=True, ensure we start at midnight
+        # in the local timezone to avoid day shifts during UTC conversion
+        if date_input or (parsed_dt.hour >= 12 and parsed_dt.minute > 0):
+            # Set to midnight in the local timezone
+            parsed_dt = datetime.combine(parsed_dt.date(), datetime.min.time())
+
         parsed_dt = local_timezone.localize(parsed_dt)
         parsed_dt = parsed_dt.astimezone(pytz.utc)
     return parsed_dt

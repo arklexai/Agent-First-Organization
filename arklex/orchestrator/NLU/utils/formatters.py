@@ -14,7 +14,7 @@ Key features:
 
 from typing import Any
 
-from arklex.utils.slot import Slot, SlotInputList
+from arklex.orchestrator.NLU.entities.slot_entities import Slot, SlotInputList
 
 
 def _format_slot_description(slot: Slot) -> str:
@@ -31,6 +31,8 @@ def _format_slot_description(slot: Slot) -> str:
         description += " (required)"
     if slot.type:
         description += f" (type: {slot.type})"
+    if slot.enum:
+        description += f" (enum: {slot.enum})"
     return description
 
 
@@ -188,6 +190,7 @@ def format_verification_input(slot: dict[str, Any], chat_history_str: str) -> st
             - description: Slot description
             - value: Current slot value
             - type: Slot value type
+            - enum: Fixed choice of value for the slot
         chat_history_str: Formatted chat history providing conversation context
 
     Returns:
@@ -204,6 +207,7 @@ Slot:
 - Description: {slot["description"]}
 - Value: {slot.get("value", "Not provided")}
 - Type: {slot.get("type", "Not specified")}
+- Enum: {slot.get("enum", "Not provided")}
 
 Chat History:
 {chat_history_str}

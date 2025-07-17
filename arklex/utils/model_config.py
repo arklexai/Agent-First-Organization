@@ -1,12 +1,12 @@
 """Model configuration settings for the Arklex framework.
 
-This module defines the default model configuration settings used throughout the framework,
+This module defines model configuration settings used throughout the framework,
 including model type, provider, context window size, and token limits. These settings
 are used to configure language model interactions and ensure consistent behavior across
 different components of the system.
 
 Key Components:
-1. MODEL: Dictionary containing default model configuration settings
+1. MODEL: Dictionary containing model configuration settings
    - model_type_or_path: The model identifier or path
    - llm_provider: The language model provider
    - context: Maximum context window size
@@ -30,13 +30,14 @@ Usage:
 
 from typing import Any
 
-# Default model configuration settings
+# Model configuration settings - no default provider or model
+# Users must explicitly specify model and provider
 MODEL: dict[str, Any] = {
-    "model_name": "gpt-4o",
-    "model_type_or_path": "gpt-4o",
-    "llm_provider": "openai",
-    "api_key": "your_default_api_key",  # Default API key
-    "endpoint": "https://api.openai.com/v1",  # Default endpoint
+    "model_name": None,  # Must be specified by user
+    "model_type_or_path": None,  # Must be specified by user
+    "llm_provider": None,  # Must be specified by user
+    "api_key": None,  # Will be validated by provider_utils
+    "endpoint": None,  # Will be set by provider_utils
     "context": 16000,  # Maximum context window size
     "max_tokens": 4096,  # Maximum tokens for generation
     "tokenizer": "o200k_base",  # Tokenizer configuration

@@ -1,0 +1,100 @@
+name: Reusable TaskGraph Workflow
+
+on:
+  workflow_call:
+    inputs:
+      python-version:
+        description: 'Python version to use'
+        required: false
+        default: '3.10'
+        type: string
+      config-path:
+        description: 'Path to config file'
+        required: false
+        default: './examples/test/config.json'
+        type: string
+    secrets:
+      OPENAI_API_KEY:
+        required: true
+
+jobs:
+  taskgraph:
+    name: TaskGraph Generation and Validation
+    runs-on: ubuntu-latest
+    
+    env:
+      OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: ${{ inputs.python-version }}
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -e .
+
+      - name: Clean up existing TaskGraph
+        run: |
+          if [ -f "examples/test/taskgraph.json" ]; then
+            echo "🗑️ Removing existing taskgraph.json file"
+            rm examples/test/taskgraph.json
+          else
+            echo "ℹ️ No existing taskgraph.json file found"
+          fi
+
+      - name: Generate TaskGraph
+        timeout-minutes: 10
+        run: |
+          python create.py --config ${{ inputs.config-path }} --log-level INFO --no-ui
+          # Verify the file was actually generated
+          if [ ! -f "examples/test/taskgraph.json" ]; then
+            echo "❌ TaskGraph file was not generated after running create.py"
+            exit 1
+          fi
+          echo "✅ TaskGraph file generated successfully"
+          echo "File size: $(wc -c < examples/test/taskgraph.json) bytes"
+
+      - name: Validate TaskGraph
+        timeout-minutes: 5
+        run: |
+          python tests/orchestrator/generator/formatting/taskgraph_format_checker.py examples/test/taskgraph.json
+
+      - name: Display TaskGraph Summary
+        if: always()
+        run: |
+          echo "## TaskGraph Generation and Validation Summary"
+          echo ""
+          if [ -f "examples/test/taskgraph.json" ]; then
+            echo "✅ **TaskGraph file generated successfully**"
+            echo "- File: examples/test/taskgraph.json"
+            echo "- Size: $(wc -c < examples/test/taskgraph.json) bytes"
+            echo "- Nodes: $(jq '.nodes | length' examples/test/taskgraph.json 2>/dev/null || echo 'unknown')"
+            echo "- Edges: $(jq '.edges | length' examples/test/taskgraph.json 2>/dev/null || echo 'unknown')"
+            echo "- Reusable Tasks: $(jq '.reusable_tasks | length' examples/test/taskgraph.json 2>/dev/null || echo 'unknown')"
+            echo ""
+            echo "**File content preview (first 500 chars):**"
+            echo '```json'
+            head -c 500 examples/test/taskgraph.json
+            echo "..."
+            echo '```'
+          else
+            echo "❌ **TaskGraph file not found**"
+            echo "Generation or validation step failed."
+            exit 1
+          fi
+
+      - name: Upload TaskGraph Artifact
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: taskgraph-output
+          path: examples/test/taskgraph.json
+          retention-days: 7 

@@ -1,0 +1,35 @@
+name: Reusable Display Coverage Comment
+
+on:
+  workflow_call:
+    inputs:
+      github-token:
+        description: 'GitHub token for authentication'
+        required: true
+        type: string
+      minimum-green:
+        description: 'Minimum coverage percentage for green status'
+        required: false
+        default: '99.0'
+        type: string
+      minimum-orange:
+        description: 'Minimum coverage percentage for orange status'
+        required: false
+        default: '70'
+        type: string
+
+jobs:
+  display-coverage:
+    name: Display Coverage Comment
+    runs-on: ubuntu-latest
+    env:
+      OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+    
+    steps:
+      - name: Display coverage comment
+        id: coverage
+        uses: py-cov-action/python-coverage-comment-action@v3
+        with:
+          GITHUB_TOKEN: ${{ inputs.github-token }}
+          MINIMUM_GREEN: ${{ inputs.minimum-green }}
+          MINIMUM_ORANGE: ${{ inputs.minimum-orange }} 

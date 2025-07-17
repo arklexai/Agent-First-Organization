@@ -15,6 +15,19 @@ from fastapi.testclient import TestClient
 from arklex.main import app
 from arklex.utils.logging_config import setup_logging
 
+# Mock the mysql module BEFORE any other imports to prevent connection issues
+# This prevents actual database connections during testing
+if os.getenv("ARKLEX_TEST_ENV") == "local":
+    sys.modules["arklex.utils.mysql"] = MagicMock()
+
+# Set up common environment variables for local testing
+if os.getenv("ARKLEX_TEST_ENV") == "local":
+    os.environ.setdefault("MYSQL_USERNAME", "test_user")
+    os.environ.setdefault("MYSQL_PASSWORD", "test_password")
+    os.environ.setdefault("MYSQL_HOSTNAME", "localhost")
+    os.environ.setdefault("MYSQL_PORT", "3306")
+    os.environ.setdefault("MYSQL_DB_NAME", "test_db")
+
 
 # Mock OpenAI API key for testing
 @pytest.fixture(autouse=True)
@@ -47,10 +60,14 @@ def mock_shopify() -> Generator[MagicMock, None, None]:
 
 # Mock OpenAI LLM and Embeddings for testing
 @pytest.fixture(autouse=True)
-def mock_openai_llm_and_embeddings() -> Generator[None, None, None]:
+def mock_openai_llm_and_embeddings(
+    request: pytest.FixtureRequest,
+) -> Generator[None, None, None]:
     """Mock LangChain OpenAI LLM and Embeddings for testing."""
-    # Only mock if we're in test mode
-    if os.getenv("ARKLEX_TEST_ENV") == "local":
+    # Only mock if we're in test mode and not marked to skip LLM mocking
+    if os.getenv("ARKLEX_TEST_ENV") == "local" and not request.node.get_closest_marker(
+        "no_llm_mock"
+    ):
         with (
             patch("langchain_openai.ChatOpenAI") as mock_llm,
             patch("langchain_openai.OpenAIEmbeddings") as mock_embeddings,
@@ -73,10 +90,12 @@ def mock_openai_llm_and_embeddings() -> Generator[None, None, None]:
 
 # Patch openai client to prevent real API calls
 @pytest.fixture(autouse=True)
-def mock_openai_client() -> Generator[None, None, None]:
+def mock_openai_client(request: pytest.FixtureRequest) -> Generator[None, None, None]:
     """Mock openai.OpenAI and openai.resources.embeddings.Embeddings.create for all tests."""
-    # Only mock if we're in test mode
-    if os.getenv("ARKLEX_TEST_ENV") == "local":
+    # Only mock if we're in test mode and not marked to skip LLM mocking
+    if os.getenv("ARKLEX_TEST_ENV") == "local" and not request.node.get_closest_marker(
+        "no_llm_mock"
+    ):
         from unittest.mock import MagicMock, patch
 
         import openai
@@ -137,17 +156,51 @@ def mock_openai_client() -> Generator[None, None, None]:
         yield
 
 
-# Patch IntentDetector.execute to always return a dummy intent for tests
+# Patch IntentDetector.predict_intent to return context-aware intents for tests
 @pytest.fixture(autouse=True)
-def mock_intent_detector_execute() -> Generator[None, None, None]:
-    """Mock IntentDetector.execute to always return a dummy intent for tests."""
-    # Only mock if we're in test mode
-    if os.getenv("ARKLEX_TEST_ENV") == "local":
+def mock_intent_detector_execute(
+    request: pytest.FixtureRequest,
+) -> Generator[None, None, None]:
+    """Mock IntentDetector.predict_intent to return context-aware intents for tests."""
+    # Only mock if we're in test mode and not testing error handling
+    if os.getenv("ARKLEX_TEST_ENV") == "local" and not request.node.get_closest_marker(
+        "no_intent_mock"
+    ):
         from unittest.mock import patch
 
         from arklex.orchestrator.NLU.core.intent import IntentDetector
 
-        with patch.object(IntentDetector, "execute", return_value="others"):
+        def mock_predict_intent(
+            self: object,
+            text: str,
+            intents: dict[str, Any],
+            chat_history_str: str,
+            model_config: dict[str, Any],
+            **kwargs: object,
+        ) -> str:
+            """Mock predict_intent method that returns context-aware intents."""
+            # Check if the text matches any intent's sample utterances
+            for intent_name, intent_list in intents.items():
+                for intent_data in intent_list:
+                    if (
+                        "attribute" in intent_data
+                        and "sample_utterances" in intent_data["attribute"]
+                    ):
+                        sample_utterances = intent_data["attribute"][
+                            "sample_utterances"
+                        ]
+                        if text.lower() in [u.lower() for u in sample_utterances]:
+                            return intent_name
+
+            # If no match found, return "others" as fallback
+            return "others"
+
+        with patch.object(
+            IntentDetector,
+            "predict_intent",
+            side_effect=mock_predict_intent,
+            autospec=True,
+        ):
             yield
     else:
         yield

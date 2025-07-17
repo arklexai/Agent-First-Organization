@@ -15,14 +15,16 @@ from typing import Any
 import anthropic
 import requests
 from dotenv import load_dotenv
+from google.generativeai import GenerativeModel
 from openai import OpenAI
 
 from arklex.utils.model_config import MODEL
+from arklex.utils.provider_utils import get_api_key_for_provider
 
 load_dotenv()
 
 
-def create_client() -> OpenAI | anthropic.Anthropic:
+def create_client() -> OpenAI | anthropic.Anthropic | GenerativeModel:
     """Create a client for interacting with language models.
 
     This function creates and returns a client for the configured language model provider
@@ -30,7 +32,7 @@ def create_client() -> OpenAI | anthropic.Anthropic:
     settings.
 
     Returns:
-        Union[OpenAI, anthropic.Anthropic]: A client instance for the configured LLM provider.
+        Union[OpenAI, anthropic.Anthropic, GenerativeModel]: A client instance for the configured LLM provider.
 
     Raises:
         KeyError: If required environment variables are not set.
@@ -40,51 +42,88 @@ def create_client() -> OpenAI | anthropic.Anthropic:
         org_key: str | None = os.environ["OPENAI_ORG_ID"]
     except KeyError:
         org_key = None
-    if MODEL["llm_provider"] == "openai" or MODEL["llm_provider"] == "gemini":
+
+    provider = MODEL["llm_provider"]
+
+    if not provider:
+        raise ValueError(
+            "llm_provider must be explicitly specified in MODEL configuration"
+        )
+
+    if provider == "openai":
         client: OpenAI = OpenAI(
-            api_key=os.environ[f"{MODEL['llm_provider'].upper()}_API_KEY"],
-            base_url="https://generativelanguage.googleapis.com/v1beta/openai/"
-            if MODEL["llm_provider"] == "gemini"
-            else None,
+            api_key=get_api_key_for_provider("openai"),
             organization=org_key,
         )
-    elif MODEL["llm_provider"] == "anthropic":
-        client: anthropic.Anthropic = anthropic.Anthropic()
+        return client
+
+    elif provider == "google":
+        # Set the API key for Google Generative AI
+        import google.generativeai as genai
+
+        genai.configure(api_key=get_api_key_for_provider("google"))
+        # Use the model from MODEL configuration instead of hardcoding
+        model_name = MODEL.get("model_type_or_path", "gemini-1.5-flash")
+        client = GenerativeModel(model_name)
+        return client
+
+    elif provider == "anthropic":
+        client: anthropic.Anthropic = anthropic.Anthropic(
+            api_key=get_api_key_for_provider("anthropic")
+        )
+        return client
+
     else:
-        raise ValueError(f"Unsupported LLM provider: {MODEL['llm_provider']}")
-    return client
+        raise ValueError(f"Unsupported LLM provider: {provider}")
 
 
 def chatgpt_chatbot(
     messages: list[dict[str, str]],
-    client: OpenAI | anthropic.Anthropic,
-    model: str = MODEL["model_type_or_path"],
+    client: OpenAI | anthropic.Anthropic | GenerativeModel,
+    model: str = None,
 ) -> str:
     """Send messages to a language model and get a response.
 
     This function sends a list of messages to the specified language model and returns
-    its response. It handles different providers (OpenAI, Anthropic) and their specific
+    its response. It handles different providers (OpenAI, Anthropic, Gemini) and their specific
     API requirements.
 
     Args:
         messages (List[Dict[str, str]]): List of message dictionaries with 'role' and 'content'.
-        client (Union[OpenAI, anthropic.Anthropic]): The LLM client to use.
+        client (Union[OpenAI, anthropic.Anthropic, GenerativeModel]): The LLM client to use.
         model (str, optional): The model to use. Defaults to MODEL["model_type_or_path"].
 
     Returns:
         str: The model's response text.
     """
-    if MODEL["llm_provider"] != "anthropic":
+    # Get model from MODEL config if not provided
+    if model is None:
+        model = MODEL["model_type_or_path"]
+
+    provider = MODEL["llm_provider"]
+
+    if not provider:
+        raise ValueError(
+            "llm_provider must be explicitly specified in MODEL configuration"
+        )
+
+    # Ensure model is not empty
+    if not model:
+        raise ValueError(
+            "Model parameter cannot be empty. Please check MODEL configuration."
+        )
+
+    if provider == "openai":
         answer: str = (
             client.chat.completions.create(
-                model=MODEL["model_type_or_path"], messages=messages, temperature=0.1
+                model=model, messages=messages, temperature=0.1
             )
             .choices[0]
             .message.content.strip()
         )
-    else:
+    elif provider == "anthropic":
         kwargs: dict[str, Any] = {
-            "model": MODEL["model_type_or_path"],
+            "model": model,
             "messages": messages if messages[0]["role"] != "system" else [messages[1]],
             "temperature": 0.1,
             "max_tokens": 1024,
@@ -95,8 +134,62 @@ def chatgpt_chatbot(
             ),
         }
         answer: str = client.messages.create(**kwargs).content[0].text.strip()
+    elif provider == "google":
+        # Convert messages to Gemini format
+        gemini_messages = _convert_messages_to_gemini_format(messages)
+
+        response = client.generate_content(
+            gemini_messages,
+            generation_config={"temperature": 0.1, "max_output_tokens": 1024},
+        )
+        answer: str = response.text.strip()
+    else:
+        raise ValueError(f"Unsupported LLM provider: {provider}")
 
     return answer
+
+
+def _convert_messages_to_gemini_format(
+    messages: list[dict[str, str]],
+) -> list[dict[str, Any]]:
+    """Convert OpenAI/Anthropic message format to Gemini format.
+
+    This function converts a list of messages from OpenAI/Anthropic format to
+    Gemini's expected format. System messages are prepended to the first user message
+    since Gemini doesn't support system messages directly.
+
+    Args:
+        messages (List[Dict[str, str]]): List of messages in OpenAI/Anthropic format.
+
+    Returns:
+        List[Dict[str, Any]]: List of messages in Gemini format.
+    """
+    gemini_messages = []
+    system_content = ""
+
+    # Extract system message if present
+    if messages and messages[0]["role"] == "system":
+        system_content = messages[0]["content"]
+        messages = messages[1:]  # Remove system message from processing
+
+    # Convert remaining messages
+    for msg in messages:
+        if msg["role"] == "user":
+            gemini_messages.append(
+                {"role": "user", "parts": [{"text": msg["content"]}]}
+            )
+        elif msg["role"] == "assistant":
+            gemini_messages.append(
+                {"role": "model", "parts": [{"text": msg["content"]}]}
+            )
+
+    # Prepend system content to first user message if it exists
+    if system_content and gemini_messages and gemini_messages[0]["role"] == "user":
+        gemini_messages[0]["parts"][0]["text"] = (
+            f"{system_content}\n\n{gemini_messages[0]['parts'][0]['text']}"
+        )
+
+    return gemini_messages
 
 
 # flip roles in convo history, only keep role and content
@@ -263,12 +356,17 @@ def adjust_goal(doc_content: str, goal: str) -> str:
     """
     message: str = f"Pretend you have the following goal in the mind. If the goal including some specific product, such as floss, mug, iphone, etc., then please replace it with the product from the following document content. Otherwise, don't need to change it and just return the original goal. The document content is as follows:\n{doc_content}\n\nThe original goal is as follows:\n{goal}\n\nOnly give the answer to the question in your response."
 
+    client = create_client()
     return chatgpt_chatbot(
-        [{"role": "user", "content": message}], model=MODEL["model_type_or_path"]
+        [{"role": "user", "content": message}],
+        client,
+        model=MODEL["model_type_or_path"],
     )
 
 
-def generate_goal(doc_content: str, client: OpenAI | anthropic.Anthropic) -> str:
+def generate_goal(
+    doc_content: str, client: OpenAI | anthropic.Anthropic | GenerativeModel
+) -> str:
     """Generate a goal based on document content.
 
     This function uses a language model to generate a goal or information request
@@ -278,7 +376,7 @@ def generate_goal(doc_content: str, client: OpenAI | anthropic.Anthropic) -> str
 
     Args:
         doc_content (str): The document content to base the goal on.
-        client (Union[OpenAI, anthropic.Anthropic]): The LLM client to use.
+        client (Union[OpenAI, anthropic.Anthropic, GenerativeModel]): The LLM client to use.
 
     Returns:
         str: The generated goal.
@@ -295,7 +393,7 @@ def generate_goal(doc_content: str, client: OpenAI | anthropic.Anthropic) -> str
 def generate_goals(
     documents: list[dict[str, str]],
     params: dict[str, Any],
-    client: OpenAI | anthropic.Anthropic,
+    client: OpenAI | anthropic.Anthropic | GenerativeModel,
 ) -> list[str]:
     """Generate multiple goals based on a collection of documents.
 
@@ -305,7 +403,7 @@ def generate_goals(
     Args:
         documents (List[Dict[str, str]]): List of documents with their content.
         params (Dict[str, Any]): Parameters including 'num_goals' to generate.
-        client (Union[OpenAI, anthropic.Anthropic]): The LLM client to use.
+        client (Union[OpenAI, anthropic.Anthropic, GenerativeModel]): The LLM client to use.
 
     Returns:
         List[str]: List of generated goals.

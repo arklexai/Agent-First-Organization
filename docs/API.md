@@ -392,20 +392,28 @@ python model_api.py \
 Run evaluation and testing suites.
 
 ```bash
-python eval.py \
-  --config config.json \
-  --input-dir ./agent \
-  --synthetic_tests 100 \
-  --output-dir ./results
+# First, start the model API server (defaults to OpenAI with "gpt-4o-mini" model):
+python model_api.py --input-dir ./examples/customer_service
+
+# Then run evaluation (in a separate terminal):
+python eval.py --model_api http://127.0.0.1:8000/eval/chat \
+  --config "examples/customer_service/customer_service_config.json" \
+  --documents_dir "examples/customer_service" \
+  --model "claude-3-haiku-20240307" \
+  --llm_provider "anthropic" \
+  --task "all"
 ```
 
 #### Parameters
 
 | **Parameter** | **Description** | **Required** |
 |---------------|-----------------|--------------|
+| `--model_api` | URL of the API endpoint for the dialogue model | Yes |
 | `--config` | Configuration file | Yes |
-| `--input-dir` | Agent directory | Yes |
-| `--synthetic_tests` | Number of synthetic tests | No |
+| `--documents_dir` | Documents directory | Yes |
+| `--model` | Model to use for evaluation | No (default: "gpt-4o-mini") |
+| `--llm_provider` | LLM provider to use | No (default: "openai") |
+| `--task` | Task type ("first_pass", "simulate_conv_only", "all") | No (default: "first_pass") |
 | `--output-dir` | Results directory | No |
 
 ## ⚙️ Configuration
@@ -463,7 +471,7 @@ python eval.py \
 |--------------|-----------------|--------------|
 | `OPENAI_API_KEY` | OpenAI API key | Yes (if using OpenAI) |
 | `ANTHROPIC_API_KEY` | Anthropic API key | Yes (if using Anthropic) |
-| `GEMINI_API_KEY` | Google Gemini API key | Yes (if using Gemini) |
+| `GOOGLE_API_KEY` | Google Gemini API key | Yes (if using Gemini) |
 | `MILVUS_URI` | Milvus connection URI | No |
 | `MYSQL_USERNAME` | MySQL username | No |
 | `MYSQL_PASSWORD` | MySQL password | No |
