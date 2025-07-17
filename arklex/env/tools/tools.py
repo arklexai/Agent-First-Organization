@@ -265,7 +265,7 @@ class Tool:
                         type="group",
                         schema=new_slot.get("schema", []),
                         required=new_slot.get("required", False),
-                        repeatable=new_slot.get("repeatable", True),
+                        repeatable=new_slot.get("repeatable", False),
                         prompt=new_slot.get("prompt", ""),
                         description=new_slot.get("description", ""),
                         value=[],
@@ -277,7 +277,7 @@ class Tool:
                         type="nested_group",
                         nested_schema=new_slot.get("nested_schema", []),
                         required=new_slot.get("required", False),
-                        repeatable=new_slot.get("repeatable", True),
+                        repeatable=new_slot.get("repeatable", False),
                         prompt=new_slot.get("prompt", ""),
                         description=new_slot.get("description", ""),
                         value=[],
@@ -317,203 +317,162 @@ class Tool:
             return value
 
     def _fill_slots_recursive(self, slots, chat_history_str):
+        # Bottom-up (leaf-to-root) slot filling
         filled_slots = []
-        
-        # First, separate regular slots from nested slot groups
-        regular_slots = [slot for slot in slots if slot.type != "nested_group"]
-        nested_slots = [slot for slot in slots if slot.type == "nested_group"]
-        
-        # Process regular slots first
-        for slot in regular_slots:
+        slot_map = {slot.name: slot for slot in self.slots}
+
+        def fill_slot(slot):
+            # If slot is group or nested_group, fill children first
             if slot.type == "group":
-                # Build a schema-driven prompt for the slot group
-                def build_group_prompt(slot):
-                    example_fields = []
-                    schema_lines = []
-                    for field in (slot.schema or []):
-                        field_type = field.get("type", "str")
-                        example_value = {
-                            "str": '"example string"',
-                            "int": "123",
-                            "float": "12.34",
-                            "bool": "true"
-                        }.get(field_type, '"example"')
-                        example_fields.append(f'"{field["name"]}": {example_value}')
-                        desc_or_prompt = field.get("description") or field.get("prompt", "")
-                        schema_lines.append(
-                            f'- {field["name"]} ({field_type}): {desc_or_prompt}'
-                        )
-                    example_obj = "{" + ", ".join(example_fields) + "}"
-                    schema_str = "\n".join(schema_lines)
-                    return (
-                        f"Please provide a list of dictionaries (objects), e.g. [{{'key': 'value'}}], each matching this schema:\n"
-                        f"{schema_str}\n"
-                        f"Example:\n[{example_obj}]\n"
-                        f"IMPORTANT: Each object must have ALL the fields above, with the correct type. "
-                        f"Do not add extra fields. Do not return a dict of lists or a list of values. "
-                        f"Return a list of dicts, each matching the schema exactly. "
-                        f"Use the description for each field to determine where to find the value. The field name is the key in the dict."
-                    )
-                group_prompt = build_group_prompt(slot)
-                # Create a temporary slot for the group, with the prompt
-                temp_group_slot = Slot(
-                    name=slot.name,
-                    type="group",
-                    value=slot.value if slot.value else [],
-                    description=slot.description +" "+ group_prompt,
-                    required=slot.required,
-                    schema=slot.schema,
-                    repeatable=slot.repeatable,
-                )
-                # Use slotfiller to fill the group as a whole
-                filled = self.slotfiller.fill_slots([temp_group_slot], chat_history_str, self.llm_config)
-                group_value = filled[0].value
-                # If the value is a string, try to parse as JSON
-                if isinstance(group_value, str):
-                    log_context.debug(f"Attempting to parse group_value as JSON for slot '{slot.name}': {group_value}")
-                    try:
-                        group_value = json.loads(group_value)
-                    except Exception as e:
-                        log_context.error(f"Failed to parse group_value as JSON for slot '{slot.name}': {group_value}. Error: {e}")
-                        raise ValueError(f"Slot group '{slot.name}' did not return a valid JSON list of objects: {group_value}")
-                # Handle repeatable flag for slot groups
+                # Recursively fill all fields in schema
+                filled_fields = []
+                for field in (slot.schema or []):
+                    # Find the corresponding slot in slot_map if it exists, else create a temp slot
+                    child_slot = slot_map.get(field["name"]) or Slot.model_validate(field)
+                    filled_fields.append(fill_slot(child_slot))
+                # Assemble group value from children
                 if slot.repeatable:
-                    # When repeatable is True, enforce that the value is a list of dicts
-                    if not (isinstance(group_value, list) and all(isinstance(item, dict) for item in group_value)):
-                        # Handle case where group_value is None or not a list
-                        if group_value is None:
-                            log_context.warning(f"Slot group '{slot.name}' returned None, converting to empty list")
-                            group_value = []
-                        elif isinstance(group_value, dict):
-                            log_context.warning(f"Slot group '{slot.name}' returned a single dict, converting to list")
-                            group_value = [group_value]
-                        else:
-                            log_context.error(f"Slot group '{slot.name}' returned invalid format: {type(group_value)} - {group_value}")
-                            raise ValueError(f"Slot group '{slot.name}' must be a list of dicts when repeatable=True, got: {group_value}")
+                    # For repeatable group, expect a list of dicts
+                    group_value = []
+                    if slot.value:
+                        group_value = slot.value
+                    else:
+                        # Build from children
+                        group_value = [
+                            {
+                                field["name"]: fill_slot(slot_map.get(field["name"]) or Slot.model_validate(field)).value
+                                for field in (slot.schema or [])
+                            }
+                        ]
+                    slot.value = group_value
                 else:
-                    # When repeatable is False, enforce that the value is a single dict
-                    if isinstance(group_value, list):
-                        if len(group_value) == 0:
-                            log_context.warning(f"Slot group '{slot.name}' returned empty list, converting to empty dict")
-                            group_value = {}
-                        elif len(group_value) == 1:
-                            log_context.warning(f"Slot group '{slot.name}' returned list with one item, converting to single dict")
-                            group_value = group_value[0]
-                        else:
-                            log_context.error(f"Slot group '{slot.name}' returned list with multiple items when repeatable=False")
-                            raise ValueError(f"Slot group '{slot.name}' must be a single dict when repeatable=False, got list with {len(group_value)} items")
-                    elif not isinstance(group_value, dict):
-                        if group_value is None:
-                            log_context.warning(f"Slot group '{slot.name}' returned None, converting to empty dict")
-                            group_value = {}
-                        else:
-                            log_context.error(f"Slot group '{slot.name}' returned invalid format: {type(group_value)} - {group_value}")
-                            raise ValueError(f"Slot group '{slot.name}' must be a single dict when repeatable=False, got: {group_value}")
-                # For each dict, apply valueSource logic as defined in the schema
-                if slot.repeatable:
-                    # When repeatable is True, process as list
-                    for item in group_value:
+                    if slot.value:
+                        group_value = slot.value
+                    else:
+                        group_value = {}
                         for field in (slot.schema or []):
-                            field_name = field["name"]
-                            val_source = field.get("valueSource", "Prompt User")
-                            field_type = field.get("type", "str")
-                            schema_value = field.get("value", "")
-                            if val_source == "fixed":
-                                item[field_name] = self._convert_value(schema_value, field_type)
-                            elif val_source == "default":
-                                if item.get(field_name) in [None, ""]:
-                                    item[field_name] = self._convert_value(schema_value, field_type)
-                                else:
-                                    item[field_name] = self._convert_value(item[field_name], field_type)
-                            else:  # Prompt User or missing
-                                item[field_name] = self._convert_value(item.get(field_name, ""), field_type)
+                            child_slot = slot_map.get(field["name"]) or Slot.model_validate(field)
+                            filled_child = fill_slot(child_slot)
+                            group_value[field["name"]] = filled_child.value
                     slot.value = group_value
+                # Propagate value to child slots if present
+                for field in (slot.schema or []):
+                    if field["name"] in slot_map:
+                        slot_map[field["name"]].value = (
+                            slot.value[0][field["name"]] if slot.repeatable and slot.value else slot.value.get(field["name"], "")
+                        )
+                return slot
+            elif slot.type == "nested_group":
+                # Recursively fill all fields in nested_schema
+                filled_fields = []
+                for field in (slot.nested_schema or []):
+                    child_slot = slot_map.get(field["name"]) or Slot.model_validate(field)
+                    filled_fields.append(fill_slot(child_slot))
+                # Assemble nested_group value from children
+                if slot.repeatable:
+                    nested_value = []
+                    if slot.value:
+                        nested_value = slot.value
+                    else:
+                        nested_value = [
+                            {
+                                field["name"]: fill_slot(slot_map.get(field["name"]) or Slot.model_validate(field)).value
+                                for field in (slot.nested_schema or [])
+                            }
+                        ]
+                    slot.value = nested_value
                 else:
-                    # When repeatable is False, process as single dict
-                    for field in (slot.schema or []):
-                        field_name = field["name"]
-                        val_source = field.get("valueSource", "Prompt User")
-                        field_type = field.get("type", "str")
-                        schema_value = field.get("value", "")
-                        if val_source == "fixed":
-                            group_value[field_name] = self._convert_value(schema_value, field_type)
-                        elif val_source == "default":
-                            if group_value.get(field_name) in [None, ""]:
-                                group_value[field_name] = self._convert_value(schema_value, field_type)
-                            else:
-                                group_value[field_name] = self._convert_value(group_value[field_name], field_type)
-                        else:  # Prompt User or missing
-                            group_value[field_name] = self._convert_value(group_value.get(field_name, ""), field_type)
-                    slot.value = group_value
-                filled_slots.append(slot)
+                    if slot.value:
+                        nested_value = slot.value
+                    else:
+                        nested_value = {}
+                        for field in (slot.nested_schema or []):
+                            child_slot = slot_map.get(field["name"]) or Slot.model_validate(field)
+                            filled_child = fill_slot(child_slot)
+                            nested_value[field["name"]] = filled_child.value
+                    slot.value = nested_value
+                # Propagate value to child slots if present
+                for field in (slot.nested_schema or []):
+                    if field["name"] in slot_map:
+                        slot_map[field["name"]].value = (
+                            slot.value[0][field["name"]] if slot.repeatable and slot.value else slot.value.get(field["name"], "")
+                        )
+                return slot
             else:
-                # Handle regular slots (non-group, non-nested_group)
-                if hasattr(slot, 'repeatable') and slot.repeatable:
-                    # For repeatable regular slots, expect a list of values
-                    # Build a prompt for repeatable regular slots
-                    repeatable_prompt = self._build_repeatable_regular_slot_prompt(slot)
-                    temp_slot = Slot(
-                        name=slot.name,
-                        type=slot.type,
-                        value=slot.value if slot.value else [],
-                        description=slot.description + " " + repeatable_prompt,
-                        required=slot.required,
-                        repeatable=slot.repeatable,
-                    )
-                    filled = self.slotfiller.fill_slots([temp_slot], chat_history_str, self.llm_config)
-                    slot_value = filled[0].value
-                    
-                    # Handle repeatable flag for regular slots
-                    if isinstance(slot_value, str):
-                        try:
-                            slot_value = json.loads(slot_value)
-                        except Exception as e:
-                            log_context.error(f"Failed to parse repeatable slot '{slot.name}' as JSON: {slot_value}. Error: {e}")
-                            raise ValueError(f"Repeatable slot '{slot.name}' did not return a valid JSON array: {slot_value}")
-                    
-                    if not isinstance(slot_value, list):
-                        if slot_value is None:
-                            log_context.warning(f"Repeatable slot '{slot.name}' returned None, converting to empty list")
-                            slot_value = []
-                        else:
-                            log_context.warning(f"Repeatable slot '{slot.name}' returned single value, converting to list")
-                            slot_value = [slot_value]
-                    
-                    slot.value = [self._convert_value(val, slot.type) for val in slot_value]
-                else:
-                    # For non-repeatable regular slots, expect a single value
+                # Leaf slot: fill directly
+                if not slot.value:
                     filled = self.slotfiller.fill_slots([slot], chat_history_str, self.llm_config)
                     slot.value = self._convert_value(filled[0].value, slot.type)
-                filled_slots.append(slot)
-        
-        # Now process nested slot groups to build unified structure
-        if nested_slots:
-            for slot in nested_slots:
-                # Check if we need to re-fill the nested slot group
-                should_refill = False
-                
-                # Check if any referenced slots have changed
-                for field in (slot.nested_schema or []):
-                    group_ref = field.get("groupRef", "")
-                    if group_ref and group_ref != "none":
-                        # Find the referenced slot
-                        for other_slot in self.slots:
-                            if other_slot.name == group_ref:
-                                # If the referenced slot has a value but the nested slot doesn't reflect it
-                                if other_slot.value and (not slot.value or self._nested_slot_needs_update(slot, other_slot)):
-                                    should_refill = True
-                                    log_context.info(f"Nested slot '{slot.name}' needs update due to changes in referenced slot '{other_slot.name}'")
-                                break
-                
-                # Fill or re-fill the nested slot group
-                if not slot.value or should_refill:
-                    log_context.info(f"Filling nested slot group '{slot.name}' via LLM...")
-                    slot_value = self._fill_nested_slot_group(slot, chat_history_str)
-                    log_context.info(f"LLM returned for '{slot.name}': {slot_value}")
-                    slot.value = slot_value
-                filled_slots.append(slot)
-        
+                slot.verified = True
+                return slot
+
+        # Fill all slots (bottom-up)
+        for slot in slots:
+            filled_slots.append(fill_slot(slot))
         return filled_slots
+
+    def _any_missing_required_recursive(self, slots):
+        # Only consider a group/nested_group filled if all children are filled
+        for slot in slots:
+            if slot.type == "group":
+                # Check children
+                for field in (slot.schema or []):
+                    child_slot = next((s for s in slots if s.name == field["name"]), None)
+                    if child_slot and self._any_missing_required_recursive([child_slot]):
+                        return True
+                # For repeatable, check at least one item exists if required
+                if slot.repeatable:
+                    if slot.required and (not slot.value or not isinstance(slot.value, list) or len(slot.value) == 0):
+                        return True
+                else:
+                    if slot.required and (not slot.value or not isinstance(slot.value, dict)):
+                        return True
+            elif slot.type == "nested_group":
+                for field in (slot.nested_schema or []):
+                    child_slot = next((s for s in slots if s.name == field["name"]), None)
+                    if child_slot and self._any_missing_required_recursive([child_slot]):
+                        return True
+                if slot.repeatable:
+                    if slot.required and (not slot.value or not isinstance(slot.value, list) or len(slot.value) == 0):
+                        return True
+                else:
+                    if slot.required and (not slot.value or not isinstance(slot.value, dict)):
+                        return True
+            else:
+                if slot.required and (not slot.value or not slot.verified):
+                    return True
+        return False
+
+    def _missing_slots_recursive(self, slots):
+        # Only consider a group/nested_group filled if all children are filled
+        missing = []
+        for slot in slots:
+            if slot.type == "group":
+                for field in (slot.schema or []):
+                    child_slot = next((s for s in slots if s.name == field["name"]), None)
+                    if child_slot:
+                        missing.extend(self._missing_slots_recursive([child_slot]))
+                if slot.repeatable:
+                    if slot.required and (not slot.value or not isinstance(slot.value, list) or len(slot.value) == 0):
+                        missing.append(slot.prompt)
+                else:
+                    if slot.required and (not slot.value or not isinstance(slot.value, dict)):
+                        missing.append(slot.prompt)
+            elif slot.type == "nested_group":
+                for field in (slot.nested_schema or []):
+                    child_slot = next((s for s in slots if s.name == field["name"]), None)
+                    if child_slot:
+                        missing.extend(self._missing_slots_recursive([child_slot]))
+                if slot.repeatable:
+                    if slot.required and (not slot.value or not isinstance(slot.value, list) or len(slot.value) == 0):
+                        missing.append(slot.prompt)
+                else:
+                    if slot.required and (not slot.value or not isinstance(slot.value, dict)):
+                        missing.append(slot.prompt)
+            else:
+                if slot.required and (not slot.value or not slot.verified):
+                    missing.append(slot.prompt)
+        return missing
 
     def _build_unified_nested_structure(self, nested_slots, chat_history_str):
         """Build a unified nested structure from all nested slot groups.
@@ -1497,60 +1456,35 @@ class Tool:
         return properties
 
     def _any_missing_required_recursive(self, slots):
+        # Only consider a group/nested_group filled if all children are filled
         for slot in slots:
             if slot.type == "group":
-                # For group, check if at least one item exists if required
+                # Check children
+                for field in (slot.schema or []):
+                    child_slot = next((s for s in slots if s.name == field["name"]), None)
+                    if child_slot and self._any_missing_required_recursive([child_slot]):
+                        return True
+                # For repeatable, check at least one item exists if required
                 if slot.repeatable:
-                    # When repeatable is True, check if at least one item exists if required
                     if slot.required and (not slot.value or not isinstance(slot.value, list) or len(slot.value) == 0):
                         return True
-                    # For each item, check required fields
-                    for item in (slot.value or []):
-                        for field in (slot.schema or []):
-                            if field.get("required", False) and (item.get(field["name"]) in [None, ""]):
-                                return True
                 else:
-                    # When repeatable is False, check if the single dict exists if required
                     if slot.required and (not slot.value or not isinstance(slot.value, dict)):
                         return True
-                    # Check required fields in the single dict
-                    if slot.value and isinstance(slot.value, dict):
-                        for field in (slot.schema or []):
-                            if field.get("required", False) and (slot.value.get(field["name"]) in [None, ""]):
-                                return True
             elif slot.type == "nested_group":
-                # For nested group, check if at least one item exists if required
+                for field in (slot.nested_schema or []):
+                    child_slot = next((s for s in slots if s.name == field["name"]), None)
+                    if child_slot and self._any_missing_required_recursive([child_slot]):
+                        return True
                 if slot.repeatable:
-                    # When repeatable is True, check if at least one item exists if required
                     if slot.required and (not slot.value or not isinstance(slot.value, list) or len(slot.value) == 0):
                         return True
-                    # For each item, recursively check required fields in nested structure
-                    for item in (slot.value or []):
-                        if self._check_nested_required_fields(item, slot.nested_schema):
-                            return True
                 else:
-                    # When repeatable is False, check if the single dict exists if required
                     if slot.required and (not slot.value or not isinstance(slot.value, dict)):
                         return True
-                    # Recursively check required fields in the single dict
-                    if slot.value and isinstance(slot.value, dict):
-                        if self._check_nested_required_fields(slot.value, slot.nested_schema):
-                            return True
             else:
-                # Handle regular slots (non-group, non-nested_group)
-                if hasattr(slot, 'repeatable') and slot.repeatable:
-                    # For repeatable regular slots, check if at least one item exists if required
-                    if slot.required and (not slot.value or not isinstance(slot.value, list) or len(slot.value) == 0):
-                        return True
-                    # Check each value in the list
-                    if slot.value and isinstance(slot.value, list):
-                        for val in slot.value:
-                            if val in [None, ""]:
-                                return True
-                else:
-                    # For non-repeatable regular slots
-                    if slot.required and (not slot.value or not slot.verified):
-                        return True
+                if slot.required and (not slot.value or not slot.verified):
+                    return True
         return False
 
     def _check_nested_required_fields(self, item, nested_schema):
@@ -1610,54 +1544,34 @@ class Tool:
         return False
 
     def _missing_slots_recursive(self, slots):
+        # Only consider a group/nested_group filled if all children are filled
         missing = []
         for slot in slots:
             if slot.type == "group":
+                for field in (slot.schema or []):
+                    child_slot = next((s for s in slots if s.name == field["name"]), None)
+                    if child_slot:
+                        missing.extend(self._missing_slots_recursive([child_slot]))
                 if slot.repeatable:
-                    # When repeatable is True, check list structure
                     if slot.required and (not slot.value or not isinstance(slot.value, list) or len(slot.value) == 0):
                         missing.append(slot.prompt)
-                    for idx, item in enumerate(slot.value or []):
-                        for field in (slot.schema or []):
-                            if field.get("required", False) and (item.get(field["name"]) in [None, ""]):
-                                missing.append(f"{field.get('prompt', field['name'])} (group '{slot.name}' item {idx+1})")
                 else:
-                    # When repeatable is False, check single dict structure
                     if slot.required and (not slot.value or not isinstance(slot.value, dict)):
                         missing.append(slot.prompt)
-                    elif slot.value and isinstance(slot.value, dict):
-                        for field in (slot.schema or []):
-                            if field.get("required", False) and (slot.value.get(field["name"]) in [None, ""]):
-                                missing.append(f"{field.get('prompt', field['name'])} (group '{slot.name}')")
             elif slot.type == "nested_group":
+                for field in (slot.nested_schema or []):
+                    child_slot = next((s for s in slots if s.name == field["name"]), None)
+                    if child_slot:
+                        missing.extend(self._missing_slots_recursive([child_slot]))
                 if slot.repeatable:
-                    # When repeatable is True, check list structure
                     if slot.required and (not slot.value or not isinstance(slot.value, list) or len(slot.value) == 0):
                         missing.append(slot.prompt)
-                    for idx, item in enumerate(slot.value or []):
-                        nested_missing = self._get_nested_missing_fields(item, slot.nested_schema, slot.name, idx + 1)
-                        missing.extend(nested_missing)
                 else:
-                    # When repeatable is False, check single dict structure
                     if slot.required and (not slot.value or not isinstance(slot.value, dict)):
                         missing.append(slot.prompt)
-                    elif slot.value and isinstance(slot.value, dict):
-                        nested_missing = self._get_nested_missing_fields(slot.value, slot.nested_schema, slot.name, 1)
-                        missing.extend(nested_missing)
             else:
-                # Handle regular slots (non-group, non-nested_group)
-                if hasattr(slot, 'repeatable') and slot.repeatable:
-                    # For repeatable regular slots, check list structure
-                    if slot.required and (not slot.value or not isinstance(slot.value, list) or len(slot.value) == 0):
-                        missing.append(slot.prompt)
-                    elif slot.value and isinstance(slot.value, list):
-                        for idx, val in enumerate(slot.value):
-                            if val in [None, ""]:
-                                missing.append(f"{slot.prompt} (item {idx+1})")
-                else:
-                    # For non-repeatable regular slots
-                    if slot.required and (not slot.value or not slot.verified):
-                        missing.append(slot.prompt)
+                if slot.required and (not slot.value or not slot.verified):
+                    missing.append(slot.prompt)
         return missing
 
     def _get_nested_missing_fields(self, item, nested_schema, group_name, item_idx):
@@ -2018,7 +1932,7 @@ class Tool:
                         prompt=slot.get("prompt", ""),
                         required=slot.get("required", False),
                         schema=slot.get("schema", []),
-                        repeatable=slot.get("repeatable", True),
+                        repeatable=slot.get("repeatable", False),
                     )
                 )
             elif slot.get("type") == "nested_group":
@@ -2031,7 +1945,7 @@ class Tool:
                         prompt=slot.get("prompt", ""),
                         required=slot.get("required", False),
                         nested_schema=slot.get("nested_schema", []),
-                        repeatable=slot.get("repeatable", True),
+                        repeatable=slot.get("repeatable", False),
                     )
                 )
             else:
@@ -2326,31 +2240,33 @@ class Tool:
 def build_group_prompt(slot):
     # Build a schema-driven prompt for the slot group
     example_fields = []
-    for field in (slot.schema or []):
-        # Use the field's type, prompt, and description
+    schema_lines = []
+    items_def = slot.items or {}
+    properties = items_def.get("properties", {}) if isinstance(items_def, dict) else {}
+    for field_name, field_def in properties.items():
+        field_type = field_def.get("type", "str")
         example_value = {
-            "str": "\"example string\"",
+            "str": '"example string"',
             "int": "123",
             "float": "12.34",
             "bool": "true"
-        }.get(field.get("type", "str"), "\"example\"")
-        example_fields.append(f'"{field["name"]}": {example_value}')
-    example_obj = "{" + ", ".join(example_fields) + "}"
-    schema_lines = []
-    for field in (slot.schema or []):
+        }.get(field_type, '"example"')
+        example_fields.append(f'"{field_name}": {example_value}')
+        desc_or_prompt = field_def.get("description") or field_def.get("prompt", "")
         schema_lines.append(
-            f'- {field["name"]} ({field.get("type", "str")}): {field.get("description", field.get("prompt", ""))}'
+            f'- {field_name} ({field_type}): {desc_or_prompt}'
         )
+    example_obj = "{" + ", ".join(example_fields) + "}"
     schema_str = "\n".join(schema_lines)
-    
     if slot.repeatable:
         return (
             f"Please provide a list of dictionaries (objects), e.g. [{{'key': 'value'}}], each matching this schema:\n"
             f"{schema_str}\n"
             f"Example:\n[{example_obj}]\n"
             f"IMPORTANT: Each object must have ALL the fields above, with the correct type. "
-            f"Do not add extra fields. Return a list of dicts, each matching the schema exactly. "
-            f"IMPORTANT: The field name is just a key, don't use it to find for the value. The value you provide must match the field's description and prompt, even if the user never says it directly.\n"
+            f"Do not add extra fields. Do not return a dict of lists or a list of values. "
+            f"Return a list of dicts, each matching the schema exactly. "
+            f"Use the description for each field to determine where to find the value. The field name is the key in the dict."
         )
     else:
         return (
@@ -2358,6 +2274,7 @@ def build_group_prompt(slot):
             f"{schema_str}\n"
             f"Example:\n{example_obj}\n"
             f"IMPORTANT: The object must have ALL the fields above, with the correct type. "
-            f"Do not add extra fields. Return a single dict matching the schema exactly. "
-            f"IMPORTANT: The field name is just a key, don't use it to find for the value. The value you provide must match the field's description and prompt, even if the user never says it directly.\n"
+            f"Do not add extra fields. Do not return a list or a list of values. "
+            f"Return a single dict matching the schema exactly. "
+            f"Use the description for each field to determine where to find the value. The field name is the key in the dict."
         )

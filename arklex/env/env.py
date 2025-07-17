@@ -246,6 +246,62 @@ class Environment:
         else:
             return SlotFiller(model_service=self.model_service)
 
+    def _map_slots(self, slots):
+        """
+        Recursively map the new node_info slots structure to the expected format for tool.load_slots.
+        - 'type': 'object' => group (fields in items.properties)
+        - 'type': 'nested_group' => nested_group (fields in items.properties)
+        - all others: regular slot
+        """
+        mapped = []
+        for slot in slots:
+            slot_type = slot.get("type")
+            base = {
+                k: v for k, v in slot.items() if k not in ("items", "properties")
+            }
+            if slot_type == "object":
+                # This is a group
+                properties = slot.get("items", {}).get("properties", {})
+                schema = []
+                for field in properties.values():
+                    # Recursively map subfields if needed
+                    if field.get("type") in ("object", "nested_group"):
+                        # Nested group or group inside group (rare, but possible)
+                        schema.append(self._map_slots([field])[0])
+                    else:
+                        schema.append({k: v for k, v in field.items() if k != "items"})
+                mapped.append({
+                    **base,
+                    "type": "group",
+                    "schema": schema,
+                    "repeatable": slot.get("repeatable", False),
+                    "required": slot.get("required", False),
+                    "prompt": slot.get("prompt", f"Please provide a set of values for group '{slot.get('name', '')}'."),
+                    "description": slot.get("description", f"Slot group '{slot.get('name', '')}' with schema: {[f.get('name') for f in schema]}")
+                })
+            elif slot_type == "nested_group":
+                # This is a nested group
+                properties = slot.get("items", {}).get("properties", {})
+                nested_schema = []
+                for field in properties.values():
+                    if field.get("type") in ("object", "nested_group"):
+                        nested_schema.append(self._map_slots([field])[0])
+                    else:
+                        nested_schema.append({k: v for k, v in field.items() if k != "items"})
+                mapped.append({
+                    **base,
+                    "type": "nested_group",
+                    "nested_schema": nested_schema,
+                    "repeatable": slot.get("repeatable", False),
+                    "required": slot.get("required", False),
+                    "prompt": slot.get("prompt", f"Please provide a nested structure for group '{slot.get('name', '')}'."),
+                    "description": slot.get("description", f"Nested slot group '{slot.get('name', '')}' with nested schema")
+                })
+            else:
+                # Regular slot
+                mapped.append({k: v for k, v in slot.items() if k != "items"})
+        return mapped
+
     def step(
         self, id: str, message_state: MessageState, params: Params, node_info: NodeInfo
     ) -> tuple[MessageState, Params]:
@@ -266,53 +322,9 @@ class Environment:
             tool: Tool = self.tools[id]["execute"]()
             tool.init_slotfiller(self.slotfillapi)
             attributes = getattr(node_info, "attributes", {})
-            # --- Begin slot group merge logic ---
+            # --- Begin new slot mapping logic ---
             slots = attributes.get("slots", [])
-            slot_groups = attributes.get("slot_groups", [])
-            nested_slot_groups = attributes.get("nested_slot_groups", [])
-            
-            group_slots = []
-            for group in slot_groups:
-                # Generate prompt/description for the group
-                required_fields = [s["name"] for s in group.get("schema", []) if s.get("required", False)]
-                prompt = (
-                    f"Please provide at least one set of the following fields: {', '.join(required_fields)}."
-                    if required_fields else f"Please provide a set of values for group '{group['name']}'."
-                )
-                description = f"Slot group '{group['name']}' with schema: {[s['name'] for s in group.get('schema', [])]}"
-                group_slots.append({
-                    "name": group["name"],
-                    "type": "group",
-                    "schema": group.get("schema", []),
-                    "required": group.get("required", False),
-                    "repeatable": group.get("repeatable", True),
-                    "prompt": prompt,
-                    "description": description,
-                })
-            
-            # Process nested slot groups
-            nested_group_slots = []
-            for nested_group in nested_slot_groups:
-                # Generate prompt/description for the nested group
-                # Use "schema" field from the nested slot group definition
-                schema = nested_group.get("schema", [])
-                required_fields = [s["name"] for s in schema if s.get("required", False)]
-                prompt = (
-                    f"Please provide a nested structure with the following fields: {', '.join(required_fields)}."
-                    if required_fields else f"Please provide a nested structure for group '{nested_group['name']}'."
-                )
-                description = f"Nested slot group '{nested_group['name']}' with nested schema"
-                nested_group_slots.append({
-                    "name": nested_group["name"],
-                    "type": "nested_group",
-                    "nested_schema": schema,  # Use the "schema" field as nested_schema
-                    "required": nested_group.get("required", False),
-                    "repeatable": nested_group.get("repeatable", True),
-                    "prompt": prompt,
-                    "description": description,
-                })
-            
-            all_slots = slots + group_slots + nested_group_slots
+            all_slots = self._map_slots(slots)
             tool.load_slots(all_slots)
             combined_args: dict[str, Any] = {
                 **self.tools[id]["fixed_args"],
