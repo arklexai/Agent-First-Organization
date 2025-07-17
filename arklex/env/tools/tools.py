@@ -278,34 +278,28 @@ class Tool:
         self.info = self.get_info([slot.model_dump() for slot in self.slots])
 
     def _convert_value(self, value: Any, type_str: str) -> Any:  # noqa: ANN401
-        # Helper to convert string value to correct type
         if value is None:
             return value
-        try:
-            if type_str == "int":
-                return int(value)
-            elif type_str == "float":
-                return float(value)
-            elif type_str == "bool":
-                if isinstance(value, bool):
-                    return value
-                if isinstance(value, str):
-                    return value.lower() == "true"
-                return bool(value)
-            elif type_str == "str":
-                # If value is a dict or list, do not convert to string
-                if isinstance(value, dict | list):
-                    return value
-                return str(value)
-            elif type_str.startswith("list["):
-                # Assume comma-separated string for lists
+
+        if type_str.startswith("list["):
                 if isinstance(value, str):
                     return [v.strip() for v in value.split(",") if v.strip()]
                 return list(value)
-            else:
-                return value
-        except Exception:
-            return value
+
+        # Mapping of type strings to conversion functions
+        type_converters = {
+            "int": int,
+            "float": float,
+            "bool": lambda v: v if isinstance(v, bool) else (v.lower() == "true" if isinstance(v, str) else bool(v)),
+            "str": lambda v: v if isinstance(v, (dict, list)) else str(v),
+        }
+        converter = type_converters.get(type_str)
+        if converter:
+            try:
+                return converter(value)
+            except Exception:
+                    return value
+        return value
 
     def _fill_slots_recursive(self, slots: list[Slot], chat_history_str: str) -> list[Slot]:
         """Fill slots recursively, handling both group and regular slots.
@@ -693,7 +687,7 @@ class Tool:
             "bool": "true"
         }.get(field_type, '"example"')
 
-    def _any_missing_required_recursive(self, slots: list[Slot]) -> bool:
+    def _is_missing_required(self, slots: list[Slot]) -> bool:
         for slot in slots:
             if slot.type == "group":
                 # For group, check if at least one item exists if required
@@ -1004,7 +998,7 @@ class Tool:
         log_context.info(f"{slots=}")
 
         # Check if any required slots are missing or unverified (including groups)
-        missing_required = self._any_missing_required_recursive(slots)
+        missing_required = self._is_missing_required(slots)
         if missing_required:
             response, is_verification = self._handle_missing_required_slots(slots, chat_history_str)
             if response:
@@ -1014,7 +1008,7 @@ class Tool:
                     reason = response
 
         # Re-check if any required slots are still missing after verification
-        missing_required = self._any_missing_required_recursive(slots)
+        missing_required = self._is_missing_required(slots)
 
         # if all required slots are filled and verified, then execute the function
         tool_success: bool = False

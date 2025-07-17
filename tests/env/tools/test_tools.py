@@ -1573,9 +1573,9 @@ class TestToolValueConversion:
 
 
 class TestToolMissingRequiredSlots:
-    """Test the _any_missing_required_recursive method."""
+    """Test the _is_missing_required method."""
 
-    def test_any_missing_required_recursive_group_empty_required(self) -> None:
+    def test_is_missing_required_group_empty_required(self) -> None:
         """Test missing required group slot with empty value."""
         tool = Tool(
             func=lambda param1: f"Result: {param1}",
@@ -1594,9 +1594,9 @@ class TestToolMissingRequiredSlots:
                 schema=[{"name": "field1", "required": True, "type": "str"}]
             )
         ]
-        assert tool._any_missing_required_recursive(slots) is True
+        assert tool._is_missing_required(slots) is True
 
-    def test_any_missing_required_recursive_group_none_value(self) -> None:
+    def test_is_missing_required_group_none_value(self) -> None:
         """Test missing required group slot with None value."""
         tool = Tool(
             func=lambda param1: f"Result: {param1}",
@@ -1615,9 +1615,9 @@ class TestToolMissingRequiredSlots:
                 schema=[{"name": "field1", "required": True, "type": "str"}]
             )
         ]
-        assert tool._any_missing_required_recursive(slots) is True
+        assert tool._is_missing_required(slots) is True
 
-    def test_any_missing_required_recursive_group_with_missing_required_field(self) -> None:
+    def test_is_missing_required_group_with_missing_required_field(self) -> None:
         """Test group with missing required field in item."""
         tool = Tool(
             func=lambda param1: f"Result: {param1}",
@@ -1636,9 +1636,9 @@ class TestToolMissingRequiredSlots:
                 schema=[{"name": "field1", "required": True, "type": "str"}]
             )
         ]
-        assert tool._any_missing_required_recursive(slots) is True
+        assert tool._is_missing_required(slots) is True
 
-    def test_any_missing_required_recursive_group_with_repeatable_field_empty(self) -> None:
+    def test_is_missing_required_group_with_repeatable_field_empty(self) -> None:
         """Test group with repeatable field that is empty."""
         tool = Tool(
             func=lambda param1: f"Result: {param1}",
@@ -1657,9 +1657,9 @@ class TestToolMissingRequiredSlots:
                 schema=[{"name": "field1", "required": True, "repeatable": True, "type": "str"}]
             )
         ]
-        assert tool._any_missing_required_recursive(slots) is True
+        assert tool._is_missing_required(slots) is True
 
-    def test_any_missing_required_recursive_group_with_repeatable_field_none_values(self) -> None:
+    def test_is_missing_required_group_with_repeatable_field_none_values(self) -> None:
         """Test group with repeatable field containing None values."""
         tool = Tool(
             func=lambda param1: f"Result: {param1}",
@@ -1678,9 +1678,9 @@ class TestToolMissingRequiredSlots:
                 schema=[{"name": "field1", "required": True, "repeatable": True, "type": "str"}]
             )
         ]
-        assert tool._any_missing_required_recursive(slots) is True
+        assert tool._is_missing_required(slots) is True
 
-    def test_any_missing_required_recursive_repeatable_regular_slot_empty(self) -> None:
+    def test_is_missing_required_repeatable_regular_slot_empty(self) -> None:
         """Test repeatable regular slot that is empty."""
         tool = Tool(
             func=lambda param1: f"Result: {param1}",
@@ -1699,9 +1699,9 @@ class TestToolMissingRequiredSlots:
                 value=[]
             )
         ]
-        assert tool._any_missing_required_recursive(slots) is True
+        assert tool._is_missing_required(slots) is True
 
-    def test_any_missing_required_recursive_repeatable_regular_slot_none_values(self) -> None:
+    def test_is_missing_required_repeatable_regular_slot_none_values(self) -> None:
         """Test repeatable regular slot with None values."""
         tool = Tool(
             func=lambda param1: f"Result: {param1}",
@@ -1720,9 +1720,9 @@ class TestToolMissingRequiredSlots:
                 value=[None, ""]
             )
         ]
-        assert tool._any_missing_required_recursive(slots) is True
+        assert tool._is_missing_required(slots) is True
 
-    def test_any_missing_required_recursive_regular_slot_unverified(self) -> None:
+    def test_is_missing_required_regular_slot_unverified(self) -> None:
         """Test regular slot that is required but not verified."""
         tool = Tool(
             func=lambda param1: f"Result: {param1}",
@@ -1741,9 +1741,9 @@ class TestToolMissingRequiredSlots:
                 verified=False
             )
         ]
-        assert tool._any_missing_required_recursive(slots) is True
+        assert tool._is_missing_required(slots) is True
 
-    def test_any_missing_required_recursive_all_valid(self) -> None:
+    def test_is_missing_required_all_valid(self) -> None:
         """Test when all required slots are properly filled."""
         tool = Tool(
             func=lambda param1: f"Result: {param1}",
@@ -1769,7 +1769,7 @@ class TestToolMissingRequiredSlots:
                 schema=[{"name": "field1", "required": True, "type": "str"}]
             )
         ]
-        assert tool._any_missing_required_recursive(slots) is False
+        assert tool._is_missing_required(slots) is False
 
 
 class TestToolMissingSlotsRecursive:

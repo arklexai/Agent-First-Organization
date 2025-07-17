@@ -106,18 +106,17 @@ def replace_placeholders(
                 if value is not None:
                     return value
                 # Use type to determine default
-                if slot_type == "list":
-                    return []
-                elif slot_type in ("str", "string"):
-                    return ""
-                elif slot_type in ("int", "integer"):
-                    return 0
-                elif slot_type == "float":
-                    return 0.0
-                elif slot_type in ("bool", "boolean"):
-                    return False
-                else:
-                    return None
+                defaults = {
+                    "list": [],
+                    "str": "",
+                    "string": "",
+                    "int": 0,
+                    "integer": 0,
+                    "float": 0.0,
+                    "bool": False,
+                    "boolean": False,
+                }
+                return defaults.get(slot_type, None)
             else:
                 # If slot not found in slot_map, return appropriate default
                 return ""
