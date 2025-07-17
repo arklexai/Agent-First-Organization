@@ -99,7 +99,7 @@ BUILT_IN_TOOLS = {
 # arklex/env/agents/patterns/my_pattern.py
 from arklex.env.agents.patterns.base_pattern import BasePattern
 from langgraph.graph import StateGraph
-from arklex.utils.graph_state import MessageState
+from arklex.orchestrator.entities.msg_state_entities import MessageState
 
 class MyNewPattern(BasePattern):
     async def step_fn(self, state: MessageState) -> MessageState:

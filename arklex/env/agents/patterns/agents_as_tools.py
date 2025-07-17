@@ -2,7 +2,7 @@ from agents import Agent, Runner, trace
 
 from arklex.env.agents.patterns.base_pattern import BasePattern
 from arklex.env.agents.utils.agent_loader import build_tool_wrapped_agents
-from arklex.utils.graph_state import MessageState
+from arklex.orchestrator.entities.msg_state_entities import MessageState
 
 
 class AgentsAsToolsPattern(BasePattern):

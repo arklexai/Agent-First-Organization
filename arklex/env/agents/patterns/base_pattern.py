@@ -2,7 +2,7 @@ from abc import ABC, abstractmethod
 
 from langgraph.graph import StateGraph
 
-from arklex.utils.graph_state import MessageState
+from arklex.orchestrator.entities.msg_state_entities import MessageState
 
 
 class BasePattern(ABC):

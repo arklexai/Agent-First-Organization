@@ -4,7 +4,7 @@ from typing import Any
 
 from arklex.env.agents.agent import BaseAgent, register_agent
 from arklex.env.agents.patterns.registry import dispatch_pattern
-from arklex.utils.graph_state import MessageState
+from arklex.orchestrator.entities.msg_state_entities import MessageState
 from arklex.utils.logging_utils import LogContext
 
 log_context = LogContext(__name__)

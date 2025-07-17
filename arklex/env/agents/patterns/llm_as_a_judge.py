@@ -7,7 +7,7 @@ from rich.panel import Panel
 
 from arklex.env.agents.patterns.base_pattern import BasePattern
 from arklex.env.agents.utils.agent_loader import build_agents
-from arklex.utils.graph_state import MessageState
+from arklex.orchestrator.entities.msg_state_entities import MessageState
 
 console = Console()
 
