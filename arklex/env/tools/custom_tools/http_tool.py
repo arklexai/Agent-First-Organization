@@ -116,7 +116,7 @@ def replace_placeholders(
                     "bool": False,
                     "boolean": False,
                 }
-                return defaults.get(slot_type, None)
+                return defaults.get(slot_type)
             else:
                 # If slot not found in slot_map, return appropriate default
                 return ""

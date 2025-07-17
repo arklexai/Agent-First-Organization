@@ -291,7 +291,7 @@ class Tool:
             "int": int,
             "float": float,
             "bool": lambda v: v if isinstance(v, bool) else (v.lower() == "true" if isinstance(v, str) else bool(v)),
-            "str": lambda v: v if isinstance(v, (dict, list)) else str(v),
+            "str": lambda v: v if isinstance(v, dict | list) else str(v),
         }
         converter = type_converters.get(type_str)
         if converter:
