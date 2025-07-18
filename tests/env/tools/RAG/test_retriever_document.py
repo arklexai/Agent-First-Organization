@@ -26,8 +26,14 @@ class TestEmbedFunction:
     """Test the embed function."""
 
     @patch("arklex.env.tools.RAG.retrievers.retriever_document.OpenAI")
-    def test_embed_success(self, mock_openai_class: Mock) -> None:
+    @patch("arklex.env.tools.RAG.retrievers.retriever_document.redis_pool")
+    def test_embed_success(
+        self, mock_redis_pool: Mock, mock_openai_class: Mock
+    ) -> None:
         """Test successful embedding generation."""
+        # Mock Redis cache miss
+        mock_redis_pool.get.return_value = None
+
         mock_client = Mock()
         mock_response = Mock()
         mock_data_item = Mock()
@@ -42,13 +48,36 @@ class TestEmbedFunction:
         mock_client.embeddings.create.assert_called_once_with(
             input="test text", model="text-embedding-ada-002"
         )
+        # Verify Redis cache was called
+        mock_redis_pool.get.assert_called_once()
+        mock_redis_pool.set.assert_called_once()
+
+    @patch("arklex.env.tools.RAG.retrievers.retriever_document.redis_pool")
+    @patch("arklex.env.tools.RAG.retrievers.retriever_document.log_context")
+    def test_embed_cache_hit(
+        self, mock_log_context: Mock, mock_redis_pool: Mock
+    ) -> None:
+        """Test embedding cache hit."""
+        # Mock Redis cache hit
+        cached_embedding = [0.1, 0.2, 0.3]
+        mock_redis_pool.get.return_value = cached_embedding
+
+        result = embed("test text")
+
+        assert result == cached_embedding
+        mock_redis_pool.get.assert_called_once()
+        mock_log_context.info.assert_called_with("Cache hit for text of length 9")
 
     @patch("arklex.env.tools.RAG.retrievers.retriever_document.OpenAI")
+    @patch("arklex.env.tools.RAG.retrievers.retriever_document.redis_pool")
     @patch("arklex.env.tools.RAG.retrievers.retriever_document.log_context")
     def test_embed_exception_handling(
-        self, mock_log_context: Mock, mock_openai_class: Mock
+        self, mock_log_context: Mock, mock_redis_pool: Mock, mock_openai_class: Mock
     ) -> None:
         """Test embedding exception handling."""
+        # Mock Redis cache miss
+        mock_redis_pool.get.return_value = None
+
         mock_client = Mock()
         mock_client.embeddings.create.side_effect = Exception("API Error")
         mock_openai_class.return_value = mock_client

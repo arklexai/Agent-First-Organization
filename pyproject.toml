@@ -54,7 +54,8 @@ dependencies = [
   "parsedatetime>=2.6,<3.0",
   "scikit-learn>=1.7.0,<2.0.0",
   "sentence-transformers>=2.2.2,<3.0.0",
-  "google-generativeai>=0.8.0,<1.0.0"
+  "google-generativeai>=0.8.0,<1.0.0",
+  "redis>=6.2.0",
 ]
 license = "MIT"
 
