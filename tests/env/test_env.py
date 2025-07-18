@@ -253,6 +253,7 @@ def test_environment_step_agent_executes() -> None:
         status=StatusEnum.COMPLETE,
         function_calling_trajectory=[{"role": "user", "content": "test"}],
     )
+    mock_agent_instance.is_async.return_value = False
 
     mock_agent_class = Mock(return_value=mock_agent_instance)
 
@@ -283,7 +284,6 @@ def test_environment_step_agent_executes() -> None:
         "predecessors": ["node0"],
         "extra_arg": "value",
     }
-
     result_state, result_params = env.step("agent1", message_state, params, node_info)
 
     assert result_state.status == StatusEnum.COMPLETE
@@ -333,7 +333,7 @@ def test_environment_step_agent_with_empty_additional_args() -> None:
     mock_agent_instance.execute.return_value = MessageState(
         status=StatusEnum.COMPLETE, function_calling_trajectory=[]
     )
-
+    mock_agent_instance.is_async.return_value = False
     mock_agent_class = Mock(return_value=mock_agent_instance)
 
     env = Environment(
@@ -867,6 +867,7 @@ def test_environment_step_agent_with_successors_and_predecessors() -> None:
     """Test environment step with agent that has successors and predecessors."""
     mock_agent_instance = Mock()
     mock_agent_instance.execute.return_value = MessageState(status=StatusEnum.COMPLETE)
+    mock_agent_instance.is_async.return_value = False
 
     env = Environment(
         tools=[],
@@ -899,6 +900,7 @@ def test_environment_step_agent_with_empty_additional_args_second() -> None:
     """Test environment step with agent that has empty additional_args."""
     mock_agent_instance = Mock()
     mock_agent_instance.execute.return_value = MessageState(status=StatusEnum.COMPLETE)
+    mock_agent_instance.is_async.return_value = False
 
     env = Environment(
         tools=[],
@@ -928,6 +930,7 @@ def test_environment_step_agent_with_none_additional_args() -> None:
     """Test environment step with agent that has None additional_args."""
     mock_agent_instance = Mock()
     mock_agent_instance.execute.return_value = MessageState(status=StatusEnum.COMPLETE)
+    mock_agent_instance.is_async.return_value = False
 
     env = Environment(
         tools=[],
@@ -960,6 +963,7 @@ def test_environment_step_agent_with_function_calling_trajectory() -> None:
         status=StatusEnum.COMPLETE,
         function_calling_trajectory=[{"role": "assistant", "content": "test"}],
     )
+    mock_agent_instance.is_async.return_value = False
 
     env = Environment(
         tools=[],
@@ -998,6 +1002,7 @@ def test_environment_step_agent_with_slots() -> None:
             "slot2": [Slot(name="slot2", value="value2")],
         },
     )
+    mock_agent_instance.is_async.return_value = False
 
     env = Environment(
         tools=[],
@@ -1143,7 +1148,9 @@ def test_environment_step_tool_with_none_attributes() -> None:
 
         # Verify tool methods were called correctly
         fake_tool.init_slotfiller.assert_called_once_with(env.slotfillapi)
-        fake_tool.load_slots.assert_called_once_with([])  # Empty list when attributes is empty
+        fake_tool.load_slots.assert_called_once_with(
+            []
+        )  # Empty list when attributes is empty
 
 
 def test_environment_step_worker_with_none_additional_args() -> None:
