@@ -8,7 +8,9 @@ embedding generation, and conversion between different document formats for vect
 
 # TODO(christian): add annotations to the code
 
+import hashlib
 import json
+import os
 from enum import Enum
 from typing import Any
 
@@ -18,22 +20,56 @@ from openai import OpenAI
 
 from arklex.utils.logging_utils import LogContext
 from arklex.utils.mysql import mysql_pool
+from arklex.utils.redis import redis_pool
 
 DEFAULT_CHUNK_ENCODING = "cl100k_base"
+EMBEDDING_CACHE_TTL = int(
+    os.getenv("EMBEDDING_CACHE_TTL", 86400 * 30)
+)  # 30 days default
 
 log_context = LogContext(__name__)
 
 
+def _generate_cache_key(text: str, model: str = "text-embedding-ada-002") -> str:
+    """Generate a consistent cache key for the given text and model."""
+    text_hash = hashlib.sha256(text.encode("utf-8")).hexdigest()
+    return f"arklex::embedding::retriever::{model}::{text_hash}"
+
+
 def embed(text: str) -> list[float]:
+    """Generate embeddings for text with Redis caching."""
+
+    cache_key = _generate_cache_key(text)
+
+    # Try to get from cache first
+    try:
+        cached_embedding = redis_pool.get(cache_key, decode_json=True)
+        if cached_embedding:
+            log_context.info(f"Cache hit for text of length {len(text)}")
+            return cached_embedding
+    except Exception as e:
+        log_context.warning(f"Redis cache read error: {e}")
+
+    # Generate embedding if not in cache
     client = OpenAI()
     try:
         response = client.embeddings.create(input=text, model="text-embedding-ada-002")
+        embedding = response.data[0].embedding
+
+        # Cache the embedding
+        try:
+            redis_pool.set(cache_key, embedding, ttl=EMBEDDING_CACHE_TTL)
+            log_context.info(f"Cached embedding for text of length {len(text)}")
+        except Exception as e:
+            log_context.warning(f"Redis cache write error: {e}")
+
+        return embedding
+
     except Exception as e:
         log_context.error(f"Error embedding text of length {len(text)}")
         log_context.error(text[:1000])
         log_context.exception(e)
         raise e
-    return response.data[0].embedding
 
 
 class RetrieverDocumentType(Enum):
