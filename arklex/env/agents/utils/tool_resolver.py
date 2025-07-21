@@ -14,6 +14,10 @@ from agents import (
 from pydantic import BaseModel, create_model
 from undecorated import undecorated
 
+from arklex.utils.logging_utils import LogContext
+
+log_context = LogContext(__name__)
+
 # OpenAI Agent SDK built-in tools
 BUILT_IN_TOOLS = {
     "web_search": WebSearchTool,
@@ -35,14 +39,16 @@ def resolve_tools_for_agent(tool_specs: list[Any]) -> list[Tool]:
             path = spec.get("path")
             fixed_args = spec.get("fixed_args", {})
         else:
-            print(f"[WARN] Invalid tool spec: {spec}")
+            log_context.warning(f"[WARN] Invalid tool spec: {spec}")
             continue
 
         # Filter out placeholder values
         filtered_args = {}
         for key, value in fixed_args.items():
             if isinstance(value, str) and value.startswith("<") and value.endswith(">"):
-                print(f"[WARN] Placeholder value used for fixed_arg '{key}'. Skipping.")
+                log_context.warning(
+                    f"[WARN] Placeholder value used for fixed_arg '{key}'. Skipping."
+                )
                 continue
             filtered_args[key] = value
 
@@ -50,7 +56,7 @@ def resolve_tools_for_agent(tool_specs: list[Any]) -> list[Tool]:
         if tool:
             resolved_tools.append(tool)
         else:
-            print(f"[WARN] Tool '{tool_id}' could not be resolved.")
+            log_context.warning(f"[WARN] Tool '{tool_id}' could not be resolved.")
 
     return resolved_tools
 
@@ -99,7 +105,6 @@ def resolve_tool(
                 }
 
                 model_cls = create_model(f"{tool_id}_InputModel", **fields)
-
                 return wrap_function_tool_with_fixed_args(
                     base_func=tool_func_or_cls,
                     model_cls=model_cls,
@@ -110,7 +115,9 @@ def resolve_tool(
 
         return tool_func_or_cls() if isclass(tool_func_or_cls) else tool_func_or_cls
     except Exception as e:
-        print(f"[ERROR] Could not load tool '{tool_id}' from path '{path}': {e}")
+        log_context.error(
+            f"[ERROR] Could not load tool '{tool_id}' from path '{path}': {e}"
+        )
         return None
 
 
