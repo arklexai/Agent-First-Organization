@@ -1,3 +1,14 @@
+"""
+Note: This module is currently inactive and reserved for future use.
+It may contain experimental or planned features.
+It will need to be updated in the future
+to comply with the new multi-agent system code structure.
+
+Status:
+    - Not in use (as of 2025-07-22)
+    - Intended for future feature expansion
+"""
+
 from dataclasses import dataclass
 from typing import Literal
 

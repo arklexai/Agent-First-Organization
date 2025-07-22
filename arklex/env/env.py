@@ -13,6 +13,7 @@ from functools import partial
 from typing import Any
 
 from arklex.env.agents.agent import BaseAgent
+from arklex.env.agents.patterns.registry import PATTERN_DISPATCHER
 from arklex.env.planner.react_planner import DefaultPlanner, ReactPlanner
 from arklex.env.tools.tools import Tool
 from arklex.env.workers.worker import BaseWorker
@@ -150,7 +151,8 @@ class DefaultResourceInitializer(BaseResourceInitializer):
             agent_id: str = agent["id"]
             name: str = agent["name"]
             path: str | None = agent.get("path")
-            config = agent.get("config", {})
+            # for multi-agent sytem
+            config = agent if agent.get("type") in PATTERN_DISPATCHER else {}
 
             try:
                 if path:
@@ -164,15 +166,19 @@ class DefaultResourceInitializer(BaseResourceInitializer):
                         "execute": partial(func, **agent.get("fixed_args", {})),
                         "config": config,
                     }
-                else:
-                    # Dynamically constructed agent (no path)
-                    # For multi-agent system
+                # Dynamically constructed agent (no path), for multi-agent system
+                elif not path and agent.get("type") == "single":
                     agent_registry[agent_id] = {
                         "name": name,
                         "description": agent.get("instructions", ""),
                         "config": agent,
                         "dynamic": True,
                     }
+                else:
+                    log_context.warning(
+                        f"Agent {name} is not registered, error: no path specified and not part of a multi-agent system."
+                    )
+                    continue
 
             except Exception as e:
                 log_context.error(f"Agent {name} is not registered, error: {e}")

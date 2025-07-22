@@ -9,19 +9,18 @@ class AgentsAsToolsPattern(BasePattern):
     def __init__(self, config: dict) -> None:
         super().__init__(config)
         self.tool_agents, self.tool_wrappers = build_tool_wrapped_agents(
-            config["sub_agents"], self.llm_config
+            config.get("sub_agents", []), self.llm_config
         )
-
         self.orchestrator_agent = Agent(
             name="OrchestratorAgent",
-            instructions=f"You are the orchestrator. Use the tools to complete this task: {config['task']}. Do NOT answer on your own.",
+            instructions=f"You are the orchestrator. Use the tools to complete this task: {config.get('instructions')}. Do NOT answer on your own.",
             tools=self.tool_wrappers,
             model=self.llm_config.model_type_or_path,
         )
 
     def step_fn(self, state: MessageState) -> MessageState:
         input_items = state.function_calling_trajectory
-        with trace(f"{self.config['role']}"):
+        with trace(f"{self.config.get('type', 'MultiAgent')}"):
             result = Runner.run_sync(self.orchestrator_agent, input_items)
             state.response = result.final_output
         return state

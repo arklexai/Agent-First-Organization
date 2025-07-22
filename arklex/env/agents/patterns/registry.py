@@ -15,7 +15,7 @@ PATTERN_DISPATCHER: dict[str, type[BasePattern]] = {
 
 
 def dispatch_pattern(config: dict) -> StateGraph:
-    pattern_name = config["pattern"]
+    pattern_name = config.get("type")
     pattern_cls = PATTERN_DISPATCHER.get(pattern_name)
 
     if not pattern_cls:

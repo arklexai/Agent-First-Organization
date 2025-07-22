@@ -8,16 +8,17 @@ The **Multi-Agent System (MAS)** enables orchestration of multiple specialized a
 ### 🔧 Key Features
 - 🧩 Modular agent definitions  
 - 🧠 Pattern-based orchestration:
-  - `deterministic`
-  - `agents_as_tools`
+    - `agents_as_tools`
+  - `deterministic` 
   - `parallel`
   - `llm_as_a_judge`
 - 📦 JSON-configurable via Taskgraph
 - 🔁 Async/sync support via `is_async` flag
-
+> 💡 Note: `deterministic`,  `parallel`, and `llm_as_a_judge` patterns are still in development
 ---
 
 ## Configuration Format: Taskgraph
+> **Need to update**
 
 The MAS is triggered via a Taskgraph configuration where a single node defines a `MultiAgent` and its behavior.
 
@@ -119,68 +120,10 @@ PATTERN_DISPATCHER = {
 ```
 ---
 ##  Pattern Examples
-### 🔍 Research Assistant — `deterministic`
+> **Note: Only `agents_as_tools` pattern is supported as of (2025-07-22)**
 
-> Sequential: Planner → Search → Writer
-
-```jsonc
-"agents": [
-{
-    "id": "multi_agent",
-    "name": "MultiAgent",
-    "path": "multi_agent.py",
-    "config": {
-        "role": "research_bot",
-        "pattern": "deterministic",
-        "task": "Help the user research a topic using a multi-step agent pipeline.",
-        "sub_agents": [
-            {
-                "name": "PlannerAgent",
-                "instructions": "Break down the research topic into a list of relevant web search queries. BE CONCISE. Limit to 5 steps."
-            },
-            {
-                "name": "SearchAgent",
-                "instructions": "Search the web and summarize findings.",
-                    "tools": [{"id": "web_search", "path": null}]
-            },
-            {
-                "name": "WriterAgent",
-                "instructions": "Combine the search results into a coherent and informative report on the original research topic. Include links from previous step if appropiate"
-            }
-]
-    }
-}
-]
-```
-### 🧰 Academic Research — `agents_as_tools`
-> Orchestrator (created automatically) calls tool-wrapped agents
-```jsonc
-"agents": [
-{
-    "id": "multi_agent",
-    "name": "MultiAgent",
-    "path": "multi_agent.py",
-    "config": {
-        "role": "research_bot",
-        "pattern": "agents_as_tools",
-        "task": "Research a topic by combining real-time web summaries with academic citations for credibility and depth.",
-        "sub_agents": [
-                {
-                    "name": "SearchAgent",
-                    "instructions": "Search the web and summarize findings. Make sure to search for the most up to date information",
-                    "tools": [{"id": "web_search", "path": null}]
-                },
-                {
-                    "name": "CitationFinderAgent",
-                    "instructions": "You receive a paragraph or claim and return one or more credible sources (academic or journalistic) that support the content.",
-                    "tools": [{"id": "citation_finder", "path": "multi_agent/citation_finder.py"}]
-                }
-            ]
-        }
-}
-]
-```
 ### 🛒 Shopify Assistant — `agents_as_tools`
+> **Need to update**
 
 > Agents call domain tools like search or user info
     
@@ -234,69 +177,6 @@ PATTERN_DISPATCHER = {
     }
     ]
 ```
-
-### 💻 Multi-Agent Coding — `parallel`
-
->Run agent(e.g. CodingAgent) in parallel, use selector to pick best output
-
-```jsonc
-    "agents": [
-        {
-            "id": "multi_agent",
-            "name": "MultiAgent",
-            "path": "multi_agent.py",
-            "config": {
-                "role": "coding agent",
-                "pattern": "parallel",
-                "is_async":true,
-                "task": "Help answer user's coding questions, by producing clear and concise code that addresses the users issues.",
-                "sub_agents": [
-                    {
-                        "name": "CodingAgent",
-                        "instructions": "Product high quality clean and concise code to address the user's issue",
-                        "tools": [
-                            {
-                                "id": "code_interpreter", 
-                                "path": null
-                            }
-                        ]
-                    }
-                ]
-            }
-        }
-    ]
-```
-### 💻 Multi-Agent Coding — `llm_as_a_judge`
-
-> Iteratively improve outputs based on judge feedback: CodingAgent(generator) 🔄 EvaluatorAgent (created in the background)
-```jsonc
-    "agents": [
-        {
-            "id": "multi_agent",
-            "name": "MultiAgent",
-            "path": "multi_agent.py",
-            "config": {
-                "role": "coding agent",
-                "pattern": "llm_as_a_judge",
-                "is_async":true,
-                "task": "Help answer user's coding questions, by producing clear and concise code that addresses the users issues.",
-                "sub_agents": [
-                    {
-                        "name": "CodingAgent",
-                        "instructions": "Product high quality clean and concise code to address the user's issue",
-                        "tools": [
-                            {
-                                "id": "code_interpreter", 
-                                "path": null
-                            }
-                        ]
-                    }
-                ]
-            }
-        }
-    ]
-```
-
 
 
 ## TODO: Taskgraph Generation
