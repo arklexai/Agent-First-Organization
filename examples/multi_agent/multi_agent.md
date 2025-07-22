@@ -18,27 +18,24 @@ The **Multi-Agent System (MAS)** enables orchestration of multiple specialized a
 ---
 
 ## Configuration Format: Taskgraph
-> **Need to update**
-
 The MAS is triggered via a Taskgraph configuration where a single node defines a `MultiAgent` and its behavior.
 
 #### Example
 
 ```jsonc
 {
-  "id": "multi_agent",
-  "name": "MultiAgent",
-  "path": "multi_agent.py",
-  "config": {
-    "role": "agent_role",
-    "pattern": "deterministic",  // orchestration logic
-    "task": "Main task description",
+    "id": "multi_agent",
+    "name": "MultiAgent",
+    "path": "multi_agent.py",
+    "type": "agents_as_tools",  // orchestration pattern
+    "instructions": "<Task instructions for multi-agent system>",
+    "tools":[],
+    "sub_agents": [...], // list of participating agent ids
     "is_async": false,           // async execution (optional)
-    "sub_agents": [ ... ]        // list of participating agents
-  }
 }
+
 ```
-> 💡 For async patterns like `parallel` and `llm_as_a_judge`, set `is_async`: true.
+> 💡 For async patterns like `parallel` and `llm_as_a_judge`, set `is_async` to `true`.
 ---
 
 ## 🛠 Tooling Support
@@ -123,58 +120,64 @@ PATTERN_DISPATCHER = {
 > **Note: Only `agents_as_tools` pattern is supported as of (2025-07-22)**
 
 ### 🛒 Shopify Assistant — `agents_as_tools`
-> **Need to update**
 
-> Agents call domain tools like search or user info
+> Orchestrator, created in the background, calls tool-wrapped agents (`sub_agents`)
     
 
 
 ```jsonc
     "agents": [
-    {
-        "id": "multi_agent",
-        "name": "MultiAgent",
-        "path": "multi_agent.py",
-        "config": {
-            "role": "shopify assistant",
-            "pattern": "agents_as_tools",
-            "task": "Help users find products and account info.",
-            "sub_agents": [
+        {
+            "id": "multi_agent",
+            "name": "MultiAgent",
+            "path": "multi_agent.py",
+            "type": "agents_as_tools",
+            "instructions": "Help users find products and account info.",
+            "tools":[],
+            "sub_agents": ["product_search_agent", "user_info_agent"]
+        },
+        {
+            "id": "product_search_agent",
+            "name": "ProductSearchAgent",
+            "path": null,
+            "type": "single",
+            "instructions": "Help the user search for products by keyword or category.",
+              "tools": [
+                  {
+                      "id": "search_products",
+                      "path": "shopify/search_products.py",
+                      "fixed_args": {
+                        "admin_token": "<shopify_admin_token>",
+						"shop_url": "<your-shopify-shop-url>",
+	                    "api_version": "2024-10",
+	                    "llm_provider": "openai",
+                        "model_type_or_path":"gpt-4o-mini"
+                      }
+                  }
+
+              ],
+              "sub_agents":[]
+              
+          },
+          {
+            "id": "user_info_agent",
+            "name": "UserInfoAgent",
+            "path": null,
+            "type": "single",
+            "instructions": "Help the user retrieve detailed information about a customer by their ID.",
+            "tools": [
                 {
-                    "name": "ProductSearchAgent",
-                    "instructions": "Help the user search for products by keyword or category.",
-                    "tools": [
-                        {
-                            "id": "search_products",
-                            "path": "shopify/search_products.py",
-                            "fixed_args": {
-                                "admin_token": "<shopify_admin_token>",
-                                    "shop_url": "<your-shopify-shop-url>",
-                                "api_version": "2024-10",
-                                "llm_provider":"openai",
-                                "model_type_or_path":"gpt-4o-mini"
-                            }
-                        }
-                    ]
-                },
-                {
-                    "name": "UserInfoAgent",
-                    "instructions": "Help the user retrieve detailed information about a customer by their ID. The user id, such as 'gid://shopify/Customer/13573257450893'",
-                    "tools": [
-                        {
-                        "id": "get_user_details_admin",
-                        "path": "shopify/get_user_details_admin.py",
-                        "fixed_args": {
-                            "admin_token": "<shopify_admin_token>",
-                            "shop_url": "<your-shopify-shop-url>",
-                            "api_version": "2024-10"
-                        }
-                        }
-                    ]
-                    }
-            ]
-            }
-    }
+                  "id": "get_user_details_admin",
+                  "path": "shopify/get_user_details_admin.py",
+                  "fixed_args": {
+                    "admin_token": "<shopify_admin_token>",
+			        "shop_url": "<your-shopify-shop-url>",
+	                "api_version": "2024-10"
+                  }
+                }
+              ],
+            "sub_agents":[]
+          }
     ]
 ```
 
