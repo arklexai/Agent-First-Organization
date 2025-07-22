@@ -11,7 +11,7 @@ from agents import (
     Tool,
     WebSearchTool,
 )
-from pydantic import BaseModel, create_model
+from pydantic import BaseModel, Field, create_model
 from undecorated import undecorated
 
 from arklex.utils.logging_utils import LogContext
@@ -74,6 +74,10 @@ def resolve_tool(
             tool_func_or_cls = getattr(module, tool_id)
 
             if fixed_args and inspect.isfunction(tool_func_or_cls):
+                # extract the slots
+                tool_instance = tool_func_or_cls()
+                slots = tool_instance.slots
+
                 # wrapped with register_tool wrapper, we want to undecorate
                 try:
                     tool_func_or_cls = undecorated(tool_func_or_cls)
@@ -93,18 +97,19 @@ def resolve_tool(
                 ]
 
                 # Build a dynamic Pydantic model class for user input
-                fields = {
-                    name: (
-                        param.annotation,
-                        param.default
-                        if param.default is not inspect.Parameter.empty
-                        else ...,
-                    )
-                    for name, param in sig.parameters.items()
-                    if name in user_param_names
-                }
+                fields = {}
+                for slot in slots:
+                    if slot.name in user_param_names:
+                        py_type = python_type_from_str(slot.type)
+                        default = None if not slot.required else ...
+                        metadata = {"description": slot.description}
+                        if slot.enum:
+                            metadata["enum"] = slot.enum
+
+                        fields[slot.name] = (py_type, Field(default, **metadata))
 
                 model_cls = create_model(f"{tool_id}_InputModel", **fields)
+
                 return wrap_function_tool_with_fixed_args(
                     base_func=tool_func_or_cls,
                     model_cls=model_cls,
@@ -140,3 +145,15 @@ def wrap_function_tool_with_fixed_args(
         on_invoke_tool=on_invoke,
         strict_json_schema=False,
     )
+
+
+def python_type_from_str(type_str: str) -> type:
+    mapping = {
+        "str": str,
+        "int": int,
+        "float": float,
+        "bool": bool,
+        "dict": dict,
+        "list": list,
+    }
+    return mapping.get(type_str, Any)
