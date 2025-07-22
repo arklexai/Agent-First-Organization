@@ -42,7 +42,7 @@ class BotConfig(BaseModel):
 
     The class provides:
     1. Bot identity and versioning
-    2. Language and type settings
+    2. Language and settings
     3. LLM configuration integration
     4. Type-safe configuration management
 
@@ -50,14 +50,12 @@ class BotConfig(BaseModel):
         bot_id (str): Unique identifier for the bot.
         version (str): Version number of the bot.
         language (str): Primary language of the bot.
-        bot_type (str): Type or category of the bot.
         llm_config (LLMConfig): Language model configuration for the bot.
     """
 
     bot_id: str
     version: str
     language: str
-    bot_type: str
     llm_config: LLMConfig
 
 
