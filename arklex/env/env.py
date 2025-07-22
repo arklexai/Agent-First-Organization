@@ -149,18 +149,31 @@ class DefaultResourceInitializer(BaseResourceInitializer):
         for agent in agents:
             agent_id: str = agent["id"]
             name: str = agent["name"]
-            path: str = agent["path"]
+            path: str | None = agent.get("path")
+            config = agent.get("config", {})
+
             try:
-                filepath: str = os.path.join("arklex.env.agents", path)
-                module_name: str = filepath.replace(os.sep, ".").rstrip(".py")
-                module = importlib.import_module(module_name)
-                func: Callable = getattr(module, name)
-                agent_registry[agent_id] = {
-                    "name": name,
-                    "description": func.description,
-                    "execute": partial(func, **agent.get("fixed_args", {})),
-                    "config": agent.get("config", None),
-                }
+                if path:
+                    filepath: str = os.path.join("arklex.env.agents", path)
+                    module_name: str = filepath.replace(os.sep, ".").rstrip(".py")
+                    module = importlib.import_module(module_name)
+                    func: Callable = getattr(module, name)
+                    agent_registry[agent_id] = {
+                        "name": name,
+                        "description": func.description,
+                        "execute": partial(func, **agent.get("fixed_args", {})),
+                        "config": config,
+                    }
+                else:
+                    # Dynamically constructed agent (no path)
+                    # For multi-agent system
+                    agent_registry[agent_id] = {
+                        "name": name,
+                        "description": agent.get("instructions", ""),
+                        "config": agent,
+                        "dynamic": True,
+                    }
+
             except Exception as e:
                 log_context.error(f"Agent {name} is not registered, error: {e}")
                 continue
@@ -343,21 +356,28 @@ class Environment:
             group_slots = []
             for group in slot_groups:
                 # Generate prompt/description for the group
-                required_fields = [s["name"] for s in group.get("schema", []) if s.get("required", False)]
+                required_fields = [
+                    s["name"]
+                    for s in group.get("schema", [])
+                    if s.get("required", False)
+                ]
                 prompt = (
                     f"Please provide at least one set of the following fields: {', '.join(required_fields)}."
-                    if required_fields else f"Please provide a set of values for group '{group['name']}'."
+                    if required_fields
+                    else f"Please provide a set of values for group '{group['name']}'."
                 )
                 description = f"Slot group '{group['name']}' with schema: {[s['name'] for s in group.get('schema', [])]}"
-                group_slots.append({
-                    "name": group["name"],
-                    "type": "group",
-                    "schema": group.get("schema", []),
-                    "required": group.get("required", False),
-                    "repeatable": group.get("repeatable", True),
-                    "prompt": prompt,
-                    "description": description,
-                })
+                group_slots.append(
+                    {
+                        "name": group["name"],
+                        "type": "group",
+                        "schema": group.get("schema", []),
+                        "required": group.get("required", False),
+                        "repeatable": group.get("repeatable", True),
+                        "prompt": prompt,
+                        "description": description,
+                    }
+                )
             all_slots = slots + group_slots
             tool.load_slots(all_slots)
             combined_args: dict[str, Any] = {
@@ -413,6 +433,13 @@ class Environment:
         elif id in self.agents:
             log_context.info(f"{self.agents[id]['name']} agent selected")
             agent_config = self.agents[id].get("config", {})
+
+            # Resolve sub_agents using registry
+            if agent_config:
+                sub_agent_ids = agent_config.get("sub_agents", [])
+                resolved_sub_agents = resolve_sub_agents(sub_agent_ids, self.agents)
+                agent_config["sub_agents"] = resolved_sub_agents
+
             agent: BaseAgent = self.agents[id]["execute"](
                 successors=node_info.additional_args.get("successors", []),
                 predecessors=node_info.additional_args.get("predecessors", []),
@@ -468,3 +495,15 @@ class Environment:
             log_context.info(f"{self.tools[name]['name']} tool selected")
         except Exception as e:
             log_context.error(f"Tool {name} is not registered, error: {e}")
+
+
+def resolve_sub_agents(
+    sub_agents_raw: list, agent_registry: list[dict[str, Any]]
+) -> list[dict]:
+    if sub_agents_raw and isinstance(sub_agents_raw[0], dict):
+        return sub_agents_raw
+    return [
+        agent_registry[sub_id]["config"]
+        for sub_id in sub_agents_raw
+        if sub_id in agent_registry
+    ]

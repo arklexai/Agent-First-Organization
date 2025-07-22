@@ -39,7 +39,7 @@ class MultiAgent(BaseAgent):
         try:
             log_context.info("Preparing MultiAgent...")
             if not self.multi_agent_config:
-                raise ValueError("MultiAgent config not found in agent.config")
+                raise ValueError("MultiAgent config not found")
             self.multi_agent_config["llm_config"] = self.state.bot_config.llm_config
             self.workflow = dispatch_pattern(self.multi_agent_config)
         except Exception:
