@@ -11,9 +11,10 @@ class AgentsAsToolsPattern(BasePattern):
         self.tool_agents, self.tool_wrappers = build_tool_wrapped_agents(
             config.get("sub_agents", []), self.llm_config
         )
+
         self.orchestrator_agent = Agent(
             name="OrchestratorAgent",
-            instructions=f"You are the orchestrator. Use the tools to complete this task: {config.get('instructions')}. Do NOT answer on your own.",
+            instructions=f"You are the orchestrator. Use the tools to complete this task: {config.get('task')}. Do NOT answer on your own.",
             tools=self.tool_wrappers,
             model=self.llm_config.model_type_or_path,
         )

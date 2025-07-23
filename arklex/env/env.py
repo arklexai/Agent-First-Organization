@@ -13,7 +13,6 @@ from functools import partial
 from typing import Any
 
 from arklex.env.agents.agent import BaseAgent
-from arklex.env.agents.patterns.registry import PATTERN_DISPATCHER
 from arklex.env.planner.react_planner import DefaultPlanner, ReactPlanner
 from arklex.env.tools.tools import Tool
 from arklex.env.workers.worker import BaseWorker
@@ -151,8 +150,7 @@ class DefaultResourceInitializer(BaseResourceInitializer):
             agent_id: str = agent["id"]
             name: str = agent["name"]
             path: str | None = agent.get("path")
-            # for multi-agent sytem
-            config = agent if agent.get("type") in PATTERN_DISPATCHER else {}
+            sub_agents: list | None = agent.get("sub_agents")
 
             try:
                 if path:
@@ -164,9 +162,11 @@ class DefaultResourceInitializer(BaseResourceInitializer):
                         "name": name,
                         "description": func.description,
                         "execute": partial(func, **agent.get("fixed_args", {})),
-                        "config": config,
+                        "sub_agents": sub_agents,
+                        "config": {},
                     }
                 # Dynamically constructed agent (no path), for multi-agent system
+                # Update to be agents-sdk node
                 elif not path and agent.get("type") == "single":
                     agent_registry[agent_id] = {
                         "name": name,
@@ -439,12 +439,14 @@ class Environment:
         elif id in self.agents:
             log_context.info(f"{self.agents[id]['name']} agent selected")
             agent_config = self.agents[id].get("config", {})
-
-            # Resolve sub_agents using registry
-            if agent_config:
-                sub_agent_ids = agent_config.get("sub_agents", [])
+            sub_agent_ids = self.agents[id].get("sub_agents")
+            # On initial call, resolve sub_agents using registry
+            if sub_agent_ids and not agent_config:
                 resolved_sub_agents = resolve_sub_agents(sub_agent_ids, self.agents)
+                # and, add additional node info to config
+                agent_config = node_info.attributes
                 agent_config["sub_agents"] = resolved_sub_agents
+                self.agents[id]["config"] = agent_config
 
             agent: BaseAgent = self.agents[id]["execute"](
                 successors=node_info.additional_args.get("successors", []),
