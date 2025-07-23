@@ -55,7 +55,7 @@ dependencies = [
   "scikit-learn>=1.7.0,<2.0.0",
   "sentence-transformers>=2.2.2,<3.0.0",
   "google-generativeai>=0.8.0,<1.0.0",
-  "redis>=6.2.0",
+  "redis>=6.2.0,<7.0.0",
 ]
 license = "MIT"
 
@@ -111,7 +111,8 @@ strict-versions = [
   "PyMySQL==1.1.0",
   "ShopifyAPI==12.7.0",
   "hubspot-api-client==11.1.0",
-  "google-generativeai==0.8.0"
+  "google-generativeai==0.8.0",
+  "redis==6.2.0",
 ]
 
 [tool.hatch.version]
