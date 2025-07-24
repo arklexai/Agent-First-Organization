@@ -33,7 +33,8 @@ class MultiAgent(BaseAgent):
 
     def is_async(self) -> bool:
         """Check if this multi-agent instance should be run asynchronously."""
-        return self.multi_agent_config.get("is_async", False)
+        node_data = self.multi_agent_config.get("node_specific_data") or {}
+        return node_data.get("is_async", False)
 
     def _load_multi_agent_system(self) -> None:
         try:
