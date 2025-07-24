@@ -20,19 +20,43 @@ The **Multi-Agent System (MAS)** enables orchestration of multiple specialized a
 ## Configuration Format: Taskgraph
 The MAS is triggered via a Taskgraph configuration where a single node defines a `MultiAgent` and its behavior.
 
-#### Example
+#### Example `agents` field
 
 ```jsonc
-{
-    "id": "multi_agent",
-    "name": "MultiAgent",
-    "path": "multi_agent.py",
-    "type": "agents_as_tools",  // orchestration pattern
-    "instructions": "<Task instructions for multi-agent system>",
-    "tools":[],
-    "sub_agents": [...], // list of participating agent ids
-    "is_async": false,           // async execution (optional)
-}
+ "agents": [
+        {
+            "id": "multi_agent",
+            "name": "MultiAgent",
+            "path": "multi_agent.py",
+            "tools":[],
+            "sub_agents": [...], // list of agent names
+        }
+       
+    ]
+```
+#### Example MultiAgent node
+```jsonc
+"nodes": [
+        [...],           
+        [
+            "1",
+            {
+                "resource": {
+                    "id": "multi_agent",
+                    "name": "MultiAgent"
+                },
+                "attribute": {
+                    "value": "",
+                    "type": "agent", 
+                    "task": "<Task instructions for multi-agent system>",
+                    "direct": false,
+                    "node_specific_data": {
+                        "type": "agents_as_tools", // orchestration pattern
+                        "is_async": false  // async execution (optional)
+                    }
+                }
+            }
+        ],
 
 ```
 > 💡 For async patterns like `parallel` and `llm_as_a_judge`, set `is_async` to `true`.
@@ -124,61 +148,105 @@ PATTERN_DISPATCHER = {
 > Orchestrator, created in the background, calls tool-wrapped agents (`sub_agents`)
     
 
-
+#### Example Snapshot of `agents` field and `nodes`
 ```jsonc
-    "agents": [
+ "agents": [
         {
             "id": "multi_agent",
             "name": "MultiAgent",
             "path": "multi_agent.py",
-            "type": "agents_as_tools",
-            "instructions": "Help users find products and account info.",
             "tools":[],
-            "sub_agents": ["product_search_agent", "user_info_agent"]
-        },
-        {
-            "id": "product_search_agent",
-            "name": "ProductSearchAgent",
-            "path": null,
-            "type": "single",
-            "instructions": "Help the user search for products by keyword or category.",
-              "tools": [
-                  {
-                      "id": "search_products",
-                      "path": "shopify/search_products.py",
-                      "fixed_args": {
-                        "admin_token": "<shopify_admin_token>",
-						"shop_url": "<your-shopify-shop-url>",
-	                    "api_version": "2024-10",
-	                    "llm_provider": "openai",
-                        "model_type_or_path":"gpt-4o-mini"
-                      }
-                  }
+            "sub_agents": ["ProductSearchAgent", "UserInfoAgent"]
 
-              ],
-              "sub_agents":[]
-              
-          },
-          {
-            "id": "user_info_agent",
-            "name": "UserInfoAgent",
-            "path": null,
-            "type": "single",
-            "instructions": "Help the user retrieve detailed information about a customer by their ID.",
-            "tools": [
-                {
-                  "id": "get_user_details_admin",
-                  "path": "shopify/get_user_details_admin.py",
-                  "fixed_args": {
-                    "admin_token": "<shopify_admin_token>",
-			        "shop_url": "<your-shopify-shop-url>",
-	                "api_version": "2024-10"
-                  }
+        }
+       
+]
+```
+```jsonc
+"nodes": [
+    [...],
+    [
+        "1",
+        {
+            "resource": {
+                "id": "multi_agent",
+                "name": "MultiAgent"
+            },
+            "attribute": {
+                "value": "",
+                "type": "agent", 
+                "task": "Help users find products and account info.",
+                "direct": false,
+                "node_specific_data": {
+                    "type": "agents_as_tools", 
+                    "is_async": false
                 }
-              ],
-            "sub_agents":[]
-          }
+            }
+        }
+    ],
+    [
+        "2",
+        {
+            "resource": {
+                "id": "openai_sdk_agent",
+                "name": "OpenAISDKAgent"
+            },
+            "attribute": {
+                "name": "ProductSearchAgent",
+                "value": "",
+                "type": "agent",
+                "task": "Help the user search for products by keyword or category.",
+                "direct": false,
+                "node_specific_data":{
+                    "tools": [
+                        {
+                            "id": "search_products",
+                            "path": "shopify/search_products.py",
+                            "fixed_args": {
+                                "admin_token": "<shopify_admin_token>",
+                                "shop_url": "<your-shopify-shop-url>",
+                                "api_version": "2024-10",
+                                "llm_provider":"openai",
+                                "model_type_or_path":"gpt-4o-mini"
+                            }
+                        }
+        
+                    ]
+                }
+            }
+        }
+    ],
+    [...],
+    [
+        "4",
+        {
+            "resource": {
+                "id": "openai_sdk_agent",
+                "name": "OpenAISDKAgent"
+            },
+            "attribute": {
+                "name": "UserInfoAgent",
+                "value": "",
+                "type": "agent",
+                "task": "Help the user retrieve detailed information about a customer by their ID.",
+                "direct": false,
+                "node_specific_data":{
+                    "tools": [
+                        {
+                        "id": "get_user_details_admin",
+                        "path": "shopify/get_user_details_admin.py",
+                        "fixed_args": {
+                            "admin_token": "<shopify_admin_token>",
+                            "shop_url": "<your-shopify-shop-url>",
+                            "api_version": "2024-10"
+                            }
+                        }
+                    ]
+                }
+            }
+        }
     ]
+]
 ```
 
 
