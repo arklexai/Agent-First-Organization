@@ -52,6 +52,43 @@ class Slot(BaseModel):
     items: dict | None = None
     target: str | None = None
 
+    def to_openai_schema(self) -> dict | None:
+        if getattr(self, "valueSource", None) == "fixed":
+            return None
+        if self.items is not None:
+            return {
+                "type": "array",
+                "items": self.items,
+                "description": getattr(self, "description", ""),
+            }
+        if self.type == "group":
+            properties = {}
+            required = []
+            for field in self.schema or []:
+                field_slot = field if isinstance(field, Slot) else Slot(**field)
+                if getattr(field_slot, "valueSource", None) == "fixed":
+                    continue
+                properties[field_slot.name] = field_slot.to_openai_schema()
+                if getattr(field_slot, "required", False):
+                    required.append(field_slot.name)
+            return {
+                "type": "object",
+                "properties": properties,
+                "required": required,
+                "description": getattr(self, "description", ""),
+            }
+        # Primitive type
+        type_map = {
+            "str": "string",
+            "int": "integer",
+            "float": "number",
+            "bool": "boolean",
+        }
+        return {
+            "type": type_map.get(self.type, "string"),
+            "description": getattr(self, "description", ""),
+        }
+
 
 class SlotInput(BaseModel):
     """Input structure for slot filling operations.

@@ -31,6 +31,14 @@ from arklex.utils.logging_utils import LogContext
 log_context = LogContext(__name__)
 
 
+PYTHON_TO_JSON_SCHEMA = {
+    "str": "string",
+    "int": "integer",
+    "float": "number",
+    "bool": "boolean",
+}
+
+
 def chunk_string(
     text: str, tokenizer: str, max_length: int, from_end: bool = True
 ) -> str:

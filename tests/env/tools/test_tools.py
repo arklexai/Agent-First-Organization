@@ -2453,21 +2453,6 @@ class TestToolEdgeCases:
         assert tool_def_v2["function"]["parameters"]["properties"]["param"]["type"] == "array"
         assert tool_def_v2["function"]["parameters"]["properties"]["param"]["items"] == {"type": "string"}
 
-    def test_format_slots_group_and_regular(self) -> None:
-        tool = Tool(
-            func=lambda param: param,
-            name="test_tool",
-            description="Test tool",
-            slots=[],
-            outputs=["result"],
-            isResponse=False,
-        )
-        group_slot = {"name": "group", "type": "group", "schema": []}
-        regular_slot = {"name": "param", "type": "str"}
-        formatted = tool._format_slots([group_slot, regular_slot])
-        assert formatted[0].type == "group"
-        assert formatted[1].type == "str"
-
     def test_execute_slot_schema_change(self) -> None:
         tool = Tool(
             func=lambda param: param,

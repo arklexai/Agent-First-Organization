@@ -124,6 +124,19 @@ class MilvusRetriever:
             collection_name=collection_name, schema=schema, index_params=index_params
         )
 
+    def delete_documents_by_qa_ids(
+        self, collection_name: str, qa_ids: list[str]
+    ) -> dict[str, object]:
+        log_context.info(
+            f"Deleting vector db documents by qa_ids: {qa_ids} from collection: {collection_name}"
+        )
+        quoted_ids = ",".join([f"'{qa_id}'" for qa_id in qa_ids])
+        filter_expr = f"id in [{quoted_ids}]"
+        res = self.client.delete(
+            collection_name=collection_name, filter=filter_expr
+        )
+        return res
+
     def delete_documents_by_qa_doc_id(
         self, collection_name: str, qa_doc_id: str
     ) -> dict[str, object]:
