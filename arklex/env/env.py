@@ -153,32 +153,17 @@ class DefaultResourceInitializer(BaseResourceInitializer):
             sub_agents: list | None = agent.get("sub_agents")
 
             try:
-                if path:
-                    filepath: str = os.path.join("arklex.env.agents", path)
-                    module_name: str = filepath.replace(os.sep, ".").rstrip(".py")
-                    module = importlib.import_module(module_name)
-                    func: Callable = getattr(module, name)
-                    agent_registry[agent_id] = {
-                        "name": name,
-                        "description": func.description,
-                        "execute": partial(func, **agent.get("fixed_args", {})),
-                        "sub_agents": sub_agents,
-                        "config": {},
-                    }
-                # Dynamically constructed agent (no path), for multi-agent system
-                # Update to be agents-sdk node
-                elif not path and agent.get("type") == "single":
-                    agent_registry[agent_id] = {
-                        "name": name,
-                        "description": agent.get("instructions", ""),
-                        "config": agent,
-                        "dynamic": True,
-                    }
-                else:
-                    log_context.warning(
-                        f"Agent {name} is not registered, error: no path specified and not part of a multi-agent system."
-                    )
-                    continue
+                filepath: str = os.path.join("arklex.env.agents", path)
+                module_name: str = filepath.replace(os.sep, ".").rstrip(".py")
+                module = importlib.import_module(module_name)
+                func: Callable = getattr(module, name)
+                agent_registry[agent_id] = {
+                    "name": name,
+                    "description": func.description,
+                    "execute": partial(func, **agent.get("fixed_args", {})),
+                    "sub_agents": sub_agents,
+                    "config": {},
+                }
 
             except Exception as e:
                 log_context.error(f"Agent {name} is not registered, error: {e}")
@@ -439,13 +424,14 @@ class Environment:
         elif id in self.agents:
             log_context.info(f"{self.agents[id]['name']} agent selected")
             agent_config = self.agents[id].get("config", {})
-            sub_agent_ids = self.agents[id].get("sub_agents")
-            # On initial call, resolve sub_agents using registry
-            if sub_agent_ids and not agent_config:
-                resolved_sub_agents = resolve_sub_agents(sub_agent_ids, self.agents)
-                # and, add additional node info to config
-                agent_config = node_info.attributes
-                agent_config["sub_agents"] = resolved_sub_agents
+            sub_agent_names = self.agents[id].get("sub_agents")
+            successors = node_info.additional_args.get("successors", [])
+            # Resolve sub-agents if needed
+            if sub_agent_names and not agent_config:
+                agent_config = node_info.attributes.copy()
+                agent_config["sub_agents"] = resolve_sub_agents(
+                    sub_agent_names, successors
+                )
                 self.agents[id]["config"] = agent_config
 
             agent: BaseAgent = self.agents[id]["execute"](
@@ -506,12 +492,27 @@ class Environment:
 
 
 def resolve_sub_agents(
-    sub_agents_raw: list, agent_registry: list[dict[str, Any]]
-) -> list[dict]:
-    if sub_agents_raw and isinstance(sub_agents_raw[0], dict):
-        return sub_agents_raw
-    return [
-        agent_registry[sub_id]["config"]
-        for sub_id in sub_agents_raw
-        if sub_id in agent_registry
-    ]
+    sub_agent_names: list[str], successors: list[NodeInfo]
+) -> list[dict[str, Any]]:
+    resolved = []
+
+    for node in successors:
+        attributes = node.attributes or {}
+        name = attributes.get("name")
+        if name not in sub_agent_names:
+            continue  # skip nodes not listed as sub_agents
+
+        task = attributes.get("task")
+        tools = node.additional_args.get("tools", []) or attributes.get(
+            "node_specific_data", {}
+        ).get("tools", [])
+
+        resolved.append(
+            {
+                "name": name,
+                "task": task,
+                "tools": tools,
+            }
+        )
+
+    return resolved

@@ -6,11 +6,11 @@ from arklex.orchestrator.entities.msg_state_entities import LLMConfig
 
 def build_agents(agent_configs: list[dict], llm_config: LLMConfig) -> list[Agent]:
     agents = []
-    for cfg in agent_configs:
-        tools = resolve_tools_for_agent(cfg.get("tools", []))
+    for config in agent_configs:
+        tools = resolve_tools_for_agent(config.get("tools", []))
         agent = Agent(
-            name=cfg["name"],
-            instructions=cfg["instructions"],
+            name=config["name"],
+            instructions=config["task"],
             tools=tools,
             model=llm_config.model_type_or_path,
         )
