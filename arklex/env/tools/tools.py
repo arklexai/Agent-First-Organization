@@ -17,15 +17,16 @@ from arklex.orchestrator.NLU.core.slot import SlotFiller
 from arklex.orchestrator.NLU.entities.slot_entities import Slot
 from arklex.utils.exceptions import AuthenticationError, ToolExecutionError
 from arklex.utils.logging_utils import LogContext
-from arklex.utils.utils import format_chat_history
+from arklex.utils.utils import PYTHON_TO_JSON_SCHEMA, format_chat_history
 
 log_context = LogContext(__name__)
 
-PYTHON_TO_JSON_SCHEMA = {
-    "str": "string",
-    "int": "integer",
-    "float": "number",
-    "bool": "boolean",
+# Type conversion mapping for slot values
+TYPE_CONVERTERS = {
+    "int": int,
+    "float": float,
+    "bool": lambda v: v if isinstance(v, bool) else (v.lower() == "true" if isinstance(v, str) else bool(v)),
+    "str": lambda v: v if isinstance(v, dict | list) else str(v),
 }
 
 
@@ -135,7 +136,6 @@ class Tool:
         self.slotfiller: SlotFiller | None = None
         self.info: dict[str, Any] = self.get_info(slots)
         self.slots: list[Slot] = [Slot.model_validate(slot) for slot in slots]
-        self.openai_slots: list[dict[str, Any]] = self._format_slots(slots)
         self.isResponse: bool = isResponse
         self.properties: dict[str, dict[str, Any]] = {}
         self.llm_config: dict[str, Any] = {}
@@ -286,19 +286,12 @@ class Tool:
                     return [v.strip() for v in value.split(",") if v.strip()]
                 return list(value)
 
-        # Mapping of type strings to conversion functions
-        type_converters = {
-            "int": int,
-            "float": float,
-            "bool": lambda v: v if isinstance(v, bool) else (v.lower() == "true" if isinstance(v, str) else bool(v)),
-            "str": lambda v: v if isinstance(v, dict | list) else str(v),
-        }
-        converter = type_converters.get(type_str)
+        converter = TYPE_CONVERTERS.get(type_str)
         if converter:
             try:
                 return converter(value)
             except Exception:
-                    return value
+                return value
         return value
 
     def _fill_slots_recursive(self, slots: list[Slot], chat_history_str: str) -> list[Slot]:
@@ -833,14 +826,14 @@ class Tool:
                     parameters["properties"][slot.name] = {
                         "type": "array",
                         "items": {
-                            "type": PYTHON_TO_JSON_SCHEMA[slot.type],
+                            "type":PYTHON_TO_JSON_SCHEMA[slot.type], 
                         },
                         "description": slot.description,
                     }
                 else:
                     # For non-repeatable regular slots, define as single value
                     parameters["properties"][slot.name] = {
-                        "type": PYTHON_TO_JSON_SCHEMA[slot.type],
+                        "type": PYTHON_TO_JSON_SCHEMA[slot.type], 
                         "description": slot.description,
                     }
         return {
@@ -854,31 +847,12 @@ class Tool:
         parameters = {
             "type": "object",
             "properties": {},
-            "required": [slot.name for slot in self.openai_slots if slot.required],
+            "required": [slot.name for slot in self.slots if getattr(slot, 'required', False)],
         }
-        for slot in self.openai_slots:
-            if hasattr(slot, "items") and slot.items:
-                parameters["properties"][slot.name] = {
-                    "type": "array",
-                    "items": slot.items,
-                }
-            else:
-                # Handle regular slots (non-group)
-                if getattr(slot, 'repeatable', False):
-                    # For repeatable regular slots, define as array
-                    parameters["properties"][slot.name] = {
-                        "type": "array",
-                        "items": {
-                            "type": PYTHON_TO_JSON_SCHEMA[slot.type],
-                        },
-                        "description": slot.description,
-                    }
-                else:
-                    # For non-repeatable regular slots, define as single value
-                    parameters["properties"][slot.name] = {
-                        "type": PYTHON_TO_JSON_SCHEMA[slot.type],
-                        "description": slot.description,
-                    }
+        for slot in self.slots:
+            if getattr(slot, 'valueSource', None) == 'fixed':
+                continue
+            parameters['properties'][slot.name] = slot.to_openai_schema()
         return {
             "type": "function",
             "function": {
@@ -903,38 +877,6 @@ class Tool:
             str: A detailed string representation of the tool.
         """
         return f"{self.__class__.__name__}"
-
-    def _format_slots(self, slots: list) -> list[Slot]:
-        format_slots = []
-        for slot in slots:
-            if slot.get("type") == "group":
-                format_slots.append(
-                    Slot(
-                        name=slot["name"],
-                        type="group",
-                        value=[],
-                        description=slot.get("description", ""),
-                        prompt=slot.get("prompt", ""),
-                        required=slot.get("required", False),
-                        schema=slot.get("schema", []),
-                        repeatable=slot.get("repeatable", True),
-                    )
-                )
-            else:
-                # Handle regular slots (non-group)
-                format_slots.append(
-                    Slot(
-                        name=slot["name"],
-                        type=slot["type"],
-                        value=[] if slot.get("repeatable", False) else "",
-                        description=slot.get("description", ""),
-                        prompt=slot.get("prompt", ""),
-                        required=slot.get("required", False),
-                        items=slot.get("items", None),
-                        repeatable=slot.get("repeatable", False),
-                    )
-                )
-        return format_slots
 
     def _execute(self, state: MessageState, **fixed_args: FixedArgs) -> MessageState:
         """Execute the tool with the current state and fixed arguments.

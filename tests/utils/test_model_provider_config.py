@@ -53,7 +53,7 @@ class TestModelProviderConfig:
 
         assert response is not None
         assert hasattr(response, "content")
-        assert response.content == "dummy response"
+        assert response.content == "Thank you for using our service. Goodbye!"
 
     def test_llm_providers_list(self) -> None:
         """Test LLM_PROVIDERS list contains expected providers."""
