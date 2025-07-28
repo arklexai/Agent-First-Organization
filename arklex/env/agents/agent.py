@@ -1,6 +1,6 @@
 import traceback
-from abc import ABC, abstractmethod
-from typing import Any, List, TypeVar
+from abc import ABC
+from typing import Any, TypeVar
 
 from arklex.env.tools.tools import Tool
 from arklex.orchestrator.entities.msg_state_entities import MessageState
@@ -41,7 +41,7 @@ class BaseAgent(ABC):
 
     description: str | None = None
     name: str
-    tools: List[Tool] = []
+    tools: list[Tool] = []
 
     def __str__(self) -> str:
         """Get a string representation of the agent.
@@ -58,7 +58,6 @@ class BaseAgent(ABC):
             str: The name of the agent class.
         """
         return f"{self.__class__.__name__}"
-
 
     def execute(self, msg_state: MessageState, **kwargs: Any) -> MessageState:  # noqa: ANN401
         """Execute the agent with error handling and state management.
