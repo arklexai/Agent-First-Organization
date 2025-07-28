@@ -238,6 +238,16 @@ class TaskGraph(TaskGraphBase):
 
     def _build_neighbor_node_info(self, node_id: str) -> NodeInfo:
         n = self.graph.nodes[node_id]
+        # Detect if node is 'openai_sdk_agent' and get successors if true
+        include_successors = n["resource"]["id"] == "openai_sdk_agent"
+        successors = (
+            [
+                self._build_neighbor_node_info(succ)
+                for succ in self.graph.successors(node_id)
+            ]
+            if include_successors
+            else []
+        )
         return NodeInfo(
             node_id=node_id,
             type=n.get("type", ""),
@@ -260,6 +270,7 @@ class TaskGraph(TaskGraphBase):
                     for k, v in n["attribute"].get("node_specific_data", {}).items()
                     if not isinstance(v, dict)
                 },
+                "successors": successors,  # ← only populated if openai_sdk_agent
             },
         )
 
@@ -288,7 +299,6 @@ class TaskGraph(TaskGraphBase):
                 params.taskgraph.available_global_intents.pop(intent)
 
         params.taskgraph.curr_node = sample_node
-
         node_info = NodeInfo(
             node_id=sample_node,
             type=node_info.get("type", ""),
@@ -726,7 +736,8 @@ class TaskGraph(TaskGraphBase):
         params.taskgraph.intent = self.unsure_intent.get("intent")
         params.taskgraph.curr_global_intent = self.unsure_intent.get("intent")
         if params.taskgraph.nlu_records:
-            params.taskgraph.nlu_records[-1]["no_intent"] = True  # no intent found
+            # no intent found
+            params.taskgraph.nlu_records[-1]["no_intent"] = True
         else:
             params.taskgraph.nlu_records.append(
                 {

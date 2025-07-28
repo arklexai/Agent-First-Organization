@@ -15,7 +15,7 @@ def build_agents(agent_configs: list[dict], llm_config: LLMConfig) -> list[Agent
             model=llm_config.model_type_or_path,
         )
         agents.append(agent)
-    return agents[0] if len(agents) == 1 else agents
+    return agents
 
 
 def build_tool_wrapped_agents(

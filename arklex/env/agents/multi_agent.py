@@ -28,7 +28,7 @@ class MultiAgent(BaseAgent):
         self.multi_agent_config = multi_agent_config
         self._load_multi_agent_system()
         log_context.info(
-            f"MultiAgent initialized with {self.multi_agent_config.get('pattern')} pattern."
+            f"MultiAgent initialized with {self.multi_agent_config.get('node_specific_data')} pattern."
         )
 
     def is_async(self) -> bool:

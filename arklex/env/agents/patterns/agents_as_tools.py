@@ -19,9 +19,9 @@ class AgentsAsToolsPattern(BasePattern):
             model=self.llm_config.model_type_or_path,
         )
 
-    def step_fn(self, state: MessageState) -> MessageState:
+    async def step_fn(self, state: MessageState) -> MessageState:
         input_items = state.function_calling_trajectory
         with trace(f"{self.config.get('type', 'MultiAgent')}"):
-            result = Runner.run_sync(self.orchestrator_agent, input_items)
+            result = await Runner.run(self.orchestrator_agent, input_items)
             state.response = result.final_output
         return state
