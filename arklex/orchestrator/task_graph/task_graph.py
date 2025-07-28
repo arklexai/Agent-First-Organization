@@ -238,14 +238,14 @@ class TaskGraph(TaskGraphBase):
 
     def _build_neighbor_node_info(self, node_id: str) -> NodeInfo:
         n = self.graph.nodes[node_id]
-        # Detect if node is 'openai_sdk_agent' and get successors if true
-        include_successors = n["resource"]["id"] == "openai_sdk_agent"
-        successors = (
+        # Detect if node is 'openai_sdk_agent' and get predecessors(i.e. tools) if true
+        include_predecessors = n["resource"]["id"] == "openai_sdk_agent"
+        predecessors = (
             [
                 self._build_neighbor_node_info(succ)
-                for succ in self.graph.successors(node_id)
+                for succ in self.graph.predecessors(node_id)
             ]
-            if include_successors
+            if include_predecessors
             else []
         )
         return NodeInfo(
@@ -270,7 +270,7 @@ class TaskGraph(TaskGraphBase):
                     for k, v in n["attribute"].get("node_specific_data", {}).items()
                     if not isinstance(v, dict)
                 },
-                "successors": successors,  # ← only populated if openai_sdk_agent
+                "predecessors": predecessors,  # ← only populated if openai_sdk_agent
             },
         )
 

@@ -531,9 +531,9 @@ class Environment:
                 "node_specific_data", {}
             ).get("name", "")
             task = attributes.get("task")
-            # Find tools for this agent by collecting tools from its successors
+            # Find tools for this agent by collecting tools from its predecessors
             tools = []
-            for succ in node.additional_args.get("successors", []):
+            for succ in node.additional_args.get("predecessors", []):
                 tool_info = self.tools.get(succ.resource_id)
                 if tool_info:
                     tool_name = tool_info.get("name", "")
