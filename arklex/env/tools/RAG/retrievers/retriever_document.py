@@ -36,17 +36,17 @@ def _generate_cache_key(text: str, model: str = "text-embedding-ada-002") -> str
     return f"arklex::embedding::retriever::{model}::{text_hash}"
 
 
-def embed(text: str) -> list[float]:
+def embed(text: str, cache: bool = False) -> list[float]:
     """Generate embeddings for text with Redis caching."""
-
-    cache_key = _generate_cache_key(text)
 
     # Try to get from cache first
     try:
-        cached_embedding = redis_pool.get(cache_key, decode_json=True)
-        if cached_embedding:
-            log_context.info(f"Cache hit for text of length {len(text)}")
-            return cached_embedding
+        if cache:
+            cache_key = _generate_cache_key(text)
+            cached_embedding = redis_pool.get(cache_key, decode_json=True)
+            if cached_embedding:
+                log_context.info(f"Cache hit for text of length {len(text)}")
+                return cached_embedding
     except Exception as e:
         log_context.warning(f"Redis cache read error: {e}")
 
@@ -56,12 +56,14 @@ def embed(text: str) -> list[float]:
         response = client.embeddings.create(input=text, model="text-embedding-ada-002")
         embedding = response.data[0].embedding
 
-        # Cache the embedding
-        try:
-            redis_pool.set(cache_key, embedding, ttl=EMBEDDING_CACHE_TTL)
-            log_context.info(f"Cached embedding for text of length {len(text)}")
-        except Exception as e:
-            log_context.warning(f"Redis cache write error: {e}")
+        if cache:
+            # Cache the embedding
+            cache_key = _generate_cache_key(text)
+            try:
+                redis_pool.set(cache_key, embedding, ttl=EMBEDDING_CACHE_TTL)
+                log_context.info(f"Cached embedding for text of length {len(text)}")
+            except Exception as e:
+                log_context.warning(f"Redis cache write error: {e}")
 
         return embedding
 
