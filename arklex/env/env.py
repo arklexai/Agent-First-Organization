@@ -13,6 +13,7 @@ from functools import partial
 from typing import Any
 
 from arklex.env.agents.agent import BaseAgent
+from arklex.env.agents.utils.tool_resolver import BUILT_IN_TOOLS
 from arklex.env.planner.react_planner import DefaultPlanner, ReactPlanner
 from arklex.env.tools.tools import Tool
 from arklex.env.workers.worker import BaseWorker
@@ -94,57 +95,62 @@ class DefaultResourceInitializer(BaseResourceInitializer):
             tool_id: str = tool["id"]
             name: str = tool["name"]
             path: str = tool["path"]
-            try:
-                filepath: str = os.path.join("arklex.env.tools", path)
-                module_name: str = filepath.replace(os.sep, ".").replace(".py", "")
-                module = importlib.import_module(module_name)
-                func: Callable = getattr(module, name)
-                tool_instance: Tool = func()
-                if "http_tool" in tool_id and len(attributes_list) > 0:
-                    attributes = attributes_list[idx]
-                    # --- Begin slot group merge logic ---
-                    slots = attributes.get("slots", [])
-                    slot_groups = attributes.get("slot_groups", [])
-                    group_slots = []
-                    for group in slot_groups:
-                        # Generate prompt/description for the group
-                        required_fields = [
-                            s["name"]
-                            for s in group.get("schema", [])
-                            if s.get("required", False)
-                        ]
-                        prompt = (
-                            f"Please provide at least one set of the following fields: {', '.join(required_fields)}."
-                            if required_fields
-                            else f"Please provide a set of values for group '{group['name']}'."
-                        )
-                        description = f"Slot group '{group['name']}' with schema: {[s['name'] for s in group.get('schema', [])]}"
-                        group_slots.append(
-                            {
-                                "name": group["name"],
-                                "type": "group",
-                                "schema": group.get("schema", []),
-                                "required": group.get("required", False),
-                                "repeatable": group.get("repeatable", True),
-                                "prompt": prompt,
-                                "description": description,
-                            }
-                        )
-                    all_slots = slots + group_slots
-                    tool_instance.load_slots(all_slots)
-                    tool_instance.fixed_args = attributes.get(
-                        "node_specific_data", {}
-                    ).get("http", {})
 
-                tool_registry[tool_id] = {
-                    "name": f"{path.replace('/', '-')}-{name}",
-                    "description": tool_instance.description,
-                    "tool_instance": tool_instance,
-                    "execute": func,
-                    "fixed_args": tool.get("fixed_args", {}),
-                }
-            except Exception as e:
-                log_context.error(f"Tool {name} is not registered, error: {e}")
+            # for openai_agent_sdk tools
+            if tool_id in BUILT_IN_TOOLS:
+                tool_registry[tool_id] = {"name": name, "agent_sdk_tool": True}
+            else:
+                try:
+                    filepath: str = os.path.join("arklex.env.tools", path)
+                    module_name: str = filepath.replace(os.sep, ".").replace(".py", "")
+                    module = importlib.import_module(module_name)
+                    func: Callable = getattr(module, name)
+                    tool_instance: Tool = func()
+                    if "http_tool" in tool_id and len(attributes_list) > 0:
+                        attributes = attributes_list[idx]
+                        # --- Begin slot group merge logic ---
+                        slots = attributes.get("slots", [])
+                        slot_groups = attributes.get("slot_groups", [])
+                        group_slots = []
+                        for group in slot_groups:
+                            # Generate prompt/description for the group
+                            required_fields = [
+                                s["name"]
+                                for s in group.get("schema", [])
+                                if s.get("required", False)
+                            ]
+                            prompt = (
+                                f"Please provide at least one set of the following fields: {', '.join(required_fields)}."
+                                if required_fields
+                                else f"Please provide a set of values for group '{group['name']}'."
+                            )
+                            description = f"Slot group '{group['name']}' with schema: {[s['name'] for s in group.get('schema', [])]}"
+                            group_slots.append(
+                                {
+                                    "name": group["name"],
+                                    "type": "group",
+                                    "schema": group.get("schema", []),
+                                    "required": group.get("required", False),
+                                    "repeatable": group.get("repeatable", True),
+                                    "prompt": prompt,
+                                    "description": description,
+                                }
+                            )
+                        all_slots = slots + group_slots
+                        tool_instance.load_slots(all_slots)
+                        tool_instance.fixed_args = attributes.get(
+                            "node_specific_data", {}
+                        ).get("http", {})
+
+                    tool_registry[tool_id] = {
+                        "name": f"{path.replace('/', '-')}-{name}",
+                        "description": tool_instance.description,
+                        "tool_instance": tool_instance,
+                        "execute": func,
+                        "fixed_args": tool.get("fixed_args", {}),
+                    }
+                except Exception as e:
+                    log_context.error(f"Tool {name} is not registered, error: {e}")
         return tool_registry
 
     @staticmethod
@@ -549,7 +555,9 @@ class Environment:
                     tools.append(
                         {
                             "id": tool_id,
-                            "path": f"{succ.resource_id}.py",
+                            "path": None
+                            if tool_info.get("agent_sdk_tool")
+                            else f"{succ.resource_id}.py",
                             "description": tool_info.get("description"),
                             "fixed_args": merged_args,
                         }

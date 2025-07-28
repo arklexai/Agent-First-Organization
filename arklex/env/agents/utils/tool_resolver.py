@@ -29,12 +29,8 @@ BUILT_IN_TOOLS = {
 
 def resolve_tools_for_agent(tool_specs: list[Any]) -> list[Tool]:
     resolved_tools = []
-
     for spec in tool_specs:
-        if isinstance(spec, str):
-            tool_id, path = spec, None
-            fixed_args = {}
-        elif isinstance(spec, dict):
+        if isinstance(spec, dict):
             tool_id = spec["id"]
             path = spec.get("path")
             fixed_args = spec.get("fixed_args", {})
