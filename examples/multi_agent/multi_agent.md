@@ -168,7 +168,7 @@ PATTERN_DISPATCHER = {
 
 1. Add edges from the MultiAgent node to each sub_agent (e.g. OpenAISDKAgent).
 
-2. Add edges from each sub_agent to its tool(s) (nodes of type tool).
+2. Add edges from the tool(s) (nodes of type tool) to the sub_agent. Ensure that the tools are predecessor nodes of the sub_agent that will use them.
 
 3. List the tools explicitly in the `tools` field
 
