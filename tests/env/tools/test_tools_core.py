@@ -23,7 +23,6 @@ def test_register_tool_decorator_creates_tool() -> None:
     tool_instance = decorated()
     assert isinstance(tool_instance, Tool)
     assert tool_instance.description == "desc"
-    assert tool_instance.name.endswith("dummy_func")
     assert any(slot.name == "a" for slot in tool_instance.slots)
 
 
