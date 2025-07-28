@@ -518,7 +518,7 @@ class Environment:
 
         for node in successors:
             # make sure it is a sub_agent
-            if node.type != "agent":
+            if node.type != "agent" and node.attributes.get("type") != "agent":
                 continue
             attributes = node.attributes or {}
             name = node.additional_args.get("name", []) or attributes.get(
