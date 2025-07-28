@@ -75,7 +75,9 @@ class DefaultResourceInitializer(BaseResourceInitializer):
     """
 
     @staticmethod
-    def init_tools(tools: list[dict[str, Any]],  attributes_list: list[dict[str, Any]] | None = []) -> dict[str, dict[str, Any]]:
+    def init_tools(
+        tools: list[dict[str, Any]], attributes_list: list[dict[str, Any]] | None = None
+    ) -> dict[str, dict[str, Any]]:
         """Initialize tools from configuration.
 
         Args:
@@ -86,6 +88,8 @@ class DefaultResourceInitializer(BaseResourceInitializer):
             dictionary mapping tool IDs to their configurations
         """
         tool_registry: dict[str, dict[str, Any]] = {}
+        if attributes_list is None:
+            attributes_list = []
         for idx, tool in enumerate(tools):
             tool_id: str = tool["id"]
             name: str = tool["name"]
@@ -99,7 +103,7 @@ class DefaultResourceInitializer(BaseResourceInitializer):
                 # update fixed args from tools config
                 tool_instance.fixed_args.update(tool.get("fixed_args", {}))
                 tool_instance.auth.update(tool.get("auth", {}))
-                if "http_tool" in tool_id  and len(attributes_list) > 0:
+                if "http_tool" in tool_id and len(attributes_list) > 0:
                     attributes = attributes_list[idx]
                     node_specific_data = attributes.get("node_specific_data", {})
                     # --- Begin slot group merge logic ---
@@ -108,26 +112,35 @@ class DefaultResourceInitializer(BaseResourceInitializer):
                     group_slots = []
                     for group in slot_groups:
                         # Generate prompt/description for the group
-                        required_fields = [s["name"] for s in group.get("schema", []) if s.get("required", False)]
+                        required_fields = [
+                            s["name"]
+                            for s in group.get("schema", [])
+                            if s.get("required", False)
+                        ]
                         prompt = (
                             f"Please provide at least one set of the following fields: {', '.join(required_fields)}."
-                            if required_fields else f"Please provide a set of values for group '{group['name']}'."
+                            if required_fields
+                            else f"Please provide a set of values for group '{group['name']}'."
                         )
                         description = f"Slot group '{group['name']}' with schema: {[s['name'] for s in group.get('schema', [])]}"
-                        group_slots.append({
-                            "name": group["name"],
-                            "type": "group",
-                            "schema": group.get("schema", []),
-                            "required": group.get("required", False),
-                            "repeatable": group.get("repeatable", True),
-                            "prompt": prompt,
-                            "description": description,
-                        })
+                        group_slots.append(
+                            {
+                                "name": group["name"],
+                                "type": "group",
+                                "schema": group.get("schema", []),
+                                "required": group.get("required", False),
+                                "repeatable": group.get("repeatable", True),
+                                "prompt": prompt,
+                                "description": description,
+                            }
+                        )
                     all_slots = slots + group_slots
                     tool_instance.load_slots(all_slots)
                     tool_instance.fixed_args.update(node_specific_data.get("http", {}))
                     tool_instance.description = attributes.get("task", "")
-                    tool_instance.name = node_specific_data.get("name", attributes.get("task", "").replace(" ", "_").lower())
+                    tool_instance.name = node_specific_data.get(
+                        "name", attributes.get("task", "").replace(" ", "_").lower()
+                    )
                     tool_id = tool_instance.name
                 tool_registry[tool_id] = {
                     "name": f"{path.replace('/', '-')}-{name}",
@@ -297,7 +310,9 @@ class Environment:
                 resource_initializer = DefaultResourceInitializer()
 
         attributes_list = kwargs.get("attributes", [])
-        self.tools: dict[str, dict[str, Any]] = resource_initializer.init_tools(tools, attributes_list=attributes_list)
+        self.tools: dict[str, dict[str, Any]] = resource_initializer.init_tools(
+            tools, attributes_list=attributes_list
+        )
         self.workers: dict[str, dict[str, Any]] = resource_initializer.init_workers(
             workers
         )

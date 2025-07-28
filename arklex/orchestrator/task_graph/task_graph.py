@@ -45,10 +45,14 @@ import copy
 from typing import Any
 
 import networkx as nx
-
 import numpy as np
 
-from arklex.env.agents.openai_realtime_agent import OpenAIRealtimeAgent, TurnDetection, PromptVariable
+from arklex.env.agents.agent import BaseAgent
+from arklex.env.agents.openai_realtime_agent import (
+    OpenAIRealtimeAgent,
+    PromptVariable,
+    TurnDetection,
+)
 from arklex.env.env import DefaultResourceInitializer
 from arklex.env.nested_graph.nested_graph import NestedGraph
 from arklex.orchestrator.entities.msg_state_entities import LLMConfig, StatusEnum
@@ -63,7 +67,6 @@ from arklex.orchestrator.NLU.services.model_service import (
 from arklex.utils.exceptions import TaskGraphError
 from arklex.utils.logging_utils import LogContext
 from arklex.utils.utils import normalize, str_similarity
-from arklex.env.agents.agent import BaseAgent
 
 log_context = LogContext(__name__)
 
@@ -118,6 +121,7 @@ class TaskGraphBase:
                 return node[0]
         return None
 
+
 class AgentGraph(TaskGraphBase):
     """
     AgentGraph is a task graph that contains agents and tools that the agent can use.
@@ -130,12 +134,12 @@ class AgentGraph(TaskGraphBase):
     Methods:
         create_graph(): Creates the graph structure
     """
+
     def __init__(self, name: str, product_kwargs: dict[str, Any]) -> None:
         self.agents: dict[str, BaseAgent] = {}
         self.resources = {}
         super().__init__(name, product_kwargs)
 
-        
     def create_graph(self) -> None:
         nodes: list[dict[str, Any]] = self.product_kwargs["nodes"]
         edges: list[tuple[str, str, dict[str, Any]]] = self.product_kwargs["edges"]
@@ -157,39 +161,72 @@ class AgentGraph(TaskGraphBase):
         resource_initializer = DefaultResourceInitializer()
         for node in self.graph.nodes.data():
             if node[1].get("type", "") == "agent":
-                node_specific_data = node[1].get("attribute", {}).get("node_specific_data", {})
+                node_specific_data = (
+                    node[1].get("attribute", {}).get("node_specific_data", {})
+                )
                 resource = node[1].get("resource", {})
-            
+
                 # process successors and predecessors to get resources
                 resources = []
                 attributes = []
                 for node_id in self.graph.successors(node[0]):
                     successor_node = self.graph.nodes[node_id]
-                    if successor_node.get("type", "") == "tool" and predecessor_node["resource"]["id"] != "planner":
+                    if (
+                        successor_node.get("type", "") == "tool"
+                        and successor_node["resource"]["id"] != "planner"
+                    ):
                         resources.append(successor_node["resource"])
                         attributes.append(successor_node["attribute"])
 
                 for node_id in self.graph.predecessors(node[0]):
                     predecessor_node = self.graph.nodes[node_id]
-                    if predecessor_node.get("type", "") == "tool" and predecessor_node["resource"]["id"] != "planner":
+                    if (
+                        predecessor_node.get("type", "") == "tool"
+                        and predecessor_node["resource"]["id"] != "planner"
+                    ):
                         resources.append(predecessor_node["resource"])
                         attributes.append(predecessor_node["attribute"])
-                
+
                 tool_registry = resource_initializer.init_tools(resources, attributes)
-                tool_map = {tool_registry[tool_id]["tool_instance"].name: tool_registry[tool_id]["tool_instance"] for tool_id in tool_registry.keys()}
+                tool_map = {
+                    tool_registry[tool_id]["tool_instance"].name: tool_registry[
+                        tool_id
+                    ]["tool_instance"]
+                    for tool_id in tool_registry
+                }
                 self.resources.update(tool_registry)
                 if resource.get("id", "") == "openai_realtime_voice_agent":
                     prompt = node_specific_data.get("prompt", "")
                     # prompt_variables_test_values = node_specific_data.get("prompt_variables_test_values", None)
                     prompt_variables = []
-                    if self.product_kwargs.get('prompt_variables', None):
-                        prompt_variables = self.product_kwargs.get('prompt_variables')
+                    if self.product_kwargs.get("prompt_variables", None):
+                        prompt_variables = self.product_kwargs.get("prompt_variables")
                     else:
-                        prompt_variables = [PromptVariable(**v) for v in node_specific_data.get('prompt_variables_test_values', [])]
-                    self.agents[node_specific_data["name"]] = OpenAIRealtimeAgent(prompt=prompt, prompt_variables=prompt_variables, tool_map=tool_map, voice=node_specific_data.get("voice", "alloy"), transcription_language=node_specific_data.get("transcription_language", None), speed=node_specific_data.get("speed", 1.0), turn_detection=TurnDetection.from_dict(node_specific_data.get("turn_detection", None)))
+                        prompt_variables = [
+                            PromptVariable(**v)
+                            for v in node_specific_data.get(
+                                "prompt_variables_test_values", []
+                            )
+                        ]
+                    self.agents[node_specific_data["name"]] = OpenAIRealtimeAgent(
+                        prompt=prompt,
+                        prompt_variables=prompt_variables,
+                        tool_map=tool_map,
+                        voice=node_specific_data.get("voice", "alloy"),
+                        transcription_language=node_specific_data.get(
+                            "transcription_language", None
+                        ),
+                        speed=node_specific_data.get("speed", 1.0),
+                        turn_detection=TurnDetection.from_dict(
+                            node_specific_data.get("turn_detection", None)
+                        ),
+                    )
                 else:
-                    log_context.warning(f"Agent {resource.get('id', '')} not implemented yet in agent graph")
+                    log_context.warning(
+                        f"Agent {resource.get('id', '')} not implemented yet in agent graph"
+                    )
                     continue
+
 
 class TaskGraph(TaskGraphBase):
     """Task graph management and execution.
