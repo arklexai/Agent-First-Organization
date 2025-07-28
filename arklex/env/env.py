@@ -459,7 +459,7 @@ class Environment:
             agent_config = self.agents[id].get("config", {})
             successors = node_info.additional_args.get("successors", [])
             # Resolve sub-agents if needed
-            if not agent_config:
+            if not agent_config and id == "multi_agent":
                 agent_config = node_info.attributes.copy()
                 agent_config["sub_agents"] = self.resolve_sub_agents(successors)
                 self.agents[id]["config"] = agent_config
