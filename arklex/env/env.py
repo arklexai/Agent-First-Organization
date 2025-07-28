@@ -75,18 +75,17 @@ class DefaultResourceInitializer(BaseResourceInitializer):
     """
 
     @staticmethod
-    def init_tools(tools: list[dict[str, Any]],  attributes_list: list[dict[str, Any]] | None = None) -> dict[str, dict[str, Any]]:
+    def init_tools(tools: list[dict[str, Any]],  attributes_list: list[dict[str, Any]] | None = []) -> dict[str, dict[str, Any]]:
         """Initialize tools from configuration.
 
         Args:
             tools: list of tool configurations
+            attributes_list: optional list of attributes for the tools
 
         Returns:
             dictionary mapping tool IDs to their configurations
         """
         tool_registry: dict[str, dict[str, Any]] = {}
-        if attributes_list is None:
-            attributes_list = []
         for idx, tool in enumerate(tools):
             tool_id: str = tool["id"]
             name: str = tool["name"]
@@ -97,8 +96,12 @@ class DefaultResourceInitializer(BaseResourceInitializer):
                 module = importlib.import_module(module_name)
                 func: Callable = getattr(module, name)
                 tool_instance: Tool = func()
+                # update fixed args from tools config
+                tool_instance.fixed_args.update(tool.get("fixed_args", {}))
+                tool_instance.auth.update(tool.get("auth", {}))
                 if "http_tool" in tool_id  and len(attributes_list) > 0:
                     attributes = attributes_list[idx]
+                    node_specific_data = attributes.get("node_specific_data", {})
                     # --- Begin slot group merge logic ---
                     slots = attributes.get("slots", [])
                     slot_groups = attributes.get("slot_groups", [])
@@ -122,14 +125,16 @@ class DefaultResourceInitializer(BaseResourceInitializer):
                         })
                     all_slots = slots + group_slots
                     tool_instance.load_slots(all_slots)
-                    tool_instance.fixed_args = attributes.get("node_specific_data", {}).get("http", {})
-
+                    tool_instance.fixed_args.update(node_specific_data.get("http", {}))
+                    tool_instance.description = attributes.get("task", "")
+                    tool_instance.name = node_specific_data.get("name", attributes.get("task", "").replace(" ", "_").lower())
+                    tool_id = tool_instance.name
                 tool_registry[tool_id] = {
                     "name": f"{path.replace('/', '-')}-{name}",
                     "description": tool_instance.description,
                     "tool_instance": tool_instance,
                     "execute": func,
-                    "fixed_args": tool.get("fixed_args", {}),
+                    "fixed_args": tool_instance.fixed_args,
                 }
             except Exception as e:
                 log_context.error(f"Tool {name} is not registered, error: {e}")
@@ -367,6 +372,7 @@ class Environment:
             tool.init_slotfiller(self.slotfillapi)
             combined_args: dict[str, Any] = {
                 **self.tools[id]["fixed_args"],
+                **tool.auth,
                 **(node_info.additional_args or {}),
             }
             response_state = tool.execute(message_state, **combined_args)

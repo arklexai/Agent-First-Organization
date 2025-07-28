@@ -216,6 +216,29 @@ class LogContext:
             message, extra=self._merge_extra(context, kwargs), **kwargs
         )
 
+    def exception(
+        self, message: str | Exception, context: dict[str, Any] | None = None, **kwargs: object
+    ) -> None:
+        """Log an exception with traceback information.
+        
+        Args:
+            message: The message to log or the exception object
+            context: Optional context dictionary
+            **kwargs: Additional keyword arguments
+        """
+        if isinstance(message, Exception):
+            # If message is an exception, use its string representation
+            msg = str(message)
+            exc_info = message
+        else:
+            # If message is a string, use it as the message
+            msg = message
+            exc_info = kwargs.pop("exc_info", True)
+        
+        self.log_context.error(
+            msg, extra=self._merge_extra(context, kwargs), exc_info=exc_info, **kwargs
+        )
+
     def push_context(self, context: dict[str, Any]) -> None:
         pass
 
