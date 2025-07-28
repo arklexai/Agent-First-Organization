@@ -63,9 +63,9 @@ def register_tool(
         # reformat the relative path to replace / and \\ with -, and remove .py, because the function calling in openai only allow the function name match the patter the pattern '^[a-zA-Z0-9_-]+$'
         # different file paths format in Windows and linux systems
         relative_path = (
-            relative_path.replace("/", "-").replace("\\", "-").replace(".py", "")
+            relative_path.replace("/", "_").replace("\\", "_").replace(".py", "").replace(".", "_")
         )
-        key: str = f"{relative_path}-{func.__name__}"
+        key: str = f"{relative_path}"
 
         def tool() -> "Tool":
             return Tool(func, key, desc, slots, outputs, isResponse)
@@ -787,6 +787,9 @@ class Tool:
                 group_properties = {}
                 group_required = []
                 for field in (slot.schema if hasattr(slot, 'schema') and isinstance(slot.schema, list | tuple) else []):
+                    field_source = field.get("valueSource", "")
+                    if field_source == "fixed":
+                        continue
                     field_repeatable = field.get("repeatable", False)
                     if field_repeatable:
                         # If field is repeatable, make it an array

@@ -1,7 +1,8 @@
 import traceback
-from abc import ABC, abstractmethod
+from abc import ABC
 from typing import Any, TypeVar
 
+from arklex.env.tools.tools import Tool
 from arklex.orchestrator.entities.msg_state_entities import MessageState
 from arklex.utils.logging_utils import LogContext
 
@@ -40,6 +41,7 @@ class BaseAgent(ABC):
 
     description: str | None = None
     name: str
+    tools: list[Tool] = []
 
     def __str__(self) -> str:
         """Get a string representation of the agent.
@@ -61,21 +63,6 @@ class BaseAgent(ABC):
         """Indicate whether this agent needs async execution."""
         return False
 
-    @abstractmethod
-    def _execute(self, msg_state: MessageState, **kwargs: Any) -> dict[str, Any]:  # noqa: ANN401
-        """Execute the agent's core functionality.
-
-        This abstract method must be implemented by concrete agent classes to
-        define their specific execution logic.
-
-        Args:
-            msg_state (MessageState): The current message state.
-            **kwargs (Any): Additional keyword arguments for the execution.
-
-        Returns:
-            Dict[str, Any]: The execution results as a dictionary.
-        """
-        pass
 
     def execute(self, msg_state: MessageState, **kwargs: Any) -> MessageState:  # noqa: ANN401
         """Execute the agent with error handling and state management.

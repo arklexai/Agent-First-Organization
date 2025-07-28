@@ -42,7 +42,7 @@ class TestEmbedFunction:
         mock_client.embeddings.create.return_value = mock_response
         mock_openai_class.return_value = mock_client
 
-        result = embed("test text")
+        result = embed("test text", cache=True)
 
         assert result == [0.1, 0.2, 0.3]
         mock_client.embeddings.create.assert_called_once_with(
@@ -62,7 +62,7 @@ class TestEmbedFunction:
         cached_embedding = [0.1, 0.2, 0.3]
         mock_redis_pool.get.return_value = cached_embedding
 
-        result = embed("test text")
+        result = embed("test text", cache=True)
 
         assert result == cached_embedding
         mock_redis_pool.get.assert_called_once()

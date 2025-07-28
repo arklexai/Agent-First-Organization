@@ -540,6 +540,7 @@ class TestBaseAgent:
         # Should return the original message state when exception occurs
         assert result == mock_state
 
+
     def test_abstract_execute_method(self) -> None:
         """Test that BaseAgent cannot be instantiated due to abstract method."""
         with pytest.raises(TypeError, match="Can't instantiate abstract class"):
@@ -654,6 +655,7 @@ class TestBaseAgent:
 
         agent = DummyAgent()
         assert agent.is_async() is False
+
 
 
 class TestAgentIntegration:

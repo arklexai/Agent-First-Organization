@@ -84,6 +84,7 @@ class DefaultResourceInitializer(BaseResourceInitializer):
 
         Args:
             tools: list of tool configurations
+            attributes_list: optional list of attributes for the tools
 
         Returns:
             dictionary mapping tool IDs to their configurations
@@ -106,8 +107,12 @@ class DefaultResourceInitializer(BaseResourceInitializer):
                     module = importlib.import_module(module_name)
                     func: Callable = getattr(module, name)
                     tool_instance: Tool = func()
+                    # update fixed args from tools config
+                    tool_instance.fixed_args.update(tool.get("fixed_args", {}))
+                    tool_instance.auth.update(tool.get("auth", {}))
                     if "http_tool" in tool_id and len(attributes_list) > 0:
                         attributes = attributes_list[idx]
+                        node_specific_data = attributes.get("node_specific_data", {})
                         # --- Begin slot group merge logic ---
                         slots = attributes.get("slots", [])
                         slot_groups = attributes.get("slot_groups", [])
@@ -138,19 +143,22 @@ class DefaultResourceInitializer(BaseResourceInitializer):
                             )
                         all_slots = slots + group_slots
                         tool_instance.load_slots(all_slots)
-                        tool_instance.fixed_args = attributes.get(
-                            "node_specific_data", {}
-                        ).get("http", {})
-
+                        tool_instance.fixed_args.update(node_specific_data.get("http", {}))
+                        tool_instance.description = attributes.get("task", "")
+                        tool_instance.name = node_specific_data.get(
+                            "name", attributes.get("task", "").replace(" ", "_").lower()
+                        )
+                        tool_id = tool_instance.name
                     tool_registry[tool_id] = {
                         "name": f"{path.replace('/', '-')}-{name}",
                         "description": tool_instance.description,
                         "tool_instance": tool_instance,
                         "execute": func,
-                        "fixed_args": tool.get("fixed_args", {}),
+                        "fixed_args": tool_instance.fixed_args,
                     }
                 except Exception as e:
                     log_context.error(f"Tool {name} is not registered, error: {e}")
+
         return tool_registry
 
     @staticmethod
@@ -406,6 +414,7 @@ class Environment:
             tool.init_slotfiller(self.slotfillapi)
             combined_args: dict[str, Any] = {
                 **self.tools[id]["fixed_args"],
+                **tool.auth,
                 **(node_info.additional_args or {}),
             }
             response_state = tool.execute(message_state, **combined_args)
@@ -533,8 +542,8 @@ class Environment:
             task = attributes.get("task")
             # Find tools for this agent by collecting tools from its predecessors
             tools = []
-            for succ in node.additional_args.get("predecessors", []):
-                tool_info = self.tools.get(succ.resource_id)
+            for pred in node.additional_args.get("predecessors", []):
+                tool_info = self.tools.get(pred.resource_id)
                 if tool_info:
                     tool_name = tool_info.get("name", "")
                     tool_id = (
@@ -545,7 +554,7 @@ class Environment:
 
                     # Merge tool_info fixed_args with node-specific ones
                     node_specific_args = (
-                        succ.attributes.get("node_specific_data", {}) or {}
+                        pred.attributes.get("node_specific_data", {}) or {}
                     )
                     merged_args = {
                         **(tool_info.get("fixed_args") or {}),
@@ -557,7 +566,7 @@ class Environment:
                             "id": tool_id,
                             "path": None
                             if tool_info.get("agent_sdk_tool")
-                            else f"{succ.resource_id}.py",
+                            else f"{pred.resource_id}.py",
                             "description": tool_info.get("description"),
                             "fixed_args": merged_args,
                         }

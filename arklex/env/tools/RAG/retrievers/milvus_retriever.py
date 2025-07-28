@@ -132,9 +132,7 @@ class MilvusRetriever:
         )
         quoted_ids = ",".join([f"'{qa_id}'" for qa_id in qa_ids])
         filter_expr = f"id in [{quoted_ids}]"
-        res = self.client.delete(
-            collection_name=collection_name, filter=filter_expr
-        )
+        res = self.client.delete(collection_name=collection_name, filter=filter_expr)
         return res
 
     def delete_documents_by_qa_doc_id(
@@ -352,7 +350,7 @@ class MilvusRetriever:
             tags = {}
 
         partition_key = self.get_bot_uid(bot_id, version)
-        query_embedding = embed(query)
+        query_embedding = embed(query, cache=True)
         filter = f'bot_uid == "{partition_key}"'
         if tags:
             # NOTE: Only support one tag for now
