@@ -101,8 +101,8 @@ graph TB
 
 | **Domain** | **Capabilities** |
 |------------|------------------|
-| **Customer Service** | RAG chatbots, ticket routing, support workflows |
-| **E-commerce** | Order management, inventory tracking, recommendations |
+| **Customer service for e-commerce** | RAG chatbots, ticket routing, support workflows |
+| **E-commerce such as shopify sales and customer** | Order management, inventory tracking, recommendations |
 | **Business Process** | Scheduling, CRM operations, document processing |
 
 ---
