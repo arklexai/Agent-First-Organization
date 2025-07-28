@@ -52,14 +52,14 @@ The MAS is triggered via a Taskgraph configuration where a single node defines a
                     "direct": false,
                     "node_specific_data": {
                         "type": "agents_as_tools", // orchestration pattern
-                        "is_async": false  // async execution (optional)
+                        "is_async": true  // async execution (optional)
                     }
                 }
             }
         ],
 
 ```
-> 💡 For async patterns like `parallel` and `llm_as_a_judge`, set `is_async` to `true`.
+> 💡 For async patterns like `agents_as_tools`, `parallel` and `llm_as_a_judge`, set `is_async` to `true`.
 ---
 
 ## 🛠 Tooling Support
@@ -83,27 +83,33 @@ A tool can be defined in one of the following ways:
 >💡 Pass fixed_args for secrets/config (e.g., API tokens) — no need for agents to read env vars directly.
 
 
-### Tool Configuration for Sub-Agents
-Each tool used by a sub-agent should be configured like this:
+### Tool Configuration (Multi-Agent Compatible)
+
+Each tool used by a sub-agent should follow this format:
 
 ```jsonc
 "tools": [
   {
-    "id": "get_user_details_admin",        // ID = name of the tool function
-    "path": "shopify/get_user_details_admin.py", // Path to the module (relative to `arklex.env.tools`)
-    "fixed_args": {                       // Optional: constant args passed at runtime
+    "id": "shopify/get_user_details_admin",         // Must match the tool's resource_id from the chatbots repo
+    "name": "get_user_details_admin",               // Exact name of the function to load
+    "path": "shopify/get_user_details_admin.py",    // Relative to arklex.env.tools (null if built-in)
+    "fixed_args": {                                 // Optional runtime constants (e.g. API keys)
       "admin_token": "<shopify_admin_token>",
-      "shop_url": "<your-shopify-shop-url>",
+      "shop_url": "<your-shopify-url>",
       "api_version": "2024-10"
     }
   }
 ]
 ```
-- id: The name of the tool function (must match the Python function name).
+**Field Breakdown:**
+- id – Unique resource_id of the tool (must align with resources defined in `chatbots` repo).
 
-- path: Path to the .py file that contains the tool (relative to your project structure). If null, the tool is considered built-in.
+- name – Function name defined inside the tool module.
 
-- fixed_args: Optional dictionary of arguments injected at runtime — useful for credentials or config that shouldn’t come from the user.
+- path – Relative path to the .py file; set to null for built-in tools.
+
+- fixed_args – Optional constants injected at runtime (e.g., credentials or config).
+
 
 ### Built-in OpenAI Tools
 If the path is null, the tool is assumed to be built-in and will be looked up in this mapping:
@@ -113,6 +119,16 @@ If the path is null, the tool is assumed to be built-in and will be looked up in
 BUILT_IN_TOOLS = {
     "web_search": WebSearchTool,
 }
+```
+Note: you should add built-in-tool as follows to   `tools` field:
+```jsonc
+"tools": [
+  {
+    "id": "web_search",
+    "name": "web_search"
+    "path": null   
+  }
+]
 ```
 ---
 ## 🧱 Adding a New Pattern
@@ -145,108 +161,100 @@ PATTERN_DISPATCHER = {
 
 ### 🛒 Shopify Assistant — `agents_as_tools`
 
-> Orchestrator, created in the background, calls tool-wrapped agents (`sub_agents`)
-    
+> The orchestrator agent (created behind the scenes) delegates tasks to tool-wrapped sub-agents (`sub_agents`), each with their own tools.
 
-#### Example Snapshot of `agents` field and `nodes`
+#### 📌 Important Notes
+✅ To ensure the multi-agent workflow functions correctly:
+
+1. Add edges from the MultiAgent node to each sub_agent (e.g. OpenAISDKAgent).
+
+2. Add edges from each sub_agent to its tool(s) (nodes of type tool).
+
+3. List the tools explicitly in the `tools` field
+
+Without these connections, the orchestrator won’t be able to discover or use sub-agents and their tools.
+
+#### 🧠 agents field (Example)
 ```jsonc
  "agents": [
         {
             "id": "multi_agent",
             "name": "MultiAgent",
             "path": "multi_agent.py",
-            "tools":[],
+            "tools":[], // Orchestrator does not have tools directly
             "sub_agents": ["ProductSearchAgent", "UserInfoAgent"]
 
         }
        
 ]
 ```
+#### 🗺 nodes (Partial Example)
 ```jsonc
-"nodes": [
-    [...],
-    [
-        "1",
-        {
-            "resource": {
-                "id": "multi_agent",
-                "name": "MultiAgent"
-            },
-            "attribute": {
-                "value": "",
-                "type": "agent", 
-                "task": "Help users find products and account info.",
-                "direct": false,
-                "node_specific_data": {
-                    "type": "agents_as_tools", 
-                    "is_async": false
-                }
-            }
+[
+  // MultiAgent node
+  [
+    "1",
+    {
+      "resource": {
+        "id": "multi_agent",
+        "name": "MultiAgent"
+      },
+      "attribute": {
+        "value": "",
+        "type": "agent",
+        "task": "Help users find products and account info.",
+        "direct": false,
+        "node_specific_data": {
+          "type": "agents_as_tools",
+          "is_async": true
         }
-    ],
-    [
-        "2",
-        {
-            "resource": {
-                "id": "openai_sdk_agent",
-                "name": "OpenAISDKAgent"
-            },
-            "attribute": {
-                "name": "ProductSearchAgent",
-                "value": "",
-                "type": "agent",
-                "task": "Help the user search for products by keyword or category.",
-                "direct": false,
-                "node_specific_data":{
-                    "tools": [
-                        {
-                            "id": "search_products",
-                            "path": "shopify/search_products.py",
-                            "fixed_args": {
-                                "admin_token": "<shopify_admin_token>",
-                                "shop_url": "<your-shopify-shop-url>",
-                                "api_version": "2024-10",
-                                "llm_provider":"openai",
-                                "model_type_or_path":"gpt-4o-mini"
-                            }
-                        }
-        
-                    ]
-                }
-            }
+      }
+    }
+  ],
+
+  // Sub-agent 1: ProductSearchAgent
+  [
+    "2",
+    {
+      "resource": {
+        "id": "openai_sdk_agent",
+        "name": "OpenAISDKAgent"
+      },
+      "attribute": {
+        "value": "",
+        "type": "agent",
+        "task": "Help the user search for products by keyword or category.",
+        "direct": false,
+        "node_specific_data": {
+          "name": "ProductSearchAgent"
         }
-    ],
-    [...],
-    [
-        "4",
-        {
-            "resource": {
-                "id": "openai_sdk_agent",
-                "name": "OpenAISDKAgent"
-            },
-            "attribute": {
-                "name": "UserInfoAgent",
-                "value": "",
-                "type": "agent",
-                "task": "Help the user retrieve detailed information about a customer by their ID.",
-                "direct": false,
-                "node_specific_data":{
-                    "tools": [
-                        {
-                        "id": "get_user_details_admin",
-                        "path": "shopify/get_user_details_admin.py",
-                        "fixed_args": {
-                            "admin_token": "<shopify_admin_token>",
-                            "shop_url": "<your-shopify-shop-url>",
-                            "api_version": "2024-10"
-                            }
-                        }
-                    ]
-                }
-            }
+      }
+    }
+  ],
+
+  // Sub-agent 2: UserInfoAgent
+  [
+    "4",
+    {
+      "resource": {
+        "id": "openai_sdk_agent",
+        "name": "OpenAISDKAgent"
+      },
+      "attribute": {
+        "value": "",
+        "type": "agent",
+        "task": "Help the user retrieve detailed information about a customer by their ID.",
+        "direct": false,
+        "node_specific_data": {
+          "name": "UserInfoAgent"
         }
-    ]
+      }
+    }
+  ]
+
+  // Add tool nodes here as well, and connect them via edges to the relevant sub-agent
 ]
+
 ```
 
 
