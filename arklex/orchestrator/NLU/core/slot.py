@@ -25,13 +25,11 @@ log_context = LogContext(__name__)
 
 def create_slot_filler(
     model_service: ModelService,
-    api_service: APIClientService | None = None,
 ) -> "SlotFiller":
     """Create a new SlotFiller instance.
 
     Args:
         model_service: Service for local model-based slot filling
-        api_service: Optional service for remote API-based slot filling
 
     Returns:
         A new SlotFiller instance
@@ -39,7 +37,7 @@ def create_slot_filler(
     Raises:
         ValidationError: If model_service is not provided
     """
-    return SlotFiller(model_service=model_service, api_service=api_service)
+    return SlotFiller(model_service=model_service)
 
 
 class SlotFiller(BaseSlotFilling):
@@ -64,13 +62,11 @@ class SlotFiller(BaseSlotFilling):
     def __init__(
         self,
         model_service: ModelService,
-        api_service: APIClientService | None = None,
     ) -> None:
         """Initialize the slot filler.
 
         Args:
             model_service: Service for local model-based slot filling
-            api_service: Optional service for remote API-based slot filling
 
         Raises:
             ValidationError: If model_service is not provided
@@ -88,16 +84,10 @@ class SlotFiller(BaseSlotFilling):
                 },
             )
         self.model_service = model_service
-        self.api_service = api_service
-        if not api_service:
-            log_context.warning(
-                "Using local model-based slot filling",
-                extra={"operation": "initialization"},
-            )
         log_context.info(
             "SlotFiller initialized successfully",
             extra={
-                "mode": "remote" if api_service else "local",
+                "mode": "local",
                 "operation": "initialization",
             },
         )
@@ -239,82 +229,6 @@ class SlotFiller(BaseSlotFilling):
             ) from e
 
     @handle_exceptions()
-    def _fill_slots_remote(
-        self,
-        slots: list[Slot],
-        context: str,
-        model_config: dict[str, Any],
-        type: str = "chat",
-    ) -> list[Slot]:
-        """Fill slots using remote API.
-
-        Args:
-            slots: List of slots to fill
-            context: Input context to extract values from
-            model_config: Model configuration
-            type: Type of slot filling operation (default: "chat")
-
-        Returns:
-            List of filled slots
-
-        Raises:
-            ModelError: If slot filling fails
-            ValidationError: If input validation fails
-            APIError: If API request fails
-        """
-        if not self.api_service:
-            log_context.error(
-                "API service not configured",
-                extra={"operation": "slot_filling_remote"},
-            )
-            raise ValidationError(
-                "API service not configured",
-                details={"operation": "slot_filling_remote"},
-            )
-
-        log_context.info(
-            "Using remote API for slot filling",
-            extra={
-                "slots": [slot.name for slot in slots],
-                "context_length": len(context),
-                "type": type,
-                "operation": "slot_filling_remote",
-            },
-        )
-
-        try:
-            filled_slots = self.api_service.predict_slots(
-                text=context,
-                slots=slots,
-                model_config=model_config,
-            )
-            log_context.info(
-                "Slot filling completed",
-                extra={
-                    "filled_slots": [slot.name for slot in filled_slots],
-                    "operation": "slot_filling_remote",
-                },
-            )
-            return filled_slots
-        except APIError as e:
-            log_context.error(
-                "Failed to fill slots via API",
-                extra={
-                    "error": str(e),
-                    "slots": [slot.name for slot in slots],
-                    "operation": "slot_filling_remote",
-                },
-            )
-            raise APIError(
-                "Failed to fill slots via API",
-                details={
-                    "error": str(e),
-                    "slots": [slot.name for slot in slots],
-                    "operation": "slot_filling_remote",
-                },
-            ) from e
-
-    @handle_exceptions()
     def _verify_slot_local(
         self,
         slot: dict[str, Any],
@@ -395,78 +309,7 @@ class SlotFiller(BaseSlotFilling):
                 },
             ) from e
 
-    @handle_exceptions()
-    def _verify_slot_remote(
-        self,
-        slot: dict[str, Any],
-        chat_history_str: str,
-        model_config: dict[str, Any],
-    ) -> tuple[bool, str]:
-        """Verify slot value using remote API.
 
-        Args:
-            slot: Slot to verify
-            chat_history_str: Formatted chat history
-            model_config: Model configuration
-
-        Returns:
-            Tuple of (is_valid, reason)
-
-        Raises:
-            ModelError: If slot verification fails
-            ValidationError: If input validation fails
-            APIError: If API request fails
-        """
-        if not self.api_service:
-            log_context.error(
-                "API service not configured",
-                extra={"operation": "slot_verification_remote"},
-            )
-            raise ValidationError(
-                "API service not configured",
-                details={"operation": "slot_verification_remote"},
-            )
-
-        log_context.info(
-            "Using remote API for slot verification",
-            extra={
-                "slot": slot.get("name"),
-                "operation": "slot_verification_remote",
-            },
-        )
-
-        try:
-            is_valid, reason = self.api_service.verify_slots(
-                text=chat_history_str,
-                slots=[Slot(**slot)],
-                model_config=model_config,
-            )
-            log_context.info(
-                "Slot verification completed",
-                extra={
-                    "is_valid": is_valid,
-                    "reason": reason,
-                    "operation": "slot_verification_remote",
-                },
-            )
-            return is_valid, reason
-        except APIError as e:
-            log_context.error(
-                "Failed to verify slot via API",
-                extra={
-                    "error": str(e),
-                    "slot": slot.get("name"),
-                    "operation": "slot_verification_remote",
-                },
-            )
-            raise APIError(
-                "Failed to verify slot via API",
-                details={
-                    "error": str(e),
-                    "slot": slot.get("name"),
-                    "operation": "slot_verification_remote",
-                },
-            ) from e
 
     @handle_exceptions()
     def verify_slot(
@@ -494,20 +337,15 @@ class SlotFiller(BaseSlotFilling):
             "Starting slot verification",
             extra={
                 "slot": slot.get("name"),
-                "mode": "remote" if self.api_service else "local",
+                "mode": "local",
                 "operation": "slot_verification",
             },
         )
 
         try:
-            if self.api_service:
-                is_valid, reason = self._verify_slot_remote(
-                    slot, chat_history_str, model_config
-                )
-            else:
-                is_valid, reason = self._verify_slot_local(
-                    slot, chat_history_str, model_config
-                )
+            is_valid, reason = self._verify_slot_local(
+                slot, chat_history_str, model_config
+            )
 
             log_context.info(
                 "Slot verification completed",
@@ -558,20 +396,15 @@ class SlotFiller(BaseSlotFilling):
             extra={
                 "slots": [slot.name for slot in slots],
                 "context_length": len(context),
-                "mode": "remote" if self.api_service else "local",
+                "mode": "local",
                 "operation": "slot_filling",
             },
         )
 
         try:
-            if self.api_service:
-                filled_slots = self._fill_slots_remote(
-                    slots, context, model_config, type
-                )
-            else:
-                filled_slots = self._fill_slots_local(
-                    slots, context, model_config, type
-                )
+            filled_slots = self._fill_slots_local(
+                slots, context, model_config, type
+            )
 
             log_context.info(
                 "Slot filling completed",
