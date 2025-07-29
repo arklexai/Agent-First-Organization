@@ -15,6 +15,9 @@ from arklex.env.agents.openai_realtime_agent import (
 )
 from arklex.env.tools.tools import Tool
 
+# Set test environment to local for consistent testing
+os.environ["ARKLEX_TEST_ENV"] = "local"
+
 
 @pytest.fixture
 def mock_tool() -> Tool:
@@ -90,6 +93,36 @@ class TestPromptVariable:
         pv = PromptVariable(name="test", value="value")
         assert pv.name == "test"
         assert pv.value == "value"
+
+    def test_prompt_variable_with_empty_string_value(self) -> None:
+        """Test creating a PromptVariable with empty string value."""
+        pv = PromptVariable(name="test", value="")
+        assert pv.name == "test"
+        assert pv.value == ""
+
+    def test_prompt_variable_with_special_characters(self) -> None:
+        """Test creating a PromptVariable with special characters in name and value."""
+        pv = PromptVariable(name="user_email", value="user@example.com")
+        assert pv.name == "user_email"
+        assert pv.value == "user@example.com"
+
+    def test_prompt_variable_with_unicode_characters(self) -> None:
+        """Test creating a PromptVariable with unicode characters."""
+        pv = PromptVariable(name="user_name", value="José María")
+        assert pv.name == "user_name"
+        assert pv.value == "José María"
+
+    def test_prompt_variable_with_numbers(self) -> None:
+        """Test creating a PromptVariable with numeric values."""
+        pv = PromptVariable(name="age", value="25")
+        assert pv.name == "age"
+        assert pv.value == "25"
+
+    def test_prompt_variable_with_boolean_string(self) -> None:
+        """Test creating a PromptVariable with boolean string values."""
+        pv = PromptVariable(name="is_active", value="true")
+        assert pv.name == "is_active"
+        assert pv.value == "true"
 
 
 class TestTurnDetection:
@@ -176,6 +209,113 @@ class TestTurnDetection:
         # Default should be server_vad
         td3 = TurnDetection()
         assert td3.type == "server_vad"
+
+    def test_turn_detection_with_all_parameters(self) -> None:
+        """Test TurnDetection with all parameters set."""
+        td = TurnDetection(
+            type="semantic_vad",
+            create_response=False,
+            interrupt_response=False,
+            prefix_padding_ms=500,
+            silence_duration_ms=1000,
+            threshold=0.7,
+            eagerness="high",
+        )
+        assert td.type == "semantic_vad"
+        assert td.create_response is False
+        assert td.interrupt_response is False
+        assert td.prefix_padding_ms == 500
+        assert td.silence_duration_ms == 1000
+        assert td.threshold == 0.7
+        assert td.eagerness == "high"
+
+    def test_turn_detection_from_dict_with_all_fields(self) -> None:
+        """Test TurnDetection.from_dict with all fields present."""
+        data = {
+            "type": "semantic_vad",
+            "create_response": False,
+            "interrupt_response": False,
+            "prefix_padding_ms": 500,
+            "silence_duration_ms": 1000,
+            "threshold": 0.7,
+            "eagerness": "high",
+        }
+        td = TurnDetection.from_dict(data)
+        assert td.type == "semantic_vad"
+        assert td.create_response is False
+        assert td.interrupt_response is False
+        assert td.prefix_padding_ms == 500
+        assert td.silence_duration_ms == 1000
+        assert td.threshold == 0.7
+        assert td.eagerness == "high"
+
+    def test_turn_detection_from_dict_empty_dict(self) -> None:
+        """Test TurnDetection.from_dict with empty dictionary."""
+        td = TurnDetection.from_dict({})
+        assert td.type == "server_vad"
+        assert td.create_response is True
+        assert td.eagerness is None
+
+    def test_turn_detection_model_dump_complete(self) -> None:
+        """Test complete model_dump functionality."""
+        td = TurnDetection(
+            type="server_vad",
+            create_response=False,
+            interrupt_response=False,
+            prefix_padding_ms=500,
+            silence_duration_ms=1000,
+            threshold=0.7,
+        )
+        result = td.model_dump()
+        assert result["type"] == "server_vad"
+        assert result["create_response"] is False
+        assert result["interrupt_response"] is False
+        assert result["prefix_padding_ms"] == 500
+        assert result["silence_duration_ms"] == 1000
+        assert result["threshold"] == 0.7
+        assert "eagerness" not in result
+
+    def test_turn_detection_model_dump_semantic_vad_complete(self) -> None:
+        """Test complete model_dump functionality for semantic_vad."""
+        td = TurnDetection(
+            type="semantic_vad",
+            create_response=False,
+            interrupt_response=False,
+            eagerness="high",
+        )
+        result = td.model_dump()
+        assert result["type"] == "semantic_vad"
+        assert result["create_response"] is False
+        assert result["interrupt_response"] is False
+        assert result["eagerness"] == "high"
+        assert "prefix_padding_ms" not in result
+        assert "silence_duration_ms" not in result
+        assert "threshold" not in result
+
+    def test_turn_detection_default_values(self) -> None:
+        """Test that default values are correctly set."""
+        td = TurnDetection()
+        assert td.type == "server_vad"
+        assert td.create_response is True
+        assert td.interrupt_response is True
+        assert td.prefix_padding_ms == 300
+        assert td.silence_duration_ms == 750
+        assert td.threshold == 0.5
+        assert td.eagerness is None
+
+    def test_turn_detection_partial_initialization(self) -> None:
+        """Test TurnDetection with only some parameters set."""
+        td = TurnDetection(
+            type="server_vad",
+            create_response=False,
+        )
+        assert td.type == "server_vad"
+        assert td.create_response is False
+        assert td.interrupt_response is True  # Default value
+        assert td.prefix_padding_ms == 300  # Default value
+        assert td.silence_duration_ms == 750  # Default value
+        assert td.threshold == 0.5  # Default value
+        assert td.eagerness is None  # Default value
 
 
 class TestOpenAIRealtimeAgent:
@@ -936,6 +1076,501 @@ class TestOpenAIRealtimeAgent:
         agent = OpenAIRealtimeAgent()
         assert hasattr(agent.__class__, "name")
         assert agent.__class__.name == "OpenAIRealtimeAgent"
+
+    def test_init_with_empty_prompt_variables(self) -> None:
+        """Test initialization with empty prompt variables list."""
+        agent = OpenAIRealtimeAgent(prompt_variables=[])
+        assert agent.prompt_variables == []
+        assert agent.prompt == ""
+
+    def test_init_with_none_prompt_variables(self) -> None:
+        """Test initialization with None prompt variables."""
+        agent = OpenAIRealtimeAgent(prompt_variables=None)
+        assert agent.prompt_variables == []
+        assert agent.prompt == ""
+
+    def test_init_with_complex_prompt_template(self) -> None:
+        """Test initialization with complex Jinja2 template."""
+        prompt_vars = [
+            PromptVariable(name="user_name", value="Alice"),
+            PromptVariable(name="company", value="TechCorp"),
+            PromptVariable(name="department", value="Engineering"),
+        ]
+        template = "Hello {{user_name}} from {{company}} {{department}} team!"
+        agent = OpenAIRealtimeAgent(prompt=template, prompt_variables=prompt_vars)
+        assert agent.prompt == "Hello Alice from TechCorp Engineering team!"
+
+    def test_init_with_none_tool_map(self) -> None:
+        """Test initialization with None tool map."""
+        agent = OpenAIRealtimeAgent(tool_map=None)
+        assert agent.tool_map == {}
+        assert agent.tool_defs == []
+
+    def test_init_with_empty_tool_map(self) -> None:
+        """Test initialization with empty tool map."""
+        agent = OpenAIRealtimeAgent(tool_map={})
+        assert agent.tool_map == {}
+        assert agent.tool_defs == []
+
+    def test_init_with_none_turn_detection(self) -> None:
+        """Test initialization with None turn detection."""
+        agent = OpenAIRealtimeAgent(turn_detection=None)
+        assert agent.turn_detection is None
+
+    def test_telephony_mode_audio_formats(self) -> None:
+        """Test that telephony mode sets correct audio formats."""
+        agent = OpenAIRealtimeAgent(telephony_mode=True)
+        assert agent.input_audio_format == "g711_ulaw"
+        assert agent.output_audio_format == "g711_ulaw"
+
+    def test_non_telephony_mode_audio_formats(self) -> None:
+        """Test that non-telephony mode sets correct audio formats."""
+        agent = OpenAIRealtimeAgent(telephony_mode=False)
+        assert agent.input_audio_format == "pcm16"
+        assert agent.output_audio_format == "pcm16"
+
+    def test_response_played_event_initialization(self) -> None:
+        """Test that response_played event is properly initialized."""
+        agent = OpenAIRealtimeAgent()
+        assert hasattr(agent.response_played, "set")
+        assert hasattr(agent.response_played, "clear")
+        assert hasattr(agent.response_played, "wait")
+
+    def test_transcript_available_event_initialization(self) -> None:
+        """Test that transcript_available event is properly initialized."""
+        agent = OpenAIRealtimeAgent()
+        assert hasattr(agent.transcript_available, "set")
+        assert hasattr(agent.transcript_available, "clear")
+        assert hasattr(agent.transcript_available, "wait")
+
+    def test_text_buffer_initialization(self) -> None:
+        """Test that text_buffer is properly initialized as defaultdict."""
+        agent = OpenAIRealtimeAgent()
+        assert isinstance(agent.text_buffer, dict)
+        # Test that it behaves like a defaultdict
+        assert agent.text_buffer["nonexistent_key"] == ""
+
+    @patch("json.dumps")
+    async def test_update_session_without_turn_detection(
+        self,
+        mock_json_dumps: Mock,
+        mock_websocket: AsyncMock,
+    ) -> None:
+        """Test updating session without turn detection configuration."""
+        mock_json_dumps.return_value = '{"test": "data"}'
+
+        agent = OpenAIRealtimeAgent(turn_detection=None)
+        agent.ws = mock_websocket
+
+        await agent.update_session()
+
+        mock_websocket.send.assert_called_once_with('{"test": "data"}')
+        mock_json_dumps.assert_called_once()
+
+    @patch("json.dumps")
+    async def test_update_session_with_tools(
+        self,
+        mock_json_dumps: Mock,
+        mock_websocket: AsyncMock,
+        mock_tool_map: dict[str, Tool],
+    ) -> None:
+        """Test updating session with tools configured."""
+        mock_json_dumps.return_value = '{"test": "data"}'
+
+        agent = OpenAIRealtimeAgent(tool_map=mock_tool_map)
+        agent.ws = mock_websocket
+
+        await agent.update_session()
+
+        mock_websocket.send.assert_called_once_with('{"test": "data"}')
+        mock_json_dumps.assert_called_once()
+
+    async def test_wait_till_input_audio_skips_other_events(self) -> None:
+        """Test that wait_till_input_audio skips non-committed events."""
+        agent = OpenAIRealtimeAgent()
+
+        # Simulate other events before committed event
+        asyncio.create_task(
+            agent.input_audio_buffer_event_queue.put(
+                {"type": "input_audio_buffer.speech_started"},
+            ),
+        )
+        asyncio.create_task(
+            agent.input_audio_buffer_event_queue.put(
+                {"type": "input_audio_buffer.speech_stopped"},
+            ),
+        )
+        asyncio.create_task(
+            agent.input_audio_buffer_event_queue.put(
+                {"type": "input_audio_buffer.committed"},
+            ),
+        )
+
+        result = await agent.wait_till_input_audio()
+        assert result is True
+
+    @patch("asyncio.to_thread")
+    async def test_run_tool_with_complex_group_slots(
+        self,
+        mock_to_thread: Mock,
+        mock_tool: Tool,
+        mock_websocket: AsyncMock,
+    ) -> None:
+        """Test tool execution with complex group slots and multiple fixed values."""
+        mock_to_thread.return_value = "tool result"
+
+        # Create complex group slot with multiple fixed values
+        group_slot = Mock()
+        group_slot.name = "complex_group"
+        group_slot.type = "group"
+        group_slot.schema = [
+            {
+                "name": "bool_field",
+                "valueSource": "fixed",
+                "value": "true",
+                "type": "bool",
+            },
+            {
+                "name": "string_field",
+                "valueSource": "fixed",
+                "value": "fixed_value",
+                "type": "string",
+            },
+            {
+                "name": "number_field",
+                "valueSource": "fixed",
+                "value": "42",
+                "type": "number",
+            },
+        ]
+
+        mock_tool.slots = [group_slot]
+
+        agent = OpenAIRealtimeAgent(tool_map={"mock_tool": mock_tool})
+        agent.ws = mock_websocket
+        agent.call_sid = "call_123"
+
+        tool_args = {"complex_group": [{"other_field": "value"}]}
+        await agent.run_tool("call_123", "mock_tool", tool_args)
+
+        mock_to_thread.assert_called_once()
+
+    @patch("asyncio.to_thread")
+    async def test_run_tool_with_slot_value_assignment(
+        self,
+        mock_to_thread: Mock,
+        mock_tool: Tool,
+        mock_websocket: AsyncMock,
+    ) -> None:
+        """Test tool execution with slot value assignment."""
+        mock_to_thread.return_value = "tool result"
+
+        # Create a slot that should have its value assigned
+        slot = Mock()
+        slot.name = "test_param"
+        slot.type = "string"
+        slot.value = None
+
+        mock_tool.slots = [slot]
+
+        agent = OpenAIRealtimeAgent(tool_map={"mock_tool": mock_tool})
+        agent.ws = mock_websocket
+        agent.call_sid = "call_123"
+
+        tool_args = {"test_param": "assigned_value"}
+        await agent.run_tool("call_123", "mock_tool", tool_args)
+
+        assert slot.value == "assigned_value"
+        mock_to_thread.assert_called_once()
+
+    async def test_receive_events_response_function_call_arguments_done(
+        self,
+        mock_websocket: AsyncMock,
+    ) -> None:
+        """Test receiving response.function_call_arguments.done event."""
+        agent = OpenAIRealtimeAgent()
+        agent.ws = mock_websocket
+
+        mock_websocket.__aiter__.return_value = [
+            json.dumps({"type": "response.function_call_arguments.done"}),
+        ]
+
+        await agent.receive_events()
+
+        # Check that the event was put in the internal queue
+        event = await agent.internal_queue.get()
+        assert event["type"] == "response.function_call_arguments.done"
+
+    async def test_receive_events_audio_transcript_delta_telephony_mode(
+        self,
+        mock_websocket: AsyncMock,
+    ) -> None:
+        """Test that audio_transcript.delta events are ignored in telephony mode."""
+        agent = OpenAIRealtimeAgent(telephony_mode=True)
+        agent.ws = mock_websocket
+
+        mock_websocket.__aiter__.return_value = [
+            json.dumps(
+                {
+                    "type": "response.audio_transcript.delta",
+                    "item_id": "item_123",
+                    "delta": "Hello",
+                },
+            ),
+        ]
+
+        await agent.receive_events()
+
+        # In telephony mode, audio_transcript.delta events should be ignored
+        # So no events should be put in the external queue
+        # The queue will have None from end_queues() being called
+        assert await agent.external_queue.get() is None
+
+    async def test_receive_events_conversation_item_created_invalid_role(
+        self,
+        mock_websocket: AsyncMock,
+    ) -> None:
+        """Test that conversation.item.created with invalid role is ignored."""
+        agent = OpenAIRealtimeAgent()
+        agent.ws = mock_websocket
+
+        mock_websocket.__aiter__.return_value = [
+            json.dumps(
+                {
+                    "type": "conversation.item.created",
+                    "item": {"id": "item_123", "role": "system"},
+                },
+            ),
+        ]
+
+        await agent.receive_events()
+
+        # Invalid role should be ignored, so no events in external queue
+        assert await agent.external_queue.get() is None
+
+    async def test_receive_events_conversation_item_created_no_item(
+        self,
+        mock_websocket: AsyncMock,
+    ) -> None:
+        """Test that conversation.item.created without item is ignored."""
+        agent = OpenAIRealtimeAgent()
+        agent.ws = mock_websocket
+
+        mock_websocket.__aiter__.return_value = [
+            json.dumps({"type": "conversation.item.created"}),
+        ]
+
+        await agent.receive_events()
+
+        # No item should be ignored, so no events in external queue
+        assert await agent.external_queue.get() is None
+
+    async def test_receive_events_conversation_item_created_no_role(
+        self,
+        mock_websocket: AsyncMock,
+    ) -> None:
+        """Test that conversation.item.created without role is ignored."""
+        agent = OpenAIRealtimeAgent()
+        agent.ws = mock_websocket
+
+        mock_websocket.__aiter__.return_value = [
+            json.dumps(
+                {
+                    "type": "conversation.item.created",
+                    "item": {"id": "item_123"},
+                },
+            ),
+        ]
+
+        await agent.receive_events()
+
+        # No role should be ignored, so no events in external queue
+        assert await agent.external_queue.get() is None
+
+    async def test_receive_events_json_decode_error(
+        self, mock_websocket: AsyncMock
+    ) -> None:
+        """Test handling of JSON decode errors in receive_events."""
+        agent = OpenAIRealtimeAgent()
+        agent.ws = mock_websocket
+
+        # Mock WebSocket to return invalid JSON
+        mock_websocket.__aiter__.return_value = ["invalid json"]
+
+        # Start the event loop and cancel it after a short delay
+        task = asyncio.create_task(agent.receive_events())
+        await asyncio.sleep(0.1)
+        task.cancel()
+
+        with contextlib.suppress(asyncio.CancelledError):
+            await task
+
+        # Should handle JSON decode error gracefully
+        assert await agent.internal_queue.get() is None
+        assert await agent.external_queue.get() is None
+
+    async def test_receive_events_exception_in_event_processing(
+        self,
+        mock_websocket: AsyncMock,
+    ) -> None:
+        """Test handling of exceptions during event processing."""
+        agent = OpenAIRealtimeAgent()
+        agent.ws = mock_websocket
+
+        # Mock WebSocket to return an event that will cause an exception
+        # This event has a function call but no valid tool to execute
+        mock_websocket.__aiter__.return_value = [
+            json.dumps(
+                {
+                    "type": "response.done",
+                    "response": {
+                        "output": [
+                            {
+                                "type": "function_call",
+                                "name": "nonexistent_tool",
+                                "call_id": "call_123",
+                                "arguments": '{"param": "value"}',
+                            },
+                        ],
+                    },
+                }
+            ),
+        ]
+
+        # Start the event loop and cancel it after a short delay
+        task = asyncio.create_task(agent.receive_events())
+        await asyncio.sleep(0.1)
+        task.cancel()
+
+        with contextlib.suppress(asyncio.CancelledError):
+            await task
+
+        # The event should be processed and put in the internal queue
+        # Then None comes from end_queues() being called
+        event1 = await agent.internal_queue.get()
+        event2 = await agent.internal_queue.get()
+        assert event1["type"] == "response.done"  # The actual event
+        assert event2 is None  # This is from end_queues()
+
+    def test_turn_detection_from_dict_with_extra_fields(self) -> None:
+        """Test TurnDetection.from_dict with extra fields."""
+        data = {
+            "type": "server_vad",
+            "create_response": False,
+            "extra_field": "should_be_ignored",
+        }
+        td = TurnDetection.from_dict(data)
+        assert td.type == "server_vad"
+        assert td.create_response is False
+        assert not hasattr(td, "extra_field")
+
+    def test_turn_detection_model_dump_with_none_values(self) -> None:
+        """Test TurnDetection.model_dump with None values."""
+        td = TurnDetection(
+            type="semantic_vad",
+            create_response=None,
+            interrupt_response=None,
+            eagerness=None,
+        )
+        result = td.model_dump()
+        assert result["type"] == "semantic_vad"
+        assert result["create_response"] is None
+        assert result["interrupt_response"] is None
+        assert result["eagerness"] is None
+
+    def test_prompt_variable_equality(self) -> None:
+        """Test PromptVariable equality comparison."""
+        pv1 = PromptVariable(name="test", value="value")
+        pv2 = PromptVariable(name="test", value="value")
+        pv3 = PromptVariable(name="test", value="different")
+
+        assert pv1 == pv2
+        assert pv1 != pv3
+
+    def test_turn_detection_equality(self) -> None:
+        """Test TurnDetection equality comparison."""
+        td1 = TurnDetection(type="server_vad", create_response=True)
+        td2 = TurnDetection(type="server_vad", create_response=True)
+        td3 = TurnDetection(type="semantic_vad", create_response=True)
+
+        assert td1 == td2
+        assert td1 != td3
+
+    async def test_close_with_none_websocket(self) -> None:
+        """Test closing when WebSocket is None."""
+        agent = OpenAIRealtimeAgent()
+        agent.ws = None
+
+        # Should not raise an exception
+        await agent.close()
+
+    @patch("json.dumps")
+    async def test_send_audio_with_empty_string(
+        self,
+        mock_json_dumps: Mock,
+        mock_websocket: AsyncMock,
+    ) -> None:
+        """Test sending empty audio data."""
+        mock_json_dumps.return_value = '{"test": "data"}'
+
+        agent = OpenAIRealtimeAgent()
+        agent.ws = mock_websocket
+
+        await agent.send_audio("")
+
+        mock_websocket.send.assert_called_once_with('{"test": "data"}')
+        mock_json_dumps.assert_called_once()
+
+    @patch("json.dumps")
+    async def test_truncate_audio_with_zero_time(
+        self,
+        mock_json_dumps: Mock,
+        mock_websocket: AsyncMock,
+    ) -> None:
+        """Test truncating audio at zero time."""
+        mock_json_dumps.return_value = '{"test": "data"}'
+
+        agent = OpenAIRealtimeAgent()
+        agent.ws = mock_websocket
+
+        await agent.truncate_audio("item_123", 0)
+
+        mock_websocket.send.assert_called_once_with('{"test": "data"}')
+        mock_json_dumps.assert_called_once()
+
+    def test_agent_queues_initialization(self) -> None:
+        """Test that all queues are properly initialized."""
+        agent = OpenAIRealtimeAgent()
+
+        assert hasattr(agent.internal_queue, "put")
+        assert hasattr(agent.internal_queue, "get")
+        assert hasattr(agent.external_queue, "put")
+        assert hasattr(agent.external_queue, "get")
+        assert hasattr(agent.input_audio_buffer_event_queue, "put")
+        assert hasattr(agent.input_audio_buffer_event_queue, "get")
+
+    def test_agent_transcript_initialization(self) -> None:
+        """Test that transcript list is properly initialized."""
+        agent = OpenAIRealtimeAgent()
+
+        assert isinstance(agent.transcript, list)
+        assert len(agent.transcript) == 0
+
+    def test_agent_call_sid_initialization(self) -> None:
+        """Test that call_sid is properly initialized."""
+        agent = OpenAIRealtimeAgent()
+
+        assert agent.call_sid is None
+
+    def test_agent_transcription_language_initialization(self) -> None:
+        """Test that transcription_language is properly initialized."""
+        agent = OpenAIRealtimeAgent()
+
+        assert agent.transcription_language is None
+
+        # Test with specific language
+        agent_with_lang = OpenAIRealtimeAgent(transcription_language="en-US")
+        assert agent_with_lang.transcription_language == "en-US"
 
 
 class TestOpenAIRealtimeAgentIntegration:
