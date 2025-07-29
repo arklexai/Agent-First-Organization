@@ -61,10 +61,9 @@ def force_json_prompt(
 ) -> str:
     if suffix_strategy == PromptSuffixStrategy.JSON:
         return f"{text}\n\nValid JSON:"
-    elif suffix_strategy == PromptSuffixStrategy.JSON_MD_BLOCK:
+    if suffix_strategy == PromptSuffixStrategy.JSON_MD_BLOCK:
         return f'{text}\n\nThe result should be a valid JSON object (according to the definition in the provided schema) in a markdown block only. For example:\nassistant:```json\n{{"items": ["value"]}}\n```'
-    else:
-        raise ValueError(f"Invalid suffix strategy: {suffix_strategy}")
+    raise ValueError(f"Invalid suffix strategy: {suffix_strategy}")
 
 
 def build_generate_state(
@@ -117,8 +116,7 @@ def build_parse_force_state(
                 Message(role=Role.USER, content=input_text),
                 Message(role=Role.ASSISTANT, content=response_display),
             ]
-        else:
-            return Message(role=Role.USER, content=input_text)
+        return Message(role=Role.USER, content=input_text)
 
     messages = [
         Message(
@@ -151,7 +149,11 @@ def build_score_state(
     suffix_strategy: PromptSuffixStrategy = PromptSuffixStrategy.JSON,
 ) -> list[Message]:
     def display_sample(
-        instr: str, t: str, mn: int, mx: int, response: int | None = None
+        instr: str,
+        t: str,
+        mn: int,
+        mx: int,
+        response: int | None = None,
     ) -> list[Message] | Message:
         if mn > mx:
             raise ValueError(f"Invalid range: [{mn}, {mx}]")
@@ -164,8 +166,7 @@ def build_score_state(
                 Message(role=Role.USER, content=input_text),
                 Message(role=Role.ASSISTANT, content=f'{{"score": {response}}}'),
             ]
-        else:
-            return Message(role=Role.USER, content=input_text)
+        return Message(role=Role.USER, content=input_text)
 
     messages = [
         Message(
@@ -219,8 +220,7 @@ def build_parse_state(
                 Message(role=Role.USER, content=input_text),
                 Message(role=Role.ASSISTANT, content=response_display),
             ]
-        else:
-            return Message(role=Role.USER, content=input_text)
+        return Message(role=Role.USER, content=input_text)
 
     messages = [
         Message(
@@ -231,7 +231,9 @@ def build_parse_state(
     if examples is not None:
         for example in examples:
             example_msgs = display_sample(
-                t=example.text, ty=typ, response=example.response
+                t=example.text,
+                ty=typ,
+                response=example.response,
             )
             assert isinstance(example_msgs, list) and all(
                 isinstance(msg, Message) for msg in example_msgs
@@ -249,7 +251,10 @@ def build_classify_state(
     suffix_strategy: PromptSuffixStrategy = PromptSuffixStrategy.JSON,
 ) -> tuple[list[Message], dict[str, int]]:
     def display_sample(
-        instr: str, t: str, opts: list[str], response: int | None = None
+        instr: str,
+        t: str,
+        opts: list[str],
+        response: int | None = None,
     ) -> list[Message] | tuple[Message, dict[str, int]]:
         choices_display, decode_map = display_choices(opts)
         input_text = force_json_prompt(
@@ -270,8 +275,7 @@ def build_classify_state(
                     content=f'{{"classification": "{response_label}"}}',
                 ),
             ]
-        else:
-            return Message(role=Role.USER, content=input_text), decode_map
+        return Message(role=Role.USER, content=input_text), decode_map
 
     messages = [
         Message(
@@ -307,7 +311,10 @@ class ChatModel(GeneralModel):
         raise NotImplementedError
 
     def handle_generate_message_response(
-        self, prompt: list[dict[str, str] | Message], content: str, force_json: bool
+        self,
+        prompt: list[dict[str, str] | Message],
+        content: str,
+        force_json: bool,
     ) -> Message:
         if force_json:
             try:
@@ -329,7 +336,8 @@ class ChatModel(GeneralModel):
         return Message(role=Role.ASSISTANT, content=content, obj=None)
 
     def build_generate_message_state(
-        self, messages: list[Message]
+        self,
+        messages: list[Message],
     ) -> list[dict[str, str]]:
         msgs: list[dict[str, str]] = []
         for msg in messages:
@@ -338,7 +346,9 @@ class ChatModel(GeneralModel):
         return msgs
 
     def _handle_classify_response(
-        self, res: Message, decode_map: dict[str, int]
+        self,
+        res: Message,
+        decode_map: dict[str, int],
     ) -> int:
         assert res.obj is not None
         if "classification" not in res.obj:
@@ -360,7 +370,10 @@ class ChatModel(GeneralModel):
         temperature: float | None = None,
     ) -> int:
         messages, decode_map = build_classify_state(
-            instruction, text, options, examples=examples
+            instruction,
+            text,
+            options,
+            examples=examples,
         )
         res = self.generate_message(messages, force_json=True, temperature=temperature)
         return self._handle_classify_response(res, decode_map)
@@ -385,14 +398,20 @@ class ChatModel(GeneralModel):
         temperature: float | None = None,
     ) -> str:
         messages = build_generate_state(
-            instruction=instruction, text=text, examples=examples
+            instruction=instruction,
+            text=text,
+            examples=examples,
         )
         return self.generate_message(
-            messages, force_json=False, temperature=temperature
+            messages,
+            force_json=False,
+            temperature=temperature,
         ).content
 
     def _handle_parse_force_response(
-        self, res: Message, typ: type[T] | dict[str, Any]
+        self,
+        res: Message,
+        typ: type[T] | dict[str, Any],
     ) -> T | dict[str, Any]:
         assert res.obj is not None
         obj = json_response_to_obj_or_partial_obj(response=res.obj, typ=typ)
@@ -447,7 +466,8 @@ class ChatModel(GeneralModel):
 
 
 def build_prompts(
-    dps: list[Datapoint], prompt_suffix_strategy: PromptSuffixStrategy | None
+    dps: list[Datapoint],
+    prompt_suffix_strategy: PromptSuffixStrategy | None,
 ) -> list[str | list[Message]]:
     if len(dps) == 0:
         return []
@@ -455,7 +475,7 @@ def build_prompts(
     for i, dp in enumerate(dps):
         if not isinstance(dp, typ):
             raise ValueError(
-                f"All elements must be of type Datapoint, expected type {typ} at index {i}, got {type(dp)}"
+                f"All elements must be of type Datapoint, expected type {typ} at index {i}, got {type(dp)}",
             )
     if isinstance(dps[0], ParseDatapoint):
         build_func = build_parse_prompts
@@ -495,10 +515,11 @@ def build_parse_prompts(
             ),
         )
         json_response = apply_suffix_strategy(
-            response=json_response_object, suffix_strategy=suffix_strategy
+            response=json_response_object,
+            suffix_strategy=suffix_strategy,
         )
         datapoints.append(
-            prompt_msgs + [Message(role=Role.ASSISTANT, content=json_response)]
+            prompt_msgs + [Message(role=Role.ASSISTANT, content=json_response)],
         )
     return datapoints
 
@@ -547,10 +568,12 @@ def build_classify_prompts(
             suffix_strategy=suffix_strategy,
         )
         json_response_object = label_idx_to_label_json(
-            idx=dp.response, decode_map=decode_map
+            idx=dp.response,
+            decode_map=decode_map,
         )
         json_response = apply_suffix_strategy(
-            response=json_response_object, suffix_strategy=suffix_strategy
+            response=json_response_object,
+            suffix_strategy=suffix_strategy,
         )
         datapoints.append(
             prompt_msgs
@@ -558,8 +581,8 @@ def build_classify_prompts(
                 Message(
                     role=Role.ASSISTANT,
                     content=json_response,
-                )
-            ]
+                ),
+            ],
         )
     return datapoints
 
@@ -585,10 +608,11 @@ def build_parse_force_prompts(
             suffix_strategy=suffix_strategy,
         )
         json_response = apply_suffix_strategy(
-            response=json_response_obj, suffix_strategy=suffix_strategy
+            response=json_response_obj,
+            suffix_strategy=suffix_strategy,
         )
         datapoints.append(
-            prompt_msgs + [Message(role=Role.ASSISTANT, content=json_response)]
+            prompt_msgs + [Message(role=Role.ASSISTANT, content=json_response)],
         )
     return datapoints
 
@@ -598,7 +622,7 @@ def build_generate_prompts(dps: list[GenerateDatapoint]) -> list[str | list[Mess
     for dp in dps:
         prompt_msgs = build_generate_state(instruction=dp.instruction, text=dp.text)
         datapoints.append(
-            prompt_msgs + [Message(role=Role.ASSISTANT, content=dp.response)]
+            prompt_msgs + [Message(role=Role.ASSISTANT, content=dp.response)],
         )
     return datapoints
 
@@ -623,10 +647,11 @@ def build_score_prompts(
             suffix_strategy=suffix_strategy,
         )
         json_response = apply_suffix_strategy(
-            response=json_response_object, suffix_strategy=suffix_strategy
+            response=json_response_object,
+            suffix_strategy=suffix_strategy,
         )
         datapoints.append(
-            prompt_msgs + [Message(role=Role.ASSISTANT, content=json_response)]
+            prompt_msgs + [Message(role=Role.ASSISTANT, content=json_response)],
         )
     return datapoints
 
@@ -634,7 +659,6 @@ def build_score_prompts(
 def apply_suffix_strategy(response: str, suffix_strategy: PromptSuffixStrategy) -> str:
     if suffix_strategy == PromptSuffixStrategy.JSON:
         return response
-    elif suffix_strategy == PromptSuffixStrategy.JSON_MD_BLOCK:
+    if suffix_strategy == PromptSuffixStrategy.JSON_MD_BLOCK:
         return add_md_tag(response)
-    else:
-        raise ValueError(f"Unknown suffix strategy: {suffix_strategy}")
+    raise ValueError(f"Unknown suffix strategy: {suffix_strategy}")

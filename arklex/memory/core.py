@@ -46,6 +46,7 @@ class ShortTermMemory:
                 conversation turn.
             chat_history (str): Formatted chat history string containing recent conversation turns.
             llm_config (LLMConfig): Configuration for the language model and embeddings.
+
         """
         if trajectory is None:
             trajectory = []
@@ -71,11 +72,12 @@ class ShortTermMemory:
 
         # Initialize embedding model with caching
         self.embedding_model = PROVIDER_EMBEDDINGS.get(
-            llm_config.llm_provider, OpenAIEmbeddings
+            llm_config.llm_provider,
+            OpenAIEmbeddings,
         )(
             **{"model": PROVIDER_EMBEDDING_MODELS[llm_config.llm_provider]}
             if llm_config.llm_provider != "anthropic"
-            else {"model_name": PROVIDER_EMBEDDING_MODELS[llm_config.llm_provider]}
+            else {"model_name": PROVIDER_EMBEDDING_MODELS[llm_config.llm_provider]},
         )
         model_class = validate_and_get_model_class(llm_config)
 
@@ -95,10 +97,11 @@ class ShortTermMemory:
 
         Returns:
             np.ndarray: The embedding vector for the text.
+
         """
         if text not in self._embedding_cache:
             self._embedding_cache[text] = np.array(
-                self.embedding_model.embed_query(text)
+                self.embedding_model.embed_query(text),
             ).reshape(1, -1)
         return self._embedding_cache[text]
 
@@ -113,6 +116,7 @@ class ShortTermMemory:
 
         Returns:
             List[np.ndarray]: List of embedding vectors for the texts.
+
         """
         tasks = [asyncio.create_task(self._get_embedding_async(text)) for text in texts]
         return await asyncio.gather(*tasks)
@@ -127,6 +131,7 @@ class ShortTermMemory:
 
         Returns:
             np.ndarray: The embedding vector for the text.
+
         """
         return self._get_embedding(text)
 
@@ -155,6 +160,7 @@ class ShortTermMemory:
             Tuple[bool, List[ResourceRecord]]: A tuple where the first element is a boolean
                 indicating whether relevant records were found, and the second element is a
                 list of the top-k relevant ResourceRecord objects based on the query.
+
         """
         if not self.trajectory:
             return False, []
@@ -191,7 +197,8 @@ class ShortTermMemory:
                 if task:
                     task_embedding = self._get_embedding(task)
                     task_similarity = cosine_similarity(
-                        query_embedding, task_embedding
+                        query_embedding,
+                        task_embedding,
                     )[0][0]
                     score_components["task"] = task_similarity
 
@@ -210,7 +217,8 @@ class ShortTermMemory:
                         # First check cosine similarity of personalized intent as a filter
                         intent_embedding = self._get_embedding(personalized_intent)
                         cosine_similarity_score = cosine_similarity(
-                            query_embedding, intent_embedding
+                            query_embedding,
+                            intent_embedding,
                         )[0][0]
 
                         # Only proceed with string comparison if cosine similarity is above threshold
@@ -230,10 +238,11 @@ class ShortTermMemory:
                 for step in record.steps or []:
                     if isinstance(step, dict) and "context_generate" in step:
                         context_embedding = self._get_embedding(
-                            step["context_generate"]
+                            step["context_generate"],
                         )
                         context_similarity = cosine_similarity(
-                            query_embedding, context_embedding
+                            query_embedding,
+                            context_embedding,
                         )[0][0]
                         score_components["context"] = context_similarity
                         break
@@ -242,7 +251,8 @@ class ShortTermMemory:
                 if record.output:
                     output_embedding = self._get_embedding(record.output)
                     output_similarity = cosine_similarity(
-                        query_embedding, output_embedding
+                        query_embedding,
+                        output_embedding,
                     )[0][0]
                     score_components["output"] = output_similarity
 
@@ -264,7 +274,10 @@ class ShortTermMemory:
         return True, [r["record"] for r in relevant_records[:top_k]]
 
     def retrieve_intent(
-        self, query: str, string_threshold: float = 0.4, cosine_threshold: float = 0.7
+        self,
+        query: str,
+        string_threshold: float = 0.4,
+        cosine_threshold: float = 0.7,
     ) -> tuple[bool, str | None]:
         """Retrieve the most relevant intent from memory based on a query.
 
@@ -284,6 +297,7 @@ class ShortTermMemory:
                 indicating whether a relevant intent was found, and the second element is
                 the most relevant intent (if found), or None if no relevant intent meets
                 the threshold.
+
         """
         if not self.trajectory:
             return False, None
@@ -309,7 +323,8 @@ class ShortTermMemory:
                         # First check cosine similarity of personalized intent as a filter
                         intent_embedding = self._get_embedding(personalized_intent)
                         cosine_similarity_score = cosine_similarity(
-                            query_embedding, intent_embedding
+                            query_embedding,
+                            intent_embedding,
                         )[0][0]
 
                         # Only proceed with string comparison if cosine similarity is above threshold
@@ -326,8 +341,7 @@ class ShortTermMemory:
         # If the best score is above the threshold, return the intent
         if best_score >= string_threshold:
             return True, best_intent
-        else:
-            return False, None
+        return False, None
 
     async def personalize(self) -> None:
         """Generate personalized intents for records in memory.
@@ -358,7 +372,9 @@ class ShortTermMemory:
             await asyncio.gather(*tasks)
 
     async def _set_personalized_intent(
-        self, record: ResourceRecord, user_utterance: str
+        self,
+        record: ResourceRecord,
+        user_utterance: str,
     ) -> None:
         """Set personalized intent for a record.
 
@@ -368,15 +384,19 @@ class ShortTermMemory:
         Args:
             record (ResourceRecord): The record to set the personalized intent for.
             user_utterance (str): The user's utterance to consider for personalization.
+
         """
         record.personalized_intent = (
             await self.generate_personalized_product_attribute_intent(
-                record, user_utterance
+                record,
+                user_utterance,
             )
         )
 
     async def generate_personalized_product_attribute_intent(
-        self, record: ResourceRecord, user_utterance: str
+        self,
+        record: ResourceRecord,
+        user_utterance: str,
     ) -> str:
         """Generate a personalized intent focusing on product and attribute.
 
@@ -390,8 +410,8 @@ class ShortTermMemory:
 
         Returns:
             str: The generated personalized intent string.
-        """
 
+        """
         task = record.info.get("attribute", {}).get("task", "") or ""
         tool_output = record.output or ""
         context_generate = ""
@@ -428,7 +448,9 @@ class ShortTermMemory:
         )
 
         match = re.search(
-            r"Personalized Intent:\s*(.+)", content, re.IGNORECASE | re.DOTALL
+            r"Personalized Intent:\s*(.+)",
+            content,
+            re.IGNORECASE | re.DOTALL,
         )
 
         personalized_intent = match.group(1).strip() if match else content.strip()

@@ -1,5 +1,4 @@
-"""
-Tests for Acuity tools.
+"""Tests for Acuity tools.
 
 This module contains comprehensive tests for all Acuity-related tools including
 exception prompts, booking functionality, and utility functions.
@@ -229,7 +228,9 @@ class TestAcuityGetTypeIdByAptName:
 
         tool = get_type_id_by_apt_name()
         result = tool.func(
-            apt_name="Info Session", ACUITY_USER_ID="user", ACUITY_API_KEY="key"
+            apt_name="Info Session",
+            ACUITY_USER_ID="user",
+            ACUITY_API_KEY="key",
         )
         assert "1" in result
         mock_get.assert_called_once()
@@ -247,7 +248,9 @@ class TestAcuityGetTypeIdByAptName:
         tool = get_type_id_by_apt_name()
         with pytest.raises(ToolExecutionError):
             tool.func(
-                apt_name="Info Session", ACUITY_USER_ID="user", ACUITY_API_KEY="key"
+                apt_name="Info Session",
+                ACUITY_USER_ID="user",
+                ACUITY_API_KEY="key",
             )
 
     @patch("requests.get")
@@ -260,7 +263,9 @@ class TestAcuityGetTypeIdByAptName:
         tool = get_type_id_by_apt_name()
         with pytest.raises(ToolExecutionError):
             tool.func(
-                apt_name="Info Session", ACUITY_USER_ID="user", ACUITY_API_KEY="key"
+                apt_name="Info Session",
+                ACUITY_USER_ID="user",
+                ACUITY_API_KEY="key",
             )
 
 
@@ -327,13 +332,15 @@ class TestAcuityGetAptByEmail:
                 "endTime": "11:00am",
                 "type": "Info Session",
                 "email": "john@example.com",
-            }
+            },
         ]
         mock_get.return_value = mock_response
 
         tool = get_apt_by_email()
         result = tool.func(
-            email="john@example.com", ACUITY_USER_ID="user", ACUITY_API_KEY="key"
+            email="john@example.com",
+            ACUITY_USER_ID="user",
+            ACUITY_API_KEY="key",
         )
         assert "123" in result
         assert "Info Session" in result
@@ -350,7 +357,9 @@ class TestAcuityGetAptByEmail:
         tool = get_apt_by_email()
         with pytest.raises(ToolExecutionError):
             tool.func(
-                email="john@example.com", ACUITY_USER_ID="user", ACUITY_API_KEY="key"
+                email="john@example.com",
+                ACUITY_USER_ID="user",
+                ACUITY_API_KEY="key",
             )
 
     @patch("requests.get")
@@ -363,7 +372,9 @@ class TestAcuityGetAptByEmail:
         tool = get_apt_by_email()
         with pytest.raises(ToolExecutionError):
             tool.func(
-                email="john@example.com", ACUITY_USER_ID="user", ACUITY_API_KEY="key"
+                email="john@example.com",
+                ACUITY_USER_ID="user",
+                ACUITY_API_KEY="key",
             )
 
 

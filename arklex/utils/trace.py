@@ -19,6 +19,7 @@ class TraceType(Enum):
         IntentDetection: Traces for intent detection operations
         SlotFiller: Traces for slot filling operations
         ToolExecution: Traces for tool execution operations
+
     """
 
     IntentDetection = "IntentDetection"  # Intent detection operation traces
@@ -37,6 +38,7 @@ class Trace:
         input (object): Input to the operation
         output (object): Output from the operation
         metadata (Dict[str, Any]): Additional metadata
+
     """
 
     def __init__(
@@ -53,6 +55,7 @@ class Trace:
             input: Input to the operation
             output: Output from the operation
             metadata: Additional metadata
+
         """
         self.type = type
         self.input = input

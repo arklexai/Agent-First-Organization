@@ -29,14 +29,13 @@ outputs: list[dict[str, Any]] = [
         "name": "apt_type_id",
         "type": "str",
         "description": "The appointment type id of the info session.",
-    }
+    },
 ]
 
 
 @register_tool(description, slots, outputs)
 def get_type_id_by_apt_name(apt_name: str, **kwargs: dict[str, Any]) -> str:
-    """
-    Get the appointment type ID for a given session name.
+    """Get the appointment type ID for a given session name.
 
     Args:
         apt_name (str): Name of the appointment/session
@@ -47,6 +46,7 @@ def get_type_id_by_apt_name(apt_name: str, **kwargs: dict[str, Any]) -> str:
 
     Raises:
         ToolExecutionError: If retrieving the type ID fails
+
     """
     func_name: str = inspect.currentframe().f_code.co_name
     user_id: str
@@ -56,21 +56,23 @@ def get_type_id_by_apt_name(apt_name: str, **kwargs: dict[str, Any]) -> str:
     base_url: str = "https://acuityscheduling.com/api/v1/appointment-types"
 
     response: requests.Response = requests.get(
-        base_url, auth=HTTPBasicAuth(user_id, api_key)
+        base_url,
+        auth=HTTPBasicAuth(user_id, api_key),
     )
 
     if response.status_code == 200:
         data: list[dict[str, Any]] = response.json()
         apt_type_id: int | None = next(
-            (item["id"] for item in data if item["name"].strip() == apt_name), None
+            (item["id"] for item in data if item["name"].strip() == apt_name),
+            None,
         )
 
         if apt_type_id is None:
             raise ToolExecutionError(
-                func_name, AcuityExceptionPrompt.GET_TYPE_ID_PROMPT
+                func_name,
+                AcuityExceptionPrompt.GET_TYPE_ID_PROMPT,
             )
 
         response_str: str = f"The appointment type id is {apt_type_id}\n"
         return response_str
-    else:
-        raise ToolExecutionError(func_name, AcuityExceptionPrompt.GET_TYPE_ID_PROMPT)
+    raise ToolExecutionError(func_name, AcuityExceptionPrompt.GET_TYPE_ID_PROMPT)

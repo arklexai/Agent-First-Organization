@@ -33,19 +33,21 @@ def enable_cache() -> None:
 def hash_item(item: object) -> int:
     if isinstance(item, dict):
         return hash(tuple({k: hash_item(v) for k, v in sorted(item.items())}))
-    elif isinstance(item, list):
+    if isinstance(item, list):
         return hash(tuple([hash_item(x) for x in item]))
-    elif isinstance(item, set):
+    if isinstance(item, set):
         return hash(frozenset([hash_item(x) for x in item]))
-    elif isinstance(item, tuple):
+    if isinstance(item, tuple):
         return hash(tuple([hash_item(x) for x in item]))
-    elif isinstance(item, BaseModel):
+    if isinstance(item, BaseModel):
         return hash_item(item.model_json_schema())
     return hash(item)
 
 
 def hash_func_call(
-    func: Callable[..., object], args: tuple[object, ...], kwargs: dict[str, object]
+    func: Callable[..., object],
+    args: tuple[object, ...],
+    kwargs: dict[str, object],
 ) -> str:
     bound_args = inspect.signature(func).bind(*args, **kwargs)
     bound_args.apply_defaults()

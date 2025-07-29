@@ -307,7 +307,9 @@ class TestOpenAIRealtimeAgent:
 
     @patch("json.dumps")
     async def test_update_session(
-        self, mock_json_dumps: Mock, mock_websocket: AsyncMock
+        self,
+        mock_json_dumps: Mock,
+        mock_websocket: AsyncMock,
     ) -> None:
         """Test updating session configuration."""
         mock_json_dumps.return_value = '{"test": "data"}'
@@ -343,7 +345,9 @@ class TestOpenAIRealtimeAgent:
 
     @patch("json.dumps")
     async def test_update_session_with_transcription_language(
-        self, mock_json_dumps: Mock, mock_websocket: AsyncMock
+        self,
+        mock_json_dumps: Mock,
+        mock_websocket: AsyncMock,
     ) -> None:
         """Test updating session with transcription language."""
         mock_json_dumps.return_value = '{"test": "data"}'
@@ -358,7 +362,9 @@ class TestOpenAIRealtimeAgent:
 
     @patch("json.dumps")
     async def test_send_audio(
-        self, mock_json_dumps: Mock, mock_websocket: AsyncMock
+        self,
+        mock_json_dumps: Mock,
+        mock_websocket: AsyncMock,
     ) -> None:
         """Test sending audio data."""
         mock_json_dumps.return_value = '{"test": "data"}'
@@ -374,7 +380,9 @@ class TestOpenAIRealtimeAgent:
 
     @patch("json.dumps")
     async def test_truncate_audio(
-        self, mock_json_dumps: Mock, mock_websocket: AsyncMock
+        self,
+        mock_json_dumps: Mock,
+        mock_websocket: AsyncMock,
     ) -> None:
         """Test truncating audio."""
         mock_json_dumps.return_value = '{"test": "data"}'
@@ -389,7 +397,9 @@ class TestOpenAIRealtimeAgent:
 
     @patch("json.dumps")
     async def test_commit_audio(
-        self, mock_json_dumps: Mock, mock_websocket: AsyncMock
+        self,
+        mock_json_dumps: Mock,
+        mock_websocket: AsyncMock,
     ) -> None:
         """Test committing audio buffer."""
         mock_json_dumps.return_value = '{"test": "data"}'
@@ -404,7 +414,9 @@ class TestOpenAIRealtimeAgent:
 
     @patch("json.dumps")
     async def test_create_response(
-        self, mock_json_dumps: Mock, mock_websocket: AsyncMock
+        self,
+        mock_json_dumps: Mock,
+        mock_websocket: AsyncMock,
     ) -> None:
         """Test creating a response."""
         mock_json_dumps.return_value = '{"test": "data"}'
@@ -424,8 +436,8 @@ class TestOpenAIRealtimeAgent:
         # Simulate committed event
         asyncio.create_task(
             agent.input_audio_buffer_event_queue.put(
-                {"type": "input_audio_buffer.committed"}
-            )
+                {"type": "input_audio_buffer.committed"},
+            ),
         )
 
         result = await agent.wait_till_input_audio()
@@ -443,7 +455,9 @@ class TestOpenAIRealtimeAgent:
 
     @patch("json.dumps")
     async def test_add_function_call_output(
-        self, mock_json_dumps: Mock, mock_websocket: AsyncMock
+        self,
+        mock_json_dumps: Mock,
+        mock_websocket: AsyncMock,
     ) -> None:
         """Test adding function call output."""
         mock_json_dumps.return_value = '{"test": "data"}'
@@ -458,7 +472,9 @@ class TestOpenAIRealtimeAgent:
 
     @patch("asyncio.to_thread")
     async def test_run_voicemail_tool(
-        self, mock_to_thread: Mock, mock_tool: Tool
+        self,
+        mock_to_thread: Mock,
+        mock_tool: Tool,
     ) -> None:
         """Test running voicemail tool."""
         mock_to_thread.return_value = None
@@ -509,7 +525,10 @@ class TestOpenAIRealtimeAgent:
 
     @patch("asyncio.to_thread")
     async def test_run_tool_with_group_slots(
-        self, mock_to_thread: Mock, mock_tool: Tool, mock_websocket: AsyncMock
+        self,
+        mock_to_thread: Mock,
+        mock_tool: Tool,
+        mock_websocket: AsyncMock,
     ) -> None:
         """Test tool execution with group slots."""
         mock_to_thread.return_value = "tool result"
@@ -524,7 +543,7 @@ class TestOpenAIRealtimeAgent:
                 "valueSource": "fixed",
                 "value": "true",
                 "type": "bool",
-            }
+            },
         ]
 
         mock_tool.slots = [group_slot]
@@ -540,7 +559,10 @@ class TestOpenAIRealtimeAgent:
 
     @patch("asyncio.to_thread")
     async def test_run_tool_http_tool(
-        self, mock_to_thread: Mock, mock_tool: Tool, mock_websocket: AsyncMock
+        self,
+        mock_to_thread: Mock,
+        mock_tool: Tool,
+        mock_websocket: AsyncMock,
     ) -> None:
         """Test tool execution for HTTP tool."""
         mock_to_thread.return_value = "tool result"
@@ -557,7 +579,10 @@ class TestOpenAIRealtimeAgent:
 
     @patch("asyncio.to_thread")
     async def test_run_tool_exception(
-        self, mock_to_thread: Mock, mock_tool: Tool, mock_websocket: AsyncMock
+        self,
+        mock_to_thread: Mock,
+        mock_tool: Tool,
+        mock_websocket: AsyncMock,
     ) -> None:
         """Test tool execution with exception."""
         mock_to_thread.side_effect = Exception("Tool error")
@@ -572,7 +597,9 @@ class TestOpenAIRealtimeAgent:
 
     @patch("json.dumps")
     async def test_create_audio_response(
-        self, mock_json_dumps: Mock, mock_websocket: AsyncMock
+        self,
+        mock_json_dumps: Mock,
+        mock_websocket: AsyncMock,
     ) -> None:
         """Test creating audio response."""
         mock_json_dumps.return_value = '{"test": "data"}'
@@ -587,7 +614,8 @@ class TestOpenAIRealtimeAgent:
         mock_websocket.send.assert_called()
 
     async def test_receive_events_response_done(
-        self, mock_websocket: AsyncMock
+        self,
+        mock_websocket: AsyncMock,
     ) -> None:
         """Test receiving response.done event."""
         agent = OpenAIRealtimeAgent()
@@ -605,11 +633,11 @@ class TestOpenAIRealtimeAgent:
                                 "name": "mock_tool",
                                 "call_id": "call_123",
                                 "arguments": '{"param": "value"}',
-                            }
-                        ]
+                            },
+                        ],
                     },
-                }
-            )
+                },
+            ),
         ]
 
         # Mock tool execution
@@ -617,18 +645,21 @@ class TestOpenAIRealtimeAgent:
             await agent.receive_events()
 
             mock_run_tool.assert_called_once_with(
-                "call_123", "mock_tool", {"param": "value"}
+                "call_123",
+                "mock_tool",
+                {"param": "value"},
             )
 
     async def test_receive_events_response_text_done(
-        self, mock_websocket: AsyncMock
+        self,
+        mock_websocket: AsyncMock,
     ) -> None:
         """Test receiving response.text.done event."""
         agent = OpenAIRealtimeAgent()
         agent.ws = mock_websocket
 
         mock_websocket.__aiter__.return_value = [
-            json.dumps({"type": "response.text.done", "text": "Hello world"})
+            json.dumps({"type": "response.text.done", "text": "Hello world"}),
         ]
 
         await agent.receive_events()
@@ -650,8 +681,8 @@ class TestOpenAIRealtimeAgent:
                     "type": "response.audio.delta",
                     "item_id": "item_123",
                     "delta": audio_data,
-                }
-            )
+                },
+            ),
         ]
 
         await agent.receive_events()
@@ -663,7 +694,8 @@ class TestOpenAIRealtimeAgent:
         assert event["id"] == "item_123"
 
     async def test_receive_events_audio_delta_telephony(
-        self, mock_websocket: AsyncMock
+        self,
+        mock_websocket: AsyncMock,
     ) -> None:
         """Test receiving response.audio.delta event in telephony mode."""
         agent = OpenAIRealtimeAgent(telephony_mode=True)
@@ -676,8 +708,8 @@ class TestOpenAIRealtimeAgent:
                     "type": "response.audio.delta",
                     "item_id": "item_123",
                     "delta": audio_data,
-                }
-            )
+                },
+            ),
         ]
 
         await agent.receive_events()
@@ -689,7 +721,8 @@ class TestOpenAIRealtimeAgent:
         assert event["id"] == "item_123"
 
     async def test_receive_events_audio_transcript_delta(
-        self, mock_websocket: AsyncMock
+        self,
+        mock_websocket: AsyncMock,
     ) -> None:
         """Test receiving response.audio_transcript.delta event."""
         agent = OpenAIRealtimeAgent()
@@ -701,14 +734,14 @@ class TestOpenAIRealtimeAgent:
                     "type": "response.audio_transcript.delta",
                     "item_id": "item_123",
                     "delta": "Hello",
-                }
+                },
             ),
             json.dumps(
                 {
                     "type": "response.audio_transcript.delta",
                     "item_id": "item_123",
                     "delta": " world",
-                }
+                },
             ),
         ]
 
@@ -723,7 +756,8 @@ class TestOpenAIRealtimeAgent:
         assert event2["text"] == "Hello world"
 
     async def test_receive_events_audio_transcript_done(
-        self, mock_websocket: AsyncMock
+        self,
+        mock_websocket: AsyncMock,
     ) -> None:
         """Test receiving response.audio_transcript.done event."""
         agent = OpenAIRealtimeAgent()
@@ -735,8 +769,8 @@ class TestOpenAIRealtimeAgent:
                     "type": "response.audio_transcript.done",
                     "item_id": "item_123",
                     "transcript": "Hello world",
-                }
-            )
+                },
+            ),
         ]
 
         await agent.receive_events()
@@ -753,7 +787,8 @@ class TestOpenAIRealtimeAgent:
         assert agent.transcript[0].origin == "bot"
 
     async def test_receive_events_input_audio_buffer_events(
-        self, mock_websocket: AsyncMock
+        self,
+        mock_websocket: AsyncMock,
     ) -> None:
         """Test receiving input audio buffer events."""
         agent = OpenAIRealtimeAgent()
@@ -774,7 +809,8 @@ class TestOpenAIRealtimeAgent:
         assert event2["type"] == "input_audio_buffer.speech_stopped"
 
     async def test_receive_events_conversation_item_created(
-        self, mock_websocket: AsyncMock
+        self,
+        mock_websocket: AsyncMock,
     ) -> None:
         """Test receiving conversation.item.created event."""
         agent = OpenAIRealtimeAgent()
@@ -785,13 +821,13 @@ class TestOpenAIRealtimeAgent:
                 {
                     "type": "conversation.item.created",
                     "item": {"id": "item_123", "role": "user"},
-                }
+                },
             ),
             json.dumps(
                 {
                     "type": "conversation.item.created",
                     "item": {"id": "item_456", "role": "assistant"},
-                }
+                },
             ),
         ]
 
@@ -806,7 +842,8 @@ class TestOpenAIRealtimeAgent:
         assert event2["origin"] == "bot"
 
     async def test_receive_events_input_audio_transcription_completed(
-        self, mock_websocket: AsyncMock
+        self,
+        mock_websocket: AsyncMock,
     ) -> None:
         """Test receiving conversation.item.input_audio_transcription.completed event."""
         agent = OpenAIRealtimeAgent()
@@ -818,8 +855,8 @@ class TestOpenAIRealtimeAgent:
                     "type": "conversation.item.input_audio_transcription.completed",
                     "item_id": "item_123",
                     "transcript": "User said hello",
-                }
-            )
+                },
+            ),
         ]
 
         await agent.receive_events()
@@ -841,7 +878,7 @@ class TestOpenAIRealtimeAgent:
         agent.ws = mock_websocket
 
         mock_websocket.__aiter__.return_value = [
-            json.dumps({"type": "error", "error": "Test error"})
+            json.dumps({"type": "error", "error": "Test error"}),
         ]
 
         # Start the event loop and cancel it after a short delay
@@ -858,7 +895,8 @@ class TestOpenAIRealtimeAgent:
         assert await agent.external_queue.get() is None
 
     async def test_receive_events_websocket_closed(
-        self, mock_websocket: AsyncMock
+        self,
+        mock_websocket: AsyncMock,
     ) -> None:
         """Test handling WebSocket connection closure."""
         agent = OpenAIRealtimeAgent()
@@ -952,7 +990,9 @@ class TestOpenAIRealtimeAgentIntegration:
 
     @pytest.mark.asyncio
     async def test_tool_execution_flow(
-        self, mock_tool: Tool, mock_websocket: AsyncMock
+        self,
+        mock_tool: Tool,
+        mock_websocket: AsyncMock,
     ) -> None:
         """Test tool execution flow."""
         agent = OpenAIRealtimeAgent(tool_map={"mock_tool": mock_tool})
@@ -970,8 +1010,8 @@ class TestOpenAIRealtimeAgentIntegration:
                             "name": "mock_tool",
                             "call_id": "call_123",
                             "arguments": '{"param": "value"}',
-                        }
-                    ]
+                        },
+                    ],
                 },
             }
 
@@ -985,5 +1025,7 @@ class TestOpenAIRealtimeAgentIntegration:
                 await task
 
             mock_run_tool.assert_called_once_with(
-                "call_123", "mock_tool", {"param": "value"}
+                "call_123",
+                "mock_tool",
+                {"param": "value"},
             )

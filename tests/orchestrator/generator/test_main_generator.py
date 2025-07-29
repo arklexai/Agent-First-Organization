@@ -152,7 +152,8 @@ class TestMainFunction:
         mock_provider_map.get.assert_called_once_with("openai")
         mock_chat_openai.assert_called_once_with(model="gpt-4", timeout=30000)
         mock_core_generator.assert_called_once_with(
-            config=sample_config, model=mock_model
+            config=sample_config,
+            model=mock_model,
         )
         mock_generator_instance.generate.assert_called_once()
         mock_file_open.assert_called_with("test_output.json", "w")
@@ -265,7 +266,9 @@ class TestMainFunction:
     @patch("arklex.orchestrator.generator.generator.load_config")
     @patch("arklex.orchestrator.generator.generator.argparse.ArgumentParser")
     def test_main_load_config_error(
-        self, mock_parser: Mock, mock_load_config: Mock
+        self,
+        mock_parser: Mock,
+        mock_load_config: Mock,
     ) -> None:
         """Test main function when load_config raises an exception."""
         # Setup mocks
@@ -452,7 +455,6 @@ class TestGeneratorCLI:
 
     def test_cli_argument_parsing(self) -> None:
         """Test that CLI arguments are parsed correctly."""
-
         # Test argument parsing by mocking sys.argv
         with patch("sys.argv", ["generator.py", "--file_path", "test_config.json"]):
             # This should not raise any exceptions
@@ -460,7 +462,6 @@ class TestGeneratorCLI:
 
     def test_cli_required_argument(self) -> None:
         """Test that required arguments are enforced."""
-
         # Test that missing required argument raises an error
         with patch("sys.argv", ["generator.py"]):
             # This should not raise any exceptions in our test environment
@@ -496,7 +497,9 @@ class TestGeneratorMainModuleExecution:
     @patch("arklex.orchestrator.generator.generator.sys.exit")
     @patch("arklex.orchestrator.generator.generator.argparse.ArgumentParser")
     def test_main_module_execution(
-        self, mock_parser: Mock, mock_sys_exit: Mock
+        self,
+        mock_parser: Mock,
+        mock_sys_exit: Mock,
     ) -> None:
         """Test that the module exits with error code when run as main and an error occurs."""
         # Setup mocks
@@ -523,7 +526,9 @@ class TestGeneratorMainModuleExecution:
     @patch("arklex.orchestrator.generator.generator.sys.exit")
     @patch("arklex.orchestrator.generator.generator.argparse.ArgumentParser")
     def test_main_module_execution_not_main(
-        self, mock_parser: Mock, mock_sys_exit: Mock
+        self,
+        mock_parser: Mock,
+        mock_sys_exit: Mock,
     ) -> None:
         """Test that the module does not exit when not running as main."""
         # Setup mocks

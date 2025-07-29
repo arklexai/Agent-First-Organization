@@ -25,6 +25,7 @@ class GraphValidator:
 
     Attributes:
         _errors (List[str]): List of validation error messages
+
     """
 
     def __init__(self) -> None:
@@ -39,6 +40,7 @@ class GraphValidator:
 
         Returns:
             bool: True if graph is valid
+
         """
         self._errors = []
 
@@ -98,5 +100,6 @@ class GraphValidator:
 
         Returns:
             List[str]: Validation error messages
+
         """
         return self._errors

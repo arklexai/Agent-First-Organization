@@ -136,7 +136,9 @@ class TestMessageWorkerGenerator:
     @patch("arklex.env.workers.message_worker.load_prompts")
     @patch("arklex.env.workers.message_worker.trace")
     def test_generator_direct_response(
-        self, mock_trace: Mock, mock_load_prompts: Mock
+        self,
+        mock_trace: Mock,
+        mock_load_prompts: Mock,
     ) -> None:
         """Test generator with direct_response=True should return early without calling LLM."""
         worker: MessageWorker = MessageWorker()
@@ -144,10 +146,12 @@ class TestMessageWorkerGenerator:
 
         msg_state: MessageState = MessageState()
         msg_state.user_message = ConvoMessage(
-            history="test history", message="test message"
+            history="test history",
+            message="test message",
         )
         msg_state.orchestrator_message = OrchestratorMessage(
-            message="direct message", attribute={"direct_response": True}
+            message="direct message",
+            attribute={"direct_response": True},
         )
         msg_state.response = "prev response"
         msg_state.message_flow = "prev flow"
@@ -162,7 +166,9 @@ class TestMessageWorkerGenerator:
     @patch("arklex.env.workers.message_worker.load_prompts")
     @patch("arklex.env.workers.message_worker.trace")
     def test_generator_with_message_flow(
-        self, mock_trace: Mock, mock_load_prompts: Mock
+        self,
+        mock_trace: Mock,
+        mock_load_prompts: Mock,
     ) -> None:
         """Test generator with existing message flow."""
         worker: MessageWorker = MessageWorker()
@@ -179,10 +185,12 @@ class TestMessageWorkerGenerator:
 
         msg_state: MessageState = MessageState()
         msg_state.user_message = ConvoMessage(
-            history="test history", message="test message"
+            history="test history",
+            message="test message",
         )
         msg_state.orchestrator_message = OrchestratorMessage(
-            message="orchestrator message", attribute={"direct_response": False}
+            message="orchestrator message",
+            attribute={"direct_response": False},
         )
         msg_state.response = "prev response"
         msg_state.message_flow = "prev flow"
@@ -196,7 +204,9 @@ class TestMessageWorkerGenerator:
     @patch("arklex.env.workers.message_worker.load_prompts")
     @patch("arklex.env.workers.message_worker.trace")
     def test_generator_without_message_flow(
-        self, mock_trace: Mock, mock_load_prompts: Mock
+        self,
+        mock_trace: Mock,
+        mock_load_prompts: Mock,
     ) -> None:
         """Test generator without existing message flow."""
         worker: MessageWorker = MessageWorker()
@@ -213,10 +223,12 @@ class TestMessageWorkerGenerator:
 
         msg_state: MessageState = MessageState()
         msg_state.user_message = ConvoMessage(
-            history="test history", message="test message"
+            history="test history",
+            message="test message",
         )
         msg_state.orchestrator_message = OrchestratorMessage(
-            message="orchestrator message", attribute={"direct_response": False}
+            message="orchestrator message",
+            attribute={"direct_response": False},
         )
         msg_state.response = ""
         msg_state.message_flow = ""
@@ -230,7 +242,9 @@ class TestMessageWorkerGenerator:
     @patch("arklex.env.workers.message_worker.load_prompts")
     @patch("arklex.env.workers.message_worker.trace")
     def test_generator_with_empty_orchestrator_message(
-        self, mock_trace: Mock, mock_load_prompts: Mock
+        self,
+        mock_trace: Mock,
+        mock_load_prompts: Mock,
     ) -> None:
         """Test generator with empty orchestrator message."""
         worker: MessageWorker = MessageWorker()
@@ -247,10 +261,12 @@ class TestMessageWorkerGenerator:
 
         msg_state: MessageState = MessageState()
         msg_state.user_message = ConvoMessage(
-            history="test history", message="test message"
+            history="test history",
+            message="test message",
         )
         msg_state.orchestrator_message = OrchestratorMessage(
-            message="", attribute={"direct_response": False}
+            message="",
+            attribute={"direct_response": False},
         )
         msg_state.response = ""
         msg_state.message_flow = ""
@@ -266,7 +282,9 @@ class TestMessageWorkerGenerator:
     @patch("arklex.env.workers.message_worker.load_prompts")
     @patch("arklex.env.workers.message_worker.trace")
     def test_generator_with_newline_only_message_flow(
-        self, mock_trace: Mock, mock_load_prompts: Mock
+        self,
+        mock_trace: Mock,
+        mock_load_prompts: Mock,
     ) -> None:
         """Test generator with message flow that is only a newline."""
         worker: MessageWorker = MessageWorker()
@@ -283,10 +301,12 @@ class TestMessageWorkerGenerator:
 
         msg_state: MessageState = MessageState()
         msg_state.user_message = ConvoMessage(
-            history="test history", message="test message"
+            history="test history",
+            message="test message",
         )
         msg_state.orchestrator_message = OrchestratorMessage(
-            message="orchestrator message", attribute={"direct_response": False}
+            message="orchestrator message",
+            attribute={"direct_response": False},
         )
         msg_state.response = ""
         msg_state.message_flow = "\n"
@@ -304,17 +324,20 @@ class TestMessageWorkerTextStreamGenerator:
 
     @patch("arklex.env.workers.message_worker.load_prompts")
     def test_text_stream_generator_direct_response(
-        self, mock_load_prompts: Mock
+        self,
+        mock_load_prompts: Mock,
     ) -> None:
         """Test text_stream_generator with direct_response=True."""
         worker: MessageWorker = MessageWorker()
 
         msg_state: MessageState = MessageState()
         msg_state.user_message = ConvoMessage(
-            history="test history", message="test message"
+            history="test history",
+            message="test message",
         )
         msg_state.orchestrator_message = OrchestratorMessage(
-            message="direct message", attribute={"direct_response": True}
+            message="direct message",
+            attribute={"direct_response": True},
         )
         msg_state.response = "prev response"
         msg_state.message_flow = "prev flow"
@@ -329,7 +352,9 @@ class TestMessageWorkerTextStreamGenerator:
     @patch("arklex.env.workers.message_worker.load_prompts")
     @patch("arklex.env.workers.message_worker.trace")
     def test_text_stream_generator_with_message_flow(
-        self, mock_trace: Mock, mock_load_prompts: Mock
+        self,
+        mock_trace: Mock,
+        mock_load_prompts: Mock,
     ) -> None:
         """Test text_stream_generator with existing message flow."""
         worker: MessageWorker = MessageWorker()
@@ -346,10 +371,12 @@ class TestMessageWorkerTextStreamGenerator:
 
         msg_state: MessageState = MessageState()
         msg_state.user_message = ConvoMessage(
-            history="test history", message="test message"
+            history="test history",
+            message="test message",
         )
         msg_state.orchestrator_message = OrchestratorMessage(
-            message="orchestrator message", attribute={"direct_response": False}
+            message="orchestrator message",
+            attribute={"direct_response": False},
         )
         msg_state.response = "prev response"
         msg_state.message_flow = "prev flow"
@@ -363,7 +390,9 @@ class TestMessageWorkerTextStreamGenerator:
     @patch("arklex.env.workers.message_worker.load_prompts")
     @patch("arklex.env.workers.message_worker.trace")
     def test_text_stream_generator_without_message_flow(
-        self, mock_trace: Mock, mock_load_prompts: Mock
+        self,
+        mock_trace: Mock,
+        mock_load_prompts: Mock,
     ) -> None:
         """Test text_stream_generator without existing message flow."""
         worker: MessageWorker = MessageWorker()
@@ -380,10 +409,12 @@ class TestMessageWorkerTextStreamGenerator:
 
         msg_state: MessageState = MessageState()
         msg_state.user_message = ConvoMessage(
-            history="test history", message="test message"
+            history="test history",
+            message="test message",
         )
         msg_state.orchestrator_message = OrchestratorMessage(
-            message="orchestrator message", attribute={"direct_response": False}
+            message="orchestrator message",
+            attribute={"direct_response": False},
         )
         msg_state.response = ""
         msg_state.message_flow = ""
@@ -400,17 +431,20 @@ class TestMessageWorkerSpeechStreamGenerator:
 
     @patch("arklex.env.workers.message_worker.load_prompts")
     def test_speech_stream_generator_direct_response(
-        self, mock_load_prompts: Mock
+        self,
+        mock_load_prompts: Mock,
     ) -> None:
         """Test speech_stream_generator with direct_response=True."""
         worker: MessageWorker = MessageWorker()
 
         msg_state: MessageState = MessageState()
         msg_state.user_message = ConvoMessage(
-            history="test history", message="test message"
+            history="test history",
+            message="test message",
         )
         msg_state.orchestrator_message = OrchestratorMessage(
-            message="direct message", attribute={"direct_response": True}
+            message="direct message",
+            attribute={"direct_response": True},
         )
         msg_state.response = "prev response"
         msg_state.message_flow = "prev flow"
@@ -424,7 +458,8 @@ class TestMessageWorkerSpeechStreamGenerator:
 
     @patch("arklex.env.workers.message_worker.load_prompts")
     def test_speech_stream_generator_with_message_flow(
-        self, mock_load_prompts: Mock
+        self,
+        mock_load_prompts: Mock,
     ) -> None:
         """Test speech_stream_generator with existing message flow."""
         worker: MessageWorker = MessageWorker()
@@ -441,10 +476,12 @@ class TestMessageWorkerSpeechStreamGenerator:
 
         msg_state: MessageState = MessageState()
         msg_state.user_message = ConvoMessage(
-            history="test history", message="test message"
+            history="test history",
+            message="test message",
         )
         msg_state.orchestrator_message = OrchestratorMessage(
-            message="orchestrator message", attribute={"direct_response": False}
+            message="orchestrator message",
+            attribute={"direct_response": False},
         )
         msg_state.response = "prev response"
         msg_state.message_flow = "prev flow"
@@ -457,7 +494,8 @@ class TestMessageWorkerSpeechStreamGenerator:
 
     @patch("arklex.env.workers.message_worker.load_prompts")
     def test_speech_stream_generator_without_message_flow(
-        self, mock_load_prompts: Mock
+        self,
+        mock_load_prompts: Mock,
     ) -> None:
         """Test speech_stream_generator without existing message flow."""
         worker: MessageWorker = MessageWorker()
@@ -474,10 +512,12 @@ class TestMessageWorkerSpeechStreamGenerator:
 
         msg_state: MessageState = MessageState()
         msg_state.user_message = ConvoMessage(
-            history="test history", message="test message"
+            history="test history",
+            message="test message",
         )
         msg_state.orchestrator_message = OrchestratorMessage(
-            message="orchestrator message", attribute={"direct_response": False}
+            message="orchestrator message",
+            attribute={"direct_response": False},
         )
         msg_state.response = ""
         msg_state.message_flow = ""
@@ -495,7 +535,9 @@ class TestMessageWorkerExecute:
     @patch("arklex.env.workers.message_worker.PROVIDER_MAP")
     @patch("arklex.env.workers.message_worker.ChatOpenAI")
     def test_execute_with_openai_provider(
-        self, mock_chat_openai: Mock, mock_provider_map: Mock
+        self,
+        mock_chat_openai: Mock,
+        mock_provider_map: Mock,
     ) -> None:
         """Test execute method with OpenAI provider."""
         worker: MessageWorker = MessageWorker()
@@ -527,7 +569,9 @@ class TestMessageWorkerExecute:
     @patch("arklex.env.workers.message_worker.PROVIDER_MAP")
     @patch("arklex.env.workers.message_worker.ChatOpenAI")
     def test_execute_with_unknown_provider(
-        self, mock_chat_openai: Mock, mock_provider_map: Mock
+        self,
+        mock_chat_openai: Mock,
+        mock_provider_map: Mock,
     ) -> None:
         """Test execute method with unknown provider (should default to OpenAI)."""
         worker: MessageWorker = MessageWorker()
@@ -590,7 +634,7 @@ class TestMessageWorkerExecute:
 
         # Mock the LLM setup
         with patch(
-            "arklex.env.workers.message_worker.PROVIDER_MAP"
+            "arklex.env.workers.message_worker.PROVIDER_MAP",
         ) as mock_provider_map:
             mock_provider_map.get.return_value = Mock()
 
@@ -610,7 +654,9 @@ class TestMessageWorkerEdgeCases:
     @patch("arklex.env.workers.message_worker.load_prompts")
     @patch("arklex.env.workers.message_worker.trace")
     def test_generator_with_none_orchestrator_message(
-        self, mock_trace: Mock, mock_load_prompts: Mock
+        self,
+        mock_trace: Mock,
+        mock_load_prompts: Mock,
     ) -> None:
         """Test generator with None orchestrator message."""
         worker: MessageWorker = MessageWorker()
@@ -627,10 +673,12 @@ class TestMessageWorkerEdgeCases:
 
         msg_state: MessageState = MessageState()
         msg_state.user_message = ConvoMessage(
-            history="test history", message="test message"
+            history="test history",
+            message="test message",
         )
         msg_state.orchestrator_message = OrchestratorMessage(
-            message="", attribute={"direct_response": False}
+            message="",
+            attribute={"direct_response": False},
         )
         msg_state.response = ""
         msg_state.message_flow = ""
@@ -644,7 +692,8 @@ class TestMessageWorkerEdgeCases:
 
     @patch("arklex.env.workers.message_worker.load_prompts")
     def test_text_stream_generator_with_empty_stream(
-        self, mock_load_prompts: Mock
+        self,
+        mock_load_prompts: Mock,
     ) -> None:
         """Test text_stream_generator with empty stream."""
         worker: MessageWorker = MessageWorker()
@@ -661,10 +710,12 @@ class TestMessageWorkerEdgeCases:
 
         msg_state: MessageState = MessageState()
         msg_state.user_message = ConvoMessage(
-            history="test history", message="test message"
+            history="test history",
+            message="test message",
         )
         msg_state.orchestrator_message = OrchestratorMessage(
-            message="orchestrator message", attribute={"direct_response": False}
+            message="orchestrator message",
+            attribute={"direct_response": False},
         )
         msg_state.response = ""
         msg_state.message_flow = ""
@@ -677,7 +728,8 @@ class TestMessageWorkerEdgeCases:
 
     @patch("arklex.env.workers.message_worker.load_prompts")
     def test_speech_stream_generator_with_empty_stream(
-        self, mock_load_prompts: Mock
+        self,
+        mock_load_prompts: Mock,
     ) -> None:
         """Test speech_stream_generator with empty stream."""
         worker: MessageWorker = MessageWorker()
@@ -694,10 +746,12 @@ class TestMessageWorkerEdgeCases:
 
         msg_state: MessageState = MessageState()
         msg_state.user_message = ConvoMessage(
-            history="test history", message="test message"
+            history="test history",
+            message="test message",
         )
         msg_state.orchestrator_message = OrchestratorMessage(
-            message="orchestrator message", attribute={"direct_response": False}
+            message="orchestrator message",
+            attribute={"direct_response": False},
         )
         msg_state.response = ""
         msg_state.message_flow = ""
@@ -746,7 +800,9 @@ class TestMessageWorkerIntegration:
     @patch("arklex.env.workers.message_worker.PROVIDER_MAP")
     @patch("arklex.env.workers.message_worker.ChatOpenAI")
     def test_full_execution_flow(
-        self, mock_chat_openai: Mock, mock_provider_map: Mock
+        self,
+        mock_chat_openai: Mock,
+        mock_provider_map: Mock,
     ) -> None:
         """Test a complete execution flow from initialization to response generation."""
         worker: MessageWorker = MessageWorker()
@@ -757,10 +813,12 @@ class TestMessageWorkerIntegration:
         msg_state: MessageState = MessageState()
         msg_state.bot_config = VALID_BOT_CONFIG
         msg_state.user_message = ConvoMessage(
-            history="test history", message="test message"
+            history="test history",
+            message="test message",
         )
         msg_state.orchestrator_message = OrchestratorMessage(
-            message="test orchestrator message", attribute={"direct_response": False}
+            message="test orchestrator message",
+            attribute={"direct_response": False},
         )
 
         # Execute the worker

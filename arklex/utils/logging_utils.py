@@ -153,11 +153,12 @@ class LogContext:
         return None
 
     def _get_console_handler(
-        self, log_format: str | None = None
+        self,
+        log_format: str | None = None,
     ) -> logging.StreamHandler:
         handler = logging.StreamHandler()
         handler.setFormatter(
-            logging.Formatter(log_format or "%(levelname)s - %(message)s")
+            logging.Formatter(log_format or "%(levelname)s - %(message)s"),
         )
         return handler
 
@@ -182,38 +183,63 @@ class LogContext:
         return extra
 
     def info(
-        self, message: str, context: dict[str, Any] | None = None, **kwargs: object
+        self,
+        message: str,
+        context: dict[str, Any] | None = None,
+        **kwargs: object,
     ) -> None:
         self.log_context.info(
-            message, extra=self._merge_extra(context, kwargs), **kwargs
+            message,
+            extra=self._merge_extra(context, kwargs),
+            **kwargs,
         )
 
     def debug(
-        self, message: str, context: dict[str, Any] | None = None, **kwargs: object
+        self,
+        message: str,
+        context: dict[str, Any] | None = None,
+        **kwargs: object,
     ) -> None:
         self.log_context.debug(
-            message, extra=self._merge_extra(context, kwargs), **kwargs
+            message,
+            extra=self._merge_extra(context, kwargs),
+            **kwargs,
         )
 
     def warning(
-        self, message: str, context: dict[str, Any] | None = None, **kwargs: object
+        self,
+        message: str,
+        context: dict[str, Any] | None = None,
+        **kwargs: object,
     ) -> None:
         self.log_context.warning(
-            message, extra=self._merge_extra(context, kwargs), **kwargs
+            message,
+            extra=self._merge_extra(context, kwargs),
+            **kwargs,
         )
 
     def error(
-        self, message: str, context: dict[str, Any] | None = None, **kwargs: object
+        self,
+        message: str,
+        context: dict[str, Any] | None = None,
+        **kwargs: object,
     ) -> None:
         self.log_context.error(
-            message, extra=self._merge_extra(context, kwargs), **kwargs
+            message,
+            extra=self._merge_extra(context, kwargs),
+            **kwargs,
         )
 
     def critical(
-        self, message: str, context: dict[str, Any] | None = None, **kwargs: object
+        self,
+        message: str,
+        context: dict[str, Any] | None = None,
+        **kwargs: object,
     ) -> None:
         self.log_context.critical(
-            message, extra=self._merge_extra(context, kwargs), **kwargs
+            message,
+            extra=self._merge_extra(context, kwargs),
+            **kwargs,
         )
 
     def exception(
@@ -228,6 +254,7 @@ class LogContext:
             message: The message to log or the exception object
             context: Optional context dictionary
             **kwargs: Additional keyword arguments
+
         """
         if isinstance(message, Exception):
             # If message is an exception, use its string representation
@@ -239,7 +266,10 @@ class LogContext:
             exc_info = kwargs.pop("exc_info", True)
 
         self.log_context.error(
-            msg, extra=self._merge_extra(context, kwargs), exc_info=exc_info, **kwargs
+            msg,
+            extra=self._merge_extra(context, kwargs),
+            exc_info=exc_info,
+            **kwargs,
         )
 
     def push_context(self, context: dict[str, Any]) -> None:
@@ -266,6 +296,7 @@ def handle_exceptions(
 
     Returns:
         Decorated function
+
     """
     log_context = logging.getLogger("arklex")
 
@@ -289,7 +320,8 @@ def handle_exceptions(
                 log_context.log(
                     getattr(logging, log_level.upper(), logging.ERROR),
                     LOG_MESSAGES["ERROR"]["UNEXPECTED_ERROR"].format(
-                        function=func.__name__, error=str(e)
+                        function=func.__name__,
+                        error=str(e),
                     ),
                     extra={"context": context},
                     exc_info=e,
@@ -324,7 +356,8 @@ def handle_exceptions(
                 log_context.log(
                     getattr(logging, log_level.upper(), logging.ERROR),
                     LOG_MESSAGES["ERROR"]["UNEXPECTED_ERROR"].format(
-                        function=func.__name__, error=str(e)
+                        function=func.__name__,
+                        error=str(e),
                     ),
                     extra={"context": context},
                     exc_info=e,
@@ -364,6 +397,7 @@ def with_retry(
 
     Returns:
         Decorated function
+
     """
     log_context = logging.getLogger("arklex")
 

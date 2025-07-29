@@ -47,7 +47,8 @@ def setup_temp_db() -> None:
         except OSError:
             # If we can't remove it, try to create a new one with a different name
             db_path = os.path.join(
-                data_dir, f"show_booking_db_{uuid.uuid4().hex[:8]}.sqlite"
+                data_dir,
+                f"show_booking_db_{uuid.uuid4().hex[:8]}.sqlite",
             )
 
     try:
@@ -291,11 +292,14 @@ class TestDatabaseActionsInitSlots:
     @patch("arklex.env.tools.database.utils.load_prompts")
     @patch("arklex.env.tools.database.utils.sqlite3.connect")
     def test_init_slots_with_empty_slots(
-        self, mock_sqlite_connect: object, mock_load_prompts: object, mock_llm: object
+        self,
+        mock_sqlite_connect: object,
+        mock_load_prompts: object,
+        mock_llm: object,
     ) -> None:
         """Test init_slots with empty slots list."""
         mock_load_prompts.return_value = {
-            "database_slot_prompt": "template {slot} {value} {value_list}"
+            "database_slot_prompt": "template {slot} {value} {value_list}",
         }
 
         # Mock database connection and cursor
@@ -322,11 +326,13 @@ class TestDatabaseActionsInitSlots:
     @patch("arklex.env.tools.database.utils.ChatOpenAI", autospec=True)
     @patch("arklex.env.tools.database.utils.load_prompts")
     def test_init_slots_with_none_slots(
-        self, mock_load_prompts: object, mock_llm: object
+        self,
+        mock_load_prompts: object,
+        mock_llm: object,
     ) -> None:
         """Test init_slots with None slots."""
         mock_load_prompts.return_value = {
-            "database_slot_prompt": "template {slot} {value} {value_list}"
+            "database_slot_prompt": "template {slot} {value} {value_list}",
         }
         db = DatabaseActions()
         bot_config = {}
@@ -337,11 +343,13 @@ class TestDatabaseActionsInitSlots:
     @patch("arklex.env.tools.database.utils.ChatOpenAI", autospec=True)
     @patch("arklex.env.tools.database.utils.load_prompts")
     def test_init_slots_with_custom_slots(
-        self, mock_load_prompts: object, mock_llm: object
+        self,
+        mock_load_prompts: object,
+        mock_llm: object,
     ) -> None:
         """Test init_slots with custom slots."""
         mock_load_prompts.return_value = {
-            "database_slot_prompt": "template {slot} {value} {value_list}"
+            "database_slot_prompt": "template {slot} {value} {value_list}",
         }
         db = DatabaseActions()
         custom_slots = [
@@ -351,7 +359,7 @@ class TestDatabaseActionsInitSlots:
                 "value": "",
                 "description": "Custom field",
                 "prompt": "Please provide custom field",
-            }
+            },
         ]
         bot_config = {}
         result = db.init_slots(custom_slots, bot_config)
@@ -367,12 +375,15 @@ class TestDatabaseActionsVerifySlot:
     @patch("arklex.env.tools.database.utils.load_prompts")
     @patch("arklex.env.tools.database.utils.chunk_string")
     def test_verify_slot_success(
-        self, mock_chunk: object, mock_load_prompts: object, mock_llm: object
+        self,
+        mock_chunk: object,
+        mock_load_prompts: object,
+        mock_llm: object,
     ) -> None:
         """Test successful slot verification."""
         db = DatabaseActions()
         mock_load_prompts.return_value = {
-            "database_slot_prompt": "template {slot} {value} {value_list}"
+            "database_slot_prompt": "template {slot} {value} {value_list}",
         }
         mock_chunk.return_value = ["chunked_prompt"]
 
@@ -397,12 +408,15 @@ class TestDatabaseActionsVerifySlot:
     @patch("arklex.env.tools.database.utils.load_prompts")
     @patch("arklex.env.tools.database.utils.chunk_string")
     def test_verify_slot_no_match(
-        self, mock_chunk: object, mock_load_prompts: object, mock_llm: object
+        self,
+        mock_chunk: object,
+        mock_load_prompts: object,
+        mock_llm: object,
     ) -> None:
         """Test slot verification when no value matches."""
         db = DatabaseActions()
         mock_load_prompts.return_value = {
-            "database_slot_prompt": "template {slot} {value} {value_list}"
+            "database_slot_prompt": "template {slot} {value} {value_list}",
         }
         mock_chunk.return_value = ["chunked_prompt"]
 
@@ -427,12 +441,15 @@ class TestDatabaseActionsVerifySlot:
     @patch("arklex.env.tools.database.utils.load_prompts")
     @patch("arklex.env.tools.database.utils.chunk_string")
     def test_verify_slot_exception_handling(
-        self, mock_chunk: object, mock_load_prompts: object, mock_llm: object
+        self,
+        mock_chunk: object,
+        mock_load_prompts: object,
+        mock_llm: object,
     ) -> None:
         """Test slot verification with exception handling."""
         db = DatabaseActions()
         mock_load_prompts.return_value = {
-            "database_slot_prompt": "template {slot} {value} {value_list}"
+            "database_slot_prompt": "template {slot} {value} {value_list}",
         }
         mock_chunk.return_value = ["chunked_prompt"]
 
@@ -460,7 +477,9 @@ class TestDatabaseActionsSearchShow:
     @patch("arklex.env.tools.database.utils.ChatOpenAI", autospec=True)
     @patch("arklex.env.tools.database.utils.sqlite3.connect")
     def test_search_show_with_confirmed_slots(
-        self, mock_sqlite_connect: object, mock_llm: object
+        self,
+        mock_sqlite_connect: object,
+        mock_llm: object,
     ) -> None:
         """Test search_show with confirmed slots."""
         # Mock database connection and cursor
@@ -479,7 +498,7 @@ class TestDatabaseActionsSearchShow:
                 "A test show.",
                 "Test Location",
                 100.0,
-            )
+            ),
         ]
         mock_cursor.description = [
             ("show_name",),
@@ -500,7 +519,7 @@ class TestDatabaseActionsSearchShow:
                 prompt="",
                 verified_value="Test Show",
                 confirmed=True,
-            )
+            ),
         ]
         msg_state = MessageState()
 
@@ -516,7 +535,9 @@ class TestDatabaseActionsSearchShow:
     @patch("arklex.env.tools.database.utils.ChatOpenAI", autospec=True)
     @patch("arklex.env.tools.database.utils.sqlite3.connect")
     def test_search_show_with_no_confirmed_slots(
-        self, mock_sqlite_connect: object, mock_llm: object
+        self,
+        mock_sqlite_connect: object,
+        mock_llm: object,
     ) -> None:
         """Test search_show with no confirmed slots."""
         # Mock database connection and cursor
@@ -564,7 +585,7 @@ class TestDatabaseActionsSearchShow:
                 prompt="",
                 verified_value="",
                 confirmed=False,
-            )
+            ),
         ]
         msg_state = MessageState()
 
@@ -581,7 +602,9 @@ class TestDatabaseActionsSearchShow:
     @patch("arklex.env.tools.database.utils.ChatOpenAI", autospec=True)
     @patch("arklex.env.tools.database.utils.sqlite3.connect")
     def test_search_show_no_results(
-        self, mock_sqlite_connect: object, mock_llm: object
+        self,
+        mock_sqlite_connect: object,
+        mock_llm: object,
     ) -> None:
         """Test search_show when no shows match criteria."""
         # Mock database connection and cursor
@@ -604,7 +627,7 @@ class TestDatabaseActionsSearchShow:
                 prompt="",
                 verified_value="Non-existent Show",
                 confirmed=True,
-            )
+            ),
         ]
         msg_state = MessageState()
 
@@ -621,7 +644,9 @@ class TestDatabaseActionsSearchShow:
     @patch("arklex.env.tools.database.utils.ChatOpenAI", autospec=True)
     @patch("arklex.env.tools.database.utils.sqlite3.connect")
     def test_search_show_multiple_filters(
-        self, mock_sqlite_connect: object, mock_llm: object
+        self,
+        mock_sqlite_connect: object,
+        mock_llm: object,
     ) -> None:
         """Test search_show with multiple confirmed slots."""
         # Mock database connection and cursor
@@ -637,7 +662,7 @@ class TestDatabaseActionsSearchShow:
                 "A test show.",
                 "Test Location",
                 100.0,
-            )
+            ),
         ]
         mock_cursor.description = [
             ("show_name",),
@@ -683,7 +708,9 @@ class TestDatabaseActionsBookShow:
     @patch("arklex.env.tools.database.utils.ChatOpenAI", autospec=True)
     @patch("arklex.env.tools.database.utils.sqlite3.connect")
     def test_book_show_success(
-        self, mock_sqlite_connect: object, mock_llm: object
+        self,
+        mock_sqlite_connect: object,
+        mock_llm: object,
     ) -> None:
         """Test successful booking."""
         # Mock database connection and cursor
@@ -703,7 +730,7 @@ class TestDatabaseActionsBookShow:
                 "A test show.",
                 "Test Location",
                 100.0,
-            )
+            ),
         ]
         mock_cursor.description = [
             ("id",),
@@ -725,7 +752,7 @@ class TestDatabaseActionsBookShow:
                 prompt="",
                 verified_value="Test Show",
                 confirmed=True,
-            )
+            ),
         ]
         db.slot_prompts = []
         msg_state = MessageState()
@@ -742,7 +769,9 @@ class TestDatabaseActionsBookShow:
     @patch("arklex.env.tools.database.utils.ChatOpenAI", autospec=True)
     @patch("arklex.env.tools.database.utils.sqlite3.connect")
     def test_book_show_no_shows_found(
-        self, mock_sqlite_connect: object, mock_llm: object
+        self,
+        mock_sqlite_connect: object,
+        mock_llm: object,
     ) -> None:
         """Test booking when no shows match criteria."""
         # Mock database connection and cursor
@@ -762,7 +791,7 @@ class TestDatabaseActionsBookShow:
                 prompt="",
                 verified_value="Non-existent Show",
                 confirmed=True,
-            )
+            ),
         ]
         db.slot_prompts = []
         msg_state = MessageState()
@@ -776,7 +805,9 @@ class TestDatabaseActionsBookShow:
     @patch("arklex.env.tools.database.utils.ChatOpenAI", autospec=True)
     @patch("arklex.env.tools.database.utils.sqlite3.connect")
     def test_book_show_multiple_shows_found(
-        self, mock_sqlite_connect: object, mock_llm: object
+        self,
+        mock_sqlite_connect: object,
+        mock_llm: object,
     ) -> None:
         """Test booking when multiple shows match criteria."""
         # Mock database connection and cursor
@@ -827,7 +858,7 @@ class TestDatabaseActionsBookShow:
                 prompt="",
                 verified_value="Test Location",
                 confirmed=True,
-            )
+            ),
         ]
         db.slot_prompts = ["Please specify the show name"]
         msg_state = MessageState()
@@ -845,7 +876,9 @@ class TestDatabaseActionsBookShow:
     @patch("arklex.env.tools.database.utils.ChatOpenAI", autospec=True)
     @patch("arklex.env.tools.database.utils.sqlite3.connect")
     def test_book_show_no_slots_confirmed(
-        self, mock_sqlite_connect: object, mock_llm: object
+        self,
+        mock_sqlite_connect: object,
+        mock_llm: object,
     ) -> None:
         """Test booking when no slots are confirmed."""
         # Mock database connection and cursor
@@ -905,7 +938,7 @@ class TestDatabaseActionsBookShow:
                 prompt="",
                 verified_value="",
                 confirmed=False,
-            )
+            ),
         ]
         db.slot_prompts = []
         msg_state = MessageState()
@@ -925,7 +958,9 @@ class TestDatabaseActionsBookShow:
     @patch("arklex.env.tools.database.utils.ChatOpenAI", autospec=True)
     @patch("arklex.env.tools.database.utils.sqlite3.connect")
     def test_book_show_empty_slots(
-        self, mock_sqlite_connect: object, mock_llm: object
+        self,
+        mock_sqlite_connect: object,
+        mock_llm: object,
     ) -> None:
         """Test booking with empty slots."""
         # Mock database connection and cursor
@@ -999,7 +1034,9 @@ class TestDatabaseActionsCheckBooking:
     @patch("arklex.env.tools.database.utils.ChatOpenAI", autospec=True)
     @patch("arklex.env.tools.database.utils.sqlite3.connect")
     def test_check_booking_with_bookings(
-        self, mock_sqlite_connect: object, mock_llm: object
+        self,
+        mock_sqlite_connect: object,
+        mock_llm: object,
     ) -> None:
         """Test check_booking when user has bookings."""
         # Mock database connection and cursor
@@ -1023,7 +1060,7 @@ class TestDatabaseActionsCheckBooking:
                 "Test Location",
                 100.0,
                 50,
-            )
+            ),
         ]
         mock_cursor.description = [
             ("id",),
@@ -1054,7 +1091,9 @@ class TestDatabaseActionsCheckBooking:
     @patch("arklex.env.tools.database.utils.ChatOpenAI", autospec=True)
     @patch("arklex.env.tools.database.utils.sqlite3.connect")
     def test_check_booking_no_bookings(
-        self, mock_sqlite_connect: object, mock_llm: object
+        self,
+        mock_sqlite_connect: object,
+        mock_llm: object,
     ) -> None:
         """Test check_booking when user has no bookings."""
         # Mock database connection and cursor
@@ -1086,7 +1125,9 @@ class TestDatabaseActionsCancelBooking:
     @patch("arklex.env.tools.database.utils.ChatOpenAI", autospec=True)
     @patch("arklex.env.tools.database.utils.sqlite3.connect")
     def test_cancel_booking_success(
-        self, mock_sqlite_connect: object, mock_llm: object
+        self,
+        mock_sqlite_connect: object,
+        mock_llm: object,
     ) -> None:
         """Test successful booking cancellation."""
         # Mock database connection and cursor
@@ -1110,7 +1151,7 @@ class TestDatabaseActionsCancelBooking:
                 "Test Location",
                 100.0,
                 50,
-            )
+            ),
         ]
         mock_cursor.description = [
             ("id",),
@@ -1141,7 +1182,9 @@ class TestDatabaseActionsCancelBooking:
     @patch("arklex.env.tools.database.utils.ChatOpenAI", autospec=True)
     @patch("arklex.env.tools.database.utils.sqlite3.connect")
     def test_cancel_booking_no_bookings(
-        self, mock_sqlite_connect: object, mock_llm: object
+        self,
+        mock_sqlite_connect: object,
+        mock_llm: object,
     ) -> None:
         """Test cancel_booking when user has no bookings."""
         # Mock database connection and cursor
@@ -1169,7 +1212,9 @@ class TestDatabaseActionsCancelBooking:
     @patch("arklex.env.tools.database.utils.ChatOpenAI", autospec=True)
     @patch("arklex.env.tools.database.utils.sqlite3.connect")
     def test_cancel_booking_multiple_bookings(
-        self, mock_sqlite_connect: object, mock_llm: object
+        self,
+        mock_sqlite_connect: object,
+        mock_llm: object,
     ) -> None:
         """Test cancel_booking when user has multiple bookings."""
         # Mock database connection and cursor
@@ -1256,7 +1301,7 @@ class TestDatabaseActionsIntegration:
                 prompt="",
                 verified_value="Test Show",
                 confirmed=True,
-            )
+            ),
         ]
         msg_state = MessageState()
         search_result = db.search_show(msg_state)
@@ -1352,7 +1397,7 @@ class TestDatabaseActionsEdgeCases:
                 prompt="",
                 verified_value="Test'Show",
                 confirmed=True,
-            )
+            ),
         ]
         msg_state = MessageState()
 
@@ -1374,7 +1419,7 @@ class TestDatabaseActionsEdgeCases:
                 prompt="",
                 verified_value=long_value,
                 confirmed=True,
-            )
+            ),
         ]
         msg_state = MessageState()
 
@@ -1389,11 +1434,13 @@ class TestDatabaseActionsAdvancedScenarios:
     @patch("arklex.env.tools.database.utils.ChatOpenAI", autospec=True)
     @patch("arklex.env.tools.database.utils.load_prompts")
     def test_verify_slot_with_empty_value_list(
-        self, mock_load_prompts: object, mock_llm: object
+        self,
+        mock_load_prompts: object,
+        mock_llm: object,
     ) -> None:
         """Test slot verification with empty value list."""
         mock_load_prompts.return_value = {
-            "database_slot_prompt": "template {slot} {value} {value_list}"
+            "database_slot_prompt": "template {slot} {value} {value_list}",
         }
         db = DatabaseActions()
         slot = SLOTS[0].copy()
@@ -1410,11 +1457,13 @@ class TestDatabaseActionsAdvancedScenarios:
     @patch("arklex.env.tools.database.utils.ChatOpenAI", autospec=True)
     @patch("arklex.env.tools.database.utils.load_prompts")
     def test_verify_slot_with_none_value_list(
-        self, mock_load_prompts: object, mock_llm: object
+        self,
+        mock_load_prompts: object,
+        mock_llm: object,
     ) -> None:
         """Test slot verification with None value list."""
         mock_load_prompts.return_value = {
-            "database_slot_prompt": "template {slot} {value} {value_list}"
+            "database_slot_prompt": "template {slot} {value} {value_list}",
         }
         db = DatabaseActions()
         slot = SLOTS[0].copy()
@@ -1441,7 +1490,7 @@ class TestDatabaseActionsAdvancedScenarios:
                 prompt="",
                 verified_value="'; DROP TABLE show; --",
                 confirmed=True,
-            )
+            ),
         ]
         msg_state = MessageState()
 
@@ -1463,7 +1512,7 @@ class TestDatabaseActionsAdvancedScenarios:
                 prompt="",
                 verified_value="Test Show",
                 confirmed=True,
-            )
+            ),
         ]
         msg_state = MessageState()
 
@@ -1506,7 +1555,7 @@ class TestDatabaseActionsAdvancedScenarios:
                 prompt="",
                 verified_value="Test Show",
                 confirmed=True,
-            )
+            ),
         ]
         msg_state = MessageState()
         result = db.cancel_booking(msg_state)
@@ -1526,7 +1575,7 @@ class TestDatabaseActionsAdvancedScenarios:
                 "value": "",
                 "description": "Invalid column",
                 "prompt": "Please provide invalid column",
-            }
+            },
         ]
         bot_config = {}
 
@@ -1551,11 +1600,13 @@ class TestDatabaseActionsAdvancedScenarios:
     @patch("arklex.env.tools.database.utils.ChatOpenAI", autospec=True)
     @patch("arklex.env.tools.database.utils.load_prompts")
     def test_llm_timeout_handling(
-        self, mock_load_prompts: object, mock_llm: object
+        self,
+        mock_load_prompts: object,
+        mock_llm: object,
     ) -> None:
         """Test handling of LLM timeout during slot verification."""
         mock_load_prompts.return_value = {
-            "database_slot_prompt": "template {slot} {value} {value_list}"
+            "database_slot_prompt": "template {slot} {value} {value_list}",
         }
         db = DatabaseActions()
         slot = SLOTS[0].copy()
@@ -1618,7 +1669,7 @@ class TestDatabaseActionsAdvancedScenarios:
                     "Description",
                     "Location",
                     100.0,
-                )
+                ),
             ]
             mock_cursor.description = [
                 ("id",),
@@ -1639,7 +1690,7 @@ class TestDatabaseActionsAdvancedScenarios:
                     prompt="",
                     verified_value="Test Show",
                     confirmed=True,
-                )
+                ),
             ]
 
             # Should handle database error gracefully
@@ -1660,7 +1711,7 @@ class TestDatabaseActionsAdvancedScenarios:
                 prompt="",
                 verified_value=unicode_value,
                 confirmed=True,
-            )
+            ),
         ]
         msg_state = MessageState()
 
@@ -1683,7 +1734,7 @@ class TestDatabaseActionsAdvancedScenarios:
                 prompt="",
                 verified_value="100",
                 confirmed=True,
-            )
+            ),
         ]
         msg_state = MessageState()
 
@@ -1704,7 +1755,7 @@ class TestDatabaseActionsAdvancedScenarios:
                 prompt="",
                 verified_value="",
                 confirmed=True,
-            )
+            ),
         ]
         msg_state = MessageState()
 
@@ -1726,7 +1777,7 @@ class TestDatabaseActionsAdvancedScenarios:
                 prompt="",
                 verified_value=whitespace_value,
                 confirmed=True,
-            )
+            ),
         ]
         msg_state = MessageState()
 
@@ -1749,7 +1800,7 @@ class TestDatabaseActionsAdvancedScenarios:
                 prompt="",
                 verified_value="test show",
                 confirmed=True,
-            )
+            ),
         ]
         msg_state = MessageState()
 
@@ -1775,7 +1826,7 @@ class TestDatabaseActionsAdvancedScenarios:
                 prompt="",
                 verified_value="Non-existent Show",
                 confirmed=True,
-            )
+            ),
         ]
 
         result = db.book_show(msg_state)
@@ -1842,7 +1893,7 @@ class TestDatabaseActionsAdvancedScenarios:
         # Mock file permission error
         with patch("sqlite3.connect") as mock_connect:
             mock_connect.side_effect = sqlite3.OperationalError(
-                "unable to open database file"
+                "unable to open database file",
             )
 
             with pytest.raises(sqlite3.OperationalError):
@@ -1861,7 +1912,7 @@ class TestDatabaseActionsAdvancedScenarios:
             mock_conn.cursor.return_value = mock_cursor
             mock_connect.return_value = mock_conn
             mock_cursor.execute.side_effect = sqlite3.DatabaseError(
-                "database disk image is malformed"
+                "database disk image is malformed",
             )
 
             with pytest.raises(sqlite3.DatabaseError):
@@ -1898,7 +1949,7 @@ class TestDatabaseActionsAdvancedScenarios:
                 prompt="",
                 verified_value="Test Show",
                 confirmed=True,
-            )
+            ),
         ]
         msg_state = MessageState()
 
@@ -1945,7 +1996,7 @@ class TestDatabaseActionsAdvancedScenarios:
                     "show_1",
                     "user_be6e1836-8fe9-4938-b2d0-48f810648e72",
                     "2024-01-15 14:30:00",
-                )
+                ),
             ]
 
             result = db_actions.check_booking(msg_state)
@@ -1955,7 +2006,8 @@ class TestDatabaseActionsAdvancedScenarios:
 
     @patch("arklex.env.tools.database.utils.ChatOpenAI", autospec=True)
     def test_verify_slot_exception_handling_with_specific_error(
-        self, mock_llm: object
+        self,
+        mock_llm: object,
     ) -> None:
         """Test verify_slot exception handling with specific error types."""
         db_actions = DatabaseActions()
@@ -1990,7 +2042,8 @@ class TestDatabaseActionsAdvancedScenarios:
 
     @patch("arklex.env.tools.database.utils.ChatOpenAI", autospec=True)
     def test_verify_slot_exception_handling_with_connection_error(
-        self, mock_llm: object
+        self,
+        mock_llm: object,
     ) -> None:
         """Test verify_slot exception handling with connection error."""
         db_actions = DatabaseActions()
@@ -2015,7 +2068,7 @@ class TestDatabaseActionsAdvancedScenarios:
             mock_llm_instance = MagicMock()
             mock_llm.return_value = mock_llm_instance
             mock_llm_instance.invoke.side_effect = ConnectionError(
-                "Test connection error"
+                "Test connection error",
             )
 
             result = db_actions.verify_slot(slot, value_list, bot_config)
@@ -2027,7 +2080,8 @@ class TestDatabaseActionsAdvancedScenarios:
 
     @patch("arklex.env.tools.database.utils.ChatOpenAI", autospec=True)
     def test_verify_slot_exception_handling_with_timeout_error(
-        self, mock_llm: object
+        self,
+        mock_llm: object,
     ) -> None:
         """Test verify_slot exception handling with timeout error."""
         db_actions = DatabaseActions()
@@ -2062,7 +2116,8 @@ class TestDatabaseActionsAdvancedScenarios:
 
     @patch("arklex.env.tools.database.utils.ChatOpenAI", autospec=True)
     def test_verify_slot_exception_handling_with_attribute_error(
-        self, mock_llm: object
+        self,
+        mock_llm: object,
     ) -> None:
         """Test verify_slot exception handling with attribute error."""
         db_actions = DatabaseActions()
@@ -2087,7 +2142,7 @@ class TestDatabaseActionsAdvancedScenarios:
             mock_llm_instance = MagicMock()
             mock_llm.return_value = mock_llm_instance
             mock_llm_instance.invoke.side_effect = AttributeError(
-                "Test attribute error"
+                "Test attribute error",
             )
 
             result = db_actions.verify_slot(slot, value_list, bot_config)
@@ -2099,7 +2154,8 @@ class TestDatabaseActionsAdvancedScenarios:
 
     @patch("arklex.env.tools.database.utils.ChatOpenAI", autospec=True)
     def test_verify_slot_exception_handling_with_type_error(
-        self, mock_llm: object
+        self,
+        mock_llm: object,
     ) -> None:
         """Test verify_slot exception handling with type error."""
         db_actions = DatabaseActions()

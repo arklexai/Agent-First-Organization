@@ -51,7 +51,7 @@ def basic_config() -> dict[str, Any]:
         "intro": "intro text",
         "model": {"llm_provider": "openai", "model_type_or_path": "gpt-3.5"},
         "workers": [
-            {"id": "worker1", "name": "MessageWorker", "path": "message_worker"}
+            {"id": "worker1", "name": "MessageWorker", "path": "message_worker"},
         ],
         "tools": [],
         "nodes": [("node1", {"type": "task", "name": "Test Node"})],
@@ -183,7 +183,9 @@ class TestAgentOrgInitialization:
         assert agent.product_kwargs["role"] == "test_role"
 
     def test_init_with_file(
-        self, tmp_path: "Path", basic_config: dict[str, Any]
+        self,
+        tmp_path: "Path",
+        basic_config: dict[str, Any],
     ) -> None:
         """Test initialization with file path config."""
         import json
@@ -265,16 +267,17 @@ class TestAgentOrgInitParams:
                 "memory": {
                     "trajectory": [[{"resource": "test", "info": {}}]],
                     "function_calling_trajectory": [
-                        {"role": "assistant", "content": "foo"}
+                        {"role": "assistant", "content": "foo"},
                     ],
-                }
+                },
             },
         }
         text, chat_history_str, params, message_state = agent.init_params(inputs)
         assert hasattr(params.memory, "trajectory")
 
     def test_init_params_with_existing_function_calling_trajectory(
-        self, basic_config: dict[str, Any]
+        self,
+        basic_config: dict[str, Any],
     ) -> None:
         """Test parameter initialization with existing function calling trajectory."""
         agent = AgentOrg(basic_config, None)
@@ -284,9 +287,9 @@ class TestAgentOrgInitParams:
             "parameters": {
                 "memory": {
                     "function_calling_trajectory": [
-                        {"role": "assistant", "content": "existing"}
-                    ]
-                }
+                        {"role": "assistant", "content": "existing"},
+                    ],
+                },
             },
         }
         text, chat_history_str, params, message_state = agent.init_params(inputs)
@@ -309,7 +312,10 @@ class TestAgentOrgSkipNode:
     """Test AgentOrg node skipping functionality."""
 
     def test_check_skip_node_true_false(
-        self, basic_config: dict[str, Any], mock_node_info: Mock, mock_llm: Mock
+        self,
+        basic_config: dict[str, Any],
+        mock_node_info: Mock,
+        mock_llm: Mock,
     ) -> None:
         """Test node skipping with different conditions."""
         agent = AgentOrg(basic_config, None)
@@ -321,7 +327,9 @@ class TestAgentOrgSkipNode:
         assert agent.check_skip_node(mock_node_info, "history") is False
 
     def test_check_skip_node_edge_cases(
-        self, basic_config: dict[str, Any], mock_node_info: Mock
+        self,
+        basic_config: dict[str, Any],
+        mock_node_info: Mock,
     ) -> None:
         """Test node skipping edge cases."""
         agent = AgentOrg(basic_config, None)
@@ -335,7 +343,9 @@ class TestAgentOrgSkipNode:
         assert agent.check_skip_node(mock_node_info, "history") is False
 
     def test_check_skip_node_llm_exception(
-        self, basic_config: dict[str, Any], mock_node_info: Mock
+        self,
+        basic_config: dict[str, Any],
+        mock_node_info: Mock,
     ) -> None:
         """Test node skipping when LLM raises exception."""
         agent = AgentOrg(basic_config, None)
@@ -345,7 +355,9 @@ class TestAgentOrgSkipNode:
         assert agent.check_skip_node(mock_node_info, "history") is False
 
     def test_check_skip_node_llm_response_no(
-        self, basic_config: dict[str, Any], mock_node_info: Mock
+        self,
+        basic_config: dict[str, Any],
+        mock_node_info: Mock,
     ) -> None:
         """Test node skipping with LLM response 'no'."""
         agent = AgentOrg(basic_config, None)
@@ -355,7 +367,9 @@ class TestAgentOrgSkipNode:
         assert agent.check_skip_node(mock_node_info, "history") is False
 
     def test_check_skip_node_llm_response_yes(
-        self, basic_config: dict[str, Any], mock_node_info: Mock
+        self,
+        basic_config: dict[str, Any],
+        mock_node_info: Mock,
     ) -> None:
         """Test node skipping with LLM response 'yes'."""
         agent = AgentOrg(basic_config, None)
@@ -369,7 +383,9 @@ class TestAgentOrgPostProcessNode:
     """Test AgentOrg node post-processing functionality."""
 
     def test_post_process_node_basic(
-        self, basic_config: dict[str, Any], mock_node_info: Mock
+        self,
+        basic_config: dict[str, Any],
+        mock_node_info: Mock,
     ) -> None:
         agent = AgentOrg(basic_config, None)
         params = Params()
@@ -380,7 +396,9 @@ class TestAgentOrgPostProcessNode:
         assert result.taskgraph.node_limit["test_node"] == 2
 
     def test_post_process_node_with_skip_info(
-        self, basic_config: dict[str, Any], mock_node_info: Mock
+        self,
+        basic_config: dict[str, Any],
+        mock_node_info: Mock,
     ) -> None:
         agent = AgentOrg(basic_config, None)
         params = Params()
@@ -391,7 +409,9 @@ class TestAgentOrgPostProcessNode:
         assert path_node.is_skipped is True
 
     def test_post_process_node_without_node_limit(
-        self, basic_config: dict[str, Any], mock_node_info: Mock
+        self,
+        basic_config: dict[str, Any],
+        mock_node_info: Mock,
     ) -> None:
         agent = AgentOrg(basic_config, None)
         params = Params()
@@ -405,19 +425,24 @@ class TestAgentOrgDirectNode:
     """Test AgentOrg direct node handling."""
 
     def test_handl_direct_node_basic(
-        self, basic_config: dict[str, Any], mock_direct_node_info: Mock
+        self,
+        basic_config: dict[str, Any],
+        mock_direct_node_info: Mock,
     ) -> None:
         agent = AgentOrg(basic_config, None)
         params = Params()
         is_direct, response, params = agent.handl_direct_node(
-            mock_direct_node_info, params
+            mock_direct_node_info,
+            params,
         )
         assert is_direct is True
         assert response.answer == "Direct response"
         assert response.choice_list == ["option1", "option2"]
 
     def test_handl_direct_node_not_direct(
-        self, basic_config: dict[str, Any], mock_node_info: Mock
+        self,
+        basic_config: dict[str, Any],
+        mock_node_info: Mock,
     ) -> None:
         agent = AgentOrg(basic_config, None)
         params = Params()
@@ -436,7 +461,8 @@ class TestAgentOrgDirectNode:
         assert response is None
 
     def test_handl_direct_node_multiple_choice_without_choice_list(
-        self, basic_config: dict[str, Any]
+        self,
+        basic_config: dict[str, Any],
     ) -> None:
         """Test direct node with multiple choice but no choice list."""
         agent = AgentOrg(basic_config, None)
@@ -455,7 +481,9 @@ class TestAgentOrgPerformNode:
     """Test AgentOrg node performance."""
 
     def test_perform_node_basic(
-        self, basic_config: dict[str, Any], mock_node_info: Mock
+        self,
+        basic_config: dict[str, Any],
+        mock_node_info: Mock,
     ) -> None:
         """Test basic node performance."""
         agent = AgentOrg(basic_config, None)
@@ -488,7 +516,9 @@ class TestAgentOrgPerformNode:
         assert response_state.stream_type is None
 
     def test_perform_node_with_streaming(
-        self, basic_config: dict[str, Any], mock_node_info: Mock
+        self,
+        basic_config: dict[str, Any],
+        mock_node_info: Mock,
     ) -> None:
         """Test node performance with streaming."""
         agent = AgentOrg(basic_config, None)
@@ -538,10 +568,11 @@ class TestAgentOrgNestedGraphNode:
         mock_nested_graph.get_nested_graph_start_node_id.return_value = "start_node"
         mock_nested_graph_class.return_value = mock_nested_graph
         agent.task_graph._get_node = Mock(
-            return_value=(mock_nested_graph_node_info, params)
+            return_value=(mock_nested_graph_node_info, params),
         )
         node_info, params = agent.handle_nested_graph_node(
-            mock_nested_graph_node_info, params
+            mock_nested_graph_node_info,
+            params,
         )
         assert len(params.taskgraph.path) == 1
         assert params.taskgraph.curr_node == "start_node"
@@ -551,7 +582,9 @@ class TestAgentOrgNestedGraphNode:
         )
 
     def test_handle_nested_graph_node_not_nested(
-        self, basic_config: dict[str, Any], mock_node_info: Mock
+        self,
+        basic_config: dict[str, Any],
+        mock_node_info: Mock,
     ) -> None:
         agent = AgentOrg(basic_config, None)
         params = Params()
@@ -572,7 +605,9 @@ class TestAgentOrgGetResponse:
         """Test minimal response generation."""
         agent = AgentOrg(basic_config, None)
         monkeypatch.setattr(
-            agent, "_get_response", lambda *a, **kw: mock_orchestrator_response
+            agent,
+            "_get_response",
+            lambda *a, **kw: mock_orchestrator_response,
         )
 
         out = agent.get_response({"text": "hi", "chat_history": [], "parameters": None})
@@ -619,24 +654,26 @@ class TestAgentOrgGetResponse:
 
         # Mock ToolGenerator.context_generate
         with patch(
-            "arklex.orchestrator.orchestrator.ToolGenerator"
+            "arklex.orchestrator.orchestrator.ToolGenerator",
         ) as mock_tool_generator:
             mock_tool_generator.context_generate.return_value = message_state
 
             # Mock post_process_response
             with patch(
-                "arklex.orchestrator.orchestrator.post_process_response"
+                "arklex.orchestrator.orchestrator.post_process_response",
             ) as mock_post_process:
                 mock_post_process.return_value = message_state
 
                 response = agent._get_response(
-                    {"text": "test", "chat_history": [], "parameters": None}
+                    {"text": "test", "chat_history": [], "parameters": None},
                 )
 
                 assert response.answer == "Test response"
 
     def test_get_response_with_skip_node(
-        self, basic_config: dict[str, Any], mock_node_info: Mock
+        self,
+        basic_config: dict[str, Any],
+        mock_node_info: Mock,
     ) -> None:
         """Test response generation with skipped node."""
         agent = AgentOrg(basic_config, None)
@@ -644,7 +681,7 @@ class TestAgentOrgGetResponse:
 
         # Mock the task graph chain to return a leaf node after skipping
         with patch(
-            "arklex.orchestrator.orchestrator.RunnableLambda"
+            "arklex.orchestrator.orchestrator.RunnableLambda",
         ) as mock_runnable_lambda:
             mock_chain = Mock()
 
@@ -683,7 +720,7 @@ class TestAgentOrgGetResponse:
             )
             message_state.response = "Test response"
             agent.perform_node = Mock(
-                return_value=(mock_node_info, message_state, params)
+                return_value=(mock_node_info, message_state, params),
             )
 
             # Mock post_process_node
@@ -691,18 +728,18 @@ class TestAgentOrgGetResponse:
 
             # Mock ToolGenerator.context_generate
             with patch(
-                "arklex.orchestrator.orchestrator.ToolGenerator"
+                "arklex.orchestrator.orchestrator.ToolGenerator",
             ) as mock_tool_generator:
                 mock_tool_generator.context_generate.return_value = message_state
 
                 # Mock post_process_response
                 with patch(
-                    "arklex.orchestrator.orchestrator.post_process_response"
+                    "arklex.orchestrator.orchestrator.post_process_response",
                 ) as mock_post_process:
                     mock_post_process.return_value = message_state
 
                     agent._get_response(
-                        {"text": "test", "chat_history": [], "parameters": None}
+                        {"text": "test", "chat_history": [], "parameters": None},
                     )
 
                     # Should have called check_skip_node at least twice
@@ -711,7 +748,9 @@ class TestAgentOrgGetResponse:
                     agent.post_process_node.assert_called()
 
     def test_get_response_with_direct_node(
-        self, basic_config: dict[str, Any], mock_direct_node_info: Mock
+        self,
+        basic_config: dict[str, Any],
+        mock_direct_node_info: Mock,
     ) -> None:
         """Test response generation with direct node."""
         agent = AgentOrg(basic_config, None)
@@ -719,7 +758,7 @@ class TestAgentOrgGetResponse:
 
         # Mock the task graph chain
         with patch(
-            "arklex.orchestrator.orchestrator.RunnableLambda"
+            "arklex.orchestrator.orchestrator.RunnableLambda",
         ) as mock_runnable_lambda:
             mock_chain = Mock()
             mock_chain.invoke.return_value = (mock_direct_node_info, params)
@@ -732,13 +771,15 @@ class TestAgentOrgGetResponse:
             agent.post_process_node = Mock(return_value=params)
 
             response = agent._get_response(
-                {"text": "test", "chat_history": [], "parameters": None}
+                {"text": "test", "chat_history": [], "parameters": None},
             )
 
             assert response.answer == "Direct response"
 
     def test_get_response_with_incomplete_node(
-        self, basic_config: dict[str, Any], mock_node_info: Mock
+        self,
+        basic_config: dict[str, Any],
+        mock_node_info: Mock,
     ) -> None:
         """Test response generation with incomplete node."""
         agent = AgentOrg(basic_config, None)
@@ -748,7 +789,7 @@ class TestAgentOrgGetResponse:
 
         # Mock the task graph chain
         with patch(
-            "arklex.orchestrator.orchestrator.RunnableLambda"
+            "arklex.orchestrator.orchestrator.RunnableLambda",
         ) as mock_runnable_lambda:
             mock_chain = Mock()
             mock_chain.invoke.return_value = (mock_node_info, params)
@@ -772,7 +813,7 @@ class TestAgentOrgGetResponse:
                 ),
             )
             agent.perform_node = Mock(
-                return_value=(mock_node_info, message_state, params)
+                return_value=(mock_node_info, message_state, params),
             )
 
             # Mock post_process_node
@@ -780,25 +821,27 @@ class TestAgentOrgGetResponse:
 
             # Mock ToolGenerator.context_generate
             with patch(
-                "arklex.orchestrator.orchestrator.ToolGenerator"
+                "arklex.orchestrator.orchestrator.ToolGenerator",
             ) as mock_tool_generator:
                 mock_tool_generator.context_generate.return_value = message_state
 
                 # Mock post_process_response
                 with patch(
-                    "arklex.orchestrator.orchestrator.post_process_response"
+                    "arklex.orchestrator.orchestrator.post_process_response",
                 ) as mock_post_process:
                     mock_post_process.return_value = message_state
 
                     response = agent._get_response(
-                        {"text": "test", "chat_history": [], "parameters": None}
+                        {"text": "test", "chat_history": [], "parameters": None},
                     )
 
                     # Should break loop due to incomplete status
                     assert response is not None
 
     def test_get_response_with_info_worker(
-        self, basic_config: dict[str, Any], mock_node_info: Mock
+        self,
+        basic_config: dict[str, Any],
+        mock_node_info: Mock,
     ) -> None:
         """Test response generation with info worker."""
         agent = AgentOrg(basic_config, None)
@@ -808,7 +851,7 @@ class TestAgentOrgGetResponse:
 
         # Mock the task graph chain
         with patch(
-            "arklex.orchestrator.orchestrator.RunnableLambda"
+            "arklex.orchestrator.orchestrator.RunnableLambda",
         ) as mock_runnable_lambda:
             mock_chain = Mock()
             mock_chain.invoke.return_value = (mock_node_info, params)
@@ -832,7 +875,7 @@ class TestAgentOrgGetResponse:
                 ),
             )
             agent.perform_node = Mock(
-                return_value=(mock_node_info, message_state, params)
+                return_value=(mock_node_info, message_state, params),
             )
 
             # Mock post_process_node
@@ -840,25 +883,27 @@ class TestAgentOrgGetResponse:
 
             # Mock ToolGenerator.context_generate
             with patch(
-                "arklex.orchestrator.orchestrator.ToolGenerator"
+                "arklex.orchestrator.orchestrator.ToolGenerator",
             ) as mock_tool_generator:
                 mock_tool_generator.context_generate.return_value = message_state
 
                 # Mock post_process_response
                 with patch(
-                    "arklex.orchestrator.orchestrator.post_process_response"
+                    "arklex.orchestrator.orchestrator.post_process_response",
                 ) as mock_post_process:
                     mock_post_process.return_value = message_state
 
                     response = agent._get_response(
-                        {"text": "test", "chat_history": [], "parameters": None}
+                        {"text": "test", "chat_history": [], "parameters": None},
                     )
 
                     # Should break loop after info worker
                     assert response is not None
 
     def test_get_response_with_leaf_node(
-        self, basic_config: dict[str, Any], mock_node_info: Mock
+        self,
+        basic_config: dict[str, Any],
+        mock_node_info: Mock,
     ) -> None:
         """Test response generation with leaf node."""
         agent = AgentOrg(basic_config, None)
@@ -867,7 +912,7 @@ class TestAgentOrgGetResponse:
 
         # Mock the task graph chain
         with patch(
-            "arklex.orchestrator.orchestrator.RunnableLambda"
+            "arklex.orchestrator.orchestrator.RunnableLambda",
         ) as mock_runnable_lambda:
             mock_chain = Mock()
             mock_chain.invoke.return_value = (mock_node_info, params)
@@ -891,7 +936,7 @@ class TestAgentOrgGetResponse:
                 ),
             )
             agent.perform_node = Mock(
-                return_value=(mock_node_info, message_state, params)
+                return_value=(mock_node_info, message_state, params),
             )
 
             # Mock post_process_node
@@ -899,25 +944,27 @@ class TestAgentOrgGetResponse:
 
             # Mock ToolGenerator.context_generate
             with patch(
-                "arklex.orchestrator.orchestrator.ToolGenerator"
+                "arklex.orchestrator.orchestrator.ToolGenerator",
             ) as mock_tool_generator:
                 mock_tool_generator.context_generate.return_value = message_state
 
                 # Mock post_process_response
                 with patch(
-                    "arklex.orchestrator.orchestrator.post_process_response"
+                    "arklex.orchestrator.orchestrator.post_process_response",
                 ) as mock_post_process:
                     mock_post_process.return_value = message_state
 
                     response = agent._get_response(
-                        {"text": "test", "chat_history": [], "parameters": None}
+                        {"text": "test", "chat_history": [], "parameters": None},
                     )
 
                     # Should break loop due to leaf node
                     assert response is not None
 
     def test_get_response_with_streaming(
-        self, basic_config: dict[str, Any], mock_node_info: Mock
+        self,
+        basic_config: dict[str, Any],
+        mock_node_info: Mock,
     ) -> None:
         """Test response generation with streaming."""
         agent = AgentOrg(basic_config, None)
@@ -925,7 +972,7 @@ class TestAgentOrgGetResponse:
 
         # Mock the task graph chain
         with patch(
-            "arklex.orchestrator.orchestrator.RunnableLambda"
+            "arklex.orchestrator.orchestrator.RunnableLambda",
         ) as mock_runnable_lambda:
             mock_chain = Mock()
             mock_chain.invoke.return_value = (mock_node_info, params)
@@ -949,7 +996,7 @@ class TestAgentOrgGetResponse:
                 ),
             )
             agent.perform_node = Mock(
-                return_value=(mock_node_info, message_state, params)
+                return_value=(mock_node_info, message_state, params),
             )
 
             # Mock post_process_node
@@ -957,13 +1004,13 @@ class TestAgentOrgGetResponse:
 
             # Mock ToolGenerator.stream_context_generate
             with patch(
-                "arklex.orchestrator.orchestrator.ToolGenerator"
+                "arklex.orchestrator.orchestrator.ToolGenerator",
             ) as mock_tool_generator:
                 mock_tool_generator.stream_context_generate.return_value = message_state
 
                 # Mock post_process_response
                 with patch(
-                    "arklex.orchestrator.orchestrator.post_process_response"
+                    "arklex.orchestrator.orchestrator.post_process_response",
                 ) as mock_post_process:
                     mock_post_process.return_value = message_state
 
@@ -976,7 +1023,9 @@ class TestAgentOrgGetResponse:
                     mock_tool_generator.stream_context_generate.assert_called_once()
 
     def test_get_response_max_nodes_reached(
-        self, basic_config: dict[str, Any], mock_node_info: Mock
+        self,
+        basic_config: dict[str, Any],
+        mock_node_info: Mock,
     ) -> None:
         """Test response generation when max nodes reached."""
         agent = AgentOrg(basic_config, None)
@@ -984,7 +1033,7 @@ class TestAgentOrgGetResponse:
 
         # Mock the task graph chain to return the same node multiple times
         with patch(
-            "arklex.orchestrator.orchestrator.RunnableLambda"
+            "arklex.orchestrator.orchestrator.RunnableLambda",
         ) as mock_runnable_lambda:
             mock_chain = Mock()
             mock_chain.invoke.return_value = (mock_node_info, params)
@@ -1008,7 +1057,7 @@ class TestAgentOrgGetResponse:
                 ),
             )
             agent.perform_node = Mock(
-                return_value=(mock_node_info, message_state, params)
+                return_value=(mock_node_info, message_state, params),
             )
 
             # Mock post_process_node
@@ -1016,18 +1065,18 @@ class TestAgentOrgGetResponse:
 
             # Mock ToolGenerator.context_generate
             with patch(
-                "arklex.orchestrator.orchestrator.ToolGenerator"
+                "arklex.orchestrator.orchestrator.ToolGenerator",
             ) as mock_tool_generator:
                 mock_tool_generator.context_generate.return_value = message_state
 
                 # Mock post_process_response
                 with patch(
-                    "arklex.orchestrator.orchestrator.post_process_response"
+                    "arklex.orchestrator.orchestrator.post_process_response",
                 ) as mock_post_process:
                     mock_post_process.return_value = message_state
 
                     response = agent._get_response(
-                        {"text": "test", "chat_history": [], "parameters": None}
+                        {"text": "test", "chat_history": [], "parameters": None},
                     )
 
                     # Should break after max_n_node_performed iterations
@@ -1057,7 +1106,9 @@ class TestAgentOrgEdgeCases:
         assert text == ""
 
     def test_post_process_node_with_node_limit_decrement(
-        self, basic_config: dict[str, Any], mock_node_info: Mock
+        self,
+        basic_config: dict[str, Any],
+        mock_node_info: Mock,
     ) -> None:
         """Test node post-processing with node limit decrement."""
         agent = AgentOrg(basic_config, None)
@@ -1070,7 +1121,8 @@ class TestAgentOrgEdgeCases:
         assert result.taskgraph.node_limit["test_node"] == 0
 
     def test_handl_direct_node_with_whitespace_value(
-        self, basic_config: dict[str, Any]
+        self,
+        basic_config: dict[str, Any],
     ) -> None:
         """Test direct node with whitespace value."""
         agent = AgentOrg(basic_config, None)
@@ -1084,7 +1136,9 @@ class TestAgentOrgEdgeCases:
         assert response is None
 
     def test_perform_node_with_none_stream_type(
-        self, basic_config: dict[str, Any], mock_node_info: Mock
+        self,
+        basic_config: dict[str, Any],
+        mock_node_info: Mock,
     ) -> None:
         """Test node performance with None stream type."""
         agent = AgentOrg(basic_config, None)
@@ -1128,7 +1182,8 @@ class TestAgentOrgImportFallback:
         assert agent.product_kwargs["role"] == "test_role"
 
     def test_import_fallback_with_environment(
-        self, basic_config: dict[str, Any]
+        self,
+        basic_config: dict[str, Any],
     ) -> None:
         """Test import fallback with environment parameter."""
         env = DummyEnv()
@@ -1138,7 +1193,10 @@ class TestAgentOrgImportFallback:
     def test_import_fallback_with_kwargs(self, basic_config: dict[str, Any]) -> None:
         """Test import fallback with custom kwargs."""
         agent = AgentOrg(
-            basic_config, None, user_prefix="custom_user", worker_prefix="custom_worker"
+            basic_config,
+            None,
+            user_prefix="custom_user",
+            worker_prefix="custom_worker",
         )
         assert agent.user_prefix == "custom_user"
         assert agent.worker_prefix == "custom_worker"
@@ -1148,12 +1206,13 @@ class TestAgentOrgAdditionalCoverage:
     """Additional test cases for better coverage."""
 
     def test_init_with_dict_config_and_planner(
-        self, basic_config: dict[str, Any]
+        self,
+        basic_config: dict[str, Any],
     ) -> None:
         """Test initialization with planner enabled."""
         # Add planner to config
         basic_config["workers"].append(
-            {"id": "planner", "name": "planner", "path": "planner"}
+            {"id": "planner", "name": "planner", "path": "planner"},
         )
         env = DummyEnv()
         env.planner = Mock()
@@ -1164,7 +1223,8 @@ class TestAgentOrgAdditionalCoverage:
         env.planner.set_llm_config_and_build_resource_library.assert_called_once()
 
     def test_init_with_dict_config_and_no_planner(
-        self, basic_config: dict[str, Any]
+        self,
+        basic_config: dict[str, Any],
     ) -> None:
         """Test initialization without planner."""
         env = DummyEnv()
@@ -1174,7 +1234,8 @@ class TestAgentOrgAdditionalCoverage:
         assert agent.env.planner is None
 
     def test_init_with_hitl_proposal_enabled(
-        self, config_with_hitl: dict[str, Any]
+        self,
+        config_with_hitl: dict[str, Any],
     ) -> None:
         """Test initialization with HITL proposal enabled."""
         config_with_hitl["settings"] = {"hitl_proposal": True}
@@ -1182,7 +1243,8 @@ class TestAgentOrgAdditionalCoverage:
         assert agent.hitl_proposal_enabled is True
 
     def test_init_with_hitl_proposal_disabled(
-        self, config_with_hitl: dict[str, Any]
+        self,
+        config_with_hitl: dict[str, Any],
     ) -> None:
         """Test initialization with HITL proposal disabled."""
         config_with_hitl["settings"] = {"hitl_proposal": False}
@@ -1226,7 +1288,8 @@ class TestAgentOrgAdditionalCoverage:
         assert agent.hitl_worker_available is False
 
     def test_init_with_missing_settings_key(
-        self, config_with_hitl: dict[str, Any]
+        self,
+        config_with_hitl: dict[str, Any],
     ) -> None:
         """Test initialization with missing settings key."""
         agent = AgentOrg(config_with_hitl, None)
@@ -1266,7 +1329,7 @@ def test_agentorg_hitl_proposal_enabled_valid_config() -> None:
         "intro": "intro text",
         "model": {"llm_provider": "openai", "model_type_or_path": "gpt-3.5"},
         "workers": [
-            {"id": "hitl_worker", "name": "HITLWorkerChatFlag", "path": "hitl_worker"}
+            {"id": "hitl_worker", "name": "HITLWorkerChatFlag", "path": "hitl_worker"},
         ],
         "settings": {"hitl_proposal": True},
         "tools": [],

@@ -19,28 +19,26 @@ F = TypeVar("F", bound=Callable[..., object])
 def prep_for_json_serialization(obj: object, from_parse_method: bool = False) -> object:
     if isinstance(obj, str | int | float | bool | type(None)):
         return obj
-    elif isinstance(obj, dict):
+    if isinstance(obj, dict):
         return {k: prep_for_json_serialization(v) for k, v in obj.items()}
-    elif isinstance(obj, list):
+    if isinstance(obj, list):
         return [prep_for_json_serialization(v) for v in obj]
-    elif isinstance(obj, tuple):
+    if isinstance(obj, tuple):
         return tuple(prep_for_json_serialization(v) for v in obj)
-    elif isinstance(obj, set):
+    if isinstance(obj, set):
         return {prep_for_json_serialization(v) for v in obj}
-    elif isinstance(obj, frozenset):
+    if isinstance(obj, frozenset):
         return frozenset(prep_for_json_serialization(v) for v in obj)
-    elif isinstance(obj, BaseModel):
+    if isinstance(obj, BaseModel):
         return obj.model_dump(mode="json")
-    elif isinstance(obj, type) and issubclass(obj, BaseModel):
+    if isinstance(obj, type) and issubclass(obj, BaseModel):
         if from_parse_method:
             optionalized_type = optionalize_type(obj)
             return optionalized_type.model_json_schema()
-        else:
-            return obj.model_json_schema()
-    elif isinstance(obj, SamplingStrategy):
+        return obj.model_json_schema()
+    if isinstance(obj, SamplingStrategy):
         return obj.__class__.__name__
-    else:
-        raise TypeError(f"Object of type {type(obj)} is not JSON serializable")
+    raise TypeError(f"Object of type {type(obj)} is not JSON serializable")
 
 
 def log_call(func: F) -> F:
@@ -63,7 +61,8 @@ def log_call(func: F) -> F:
                 "method_name": func.__name__,
                 "kwargs": {
                     k: prep_for_json_serialization(
-                        v, from_parse_method=func.__name__ in ["parse", "async_parse"]
+                        v,
+                        from_parse_method=func.__name__ in ["parse", "async_parse"],
                     )
                     for k, v in all_args.items()
                 },

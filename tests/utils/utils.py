@@ -29,6 +29,7 @@ class MockMessageState:
 
         Args:
             **kwargs: Any attributes to set on the message state
+
         """
         self.sys_instruct = kwargs.get("sys_instruct", "")
         self.bot_config = kwargs.get("bot_config")
@@ -64,6 +65,7 @@ class MockTool:
         Args:
             name (str): Name of the tool
             description (str): Description of the tool's functionality
+
         """
         self.name = name
         self.description = description
@@ -82,7 +84,9 @@ class MockTool:
         self.function_calling_trajectory = []
 
     def execute(
-        self, message_state: object, **kwargs: dict[str, object]
+        self,
+        message_state: object,
+        **kwargs: dict[str, object],
     ) -> MockMessageState:
         """Return a mock MessageState to simulate tool execution.
 
@@ -92,6 +96,7 @@ class MockTool:
 
         Returns:
             MockMessageState: A mock message state with required attributes
+
         """
         return MockMessageState(
             slots={},
@@ -119,9 +124,9 @@ class MockTool:
 
         Args:
             slotfillapi: Slot filler API endpoint (ignored in mock)
+
         """
         # Mock implementation - do nothing
-        pass
 
     def __repr__(self) -> str:
         return f"MockTool(name={self.name!r}, description={self.description!r})"
@@ -143,6 +148,7 @@ class MockResourceInitializer:
 
         Returns:
             Dict[str, Dict[str, Any]]: Dictionary mapping tool IDs to their configurations
+
         """
         print("\n=== Debug: MockResourceInitializer.init_tools ===")
         print(f"Input tools: {json.dumps(tools, indent=2)}")
@@ -172,7 +178,8 @@ class MockResourceInitializer:
 
             # Create a function that returns a MockTool instance
             def create_tool_func(
-                tool_name: str, tool_description: str
+                tool_name: str,
+                tool_description: str,
             ) -> Callable[[], MockTool]:
                 return functools.partial(MockTool, tool_name, tool_description)
 
@@ -200,6 +207,7 @@ class MockResourceInitializer:
 
         Returns:
             Dict[str, Dict[str, Any]]: Dictionary mapping worker IDs to their configurations
+
         """
         print("\n=== Debug: MockResourceInitializer.init_workers ===")
         print(f"Input workers: {json.dumps(workers, indent=2)}")
@@ -229,7 +237,8 @@ class MockResourceInitializer:
 
             # Create a function that returns a MockTool instance (workers are also mocked as tools)
             def create_worker_func(
-                worker_name: str, worker_description: str
+                worker_name: str,
+                worker_description: str,
             ) -> Callable[[], MockTool]:
                 return functools.partial(MockTool, worker_name, worker_description)
 
@@ -251,10 +260,12 @@ class MockResourceInitializer:
     @staticmethod
     def init_agents(agents: list[dict[str, Any]]) -> dict[str, dict[str, Any]]:
         """Initialize mock agents from configuration.
+
         Args:
             agents (List[Dict[str, Any]]): List of agent configurations
         Returns:
             Dict[str, Dict[str, Any]]: Dictionary mapping agent IDs to their configurations
+
         """
         print("\n=== Debug: MockResourceInitializer.init_agents ===")
         print(f"Input agents: {json.dumps(agents, indent=2)}")
@@ -291,6 +302,7 @@ def mock_llm_invoke() -> Generator[None, None, None]:
 
     Yields:
         None: The context manager yields nothing
+
     """
 
     # Create a dummy AI message class
@@ -326,13 +338,19 @@ def mock_llm_invoke() -> Generator[None, None, None]:
         return dummy_invoke(*args, **kwargs)
 
     def dummy_embed_documents(
-        self: object, texts: list[str], *args: object, **kwargs: object
+        self: object,
+        texts: list[str],
+        *args: object,
+        **kwargs: object,
     ) -> list[list[float]]:
         # Return a list of fake embedding vectors (e.g., all zeros)
         return [[0.0] * 1536 for _ in texts]
 
     def dummy_embed_query(
-        self: object, text: str, *args: object, **kwargs: object
+        self: object,
+        text: str,
+        *args: object,
+        **kwargs: object,
     ) -> list[float]:
         # Return a fake embedding vector
         return [0.0] * 1536
@@ -368,13 +386,16 @@ class MockOrchestrator(ABC):
     """
 
     def __init__(
-        self, config_file_path: str, fixed_args: dict[str, Any] | None = None
+        self,
+        config_file_path: str,
+        fixed_args: dict[str, Any] | None = None,
     ) -> None:
         """Initialize the mock orchestrator.
 
         Args:
             config_file_path (str): Path to the configuration file
             fixed_args (Optional[Dict[str, Any]]): Fixed arguments to use in tests
+
         """
         self.config_file_path = config_file_path
         self.fixed_args = fixed_args or {}
@@ -401,6 +422,7 @@ class MockOrchestrator(ABC):
 
         Returns:
             Dict[str, Any]: The test response
+
         """
         # Default implementation returns a mock response
         return {
@@ -451,8 +473,7 @@ class MockOrchestrator(ABC):
                     # Return a mock response based on the input
                     if "planning steps" in str(args) + str(kwargs):
                         return "1) others"
-                    else:
-                        return "1) others"
+                    return "1) others"
 
                 def ainvoke(self, *args: object, **kwargs: object) -> object:
                     return self.invoke(*args, **kwargs)
@@ -474,7 +495,7 @@ class MockOrchestrator(ABC):
             resource_initializer: object | None = None,
             planner_enabled: bool = False,
             model_service: object | None = None,
-            **kwargs: str | int | float | bool | None,
+            **kwargs: str | float | bool | None,
         ) -> None:
             # Call the original init
             orig_env_init(
@@ -497,7 +518,8 @@ class MockOrchestrator(ABC):
                         pass
 
                     def set_llm_config_and_build_resource_library(
-                        self, llm_config: object
+                        self,
+                        llm_config: object,
                     ) -> None:
                         # Mock implementation - just store the config
                         self.llm_config = llm_config
@@ -535,10 +557,9 @@ class MockOrchestrator(ABC):
                     prompt = str(args) + str(kwargs)
                     if "planning steps" in prompt.lower():
                         return type("MockResponse", (), {"content": "1) others"})()
-                    elif "extract" in prompt.lower():
+                    if "extract" in prompt.lower():
                         return type("MockResponse", (), {"content": "extracted_info"})()
-                    else:
-                        return type("MockResponse", (), {"content": "1) others"})()
+                    return type("MockResponse", (), {"content": "1) others"})()
 
                 def ainvoke(self, *args: object, **kwargs: object) -> object:
                     return self.invoke(*args, **kwargs)
@@ -573,6 +594,7 @@ class MockOrchestrator(ABC):
 
         Returns:
             tuple[List[Dict[str, str]], Dict[str, Any]]: Initial history and parameters
+
         """
         # Initialize history and parameters
         history: list[dict[str, str]] = []
@@ -604,6 +626,7 @@ class MockOrchestrator(ABC):
 
         Returns:
             tuple[List[Dict[str, str]], Dict[str, Any]]: Updated history and parameters
+
         """
         # Handle initial assistant message if present in expected_conversation
         if "expected_conversation" in test_case:
@@ -664,8 +687,8 @@ class MockOrchestrator(ABC):
 
         Raises:
             AssertionError: If the validation fails
+
         """
-        pass
 
     def run_single_test(self, test_case: dict[str, Any]) -> None:
         """Run a single test case.
@@ -678,6 +701,7 @@ class MockOrchestrator(ABC):
 
         Raises:
             AssertionError: If the test fails validation
+
         """
         # Initialize the test
         history, params = self._initialize_test()

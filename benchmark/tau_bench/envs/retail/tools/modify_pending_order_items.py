@@ -57,7 +57,7 @@ class ModifyPendingOrderItems(Tool):
             and payment_method["balance"] < diff_price
         ):
             raise Exception(
-                "Error: insufficient gift card balance to pay for the new item"
+                "Error: insufficient gift card balance to pay for the new item",
             )
 
         # Handle the payment or refund
@@ -66,7 +66,7 @@ class ModifyPendingOrderItems(Tool):
                 "transaction_type": "payment" if diff_price > 0 else "refund",
                 "amount": abs(diff_price),
                 "payment_method_id": payment_method_id,
-            }
+            },
         )
         if payment_method["source"] == "gift_card":
             payment_method["balance"] -= diff_price

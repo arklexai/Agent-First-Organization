@@ -17,6 +17,7 @@ class DocumentProcessor:
 
     Attributes:
         _processed_documents (Dict[str, Any]): Cache of processed documents
+
     """
 
     def __init__(self) -> None:
@@ -31,6 +32,7 @@ class DocumentProcessor:
 
         Returns:
             Dict[str, Any]: The processed document with 'processed_sections'
+
         """
         processed_doc = {
             "title": document.get("title", ""),
@@ -50,13 +52,15 @@ class DocumentProcessor:
 
         Returns:
             List[str]: List of requirements
+
         """
         requirements = []
         for section_key in ["sections", "processed_sections"]:
             if section_key in document:
                 for section in document[section_key]:
                     if "requirements" in section and isinstance(
-                        section["requirements"], list
+                        section["requirements"],
+                        list,
                     ):
                         requirements.extend(section["requirements"])
         return requirements
@@ -69,6 +73,7 @@ class DocumentProcessor:
 
         Returns:
             Dict[str, Any]: The formatted document
+
         """
         formatted_doc = {
             "title": document.get("title", ""),
@@ -95,6 +100,7 @@ class DocumentProcessor:
 
         Returns:
             List[str]: Processed requirements
+
         """
         processed_reqs = []
         for req in requirements:
@@ -112,6 +118,7 @@ class DocumentProcessor:
 
         Returns:
             Dict[str, Any]: The processed section
+
         """
         return {
             "name": section.get("name", ""),
@@ -128,6 +135,7 @@ class DocumentProcessor:
 
         Returns:
             str: The processed content
+
         """
         # Basic content processing
         return content.strip()
@@ -140,6 +148,7 @@ class DocumentProcessor:
 
         Returns:
             List[Dict[str, Any]]: List of extracted steps
+
         """
         steps = []
         if "steps" in section:

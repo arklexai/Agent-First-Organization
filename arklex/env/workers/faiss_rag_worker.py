@@ -24,7 +24,6 @@ class FaissRAGWorkerKwargs(TypedDict, total=False):
     """Type definition for kwargs used in FaissRAGWorker._execute method."""
 
     # Add specific worker parameters as needed
-    pass
 
 
 @register_worker
@@ -52,7 +51,8 @@ class FaissRAGWorker(BaseWorker):
         workflow.add_node("retriever", RetrieveEngine.faiss_retrieve)
         workflow.add_node("tool_generator", ToolGenerator.context_generate)
         workflow.add_node(
-            "stream_tool_generator", ToolGenerator.stream_context_generate
+            "stream_tool_generator",
+            ToolGenerator.stream_context_generate,
         )
 
         # Add edges
@@ -61,7 +61,9 @@ class FaissRAGWorker(BaseWorker):
         return workflow
 
     def _execute(
-        self, msg_state: MessageState, **kwargs: FaissRAGWorkerKwargs
+        self,
+        msg_state: MessageState,
+        **kwargs: FaissRAGWorkerKwargs,
     ) -> dict[str, Any]:
         graph = self.action_graph.compile()
         result: dict[str, Any] = graph.invoke(msg_state)

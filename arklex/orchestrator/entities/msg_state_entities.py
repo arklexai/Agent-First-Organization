@@ -52,6 +52,7 @@ class BotConfig(BaseModel):
         language (str): Primary language of the bot.
         bot_type (str): Type or category of the bot.
         llm_config (LLMConfig): Language model configuration for the bot.
+
     """
 
     bot_id: str
@@ -76,6 +77,7 @@ class ConvoMessage(BaseModel):
     Attributes:
         history (str): Previous conversation history or its summarization.
         message (str): The current message content.
+
     """
 
     history: str  # it could be the whole original message or the summarization of the previous conversation from memory module
@@ -97,6 +99,7 @@ class OrchestratorMessage(BaseModel):
     Attributes:
         message (str): The message content.
         attribute (dict): Additional attributes associated with the message.
+
     """
 
     message: str
@@ -139,6 +142,7 @@ class Timing(BaseModel):
 
     Attributes:
         taskgraph (Optional[float]): Time taken for task graph processing.
+
     """
 
     taskgraph: float | None = None
@@ -163,6 +167,7 @@ class Metadata(BaseModel):
         hitl (Optional[str]): Human-in-the-loop intervention status.
         timing (Timing): Timing information for the session.
         attempts (Optional[int]): Number of attempts for HITL MC logic.
+
     """
 
     # TODO: May need to initialize the metadata(i.e. chat_id, turn_id) based on the conversation database
@@ -192,6 +197,7 @@ class OrchestratorResp(BaseModel):
         parameters (Dict[str, Any]): Additional parameters.
         human_in_the_loop (Optional[str]): Human intervention status.
         choice_list (Optional[List[str]]): List of available choices.
+
     """
 
     answer: str = Field(default="")
@@ -220,12 +226,13 @@ class HTTPParams(BaseModel):
         headers (Dict[str, str]): HTTP headers.
         body (Optional[Any]): Request body.
         params (Optional[Dict[str, Any]]): URL parameters.
+
     """
 
     endpoint: str
     method: str = Field(default="GET")
     headers: dict[str, str] = Field(
-        default_factory=lambda: {"Content-Type": "application/json"}
+        default_factory=lambda: {"Content-Type": "application/json"},
     )
     body: Any | None = Field(default=None)
     params: dict[str, Any] | None = Field(default=None)
@@ -253,6 +260,7 @@ class SlotDetail(BaseModel):
         prompt (str): Prompt used to collect the slot value.
         verified_value (str): Verified value from the database.
         confirmed (bool): Whether the slot value has been confirmed.
+
     """
 
     name: str
@@ -296,6 +304,7 @@ class MessageState(BaseModel):
         message_queue (Any): Queue for streaming messages.
         stream_type (str): Type of streaming being used.
         relevant_records (Optional[List[ResourceRecord]]): Relevant resource records.
+
     """
 
     # system configuration
@@ -310,14 +319,16 @@ class MessageState(BaseModel):
     trajectory: list[list[ResourceRecord]] | None = Field(default=None)
     # message flow between different nodes
     message_flow: str = Field(
-        description="message flow between different nodes", default=""
+        description="message flow between different nodes",
+        default="",
     )
     # final response
     response: str = Field(default="")
     # task-related params
     status: StatusEnum = Field(default=StatusEnum.INCOMPLETE)
     slots: dict[str, list[Slot]] | None = Field(
-        description="record the dialogue states of each action", default=None
+        description="record the dialogue states of each action",
+        default=None,
     )
     metadata: Metadata | None = Field(default=None)
     # stream

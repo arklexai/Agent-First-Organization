@@ -37,6 +37,7 @@ def _is_trace(obj: dict[str, Any]) -> bool:
 
     Returns:
         bool: True if the dictionary represents a trace, False otherwise.
+
     """
     return (
         "method_name" in obj
@@ -59,6 +60,7 @@ def dict_equal(d1: dict[str, Any], d2: dict[str, Any]) -> bool:
 
     Returns:
         bool: True if the dictionaries are equal, False otherwise.
+
     """
     d1_keys_sorted: list[str] = sorted(d1.keys())
     d2_keys_sorted: list[str] = sorted(d2.keys())
@@ -94,6 +96,7 @@ def list_equal(l1: list[Any], l2: list[Any]) -> bool:
 
     Returns:
         bool: True if the lists are equal, False otherwise.
+
     """
     if len(l1) != len(l2):
         return False
@@ -127,6 +130,7 @@ def set_equal(s1: set[Any], s2: set[Any]) -> bool:
 
     Returns:
         bool: True if the sets are equal, False otherwise.
+
     """
     if len(s1) != len(s2):
         return False
@@ -160,6 +164,7 @@ def str_equal(s1: str, s2: str) -> bool:
 
     Returns:
         bool: True if the strings are equal after normalization, False otherwise.
+
     """
 
     def remove_special_chars(s: str) -> str:
@@ -169,7 +174,7 @@ def str_equal(s1: str, s2: str) -> bool:
         return s.lower().strip()
 
     return strip_and_lower(remove_special_chars(s1)) == strip_and_lower(
-        remove_special_chars(s2)
+        remove_special_chars(s2),
     )
 
 
@@ -185,6 +190,7 @@ class EvaluationResult(BaseModel):
         datapoint (Optional[Dict[str, Any]]): The datapoint that was evaluated.
         response (Optional[Any]): The response from the model.
         error (Optional[str]): Any error message that occurred.
+
     """
 
     is_error: bool
@@ -204,6 +210,7 @@ class Datapoint(BaseModel, abc.ABC):
         from_trace: Create a datapoint from a trace dictionary.
         from_dict: Create a datapoint from a dictionary.
         evaluate: Evaluate the datapoint against a model.
+
     """
 
     @classmethod
@@ -218,6 +225,7 @@ class Datapoint(BaseModel, abc.ABC):
 
         Raises:
             ValueError: If the dictionary is not a valid trace.
+
         """
         if not _is_trace(d):
             raise ValueError(f"This is not a trace: {d}")
@@ -234,6 +242,7 @@ class Datapoint(BaseModel, abc.ABC):
 
         Returns:
             Datapoint: A new datapoint instance.
+
         """
         if _is_trace(d):
             return cls.from_trace(d)
@@ -251,6 +260,7 @@ class Datapoint(BaseModel, abc.ABC):
 
         Raises:
             NotImplementedError: This method must be implemented by subclasses.
+
         """
         raise NotImplementedError
 
@@ -267,6 +277,7 @@ class ClassifyDatapoint(Datapoint):
         options (List[str]): The possible classification options.
         response (Optional[int]): The expected response.
         examples (Optional[List[ClassifyDatapoint]]): Example datapoints.
+
     """
 
     instruction: str
@@ -283,6 +294,7 @@ class ClassifyDatapoint(Datapoint):
 
         Returns:
             EvaluationResult: The result of the evaluation.
+
         """
         return run_and_catch_api_error(
             lambda: api.classify(
@@ -307,6 +319,7 @@ class BinaryClassifyDatapoint(Datapoint):
         text (str): The text to classify.
         response (Optional[bool]): The expected response.
         examples (Optional[List[BinaryClassifyDatapoint]]): Example datapoints.
+
     """
 
     instruction: str
@@ -322,10 +335,13 @@ class BinaryClassifyDatapoint(Datapoint):
 
         Returns:
             EvaluationResult: The result of the evaluation.
+
         """
         return run_and_catch_api_error(
             lambda: api.binary_classify(
-                instruction=self.instruction, text=self.text, examples=self.examples
+                instruction=self.instruction,
+                text=self.text,
+                examples=self.examples,
             ),
             self.response,
             self.model_dump(),
@@ -345,6 +361,7 @@ class ScoreDatapoint(Datapoint):
         max (int): The maximum possible score.
         response (Optional[int]): The expected response.
         examples (Optional[List[ScoreDatapoint]]): Example datapoints.
+
     """
 
     instruction: str
@@ -365,6 +382,7 @@ class ScoreDatapoint(Datapoint):
 
         Raises:
             NotImplementedError: This method is not implemented.
+
         """
         raise NotImplementedError
 
@@ -380,6 +398,7 @@ class ParseDatapoint(Datapoint):
         typ (Union[type[T], Dict[str, Any]]): The type to parse into.
         response (Optional[Union[Dict[str, Any], T, PartialObj]]): The expected response.
         examples (Optional[List[ParseDatapoint]]): Example datapoints.
+
     """
 
     text: str
@@ -395,6 +414,7 @@ class ParseDatapoint(Datapoint):
 
         Returns:
             EvaluationResult: The result of the evaluation.
+
         """
         return run_and_catch_api_error(
             lambda: api.parse(text=self.text, typ=self.typ),
@@ -414,6 +434,7 @@ class GenerateDatapoint(Datapoint):
         text (str): The text to generate from.
         response (Optional[str]): The expected response.
         examples (Optional[List[GenerateDatapoint]]): Example datapoints.
+
     """
 
     instruction: str
@@ -422,7 +443,8 @@ class GenerateDatapoint(Datapoint):
     examples: list[GenerateDatapoint] | None = None
 
     def evaluate(
-        self, api: tau_bench.model_utils.API
+        self,
+        api: tau_bench.model_utils.API,
     ) -> tau_bench.model_utils.EvaluationResult:
         """Evaluate the generation datapoint.
 
@@ -434,6 +456,7 @@ class GenerateDatapoint(Datapoint):
 
         Raises:
             NotImplementedError: This method is not implemented.
+
         """
         raise NotImplementedError
 
@@ -450,6 +473,7 @@ class ParseForceDatapoint(Datapoint):
         text (Optional[str]): The text to parse.
         response (Optional[Union[Dict[str, Any], T]]): The expected response.
         examples (Optional[List[ParseForceDatapoint]]): Example datapoints.
+
     """
 
     instruction: str
@@ -466,6 +490,7 @@ class ParseForceDatapoint(Datapoint):
 
         Returns:
             EvaluationResult: The result of the evaluation.
+
         """
         return run_and_catch_api_error(
             lambda: api.parse_force(
@@ -493,6 +518,7 @@ def datapoint_factory(d: dict[str, Any]) -> Datapoint:
 
     Raises:
         ValueError: If the dictionary does not match any known datapoint type.
+
     """
     if _is_trace(d):
         method_name: str = d["method_name"]
@@ -500,43 +526,45 @@ def datapoint_factory(d: dict[str, Any]) -> Datapoint:
         data: dict[str, Any] = {"response": d["response"], **kwargs}
         if method_name == "classify":
             return ClassifyDatapoint(**data)
-        elif method_name == "binary_classify":
+        if method_name == "binary_classify":
             return BinaryClassifyDatapoint(**data)
-        elif method_name == "parse":
+        if method_name == "parse":
             return ParseDatapoint(**data)
-        elif method_name == "parse_force":
+        if method_name == "parse_force":
             return ParseForceDatapoint(**data)
-        elif method_name == "generate":
+        if method_name == "generate":
             return GenerateDatapoint(**data)
-        elif method_name == "score":
+        if method_name == "score":
             return ScoreDatapoint(**data)
-        else:
-            raise ValueError(f"Unknown method name: {method_name}")
-    else:
-        if all(k in d for k in ["instruction", "text", "options"]) and isinstance(
-            d["response"], int
-        ):
-            return ClassifyDatapoint(**d)
-        elif all(k in d for k in ["instruction", "text"]) and isinstance(
-            d["response"], bool
-        ):
-            return BinaryClassifyDatapoint(**d)
-        elif all(k in d for k in ["text", "typ"]):
-            return ParseDatapoint(**d)
-        elif all(k in d for k in ["instruction", "typ"]):
-            return ParseForceDatapoint(**d)
-        elif all(k in d for k in ["instruction", "text"]) and isinstance(
-            d["response"], str
-        ):
-            return GenerateDatapoint(**d)
-        elif all(k in d for k in ["instruction", "text", "min", "max"]):
-            return ScoreDatapoint(**d)
-        else:
-            raise ValueError(f"Unknown datapoint type: {d}")
+        raise ValueError(f"Unknown method name: {method_name}")
+    if all(k in d for k in ["instruction", "text", "options"]) and isinstance(
+        d["response"],
+        int,
+    ):
+        return ClassifyDatapoint(**d)
+    if all(k in d for k in ["instruction", "text"]) and isinstance(
+        d["response"],
+        bool,
+    ):
+        return BinaryClassifyDatapoint(**d)
+    if all(k in d for k in ["text", "typ"]):
+        return ParseDatapoint(**d)
+    if all(k in d for k in ["instruction", "typ"]):
+        return ParseForceDatapoint(**d)
+    if all(k in d for k in ["instruction", "text"]) and isinstance(
+        d["response"],
+        str,
+    ):
+        return GenerateDatapoint(**d)
+    if all(k in d for k in ["instruction", "text", "min", "max"]):
+        return ScoreDatapoint(**d)
+    raise ValueError(f"Unknown datapoint type: {d}")
 
 
 def run_and_catch_api_error(
-    callable: Callable[..., object], response: object, datapoint: dict[str, object]
+    callable: Callable[..., object],
+    response: object,
+    datapoint: dict[str, object],
 ) -> EvaluationResult:
     """Run a callable and catch any API errors.
 
@@ -550,6 +578,7 @@ def run_and_catch_api_error(
 
     Returns:
         EvaluationResult: The result of the evaluation.
+
     """
     try:
         result: Any = callable()
@@ -580,6 +609,7 @@ def load_from_disk(path: str) -> list[Datapoint]:
 
     Returns:
         List[Datapoint]: A list of datapoints loaded from the file.
+
     """
     with open(path) as f:
         data: list[dict[str, Any]] = json.load(f)

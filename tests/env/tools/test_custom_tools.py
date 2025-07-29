@@ -1,5 +1,4 @@
-"""
-Tests for custom tools.
+"""Tests for custom tools.
 
 This module contains comprehensive tests for all custom tools including
 HTTP request functionality and placeholder replacement.
@@ -263,7 +262,10 @@ class TestHTTPTool:
 
         class SlotObject:
             def __init__(
-                self, name: str, value: str | int | bool | None, target: str
+                self,
+                name: str,
+                value: str | int | bool | None,
+                target: str,
             ) -> None:
                 self.name = name
                 self.value = value
@@ -299,7 +301,10 @@ class TestHTTPTool:
 
         class SlotObject:
             def __init__(
-                self, name: str, value: str | int | bool | None, target: str
+                self,
+                name: str,
+                value: str | int | bool | None,
+                target: str,
             ) -> None:
                 self.name = name
                 self.value = value
@@ -468,7 +473,8 @@ class TestHTTPTool:
 
     @patch("requests.request")
     def test_http_tool_with_slot_object_missing_attributes(
-        self, mock_request: Mock
+        self,
+        mock_request: Mock,
     ) -> None:
         """Test HTTP tool with slot object missing attributes."""
         mock_response = Mock()
@@ -517,7 +523,8 @@ class TestHTTPTool:
 
     @patch("requests.request")
     def test_http_tool_remove_placeholders_and_valid_json(
-        self, mock_request: Mock
+        self,
+        mock_request: Mock,
     ) -> None:
         """Test remove_placeholders with empty dict and http_tool with valid JSON body."""
         mock_response = Mock()
@@ -615,7 +622,8 @@ class TestHTTPTool:
 
     @patch("requests.request")
     def test_http_tool_remove_placeholders_with_unreplaced_placeholders(
-        self, mock_request: Mock
+        self,
+        mock_request: Mock,
     ) -> None:
         """Test remove_placeholders with unreplaced placeholders."""
         mock_response = Mock()
@@ -669,7 +677,7 @@ class TestHTTPToolDataCleaning:
                     "normal": "value",
                     "placeholder": "{{test_placeholder}}",
                     "mixed": "Hello {{name}}, how are you?",
-                }
+                },
             },
             "list_data": [{"item": "{{item1}}"}, {"item": "normal_item"}],
         }
@@ -708,7 +716,7 @@ class TestHTTPToolDataCleaning:
                 "normal_item",
                 "{{placeholder_item}}",
                 {"nested": "{{nested_placeholder}}"},
-            ]
+            ],
         }
 
         result = clean_json_data(data)

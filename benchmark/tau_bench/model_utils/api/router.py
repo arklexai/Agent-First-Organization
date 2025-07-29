@@ -38,7 +38,9 @@ class PromptedLLMCapabilityScoreModel:
         self.model: Model = model
 
     def score_dp(
-        self, dp: Datapoint, examples: list[ScoreDatapoint] | None = None
+        self,
+        dp: Datapoint,
+        examples: list[ScoreDatapoint] | None = None,
     ) -> float:
         return (
             self.model.score(
@@ -79,17 +81,18 @@ class MinimumCapabilityRequestRouter(RequestRouter):
 
 
 def request_router_factory(
-    router_id: str, capability_score_model: CapabilityScoreModel | None = None
+    router_id: str,
+    capability_score_model: CapabilityScoreModel | None = None,
 ) -> RequestRouter:
     if router_id == "first-model":
         return FirstModelRequestRouter()
-    elif router_id == "minimum-capability":
+    if router_id == "minimum-capability":
         if capability_score_model is None:
             raise ValueError(
-                "CapabilityScoreModel is required for minimum-capability router"
+                "CapabilityScoreModel is required for minimum-capability router",
             )
         return MinimumCapabilityRequestRouter(
-            capability_score_model=capability_score_model
+            capability_score_model=capability_score_model,
         )
     raise ValueError(f"Unknown router_id: {router_id}")
 

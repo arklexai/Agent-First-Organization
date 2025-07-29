@@ -47,7 +47,7 @@ class TestGeneratorCoverage:
             "task_docs": [],
             "rag_docs": [],
             "workers": [
-                {"id": "message_worker", "name": "MessageWorker", "type": "worker"}
+                {"id": "message_worker", "name": "MessageWorker", "type": "worker"},
             ],
             "tools": [],
             "nluapi": "",
@@ -68,11 +68,13 @@ class TestGeneratorCoverage:
                     {"description": "Greet customer", "step_id": "step_1"},
                     {"description": "Listen to inquiry", "step_id": "step_2"},
                 ],
-            }
+            },
         ]
 
     def test_generator_main_function_exception_handling(
-        self, sample_config: dict, mock_model: Mock
+        self,
+        sample_config: dict,
+        mock_model: Mock,
     ) -> None:
         """Test the main function exception handling (lines 49-51 in generator.py)."""
         with patch("arklex.orchestrator.generator.generator.load_config") as mock_load:
@@ -86,7 +88,9 @@ class TestGeneratorCoverage:
                 mock_exit.assert_called_with(1)
 
     def test_generator_main_function_success(
-        self, sample_config: dict, mock_model: Mock
+        self,
+        sample_config: dict,
+        mock_model: Mock,
     ) -> None:
         """Test the main function success path (lines 98, 104, 131 in generator.py)."""
         with tempfile.NamedTemporaryFile(mode="w", suffix=".json", delete=False) as f:
@@ -95,12 +99,12 @@ class TestGeneratorCoverage:
 
         try:
             with patch(
-                "arklex.orchestrator.generator.generator.PROVIDER_MAP"
+                "arklex.orchestrator.generator.generator.PROVIDER_MAP",
             ) as mock_provider_map:
                 mock_provider_map.get.return_value = Mock()
 
                 with patch(
-                    "arklex.orchestrator.generator.generator.MODEL"
+                    "arklex.orchestrator.generator.generator.MODEL",
                 ) as mock_model_config:
                     mock_model_config.get.side_effect = lambda key, default=None: {
                         "llm_provider": "openai",
@@ -108,7 +112,7 @@ class TestGeneratorCoverage:
                     }.get(key, default)
 
                 with patch(
-                    "arklex.orchestrator.generator.generator.CoreGenerator"
+                    "arklex.orchestrator.generator.generator.CoreGenerator",
                 ) as mock_generator:
                     mock_generator.return_value.generate.return_value = {
                         "nodes": [],
@@ -120,7 +124,8 @@ class TestGeneratorCoverage:
 
                         # Mock sys.argv to provide the required --file_path argument
                         with patch(
-                            "sys.argv", ["test_script", "--file_path", config_path]
+                            "sys.argv",
+                            ["test_script", "--file_path", config_path],
                         ):
                             # This should not raise an exception
                             main()
@@ -129,14 +134,17 @@ class TestGeneratorCoverage:
             os.unlink(config_path)
 
     def test_core_generator_task_editor_exception_handling(
-        self, sample_config: dict, mock_model: Mock, sample_tasks: list
+        self,
+        sample_config: dict,
+        mock_model: Mock,
+        sample_tasks: list,
     ) -> None:
         """Test task editor exception handling (lines 491-500 in core/generator.py)."""
         generator = Generator(config=sample_config, model=mock_model)
         generator.tasks = sample_tasks
 
         with patch(
-            "arklex.orchestrator.generator.core.generator.TaskEditorApp"
+            "arklex.orchestrator.generator.core.generator.TaskEditorApp",
         ) as mock_editor:
             mock_editor.side_effect = Exception("UI Error")
 
@@ -145,7 +153,9 @@ class TestGeneratorCoverage:
             assert result is not None
 
     def test_core_generator_save_task_graph_sanitize_function(
-        self, sample_config: dict, mock_model: Mock
+        self,
+        sample_config: dict,
+        mock_model: Mock,
     ) -> None:
         """Test save_task_graph sanitize function (lines 637-638 in core/generator.py)."""
         generator = Generator(config=sample_config, model=mock_model)
@@ -195,7 +205,7 @@ class TestGeneratorCoverage:
                         {"step_id": "step_1", "description": "Step 1"},
                         {"step_id": "step_2", "description": "Step 2"},
                     ],
-                }
+                },
             ],
         }
 
@@ -245,7 +255,9 @@ class TestGeneratorCoverage:
     def test_best_practice_manager_finetune_exception(self, mock_model: Mock) -> None:
         """Test best practice manager finetune exception handling (line 236 in best_practice_manager.py)."""
         manager = BestPracticeManager(
-            model=mock_model, role="Test Role", user_objective="Test Objective"
+            model=mock_model,
+            role="Test Role",
+            user_objective="Test Objective",
         )
 
         practice = {"name": "Test Practice", "steps": [{"description": "Test step"}]}
@@ -296,7 +308,9 @@ class TestGeneratorCoverage:
             os.unlink(config_path)
 
     def test_generator_with_ui_components_unavailable(
-        self, sample_config: dict, mock_model: Mock
+        self,
+        sample_config: dict,
+        mock_model: Mock,
     ) -> None:
         """Test generator when UI components are unavailable."""
         with (
@@ -410,7 +424,8 @@ class TestGeneratorCoverage:
             and isinstance(step["resource"], dict)
         ):
             step_worker_name = step["resource"].get(
-                "name", formatter.DEFAULT_MESSAGE_WORKER
+                "name",
+                formatter.DEFAULT_MESSAGE_WORKER,
             )
         elif isinstance(step, dict) and step.get("resource"):
             step_worker_name = str(step["resource"])
@@ -445,7 +460,8 @@ class TestGeneratorCoverage:
             and isinstance(step["resource"], dict)
         ):
             step_worker_name = step["resource"].get(
-                "name", formatter.DEFAULT_MESSAGE_WORKER
+                "name",
+                formatter.DEFAULT_MESSAGE_WORKER,
             )
         elif isinstance(step, dict) and step.get("resource"):
             step_worker_name = str(step["resource"])
@@ -481,7 +497,7 @@ class TestGeneratorCoverage:
                 start_node_id,
                 task_node_id,
                 formatter._create_edge_attributes(intent=intent, pred=True),
-            ]
+            ],
         )
 
         assert len(edges) == 1
@@ -565,7 +581,7 @@ class TestGeneratorCoverage:
                 "name": "Test Task",
                 "description": "User inquires about purchasing options",
                 "steps": [{"step_id": "step_1", "description": "Step 1"}],
-            }
+            },
         ]
 
         # Mock the model response
@@ -590,7 +606,7 @@ class TestGeneratorCoverage:
                 "name": "Test Task",
                 "description": "User inquires about purchasing options",
                 "steps": [{"step_id": "step_1", "description": "Step 1"}],
-            }
+            },
         ]
 
         result = formatter.format_task_graph(tasks)
@@ -612,7 +628,7 @@ class TestGeneratorCoverage:
                 "name": "Test Task",
                 "description": "User inquires about purchasing options",
                 "steps": [{"step_id": "step_1", "description": "Step 1"}],
-            }
+            },
         ]
 
         result = formatter.format_task_graph(tasks)
@@ -636,7 +652,7 @@ class TestGeneratorCoverage:
                 "name": "Test Task",
                 "description": "User inquires about purchasing options",
                 "steps": [{"step_id": "step_1", "description": "Step 1"}],
-            }
+            },
         ]
 
         result = formatter.format_task_graph(tasks)

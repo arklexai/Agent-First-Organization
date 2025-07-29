@@ -29,7 +29,7 @@ PAGEINFO_OUTPUTS = [
         "name": "pageInfo",
         "type": "string",
         "description": "Current pageInfo object, such as  \"{'endCursor': 'eyJsYXN0X2lkIjo3Mjk2NTgxODk0MjU3LCJsYXN0X3ZhbHVlIjoiNzI5NjU4MTg5NDI1NyJ9', 'hasNextPage': True, 'hasPreviousPage': False, 'startCursor': 'eyJsYXN0X2lkIjo3Mjk2NTgwODQ1NjgxLCJsYXN0X3ZhbHVlIjoiNzI5NjU4MDg0NTY4MSJ9'}\"",
-    }
+    },
 ]
 
 NAVIGATE_WITH_NO_CURSOR = "error: cannot navigate without reference cursor"

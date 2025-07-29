@@ -62,4 +62,4 @@ from .best_practice_manager import BestPracticeManager
 from .reusable_task_manager import ReusableTaskManager
 from .task_generator import TaskGenerator
 
-__all__ = ["TaskGenerator", "BestPracticeManager", "ReusableTaskManager"]
+__all__ = ["BestPracticeManager", "ReusableTaskManager", "TaskGenerator"]

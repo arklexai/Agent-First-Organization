@@ -76,6 +76,7 @@ class API:
         generate_models (List[GenerateModel]): Models for generation.
         parse_force_models (List[ParseForceModel]): Models for forced parsing.
         score_models (List[ScoreModel]): Models for scoring.
+
     """
 
     wrappers_for_main_methods: list[Callable] = [log_call, cache_call_w_dedup]
@@ -104,6 +105,7 @@ class API:
             sampling_strategy (Optional[SamplingStrategy]): Strategy for sampling model outputs.
             request_router (Optional[RequestRouter]): Router for directing requests.
             log_file (Optional[str]): Path to the log file.
+
         """
         if sampling_strategy is None:
             sampling_strategy = get_default_sampling_strategy()
@@ -150,6 +152,7 @@ class API:
 
         Returns:
             API: A new API instance configured with the general model.
+
         """
         return cls(
             binary_classify_models=[model],
@@ -184,6 +187,7 @@ class API:
 
         Raises:
             ValueError: If no models are provided.
+
         """
         if len(models) == 0:
             raise ValueError("Must provide at least one model")
@@ -200,7 +204,8 @@ class API:
         )
 
     def set_default_binary_classify_models(
-        self, models: list[BinaryClassifyModel]
+        self,
+        models: list[BinaryClassifyModel],
     ) -> None:
         """Set the default binary classification models.
 
@@ -209,6 +214,7 @@ class API:
 
         Raises:
             ValueError: If no models are provided.
+
         """
         if len(models) == 0:
             raise ValueError("Must provide at least one model")
@@ -222,6 +228,7 @@ class API:
 
         Raises:
             ValueError: If no models are provided.
+
         """
         if len(models) == 0:
             raise ValueError("Must provide at least one model")
@@ -235,6 +242,7 @@ class API:
 
         Raises:
             ValueError: If no models are provided.
+
         """
         if len(models) == 0:
             raise ValueError("Must provide at least one model")
@@ -248,6 +256,7 @@ class API:
 
         Raises:
             ValueError: If no models are provided.
+
         """
         if len(models) == 0:
             raise ValueError("Must provide at least one model")
@@ -261,6 +270,7 @@ class API:
 
         Raises:
             ValueError: If no models are provided.
+
         """
         if len(models) == 0:
             raise ValueError("Must provide at least one model")
@@ -274,18 +284,21 @@ class API:
 
         Raises:
             ValueError: If no models are provided.
+
         """
         if len(models) == 0:
             raise ValueError("Must provide at least one model")
         self.score_models = models
 
     def set_default_sampling_strategy(
-        self, sampling_strategy: SamplingStrategy
+        self,
+        sampling_strategy: SamplingStrategy,
     ) -> None:
         """Set the default sampling strategy.
 
         Args:
             sampling_strategy (SamplingStrategy): The strategy to use.
+
         """
         self.sampling_strategy = sampling_strategy
 
@@ -294,6 +307,7 @@ class API:
 
         Args:
             request_router (RequestRouter): The router to use.
+
         """
         self.request_router = request_router
 
@@ -315,6 +329,7 @@ class API:
 
         Raises:
             ValueError: If no models are provided or if the datapoint type is unknown.
+
         """
         assert len(models) > 0
 
@@ -327,14 +342,14 @@ class API:
                     examples=datapoint.examples,
                     temperature=temp,
                 )
-            elif isinstance(datapoint, BinaryClassifyDatapoint):
+            if isinstance(datapoint, BinaryClassifyDatapoint):
                 return model.binary_classify(
                     instruction=datapoint.instruction,
                     text=datapoint.text,
                     examples=datapoint.examples,
                     temperature=temp,
                 )
-            elif isinstance(datapoint, ParseForceDatapoint):
+            if isinstance(datapoint, ParseForceDatapoint):
                 return model.parse_force(
                     instruction=datapoint.instruction,
                     typ=datapoint.typ,
@@ -342,21 +357,21 @@ class API:
                     examples=datapoint.examples,
                     temperature=temp,
                 )
-            elif isinstance(datapoint, GenerateDatapoint):
+            if isinstance(datapoint, GenerateDatapoint):
                 return model.generate(
                     instruction=datapoint.instruction,
                     text=datapoint.text,
                     examples=datapoint.examples,
                     temperature=temp,
                 )
-            elif isinstance(datapoint, ParseDatapoint):
+            if isinstance(datapoint, ParseDatapoint):
                 return model.parse(
                     text=datapoint.text,
                     typ=datapoint.typ,
                     examples=datapoint.examples,
                     temperature=temp,
                 )
-            elif isinstance(datapoint, ScoreDatapoint):
+            if isinstance(datapoint, ScoreDatapoint):
                 return model.score(
                     instruction=datapoint.instruction,
                     text=datapoint.text,
@@ -365,12 +380,11 @@ class API:
                     examples=datapoint.examples,
                     temperature=temp,
                 )
-            else:
-                raise ValueError(f"Unknown datapoint type: {type(datapoint)}")
+            raise ValueError(f"Unknown datapoint type: {type(datapoint)}")
 
         if isinstance(sampling_strategy, EnsembleSamplingStrategy):
             return sampling_strategy.execute(
-                [lambda x=model: _run_datapoint(x, 0.0) for model in models]
+                [lambda x=model: _run_datapoint(x, 0.0) for model in models],
             )
         return sampling_strategy.execute(
             lambda: _run_datapoint(
@@ -378,7 +392,7 @@ class API:
                 0.2
                 if isinstance(sampling_strategy, MajoritySamplingStrategy)
                 else None,
-            )
+            ),
         )
 
     def _api_call(
@@ -396,10 +410,13 @@ class API:
 
         Returns:
             T: The result of processing the datapoint.
+
         """
         if isinstance(sampling_strategy, EnsembleSamplingStrategy):
             return self._run_with_sampling_strategy(
-                models, datapoint, sampling_strategy
+                models,
+                datapoint,
+                sampling_strategy,
             )
         model = self.request_router.route(dp=datapoint, available_models=models)
         return self._run_with_sampling_strategy([model], datapoint, sampling_strategy)

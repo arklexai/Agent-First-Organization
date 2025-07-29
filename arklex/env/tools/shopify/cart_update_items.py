@@ -1,5 +1,4 @@
-"""
-This module provides functionality to update items in a shopping cart in the Shopify store.
+"""This module provides functionality to update items in a shopping cart in the Shopify store.
 It supports modifying item quantities and merchandise IDs for multiple items at once.
 
 Note: This module is currently inactive and reserved for future use.
@@ -36,10 +35,10 @@ errors = [CART_UPDATE_ITEM_ERROR]
 
 @register_tool(description, slots, outputs, lambda x: x not in errors)
 def cart_update_items(
-    cart_id: str, items: list[tuple[str, str | None, int | None]]
+    cart_id: str,
+    items: list[tuple[str, str | None, int | None]],
 ) -> None | str:
-    """
-    Update items in a shopping cart by modifying their quantities or merchandise IDs.
+    """Update items in a shopping cart by modifying their quantities or merchandise IDs.
 
     Args:
         cart_id (str): The ID of the shopping cart.
@@ -55,6 +54,7 @@ def cart_update_items(
 
     Raises:
         None: Errors are caught and returned as strings.
+
     """
     try:
         query = """

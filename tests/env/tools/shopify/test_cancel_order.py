@@ -31,7 +31,9 @@ class TestCancelOrder:
     @patch("arklex.env.tools.shopify.cancel_order.shopify.Session.temp")
     @patch("arklex.env.tools.shopify.cancel_order.shopify.GraphQL")
     def test_cancel_order_success(
-        self, mock_graphql: Mock, mock_session_temp: Mock
+        self,
+        mock_graphql: Mock,
+        mock_session_temp: Mock,
     ) -> None:
         """Test successful order cancellation."""
         # Setup mocks
@@ -67,7 +69,9 @@ class TestCancelOrder:
     @patch("arklex.env.tools.shopify.cancel_order.shopify.Session.temp")
     @patch("arklex.env.tools.shopify.cancel_order.shopify.GraphQL")
     def test_cancel_order_with_user_errors(
-        self, mock_graphql: Mock, mock_session_temp: Mock
+        self,
+        mock_graphql: Mock,
+        mock_session_temp: Mock,
     ) -> None:
         """Test order cancellation when Shopify returns user errors."""
         # Setup mocks
@@ -78,9 +82,9 @@ class TestCancelOrder:
         mock_response = {
             "data": {
                 "orderCancel": {
-                    "userErrors": [{"field": "orderId", "message": "Order not found"}]
-                }
-            }
+                    "userErrors": [{"field": "orderId", "message": "Order not found"}],
+                },
+            },
         }
         mock_graphql_instance.execute.return_value = json.dumps(mock_response)
         mock_graphql.return_value = mock_graphql_instance
@@ -99,7 +103,9 @@ class TestCancelOrder:
     @patch("arklex.env.tools.shopify.cancel_order.shopify.Session.temp")
     @patch("arklex.env.tools.shopify.cancel_order.shopify.GraphQL")
     def test_cancel_order_graphql_exception(
-        self, mock_graphql: Mock, mock_session_temp: Mock
+        self,
+        mock_graphql: Mock,
+        mock_session_temp: Mock,
     ) -> None:
         """Test order cancellation when GraphQL execution fails."""
         # Setup mocks
@@ -124,7 +130,9 @@ class TestCancelOrder:
     @patch("arklex.env.tools.shopify.cancel_order.shopify.Session.temp")
     @patch("arklex.env.tools.shopify.cancel_order.shopify.GraphQL")
     def test_cancel_order_json_decode_error(
-        self, mock_graphql: Mock, mock_session_temp: Mock
+        self,
+        mock_graphql: Mock,
+        mock_session_temp: Mock,
     ) -> None:
         """Test order cancellation when JSON response is malformed."""
         # Setup mocks
@@ -149,7 +157,9 @@ class TestCancelOrder:
     @patch("arklex.env.tools.shopify.cancel_order.shopify.Session.temp")
     @patch("arklex.env.tools.shopify.cancel_order.shopify.GraphQL")
     def test_cancel_order_missing_data_key(
-        self, mock_graphql: Mock, mock_session_temp: Mock
+        self,
+        mock_graphql: Mock,
+        mock_session_temp: Mock,
     ) -> None:
         """Test order cancellation when response is missing 'data' key."""
         # Setup mocks
@@ -175,7 +185,9 @@ class TestCancelOrder:
     @patch("arklex.env.tools.shopify.cancel_order.shopify.Session.temp")
     @patch("arklex.env.tools.shopify.cancel_order.shopify.GraphQL")
     def test_cancel_order_missing_order_cancel_key(
-        self, mock_graphql: Mock, mock_session_temp: Mock
+        self,
+        mock_graphql: Mock,
+        mock_session_temp: Mock,
     ) -> None:
         """Test order cancellation when response is missing 'orderCancel' key."""
         # Setup mocks
@@ -201,7 +213,9 @@ class TestCancelOrder:
     @patch("arklex.env.tools.shopify.cancel_order.shopify.Session.temp")
     @patch("arklex.env.tools.shopify.cancel_order.shopify.GraphQL")
     def test_cancel_order_session_exception(
-        self, mock_graphql: Mock, mock_session_temp: Mock
+        self,
+        mock_graphql: Mock,
+        mock_session_temp: Mock,
     ) -> None:
         """Test order cancellation when session creation fails."""
         # Setup mocks to raise exception during session creation
@@ -221,7 +235,9 @@ class TestCancelOrder:
     @patch("arklex.env.tools.shopify.cancel_order.shopify.Session.temp")
     @patch("arklex.env.tools.shopify.cancel_order.shopify.GraphQL")
     def test_cancel_order_with_empty_user_errors(
-        self, mock_graphql: Mock, mock_session_temp: Mock
+        self,
+        mock_graphql: Mock,
+        mock_session_temp: Mock,
     ) -> None:
         """Test order cancellation with empty user errors array."""
         # Setup mocks
@@ -247,7 +263,9 @@ class TestCancelOrder:
     @patch("arklex.env.tools.shopify.cancel_order.shopify.Session.temp")
     @patch("arklex.env.tools.shopify.cancel_order.shopify.GraphQL")
     def test_cancel_order_with_none_user_errors(
-        self, mock_graphql: Mock, mock_session_temp: Mock
+        self,
+        mock_graphql: Mock,
+        mock_session_temp: Mock,
     ) -> None:
         """Test order cancellation with None user errors."""
         # Setup mocks
@@ -273,7 +291,9 @@ class TestCancelOrder:
     @patch("arklex.env.tools.shopify.cancel_order.shopify.Session.temp")
     @patch("arklex.env.tools.shopify.cancel_order.shopify.GraphQL")
     def test_cancel_order_with_missing_user_errors_key(
-        self, mock_graphql: Mock, mock_session_temp: Mock
+        self,
+        mock_graphql: Mock,
+        mock_session_temp: Mock,
     ) -> None:
         """Test order cancellation when userErrors key is missing."""
         # Setup mocks

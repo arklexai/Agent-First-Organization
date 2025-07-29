@@ -46,6 +46,7 @@ def _get_random_document_content(documents: list[DocumentType]) -> str:
     Returns:
         Formatted document content string prefixed with "Here is a page from the company website: "
         or empty string if no documents are available.
+
     """
     return (
         "Here is a page from the company website: "
@@ -64,6 +65,7 @@ def _format_user_profile(attributes: AttributeDict) -> str:
     Returns:
         Formatted profile string prefixed with "Here is the your profile: " followed by
         semicolon-separated key-value pairs.
+
     """
     return "Here is the your profile: " + "; ".join(
         f"{key}: {value}" for key, value in attributes.items()
@@ -92,6 +94,7 @@ def _process_attributes_for_conversation(
         Tuple containing:
         - Processed attributes dictionary with adapted goal
         - Matched attribute to goal mapping for labeling
+
     """
     strategy: StrategyType = "react"
     attributes, matched_attribute_to_goal = pick_attributes(
@@ -123,6 +126,7 @@ def _select_random_from_list(data_list: list[Any], key: str) -> tuple[Any | None
 
     Returns:
         Tuple of selected item (or None if empty) and index (or -1 if empty).
+
     """
     if not data_list:
         log_context.warning(f"Empty list for {key}")
@@ -132,7 +136,8 @@ def _select_random_from_list(data_list: list[Any], key: str) -> tuple[Any | None
 
 
 def _process_system_attributes(
-    config: ConfigDict, system_attributes: SystemAttributeDict
+    config: ConfigDict,
+    system_attributes: SystemAttributeDict,
 ) -> tuple[SystemAttributeDict, dict[str, int]]:
     """Process system attributes and create binding index for coordinated selection.
 
@@ -147,6 +152,7 @@ def _process_system_attributes(
         Tuple containing:
         - Processed system attributes dictionary with selected values
         - Binding index mapping bound attribute names to their selected indices
+
     """
     system_attribute: SystemAttributeDict = {}
     binding_index: dict[str, int] = {}
@@ -154,7 +160,8 @@ def _process_system_attributes(
     for key, value in config["user_attributes"]["system_attributes"].items():
         if "bind_to" in value:
             selected_item, random_index = _select_random_from_list(
-                system_attributes[key], key
+                system_attributes[key],
+                key,
             )
             system_attribute[key] = selected_item
             if random_index >= 0:
@@ -167,7 +174,9 @@ def _process_system_attributes(
 
 
 def _process_user_profiles(
-    config: ConfigDict, user_profiles: dict[str, Any], binding_index: dict[str, int]
+    config: ConfigDict,
+    user_profiles: dict[str, Any],
+    binding_index: dict[str, int],
 ) -> AttributeDict:
     """Process user profiles with binding support for coordinated attribute selection.
 
@@ -181,6 +190,7 @@ def _process_user_profiles(
 
     Returns:
         Processed user profile dictionary with selected values respecting bindings.
+
     """
     user_profile: AttributeDict = {}
 
@@ -199,7 +209,8 @@ def _process_user_profiles(
 
 
 def build_profile(
-    synthetic_data_params: dict[str, Any], config: ConfigDict
+    synthetic_data_params: dict[str, Any],
+    config: ConfigDict,
 ) -> tuple[
     ProfileList,
     GoalList,
@@ -234,13 +245,16 @@ def build_profile(
         - List of attribute dictionaries
         - List of system input dictionaries
         - List of label dictionaries for evaluation
+
     """
     labels_list: list[LabelDict] = []
     attributes_list: list[AttributeDict] = []
     system_attributes_list: list[SystemAttributeDict] = []
 
     documents = load_docs(
-        config["documents_dir"], config, synthetic_data_params["num_goals"] * 2
+        config["documents_dir"],
+        config,
+        synthetic_data_params["num_goals"] * 2,
     )
     predefined_attributes = filter_attributes(config)
     augmented_attributes = augment_attributes(predefined_attributes, config, documents)
@@ -250,7 +264,10 @@ def build_profile(
         for _ in range(synthetic_data_params["num_convos"]):
             attributes, matched_attribute_to_goal = (
                 _process_attributes_for_conversation(
-                    user_profile, augmented_attributes, config, documents
+                    user_profile,
+                    augmented_attributes,
+                    config,
+                    documents,
                 )
             )
             labels_list.append(matched_attribute_to_goal)
@@ -265,13 +282,17 @@ def build_profile(
         user_profiles, system_attributes = get_custom_profiles(config)
         for _ in range(synthetic_data_params["num_convos"]):
             system_attribute, binding_index = _process_system_attributes(
-                config, system_attributes
+                config,
+                system_attributes,
             )
             user_profile = _process_user_profiles(config, user_profiles, binding_index)
 
             attributes, matched_attribute_to_goal = (
                 _process_attributes_for_conversation(
-                    user_profile, augmented_attributes, config, documents
+                    user_profile,
+                    augmented_attributes,
+                    config,
+                    documents,
                 )
             )
             labels_list.append(matched_attribute_to_goal)
@@ -279,7 +300,9 @@ def build_profile(
             system_attributes_list.append(system_attribute)
 
     profiles, goals, system_inputs = convert_attributes_to_profiles(
-        attributes_list, system_attributes_list, config
+        attributes_list,
+        system_attributes_list,
+        config,
     )
     return profiles, goals, attributes_list, system_inputs, labels_list
 
@@ -309,6 +332,7 @@ def pick_goal(
 
     Raises:
         ValueError: If an invalid strategy is provided.
+
     """
     if strategy == "llm_based":
         PICK_GOAL_PROMPT = """Given the following user's attributes, please pick the most relevant goal from the given list of goals.
@@ -325,9 +349,10 @@ Goal:
                 {
                     "role": "user",
                     "content": PICK_GOAL_PROMPT.format(
-                        goals="\n".join(goals), attributes=attributes
+                        goals="\n".join(goals),
+                        attributes=attributes,
                     ),
-                }
+                },
             ],
             client=client,
         )
@@ -354,9 +379,10 @@ Goal:
                 {
                     "role": "user",
                     "content": PICK_GOAL_PROMPT.format(
-                        goals="\n".join(goals), attributes=attributes
+                        goals="\n".join(goals),
+                        attributes=attributes,
                     ),
-                }
+                },
             ],
             client=client,
         )
@@ -395,6 +421,7 @@ def find_matched_attribute(
 
     Raises:
         ValueError: If an invalid strategy is provided.
+
     """
     if isinstance(user_profile_or_attributes, dict):
         matched_attribute_to_goal = {
@@ -509,11 +536,13 @@ Full attributes:
 """
 
         system_instruction = FIND_MATCHED_ATTRIBUTE_PROMPT.format(
-            goal=goal, user_profile=user_profile_str
+            goal=goal,
+            user_profile=user_profile_str,
         )
         print(system_instruction)
         response = chatgpt_chatbot(
-            [{"role": "user", "content": system_instruction}], client=client
+            [{"role": "user", "content": system_instruction}],
+            client=client,
         )
         thought = response.split("Thought:")[1].split("Attribute:")[0].strip()
         print("thought: ", thought)
@@ -549,15 +578,16 @@ def pick_attributes(
         Tuple containing:
         - Selected attributes dictionary
         - Matched attribute to goal mapping for labeling
+
     """
     if strategy == "react":
         return pick_attributes_react(user_profile, attributes, goals, client)
-    else:
-        return pick_attributes_random(user_profile, attributes, goals, client)
+    return pick_attributes_random(user_profile, attributes, goals, client)
 
 
 def _select_random_attributes(
-    attributes: dict[str, list[str]], goals: GoalList
+    attributes: dict[str, list[str]],
+    goals: GoalList,
 ) -> tuple[AttributeDict, str]:
     """Select random attributes and goal from available options.
 
@@ -569,6 +599,7 @@ def _select_random_attributes(
         Tuple containing:
         - Selected attributes dictionary with randomly chosen values
         - Randomly selected goal string
+
     """
     selected_attributes: AttributeDict = {}
     goal = random.choice(goals)
@@ -621,10 +652,13 @@ def pick_attributes_react(
         Tuple containing:
         - Selected attributes dictionary
         - Matched attribute to goal mapping for labeling
+
     """
     selected_attributes, _ = _select_random_attributes(attributes, goals)
     matched_attribute_to_goal = find_matched_attribute(
-        selected_attributes["goal"], selected_attributes, client=client
+        selected_attributes["goal"],
+        selected_attributes,
+        client=client,
     )
     return selected_attributes, matched_attribute_to_goal
 
@@ -649,10 +683,13 @@ def pick_attributes_random(
         Tuple containing:
         - Randomly selected attributes dictionary
         - Matched attribute to goal mapping for labeling
+
     """
     selected_attributes, _ = _select_random_attributes(attributes, goals)
     matched_attribute_to_goal = find_matched_attribute(
-        selected_attributes["goal"], selected_attributes, client=client
+        selected_attributes["goal"],
+        selected_attributes,
+        client=client,
     )
     return selected_attributes, matched_attribute_to_goal
 
@@ -671,6 +708,7 @@ def adapt_goal(goal: str, config: ConfigDict, doc: str, user_profile: str) -> st
 
     Returns:
         Adapted goal string that is more specific to the company context.
+
     """
     # Use 'intro' if available, otherwise fall back to 'company_summary'
     company_summary = config.get("intro", config.get("company_summary", ""))
@@ -681,7 +719,8 @@ def adapt_goal(goal: str, config: ConfigDict, doc: str, user_profile: str) -> st
         user_profile=user_profile,
     )
     adapted_goal = chatgpt_chatbot(
-        [{"role": "user", "content": prompt}], config["client"]
+        [{"role": "user", "content": prompt}],
+        config["client"],
     )
     return adapted_goal
 
@@ -698,6 +737,7 @@ def _fetch_api_data(api_url: str, key: str) -> list[Any]:
 
     Note:
         Uses a 10-second timeout and handles both network and JSON parsing errors.
+
     """
     try:
         response = requests.get(api_url, timeout=10).json()
@@ -730,6 +770,7 @@ def get_custom_profiles(
     Note:
         Supports binding relationships where selecting one attribute automatically
         selects related attributes from the same API response.
+
     """
     user_profiles: dict[str, Any] = {}
     system_attributes: dict[str, Any] = {}
@@ -781,6 +822,7 @@ def _build_tool_list(config: ConfigDict) -> tuple[list[dict[str, Any]], Any]:
         Tuple containing:
         - List of tool dictionaries with tool_id, description, input, and output
         - Environment object for tool execution
+
     """
     env = Environment(
         tools=config["tools"],
@@ -802,7 +844,7 @@ def _build_tool_list(config: ConfigDict) -> tuple[list[dict[str, Any]], Any]:
                 "tool_description": tool_description,
                 "tool_input": tool_input,
                 "tool_output": tool_output,
-            }
+            },
         )
 
     tool_list.append(
@@ -811,14 +853,15 @@ def _build_tool_list(config: ConfigDict) -> tuple[list[dict[str, Any]], Any]:
             "tool_description": "There are no tools appropriate for the goal.",
             "tool_input": [],
             "tool_output": "There are no tools appropriate for the goal.",
-        }
+        },
     )
 
     return tool_list, env
 
 
 def get_label(
-    attribute: AttributeDict, config: ConfigDict
+    attribute: AttributeDict,
+    config: ConfigDict,
 ) -> tuple[list[dict[str, Any]], bool]:
     """Get the appropriate tool and slot values for achieving the user's goal.
 
@@ -838,6 +881,7 @@ def get_label(
     Note:
         Includes retry logic (up to 3 attempts) for handling tool selection errors.
         Falls back to "no tool" option if all attempts fail.
+
     """
     GET_TOOL_PROMPT = """Given the list of tools that an AI assistant can use, and the user's goal, return the tool that is most likely to be used to achieve the goal. Only return the tool id.
     Tools: {tools}
@@ -852,7 +896,7 @@ def get_label(
             "tool_id": "0",
             "tool_name": "No tool",
             "slots": {},
-        }
+        },
     ]
 
     attempt = 0
@@ -869,7 +913,7 @@ def get_label(
                             ),
                             goal=attribute["goal"],
                         ),
-                    }
+                    },
                 ],
                 config["client"],
             )
@@ -880,7 +924,9 @@ def get_label(
             selected_tool = env.tools[pred_tool_id]["execute"]()
             slots = selected_tool.slots
             pred_slots = SlotFiller(url="").execute(
-                slots, str(attribute), type="user_simulator"
+                slots,
+                str(attribute),
+                type="user_simulator",
             )
             pred_slots_dict = {slot.name: slot.value for slot in pred_slots}
             label = [
@@ -888,7 +934,7 @@ def get_label(
                     "tool_id": pred_tool_id,
                     "tool_name": selected_tool.name,
                     "slots": pred_slots_dict,
-                }
+                },
             ]
             break
         except (KeyError, ValueError, AttributeError) as e:
@@ -896,7 +942,7 @@ def get_label(
             attempt += 1
         except Exception as e:
             log_context.error(
-                f"Unexpected error in tool selection attempt {attempt + 1}: {e}"
+                f"Unexpected error in tool selection attempt {attempt + 1}: {e}",
             )
             attempt += 1
 
@@ -911,6 +957,7 @@ def filter_attributes(config: ConfigDict) -> dict[str, dict[str, Any]]:
 
     Returns:
         Dictionary of predefined attributes excluding goal and system attributes.
+
     """
     predefined_attributes: dict[str, dict[str, Any]] = {}
     for key, value in config["user_attributes"].items():
@@ -920,7 +967,8 @@ def filter_attributes(config: ConfigDict) -> dict[str, dict[str, Any]]:
 
 
 def select_system_attributes(
-    config: ConfigDict, synthetic_data_params: dict[str, Any]
+    config: ConfigDict,
+    synthetic_data_params: dict[str, Any],
 ) -> list[SystemAttributeDict]:
     """Select system attributes for each conversation from the configuration.
 
@@ -931,6 +979,7 @@ def select_system_attributes(
 
     Returns:
         List of system attribute dictionaries, one for each conversation.
+
     """
     system_attributes: list[SystemAttributeDict] = []
     for _ in range(synthetic_data_params["num_convos"]):
@@ -962,6 +1011,7 @@ def augment_attributes(
     Note:
         Only augments attributes that have the "augment" flag set to True in their
         configuration. Uses company documents for context when available.
+
     """
     augmented_attributes: dict[str, list[str]] = {}
     # Use 'intro' if available, otherwise fall back to 'company_summary'
@@ -975,7 +1025,7 @@ def augment_attributes(
             for subcategory, subcategory_data in category_data.items():
                 if isinstance(subcategory_data, dict) and "values" in subcategory_data:
                     augmented_attributes[subcategory] = subcategory_data["values"]
-                    if "augment" in subcategory_data and subcategory_data["augment"]:
+                    if subcategory_data.get("augment"):
                         doc = ""
                         if documents and len(documents) > 0:
                             doc = (
@@ -1001,14 +1051,15 @@ def augment_attributes(
                                 company_summary=company_summary,
                             )
                         response = chatgpt_chatbot(
-                            [{"role": "user", "content": prompt}], config["client"]
+                            [{"role": "user", "content": prompt}],
+                            config["client"],
                         )
                         new_values = [value.strip() for value in response.split(",")]
                         augmented_attributes[subcategory].extend(new_values)
         else:
             # This is a flat category with direct "values" key
             augmented_attributes[category] = category_data["values"]
-            if "augment" in category_data and category_data["augment"]:
+            if category_data.get("augment"):
                 doc = ""
                 if documents and len(documents) > 0:
                     doc = (
@@ -1034,7 +1085,8 @@ def augment_attributes(
                         company_summary=company_summary,
                     )
                 response = chatgpt_chatbot(
-                    [{"role": "user", "content": prompt}], config["client"]
+                    [{"role": "user", "content": prompt}],
+                    config["client"],
                 )
                 new_values = [value.strip() for value in response.split(",")]
                 augmented_attributes[category].extend(new_values)
@@ -1058,13 +1110,16 @@ def convert_attributes_to_profiles(
         - List of profile description strings
         - List of goal strings
         - List of system input dictionaries
+
     """
     profiles: ProfileList = []
     goals: GoalList = []
     system_inputs: list[SystemAttributeDict] = []
 
     for attributes, system_attributes in zip(
-        attributes_list, system_attributes_list, strict=False
+        attributes_list,
+        system_attributes_list,
+        strict=False,
     ):
         profile = convert_attributes_to_profile(attributes, config)
         profiles.append(profile)
@@ -1083,12 +1138,14 @@ def convert_attributes_to_profile(attributes: AttributeDict, config: ConfigDict)
 
     Returns:
         Formatted profile description string generated by LLM.
+
     """
     user_attr = "; ".join(f"{key}: {value}" for key, value in attributes.items())
     # Use 'intro' if available, otherwise fall back to 'company_summary'
     company_summary = config.get("intro", config.get("company_summary", ""))
     prompt = ATTR_TO_PROFILE.format(
-        company_summary=company_summary, user_attr=user_attr
+        company_summary=company_summary,
+        user_attr=user_attr,
     )
     profile = chatgpt_chatbot([{"role": "user", "content": prompt}], config["client"])
     return profile
@@ -1102,6 +1159,7 @@ def build_user_profiles(test_data: list[dict[str, Any]]) -> list[dict[str, Any]]
 
     Returns:
         List of user profile dictionaries (currently returns empty list).
+
     """
     return []
 
@@ -1115,6 +1173,7 @@ def attributes_to_text(attribute_list: list[AttributeDict]) -> list[str]:
     Returns:
         List of formatted text strings, one for each attribute dictionary.
         Each string contains key-value pairs separated by newlines.
+
     """
     text_attributes: list[str] = []
     for item in attribute_list:

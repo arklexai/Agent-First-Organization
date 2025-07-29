@@ -34,7 +34,10 @@ class Logic_Test(unittest.TestCase):
         """Method to tear down the test fixture. Run AFTER the test methods."""
 
     def _get_api_bot_response(
-        self, user_text: str, history: list[dict[str, str]], params: dict[str, Any]
+        self,
+        user_text: str,
+        history: list[dict[str, str]],
+        params: dict[str, Any],
     ) -> tuple[str, dict[str, Any]]:
         data: dict[str, Any] = {
             "text": user_text,
@@ -47,7 +50,10 @@ class Logic_Test(unittest.TestCase):
         return result["answer"], result["parameters"]
 
     def _check_task_completion(
-        self, output: str, params: dict[str, Any], test_case: dict[str, Any]
+        self,
+        output: str,
+        params: dict[str, Any],
+        test_case: dict[str, Any],
     ) -> None:
         expected_output: dict[str, Any] = test_case.get("expected_output", {})
         contains: dict[str, list[str]] = expected_output.get("contains", {})
@@ -67,14 +73,17 @@ class Logic_Test(unittest.TestCase):
             self.assertTrue(True in contains_flags, failure_message)
 
     def _check_tool_calls(
-        self, params: dict[str, Any], env: Environment, test_case: dict[str, Any]
+        self,
+        params: dict[str, Any],
+        env: Environment,
+        test_case: dict[str, Any],
     ) -> None:
         _expected_tool_calls: dict[str, Any] = test_case.get("expected_tool_calls", {})
 
         # Check if multiple possible tool call sequences are allowed to pass this test
         # (E.g., get_products or get_web_product)
         _allowed_tool_calls: list[dict[str, Any]] | None = _expected_tool_calls.get(
-            "options"
+            "options",
         )
         if _allowed_tool_calls is None:
             _allowed_tool_calls = [_expected_tool_calls]
@@ -109,9 +118,9 @@ class Logic_Test(unittest.TestCase):
             expected_tool_calls: dict[str, Any] = expected_tool_calls[0]
             failure_message: str = (
                 "FAILED: Planner expected tool calls != actual tool calls."
-                + f"\nexpected_tool_calls = {json.dumps(expected_tool_calls, indent=2)}"
-                + f"\nactual_tool_calls = {json.dumps(actual_tool_calls, indent=2)}"
-                + f"\nparams['memory']['function_calling_trajectory'] = {params['memory']['function_calling_trajectory']}"
+                f"\nexpected_tool_calls = {json.dumps(expected_tool_calls, indent=2)}"
+                f"\nactual_tool_calls = {json.dumps(actual_tool_calls, indent=2)}"
+                f"\nparams['memory']['function_calling_trajectory'] = {params['memory']['function_calling_trajectory']}"
             )
             self.assertEqual(expected_tool_calls, actual_tool_calls, failure_message)
 
@@ -120,13 +129,13 @@ class Logic_Test(unittest.TestCase):
         else:
             failure_message: str = (
                 "FAILED: Planner allowed tool calls != actual tool calls."
-                + "\nActual tool calls was expected to be one of the following:"
+                "\nActual tool calls was expected to be one of the following:"
             )
             for tool_set in expected_tool_calls:
                 failure_message += f"\n{json.dumps(tool_set, indent=2)}"
             failure_message += (
                 f"\nInstead, actual_tool_calls were: {json.dumps(actual_tool_calls, indent=2)}"
-                + f"\nparams['memory']['function_calling_trajectory'] = {params['memory']['function_calling_trajectory']}"
+                f"\nparams['memory']['function_calling_trajectory'] = {params['memory']['function_calling_trajectory']}"
             )
 
             tool_call_matches: list[bool] = [
@@ -135,7 +144,10 @@ class Logic_Test(unittest.TestCase):
             self.assertTrue(True in tool_call_matches, failure_message)
 
     def _check_success_criteria(
-        self, output: str, params: dict[str, Any], test_case: dict[str, Any]
+        self,
+        output: str,
+        params: dict[str, Any],
+        test_case: dict[str, Any],
     ) -> None:
         self._check_tool_calls(params, self.env, test_case)
         self._check_task_completion(output, params, test_case)
@@ -144,7 +156,7 @@ class Logic_Test(unittest.TestCase):
         # Wait to avoid token rate-limiting
         if WAIT_TIME_BETWEEN_TESTS_SEC is not None and self.total_tests_run > 0:
             print(
-                f"\nWaiting {WAIT_TIME_BETWEEN_TESTS_SEC} sec between tests to avoid token rate-limiting..."
+                f"\nWaiting {WAIT_TIME_BETWEEN_TESTS_SEC} sec between tests to avoid token rate-limiting...",
             )
             time.sleep(WAIT_TIME_BETWEEN_TESTS_SEC)
 

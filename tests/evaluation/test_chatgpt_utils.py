@@ -35,7 +35,9 @@ class TestChatGPTUtils:
         {"llm_provider": "openai", "model_type_or_path": "gpt-3.5-turbo"},
     )
     def test_chatgpt_chatbot_with_messages(
-        self, mock_create_client: Mock, mock_client: Mock
+        self,
+        mock_create_client: Mock,
+        mock_client: Mock,
     ) -> None:
         """Test chatgpt_chatbot with messages list."""
         # Setup
@@ -58,7 +60,9 @@ class TestChatGPTUtils:
         {"llm_provider": "openai", "model_type_or_path": "gpt-3.5-turbo"},
     )
     def test_chatgpt_chatbot_with_string(
-        self, mock_create_client: Mock, mock_client: Mock
+        self,
+        mock_create_client: Mock,
+        mock_client: Mock,
     ) -> None:
         """Test chatgpt_chatbot with string input."""
         # Setup
@@ -78,7 +82,9 @@ class TestChatGPTUtils:
         {"llm_provider": "openai", "model_type_or_path": "gpt-3.5-turbo"},
     )
     def test_chatgpt_chatbot_with_model_parameter(
-        self, mock_create_client: Mock, mock_client: Mock
+        self,
+        mock_create_client: Mock,
+        mock_client: Mock,
     ) -> None:
         """Test chatgpt_chatbot with model parameter."""
         # Setup
@@ -209,7 +215,9 @@ class TestChatGPTUtils:
         {"llm_provider": "openai", "model_type_or_path": "gpt-3.5-turbo"},
     )
     def test_chatgpt_chatbot_error_handling(
-        self, mock_create_client: Mock, mock_client: Mock
+        self,
+        mock_create_client: Mock,
+        mock_client: Mock,
     ) -> None:
         """Test chatgpt_chatbot error handling."""
         # Setup
@@ -290,7 +298,9 @@ class TestChatGPTUtils:
         {"llm_provider": "openai", "model_type_or_path": "gpt-3.5-turbo"},
     )
     def test_create_client_openai(
-        self, mock_anthropic: Mock, mock_openai: Mock
+        self,
+        mock_anthropic: Mock,
+        mock_openai: Mock,
     ) -> None:
         """Test create_client returns OpenAI client when provider is openai."""
         import os
@@ -353,7 +363,7 @@ class TestChatGPTUtils:
 
         client = mock_openai.return_value
         client.chat.completions.create.return_value = Mock(
-            choices=[Mock(message=Mock(content="goal"))]
+            choices=[Mock(message=Mock(content="goal"))],
         )
         result = generate_goal("doc content", client)
         assert isinstance(result, str)
@@ -370,7 +380,7 @@ class TestChatGPTUtils:
 
         client = mock_openai.return_value
         client.chat.completions.create.return_value = Mock(
-            choices=[Mock(message=Mock(content="goal"))]
+            choices=[Mock(message=Mock(content="goal"))],
         )
         documents = [{"content": "doc1"}, {"content": "doc2"}]
         params = {"num_goals": 2}
@@ -380,7 +390,8 @@ class TestChatGPTUtils:
 
     @patch("arklex.evaluation.chatgpt_utils.create_client")
     def test_chatgpt_chatbot_anthropic_with_system_message(
-        self, mock_create_client: Mock
+        self,
+        mock_create_client: Mock,
     ) -> None:
         """Test chatgpt_chatbot with Anthropic provider and system message."""
         # Mock the MODEL to use anthropic
@@ -404,14 +415,16 @@ class TestChatGPTUtils:
             from arklex.evaluation.chatgpt_utils import chatgpt_chatbot
 
             result = chatgpt_chatbot(
-                messages, client=mock_client, model="claude-3-sonnet"
+                messages,
+                client=mock_client,
+                model="claude-3-sonnet",
             )
 
             # Verify the correct kwargs were passed to Anthropic
             mock_client.messages.create.assert_called_once_with(
                 model="claude-3-sonnet",
                 messages=[
-                    {"role": "user", "content": "Hello"}
+                    {"role": "user", "content": "Hello"},
                 ],  # System message filtered out
                 temperature=0.1,
                 max_tokens=1024,
@@ -421,7 +434,8 @@ class TestChatGPTUtils:
 
     @patch("arklex.evaluation.chatgpt_utils.create_client")
     def test_chatgpt_chatbot_anthropic_without_system_message(
-        self, mock_create_client: Mock
+        self,
+        mock_create_client: Mock,
     ) -> None:
         """Test chatgpt_chatbot with Anthropic provider without system message."""
         # Mock the MODEL to use anthropic
@@ -445,7 +459,9 @@ class TestChatGPTUtils:
             from arklex.evaluation.chatgpt_utils import chatgpt_chatbot
 
             result = chatgpt_chatbot(
-                messages, client=mock_client, model="claude-3-sonnet"
+                messages,
+                client=mock_client,
+                model="claude-3-sonnet",
             )
 
             # Verify the correct kwargs were passed to Anthropic
@@ -651,7 +667,8 @@ class TestChatGPTUtils:
 
     @patch("arklex.evaluation.chatgpt_utils.create_client")
     def test_chatgpt_chatbot_google_provider_with_system_message(
-        self, mock_create_client: Mock
+        self,
+        mock_create_client: Mock,
     ) -> None:
         """Test chatgpt_chatbot with Google Gemini provider and system message."""
         # Setup
@@ -681,7 +698,8 @@ class TestChatGPTUtils:
 
     @patch("arklex.evaluation.chatgpt_utils.create_client")
     def test_chatgpt_chatbot_unsupported_provider(
-        self, mock_create_client: Mock
+        self,
+        mock_create_client: Mock,
     ) -> None:
         """Test chatgpt_chatbot with unsupported provider raises ValueError."""
         # Setup
@@ -838,10 +856,10 @@ class TestChatGPTUtils:
             # Mock the import inside main function by patching builtins.__import__
             mock_get_docs_module = Mock()
             mock_get_docs_module.get_all_documents.return_value = [
-                {"content": "Test document"}
+                {"content": "Test document"},
             ]
             mock_get_docs_module.filter_documents.return_value = [
-                {"content": "Test document"}
+                {"content": "Test document"},
             ]
 
             import builtins
@@ -856,10 +874,10 @@ class TestChatGPTUtils:
             with (
                 patch("builtins.__import__", side_effect=mock_import),
                 patch(
-                    "arklex.evaluation.chatgpt_utils.create_client"
+                    "arklex.evaluation.chatgpt_utils.create_client",
                 ) as mock_create_client,
                 patch(
-                    "arklex.evaluation.chatgpt_utils.generate_goals"
+                    "arklex.evaluation.chatgpt_utils.generate_goals",
                 ) as mock_generate_goals,
             ):
                 mock_client = Mock()
@@ -885,7 +903,8 @@ class TestChatGPTUtils:
         {"llm_provider": "openai", "model_type_or_path": "gpt-3.5-turbo"},
     )
     def test_chatgpt_chatbot_openai_branch(
-        self, monkeypatch: pytest.MonkeyPatch
+        self,
+        monkeypatch: pytest.MonkeyPatch,
     ) -> None:
         from arklex.evaluation.chatgpt_utils import chatgpt_chatbot
 
@@ -894,7 +913,9 @@ class TestChatGPTUtils:
                 class completions:
                     @staticmethod
                     def create(
-                        model: str, messages: list[dict[str, str]], temperature: float
+                        model: str,
+                        messages: list[dict[str, str]],
+                        temperature: float,
                     ) -> object:
                         class Choice:
                             class Message:
@@ -947,10 +968,11 @@ class TestChatGPTUtils:
 
         with (
             patch(
-                "arklex.evaluation.chatgpt_utils.MODEL", {"llm_provider": "anthropic"}
+                "arklex.evaluation.chatgpt_utils.MODEL",
+                {"llm_provider": "anthropic"},
             ),
             patch(
-                "arklex.evaluation.chatgpt_utils.anthropic.Anthropic"
+                "arklex.evaluation.chatgpt_utils.anthropic.Anthropic",
             ) as mock_anthropic,
             patch.dict("os.environ", {"ANTHROPIC_API_KEY": "test-key"}),
         ):
@@ -999,14 +1021,18 @@ class TestChatGPTUtils:
             main()
 
     def test_generate_goal_calls_chatgpt_chatbot(
-        self, monkeypatch: pytest.MonkeyPatch, mock_client: Mock
+        self,
+        monkeypatch: pytest.MonkeyPatch,
+        mock_client: Mock,
     ) -> None:
         from arklex.evaluation import chatgpt_utils
 
         called = {}
 
         def fake_chatgpt_chatbot(
-            messages: list[dict[str, str]], client: object, model: str | None = None
+            messages: list[dict[str, str]],
+            client: object,
+            model: str | None = None,
         ) -> str:
             called["messages"] = messages
             called["client"] = client
@@ -1022,7 +1048,9 @@ class TestChatGPTUtils:
         assert called["client"] is client
 
     def test_generate_goals_return_line(
-        self, monkeypatch: pytest.MonkeyPatch, mock_client: Mock
+        self,
+        monkeypatch: pytest.MonkeyPatch,
+        mock_client: Mock,
     ) -> None:
         from arklex.evaluation import chatgpt_utils
 

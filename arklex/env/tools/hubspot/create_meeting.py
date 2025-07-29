@@ -1,5 +1,4 @@
-"""
-Tool for scheduling meetings via HubSpot in the Arklex framework.
+"""Tool for scheduling meetings via HubSpot in the Arklex framework.
 
 This module provides a tool implementation for scheduling meetings with customer representatives using the HubSpot API. It handles slot extraction, time parsing, and meeting creation, and is designed for integration with the Arklex tool system.
 """
@@ -98,7 +97,7 @@ outputs: list[dict[str, Any]] = [
         "name": "meeting_confirmation_info",
         "type": "dict",
         "description": "The detailed information about the meeting to let the customer confirm",
-    }
+    },
 ]
 
 
@@ -114,8 +113,7 @@ def create_meeting(
     time_zone: str,
     **kwargs: dict[str, Any],
 ) -> str:
-    """
-    Schedule a meeting for a customer with a specific representative.
+    """Schedule a meeting for a customer with a specific representative.
 
     Args:
         cus_fname (str): Customer's first name
@@ -133,12 +131,15 @@ def create_meeting(
 
     Raises:
         ToolExecutionError: If meeting scheduling fails
+
     """
     func_name: str = inspect.currentframe().f_code.co_name
     access_token: str = authenticate_hubspot(kwargs)
 
     meeting_date: datetime = parse_natural_date(
-        meeting_date, timezone=time_zone, date_input=True
+        meeting_date,
+        timezone=time_zone,
+        date_input=True,
     )
     if is_iso8601(meeting_start_time):
         dt: datetime = isoparse(meeting_start_time)
@@ -148,7 +149,9 @@ def create_meeting(
         meeting_start_time: int = int(dt_utc.timestamp() * 1000)
     else:
         dt: datetime = parse_natural_date(
-            meeting_start_time, meeting_date, timezone=time_zone
+            meeting_start_time,
+            meeting_date,
+            timezone=time_zone,
         )
         meeting_start_time: int = int(dt.timestamp() * 1000)
 
@@ -173,14 +176,15 @@ def create_meeting(
                     "locale": "en-us",
                 },
                 "qs": {"timezone": time_zone},
-            }
+            },
         )
         create_meeting_response: dict[str, Any] = create_meeting_response.json()
         return json.dumps(create_meeting_response)
     except ApiException as e:
         log_context.info(f"Exception when scheduling a meeting: {e}\n")
         raise ToolExecutionError(
-            func_name, HubspotExceptionPrompt.MEETING_UNAVAILABLE_PROMPT
+            func_name,
+            HubspotExceptionPrompt.MEETING_UNAVAILABLE_PROMPT,
         ) from e
 
 
@@ -190,8 +194,7 @@ def parse_natural_date(
     timezone: str | None = None,
     date_input: bool = False,
 ) -> datetime:
-    """
-    Parse a natural language date string into a datetime object.
+    """Parse a natural language date string into a datetime object.
 
     Args:
         date_str (str): Date string to parse
@@ -201,9 +204,10 @@ def parse_natural_date(
 
     Returns:
         datetime: Parsed datetime object
+
     """
     cal: parsedatetime.Calendar = parsedatetime.Calendar(
-        version=parsedatetime.VERSION_CONTEXT_STYLE
+        version=parsedatetime.VERSION_CONTEXT_STYLE,
     )
     time_struct: tuple = cal.parse(date_str, base_date)[0]
     if date_input:
@@ -228,14 +232,14 @@ def parse_natural_date(
 
 
 def is_iso8601(s: str) -> bool:
-    """
-    Check if a string is in ISO8601 format.
+    """Check if a string is in ISO8601 format.
 
     Args:
         s (str): String to check
 
     Returns:
         bool: True if string is in ISO8601 format, False otherwise
+
     """
     try:
         isoparse(s)

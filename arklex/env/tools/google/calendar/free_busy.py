@@ -50,7 +50,7 @@ def free_busy(
     time_min: str,
     time_max: str,
     timezone: str,
-    **kwargs: str | int | float | bool | None,
+    **kwargs: str | float | bool | None,
 ) -> str:
     # Authenticate using the service account
     try:
@@ -58,7 +58,8 @@ def free_busy(
         service_account_info = kwargs.get("service_account_info")
         delegated_user = kwargs.get("delegated_user")
         credentials = service_account.Credentials.from_service_account_info(
-            service_account_info, scopes=SCOPES
+            service_account_info,
+            scopes=SCOPES,
         ).with_subject(delegated_user)
 
         # Build the Google Calendar API service

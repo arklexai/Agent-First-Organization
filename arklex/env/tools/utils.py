@@ -27,7 +27,6 @@ class ExecuteToolKwargs(TypedDict, total=False):
     """Type definition for kwargs used in execute_tool function."""
 
     # Add specific tool parameters as needed
-    pass
 
 
 class ToolExecutor(Protocol):
@@ -45,10 +44,8 @@ def get_prompt_template(state: MessageState, prompt_key: str) -> PromptTemplate:
         # since Chinese speech prompts are not available yet
         if state.bot_config.language == "CN":
             return PromptTemplate.from_template(prompts[prompt_key])
-        else:
-            return PromptTemplate.from_template(prompts[prompt_key + "_speech"])
-    else:
-        return PromptTemplate.from_template(prompts[prompt_key])
+        return PromptTemplate.from_template(prompts[prompt_key + "_speech"])
+    return PromptTemplate.from_template(prompts[prompt_key])
 
 
 class ToolGenerator:
@@ -62,7 +59,10 @@ class ToolGenerator:
         llm: Any = model_class(model=llm_config.model_type_or_path, temperature=0.1)
         prompt: PromptTemplate = get_prompt_template(state, "generator_prompt")
         input_prompt: Any = prompt.invoke(
-            {"sys_instruct": state.sys_instruct, "formatted_chat": user_message.history}
+            {
+                "sys_instruct": state.sys_instruct,
+                "formatted_chat": user_message.history,
+            },
         )
         log_context.info(f"Prompt: {input_prompt.text}")
         final_chain: Any = llm | StrOutputParser()
@@ -107,7 +107,7 @@ class ToolGenerator:
             message_flow = relevant_context + "\n" + message_flow
 
         log_context.info(
-            f"Retrieved texts (from retriever/search engine to generator): {message_flow[:50]} ..."
+            f"Retrieved texts (from retriever/search engine to generator): {message_flow[:50]} ...",
         )
 
         # generate answer based on the retrieved texts
@@ -117,7 +117,7 @@ class ToolGenerator:
                 "sys_instruct": state.sys_instruct,
                 "formatted_chat": user_message.history,
                 "context": message_flow,
-            }
+            },
         )
         final_chain: Any = llm | StrOutputParser()
         log_context.info(f"Prompt: {input_prompt.text}")
@@ -161,7 +161,7 @@ class ToolGenerator:
                 relevant_context += "\n"
             message_flow = relevant_context + "\n" + message_flow
         log_context.info(
-            f"Retrieved texts (from retriever/search engine to generator): {message_flow[:50]} ..."
+            f"Retrieved texts (from retriever/search engine to generator): {message_flow[:50]} ...",
         )
 
         # generate answer based on the retrieved texts
@@ -172,7 +172,7 @@ class ToolGenerator:
                 "sys_instruct": state.sys_instruct,
                 "formatted_chat": user_message.history,
                 "context": message_flow,
-            }
+            },
         )
         final_chain: Any = llm | StrOutputParser()
         log_context.info(f"Prompt: {input_prompt.text}")
@@ -180,7 +180,7 @@ class ToolGenerator:
         for chunk in final_chain.stream(input_prompt.text):
             answer += chunk
             state.message_queue.put(
-                {"event": EventType.CHUNK.value, "message_chunk": chunk}
+                {"event": EventType.CHUNK.value, "message_chunk": chunk},
             )
 
         state.message_flow = ""
@@ -199,14 +199,17 @@ class ToolGenerator:
         llm: Any = model_class(model=llm_config.model_type_or_path, temperature=0.1)
         prompt: PromptTemplate = get_prompt_template(state, "generator_prompt")
         input_prompt: Any = prompt.invoke(
-            {"sys_instruct": state.sys_instruct, "formatted_chat": user_message.history}
+            {
+                "sys_instruct": state.sys_instruct,
+                "formatted_chat": user_message.history,
+            },
         )
         final_chain: Any = llm | StrOutputParser()
         answer: str = ""
         for chunk in final_chain.stream(input_prompt.text):
             answer += chunk
             state.message_queue.put(
-                {"event": EventType.CHUNK.value, "message_chunk": chunk}
+                {"event": EventType.CHUNK.value, "message_chunk": chunk},
             )
 
         state.response = answer
@@ -227,7 +230,9 @@ def trace(input: str, state: MessageState) -> MessageState:
 
 
 def execute_tool(
-    self: ToolExecutor, tool_name: str, **kwargs: ExecuteToolKwargs
+    self: ToolExecutor,
+    tool_name: str,
+    **kwargs: ExecuteToolKwargs,
 ) -> str:
     """Execute a tool.
 
@@ -241,6 +246,7 @@ def execute_tool(
 
     Raises:
         ToolError: If tool execution fails
+
     """
     try:
         tool = self.tools[tool_name]

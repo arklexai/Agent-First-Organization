@@ -70,6 +70,7 @@ class EdgeFormatter:
 
         Returns:
             Dict[str, Any]: Formatted edge data
+
         """
         return {
             "intent": label or type,
@@ -102,6 +103,7 @@ class EdgeFormatter:
 
         Returns:
             Dict[str, Any]: Formatted edge style
+
         """
         type_colors = {
             "depends_on": "#ff0000",
@@ -144,6 +146,7 @@ class EdgeFormatter:
 
         Returns:
             bool: True if edge is valid
+
         """
         # Handle None values
         if source is None or target is None:

@@ -24,7 +24,7 @@ from arklex.utils.redis import redis_pool
 
 DEFAULT_CHUNK_ENCODING = "cl100k_base"
 EMBEDDING_CACHE_TTL = int(
-    os.getenv("EMBEDDING_CACHE_TTL", 86400 * 30)
+    os.getenv("EMBEDDING_CACHE_TTL", 86400 * 30),
 )  # 30 days default
 
 log_context = LogContext(__name__)
@@ -38,7 +38,6 @@ def _generate_cache_key(text: str, model: str = "text-embedding-ada-002") -> str
 
 def embed(text: str, cache: bool = False) -> list[float]:
     """Generate embeddings for text with Redis caching."""
-
     # Try to get from cache first
     try:
         if cache:
@@ -134,20 +133,23 @@ class RetrieverDocument:
         self.bot_uid = bot_uid
 
     def chunk(
-        self, chunk_encoding: str = DEFAULT_CHUNK_ENCODING
+        self,
+        chunk_encoding: str = DEFAULT_CHUNK_ENCODING,
     ) -> list["RetrieverDocument"]:
         if self.is_chunked:
             raise ValueError("Document is already chunked")
-        elif self.qa_doc_type == RetrieverDocumentType.FAQ:
+        if self.qa_doc_type == RetrieverDocumentType.FAQ:
             raise ValueError("Cannot chunk FAQ document")
         encoding = tiktoken.get_encoding(chunk_encoding)
         chunked_texts = RecursiveCharacterTextSplitter.from_tiktoken_encoder(
-            encoding_name=chunk_encoding, chunk_size=400, chunk_overlap=50
+            encoding_name=chunk_encoding,
+            chunk_size=400,
+            chunk_overlap=50,
         ).split_text(self.text.strip())
         chunked_docs = []
         tokens = encoding.encode(self.text)
         log_context.info(
-            f"Original text token length: {len(tokens)}, Chunked to {len(chunked_texts)} chunks"
+            f"Original text token length: {len(tokens)}, Chunked to {len(chunked_texts)} chunks",
         )
         for i, chunk in enumerate(chunked_texts):
             chunk = chunk.strip()
@@ -293,7 +295,12 @@ class RetrieverDocument:
             timestamp = doc["timestamp"]
 
             ret_doc = cls.unchunked_retreiver_doc(
-                doc_id, doc_type, text, metadata, bot_uid, timestamp
+                doc_id,
+                doc_type,
+                text,
+                metadata,
+                bot_uid,
+                timestamp,
             )
             chunked_db_docs.extend(ret_doc.chunk())
 
@@ -301,7 +308,9 @@ class RetrieverDocument:
 
     @classmethod
     def load_all_chunked_docs_from_mysql(
-        cls, bot_id: str, version: str
+        cls,
+        bot_id: str,
+        version: str,
     ) -> list["RetrieverDocument"]:
         faq_db_docs = mysql_pool.fetchall(
             "SELECT id, content, metadata, unix_timestamp(updated_at) as timestamp FROM qa_doc_faq WHERE qa_bot_id=%s and qa_bot_version=%s;",
@@ -316,7 +325,7 @@ class RetrieverDocument:
                     metadata=doc["metadata"],
                     bot_uid=get_bot_uid(bot_id, version),
                     timestamp=doc["timestamp"],
-                )
+                ),
             )
         log_context.info(f"Loaded {len(faq_docs)} faq docs")
 
@@ -326,7 +335,9 @@ class RetrieverDocument:
         )
         log_context.info(f"Loaded {len(other_db_docs)} other docs")
         chunked_other_docs = cls.chunked_retriever_docs_from_db_docs(
-            other_db_docs, RetrieverDocumentType.OTHER, get_bot_uid(bot_id, version)
+            other_db_docs,
+            RetrieverDocumentType.OTHER,
+            get_bot_uid(bot_id, version),
         )
         log_context.info(f"Chunked to {len(chunked_other_docs)} other docs")
 
@@ -336,7 +347,9 @@ class RetrieverDocument:
         )
         log_context.info(f"Loaded {len(website_db_docs)} website docs")
         chunked_website_docs = cls.chunked_retriever_docs_from_db_docs(
-            website_db_docs, RetrieverDocumentType.WEBSITE, get_bot_uid(bot_id, version)
+            website_db_docs,
+            RetrieverDocumentType.WEBSITE,
+            get_bot_uid(bot_id, version),
         )
         log_context.info(f"Chunked to {len(chunked_website_docs)} website docs")
 

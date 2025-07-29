@@ -124,7 +124,10 @@ class TestCrawledObject:
     def test_crawled_object_initialization(self) -> None:
         """Test CrawledObject initialization."""
         crawled = CrawledObject(
-            "test_id", "test_source", "test_content", {"key": "value"}
+            "test_id",
+            "test_source",
+            "test_content",
+            {"key": "value"},
         )
         assert crawled.id == "test_id"
         assert crawled.source == "test_source"
@@ -143,7 +146,10 @@ class TestCrawledObject:
     def test_crawled_object_to_dict(self) -> None:
         """Test CrawledObject to_dict method."""
         crawled = CrawledObject(
-            "test_id", "test_source", "test_content", {"key": "value"}
+            "test_id",
+            "test_source",
+            "test_content",
+            {"key": "value"},
         )
         result = crawled.to_dict()
         assert result["id"] == "test_id"
@@ -253,7 +259,8 @@ class TestLoader:
         # Mock Selenium failure
         with (
             patch(
-                "selenium.webdriver.Chrome", side_effect=Exception("Selenium failed")
+                "selenium.webdriver.Chrome",
+                side_effect=Exception("Selenium failed"),
             ),
             patch("requests.get") as mock_get,
         ):
@@ -269,7 +276,8 @@ class TestLoader:
         # Mock both Selenium and requests failure
         with (
             patch(
-                "selenium.webdriver.Chrome", side_effect=Exception("Selenium failed")
+                "selenium.webdriver.Chrome",
+                side_effect=Exception("Selenium failed"),
             ),
             patch("requests.get", side_effect=Exception("Requests failed")),
         ):
@@ -287,7 +295,8 @@ class TestLoader:
         # Mock both Selenium and requests failure
         with (
             patch(
-                "selenium.webdriver.Chrome", side_effect=Exception("Selenium failed")
+                "selenium.webdriver.Chrome",
+                side_effect=Exception("Selenium failed"),
             ),
             patch("requests.get", side_effect=Exception("Requests failed")),
         ):
@@ -399,7 +408,9 @@ class TestLoader:
         loader = Loader()
 
         with patch.object(
-            loader, "get_outsource_urls", side_effect=Exception("Network error")
+            loader,
+            "get_outsource_urls",
+            side_effect=Exception("Network error"),
         ):
             result = loader.get_all_urls("http://example.com", 10)
             assert len(result) == 1  # Should include the base URL
@@ -413,7 +424,8 @@ class TestLoader:
         assert not loader._check_url("http://other.com/page", "http://example.com")
         # Invalid: file extension
         assert not loader._check_url(
-            "http://example.com/file.pdf", "http://example.com"
+            "http://example.com/file.pdf",
+            "http://example.com",
         )
         # Invalid: same as base
         assert not loader._check_url("http://example.com", "http://example.com")
@@ -442,7 +454,9 @@ class TestLoader:
         doc_obj = DocObject("1", "test.txt")
 
         with tempfile.NamedTemporaryFile(
-            mode="w", suffix=".txt", delete=False
+            mode="w",
+            suffix=".txt",
+            delete=False,
         ) as tmp_file:
             tmp_file.write("Test content")
             tmp_file_path = tmp_file.name
@@ -592,7 +606,9 @@ class TestLoader:
         doc_obj = DocObject("1", "test.txt")
 
         with tempfile.NamedTemporaryFile(
-            mode="w", suffix=".txt", delete=False
+            mode="w",
+            suffix=".txt",
+            delete=False,
         ) as tmp_file:
             tmp_file.write("Test content")
             tmp_file_path = tmp_file.name
@@ -609,7 +625,9 @@ class TestLoader:
         docs = [CrawledObject("1", "test.txt", "content")]
 
         with tempfile.NamedTemporaryFile(
-            mode="w", suffix=".json", delete=False
+            mode="w",
+            suffix=".json",
+            delete=False,
         ) as tmp_file:
             tmp_file_path = tmp_file.name
 
@@ -655,7 +673,8 @@ class TestLoader:
         ):
             # Should log error and continue
             result = loader.get_outsource_urls(
-                "http://example.com", "http://example.com"
+                "http://example.com",
+                "http://example.com",
             )
             assert isinstance(result, list)
 
@@ -789,7 +808,8 @@ class TestLoader:
         """Test save method with unsupported file format (should still pickle)."""
         docs = [CrawledObject("id", "src", "content")]
         with tempfile.NamedTemporaryFile(
-            suffix=".unsupported", delete=False
+            suffix=".unsupported",
+            delete=False,
         ) as tmp_file:
             tmp_file_path = tmp_file.name
         try:
@@ -949,7 +969,8 @@ class TestLoader:
                 patch.dict(os.environ, {"MISTRAL_API_KEY": "test-key"}),
                 patch("arklex.utils.loader.Mistral", return_value=mock_client),
                 patch(
-                    "arklex.utils.loader.MISTRAL_API_KEY", "test-key"
+                    "arklex.utils.loader.MISTRAL_API_KEY",
+                    "test-key",
                 ),  # Patch the global
             ):
                 mock_client.files.upload.return_value = mock_file
@@ -982,7 +1003,8 @@ class TestLoader:
                 patch("arklex.utils.loader.Mistral", return_value=mock_client),
                 patch("arklex.utils.loader.encode_image", return_value="base64data"),
                 patch(
-                    "arklex.utils.loader.MISTRAL_API_KEY", "test-key"
+                    "arklex.utils.loader.MISTRAL_API_KEY",
+                    "test-key",
                 ),  # Patch the global
             ):
                 mock_client.ocr.process.return_value = mock_ocr_response
@@ -1006,7 +1028,7 @@ class TestLoader:
             mock_loader = Mock()
             mock_document = Mock()
             mock_document.to_json.return_value = {
-                "kwargs": {"page_content": "PDF content"}
+                "kwargs": {"page_content": "PDF content"},
             }
             mock_loader.load.return_value = [mock_document]
             with (
@@ -1069,7 +1091,8 @@ class TestLoader:
             mock_get.return_value = mock_response
 
             result = loader.get_outsource_urls(
-                "http://example.com", "http://example.com"
+                "http://example.com",
+                "http://example.com",
             )
 
             # Should return empty list for non-200 status
@@ -1081,7 +1104,8 @@ class TestLoader:
 
         with patch("requests.get", side_effect=Exception("Network error")):
             result = loader.get_outsource_urls(
-                "http://example.com", "http://example.com"
+                "http://example.com",
+                "http://example.com",
             )
 
             # Should return empty list when exception occurs
@@ -1113,7 +1137,10 @@ class TestLoader:
 
         # Create already chunked doc
         chunked_doc = CrawledObject(
-            id="2", source="chunked.txt", content="Some content", is_chunk=True
+            id="2",
+            source="chunked.txt",
+            content="Some content",
+            is_chunk=True,
         )
 
         # Create normal doc
@@ -1139,12 +1166,18 @@ class TestLoader:
 
         # Test with error doc
         error_doc = CrawledObject(
-            id="2", source="error.txt", content="content", is_error=True
+            id="2",
+            source="error.txt",
+            content="content",
+            is_error=True,
         )
 
         # Test with chunked doc
         chunked_doc = CrawledObject(
-            id="3", source="chunked.txt", content="content", is_chunk=True
+            id="3",
+            source="chunked.txt",
+            content="content",
+            is_chunk=True,
         )
 
         docs = [none_content_doc, error_doc, chunked_doc]
@@ -1230,7 +1263,9 @@ class TestLoader:
         max_num = 5
 
         with patch.object(
-            loader, "get_outsource_urls", side_effect=Exception("Network error")
+            loader,
+            "get_outsource_urls",
+            side_effect=Exception("Network error"),
         ):
             result = loader.get_all_urls(base_url, max_num)
 
@@ -1305,7 +1340,7 @@ class TestLoader:
 
                 # Use PropertyMock directly and assert on its call_count
                 page_source_prop = PropertyMock(
-                    side_effect=[Exception("Timeout"), Exception("Timeout")]
+                    side_effect=[Exception("Timeout"), Exception("Timeout")],
                 )
                 type(mock_driver).page_source = page_source_prop
 
@@ -1322,7 +1357,9 @@ class TestLoader:
                     # Should return a list with one error CrawledObject
                     assert len(result) == 1
                     assert result[0].content == "" or getattr(
-                        result[0], "is_error", False
+                        result[0],
+                        "is_error",
+                        False,
                     )
 
     def test_crawl_with_selenium_timeout_detection_with_retry_and_success(self) -> None:
@@ -1345,7 +1382,7 @@ class TestLoader:
                     side_effect=[
                         Exception("Timeout 1"),
                         "<html><body>Final success content</body></html>",
-                    ]
+                    ],
                 )
                 type(mock_driver).page_source = page_source_prop
 
@@ -1425,7 +1462,8 @@ class TestLoader:
             mock_get.return_value = mock_response
 
             result = loader.get_outsource_urls(
-                "http://example.com", "http://example.com"
+                "http://example.com",
+                "http://example.com",
             )
             assert isinstance(result, list)
 
@@ -1435,25 +1473,32 @@ class TestLoader:
 
         # Test with file extensions that should be filtered out
         assert not loader._check_url(
-            "http://example.com/file.pdf", "http://example.com"
+            "http://example.com/file.pdf",
+            "http://example.com",
         )
         assert not loader._check_url(
-            "http://example.com/image.jpg", "http://example.com"
+            "http://example.com/image.jpg",
+            "http://example.com",
         )
         assert not loader._check_url(
-            "http://example.com/doc.docx", "http://example.com"
+            "http://example.com/doc.docx",
+            "http://example.com",
         )
         assert not loader._check_url(
-            "http://example.com/data.xlsx", "http://example.com"
+            "http://example.com/data.xlsx",
+            "http://example.com",
         )
         assert not loader._check_url(
-            "http://example.com/presentation.pptx", "http://example.com"
+            "http://example.com/presentation.pptx",
+            "http://example.com",
         )
         assert not loader._check_url(
-            "http://example.com/archive.zip", "http://example.com"
+            "http://example.com/archive.zip",
+            "http://example.com",
         )
         assert not loader._check_url(
-            "http://example.com/photo.jpeg", "http://example.com"
+            "http://example.com/photo.jpeg",
+            "http://example.com",
         )
 
         # Test with same URL as base URL
@@ -1586,13 +1631,16 @@ class TestLoader:
             "This is a test document with content that should be chunked into smaller pieces for better processing.",
         )
         doc2 = CrawledObject(
-            "2", "source2", "Another document with content.", is_error=True
+            "2",
+            "source2",
+            "Another document with content.",
+            is_error=True,
         )
         doc3 = CrawledObject("3", "source3", "Third document.", is_chunk=True)
 
         with (
             patch(
-                "arklex.utils.loader.RecursiveCharacterTextSplitter"
+                "arklex.utils.loader.RecursiveCharacterTextSplitter",
             ) as mock_splitter,
             patch("arklex.utils.loader.log_context"),
         ):
@@ -1622,7 +1670,7 @@ class TestLoader:
 
         with (
             patch(
-                "arklex.utils.loader.RecursiveCharacterTextSplitter"
+                "arklex.utils.loader.RecursiveCharacterTextSplitter",
             ) as mock_splitter,
             patch("arklex.utils.loader.log_context"),
         ):
@@ -1720,7 +1768,7 @@ class TestLoader:
 
                 mock_doc = Mock()
                 mock_doc.to_json.return_value = {
-                    "kwargs": {"page_content": f"Content from {filename}"}
+                    "kwargs": {"page_content": f"Content from {filename}"},
                 }
                 mock_loader_instance.load.return_value = [mock_doc]
 
@@ -1913,7 +1961,7 @@ class TestLoader:
 
         with patch.object(loader, "_crawl_with_selenium") as mock_selenium:
             mock_selenium.return_value = [
-                CrawledObject("1", "http://example.com", "content", is_error=False)
+                CrawledObject("1", "http://example.com", "content", is_error=False),
             ]
 
             result = loader.crawl_urls(url_objects)
@@ -1927,12 +1975,12 @@ class TestLoader:
 
         with patch.object(loader, "_crawl_with_selenium") as mock_selenium:
             mock_selenium.return_value = [
-                CrawledObject("1", "http://example.com", "content", is_error=True)
+                CrawledObject("1", "http://example.com", "content", is_error=True),
             ]
 
             with patch.object(loader, "_crawl_with_requests") as mock_requests:
                 mock_requests.return_value = [
-                    CrawledObject("1", "http://example.com", "content", is_error=False)
+                    CrawledObject("1", "http://example.com", "content", is_error=False),
                 ]
 
                 result = loader.crawl_urls(url_objects)
@@ -1946,21 +1994,25 @@ class TestLoader:
 
         with patch.object(loader, "_crawl_with_selenium") as mock_selenium:
             mock_selenium.return_value = [
-                CrawledObject("1", "http://example.com", "content", is_error=True)
+                CrawledObject("1", "http://example.com", "content", is_error=True),
             ]
 
             with patch.object(loader, "_crawl_with_requests") as mock_requests:
                 mock_requests.return_value = [
-                    CrawledObject("1", "http://example.com", "content", is_error=True)
+                    CrawledObject("1", "http://example.com", "content", is_error=True),
                 ]
 
                 with patch.object(
-                    loader, "_create_mock_content_from_urls"
+                    loader,
+                    "_create_mock_content_from_urls",
                 ) as mock_mock:
                     mock_mock.return_value = [
                         CrawledObject(
-                            "1", "http://example.com", "mock content", is_error=False
-                        )
+                            "1",
+                            "http://example.com",
+                            "mock content",
+                            is_error=False,
+                        ),
                     ]
 
                     result = loader.crawl_urls(url_objects)

@@ -23,6 +23,7 @@ class MockLanguageModel:
 
         Args:
             responses (Optional[dict]): Dictionary mapping prompt patterns to responses
+
         """
         self.responses = responses or {}
         self.call_count = 0
@@ -36,6 +37,7 @@ class MockLanguageModel:
 
         Returns:
             Mock: Mock response object with content attribute
+
         """
         self.call_count += 1
 
@@ -106,6 +108,7 @@ class MockLanguageModel:
 
         Returns:
             Mock: Mock response object with generations attribute
+
         """
         self.call_count += 1
 
@@ -144,6 +147,7 @@ class MockLanguageModelWithErrors:
         Args:
             error_type (str): Type of error to simulate ("none", "timeout", "invalid_response", "api_error")
             error_rate (float): Probability of error occurring (0.0 to 1.0)
+
         """
         self.error_type = error_type
         self.error_rate = error_rate
@@ -161,6 +165,7 @@ class MockLanguageModelWithErrors:
 
         Raises:
             Exception: Various types of exceptions based on error_type
+
         """
         self.call_count += 1
 
@@ -168,14 +173,13 @@ class MockLanguageModelWithErrors:
         if random.random() < self.error_rate:
             if self.error_type == "timeout":
                 raise TimeoutError("Request timed out")
-            elif self.error_type == "invalid_response":
+            if self.error_type == "invalid_response":
                 raise ValueError("Invalid response format")
-            elif self.error_type == "api_error":
+            if self.error_type == "api_error":
                 raise Exception("API service unavailable")
-            elif self.error_type == "rate_limit":
+            if self.error_type == "rate_limit":
                 raise Exception("Rate limit exceeded")
-            else:
-                raise Exception(f"Unknown error: {self.error_type}")
+            raise Exception(f"Unknown error: {self.error_type}")
 
         # Return normal response if no error
         return self.base_model.invoke(messages)
@@ -191,6 +195,7 @@ class MockLanguageModelWithErrors:
 
         Raises:
             Exception: Various types of exceptions based on error_type
+
         """
         self.call_count += 1
 
@@ -198,11 +203,11 @@ class MockLanguageModelWithErrors:
         if random.random() < self.error_rate:
             if self.error_type == "timeout":
                 raise TimeoutError("Request timed out")
-            elif self.error_type == "invalid_response":
+            if self.error_type == "invalid_response":
                 raise ValueError("Invalid response format")
-            elif self.error_type == "api_error":
+            if self.error_type == "api_error":
                 raise Exception("API service unavailable")
-            elif self.error_type == "rate_limit":
+            if self.error_type == "rate_limit":
                 raise Exception("Rate limit exceeded")
 
         # Return normal response if no error
@@ -226,6 +231,7 @@ class MockLanguageModelWithCustomResponses:
         Args:
             prompt_pattern (str): Pattern to match in prompts
             response (str): Response to return for matching prompts
+
         """
         self.responses[prompt_pattern] = response
 
@@ -237,6 +243,7 @@ class MockLanguageModelWithCustomResponses:
 
         Returns:
             Mock: Mock response object with content attribute
+
         """
         self.call_count += 1
 
@@ -273,6 +280,7 @@ class MockLanguageModelWithCustomResponses:
 
         Returns:
             Mock: Mock response object with generations attribute
+
         """
         self.call_count += 1
 
@@ -296,7 +304,7 @@ class MockLanguageModelWithCustomResponses:
             if pattern.lower() in prompt.lower():
                 mock_response = Mock()
                 mock_response.generations = [
-                    [Mock()]
+                    [Mock()],
                 ]  # Nested structure: [[generation]]
                 mock_response.generations[0][0].text = response
                 return mock_response
@@ -363,11 +371,13 @@ def create_mock_model_for_intent_generation() -> MockLanguageModelWithCustomResp
 
     # Add responses for intent generation scenarios
     model.add_response(
-        "task name: product search", "User inquires about product search and discovery"
+        "task name: product search",
+        "User inquires about product search and discovery",
     )
 
     model.add_response(
-        "task name: customer support", "User needs customer support assistance"
+        "task name: customer support",
+        "User needs customer support assistance",
     )
 
     model.add_response("task name: order processing", "User wants to place an order")

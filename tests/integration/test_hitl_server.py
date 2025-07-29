@@ -1,5 +1,4 @@
-"""
-Integration tests for HITL (Human-in-the-Loop) server.
+"""Integration tests for HITL (Human-in-the-Loop) server.
 
 This module contains comprehensive integration tests for the HITL server taskgraph,
 including proper mocking of external services, human-in-the-loop functionality,
@@ -28,8 +27,7 @@ from arklex.orchestrator.orchestrator import AgentOrg
 
 
 class TestHITLServerIntegration:
-    """
-    Integration tests for HITL server taskgraph.
+    """Integration tests for HITL server taskgraph.
 
     This test class validates the complete HITL integration workflow,
     including taskgraph structure, worker configuration, human-in-the-loop
@@ -38,8 +36,7 @@ class TestHITLServerIntegration:
 
     @pytest.fixture(scope="class")
     def config_and_env(self, load_hitl_config: dict) -> tuple[dict, Environment, str]:
-        """
-        Load config and environment once per test session.
+        """Load config and environment once per test session.
 
         Args:
             load_hitl_config: Loaded HITL taskgraph configuration.
@@ -50,6 +47,7 @@ class TestHITLServerIntegration:
         This fixture sets up the complete test environment for HITL integration
         tests, including configuration loading, environment initialization, and
         start message extraction.
+
         """
         config = load_hitl_config
 
@@ -80,10 +78,10 @@ class TestHITLServerIntegration:
         return config, env, start_message
 
     def _create_mock_message_state(
-        self, response: str = "Mock response"
+        self,
+        response: str = "Mock response",
     ) -> MessageState:
-        """
-        Create a mock MessageState for testing.
+        """Create a mock MessageState for testing.
 
         Args:
             response: The response text to include in the mock state.
@@ -93,6 +91,7 @@ class TestHITLServerIntegration:
 
         This method creates a mock MessageState object that can be used
         in tests that need to simulate message processing states.
+
         """
         return MessageState(
             sys_instruct="Mock system instructions",
@@ -102,14 +101,17 @@ class TestHITLServerIntegration:
                 language="EN",
                 bot_type="test",
                 llm_config=LLMConfig(
-                    model_type_or_path="gpt-3.5-turbo", llm_provider="openai"
+                    model_type_or_path="gpt-3.5-turbo",
+                    llm_provider="openai",
                 ),
             ),
             user_message=ConvoMessage(
-                history="Mock conversation history", message="Mock user message"
+                history="Mock conversation history",
+                message="Mock user message",
             ),
             orchestrator_message=OrchestratorMessage(
-                message="Mock orchestrator message", attribute={}
+                message="Mock orchestrator message",
+                attribute={},
             ),
             function_calling_trajectory=[],
             trajectory=[],
@@ -138,8 +140,7 @@ class TestHITLServerIntegration:
         history: list[dict[str, str]],
         params: dict,
     ) -> tuple[str, dict, str | None]:
-        """
-        Helper method to get bot response.
+        """Helper method to get bot response.
 
         Args:
             config: Taskgraph configuration.
@@ -153,6 +154,7 @@ class TestHITLServerIntegration:
 
         This method simulates the API call to get bot responses
         for testing conversation flows and response generation.
+
         """
         data = {
             "text": user_text,
@@ -172,10 +174,10 @@ class TestHITLServerIntegration:
     @patch("langchain_openai.embeddings.base.OpenAIEmbeddings.embed_documents")
     @patch("langchain_openai.chat_models.base.ChatOpenAI")
     @patch(
-        "arklex.env.tools.RAG.retrievers.faiss_retriever.FaissRetrieverExecutor.search"
+        "arklex.env.tools.RAG.retrievers.faiss_retriever.FaissRetrieverExecutor.search",
     )
     @patch(
-        "arklex.env.tools.RAG.retrievers.faiss_retriever.FaissRetrieverExecutor.load_docs"
+        "arklex.env.tools.RAG.retrievers.faiss_retriever.FaissRetrieverExecutor.load_docs",
     )
     @patch("arklex.env.tools.utils.ToolGenerator.context_generate")
     @patch("arklex.orchestrator.NLU.core.intent.IntentDetector.execute")
@@ -193,8 +195,7 @@ class TestHITLServerIntegration:
         config_and_env: tuple[dict, Environment, str],
         mock_embeddings_response: list[list[float]],
     ) -> None:
-        """
-        Test that HITL chat flag is activated when user wants to talk to human.
+        """Test that HITL chat flag is activated when user wants to talk to human.
 
         This test validates that the system properly detects when a user
         wants to speak with a human representative and activates the
@@ -209,7 +210,8 @@ class TestHITLServerIntegration:
         # Mock HITL chat worker execution to return a proper MessageState with metadata
         # This simulates the HITL worker processing the request for human assistance
         def mock_hitl_chat_execute_side_effect(
-            message_state: MessageState, **kwargs: object
+            message_state: MessageState,
+            **kwargs: object,
         ) -> MessageState:
             # Create a proper MessageState with HITL flag set
             # This simulates the HITL worker setting the appropriate flags
@@ -281,7 +283,11 @@ class TestHITLServerIntegration:
         user_text = "I need to speak with a human representative"
 
         output, params, hitl = self._get_api_bot_response(
-            config, env, user_text, history, params
+            config,
+            env,
+            user_text,
+            history,
+            params,
         )
 
         # Verify that HITL chat flag is activated correctly
@@ -298,10 +304,10 @@ class TestHITLServerIntegration:
     @patch("langchain_openai.embeddings.base.OpenAIEmbeddings.embed_documents")
     @patch("langchain_openai.chat_models.base.ChatOpenAI")
     @patch(
-        "arklex.env.tools.RAG.retrievers.faiss_retriever.FaissRetrieverExecutor.search"
+        "arklex.env.tools.RAG.retrievers.faiss_retriever.FaissRetrieverExecutor.search",
     )
     @patch(
-        "arklex.env.tools.RAG.retrievers.faiss_retriever.FaissRetrieverExecutor.load_docs"
+        "arklex.env.tools.RAG.retrievers.faiss_retriever.FaissRetrieverExecutor.load_docs",
     )
     @patch("arklex.env.tools.utils.ToolGenerator.context_generate")
     @patch("arklex.orchestrator.NLU.core.intent.IntentDetector.execute")
@@ -319,8 +325,7 @@ class TestHITLServerIntegration:
         config_and_env: tuple[dict, Environment, str],
         mock_embeddings_response: list[list[float]],
     ) -> None:
-        """
-        Test RAG response generation for product questions.
+        """Test RAG response generation for product questions.
 
         This test validates that the system properly handles product-related
         questions by using RAG functionality to retrieve relevant information
@@ -335,7 +340,8 @@ class TestHITLServerIntegration:
         # Mock RAG worker execution to return proper MessageState
         # This simulates the RAG worker processing the product query
         def mock_rag_execute_side_effect(
-            message_state: MessageState, **kwargs: object
+            message_state: MessageState,
+            **kwargs: object,
         ) -> MessageState:
             # Create a proper MessageState with RAG response
             # This simulates the RAG worker retrieving and processing information
@@ -409,7 +415,11 @@ class TestHITLServerIntegration:
         user_text = "Tell me about your products"
 
         output, params, hitl = self._get_api_bot_response(
-            config, env, user_text, history, params
+            config,
+            env,
+            user_text,
+            history,
+            params,
         )
 
         # Verify that RAG response is generated correctly
@@ -427,10 +437,10 @@ class TestHITLServerIntegration:
     @patch("langchain_openai.embeddings.base.OpenAIEmbeddings.embed_documents")
     @patch("langchain_openai.chat_models.base.ChatOpenAI")
     @patch(
-        "arklex.env.tools.RAG.retrievers.faiss_retriever.FaissRetrieverExecutor.search"
+        "arklex.env.tools.RAG.retrievers.faiss_retriever.FaissRetrieverExecutor.search",
     )
     @patch(
-        "arklex.env.tools.RAG.retrievers.faiss_retriever.FaissRetrieverExecutor.load_docs"
+        "arklex.env.tools.RAG.retrievers.faiss_retriever.FaissRetrieverExecutor.load_docs",
     )
     @patch("arklex.env.tools.utils.ToolGenerator.context_generate")
     @patch("arklex.orchestrator.NLU.core.intent.IntentDetector.execute")
@@ -455,7 +465,8 @@ class TestHITLServerIntegration:
 
         # Mock HITL MC worker execution to return a proper MessageState with metadata
         def mock_hitl_mc_execute_side_effect(
-            message_state: MessageState, **kwargs: object
+            message_state: MessageState,
+            **kwargs: object,
         ) -> MessageState:
             # Create a proper MessageState with HITL MC flag set
             message_state.response = "I'll help you test the confirmation process. Let me connect you with a human representative."
@@ -517,7 +528,11 @@ class TestHITLServerIntegration:
         # Test user utterance that should trigger HITL MC
         user_text = "I want to test confirmation"
         output, params, hitl = self._get_api_bot_response(
-            config, env, user_text, history, params
+            config,
+            env,
+            user_text,
+            history,
+            params,
         )
 
         # Verify HITL MC is triggered - HITLWorkerMCFlag sets hitl="mc"
@@ -535,10 +550,10 @@ class TestHITLServerIntegration:
     @patch("langchain_openai.embeddings.base.OpenAIEmbeddings.embed_documents")
     @patch("langchain_openai.chat_models.base.ChatOpenAI")
     @patch(
-        "arklex.env.tools.RAG.retrievers.faiss_retriever.FaissRetrieverExecutor.search"
+        "arklex.env.tools.RAG.retrievers.faiss_retriever.FaissRetrieverExecutor.search",
     )
     @patch(
-        "arklex.env.tools.RAG.retrievers.faiss_retriever.FaissRetrieverExecutor.load_docs"
+        "arklex.env.tools.RAG.retrievers.faiss_retriever.FaissRetrieverExecutor.load_docs",
     )
     @patch("arklex.env.tools.utils.ToolGenerator.context_generate")
     @patch("arklex.orchestrator.NLU.core.intent.IntentDetector.execute")
@@ -579,7 +594,7 @@ class TestHITLServerIntegration:
                     "content": "Product information and details about our offerings.",
                     "source": "product_database",
                     "confidence": 0.85,
-                }
+                },
             ],
         )
         mock_load_docs.return_value = mock_retriever
@@ -601,7 +616,7 @@ class TestHITLServerIntegration:
                     "content": "Product information and details about our offerings.",
                     "source": "product_database",
                     "confidence": 0.85,
-                }
+                },
             ],
         )
 
@@ -624,7 +639,7 @@ class TestHITLServerIntegration:
             # Always create a valid message state if None is passed
             if message_state is None:
                 message_state = self._create_mock_message_state(
-                    "I can help you with information about our products. What specific details would you like to know?"
+                    "I can help you with information about our products. What specific details would you like to know?",
                 )
             else:
                 # Update the response to match the expected content
@@ -651,7 +666,11 @@ class TestHITLServerIntegration:
         # Test first turn
         user_text = "Tell me about your products"
         output, params, hitl = self._get_api_bot_response(
-            config, env, user_text, history, params
+            config,
+            env,
+            user_text,
+            history,
+            params,
         )
 
         # Verify first turn
@@ -685,7 +704,7 @@ class TestHITLServerIntegration:
             # Always create a valid message state if None is passed
             if message_state is None:
                 message_state = self._create_mock_message_state(
-                    "Our pricing varies by product. Let me provide you with detailed pricing information."
+                    "Our pricing varies by product. Let me provide you with detailed pricing information.",
                 )
             else:
                 # Update the response to match the expected content
@@ -707,7 +726,11 @@ class TestHITLServerIntegration:
         mock_post_process.side_effect = mock_post_process_side_effect_second_turn
 
         output2, params2, hitl2 = self._get_api_bot_response(
-            config, env, "What about pricing?", history, params
+            config,
+            env,
+            "What about pricing?",
+            history,
+            params,
         )
 
         # Verify second turn
@@ -719,10 +742,10 @@ class TestHITLServerIntegration:
     @patch("langchain_openai.embeddings.base.OpenAIEmbeddings.embed_documents")
     @patch("langchain_openai.chat_models.base.ChatOpenAI")
     @patch(
-        "arklex.env.tools.RAG.retrievers.faiss_retriever.FaissRetrieverExecutor.search"
+        "arklex.env.tools.RAG.retrievers.faiss_retriever.FaissRetrieverExecutor.search",
     )
     @patch(
-        "arklex.env.tools.RAG.retrievers.faiss_retriever.FaissRetrieverExecutor.load_docs"
+        "arklex.env.tools.RAG.retrievers.faiss_retriever.FaissRetrieverExecutor.load_docs",
     )
     @patch("arklex.env.tools.utils.ToolGenerator.context_generate")
     @patch("arklex.orchestrator.NLU.core.intent.IntentDetector.execute")
@@ -784,7 +807,7 @@ class TestHITLServerIntegration:
             # Always create a valid message state if None is passed
             if message_state is None:
                 message_state = self._create_mock_message_state(
-                    "I didn't receive any input. Could you please provide your question?"
+                    "I didn't receive any input. Could you please provide your question?",
                 )
             else:
                 # Update the response to match the expected content
@@ -811,7 +834,11 @@ class TestHITLServerIntegration:
         # Test empty input
         user_text = ""
         output, params, hitl = self._get_api_bot_response(
-            config, env, user_text, history, params
+            config,
+            env,
+            user_text,
+            history,
+            params,
         )
 
         # Verify empty input handling
@@ -823,10 +850,10 @@ class TestHITLServerIntegration:
     @patch("langchain_openai.embeddings.base.OpenAIEmbeddings.embed_documents")
     @patch("langchain_openai.chat_models.base.ChatOpenAI")
     @patch(
-        "arklex.env.tools.RAG.retrievers.faiss_retriever.FaissRetrieverExecutor.search"
+        "arklex.env.tools.RAG.retrievers.faiss_retriever.FaissRetrieverExecutor.search",
     )
     @patch(
-        "arklex.env.tools.RAG.retrievers.faiss_retriever.FaissRetrieverExecutor.load_docs"
+        "arklex.env.tools.RAG.retrievers.faiss_retriever.FaissRetrieverExecutor.load_docs",
     )
     @patch("arklex.env.tools.utils.ToolGenerator.context_generate")
     @patch("arklex.orchestrator.NLU.core.intent.IntentDetector.execute")
@@ -888,7 +915,7 @@ class TestHITLServerIntegration:
             # Always create a valid message state if None is passed
             if message_state is None:
                 message_state = self._create_mock_message_state(
-                    "I can help you with your question about special characters."
+                    "I can help you with your question about special characters.",
                 )
             else:
                 # Update the response to match the expected content
@@ -917,7 +944,11 @@ class TestHITLServerIntegration:
         # Test special characters
         user_text = "What about @#$%^&*() characters?"
         output, params, hitl = self._get_api_bot_response(
-            config, env, user_text, history, params
+            config,
+            env,
+            user_text,
+            history,
+            params,
         )
 
         # Verify special characters handling
@@ -929,10 +960,10 @@ class TestHITLServerIntegration:
     @patch("langchain_openai.embeddings.base.OpenAIEmbeddings.embed_documents")
     @patch("langchain_openai.chat_models.base.ChatOpenAI")
     @patch(
-        "arklex.env.tools.RAG.retrievers.faiss_retriever.FaissRetrieverExecutor.search"
+        "arklex.env.tools.RAG.retrievers.faiss_retriever.FaissRetrieverExecutor.search",
     )
     @patch(
-        "arklex.env.tools.RAG.retrievers.faiss_retriever.FaissRetrieverExecutor.load_docs"
+        "arklex.env.tools.RAG.retrievers.faiss_retriever.FaissRetrieverExecutor.load_docs",
     )
     @patch("arklex.env.tools.utils.ToolGenerator.context_generate")
     @patch("arklex.orchestrator.NLU.core.intent.IntentDetector.execute")
@@ -990,7 +1021,7 @@ class TestHITLServerIntegration:
             # Always create a valid message state if None is passed
             if message_state is None:
                 message_state = self._create_mock_message_state(
-                    "I apologize, but I'm having trouble accessing the information right now. Please try again later."
+                    "I apologize, but I'm having trouble accessing the information right now. Please try again later.",
                 )
             else:
                 # Update the response to match the expected content
@@ -1017,7 +1048,11 @@ class TestHITLServerIntegration:
         # Test RAG error handling
         user_text = "Tell me about products"
         output, params, hitl = self._get_api_bot_response(
-            config, env, user_text, history, params
+            config,
+            env,
+            user_text,
+            history,
+            params,
         )
 
         # Verify error handling
@@ -1029,10 +1064,10 @@ class TestHITLServerIntegration:
     @patch("langchain_openai.embeddings.base.OpenAIEmbeddings.embed_documents")
     @patch("langchain_openai.chat_models.base.ChatOpenAI")
     @patch(
-        "arklex.env.tools.RAG.retrievers.faiss_retriever.FaissRetrieverExecutor.search"
+        "arklex.env.tools.RAG.retrievers.faiss_retriever.FaissRetrieverExecutor.search",
     )
     @patch(
-        "arklex.env.tools.RAG.retrievers.faiss_retriever.FaissRetrieverExecutor.load_docs"
+        "arklex.env.tools.RAG.retrievers.faiss_retriever.FaissRetrieverExecutor.load_docs",
     )
     @patch("arklex.env.tools.utils.ToolGenerator.context_generate")
     @patch("arklex.orchestrator.NLU.core.intent.IntentDetector.execute")
@@ -1085,7 +1120,7 @@ class TestHITLServerIntegration:
                     "content": "Detailed product information and specifications.",
                     "source": "product_database",
                     "confidence": 0.90,
-                }
+                },
             ],
         )
 
@@ -1108,7 +1143,7 @@ class TestHITLServerIntegration:
             # Always create a valid message state if None is passed
             if message_state is None:
                 message_state = self._create_mock_message_state(
-                    "I can help you with your question. Let me provide you with detailed information."
+                    "I can help you with your question. Let me provide you with detailed information.",
                 )
             else:
                 # Update the response to match the expected content
@@ -1135,7 +1170,11 @@ class TestHITLServerIntegration:
         # Test first turn
         user_text = "What products do you have?"
         output, params, hitl = self._get_api_bot_response(
-            config, env, user_text, history, params
+            config,
+            env,
+            user_text,
+            history,
+            params,
         )
 
         # Verify first turn
@@ -1169,7 +1208,7 @@ class TestHITLServerIntegration:
             # Always create a valid message state if None is passed
             if message_state is None:
                 message_state = self._create_mock_message_state(
-                    "Based on our previous conversation, here's more detailed information about the first product."
+                    "Based on our previous conversation, here's more detailed information about the first product.",
                 )
             else:
                 # Update the response to match the expected content
@@ -1191,7 +1230,11 @@ class TestHITLServerIntegration:
         mock_post_process.side_effect = mock_post_process_side_effect_second_turn
 
         output2, params2, hitl2 = self._get_api_bot_response(
-            config, env, "Tell me more about the first one", history, params
+            config,
+            env,
+            "Tell me more about the first one",
+            history,
+            params,
         )
 
         # Verify second turn maintains context
@@ -1203,10 +1246,10 @@ class TestHITLServerIntegration:
     @patch("langchain_openai.embeddings.base.OpenAIEmbeddings.embed_documents")
     @patch("langchain_openai.chat_models.base.ChatOpenAI")
     @patch(
-        "arklex.env.tools.RAG.retrievers.faiss_retriever.FaissRetrieverExecutor.search"
+        "arklex.env.tools.RAG.retrievers.faiss_retriever.FaissRetrieverExecutor.search",
     )
     @patch(
-        "arklex.env.tools.RAG.retrievers.faiss_retriever.FaissRetrieverExecutor.load_docs"
+        "arklex.env.tools.RAG.retrievers.faiss_retriever.FaissRetrieverExecutor.load_docs",
     )
     @patch("arklex.env.tools.utils.ToolGenerator.context_generate")
     @patch("arklex.orchestrator.NLU.core.intent.IntentDetector.execute")
@@ -1251,7 +1294,7 @@ class TestHITLServerIntegration:
                     "content": "Product information and details.",
                     "source": "product_database",
                     "confidence": 0.85,
-                }
+                },
             ],
         )
 
@@ -1274,7 +1317,7 @@ class TestHITLServerIntegration:
             # Always create a valid message state if None is passed
             if message_state is None:
                 message_state = self._create_mock_message_state(
-                    "I can help you with your question. Let me transition to the appropriate node."
+                    "I can help you with your question. Let me transition to the appropriate node.",
                 )
             else:
                 # Update the response to match the expected content
@@ -1301,7 +1344,11 @@ class TestHITLServerIntegration:
         # Test node transition
         user_text = "What products are available?"
         output, params, hitl = self._get_api_bot_response(
-            config, env, user_text, history, params
+            config,
+            env,
+            user_text,
+            history,
+            params,
         )
 
         # Verify node transition
@@ -1314,10 +1361,10 @@ class TestHITLServerIntegration:
     @patch("langchain_openai.embeddings.base.OpenAIEmbeddings.embed_documents")
     @patch("langchain_openai.chat_models.base.ChatOpenAI")
     @patch(
-        "arklex.env.tools.RAG.retrievers.faiss_retriever.FaissRetrieverExecutor.search"
+        "arklex.env.tools.RAG.retrievers.faiss_retriever.FaissRetrieverExecutor.search",
     )
     @patch(
-        "arklex.env.tools.RAG.retrievers.faiss_retriever.FaissRetrieverExecutor.load_docs"
+        "arklex.env.tools.RAG.retrievers.faiss_retriever.FaissRetrieverExecutor.load_docs",
     )
     @patch("arklex.env.tools.utils.ToolGenerator.context_generate")
     @patch("arklex.orchestrator.NLU.core.intent.IntentDetector.execute")
@@ -1364,7 +1411,7 @@ class TestHITLServerIntegration:
                     "content": "Product information and details.",
                     "source": "product_database",
                     "confidence": 0.85,
-                }
+                },
             ],
         )
 
@@ -1389,7 +1436,7 @@ class TestHITLServerIntegration:
             # Always create a valid message state if None is passed
             if message_state is None:
                 message_state = self._create_mock_message_state(
-                    "I can help you with your question. Let me check the HITL settings."
+                    "I can help you with your question. Let me check the HITL settings.",
                 )
             else:
                 # Update the response to match the expected content
@@ -1418,7 +1465,11 @@ class TestHITLServerIntegration:
         # Test HITL settings
         user_text = "What are the HITL settings?"
         output, params, hitl = self._get_api_bot_response(
-            config, env, user_text, history, params
+            config,
+            env,
+            user_text,
+            history,
+            params,
         )
 
         # Verify HITL settings
@@ -1427,7 +1478,7 @@ class TestHITLServerIntegration:
 
     @patch("arklex.env.workers.faiss_rag_worker.FaissRAGWorker._execute")
     @patch(
-        "arklex.env.tools.RAG.retrievers.faiss_retriever.FaissRetrieverExecutor.load_docs"
+        "arklex.env.tools.RAG.retrievers.faiss_retriever.FaissRetrieverExecutor.load_docs",
     )
     def test_worker_configuration_validation(
         self,

@@ -27,6 +27,7 @@ def get_domain_info(documents: list[dict[str, str]]) -> str | None:
 
     Returns:
         Optional[str]: Content of the summary document, or None if no summary document is found.
+
     """
     summary: str | None = None
     for doc in documents:
@@ -37,7 +38,9 @@ def get_domain_info(documents: list[dict[str, str]]) -> str | None:
 
 
 def load_docs(
-    document_dir: str | None, doc_config: dict[str, Any], limit: int = 10
+    document_dir: str | None,
+    doc_config: dict[str, Any],
+    limit: int = 10,
 ) -> list[dict[str, str]]:
     """Load documents from specified sources.
 
@@ -50,6 +53,7 @@ def load_docs(
 
     Returns:
         List[Dict[str, str]]: List of loaded documents.
+
     """
     if document_dir is not None:
         try:
@@ -61,7 +65,7 @@ def load_docs(
                 filename: str = "task_documents.pkl"
             else:
                 raise ValueError(
-                    "The config json file must have a key 'rag_docs' or 'task_docs' with a list of documents to load."
+                    "The config json file must have a key 'rag_docs' or 'task_docs' with a list of documents to load.",
                 )
 
             # If the docs array is empty, return empty list
@@ -70,7 +74,7 @@ def load_docs(
 
             filepath: str = os.path.join(document_dir, filename)
             total_num_docs: int = sum(
-                [doc.get("num") if doc.get("num") else 1 for doc in rag_docs]
+                [doc.get("num") if doc.get("num") else 1 for doc in rag_docs],
             )
             loader: Loader = Loader()
             if os.path.exists(filepath):
@@ -84,7 +88,7 @@ def load_docs(
                         num_docs: int = doc.get("num") if doc.get("num") else 1
                         urls: list[str] = loader.get_all_urls(source, num_docs)
                         crawled_urls: list[CrawledObject] = loader.to_crawled_url_objs(
-                            urls
+                            urls,
                         )
                         docs.extend(crawled_urls)
                     elif doc.get("type") == "file":
@@ -97,7 +101,7 @@ def load_docs(
                     else:
                         # TODO: how to handle when type is not provided
                         raise Exception(
-                            "type must be one of [url, file, text] and it must be provided"
+                            "type must be one of [url, file, text] and it must be provided",
                         )
                 Loader.save(filepath, docs)
             limit = total_num_docs // 5 if total_num_docs > 50 else 10
@@ -105,13 +109,13 @@ def load_docs(
                 documents: list[dict[str, str]] = []
                 # Get candidate websites for only web urls
                 web_docs: list[CrawledObject] = list(
-                    filter(lambda x: x.source_type == SourceType.WEB, docs)
+                    filter(lambda x: x.source_type == SourceType.WEB, docs),
                 )
                 file_docs: list[CrawledObject] = list(
-                    filter(lambda x: x.source_type == SourceType.FILE, docs)
+                    filter(lambda x: x.source_type == SourceType.FILE, docs),
                 )
                 text_docs: list[CrawledObject] = list(
-                    filter(lambda x: x.source_type == SourceType.TEXT, docs)
+                    filter(lambda x: x.source_type == SourceType.TEXT, docs),
                 )
                 documents.extend(loader.get_candidates_websites(web_docs, limit))
                 documents.extend(file_docs)
@@ -119,7 +123,7 @@ def load_docs(
                 documents = [doc.to_dict() for doc in documents]
             elif len(docs) > 0:
                 raise ValueError(
-                    "The documents must be a list of CrawledObject objects."
+                    "The documents must be a list of CrawledObject objects.",
                 )
             else:
                 documents: list[dict[str, str]] = []

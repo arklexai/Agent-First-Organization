@@ -36,6 +36,7 @@ class ModelConfig:
         DEFAULT_TEMPERATURE: Default temperature for model generation
         RESPONSE_FORMAT_JSON: JSON response format identifier
         RESPONSE_FORMAT_TEXT: Text response format identifier
+
     """
 
     @staticmethod
@@ -63,6 +64,7 @@ class ModelConfig:
         Raises:
             KeyError: If required configuration keys are missing
             ValueError: If API key is missing or empty
+
         """
         kwargs: dict[str, Any] = {
             "model": model_config["model_type_or_path"],
@@ -109,6 +111,7 @@ class ModelConfig:
 
         Raises:
             ValueError: If provider is not supported or initialization fails
+
         """
         kwargs = ModelConfig.get_model_kwargs(model_config)
         provider = model_config["llm_provider"]
@@ -140,6 +143,7 @@ class ModelConfig:
 
         Raises:
             ValueError: If response format is invalid or configuration fails
+
         """
         if response_format not in [RESPONSE_FORMAT_JSON, RESPONSE_FORMAT_TEXT]:
             raise ValueError(f"Invalid response format: {response_format}")
@@ -148,6 +152,6 @@ class ModelConfig:
             return model.bind(
                 response_format={"type": "json_object"}
                 if response_format == RESPONSE_FORMAT_JSON
-                else {"type": "text"}
+                else {"type": "text"},
             )
         return model

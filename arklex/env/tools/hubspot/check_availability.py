@@ -43,11 +43,14 @@ errors = []
 
 @register_tool(description, slots, outputs, lambda x: x not in errors)
 def check_availability(
-    timezone: str, duration: int, start_time: str, **kwargs: dict[str, object]
+    timezone: str,
+    duration: int,
+    start_time: str,
+    **kwargs: dict[str, object],
 ) -> str:
     slug = kwargs.get("slug")
     log_context.info(
-        f"Getting availability for {slug} in {timezone} for {duration} meeting at {start_time}"
+        f"Getting availability for {slug} in {timezone} for {duration} meeting at {start_time}",
     )
     meeting_duration_ms = 3600000
     if duration == 15:
@@ -70,7 +73,7 @@ def check_availability(
                 "method": "GET",
                 "headers": {"Content-Type": "application/json"},
                 "qs": {"timezone": timezone},
-            }
+            },
         )
         res = res.json()
     except Exception as e:
@@ -94,7 +97,7 @@ def check_availability(
                     "method": "GET",
                     "headers": {"Content-Type": "application/json"},
                     "qs": {"timezone": timezone, "monthOffset": month_offset},
-                }
+                },
             )
             res = res.json()
 
@@ -109,13 +112,14 @@ def check_availability(
             for avail_time in availabilities:
                 # convert the timestamp to the user's timezone
                 avail_time_utc = datetime.fromtimestamp(
-                    avail_time["startMillisUtc"] / 1000, tz=pytz.utc
+                    avail_time["startMillisUtc"] / 1000,
+                    tz=pytz.utc,
                 )
                 avail_time_local = avail_time_utc.astimezone(pytz.timezone(timezone))
 
                 if avail_time_local == start_time_obj:
                     return "The representative is available at that time."
-                elif avail_time_local.date() == start_time_obj.date():
+                if avail_time_local.date() == start_time_obj.date():
                     alternate_times_on_same_day.append(avail_time_local)
 
             month_offset += 1
@@ -146,6 +150,7 @@ def summarize_time_slots(times: list[datetime]) -> str:
 
     Returns:
         A formatted string with time ranges
+
     """
     if not times:
         return ""

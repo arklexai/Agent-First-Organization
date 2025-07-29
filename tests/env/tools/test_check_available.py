@@ -1,5 +1,4 @@
-"""
-Unit tests for check_available.py module.
+"""Unit tests for check_available.py module.
 
 This module provides comprehensive line-by-line testing for the HubSpot availability checking functionality,
 including edge cases, error scenarios, and the parse_natural_date utility function.
@@ -35,7 +34,9 @@ class TestCheckAvailable:
     @patch("arklex.env.tools.hubspot.check_available.authenticate_hubspot")
     @patch("arklex.env.tools.hubspot.check_available.hubspot.Client.create")
     def test_check_available_success_with_same_date_slots(
-        self, mock_client_create: Mock, mock_authenticate: Mock
+        self,
+        mock_client_create: Mock,
+        mock_authenticate: Mock,
     ) -> None:
         """Test successful availability check with slots on the same date."""
         # Setup mocks
@@ -66,11 +67,11 @@ class TestCheckAvailable:
                             {
                                 "startMillisUtc": jan_1_timestamp,
                                 "endMillisUtc": jan_1_end_timestamp,
-                            }
-                        ]
-                    }
-                }
-            }
+                            },
+                        ],
+                    },
+                },
+            },
         }
 
         mock_client.api_request.side_effect = [
@@ -97,7 +98,9 @@ class TestCheckAvailable:
     @patch("arklex.env.tools.hubspot.check_available.authenticate_hubspot")
     @patch("arklex.env.tools.hubspot.check_available.hubspot.Client.create")
     def test_check_available_success_with_other_date_slots(
-        self, mock_client_create: Mock, mock_authenticate: Mock
+        self,
+        mock_client_create: Mock,
+        mock_authenticate: Mock,
     ) -> None:
         """Test successful availability check with slots on different dates."""
         # Setup mocks
@@ -122,11 +125,11 @@ class TestCheckAvailable:
                             {
                                 "startMillisUtc": 1641081600000,  # 2022-01-02 10:00:00 UTC
                                 "endMillisUtc": 1641083400000,  # 2022-01-02 10:30:00 UTC
-                            }
-                        ]
-                    }
-                }
-            }
+                            },
+                        ],
+                    },
+                },
+            },
         }
 
         mock_client.api_request.side_effect = [
@@ -153,7 +156,9 @@ class TestCheckAvailable:
     @patch("arklex.env.tools.hubspot.check_available.authenticate_hubspot")
     @patch("arklex.env.tools.hubspot.check_available.hubspot.Client.create")
     def test_check_available_no_meeting_links_found(
-        self, mock_client_create: Mock, mock_authenticate: Mock
+        self,
+        mock_client_create: Mock,
+        mock_authenticate: Mock,
     ) -> None:
         """Test when no meeting links are found for the owner."""
         # Setup mocks
@@ -184,7 +189,9 @@ class TestCheckAvailable:
     @patch("arklex.env.tools.hubspot.check_available.authenticate_hubspot")
     @patch("arklex.env.tools.hubspot.check_available.hubspot.Client.create")
     def test_check_available_empty_results(
-        self, mock_client_create: Mock, mock_authenticate: Mock
+        self,
+        mock_client_create: Mock,
+        mock_authenticate: Mock,
     ) -> None:
         """Test when meeting links API returns empty results."""
         # Setup mocks
@@ -215,7 +222,9 @@ class TestCheckAvailable:
     @patch("arklex.env.tools.hubspot.check_available.authenticate_hubspot")
     @patch("arklex.env.tools.hubspot.check_available.hubspot.Client.create")
     def test_check_available_api_error_status(
-        self, mock_client_create: Mock, mock_authenticate: Mock
+        self,
+        mock_client_create: Mock,
+        mock_authenticate: Mock,
     ) -> None:
         """Test when meeting links API returns error status."""
         # Setup mocks
@@ -246,7 +255,9 @@ class TestCheckAvailable:
     @patch("arklex.env.tools.hubspot.check_available.authenticate_hubspot")
     @patch("arklex.env.tools.hubspot.check_available.hubspot.Client.create")
     def test_check_available_api_error_field(
-        self, mock_client_create: Mock, mock_authenticate: Mock
+        self,
+        mock_client_create: Mock,
+        mock_authenticate: Mock,
     ) -> None:
         """Test when meeting links API returns error field."""
         # Setup mocks
@@ -277,7 +288,9 @@ class TestCheckAvailable:
     @patch("arklex.env.tools.hubspot.check_available.authenticate_hubspot")
     @patch("arklex.env.tools.hubspot.check_available.hubspot.Client.create")
     def test_check_available_availability_api_exception(
-        self, mock_client_create: Mock, mock_authenticate: Mock
+        self,
+        mock_client_create: Mock,
+        mock_authenticate: Mock,
     ) -> None:
         """Test when availability API throws an exception."""
         # Setup mocks
@@ -312,7 +325,9 @@ class TestCheckAvailable:
     @patch("arklex.env.tools.hubspot.check_available.authenticate_hubspot")
     @patch("arklex.env.tools.hubspot.check_available.hubspot.Client.create")
     def test_check_available_meeting_links_api_exception(
-        self, mock_client_create: Mock, mock_authenticate: Mock
+        self,
+        mock_client_create: Mock,
+        mock_authenticate: Mock,
     ) -> None:
         """Test when meeting links API throws an exception."""
         # Setup mocks
@@ -322,7 +337,8 @@ class TestCheckAvailable:
 
         # Mock API to throw exception
         mock_client.api_request.side_effect = ApiException(
-            status=500, reason="Server Error"
+            status=500,
+            reason="Server Error",
         )
 
         # Execute function and verify exception
@@ -339,7 +355,9 @@ class TestCheckAvailable:
     @patch("arklex.env.tools.hubspot.check_available.authenticate_hubspot")
     @patch("arklex.env.tools.hubspot.check_available.hubspot.Client.create")
     def test_check_available_with_different_durations(
-        self, mock_client_create: Mock, mock_authenticate: Mock
+        self,
+        mock_client_create: Mock,
+        mock_authenticate: Mock,
     ) -> None:
         """Test availability check with different meeting durations."""
         # Setup mocks
@@ -369,11 +387,11 @@ class TestCheckAvailable:
                                     "startMillisUtc": 1640995200000,
                                     "endMillisUtc": 1640995200000
                                     + (duration * 60 * 1000),
-                                }
-                            ]
-                        }
-                    }
-                }
+                                },
+                            ],
+                        },
+                    },
+                },
             }
 
             mock_client.api_request.side_effect = [
@@ -399,7 +417,9 @@ class TestCheckAvailable:
     @patch("arklex.env.tools.hubspot.check_available.authenticate_hubspot")
     @patch("arklex.env.tools.hubspot.check_available.hubspot.Client.create")
     def test_check_available_with_different_timezones(
-        self, mock_client_create: Mock, mock_authenticate: Mock
+        self,
+        mock_client_create: Mock,
+        mock_authenticate: Mock,
     ) -> None:
         """Test availability check with different timezones."""
         # Setup mocks
@@ -433,11 +453,11 @@ class TestCheckAvailable:
                                 {
                                     "startMillisUtc": 1640995200000,
                                     "endMillisUtc": 1640996100000,
-                                }
-                            ]
-                        }
-                    }
-                }
+                                },
+                            ],
+                        },
+                    },
+                },
             }
 
             mock_client.api_request.side_effect = [
@@ -463,7 +483,9 @@ class TestCheckAvailable:
     @patch("arklex.env.tools.hubspot.check_available.authenticate_hubspot")
     @patch("arklex.env.tools.hubspot.check_available.hubspot.Client.create")
     def test_check_available_last_day_of_month(
-        self, mock_client_create: Mock, mock_authenticate: Mock
+        self,
+        mock_client_create: Mock,
+        mock_authenticate: Mock,
     ) -> None:
         """Test availability check on the last day of the month."""
         # Setup mocks
@@ -488,11 +510,11 @@ class TestCheckAvailable:
                             {
                                 "startMillisUtc": 1640995200000,
                                 "endMillisUtc": 1640996100000,
-                            }
-                        ]
-                    }
-                }
-            }
+                            },
+                        ],
+                    },
+                },
+            },
         }
 
         mock_client.api_request.side_effect = [
@@ -518,7 +540,9 @@ class TestCheckAvailable:
     @patch("arklex.env.tools.hubspot.check_available.authenticate_hubspot")
     @patch("arklex.env.tools.hubspot.check_available.hubspot.Client.create")
     def test_check_available_no_availability_slots(
-        self, mock_client_create: Mock, mock_authenticate: Mock
+        self,
+        mock_client_create: Mock,
+        mock_authenticate: Mock,
     ) -> None:
         """Test availability check when no slots are available."""
         # Setup mocks
@@ -537,8 +561,8 @@ class TestCheckAvailable:
         mock_availability_response = MagicMock()
         mock_availability_response.json.return_value = {
             "linkAvailability": {
-                "linkAvailabilityByDuration": {"900000": {"availabilities": []}}
-            }
+                "linkAvailabilityByDuration": {"900000": {"availabilities": []}},
+            },
         }
 
         mock_client.api_request.side_effect = [
@@ -562,7 +586,9 @@ class TestCheckAvailable:
     @patch("arklex.env.tools.hubspot.check_available.authenticate_hubspot")
     @patch("arklex.env.tools.hubspot.check_available.hubspot.Client.create")
     def test_check_available_missing_duration_key(
-        self, mock_client_create: Mock, mock_authenticate: Mock
+        self,
+        mock_client_create: Mock,
+        mock_authenticate: Mock,
     ) -> None:
         """Test availability check when duration key is missing from response."""
         # Setup mocks
@@ -583,8 +609,8 @@ class TestCheckAvailable:
             "linkAvailability": {
                 "linkAvailabilityByDuration": {
                     # Missing the specific duration key
-                }
-            }
+                },
+            },
         }
 
         mock_client.api_request.side_effect = [
@@ -683,7 +709,9 @@ class TestParseNaturalDate:
         """Test parsing with both timezone and base date."""
         base_date = datetime(2024, 1, 15, 14, 30)
         result = parse_natural_date(
-            "10:00 AM", base_date=base_date, timezone="America/New_York"
+            "10:00 AM",
+            base_date=base_date,
+            timezone="America/New_York",
         )
         # Should be converted to UTC
         assert result.tzinfo is not None
@@ -735,7 +763,8 @@ class TestParseNaturalDate:
     def test_parse_natural_date_timezone_conversion(self) -> None:
         """Test timezone conversion functionality."""
         result = parse_natural_date(
-            "January 15, 2024 10:00 AM", timezone="America/New_York"
+            "January 15, 2024 10:00 AM",
+            timezone="America/New_York",
         )
 
         # Should be converted to UTC
@@ -796,7 +825,9 @@ class TestCheckAvailableIntegration:
     @patch("arklex.env.tools.hubspot.check_available.authenticate_hubspot")
     @patch("arklex.env.tools.hubspot.check_available.hubspot.Client.create")
     def test_check_available_with_natural_date_parsing(
-        self, mock_client_create: Mock, mock_authenticate: Mock
+        self,
+        mock_client_create: Mock,
+        mock_authenticate: Mock,
     ) -> None:
         """Test availability check with natural date parsing."""
         # Setup mocks
@@ -821,11 +852,11 @@ class TestCheckAvailableIntegration:
                             {
                                 "startMillisUtc": 1640995200000,
                                 "endMillisUtc": 1640996100000,
-                            }
-                        ]
-                    }
-                }
-            }
+                            },
+                        ],
+                    },
+                },
+            },
         }
 
         mock_client.api_request.side_effect = [
@@ -865,7 +896,9 @@ class TestCheckAvailableIntegration:
     @patch("arklex.env.tools.hubspot.check_available.authenticate_hubspot")
     @patch("arklex.env.tools.hubspot.check_available.hubspot.Client.create")
     def test_check_available_month_offset_calculation(
-        self, mock_client_create: Mock, mock_authenticate: Mock
+        self,
+        mock_client_create: Mock,
+        mock_authenticate: Mock,
     ) -> None:
         """Test month offset calculation for last day of month."""
         # Setup mocks
@@ -890,11 +923,11 @@ class TestCheckAvailableIntegration:
                             {
                                 "startMillisUtc": 1640995200000,
                                 "endMillisUtc": 1640996100000,
-                            }
-                        ]
-                    }
-                }
-            }
+                            },
+                        ],
+                    },
+                },
+            },
         }
 
         mock_client.api_request.side_effect = [
@@ -943,7 +976,9 @@ class TestCheckAvailableEdgeCases:
     @patch("arklex.env.tools.hubspot.check_available.authenticate_hubspot")
     @patch("arklex.env.tools.hubspot.check_available.hubspot.Client.create")
     def test_check_available_empty_availabilities_list(
-        self, mock_client_create: Mock, mock_authenticate: Mock
+        self,
+        mock_client_create: Mock,
+        mock_authenticate: Mock,
     ) -> None:
         """Test when availabilities list is empty."""
         # Setup mocks
@@ -962,8 +997,8 @@ class TestCheckAvailableEdgeCases:
         mock_availability_response = MagicMock()
         mock_availability_response.json.return_value = {
             "linkAvailability": {
-                "linkAvailabilityByDuration": {"900000": {"availabilities": []}}
-            }
+                "linkAvailabilityByDuration": {"900000": {"availabilities": []}},
+            },
         }
 
         mock_client.api_request.side_effect = [
@@ -988,7 +1023,9 @@ class TestCheckAvailableEdgeCases:
     @patch("arklex.env.tools.hubspot.check_available.authenticate_hubspot")
     @patch("arklex.env.tools.hubspot.check_available.hubspot.Client.create")
     def test_check_available_missing_link_availability(
-        self, mock_client_create: Mock, mock_authenticate: Mock
+        self,
+        mock_client_create: Mock,
+        mock_authenticate: Mock,
     ) -> None:
         """Test when linkAvailability is missing from response."""
         # Setup mocks
@@ -1027,7 +1064,9 @@ class TestCheckAvailableEdgeCases:
     @patch("arklex.env.tools.hubspot.check_available.authenticate_hubspot")
     @patch("arklex.env.tools.hubspot.check_available.hubspot.Client.create")
     def test_check_available_missing_link_availability_by_duration(
-        self, mock_client_create: Mock, mock_authenticate: Mock
+        self,
+        mock_client_create: Mock,
+        mock_authenticate: Mock,
     ) -> None:
         """Test when linkAvailabilityByDuration is missing from response."""
         # Setup mocks
@@ -1045,7 +1084,7 @@ class TestCheckAvailableEdgeCases:
         # Mock availability response with missing linkAvailabilityByDuration
         mock_availability_response = MagicMock()
         mock_availability_response.json.return_value = {
-            "linkAvailability": {"someOtherField": "value"}
+            "linkAvailability": {"someOtherField": "value"},
         }
 
         mock_client.api_request.side_effect = [
@@ -1068,7 +1107,9 @@ class TestCheckAvailableEdgeCases:
     @patch("arklex.env.tools.hubspot.check_available.authenticate_hubspot")
     @patch("arklex.env.tools.hubspot.check_available.hubspot.Client.create")
     def test_check_available_missing_duration_key_in_response(
-        self, mock_client_create: Mock, mock_authenticate: Mock
+        self,
+        mock_client_create: Mock,
+        mock_authenticate: Mock,
     ) -> None:
         """Test when the specific duration key is missing from response."""
         # Setup mocks
@@ -1089,10 +1130,10 @@ class TestCheckAvailableEdgeCases:
             "linkAvailability": {
                 "linkAvailabilityByDuration": {
                     "1800000": {  # 30 minutes instead of 15
-                        "availabilities": []
-                    }
-                }
-            }
+                        "availabilities": [],
+                    },
+                },
+            },
         }
 
         mock_client.api_request.side_effect = [
@@ -1115,7 +1156,9 @@ class TestCheckAvailableEdgeCases:
     @patch("arklex.env.tools.hubspot.check_available.authenticate_hubspot")
     @patch("arklex.env.tools.hubspot.check_available.hubspot.Client.create")
     def test_check_available_missing_availabilities_key(
-        self, mock_client_create: Mock, mock_authenticate: Mock
+        self,
+        mock_client_create: Mock,
+        mock_authenticate: Mock,
     ) -> None:
         """Test when availabilities key is missing from duration response."""
         # Setup mocks
@@ -1134,8 +1177,8 @@ class TestCheckAvailableEdgeCases:
         mock_availability_response = MagicMock()
         mock_availability_response.json.return_value = {
             "linkAvailability": {
-                "linkAvailabilityByDuration": {"900000": {"someOtherField": "value"}}
-            }
+                "linkAvailabilityByDuration": {"900000": {"someOtherField": "value"}},
+            },
         }
 
         mock_client.api_request.side_effect = [
@@ -1158,7 +1201,9 @@ class TestCheckAvailableEdgeCases:
     @patch("arklex.env.tools.hubspot.check_available.authenticate_hubspot")
     @patch("arklex.env.tools.hubspot.check_available.hubspot.Client.create")
     def test_check_available_slots_with_missing_timestamps(
-        self, mock_client_create: Mock, mock_authenticate: Mock
+        self,
+        mock_client_create: Mock,
+        mock_authenticate: Mock,
     ) -> None:
         """Test when slots are missing startMillisUtc or endMillisUtc."""
         # Setup mocks
@@ -1193,10 +1238,10 @@ class TestCheckAvailableEdgeCases:
                                 "startMillisUtc": 1640997000000,
                                 "endMillisUtc": 1640997900000,
                             },
-                        ]
-                    }
-                }
-            }
+                        ],
+                    },
+                },
+            },
         }
 
         mock_client.api_request.side_effect = [
@@ -1220,7 +1265,9 @@ class TestCheckAvailableEdgeCases:
     @patch("arklex.env.tools.hubspot.check_available.authenticate_hubspot")
     @patch("arklex.env.tools.hubspot.check_available.hubspot.Client.create")
     def test_check_available_with_invalid_timezone(
-        self, mock_client_create: Mock, mock_authenticate: Mock
+        self,
+        mock_client_create: Mock,
+        mock_authenticate: Mock,
     ) -> None:
         """Test with invalid timezone that should be handled gracefully."""
         # Setup mocks
@@ -1245,11 +1292,11 @@ class TestCheckAvailableEdgeCases:
                             {
                                 "startMillisUtc": 1640995200000,
                                 "endMillisUtc": 1640996100000,
-                            }
-                        ]
-                    }
-                }
-            }
+                            },
+                        ],
+                    },
+                },
+            },
         }
 
         mock_client.api_request.side_effect = [
@@ -1270,7 +1317,9 @@ class TestCheckAvailableEdgeCases:
     @patch("arklex.env.tools.hubspot.check_available.authenticate_hubspot")
     @patch("arklex.env.tools.hubspot.check_available.hubspot.Client.create")
     def test_check_available_with_same_date_slots_exact_match(
-        self, mock_client_create: Mock, mock_authenticate: Mock
+        self,
+        mock_client_create: Mock,
+        mock_authenticate: Mock,
     ) -> None:
         """Test when slots exactly match the requested date."""
         # Setup mocks
@@ -1300,11 +1349,11 @@ class TestCheckAvailableEdgeCases:
                             {
                                 "startMillisUtc": jan_1_2026_10am_utc,
                                 "endMillisUtc": jan_1_2026_10_15am_utc,
-                            }
-                        ]
-                    }
-                }
-            }
+                            },
+                        ],
+                    },
+                },
+            },
         }
 
         mock_client.api_request.side_effect = [
@@ -1329,7 +1378,9 @@ class TestCheckAvailableEdgeCases:
     @patch("arklex.env.tools.hubspot.check_available.authenticate_hubspot")
     @patch("arklex.env.tools.hubspot.check_available.hubspot.Client.create")
     def test_check_available_with_multiple_meeting_links(
-        self, mock_client_create: Mock, mock_authenticate: Mock
+        self,
+        mock_client_create: Mock,
+        mock_authenticate: Mock,
     ) -> None:
         """Test when multiple meeting links exist for the same owner."""
         # Setup mocks
@@ -1358,11 +1409,11 @@ class TestCheckAvailableEdgeCases:
                             {
                                 "startMillisUtc": 1640995200000,
                                 "endMillisUtc": 1640996100000,
-                            }
-                        ]
-                    }
-                }
-            }
+                            },
+                        ],
+                    },
+                },
+            },
         }
 
         mock_client.api_request.side_effect = [
@@ -1386,7 +1437,9 @@ class TestCheckAvailableEdgeCases:
     @patch("arklex.env.tools.hubspot.check_available.authenticate_hubspot")
     @patch("arklex.env.tools.hubspot.check_available.hubspot.Client.create")
     def test_check_available_with_string_owner_id(
-        self, mock_client_create: Mock, mock_authenticate: Mock
+        self,
+        mock_client_create: Mock,
+        mock_authenticate: Mock,
     ) -> None:
         """Test when owner_id is passed as string but compared as string."""
         # Setup mocks
@@ -1411,11 +1464,11 @@ class TestCheckAvailableEdgeCases:
                             {
                                 "startMillisUtc": 1640995200000,
                                 "endMillisUtc": 1640996100000,
-                            }
-                        ]
-                    }
-                }
-            }
+                            },
+                        ],
+                    },
+                },
+            },
         }
 
         mock_client.api_request.side_effect = [
@@ -1438,7 +1491,9 @@ class TestCheckAvailableEdgeCases:
     @patch("arklex.env.tools.hubspot.check_available.authenticate_hubspot")
     @patch("arklex.env.tools.hubspot.check_available.hubspot.Client.create")
     def test_check_available_with_different_duration_formats(
-        self, mock_client_create: Mock, mock_authenticate: Mock
+        self,
+        mock_client_create: Mock,
+        mock_authenticate: Mock,
     ) -> None:
         """Test with different duration values and their corresponding millisecond keys."""
         # Setup mocks
@@ -1471,11 +1526,11 @@ class TestCheckAvailableEdgeCases:
                                 {
                                     "startMillisUtc": 1640995200000,
                                     "endMillisUtc": 1640996100000,
-                                }
-                            ]
-                        }
-                    }
-                }
+                                },
+                            ],
+                        },
+                    },
+                },
             }
 
             mock_client.api_request.side_effect = [
@@ -1598,7 +1653,9 @@ class TestParseNaturalDateEdgeCases:
 
         # Test with timezone
         result = parse_natural_date(
-            "January 20, 2024", base_date=base_date, timezone="America/New_York"
+            "January 20, 2024",
+            base_date=base_date,
+            timezone="America/New_York",
         )
         assert result.tzinfo is not None
         assert result.year == 2024
@@ -1608,7 +1665,9 @@ class TestParseNaturalDateEdgeCases:
 
         # Test without timezone
         result = parse_natural_date(
-            "January 20, 2024", base_date=base_date, timezone=None
+            "January 20, 2024",
+            base_date=base_date,
+            timezone=None,
         )
         assert result.year == 2024
         assert result.month == 1

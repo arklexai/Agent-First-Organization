@@ -23,7 +23,6 @@ class WorkerKwargs(TypedDict, total=False):
     """Type definition for kwargs used in worker execution methods."""
 
     # Add specific worker parameters as needed
-    pass
 
 
 def register_worker(cls: type[T]) -> type[T]:
@@ -37,6 +36,7 @@ def register_worker(cls: type[T]) -> type[T]:
 
     Returns:
         Type[T]: The registered worker class.
+
     """
     cls.name = cls.__name__  # Automatically set name to the class name
     return cls
@@ -51,6 +51,7 @@ class BaseWorker(ABC):
 
     Attributes:
         description (Optional[str]): Description of the worker's functionality.
+
     """
 
     description: str | None = None
@@ -60,6 +61,7 @@ class BaseWorker(ABC):
 
         Returns:
             str: The name of the worker class.
+
         """
         return f"{self.__class__.__name__}"
 
@@ -68,12 +70,15 @@ class BaseWorker(ABC):
 
         Returns:
             str: The name of the worker class.
+
         """
         return f"{self.__class__.__name__}"
 
     @abstractmethod
     def _execute(
-        self, msg_state: MessageState, **kwargs: WorkerKwargs
+        self,
+        msg_state: MessageState,
+        **kwargs: WorkerKwargs,
     ) -> dict[str, Any]:
         """Execute the worker's core functionality.
 
@@ -86,6 +91,7 @@ class BaseWorker(ABC):
 
         Returns:
             Dict[str, Any]: The execution results as a dictionary.
+
         """
 
     def execute(self, msg_state: MessageState, **kwargs: WorkerKwargs) -> MessageState:
@@ -100,6 +106,7 @@ class BaseWorker(ABC):
 
         Returns:
             MessageState: The updated message state after execution.
+
         """
         try:
             response_return: dict[str, Any] = self._execute(msg_state, **kwargs)

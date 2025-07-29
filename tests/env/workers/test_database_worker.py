@@ -1,5 +1,4 @@
-"""
-Tests for database worker functionality.
+"""Tests for database worker functionality.
 
 This module contains comprehensive tests for the DataBaseWorker class including
 initialization, action verification, and workflow execution.
@@ -20,7 +19,7 @@ class TestDataBaseWorkerInitialization:
     def test_database_worker_init_with_default_config(self) -> None:
         """Test DataBaseWorker initialization with default configuration."""
         with patch(
-            "arklex.utils.model_provider_config.PROVIDER_MAP"
+            "arklex.utils.model_provider_config.PROVIDER_MAP",
         ) as mock_provider_map:
             mock_llm_class = Mock()
             mock_llm_instance = Mock()
@@ -29,7 +28,7 @@ class TestDataBaseWorkerInitialization:
 
             # Mock the database actions to avoid ChatOpenAI initialization
             with patch(
-                "arklex.env.workers.database_worker.DatabaseActions"
+                "arklex.env.workers.database_worker.DatabaseActions",
             ) as mock_db_actions:
                 mock_db_actions_instance = Mock()
                 mock_db_actions.return_value = mock_db_actions_instance
@@ -51,7 +50,7 @@ class TestDataBaseWorkerInitialization:
     def test_database_worker_init_with_custom_config(self) -> None:
         """Test DataBaseWorker initialization with custom configuration."""
         with patch(
-            "arklex.utils.model_provider_config.PROVIDER_MAP"
+            "arklex.utils.model_provider_config.PROVIDER_MAP",
         ) as mock_provider_map:
             mock_llm_class = Mock()
             mock_llm_instance = Mock()
@@ -60,7 +59,7 @@ class TestDataBaseWorkerInitialization:
 
             # Mock the database actions to avoid ChatOpenAI initialization
             with patch(
-                "arklex.env.workers.database_worker.DatabaseActions"
+                "arklex.env.workers.database_worker.DatabaseActions",
             ) as mock_db_actions:
                 mock_db_actions_instance = Mock()
                 mock_db_actions.return_value = mock_db_actions_instance
@@ -81,7 +80,7 @@ class TestDataBaseWorkerInitialization:
     def test_database_worker_init_google_provider(self) -> None:
         """Test DataBaseWorker initialization with Google provider."""
         with patch(
-            "arklex.utils.model_provider_config.PROVIDER_MAP"
+            "arklex.utils.model_provider_config.PROVIDER_MAP",
         ) as mock_provider_map:
             mock_llm_class = Mock()
             mock_llm_instance = Mock()
@@ -90,7 +89,7 @@ class TestDataBaseWorkerInitialization:
 
             # Mock the database actions to avoid ChatOpenAI initialization
             with patch(
-                "arklex.env.workers.database_worker.DatabaseActions"
+                "arklex.env.workers.database_worker.DatabaseActions",
             ) as mock_db_actions:
                 mock_db_actions_instance = Mock()
                 mock_db_actions.return_value = mock_db_actions_instance
@@ -111,7 +110,7 @@ class TestDataBaseWorkerInitialization:
     def test_database_worker_init_other_provider(self) -> None:
         """Test DataBaseWorker initialization with other provider."""
         with patch(
-            "arklex.utils.model_provider_config.PROVIDER_MAP"
+            "arklex.utils.model_provider_config.PROVIDER_MAP",
         ) as mock_provider_map:
             mock_llm_class = Mock()
             mock_llm_instance = Mock()
@@ -120,7 +119,7 @@ class TestDataBaseWorkerInitialization:
 
             # Mock the database actions to avoid ChatOpenAI initialization
             with patch(
-                "arklex.env.workers.database_worker.DatabaseActions"
+                "arklex.env.workers.database_worker.DatabaseActions",
             ) as mock_db_actions:
                 mock_db_actions_instance = Mock()
                 mock_db_actions.return_value = mock_db_actions_instance
@@ -145,7 +144,7 @@ class TestDataBaseWorkerActions:
     def setup_method(self) -> None:
         """Set up test fixtures."""
         with patch(
-            "arklex.utils.model_provider_config.PROVIDER_MAP"
+            "arklex.utils.model_provider_config.PROVIDER_MAP",
         ) as mock_provider_map:
             mock_llm_class = Mock()
             mock_llm_instance = Mock()
@@ -154,7 +153,7 @@ class TestDataBaseWorkerActions:
 
             # Mock the database actions to avoid ChatOpenAI initialization
             with patch(
-                "arklex.env.workers.database_worker.DatabaseActions"
+                "arklex.env.workers.database_worker.DatabaseActions",
             ) as mock_db_actions:
                 mock_db_actions_instance = Mock()
                 mock_db_actions.return_value = mock_db_actions_instance
@@ -214,7 +213,7 @@ class TestDataBaseWorkerVerifyAction:
     def setup_method(self) -> None:
         """Set up test fixtures."""
         with patch(
-            "arklex.utils.model_provider_config.PROVIDER_MAP"
+            "arklex.utils.model_provider_config.PROVIDER_MAP",
         ) as mock_provider_map:
             mock_llm_class = Mock()
             mock_llm_instance = Mock()
@@ -223,7 +222,7 @@ class TestDataBaseWorkerVerifyAction:
 
             # Mock the database actions to avoid ChatOpenAI initialization
             with patch(
-                "arklex.env.workers.database_worker.DatabaseActions"
+                "arklex.env.workers.database_worker.DatabaseActions",
             ) as mock_db_actions:
                 mock_db_actions_instance = Mock()
                 mock_db_actions.return_value = mock_db_actions_instance
@@ -356,7 +355,7 @@ class TestDataBaseWorkerCreateActionGraph:
     def test_create_action_graph_structure(self) -> None:
         """Test that action graph is created with correct structure."""
         with patch(
-            "arklex.utils.model_provider_config.PROVIDER_MAP"
+            "arklex.utils.model_provider_config.PROVIDER_MAP",
         ) as mock_provider_map:
             mock_llm_class = Mock()
             mock_llm_instance = Mock()
@@ -365,7 +364,7 @@ class TestDataBaseWorkerCreateActionGraph:
 
             # Mock the database actions to avoid ChatOpenAI initialization
             with patch(
-                "arklex.env.workers.database_worker.DatabaseActions"
+                "arklex.env.workers.database_worker.DatabaseActions",
             ) as mock_db_actions:
                 mock_db_actions_instance = Mock()
                 mock_db_actions.return_value = mock_db_actions_instance
@@ -391,7 +390,7 @@ class TestDataBaseWorkerExecute:
     def test_execute_workflow(self) -> None:
         """Test execute workflow."""
         with patch(
-            "arklex.utils.model_provider_config.PROVIDER_MAP"
+            "arklex.utils.model_provider_config.PROVIDER_MAP",
         ) as mock_provider_map:
             mock_llm_class = Mock()
             mock_llm_instance = Mock()
@@ -400,7 +399,7 @@ class TestDataBaseWorkerExecute:
 
             # Mock the database actions to avoid ChatOpenAI initialization
             with patch(
-                "arklex.env.workers.database_worker.DatabaseActions"
+                "arklex.env.workers.database_worker.DatabaseActions",
             ) as mock_db_actions:
                 mock_db_actions_instance = Mock()
                 mock_db_actions.return_value = mock_db_actions_instance
@@ -433,7 +432,8 @@ class TestDataBaseWorkerExecute:
                 assert result == mock_result
                 worker.DBActions.log_in.assert_called_once()
                 worker.DBActions.init_slots.assert_called_once_with(
-                    {}, BotConfig(language="EN")
+                    {},
+                    BotConfig(language="EN"),
                 )
                 mock_graph.invoke.assert_called_once_with(mock_state)
 
@@ -444,7 +444,7 @@ class TestDataBaseWorkerIntegration:
     def test_database_worker_complete_workflow(self) -> None:
         """Test complete database worker workflow."""
         with patch(
-            "arklex.utils.model_provider_config.PROVIDER_MAP"
+            "arklex.utils.model_provider_config.PROVIDER_MAP",
         ) as mock_provider_map:
             mock_llm_class = Mock()
             mock_llm_instance = Mock()
@@ -453,7 +453,7 @@ class TestDataBaseWorkerIntegration:
 
             # Mock the database actions to avoid ChatOpenAI initialization
             with patch(
-                "arklex.env.workers.database_worker.DatabaseActions"
+                "arklex.env.workers.database_worker.DatabaseActions",
             ) as mock_db_actions:
                 mock_db_actions_instance = Mock()
                 mock_db_actions.return_value = mock_db_actions_instance
@@ -480,7 +480,7 @@ class TestDataBaseWorkerIntegration:
     def test_database_worker_description(self) -> None:
         """Test database worker description."""
         with patch(
-            "arklex.utils.model_provider_config.PROVIDER_MAP"
+            "arklex.utils.model_provider_config.PROVIDER_MAP",
         ) as mock_provider_map:
             mock_llm_class = Mock()
             mock_llm_instance = Mock()
@@ -489,7 +489,7 @@ class TestDataBaseWorkerIntegration:
 
             # Mock the database actions to avoid ChatOpenAI initialization
             with patch(
-                "arklex.env.workers.database_worker.DatabaseActions"
+                "arklex.env.workers.database_worker.DatabaseActions",
             ) as mock_db_actions:
                 mock_db_actions_instance = Mock()
                 mock_db_actions.return_value = mock_db_actions_instance
@@ -509,7 +509,7 @@ class TestDataBaseWorkerIntegration:
     def test_database_worker_actions_coverage(self) -> None:
         """Test that all database actions are covered."""
         with patch(
-            "arklex.utils.model_provider_config.PROVIDER_MAP"
+            "arklex.utils.model_provider_config.PROVIDER_MAP",
         ) as mock_provider_map:
             mock_llm_class = Mock()
             mock_llm_instance = Mock()
@@ -518,7 +518,7 @@ class TestDataBaseWorkerIntegration:
 
             # Mock the database actions to avoid ChatOpenAI initialization
             with patch(
-                "arklex.env.workers.database_worker.DatabaseActions"
+                "arklex.env.workers.database_worker.DatabaseActions",
             ) as mock_db_actions:
                 mock_db_actions_instance = Mock()
                 mock_db_actions.return_value = mock_db_actions_instance
@@ -550,7 +550,8 @@ class TestDataBaseWorkerErrorHandling:
     def test_init_missing_provider(self) -> None:
         """Test initialization with missing provider."""
         with pytest.raises(
-            ValueError, match="llm_provider must be explicitly specified"
+            ValueError,
+            match="llm_provider must be explicitly specified",
         ):
             DataBaseWorker(model_config={"model_type_or_path": "gpt-3.5-turbo"})
 
@@ -562,7 +563,7 @@ class TestDataBaseWorkerErrorHandling:
     def test_init_unsupported_provider(self) -> None:
         """Test initialization with unsupported provider."""
         with patch(
-            "arklex.utils.model_provider_config.PROVIDER_MAP"
+            "arklex.utils.model_provider_config.PROVIDER_MAP",
         ) as mock_provider_map:
             mock_provider_map.get.return_value = None
 
@@ -572,13 +573,13 @@ class TestDataBaseWorkerErrorHandling:
                         "llm_provider": "unsupported",
                         "model_type_or_path": "test-model",
                         "api_key": "test-key",
-                    }
+                    },
                 )
 
     def test_verify_action_with_empty_intent(self) -> None:
         """Test verify_action with empty user intent."""
         with patch(
-            "arklex.utils.model_provider_config.PROVIDER_MAP"
+            "arklex.utils.model_provider_config.PROVIDER_MAP",
         ) as mock_provider_map:
             mock_llm_class = Mock()
             mock_llm_instance = Mock()
@@ -586,7 +587,7 @@ class TestDataBaseWorkerErrorHandling:
             mock_provider_map.get.return_value = mock_llm_class
 
             with patch(
-                "arklex.env.workers.database_worker.DatabaseActions"
+                "arklex.env.workers.database_worker.DatabaseActions",
             ) as mock_db_actions:
                 mock_db_actions_instance = Mock()
                 mock_db_actions.return_value = mock_db_actions_instance
@@ -616,7 +617,7 @@ class TestDataBaseWorkerErrorHandling:
     def test_verify_action_with_none_intent(self) -> None:
         """Test verify_action with None user intent."""
         with patch(
-            "arklex.utils.model_provider_config.PROVIDER_MAP"
+            "arklex.utils.model_provider_config.PROVIDER_MAP",
         ) as mock_provider_map:
             mock_llm_class = Mock()
             mock_llm_instance = Mock()
@@ -624,7 +625,7 @@ class TestDataBaseWorkerErrorHandling:
             mock_provider_map.get.return_value = mock_llm_class
 
             with patch(
-                "arklex.env.workers.database_worker.DatabaseActions"
+                "arklex.env.workers.database_worker.DatabaseActions",
             ) as mock_db_actions:
                 mock_db_actions_instance = Mock()
                 mock_db_actions.return_value = mock_db_actions_instance
@@ -658,7 +659,7 @@ class TestDataBaseWorkerActionMethods:
     def setup_method(self) -> None:
         """Set up test fixtures."""
         with patch(
-            "arklex.utils.model_provider_config.PROVIDER_MAP"
+            "arklex.utils.model_provider_config.PROVIDER_MAP",
         ) as mock_provider_map:
             mock_llm_class = Mock()
             mock_llm_instance = Mock()
@@ -666,7 +667,7 @@ class TestDataBaseWorkerActionMethods:
             mock_provider_map.get.return_value = mock_llm_class
 
             with patch(
-                "arklex.env.workers.database_worker.DatabaseActions"
+                "arklex.env.workers.database_worker.DatabaseActions",
             ) as mock_db_actions:
                 mock_db_actions_instance = Mock()
                 mock_db_actions.return_value = mock_db_actions_instance
@@ -730,7 +731,7 @@ class TestDataBaseWorkerActionGraph:
     def test_create_action_graph_nodes(self) -> None:
         """Test that action graph has all required nodes."""
         with patch(
-            "arklex.utils.model_provider_config.PROVIDER_MAP"
+            "arklex.utils.model_provider_config.PROVIDER_MAP",
         ) as mock_provider_map:
             mock_llm_class = Mock()
             mock_llm_instance = Mock()
@@ -738,7 +739,7 @@ class TestDataBaseWorkerActionGraph:
             mock_provider_map.get.return_value = mock_llm_class
 
             with patch(
-                "arklex.env.workers.database_worker.DatabaseActions"
+                "arklex.env.workers.database_worker.DatabaseActions",
             ) as mock_db_actions:
                 mock_db_actions_instance = Mock()
                 mock_db_actions.return_value = mock_db_actions_instance
@@ -774,7 +775,7 @@ class TestDataBaseWorkerModelConfiguration:
     def test_google_provider_configuration(self) -> None:
         """Test Google provider configuration."""
         with patch(
-            "arklex.utils.model_provider_config.PROVIDER_MAP"
+            "arklex.utils.model_provider_config.PROVIDER_MAP",
         ) as mock_provider_map:
             mock_llm_class = Mock()
             mock_llm_instance = Mock()
@@ -782,7 +783,7 @@ class TestDataBaseWorkerModelConfiguration:
             mock_provider_map.get.return_value = mock_llm_class
 
             with patch(
-                "arklex.env.workers.database_worker.DatabaseActions"
+                "arklex.env.workers.database_worker.DatabaseActions",
             ) as mock_db_actions:
                 mock_db_actions_instance = Mock()
                 mock_db_actions.return_value = mock_db_actions_instance
@@ -805,7 +806,7 @@ class TestDataBaseWorkerModelConfiguration:
     def test_other_provider_configuration(self) -> None:
         """Test other provider configuration."""
         with patch(
-            "arklex.utils.model_provider_config.PROVIDER_MAP"
+            "arklex.utils.model_provider_config.PROVIDER_MAP",
         ) as mock_provider_map:
             mock_llm_class = Mock()
             mock_llm_instance = Mock()
@@ -813,7 +814,7 @@ class TestDataBaseWorkerModelConfiguration:
             mock_provider_map.get.return_value = mock_llm_class
 
             with patch(
-                "arklex.env.workers.database_worker.DatabaseActions"
+                "arklex.env.workers.database_worker.DatabaseActions",
             ) as mock_db_actions:
                 mock_db_actions_instance = Mock()
                 mock_db_actions.return_value = mock_db_actions_instance
@@ -852,7 +853,7 @@ class TestDataBaseWorkerIntegrationScenarios:
     def test_actions_dictionary_consistency(self) -> None:
         """Test that actions dictionary is consistent."""
         with patch(
-            "arklex.utils.model_provider_config.PROVIDER_MAP"
+            "arklex.utils.model_provider_config.PROVIDER_MAP",
         ) as mock_provider_map:
             mock_llm_class = Mock()
             mock_llm_instance = Mock()
@@ -860,7 +861,7 @@ class TestDataBaseWorkerIntegrationScenarios:
             mock_provider_map.get.return_value = mock_llm_class
 
             with patch(
-                "arklex.env.workers.database_worker.DatabaseActions"
+                "arklex.env.workers.database_worker.DatabaseActions",
             ) as mock_db_actions:
                 mock_db_actions_instance = Mock()
                 mock_db_actions.return_value = mock_db_actions_instance

@@ -98,7 +98,8 @@ class TestEdgeFormatterInitialization:
         assert result[2]["intent"] == "depends_on"
 
     def test_edge_formatter_custom_initialization(
-        self, edge_formatter_custom: EdgeFormatter
+        self,
+        edge_formatter_custom: EdgeFormatter,
     ) -> None:
         """Test EdgeFormatter initialization with custom parameters."""
         # Test that the formatter uses custom default intent
@@ -120,7 +121,10 @@ class TestEdgeFormatting:
     ) -> None:
         """Test basic edge formatting with valid inputs."""
         result = edge_formatter.format_edge(
-            "source", "target", sample_source, sample_target
+            "source",
+            "target",
+            sample_source,
+            sample_target,
         )
         assert len(result) == 3
         assert result[0] == "source"
@@ -135,7 +139,10 @@ class TestEdgeFormatting:
     ) -> None:
         """Test edge formatting with missing optional fields."""
         result = edge_formatter.format_edge(
-            "source", "target", sample_source, sample_target
+            "source",
+            "target",
+            sample_source,
+            sample_target,
         )
         assert len(result) == 3
         assert result[0] == "source"
@@ -150,7 +157,10 @@ class TestEdgeFormatting:
     ) -> None:
         """Test edge formatting with custom edge type."""
         result = edge_formatter_custom.format_edge(
-            "source", "target", sample_source, sample_target
+            "source",
+            "target",
+            sample_source,
+            sample_target,
         )
         assert len(result) == 3
         assert result[0] == "source"
@@ -165,7 +175,10 @@ class TestEdgeFormatting:
     ) -> None:
         """Test edge formatting with None as source_idx."""
         result = edge_formatter.format_edge(
-            None, "target", sample_source, sample_target
+            None,
+            "target",
+            sample_source,
+            sample_target,
         )
         assert len(result) == 3
         assert result[0] is None
@@ -217,7 +230,9 @@ class TestEdgeFormatting:
         """Test format_edge_style with different edge types."""
         for edge_type, expected_color in edge_types.items():
             style = edge_formatter.format_edge_style(
-                sample_source, sample_target, type=edge_type
+                sample_source,
+                sample_target,
+                type=edge_type,
             )
             assert style["color"] == expected_color, (
                 f"Failed for edge type: {edge_type}"
@@ -317,7 +332,9 @@ class TestEdgeValidation:
         """Test validate_edge with invalid weight input."""
         assert (
             edge_formatter.validate_edge(
-                sample_source, sample_target, weight="not_a_number"
+                sample_source,
+                sample_target,
+                weight="not_a_number",
             )
             is False
         )
@@ -343,7 +360,9 @@ class TestEdgeValidation:
         """Test validate_edge with invalid metadata input."""
         assert (
             edge_formatter.validate_edge(
-                sample_source, sample_target, metadata="not_a_dict"
+                sample_source,
+                sample_target,
+                metadata="not_a_dict",
             )
             is False
         )
@@ -353,7 +372,8 @@ class TestEdgeValidation:
         assert edge_formatter.validate_edge("source_id", "target_id") is True
 
     def test_validate_edge_with_missing_ids(
-        self, edge_formatter: EdgeFormatter
+        self,
+        edge_formatter: EdgeFormatter,
     ) -> None:
         """Test validate_edge with dicts missing 'id' and 'task_id'."""
         source = {"foo": "bar"}
@@ -361,7 +381,8 @@ class TestEdgeValidation:
         assert edge_formatter.validate_edge(source, target) is False
 
     def test_validate_edge_metadata_and_id_variants(
-        self, edge_formatter: EdgeFormatter
+        self,
+        edge_formatter: EdgeFormatter,
     ) -> None:
         """Test validate_edge with various metadata and ID combinations."""
         # Test with string IDs
@@ -369,15 +390,21 @@ class TestEdgeValidation:
 
         # Test with dict IDs
         assert edge_formatter.validate_edge(
-            {"id": "n1"}, {"id": "n2"}, metadata={"foo": "bar"}
+            {"id": "n1"},
+            {"id": "n2"},
+            metadata={"foo": "bar"},
         )
 
         # Test with missing IDs
         assert not edge_formatter.validate_edge(
-            {"name": "n1"}, {"id": "n2"}, metadata={"foo": "bar"}
+            {"name": "n1"},
+            {"id": "n2"},
+            metadata={"foo": "bar"},
         )
         assert not edge_formatter.validate_edge(
-            {"id": "n1"}, {"name": "n2"}, metadata={"foo": "bar"}
+            {"id": "n1"},
+            {"name": "n2"},
+            metadata={"foo": "bar"},
         )
 
     def test_validate_edge_comprehensive(self, edge_formatter: EdgeFormatter) -> None:

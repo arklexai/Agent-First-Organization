@@ -1,5 +1,4 @@
-"""
-This module provides functionality to process product returns in the Shopify store.
+"""This module provides functionality to process product returns in the Shopify store.
 It handles the retrieval of returnable fulfillment items and submission of return requests.
 
 Module Name: return_products
@@ -46,8 +45,7 @@ outputs = [
 
 @register_tool(description, slots, outputs)
 def return_products(return_order_id: str, **kwargs: ReturnProductsParams) -> str:
-    """
-    Process a return request for a Shopify order.
+    """Process a return request for a Shopify order.
 
     Args:
         return_order_id (str): The ID of the order to be returned.
@@ -61,6 +59,7 @@ def return_products(return_order_id: str, **kwargs: ReturnProductsParams) -> str
             - No fulfillments are found for the order
             - There's an error parsing the response
             - The return request submission fails
+
     """
     func_name = inspect.currentframe().f_code.co_name
     auth = authorify_admin(kwargs)
@@ -105,7 +104,7 @@ def return_products(return_order_id: str, **kwargs: ReturnProductsParams) -> str
                             {
                                 "fulfillmentLineItemId": line_item_id,
                                 "quantity": line_item_quantity,
-                            }
+                            },
                         )
                 if not fulfillment_items:
                     raise ToolExecutionError(
@@ -151,11 +150,10 @@ def return_products(return_order_id: str, **kwargs: ReturnProductsParams) -> str
                         "The product return request is successfully submitted. "
                         + json.dumps(response)
                     )
-                else:
-                    raise ToolExecutionError(
-                        func_name,
-                        extra_message=ShopifyExceptionPrompt.PRODUCT_RETURN_ERROR_PROMPT,
-                    )
+                raise ToolExecutionError(
+                    func_name,
+                    extra_message=ShopifyExceptionPrompt.PRODUCT_RETURN_ERROR_PROMPT,
+                )
             except Exception as e:
                 log_context.error(f"Error parsing response: {e}")
                 raise ToolExecutionError(

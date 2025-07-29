@@ -21,14 +21,14 @@ log_context = LogContext(__name__)
 
 @register_tool("Ends the conversation with a thank you message.", isResponse=True)
 def end_conversation(state: MessageState) -> str:
-    """
-    Ends the conversation with a thank you message. This is a default tool that is used to end the conversation and added to the tool map of the OpenAIAgent.
+    """Ends the conversation with a thank you message. This is a default tool that is used to end the conversation and added to the tool map of the OpenAIAgent.
 
     Args:
         state (MessageState): The state of the conversation.
 
     Returns:
         str: The thank you message or a fallback.
+
     """
     log_context.info("Ending the conversation.")
     state.status = StatusEnum.COMPLETE
@@ -39,9 +39,9 @@ def end_conversation(state: MessageState) -> str:
         result = llm.invoke(
             [
                 SystemMessage(
-                    content="Ends the conversation with a thank you and goodbye message."
+                    content="Ends the conversation with a thank you and goodbye message.",
                 ).model_dump(),
-            ]
+            ],
         )
         content = None
         if isinstance(result, dict):
@@ -75,7 +75,11 @@ class OpenAIAgent(BaseAgent):
     description: str = "General-purpose Arklex agent for chat or voice."
 
     def __init__(
-        self, successors: list, predecessors: list, tools: dict, state: MessageState
+        self,
+        successors: list,
+        predecessors: list,
+        tools: dict,
+        state: MessageState,
     ) -> None:
         super().__init__()
         self.action_graph: StateGraph = self._create_action_graph()
@@ -130,7 +134,7 @@ class OpenAIAgent(BaseAgent):
             {
                 "sys_instruct": state.sys_instruct,
                 "message": orch_msg_content,
-            }
+            },
         )
         return input_prompt.text
 
@@ -142,7 +146,7 @@ class OpenAIAgent(BaseAgent):
         ):
             log_context.info("Adding input prompt to the function calling trajectory.")
             state.function_calling_trajectory.append(
-                SystemMessage(content=input_prompt).model_dump()
+                SystemMessage(content=input_prompt).model_dump(),
             )
 
     def _process_tool_calls(self, state: MessageState, ai_message: AIMessage) -> None:
@@ -169,7 +173,7 @@ class OpenAIAgent(BaseAgent):
                     AIMessage(
                         content=f"Calling tool: {tool_name}",
                         tool_calls=[structured_tool_call],
-                    ).model_dump()
+                    ).model_dump(),
                 )
 
                 # Prepare arguments for tool execution
@@ -186,7 +190,7 @@ class OpenAIAgent(BaseAgent):
                         name=tool_name,
                         content=json.dumps(tool_response),
                         tool_call_id=tool_call_id,
-                    ).model_dump()
+                    ).model_dump(),
                 )
             else:
                 log_context.warning(f"Tool {tool_name} not found in tool map.")
@@ -198,12 +202,15 @@ class OpenAIAgent(BaseAgent):
             if hasattr(chunk, "content") and chunk.content:
                 answer += chunk.content
                 state.message_queue.put(
-                    {"event": EventType.CHUNK.value, "message_chunk": chunk.content}
+                    {"event": EventType.CHUNK.value, "message_chunk": chunk.content},
                 )
         return answer
 
     def _generate_response(
-        self, state: MessageState, stream: bool = False, is_speech: bool = False
+        self,
+        state: MessageState,
+        stream: bool = False,
+        is_speech: bool = False,
     ) -> MessageState:
         """Unified response generation method with optional streaming."""
         generation_type = (
@@ -237,12 +244,11 @@ class OpenAIAgent(BaseAgent):
             else:
                 ai_message = final_chain.invoke(state.function_calling_trajectory)
                 answer = ai_message.content
+        # No tool calls
+        elif stream:
+            answer = self._stream_response(state, final_chain)
         else:
-            # No tool calls
-            if stream:
-                answer = self._stream_response(state, final_chain)
-            else:
-                answer = ai_message.content
+            answer = ai_message.content
 
         state.message_flow = ""
         state.response = answer
@@ -261,7 +267,7 @@ class OpenAIAgent(BaseAgent):
             or state.stream_type == StreamType.AUDIO
         ):
             return "text_stream_generate"
-        elif state.stream_type == StreamType.SPEECH:
+        if state.stream_type == StreamType.SPEECH:
             return "speech_stream_generate"
         return "generate"
 
@@ -287,8 +293,7 @@ class OpenAIAgent(BaseAgent):
         return result
 
     def _load_tools(self, successors: list, predecessors: list, tools: dict) -> None:
-        """
-        Load tools for the agent.
+        """Load tools for the agent.
         This method is called during the initialization of the agent.
         """
         for node in predecessors:
@@ -302,15 +307,14 @@ class OpenAIAgent(BaseAgent):
                 self.available_tools[tool_id] = (tools[node.resource_id], node)
 
     def _configure_tools(self) -> None:
-        """
-        Configure tools for the agent.
+        """Configure tools for the agent.
         This method is called during the initialization of the agent.
         """
         for tool_id, (tool, node_info) in self.available_tools.items():
             tool_object = tool["tool_instance"]
 
             log_context.info(
-                f"Configuring tool: {tool_object.func.__name__} with slots: {tool_object.slots}"
+                f"Configuring tool: {tool_object.func.__name__} with slots: {tool_object.slots}",
             )
             tool_def = tool_object.to_openai_tool_def_v2()
             tool_def["function"]["name"] = tool_id
@@ -331,7 +335,10 @@ class OpenAIAgent(BaseAgent):
         self.tool_map["end_conversation"] = end_conversation_tool.func
 
     def _execute_tool(
-        self, tool_name: str, state: MessageState, tool_args: dict[str, Any]
+        self,
+        tool_name: str,
+        state: MessageState,
+        tool_args: dict[str, Any],
     ) -> Any:  # noqa: ANN401
         """Execute a tool with unified interface.
 
@@ -345,10 +352,12 @@ class OpenAIAgent(BaseAgent):
 
         Returns:
             Tool execution result
+
         """
 
         def build_slot_values(
-            schema: list[dict[str, Any]], tool_args: dict[str, Any]
+            schema: list[dict[str, Any]],
+            tool_args: dict[str, Any],
         ) -> list[dict[str, Any]]:
             def type_convert(value: object, slot_type: str) -> object:
                 if value is None:
@@ -381,11 +390,8 @@ class OpenAIAgent(BaseAgent):
                 if slot_type == "group":
                     if slot.get("repeatable", False):
                         group_values = tool_args.get(name, [])
-                        if (
-                            not group_values
-                            and value_source == "default"
-                            or not group_values
-                            and value_source == "fixed"
+                        if (not group_values and value_source == "default") or (
+                            not group_values and value_source == "fixed"
                         ):
                             group_values = [slot.get("value", "")]
                         slot_value = [
@@ -395,11 +401,8 @@ class OpenAIAgent(BaseAgent):
                         slot_value = flatten_group_items(slot_value)
                     else:
                         group_value = tool_args.get(name, {})
-                        if (
-                            not group_value
-                            and value_source == "default"
-                            or not group_value
-                            and value_source == "fixed"
+                        if (not group_value and value_source == "default") or (
+                            not group_value and value_source == "fixed"
                         ):
                             group_value = slot.get("value", "")
                         slot_value = build_slot_values(slot["schema"], group_value)
@@ -429,6 +432,5 @@ class OpenAIAgent(BaseAgent):
             # Call http_tool with slots parameter, excluding slots from tool_args
             filtered_args = {k: v for k, v in tool_args.items() if k != "slots"}
             return self.tool_map[tool_name](slots=slots, **filtered_args)
-        else:
-            # Call other tools with state parameter
-            return self.tool_map[tool_name](state=state, **tool_args)
+        # Call other tools with state parameter
+        return self.tool_map[tool_name](state=state, **tool_args)

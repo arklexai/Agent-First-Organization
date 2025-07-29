@@ -1,5 +1,4 @@
-"""
-Tool for creating support tickets via HubSpot in the Arklex framework.
+"""Tool for creating support tickets via HubSpot in the Arklex framework.
 
 This module implements a tool for creating support tickets for customers using the HubSpot API. It handles ticket creation, association with contacts, and is designed for integration with the Arklex tool system.
 """
@@ -49,14 +48,13 @@ outputs: list[dict[str, Any]] = [
         "name": "ticket_id",
         "type": "str",
         "description": "The id of the ticket for the existing customer and the specific issue",
-    }
+    },
 ]
 
 
 @register_tool(description, slots, outputs)
 def create_ticket(cus_cid: str, issue: str, **kwargs: dict[str, Any]) -> str:
-    """
-    Create a support ticket for a customer and associate it with their contact record.
+    """Create a support ticket for a customer and associate it with their contact record.
 
     Args:
         cus_cid (str): Customer contact ID
@@ -68,6 +66,7 @@ def create_ticket(cus_cid: str, issue: str, **kwargs: dict[str, Any]) -> str:
 
     Raises:
         ToolExecutionError: If ticket creation or association fails
+
     """
     func_name: str = inspect.currentframe().f_code.co_name
     access_token: str = authenticate_hubspot(kwargs)
@@ -86,14 +85,15 @@ def create_ticket(cus_cid: str, issue: str, **kwargs: dict[str, Any]) -> str:
     )
     try:
         ticket_creation_response: Any = api_client.crm.tickets.basic_api.create(
-            simple_public_object_input_for_create=ticket_for_create
+            simple_public_object_input_for_create=ticket_for_create,
         )
         ticket_creation_response: dict[str, Any] = ticket_creation_response.to_dict()
         ticket_id: str = ticket_creation_response["id"]
         association_spec: list[AssociationSpec] = [
             AssociationSpec(
-                association_category="HUBSPOT_DEFINED", association_type_id=15
-            )
+                association_category="HUBSPOT_DEFINED",
+                association_type_id=15,
+            ),
         ]
         try:
             api_client.crm.associations.v4.basic_api.create(
@@ -107,10 +107,12 @@ def create_ticket(cus_cid: str, issue: str, **kwargs: dict[str, Any]) -> str:
         except ApiException as e:
             log_context.info(f"Exception when calling AssociationV4: {e}\n")
             raise ToolExecutionError(
-                func_name, HubspotExceptionPrompt.TICKET_CREATION_ERROR_PROMPT
+                func_name,
+                HubspotExceptionPrompt.TICKET_CREATION_ERROR_PROMPT,
             ) from e
     except ApiException as e:
         log_context.info(f"Exception when calling Crm.tickets.create: {e}\n")
         raise ToolExecutionError(
-            func_name, HubspotExceptionPrompt.TICKET_CREATION_ERROR_PROMPT
+            func_name,
+            HubspotExceptionPrompt.TICKET_CREATION_ERROR_PROMPT,
         ) from e

@@ -28,8 +28,8 @@ class TestGetEdgesAndCounts:
                     {"role": "assistant", "intent": "greet", "content": "Hi there!"},
                     {"role": "user", "intent": "goodbye", "content": "Goodbye"},
                     {"role": "assistant", "intent": "goodbye", "content": "See you!"},
-                ]
-            }
+                ],
+            },
         ]
         result = extract_conversation_info.get_edges_and_counts(data)
 
@@ -47,14 +47,14 @@ class TestGetEdgesAndCounts:
                     {"role": "user", "intent": "greet", "content": "Hello"},
                     {"role": "assistant", "intent": "greet", "content": "Hi there!"},
                     {"role": "user", "intent": "goodbye", "content": "Goodbye"},
-                ]
+                ],
             },
             {
                 "convo": [
                     {"role": "user", "intent": "greet", "content": "Hello"},
                     {"role": "assistant", "intent": "greet", "content": "Hi there!"},
                     {"role": "user", "intent": "help", "content": "Help me"},
-                ]
+                ],
             },
         ]
         result = extract_conversation_info.get_edges_and_counts(data)
@@ -86,8 +86,8 @@ class TestGetEdgesAndCounts:
                     {"role": "assistant", "intent": "greet", "content": "Hello"},
                     {"role": "user", "intent": "help", "content": "Help me"},
                     {"role": "assistant", "intent": "help", "content": "I can help"},
-                ]
-            }
+                ],
+            },
         ]
         result = extract_conversation_info.get_edges_and_counts(data)
 
@@ -115,8 +115,8 @@ class TestGetEdgesAndCounts:
                     {"role": "user", "intent": "greet", "content": "Hello"},
                     {"role": "assistant", "intent": "greet", "content": "Hi there!"},
                     {"role": "user", "intent": "goodbye", "content": "Goodbye"},
-                ]
-            }
+                ],
+            },
         ]
         result = extract_conversation_info.get_edges_and_counts(data)
 
@@ -134,8 +134,8 @@ class TestGetEdgesAndCounts:
                 "convo": [
                     {"role": "user", "content": "hello"},
                     {"role": "assistant", "content": "hi"},
-                ]
-            }
+                ],
+            },
         ]
         result = extract_conversation_info.get_edges_and_counts(data)
 
@@ -156,8 +156,8 @@ class TestBuildIntentGraph:
                     {"role": "user", "intent": "greet", "content": "Hello"},
                     {"role": "assistant", "intent": "greet", "content": "Hi there!"},
                     {"role": "user", "intent": "goodbye", "content": "Goodbye"},
-                ]
-            }
+                ],
+            },
         ]
         graph = extract_conversation_info.build_intent_graph(data)
 
@@ -177,7 +177,7 @@ class TestBuildIntentGraph:
                     {"role": "user", "intent": "greet", "content": "Hello"},
                     {"role": "assistant", "intent": "greet", "content": "Hi there!"},
                     {"role": "user", "intent": "help", "content": "Help me"},
-                ]
+                ],
             },
             {
                 "convo": [
@@ -186,7 +186,7 @@ class TestBuildIntentGraph:
                     {"role": "user", "intent": "greet", "content": "Hello"},
                     {"role": "assistant", "intent": "greet", "content": "Hi there!"},
                     {"role": "user", "intent": "help", "content": "Help me"},
-                ]
+                ],
             },
         ]
         graph = extract_conversation_info.build_intent_graph(data)
@@ -323,7 +323,8 @@ class TestExtractTaskCompletionMetrics:
 
     @patch("arklex.evaluation.extract_conversation_info.check_bot_goal")
     def test_extract_task_completion_metrics_basic(
-        self, mock_check_bot_goal: Mock
+        self,
+        mock_check_bot_goal: Mock,
     ) -> None:
         """Test extracting task completion metrics with basic data."""
         mock_check_bot_goal.return_value = True
@@ -347,7 +348,9 @@ class TestExtractTaskCompletionMetrics:
         bot_goal = "Help users"
 
         result = extract_conversation_info.extract_task_completion_metrics(
-            data, client, bot_goal
+            data,
+            client,
+            bot_goal,
         )
 
         assert isinstance(result, dict)
@@ -361,7 +364,8 @@ class TestExtractTaskCompletionMetrics:
 
     @patch("arklex.evaluation.extract_conversation_info.check_bot_goal")
     def test_extract_task_completion_metrics_no_bot_goal(
-        self, mock_check_bot_goal: Mock
+        self,
+        mock_check_bot_goal: Mock,
     ) -> None:
         """Test extracting task completion metrics without bot goal."""
         data = [
@@ -371,7 +375,7 @@ class TestExtractTaskCompletionMetrics:
                     {"role": "assistant", "content": "Hi there!"},
                 ],
                 "goal_completion": True,
-            }
+            },
         ]
         client = MagicMock()
 
@@ -395,14 +399,17 @@ class TestExtractTaskCompletionMetrics:
         data = []
         mock_client = Mock()
         result = extract_conversation_info.extract_task_completion_metrics(
-            data, mock_client, bot_goal="test goal"
+            data,
+            mock_client,
+            bot_goal="test goal",
         )
         # Should return error message when num_convos is 0, regardless of bot_goal parameter
         assert result == "Error while extracting task completion metrics"
 
     @patch("arklex.evaluation.extract_conversation_info.check_bot_goal")
     def test_extract_task_completion_metrics_complex_conversation(
-        self, mock_check_bot_goal: Mock
+        self,
+        mock_check_bot_goal: Mock,
     ) -> None:
         """Test extracting task completion metrics with complex conversation."""
         mock_check_bot_goal.return_value = True
@@ -416,13 +423,15 @@ class TestExtractTaskCompletionMetrics:
                     {"role": "user", "content": "Goodbye"},
                 ],
                 "goal_completion": True,
-            }
+            },
         ]
         client = MagicMock()
         bot_goal = "Have a conversation"
 
         result = extract_conversation_info.extract_task_completion_metrics(
-            data, client, bot_goal
+            data,
+            client,
+            bot_goal,
         )
 
         assert result["user_task_completion"] == 1.0
@@ -552,8 +561,8 @@ def test_main_block_prints_edge_weights(monkeypatch: pytest.MonkeyPatch) -> None
                 {"role": "user", "intent": "greet", "content": "Hello"},
                 {"role": "assistant", "intent": "greet", "content": "Hi there!"},
                 {"role": "user", "intent": "goodbye", "content": "Goodbye"},
-            ]
-        }
+            ],
+        },
     ]
     fake_json = _json.dumps(fake_data)
 
@@ -584,7 +593,9 @@ def test_load_docs_value_error(monkeypatch: pytest.MonkeyPatch) -> None:
     from arklex.evaluation import get_documents
 
     monkeypatch.setattr(
-        get_documents, "Loader", type("L", (), {"__init__": lambda s: None})
+        get_documents,
+        "Loader",
+        type("L", (), {"__init__": lambda s: None}),
     )
     doc_config = {"bad": True}
     # Should raise ValueError
@@ -612,8 +623,8 @@ def test_print_edge_weights_from_file(monkeypatch: pytest.MonkeyPatch) -> None:
                 {"role": "assistant", "intent": "start", "content": "Hello"},
                 {"role": "user", "intent": "greet", "content": "Hey"},
                 {"role": "assistant", "intent": "greet", "content": "Hi again"},
-            ]
-        }
+            ],
+        },
     ]
 
     class DummyFile:

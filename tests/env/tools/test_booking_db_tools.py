@@ -1,5 +1,4 @@
-"""
-Tests for Booking Database tools.
+"""Tests for Booking Database tools.
 
 This module contains comprehensive tests for all booking database-related tools including
 booking functionality, database operations, and utility functions.
@@ -95,7 +94,9 @@ class TestBookingDBBookShow:
     @patch("arklex.env.tools.booking_db.book_show.log_in")
     @patch("arklex.env.tools.booking_db.book_show.sqlite3.connect")
     def test_book_show_login_failure(
-        self, mock_connect: Mock, mock_log_in: Mock
+        self,
+        mock_connect: Mock,
+        mock_log_in: Mock,
     ) -> None:
         """Test book_show when login fails."""
         mock_log_in.return_value = False
@@ -108,7 +109,9 @@ class TestBookingDBBookShow:
     @patch("arklex.env.tools.booking_db.book_show.log_in")
     @patch("arklex.env.tools.booking_db.book_show.sqlite3.connect")
     def test_book_show_no_shows_found(
-        self, mock_connect: Mock, mock_log_in: Mock
+        self,
+        mock_connect: Mock,
+        mock_log_in: Mock,
     ) -> None:
         """Test book_show when no shows match criteria."""
         mock_log_in.return_value = True
@@ -126,7 +129,9 @@ class TestBookingDBBookShow:
     @patch("arklex.env.tools.booking_db.book_show.log_in")
     @patch("arklex.env.tools.booking_db.book_show.sqlite3.connect")
     def test_book_show_multiple_shows_found(
-        self, mock_connect: Mock, mock_log_in: Mock
+        self,
+        mock_connect: Mock,
+        mock_log_in: Mock,
     ) -> None:
         """Test book_show when multiple shows match criteria."""
         mock_log_in.return_value = True
@@ -161,7 +166,7 @@ class TestBookingDBBookShow:
                 "Test Description",
                 "Test Location",
                 50,
-            )
+            ),
         ]
         mock_cursor.description = [
             ("id",),
@@ -191,7 +196,9 @@ class TestBookingDBSearchShow:
     @patch("arklex.env.tools.booking_db.search_show.log_in")
     @patch("arklex.env.tools.booking_db.search_show.sqlite3.connect")
     def test_search_show_login_failure(
-        self, mock_connect: Mock, mock_log_in: Mock
+        self,
+        mock_connect: Mock,
+        mock_log_in: Mock,
     ) -> None:
         """Test search_show when login fails."""
         mock_log_in.return_value = False
@@ -204,7 +211,9 @@ class TestBookingDBSearchShow:
     @patch("arklex.env.tools.booking_db.search_show.log_in")
     @patch("arklex.env.tools.booking_db.search_show.sqlite3.connect")
     def test_search_show_no_results(
-        self, mock_connect: Mock, mock_log_in: Mock
+        self,
+        mock_connect: Mock,
+        mock_log_in: Mock,
     ) -> None:
         """Test search_show when no shows match criteria."""
         mock_log_in.return_value = True
@@ -222,7 +231,9 @@ class TestBookingDBSearchShow:
     @patch("arklex.env.tools.booking_db.search_show.log_in")
     @patch("arklex.env.tools.booking_db.search_show.sqlite3.connect")
     def test_search_show_with_results(
-        self, mock_connect: Mock, mock_log_in: Mock
+        self,
+        mock_connect: Mock,
+        mock_log_in: Mock,
     ) -> None:
         """Test search_show when shows match criteria."""
         mock_log_in.return_value = True
@@ -237,7 +248,7 @@ class TestBookingDBSearchShow:
                 "Test Description",
                 "Test Location",
                 50,
-            )
+            ),
         ]
         mock_cursor.description = [
             ("id",),
@@ -265,7 +276,9 @@ class TestBookingDBCheckBooking:
     @patch("arklex.env.tools.booking_db.check_booking.log_in")
     @patch("arklex.env.tools.booking_db.check_booking.sqlite3.connect")
     def test_check_booking_login_failure(
-        self, mock_connect: Mock, mock_log_in: Mock
+        self,
+        mock_connect: Mock,
+        mock_log_in: Mock,
     ) -> None:
         """Test check_booking when login fails."""
         mock_log_in.return_value = False
@@ -278,7 +291,9 @@ class TestBookingDBCheckBooking:
     @patch("arklex.env.tools.booking_db.check_booking.log_in")
     @patch("arklex.env.tools.booking_db.check_booking.sqlite3.connect")
     def test_check_booking_no_bookings(
-        self, mock_connect: Mock, mock_log_in: Mock
+        self,
+        mock_connect: Mock,
+        mock_log_in: Mock,
     ) -> None:
         """Test check_booking when user has no bookings."""
         mock_log_in.return_value = True
@@ -296,7 +311,9 @@ class TestBookingDBCheckBooking:
     @patch("arklex.env.tools.booking_db.check_booking.log_in")
     @patch("arklex.env.tools.booking_db.check_booking.sqlite3.connect")
     def test_check_booking_with_bookings(
-        self, mock_connect: Mock, mock_log_in: Mock
+        self,
+        mock_connect: Mock,
+        mock_log_in: Mock,
     ) -> None:
         """Test check_booking when user has bookings."""
         mock_log_in.return_value = True
@@ -311,7 +328,7 @@ class TestBookingDBCheckBooking:
                 "Test Description",
                 "Test Location",
                 50,
-            )
+            ),
         ]
         mock_cursor.description = [
             ("id",),
@@ -339,7 +356,9 @@ class TestBookingDBCancelBooking:
     @patch("arklex.env.tools.booking_db.cancel_booking.log_in")
     @patch("arklex.env.tools.booking_db.cancel_booking.sqlite3.connect")
     def test_cancel_booking_login_failure(
-        self, mock_connect: Mock, mock_log_in: Mock
+        self,
+        mock_connect: Mock,
+        mock_log_in: Mock,
     ) -> None:
         """Test cancel_booking when login fails."""
         mock_log_in.return_value = False
@@ -352,7 +371,9 @@ class TestBookingDBCancelBooking:
     @patch("arklex.env.tools.booking_db.cancel_booking.log_in")
     @patch("arklex.env.tools.booking_db.cancel_booking.sqlite3.connect")
     def test_cancel_booking_success(
-        self, mock_connect: Mock, mock_log_in: Mock
+        self,
+        mock_connect: Mock,
+        mock_log_in: Mock,
     ) -> None:
         """Test successful cancellation of booking."""
         mock_log_in.return_value = True
@@ -367,7 +388,7 @@ class TestBookingDBCancelBooking:
                 "Test Description",
                 "Test Location",
                 50,
-            )
+            ),
         ]
         mock_cursor.description = [
             ("id",),
@@ -391,7 +412,9 @@ class TestBookingDBCancelBooking:
     @patch("arklex.env.tools.booking_db.cancel_booking.log_in")
     @patch("arklex.env.tools.booking_db.cancel_booking.sqlite3.connect")
     def test_cancel_booking_not_found(
-        self, mock_connect: Mock, mock_log_in: Mock
+        self,
+        mock_connect: Mock,
+        mock_log_in: Mock,
     ) -> None:
         """Test cancel_booking when no booking exists."""
         mock_log_in.return_value = True
@@ -554,7 +577,7 @@ class TestBookingDBBuildDatabase:
 
             # Check specific shows exist
             cursor.execute(
-                "SELECT show_name FROM show WHERE show_name = 'The Dead, 1904'"
+                "SELECT show_name FROM show WHERE show_name = 'The Dead, 1904'",
             )
             dead_1904_shows = cursor.fetchall()
             assert len(dead_1904_shows) == 2  # Two shows with this name
@@ -565,7 +588,7 @@ class TestBookingDBBuildDatabase:
 
             # Fix: Use double single quotes for apostrophe in SQL
             cursor.execute(
-                "SELECT show_name FROM show WHERE show_name = 'A Child''s Christmas in Wales'"
+                "SELECT show_name FROM show WHERE show_name = 'A Child''s Christmas in Wales'",
             )
             christmas_shows = cursor.fetchall()
             assert len(christmas_shows) == 2
@@ -577,7 +600,7 @@ class TestBookingDBBuildDatabase:
 
             # Check that all shows have required fields
             cursor.execute(
-                "SELECT COUNT(*) FROM show WHERE id IS NULL OR show_name IS NULL"
+                "SELECT COUNT(*) FROM show WHERE id IS NULL OR show_name IS NULL",
             )
             null_shows = cursor.fetchone()[0]
             assert null_shows == 0
@@ -595,7 +618,7 @@ class TestBookingDBBuildDatabase:
 
             # Check specific users exist
             cursor.execute(
-                "SELECT first_name, last_name FROM user WHERE email = 'alice.smith@gmail.com'"
+                "SELECT first_name, last_name FROM user WHERE email = 'alice.smith@gmail.com'",
             )
             alice = cursor.fetchone()
             assert alice is not None
@@ -603,7 +626,7 @@ class TestBookingDBBuildDatabase:
             assert alice[1] == "Smith"
 
             cursor.execute(
-                "SELECT first_name, last_name FROM user WHERE email = 'bob.johnson@gmail.com'"
+                "SELECT first_name, last_name FROM user WHERE email = 'bob.johnson@gmail.com'",
             )
             bob = cursor.fetchone()
             assert bob is not None
@@ -617,7 +640,7 @@ class TestBookingDBBuildDatabase:
 
             # Check that all users have required fields
             cursor.execute(
-                "SELECT COUNT(*) FROM user WHERE id IS NULL OR first_name IS NULL OR last_name IS NULL OR email IS NULL"
+                "SELECT COUNT(*) FROM user WHERE id IS NULL OR first_name IS NULL OR last_name IS NULL OR email IS NULL",
             )
             null_users = cursor.fetchone()[0]
             assert null_users == 0
@@ -822,7 +845,7 @@ class TestBookingDBBuildDatabase:
                 build_database(read_only_dir)
                 # If we get here, the test should fail
                 raise AssertionError(
-                    "Expected an error when creating database in read-only directory"
+                    "Expected an error when creating database in read-only directory",
                 )
             except (PermissionError, OSError, sqlite3.OperationalError):
                 # Expected error - sqlite3.OperationalError is also acceptable

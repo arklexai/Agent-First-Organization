@@ -209,7 +209,6 @@ class TestTaskEditorUI:
         # - Extract task management logic into TaskManagerService
         # - Make TaskEditorApp a thin wrapper around the service
         # - Test the service logic independently of UI framework
-        pass
 
     def test_compose_creates_tree_structure(self, sample_tasks: list) -> None:
         skip_if_ui_not_available()
@@ -219,7 +218,6 @@ class TestTaskEditorUI:
         # - Create TreeStructureBuilder service
         # - Test tree building logic independently
         # - Make compose method use the service
-        pass
 
     def test_on_mount_sets_focus(self) -> None:
         skip_if_ui_not_available()
@@ -228,7 +226,6 @@ class TestTaskEditorUI:
         # TODO: Refactor to separate initialization logic from UI framework
         # - Extract initialization logic into separate method
         # - Test initialization logic independently
-        pass
 
     @pytest.mark.asyncio
     async def test_add_task_with_keyboard(self, sample_tasks: list) -> None:
@@ -239,7 +236,6 @@ class TestTaskEditorUI:
         # - Create TaskAdditionService with add_task method
         # - Test task addition logic independently
         # - Make keyboard handler use the service
-        pass
 
     @pytest.mark.asyncio
     async def test_delete_task_with_keyboard(self, mock_node: Mock) -> None:
@@ -250,7 +246,6 @@ class TestTaskEditorUI:
         # - Create TaskDeletionService with delete_task method
         # - Test task deletion logic independently
         # - Make keyboard handler use the service
-        pass
 
     @pytest.mark.asyncio
     async def test_save_and_exit_with_keyboard(self) -> None:
@@ -261,7 +256,6 @@ class TestTaskEditorUI:
         # - Create TaskSaveService with save_tasks method
         # - Test save logic independently
         # - Make keyboard handler use the service
-        pass
 
     @pytest.mark.asyncio
     async def test_add_step_to_task(self, mock_node: Mock) -> None:
@@ -272,7 +266,6 @@ class TestTaskEditorUI:
         # - Create StepAdditionService with add_step method
         # - Test step addition logic independently
         # - Make UI handler use the service
-        pass
 
     @pytest.mark.asyncio
     async def test_add_task_to_root(self, mock_node: Mock) -> None:
@@ -283,7 +276,6 @@ class TestTaskEditorUI:
         # - Create RootTaskAdditionService with add_root_task method
         # - Test root task addition logic independently
         # - Make UI handler use the service
-        pass
 
     @pytest.mark.asyncio
     async def test_update_tasks_from_tree(self) -> None:
@@ -294,7 +286,6 @@ class TestTaskEditorUI:
         # - Create TaskSynchronizationService with sync_tasks method
         # - Test synchronization logic independently
         # - Make UI method use the service
-        pass
 
     @pytest.mark.asyncio
     async def test_node_selection_opens_modal(self, mock_node: Mock) -> None:
@@ -305,7 +296,6 @@ class TestTaskEditorUI:
         # - Create ModalManagerService with show_edit_modal method
         # - Test modal management logic independently
         # - Make event handler use the service
-        pass
 
     def test_run_returns_tasks(self) -> None:
         skip_if_ui_not_available()
@@ -1092,7 +1082,11 @@ def test_protocols_full_coverage() -> None:
 
     class DummyInputModal(protocols.InputModalProtocol):
         def __init__(
-            self, title: str, default: str, node: object, callback: object
+            self,
+            title: str,
+            default: str,
+            node: object,
+            callback: object,
         ) -> None:
             pass
 

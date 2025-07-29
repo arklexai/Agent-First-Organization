@@ -1,5 +1,4 @@
-"""
-This module provides functionality to cancel orders in the Shopify store using the Admin API.
+"""This module provides functionality to cancel orders in the Shopify store using the Admin API.
 It supports cancelling orders with automatic customer notification, restocking, and refunding.
 
 Module Name: cancel_order
@@ -36,8 +35,7 @@ outputs = [ShopifyOutputs.CANECEL_REQUEST_DETAILS]
 
 @register_tool(description, slots, outputs)
 def cancel_order(cancel_order_id: str, **kwargs: CancelOrderParams) -> dict[str, str]:
-    """
-    Cancel an order in the Shopify store.
+    """Cancel an order in the Shopify store.
 
     Args:
         cancel_order_id (str): The ID of the order to cancel.
@@ -48,6 +46,7 @@ def cancel_order(cancel_order_id: str, **kwargs: CancelOrderParams) -> dict[str,
 
     Raises:
         ShopifyError: If cancellation fails
+
     """
     try:
         log_context.info(f"Starting order cancellation for order: {cancel_order_id}")
@@ -74,20 +73,21 @@ def cancel_order(cancel_order_id: str, **kwargs: CancelOrderParams) -> dict[str,
             response = json.loads(response)["data"]
             if "orderCancel" not in response:
                 raise ToolExecutionError(
-                    func_name, "Invalid response: missing orderCancel key"
+                    func_name,
+                    "Invalid response: missing orderCancel key",
                 )
 
             order_cancel_response = response["orderCancel"]
             user_errors = order_cancel_response.get("userErrors")
             if not user_errors:
                 log_context.info(
-                    f"Order cancellation completed for order: {cancel_order_id}"
+                    f"Order cancellation completed for order: {cancel_order_id}",
                 )
                 return "The order is successfully cancelled. " + json.dumps(response)
-            else:
-                raise ToolExecutionError(
-                    func_name, json.dumps(order_cancel_response["userErrors"])
-                )
+            raise ToolExecutionError(
+                func_name,
+                json.dumps(order_cancel_response["userErrors"]),
+            )
 
     except Exception as e:
         log_context.error(f"Order cancellation failed: {e}")

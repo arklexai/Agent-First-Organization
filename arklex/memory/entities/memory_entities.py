@@ -33,6 +33,7 @@ class ResourceRecord(BaseModel):
         output (str): Output data from the resource.
         steps (List[Any]): Processing steps taken.
         personalized_intent (str): User-specific intent for the resource.
+
     """
 
     info: dict[str, Any]
@@ -57,6 +58,7 @@ class Memory(BaseModel):
     Attributes:
         trajectory (List[List[ResourceRecord]]): Processing trajectory history.
         function_calling_trajectory (List[Dict[str, Any]]): Function call history.
+
     """
 
     trajectory: list[list[ResourceRecord]] = Field(default_factory=list)

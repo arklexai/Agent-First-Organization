@@ -136,7 +136,8 @@ def patched_best_practice_manager(
     """Create a BestPracticeManager with patched methods for testing."""
     with (
         patch.object(
-            best_practice_manager, "_generate_practice_definitions"
+            best_practice_manager,
+            "_generate_practice_definitions",
         ) as mock_gen,
         patch.object(best_practice_manager, "_validate_practices") as mock_validate,
         patch.object(best_practice_manager, "_categorize_practices") as mock_categorize,
@@ -162,7 +163,7 @@ def patched_optimize_steps(
     """Create a BestPracticeManager with patched _optimize_steps method."""
     with patch.object(best_practice_manager, "_optimize_steps") as mock_optimize_steps:
         mock_optimize_steps.return_value = [
-            {"task": "Optimized step", "description": "Optimized description"}
+            {"task": "Optimized step", "description": "Optimized description"},
         ]
         yield {
             "manager": best_practice_manager,
@@ -308,7 +309,8 @@ class TestBestPracticeManagerGenerateBestPractices:
         assert result[0]["optimized"] is True
 
     def test_generate_best_practices_with_empty_tasks(
-        self, patched_best_practice_manager: dict[str, Any]
+        self,
+        patched_best_practice_manager: dict[str, Any],
     ) -> None:
         """Test best practice generation with empty tasks."""
         manager = patched_best_practice_manager["manager"]
@@ -332,7 +334,8 @@ class TestBestPracticeManagerGenerateBestPractices:
         assert len(result) == 0
 
     def test_generate_best_practices_fallback_when_no_json(
-        self, patched_model_invoke: dict[str, Any]
+        self,
+        patched_model_invoke: dict[str, Any],
     ) -> None:
         patched_model_invoke["mock_invoke"].return_value = {"text": "No JSON here"}
         gen = patched_model_invoke["manager"]
@@ -340,17 +343,19 @@ class TestBestPracticeManagerGenerateBestPractices:
         assert result == []
 
     def test_generate_best_practices_with_invalid_response(
-        self, patched_model_invoke: dict[str, Any]
+        self,
+        patched_model_invoke: dict[str, Any],
     ) -> None:
         patched_model_invoke["mock_invoke"].return_value = {
-            "text": "Invalid JSON response"
+            "text": "Invalid JSON response",
         }
         gen = patched_model_invoke["manager"]
         result = gen.generate_best_practices([{"name": "test task"}])
         assert result == []
 
     def test_generate_best_practices_with_exception(
-        self, patched_model_invoke: dict[str, Any]
+        self,
+        patched_model_invoke: dict[str, Any],
     ) -> None:
         patched_model_invoke["mock_invoke"].side_effect = Exception("Test error")
         gen = patched_model_invoke["manager"]
@@ -369,7 +374,8 @@ class TestBestPracticeManagerFinetuneBestPractice:
     ) -> None:
         """Test practice refinement with steps."""
         result = best_practice_manager.finetune_best_practice(
-            sample_practice, sample_task
+            sample_practice,
+            sample_task,
         )
 
         assert isinstance(result, dict)
@@ -395,7 +401,8 @@ class TestBestPracticeManagerFinetuneBestPractice:
     ) -> None:
         """Test practice refinement with all_resources available."""
         result = best_practice_manager.finetune_best_practice(
-            sample_practice, sample_task
+            sample_practice,
+            sample_task,
         )
 
         assert isinstance(result, dict)
@@ -498,7 +505,8 @@ class TestBestPracticeManagerGeneratePracticeDefinitions:
         assert len(result) == 2
 
     def test_generate_practice_definitions_with_empty_tasks(
-        self, best_practice_manager: BestPracticeManager
+        self,
+        best_practice_manager: BestPracticeManager,
     ) -> None:
         """Test practice definition generation with empty tasks."""
         result = best_practice_manager._generate_practice_definitions([])
@@ -511,7 +519,8 @@ class TestBestPracticeManagerValidatePractices:
     """Test the _validate_practices method."""
 
     def test_validate_practices_success(
-        self, best_practice_manager: BestPracticeManager
+        self,
+        best_practice_manager: BestPracticeManager,
     ) -> None:
         """Test successful practice validation."""
         practice_definitions = [
@@ -524,7 +533,7 @@ class TestBestPracticeManagerValidatePractices:
                 examples=[],
                 priority=3,
                 category="efficiency",
-            )
+            ),
         ]
 
         result = best_practice_manager._validate_practices(practice_definitions)
@@ -534,7 +543,8 @@ class TestBestPracticeManagerValidatePractices:
         assert result[0]["practice_id"] == "test1"
 
     def test_validate_practices_with_invalid_practice(
-        self, best_practice_manager: BestPracticeManager
+        self,
+        best_practice_manager: BestPracticeManager,
     ) -> None:
         """Test practice validation with invalid practice."""
         practice_definitions = [
@@ -547,7 +557,7 @@ class TestBestPracticeManagerValidatePractices:
                 examples=[],
                 priority=3,
                 category="efficiency",
-            )
+            ),
         ]
 
         result = best_practice_manager._validate_practices(practice_definitions)
@@ -556,7 +566,8 @@ class TestBestPracticeManagerValidatePractices:
         assert len(result) == 0
 
     def test_validate_practices_with_empty_list(
-        self, best_practice_manager: BestPracticeManager
+        self,
+        best_practice_manager: BestPracticeManager,
     ) -> None:
         """Test practice validation with empty list."""
         result = best_practice_manager._validate_practices([])
@@ -565,7 +576,8 @@ class TestBestPracticeManagerValidatePractices:
         assert len(result) == 0
 
     def test_validate_practice_definition_valid(
-        self, best_practice_manager: BestPracticeManager
+        self,
+        best_practice_manager: BestPracticeManager,
     ) -> None:
         """Test individual practice definition validation with valid practice."""
         practice_def = BestPractice(
@@ -584,7 +596,8 @@ class TestBestPracticeManagerValidatePractices:
         assert result is True
 
     def test_validate_practice_definition_invalid_id(
-        self, best_practice_manager: BestPracticeManager
+        self,
+        best_practice_manager: BestPracticeManager,
     ) -> None:
         """Test individual practice definition validation with invalid ID."""
         practice_def = BestPractice(
@@ -603,7 +616,8 @@ class TestBestPracticeManagerValidatePractices:
         assert result is False
 
     def test_validate_practice_definition_invalid_name(
-        self, best_practice_manager: BestPracticeManager
+        self,
+        best_practice_manager: BestPracticeManager,
     ) -> None:
         """Test individual practice definition validation with invalid name."""
         practice_def = BestPractice(
@@ -622,7 +636,8 @@ class TestBestPracticeManagerValidatePractices:
         assert result is False
 
     def test_validate_practice_definition_invalid_description(
-        self, best_practice_manager: BestPracticeManager
+        self,
+        best_practice_manager: BestPracticeManager,
     ) -> None:
         """Test individual practice definition validation with invalid description."""
         practice_def = BestPractice(
@@ -641,7 +656,8 @@ class TestBestPracticeManagerValidatePractices:
         assert result is False
 
     def test_validate_practice_definition_invalid_steps(
-        self, best_practice_manager: BestPracticeManager
+        self,
+        best_practice_manager: BestPracticeManager,
     ) -> None:
         """Test individual practice definition validation with invalid steps."""
         practice_def = BestPractice(
@@ -660,7 +676,8 @@ class TestBestPracticeManagerValidatePractices:
         assert result is False
 
     def test_validate_practice_definition_invalid_rationale(
-        self, best_practice_manager: BestPracticeManager
+        self,
+        best_practice_manager: BestPracticeManager,
     ) -> None:
         """Test individual practice definition validation with invalid rationale."""
         practice_def = BestPractice(
@@ -679,7 +696,8 @@ class TestBestPracticeManagerValidatePractices:
         assert result is False
 
     def test_validate_practice_definition_invalid_priority(
-        self, best_practice_manager: BestPracticeManager
+        self,
+        best_practice_manager: BestPracticeManager,
     ) -> None:
         """Test individual practice definition validation with invalid priority."""
         practice_def = BestPractice(
@@ -699,7 +717,8 @@ class TestBestPracticeManagerValidatePractices:
         assert result is True
 
     def test_validate_practice_definition_invalid_category(
-        self, best_practice_manager: BestPracticeManager
+        self,
+        best_practice_manager: BestPracticeManager,
     ) -> None:
         """Test individual practice definition validation with invalid category."""
         practice_def = BestPractice(
@@ -718,7 +737,8 @@ class TestBestPracticeManagerValidatePractices:
         assert result is False
 
     def test_validate_best_practices_fallback(
-        self, patched_model_invoke: dict[str, Any]
+        self,
+        patched_model_invoke: dict[str, Any],
     ) -> None:
         patched_model_invoke["mock_invoke"].return_value = {"text": "Invalid response"}
         gen = patched_model_invoke["manager"]
@@ -742,14 +762,16 @@ class TestBestPracticeManagerCategorizePractices:
         assert "practice2" in best_practice_manager._practice_categories["quality"]
 
     def test_categorize_practices_with_empty_list(
-        self, best_practice_manager: BestPracticeManager
+        self,
+        best_practice_manager: BestPracticeManager,
     ) -> None:
         """Test practice categorization with empty list."""
         best_practice_manager._categorize_practices([])
         assert best_practice_manager._practice_categories == {}
 
     def test_categorize_practices_with_missing_category(
-        self, best_practice_manager: BestPracticeManager
+        self,
+        best_practice_manager: BestPracticeManager,
     ) -> None:
         """Test practice categorization with missing category."""
         practices = [
@@ -791,7 +813,8 @@ class TestBestPracticeManagerOptimizePractices:
         assert "practice_id" in result[0]
 
     def test_optimize_practices_with_empty_list(
-        self, best_practice_manager: BestPracticeManager
+        self,
+        best_practice_manager: BestPracticeManager,
     ) -> None:
         """Test practice optimization with empty list."""
         result = best_practice_manager._optimize_practices([])
@@ -799,7 +822,8 @@ class TestBestPracticeManagerOptimizePractices:
         assert len(result) == 0
 
     def test_optimize_practices_with_missing_steps(
-        self, best_practice_manager: BestPracticeManager
+        self,
+        best_practice_manager: BestPracticeManager,
     ) -> None:
         """Test practice optimization with missing steps."""
         practices = [
@@ -818,7 +842,8 @@ class TestBestPracticeManagerOptimizeSteps:
     """Test the _optimize_steps method."""
 
     def test_optimize_steps_success(
-        self, best_practice_manager: BestPracticeManager
+        self,
+        best_practice_manager: BestPracticeManager,
     ) -> None:
         """Test successful step optimization."""
         steps = [
@@ -830,7 +855,8 @@ class TestBestPracticeManagerOptimizeSteps:
         assert len(result) == 2
 
     def test_optimize_steps_with_invalid_json(
-        self, best_practice_manager: BestPracticeManager
+        self,
+        best_practice_manager: BestPracticeManager,
     ) -> None:
         """Test step optimization with invalid JSON response."""
         steps = [
@@ -841,7 +867,8 @@ class TestBestPracticeManagerOptimizeSteps:
         assert isinstance(result, list)
 
     def test_optimize_steps_with_exception(
-        self, best_practice_manager: BestPracticeManager
+        self,
+        best_practice_manager: BestPracticeManager,
     ) -> None:
         """Test step optimization with exception."""
         steps = [
@@ -851,14 +878,16 @@ class TestBestPracticeManagerOptimizeSteps:
         assert isinstance(result, list)
 
     def test_optimize_steps_with_empty_steps(
-        self, best_practice_manager: BestPracticeManager
+        self,
+        best_practice_manager: BestPracticeManager,
     ) -> None:
         """Test step optimization with empty steps."""
         result = best_practice_manager._optimize_steps([])
         assert isinstance(result, list)
 
     def test_optimize_steps_with_missing_description(
-        self, best_practice_manager: BestPracticeManager
+        self,
+        best_practice_manager: BestPracticeManager,
     ) -> None:
         """Test step optimization with missing description."""
         steps = [
@@ -868,7 +897,8 @@ class TestBestPracticeManagerOptimizeSteps:
         assert isinstance(result, list)
 
     def test_optimize_steps_with_none_description(
-        self, best_practice_manager: BestPracticeManager
+        self,
+        best_practice_manager: BestPracticeManager,
     ) -> None:
         """Test step optimization with None description."""
         steps = [
@@ -878,7 +908,8 @@ class TestBestPracticeManagerOptimizeSteps:
         assert isinstance(result, list)
 
     def test_optimize_steps_with_empty_description(
-        self, best_practice_manager: BestPracticeManager
+        self,
+        best_practice_manager: BestPracticeManager,
     ) -> None:
         """Test step optimization with empty description."""
         steps = [
@@ -888,7 +919,8 @@ class TestBestPracticeManagerOptimizeSteps:
         assert isinstance(result, list)
 
     def test_optimize_steps_with_whitespace_description(
-        self, best_practice_manager: BestPracticeManager
+        self,
+        best_practice_manager: BestPracticeManager,
     ) -> None:
         """Test step optimization with whitespace description."""
         steps = [
@@ -898,7 +930,8 @@ class TestBestPracticeManagerOptimizeSteps:
         assert isinstance(result, list)
 
     def test_optimize_steps_with_existing_step_id(
-        self, best_practice_manager: BestPracticeManager
+        self,
+        best_practice_manager: BestPracticeManager,
     ) -> None:
         """Test step optimization with existing step_id."""
         steps = [
@@ -909,7 +942,8 @@ class TestBestPracticeManagerOptimizeSteps:
         assert isinstance(result, list)
 
     def test_optimize_steps_with_existing_required_fields(
-        self, best_practice_manager: BestPracticeManager
+        self,
+        best_practice_manager: BestPracticeManager,
     ) -> None:
         """Test step optimization with existing required_fields."""
         steps = [
@@ -919,7 +953,8 @@ class TestBestPracticeManagerOptimizeSteps:
         assert isinstance(result, list)
 
     def test_optimize_steps_with_missing_step_id(
-        self, patched_model_invoke: dict[str, Any]
+        self,
+        patched_model_invoke: dict[str, Any],
     ) -> None:
         """Test _optimize_steps with missing step_id."""
         manager = patched_model_invoke["manager"]
@@ -940,17 +975,21 @@ class TestBestPracticeManagerOptimizeSteps:
         """Test finetune_best_practice with exception handling that returns original practice."""
         # Mock the model to raise an exception
         with patch.object(
-            best_practice_manager.model, "invoke", side_effect=Exception("Model error")
+            best_practice_manager.model,
+            "invoke",
+            side_effect=Exception("Model error"),
         ):
             result = best_practice_manager.finetune_best_practice(
-                sample_practice, sample_task
+                sample_practice,
+                sample_task,
             )
 
             # Should return the original practice when exception occurs
             assert result == sample_practice
 
     def test_optimize_steps_with_non_string_description(
-        self, best_practice_manager: BestPracticeManager
+        self,
+        best_practice_manager: BestPracticeManager,
     ) -> None:
         """Test _optimize_steps with non-string description that gets converted to string."""
         steps = [
@@ -971,7 +1010,8 @@ class TestBestPracticeManagerConvertToDict:
     """Test the _convert_to_dict method."""
 
     def test_convert_to_dict_success(
-        self, best_practice_manager: BestPracticeManager
+        self,
+        best_practice_manager: BestPracticeManager,
     ) -> None:
         practice_def = BestPractice(
             practice_id="test1",
@@ -988,7 +1028,8 @@ class TestBestPracticeManagerConvertToDict:
         assert result["practice_id"] == "test1"
 
     def test_convert_to_dict_with_empty_fields(
-        self, best_practice_manager: BestPracticeManager
+        self,
+        best_practice_manager: BestPracticeManager,
     ) -> None:
         practice_def = BestPractice(
             practice_id="test2",
@@ -1029,7 +1070,8 @@ class TestBestPracticeManagerEdgeCases:
         assert len(result) == 2
 
     def test_optimize_steps_with_malformed_json(
-        self, best_practice_manager: BestPracticeManager
+        self,
+        best_practice_manager: BestPracticeManager,
     ) -> None:
         steps = [
             {"task": "Step 1", "description": "Step 1"},
@@ -1040,7 +1082,8 @@ class TestBestPracticeManagerEdgeCases:
         assert len(result) == 2
 
     def test_validate_practice_definition_with_none_values(
-        self, best_practice_manager: BestPracticeManager
+        self,
+        best_practice_manager: BestPracticeManager,
     ) -> None:
         practice_def = BestPractice(
             practice_id=None,  # type: ignore
@@ -1056,7 +1099,8 @@ class TestBestPracticeManagerEdgeCases:
         assert result is False
 
     def test_categorize_practices_with_duplicate_categories(
-        self, best_practice_manager: BestPracticeManager
+        self,
+        best_practice_manager: BestPracticeManager,
     ) -> None:
         practices = [
             {"practice_id": "practice1", "category": "efficiency"},
@@ -1068,7 +1112,8 @@ class TestBestPracticeManagerEdgeCases:
         assert "practice2" in best_practice_manager._practice_categories["efficiency"]
 
     def test_validate_practice_definition_with_invalid_steps(
-        self, patched_model_invoke: dict[str, Any]
+        self,
+        patched_model_invoke: dict[str, Any],
     ) -> None:
         gen = patched_model_invoke["manager"]
         patched_model_invoke["mock_invoke"].return_value = {"text": "not a list"}
@@ -1087,7 +1132,8 @@ class TestBestPracticeManagerEdgeCases:
         assert result is False
 
     def test_validate_practice_definition_with_invalid_examples(
-        self, patched_model_invoke: dict[str, Any]
+        self,
+        patched_model_invoke: dict[str, Any],
     ) -> None:
         gen = patched_model_invoke["manager"]
         patched_model_invoke["mock_invoke"].return_value = {"text": "not a list"}
@@ -1106,7 +1152,8 @@ class TestBestPracticeManagerEdgeCases:
         assert result is False
 
     def test_validate_practice_definition_with_invalid_priority(
-        self, patched_model_invoke: dict[str, Any]
+        self,
+        patched_model_invoke: dict[str, Any],
     ) -> None:
         gen = patched_model_invoke["manager"]
         patched_model_invoke["mock_invoke"].return_value = {"text": "not an int"}
@@ -1147,17 +1194,20 @@ class TestBestPracticeManagerEdgeCases:
         assert isinstance(result, dict)
 
     def test_finetune_best_practice_with_string_step(
-        self, patched_model_invoke: dict[str, Any]
+        self,
+        patched_model_invoke: dict[str, Any],
     ) -> None:
         gen = patched_model_invoke["manager"]
         patched_model_invoke["mock_invoke"].return_value = {"text": "step as string"}
         result = gen.finetune_best_practice(
-            {"practice_id": "test"}, {"steps": ["step1"]}
+            {"practice_id": "test"},
+            {"steps": ["step1"]},
         )
         assert isinstance(result, dict)
 
     def test_optimize_steps_with_invalid_description(
-        self, patched_model_invoke: dict[str, Any]
+        self,
+        patched_model_invoke: dict[str, Any],
     ) -> None:
         gen = patched_model_invoke["manager"]
         patched_model_invoke["mock_invoke"].return_value = {"text": "not a dict"}
@@ -1165,7 +1215,8 @@ class TestBestPracticeManagerEdgeCases:
         assert isinstance(result, list)
 
     def test_optimize_steps_with_missing_step_id(
-        self, patched_model_invoke: dict[str, Any]
+        self,
+        patched_model_invoke: dict[str, Any],
     ) -> None:
         gen = patched_model_invoke["manager"]
         patched_model_invoke["mock_invoke"].return_value = {"text": "no step_id"}
@@ -1173,7 +1224,8 @@ class TestBestPracticeManagerEdgeCases:
         assert isinstance(result, list)
 
     def test_validate_practice_definition_missing_fields(
-        self, best_practice_manager: "BestPracticeManager"
+        self,
+        best_practice_manager: "BestPracticeManager",
     ) -> None:
         # Missing practice_id
         p = BestPractice(

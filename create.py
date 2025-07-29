@@ -41,6 +41,7 @@ def generate_taskgraph(args: argparse.Namespace) -> None:
 
     Args:
         args (argparse.Namespace): Command-line arguments containing configuration and output settings.
+
     """
     # Validate API key before proceeding
     try:
@@ -49,10 +50,10 @@ def generate_taskgraph(args: argparse.Namespace) -> None:
     except ValueError as e:
         log_context.error(f"❌ API key validation failed: {e}")
         log_context.error(
-            "💡 Please ensure your .env file contains the correct API key."
+            "💡 Please ensure your .env file contains the correct API key.",
         )
         log_context.error(
-            f"   Required environment variable: {args.llm_provider.upper()}_API_KEY"
+            f"   Required environment variable: {args.llm_provider.upper()}_API_KEY",
         )
         return
     except Exception as e:
@@ -69,12 +70,16 @@ def generate_taskgraph(args: argparse.Namespace) -> None:
     elif args.llm_provider == "google":
         # Google models use google_api_key parameter
         model = model_class(
-            model=args.model, google_api_key=provider_config["api_key"], timeout=30000
+            model=args.model,
+            google_api_key=provider_config["api_key"],
+            timeout=30000,
         )
     else:
         # Other providers use api_key parameter
         model = model_class(
-            model=args.model, api_key=provider_config["api_key"], timeout=30000
+            model=args.model,
+            api_key=provider_config["api_key"],
+            timeout=30000,
         )
 
     with open(args.config) as f:
@@ -107,6 +112,7 @@ def init_worker(args: argparse.Namespace) -> None:
         args (argparse.Namespace): Command-line arguments containing:
             - config: Path to the configuration file
             - output_dir: Directory where worker data will be stored
+
     """
     # Load configuration from the specified file
     with open(args.config) as f:
@@ -135,7 +141,8 @@ def init_worker(args: argparse.Namespace) -> None:
 
 
 def load_documents(
-    config: dict[str, Any], document_dir: str | None = None
+    config: dict[str, Any],
+    document_dir: str | None = None,
 ) -> list[dict[str, str]]:
     """Load documents from various sources specified in the config.
 
@@ -145,6 +152,7 @@ def load_documents(
 
     Returns:
         List[Dict[str, str]]: List of loaded documents
+
     """
     loader = Loader()
     all_docs = []
@@ -158,7 +166,7 @@ def load_documents(
             docs = config[doc_type]
             if isinstance(docs, list):
                 log_context.info(
-                    f"📚 Processing {len(docs)} {doc_type.replace('_', ' ')}..."
+                    f"📚 Processing {len(docs)} {doc_type.replace('_', ' ')}...",
                 )
                 for i, doc in enumerate(docs, 1):
                     source = doc.get("source")
@@ -170,11 +178,11 @@ def load_documents(
                     try:
                         if doc_type_name == "url":
                             log_context.info(
-                                f"    🌐 Discovering up to {num_docs} URLs..."
+                                f"    🌐 Discovering up to {num_docs} URLs...",
                             )
                             urls = loader.get_all_urls(source, num_docs)
                             log_context.info(
-                                f"    📥 Crawling {len(urls)} discovered URLs..."
+                                f"    📥 Crawling {len(urls)} discovered URLs...",
                             )
                             crawled_docs = loader.to_crawled_url_objs(urls)
                             successful_docs = [
@@ -183,7 +191,7 @@ def load_documents(
                             all_docs.extend(crawled_docs)
                             total_docs_processed += len(crawled_docs)
                             log_context.info(
-                                f"    ✅ Successfully processed {len(successful_docs)}/{len(crawled_docs)} URLs"
+                                f"    ✅ Successfully processed {len(successful_docs)}/{len(crawled_docs)} URLs",
                             )
                         elif doc_type_name == "file":
                             if os.path.isfile(source):
@@ -196,27 +204,27 @@ def load_documents(
                                         for root, _, files in os.walk(temp_dir):
                                             for file in files:
                                                 file_list.append(
-                                                    os.path.join(root, file)
+                                                    os.path.join(root, file),
                                                 )
                                         all_docs.extend(
-                                            loader.to_crawled_local_objs(file_list)
+                                            loader.to_crawled_local_objs(file_list),
                                         )
                                         total_docs_processed += len(file_list)
                                         log_context.info(
-                                            f"    ✅ Extracted and processed {len(file_list)} files"
+                                            f"    ✅ Extracted and processed {len(file_list)} files",
                                         )
                                 else:
                                     log_context.info("    📄 Processing single file...")
                                     all_docs.extend(
-                                        loader.to_crawled_local_objs([source])
+                                        loader.to_crawled_local_objs([source]),
                                     )
                                     total_docs_processed += 1
                                     log_context.info(
-                                        "    ✅ File processed successfully"
+                                        "    ✅ File processed successfully",
                                     )
                             elif os.path.isdir(source):
                                 log_context.info(
-                                    "    📁 Processing directory contents..."
+                                    "    📁 Processing directory contents...",
                                 )
                                 file_list = [
                                     os.path.join(source, f) for f in os.listdir(source)
@@ -224,11 +232,11 @@ def load_documents(
                                 all_docs.extend(loader.to_crawled_local_objs(file_list))
                                 total_docs_processed += len(file_list)
                                 log_context.info(
-                                    f"    ✅ Processed {len(file_list)} files from directory"
+                                    f"    ✅ Processed {len(file_list)} files from directory",
                                 )
                             else:
                                 raise FileNotFoundError(
-                                    f"Source path '{source}' does not exist"
+                                    f"Source path '{source}' does not exist",
                                 )
                         elif doc_type_name == "text":
                             log_context.info("    📝 Processing text content...")
@@ -237,17 +245,17 @@ def load_documents(
                             log_context.info("    ✅ Text content processed")
                         else:
                             raise ValueError(
-                                f"Unsupported document type: {doc_type_name}"
+                                f"Unsupported document type: {doc_type_name}",
                             )
                     except Exception as e:
                         log_context.error(
-                            f"❌ Error processing document {source}: {str(e)}"
+                            f"❌ Error processing document {source}: {e!s}",
                         )
                         continue
 
     elapsed_time = time.time() - start_time
     log_context.info(
-        f"📊 Document processing complete: {total_docs_processed} documents in {elapsed_time:.1f}s"
+        f"📊 Document processing complete: {total_docs_processed} documents in {elapsed_time:.1f}s",
     )
 
     # Convert CrawledObjects to dictionaries
@@ -256,7 +264,7 @@ def load_documents(
 
 def main() -> None:
     parser = argparse.ArgumentParser(
-        description="Create a task graph from a config file"
+        description="Create a task graph from a config file",
     )
     parser.add_argument("--config", type=str, required=True, help="Path to config file")
     parser.add_argument("--log-level", type=str, default="INFO", help="Logging level")
@@ -315,10 +323,10 @@ def main() -> None:
     except ValueError as e:
         log_context.error(f"❌ API key validation failed: {e}")
         log_context.error(
-            "💡 Please ensure your .env file contains the correct API key."
+            "💡 Please ensure your .env file contains the correct API key.",
         )
         log_context.error(
-            f"   Required environment variable: {args.llm_provider.upper()}_API_KEY"
+            f"   Required environment variable: {args.llm_provider.upper()}_API_KEY",
         )
         sys.exit(1)
     except Exception as e:
@@ -340,7 +348,7 @@ def main() -> None:
 
     # Instantiate model with proper provider configuration
     log_context.info(
-        f"🤖 Initializing language model (provider: {args.llm_provider}, model: {args.model})..."
+        f"🤖 Initializing language model (provider: {args.llm_provider}, model: {args.model})...",
     )
 
     # Provider configuration already obtained during validation
@@ -355,12 +363,16 @@ def main() -> None:
     elif args.llm_provider == "google":
         # Google models use google_api_key parameter
         model = model_class(
-            model=args.model, google_api_key=provider_config["api_key"], timeout=30000
+            model=args.model,
+            google_api_key=provider_config["api_key"],
+            timeout=30000,
         )
     else:
         # Other providers use api_key parameter
         model = model_class(
-            model=args.model, api_key=provider_config["api_key"], timeout=30000
+            model=args.model,
+            api_key=provider_config["api_key"],
+            timeout=30000,
         )
 
     # Determine output directory
@@ -372,11 +384,11 @@ def main() -> None:
     log_context.info("🔧 Initializing task graph generator...")
     if interactable_with_user:
         log_context.info(
-            "👤 Interactive task editor is ENABLED - you will be able to edit tasks"
+            "👤 Interactive task editor is ENABLED - you will be able to edit tasks",
         )
     else:
         log_context.info(
-            "🚫 Interactive task editor is DISABLED - tasks will be generated automatically"
+            "🚫 Interactive task editor is DISABLED - tasks will be generated automatically",
         )
 
     generator = Generator(
@@ -411,7 +423,7 @@ def main() -> None:
 
     elapsed_time = time.time() - start_time
     log_context.info(
-        f"🎉 Task graph generation completed in {elapsed_time:.1f} seconds"
+        f"🎉 Task graph generation completed in {elapsed_time:.1f} seconds",
     )
 
 

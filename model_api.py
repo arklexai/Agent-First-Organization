@@ -53,6 +53,7 @@ def get_api_bot_response(
 
     Returns:
         Tuple[str, Dict[str, Any]]: A tuple containing the bot's response and updated parameters.
+
     """
     data: dict[str, Any] = {
         "text": user_text,
@@ -60,7 +61,8 @@ def get_api_bot_response(
         "parameters": parameters,
     }
     orchestrator: AgentOrg = AgentOrg(
-        config=os.path.join(args.input_dir, "taskgraph.json"), env=env
+        config=os.path.join(args.input_dir, "taskgraph.json"),
+        env=env,
     )
     result: dict[str, Any] = orchestrator.get_response(data)
 
@@ -94,6 +96,7 @@ def predict(data: dict[str, Any]) -> dict[str, Any]:
         Dict[str, Any]: A dictionary containing:
             - answer: The bot's response text
             - parameters: Updated conversation parameters
+
     """
     global args
 
@@ -106,7 +109,10 @@ def predict(data: dict[str, Any]) -> dict[str, Any]:
 
     # Initialize environment with provided workers and tools
     env: Environment = Environment(
-        tools=tools, workers=workers, agents=[], slotsfillapi=""
+        tools=tools,
+        workers=workers,
+        agents=[],
+        slotsfillapi="",
     )
 
     # Get bot response using the orchestrator
@@ -118,7 +124,7 @@ def predict(data: dict[str, Any]) -> dict[str, Any]:
 
 if __name__ == "__main__":
     parser: argparse.ArgumentParser = argparse.ArgumentParser(
-        description="Start FastAPI with custom config."
+        description="Start FastAPI with custom config.",
     )
     parser.add_argument("--input-dir", type=str, default="./examples/test")
     parser.add_argument(
@@ -135,7 +141,10 @@ if __name__ == "__main__":
         help="LLM provider to use (openai, anthropic, google, huggingface)",
     )
     parser.add_argument(
-        "--port", type=int, default=8000, help="Port to run the FastAPI app"
+        "--port",
+        type=int,
+        default=8000,
+        help="Port to run the FastAPI app",
     )
     parser.add_argument(
         "--log-level",

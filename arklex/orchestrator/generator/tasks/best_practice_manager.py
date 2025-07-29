@@ -33,6 +33,7 @@ class BestPractice:
         examples (List[str]): Example applications of the practice.
         priority (int): Practice priority (1-5, where 5 is highest).
         category (str): Category of the practice (e.g., 'efficiency', 'quality').
+
     """
 
     practice_id: str
@@ -74,6 +75,7 @@ class BestPracticeManager:
         _validate_practices(): Validate generated practices
         _categorize_practices(): Categorize practices by type
         _optimize_practices(): Optimize practices for efficiency
+
     """
 
     def __init__(
@@ -94,6 +96,7 @@ class BestPracticeManager:
             workers (Optional[List[Dict[str, Any]]]): List of available workers from config
             tools (Optional[List[Dict[str, Any]]]): List of available tools from config
             all_resources (Optional[List[Dict[str, Any]]]): List of all available resources including nested_graph
+
         """
         self.model = model
         self.role = role
@@ -106,7 +109,8 @@ class BestPracticeManager:
         self.prompt_manager = PromptManager()
 
     def generate_best_practices(
-        self, tasks: list[dict[str, Any]]
+        self,
+        tasks: list[dict[str, Any]],
     ) -> list[dict[str, Any]]:
         """Generate best practices for the given tasks.
 
@@ -121,13 +125,14 @@ class BestPracticeManager:
 
         Returns:
             List[Dict[str, Any]]: List of generated best practices
+
         """
         log_context.info(
-            f"    📋 Creating practice definitions for {len(tasks)} tasks..."
+            f"    📋 Creating practice definitions for {len(tasks)} tasks...",
         )
         practice_definitions = self._generate_practice_definitions(tasks)
         log_context.info(
-            f"    ✅ Generated {len(practice_definitions)} practice definitions"
+            f"    ✅ Generated {len(practice_definitions)} practice definitions",
         )
 
         log_context.info("    🔍 Validating practice definitions...")
@@ -145,7 +150,9 @@ class BestPracticeManager:
         return optimized_practices
 
     def finetune_best_practice(
-        self, practice: dict[str, Any], task: dict[str, Any]
+        self,
+        practice: dict[str, Any],
+        task: dict[str, Any],
     ) -> dict[str, Any]:
         """Refine a best practice based on feedback and task information.
 
@@ -158,6 +165,7 @@ class BestPracticeManager:
 
         Returns:
             Dict[str, Any]: Refined practice with resource mappings
+
         """
         try:
             # Get the steps from the task
@@ -177,10 +185,11 @@ class BestPracticeManager:
                             {
                                 "name": worker["name"],
                                 "description": worker.get(
-                                    "description", f"{worker['name']} worker"
+                                    "description",
+                                    f"{worker['name']} worker",
                                 ),
                                 "type": "worker",
-                            }
+                            },
                         )
 
             # Add tools
@@ -191,10 +200,11 @@ class BestPracticeManager:
                             {
                                 "name": tool["name"],
                                 "description": tool.get(
-                                    "description", f"{tool['name']} tool"
+                                    "description",
+                                    f"{tool['name']} tool",
                                 ),
                                 "type": "tool",
-                            }
+                            },
                         )
 
             # Add nested_graph if available in all_resources
@@ -257,16 +267,17 @@ class BestPracticeManager:
             # Update the practice with the refined steps
             practice["steps"] = refined_steps
             log_context.info(
-                f"Successfully refined practice with resource mappings using {len(available_resources)} resources"
+                f"Successfully refined practice with resource mappings using {len(available_resources)} resources",
             )
             return practice
 
         except Exception as e:
-            log_context.error(f"Error refining practice: {str(e)}")
+            log_context.error(f"Error refining practice: {e!s}")
             return practice
 
     def _generate_practice_definitions(
-        self, tasks: list[dict[str, Any]]
+        self,
+        tasks: list[dict[str, Any]],
     ) -> list[BestPractice]:
         """Generate practice definitions from tasks.
 
@@ -278,6 +289,7 @@ class BestPracticeManager:
 
         Returns:
             List[BestPractice]: List of generated practice definitions
+
         """
         practice_definitions: list[BestPractice] = []
         for i, task in enumerate(tasks):
@@ -295,7 +307,8 @@ class BestPracticeManager:
         return practice_definitions
 
     def _validate_practices(
-        self, practice_definitions: list[BestPractice]
+        self,
+        practice_definitions: list[BestPractice],
     ) -> list[dict[str, Any]]:
         """Validate generated practice definitions.
 
@@ -317,6 +330,7 @@ class BestPracticeManager:
                     "priority": int,
                     "category": str
                 }
+
         """
         validated_practices: list[dict[str, Any]] = []
         for practice_def in practice_definitions:
@@ -332,6 +346,7 @@ class BestPracticeManager:
 
         Returns:
             bool: True if practice definition is valid
+
         """
         if not practice_def.practice_id:
             return False
@@ -356,6 +371,7 @@ class BestPracticeManager:
 
         Args:
             practices (List[Dict[str, Any]]): List of practices to categorize
+
         """
         self._practice_categories = {}
         for practice in practices:
@@ -365,7 +381,8 @@ class BestPracticeManager:
             self._practice_categories[category].append(practice["practice_id"])
 
     def _optimize_practices(
-        self, practices: list[dict[str, Any]]
+        self,
+        practices: list[dict[str, Any]],
     ) -> list[dict[str, Any]]:
         """Optimize practices for efficiency and effectiveness.
 
@@ -378,6 +395,7 @@ class BestPracticeManager:
         Returns:
             List[Dict[str, Any]]: List of optimized practices with the same structure
                 as the input practices
+
         """
         optimized_practices: list[dict[str, Any]] = []
         for practice in practices:
@@ -397,6 +415,7 @@ class BestPracticeManager:
         Returns:
             List[Dict[str, Any]]: List of optimized steps with the same structure
                 as the input steps
+
         """
         optimized_steps: list[dict[str, Any]] = []
         for i, step in enumerate(steps):
@@ -410,7 +429,7 @@ class BestPracticeManager:
             # Check if description is missing, None, or not a string
             if not description or not isinstance(description, str):
                 log_context.warning(
-                    f"Step {i + 1} has invalid or missing description: {description}"
+                    f"Step {i + 1} has invalid or missing description: {description}",
                 )
                 # Set a default description if missing
                 if not description:
@@ -437,6 +456,7 @@ class BestPracticeManager:
 
         Returns:
             Dict[str, Any]: Dictionary representation of the practice
+
         """
         return {
             "practice_id": practice_def.practice_id,

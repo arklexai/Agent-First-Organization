@@ -1,5 +1,4 @@
-"""
-This module provides functionality to retrieve detailed information about multiple products
+"""This module provides functionality to retrieve detailed information about multiple products
 from the Shopify store, including their inventory, descriptions, and variants.
 
 Module Name: get_products
@@ -46,8 +45,7 @@ outputs = [ShopifyOutputs.PRODUCTS_DETAILS, *PAGEINFO_OUTPUTS]
 
 @register_tool(description, slots, outputs)
 def get_products(product_ids: list[str], **kwargs: GetProductsParams) -> str:
-    """
-    Retrieve detailed information about multiple products from the Shopify store.
+    """Retrieve detailed information about multiple products from the Shopify store.
 
     Args:
         product_ids (List[str]): List of product IDs to retrieve information for.
@@ -64,6 +62,7 @@ def get_products(product_ids: list[str], **kwargs: GetProductsParams) -> str:
 
     Raises:
         ToolExecutionError: If no products are found or if there's an error retrieving the products.
+
     """
     func_name = inspect.currentframe().f_code.co_name
     nav = cursorify(kwargs)

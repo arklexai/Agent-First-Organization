@@ -34,8 +34,8 @@ class TestShortTermMemory:
                     info={"attribute": {"task": "test_task"}},
                     output="test_output",
                     steps=[{"context_generate": "test_context"}],
-                )
-            ]
+                ),
+            ],
         ]
 
     @pytest.fixture
@@ -72,13 +72,13 @@ class TestShortTermMemory:
         """Test ShortTermMemory initialization."""
         with (
             patch(
-                "arklex.utils.model_provider_config.PROVIDER_MAP"
+                "arklex.utils.model_provider_config.PROVIDER_MAP",
             ) as mock_provider_map,
             patch(
-                "arklex.utils.model_provider_config.PROVIDER_EMBEDDINGS"
+                "arklex.utils.model_provider_config.PROVIDER_EMBEDDINGS",
             ) as mock_embeddings,
             patch(
-                "arklex.utils.model_provider_config.PROVIDER_EMBEDDING_MODELS"
+                "arklex.utils.model_provider_config.PROVIDER_EMBEDDING_MODELS",
             ) as mock_embedding_models,
         ):
             mock_provider_map.get.return_value = Mock()
@@ -99,13 +99,13 @@ class TestShortTermMemory:
         """Test ShortTermMemory initialization with None values."""
         with (
             patch(
-                "arklex.utils.model_provider_config.PROVIDER_MAP"
+                "arklex.utils.model_provider_config.PROVIDER_MAP",
             ) as mock_provider_map,
             patch(
-                "arklex.utils.model_provider_config.PROVIDER_EMBEDDINGS"
+                "arklex.utils.model_provider_config.PROVIDER_EMBEDDINGS",
             ) as mock_embeddings,
             patch(
-                "arklex.utils.model_provider_config.PROVIDER_EMBEDDING_MODELS"
+                "arklex.utils.model_provider_config.PROVIDER_EMBEDDING_MODELS",
             ) as mock_embedding_models,
         ):
             mock_provider_map.get.return_value = Mock()
@@ -113,7 +113,9 @@ class TestShortTermMemory:
             mock_embedding_models.get.return_value = "text-embedding-ada-002"
 
             memory = ShortTermMemory(
-                trajectory=None, chat_history=None, llm_config=mock_llm_config
+                trajectory=None,
+                chat_history=None,
+                llm_config=mock_llm_config,
             )
 
             assert memory.trajectory == []
@@ -121,7 +123,9 @@ class TestShortTermMemory:
 
     @patch("arklex.memory.core.np.array")
     def test_get_embedding(
-        self, mock_np_array: Mock, short_term_memory: ShortTermMemory
+        self,
+        mock_np_array: Mock,
+        short_term_memory: ShortTermMemory,
     ) -> None:
         """Test _get_embedding method."""
         # Setup
@@ -133,12 +137,14 @@ class TestShortTermMemory:
         # Assert
         assert result is not None
         short_term_memory.embedding_model.embed_query.assert_called_once_with(
-            "test text"
+            "test text",
         )
 
     @patch("arklex.memory.core.asyncio.create_task")
     async def test_batch_get_embeddings(
-        self, mock_create_task: Mock, short_term_memory: ShortTermMemory
+        self,
+        mock_create_task: Mock,
+        short_term_memory: ShortTermMemory,
     ) -> None:
         """Test _batch_get_embeddings method."""
         import asyncio
@@ -176,7 +182,8 @@ class TestShortTermMemory:
                 await t
 
     async def test_get_embedding_async(
-        self, short_term_memory: ShortTermMemory
+        self,
+        short_term_memory: ShortTermMemory,
     ) -> None:
         """Test _get_embedding_async method."""
         # Setup
@@ -194,7 +201,8 @@ class TestShortTermMemory:
             assert result.shape == (1, 3)
 
     def test_retrieve_records_empty_trajectory(
-        self, short_term_memory: ShortTermMemory
+        self,
+        short_term_memory: ShortTermMemory,
     ) -> None:
         """Test retrieve_records with empty trajectory."""
         # Setup
@@ -209,7 +217,9 @@ class TestShortTermMemory:
 
     @patch.object(ShortTermMemory, "_get_embedding")
     def test_retrieve_records_with_trajectory(
-        self, mock_get_embedding: Mock, short_term_memory: ShortTermMemory
+        self,
+        mock_get_embedding: Mock,
+        short_term_memory: ShortTermMemory,
     ) -> None:
         """Test retrieve_records with trajectory data."""
         # Setup
@@ -223,7 +233,9 @@ class TestShortTermMemory:
 
     @patch.object(ShortTermMemory, "_get_embedding")
     def test_retrieve_records_with_threshold_filtering(
-        self, mock_get_embedding: Mock, short_term_memory: ShortTermMemory
+        self,
+        mock_get_embedding: Mock,
+        short_term_memory: ShortTermMemory,
     ) -> None:
         """Test retrieve_records with threshold filtering."""
         # Setup
@@ -236,14 +248,17 @@ class TestShortTermMemory:
 
     @patch.object(ShortTermMemory, "_get_embedding")
     def test_retrieve_records_with_cosine_threshold(
-        self, mock_get_embedding: Mock, short_term_memory: ShortTermMemory
+        self,
+        mock_get_embedding: Mock,
+        short_term_memory: ShortTermMemory,
     ) -> None:
         """Test retrieve_records with cosine threshold filtering."""
         # Setup
         mock_get_embedding.return_value = np.array([[0.1, 0.2, 0.3]])
         # Execute with high cosine threshold
         found, records = short_term_memory.retrieve_records(
-            "test query", cosine_threshold=0.9
+            "test query",
+            cosine_threshold=0.9,
         )
         # Assert
         assert isinstance(found, bool)
@@ -251,7 +266,9 @@ class TestShortTermMemory:
 
     @patch.object(ShortTermMemory, "_get_embedding")
     def test_retrieve_records_top_k_limit(
-        self, mock_get_embedding: Mock, short_term_memory: ShortTermMemory
+        self,
+        mock_get_embedding: Mock,
+        short_term_memory: ShortTermMemory,
     ) -> None:
         """Test retrieve_records with top_k limit."""
         # Setup
@@ -263,7 +280,8 @@ class TestShortTermMemory:
         assert len(records) <= 1
 
     async def test_generate_personalized_product_attribute_intent(
-        self, short_term_memory: ShortTermMemory
+        self,
+        short_term_memory: ShortTermMemory,
     ) -> None:
         """Test generate_personalized_product_attribute_intent method."""
         # Create a valid ResourceRecord for the test
@@ -280,19 +298,21 @@ class TestShortTermMemory:
         # The method expects the LLM to return a dict with 'content' key
         # and then extracts the content after "Personalized Intent:" using regex
         mock_llm.ainvoke.return_value = {
-            "content": "Some response text\nPersonalized Intent: test_intent"
+            "content": "Some response text\nPersonalized Intent: test_intent",
         }
         short_term_memory.llm = mock_llm
         # Execute
         result = await short_term_memory.generate_personalized_product_attribute_intent(
-            record, "test_attribute"
+            record,
+            "test_attribute",
         )
         # Assert - the method should return the extracted intent from the regex match
         assert result == "test_intent"
         mock_llm.ainvoke.assert_awaited_once()
 
     async def test_generate_personalized_product_attribute_intent_dict_response(
-        self, short_term_memory: ShortTermMemory
+        self,
+        short_term_memory: ShortTermMemory,
     ) -> None:
         # Create an async mock for the llm
         mock_llm = AsyncMock()
@@ -310,14 +330,16 @@ class TestShortTermMemory:
         )
         # Execute
         result = await short_term_memory.generate_personalized_product_attribute_intent(
-            record, "test_attribute"
+            record,
+            "test_attribute",
         )
         # Assert
         assert result == "Personalized intent"
         mock_llm.ainvoke.assert_awaited_once()
 
     async def test_generate_personalized_product_attribute_intent_object_response(
-        self, short_term_memory: ShortTermMemory
+        self,
+        short_term_memory: ShortTermMemory,
     ) -> None:
         # Create an async mock for the llm
         mock_llm = AsyncMock()
@@ -336,7 +358,8 @@ class TestShortTermMemory:
         )
         # Execute
         result = await short_term_memory.generate_personalized_product_attribute_intent(
-            record, "test_attribute"
+            record,
+            "test_attribute",
         )
         # Assert
         assert result == "Personalized intent"
@@ -349,7 +372,9 @@ class TestShortTermMemory:
         expected_embedding = np.array([[0.1, 0.2, 0.3]])
 
         with patch.object(
-            short_term_memory, "_get_embedding", return_value=expected_embedding
+            short_term_memory,
+            "_get_embedding",
+            return_value=expected_embedding,
         ) as mock_get_embedding:
             result1 = short_term_memory._get_embedding(text)
             result2 = short_term_memory._get_embedding(text)
@@ -381,10 +406,14 @@ class TestShortTermMemory:
         assert "user: How are you?" in short_term_memory.chat_history
 
     @patch.object(
-        ShortTermMemory, "_get_embedding", return_value=np.array([[0.1, 0.2, 0.3]])
+        ShortTermMemory,
+        "_get_embedding",
+        return_value=np.array([[0.1, 0.2, 0.3]]),
     )
     def test_retrieve_intent_found(
-        self, mock_get_embedding: Mock, short_term_memory: ShortTermMemory
+        self,
+        mock_get_embedding: Mock,
+        short_term_memory: ShortTermMemory,
     ) -> None:
         """Test retrieve_intent when found."""
         record = short_term_memory.trajectory[0][0]
@@ -403,10 +432,14 @@ class TestShortTermMemory:
         mock_get_embedding.assert_called()
 
     @patch.object(
-        ShortTermMemory, "_get_embedding", return_value=np.array([[0.1, 0.2, 0.3]])
+        ShortTermMemory,
+        "_get_embedding",
+        return_value=np.array([[0.1, 0.2, 0.3]]),
     )
     def test_retrieve_intent_not_found(
-        self, mock_get_embedding: Mock, short_term_memory: ShortTermMemory
+        self,
+        mock_get_embedding: Mock,
+        short_term_memory: ShortTermMemory,
     ) -> None:
         """Test retrieve_intent when not found."""
         # Setup - clear trajectory to ensure no match
@@ -421,7 +454,8 @@ class TestShortTermMemory:
 
     @pytest.mark.asyncio
     async def test_personalize_sets_personalized_intent(
-        self, short_term_memory: ShortTermMemory
+        self,
+        short_term_memory: ShortTermMemory,
     ) -> None:
         """Test personalize sets personalized intent."""
         # Setup
@@ -441,7 +475,8 @@ class TestShortTermMemory:
 
     @pytest.mark.asyncio
     async def test__set_personalized_intent(
-        self, short_term_memory: ShortTermMemory
+        self,
+        short_term_memory: ShortTermMemory,
     ) -> None:
         """Test _set_personalized_intent."""
         record = short_term_memory.trajectory[0][0]
@@ -460,7 +495,9 @@ class TestShortTermMemory:
 
     @patch.object(ShortTermMemory, "_get_embedding")
     def test_retrieve_records_with_empty_turns(
-        self, mock_get_embedding: Mock, short_term_memory: ShortTermMemory
+        self,
+        mock_get_embedding: Mock,
+        short_term_memory: ShortTermMemory,
     ) -> None:
         """Test retrieve_records when trajectory contains empty turns."""
         # Setup
@@ -476,7 +513,9 @@ class TestShortTermMemory:
 
     @patch.object(ShortTermMemory, "_get_embedding")
     def test_retrieve_records_with_personalized_intent_regex_match(
-        self, mock_get_embedding: Mock, short_term_memory: ShortTermMemory
+        self,
+        mock_get_embedding: Mock,
+        short_term_memory: ShortTermMemory,
     ) -> None:
         """Test retrieve_records with personalized intent regex match."""
         # Setup
@@ -488,7 +527,7 @@ class TestShortTermMemory:
 
         # Execute
         found, records = short_term_memory.retrieve_records(
-            "test_attribute test_product"
+            "test_attribute test_product",
         )
 
         # Assert
@@ -497,7 +536,9 @@ class TestShortTermMemory:
 
     @patch.object(ShortTermMemory, "_get_embedding")
     def test_retrieve_records_with_personalized_intent_regex_no_match(
-        self, mock_get_embedding: Mock, short_term_memory: ShortTermMemory
+        self,
+        mock_get_embedding: Mock,
+        short_term_memory: ShortTermMemory,
     ) -> None:
         """Test retrieve_records with personalized intent regex no match."""
         # Setup
@@ -515,7 +556,9 @@ class TestShortTermMemory:
 
     @patch.object(ShortTermMemory, "_get_embedding")
     def test_retrieve_records_with_personalized_intent_cosine_below_threshold(
-        self, mock_get_embedding: Mock, short_term_memory: ShortTermMemory
+        self,
+        mock_get_embedding: Mock,
+        short_term_memory: ShortTermMemory,
     ) -> None:
         """Test retrieve_records with personalized intent cosine below threshold."""
         # Setup
@@ -528,7 +571,9 @@ class TestShortTermMemory:
         # Execute with high cosine threshold - this should filter out the personalized intent
         # but other components (task, context, output) might still contribute to the score
         found, records = short_term_memory.retrieve_records(
-            "test query", cosine_threshold=0.9, threshold=0.8
+            "test query",
+            cosine_threshold=0.9,
+            threshold=0.8,
         )
 
         # Assert
@@ -538,7 +583,9 @@ class TestShortTermMemory:
 
     @patch.object(ShortTermMemory, "_get_embedding")
     def test_retrieve_records_without_personalized_intent(
-        self, mock_get_embedding: Mock, short_term_memory: ShortTermMemory
+        self,
+        mock_get_embedding: Mock,
+        short_term_memory: ShortTermMemory,
     ) -> None:
         """Test retrieve_records when record has no personalized_intent."""
         mock_get_embedding.return_value = np.array([[0.1, 0.2, 0.3]])
@@ -555,7 +602,9 @@ class TestShortTermMemory:
 
     @patch.object(ShortTermMemory, "_get_embedding")
     def test_retrieve_records_with_relevant_records_found(
-        self, mock_get_embedding: Mock, short_term_memory: ShortTermMemory
+        self,
+        mock_get_embedding: Mock,
+        short_term_memory: ShortTermMemory,
     ) -> None:
         """Test retrieve_records with relevant records found."""
         # Setup
@@ -567,7 +616,8 @@ class TestShortTermMemory:
 
         # Execute with lower threshold to ensure records are found
         found, records = short_term_memory.retrieve_records(
-            "relevant output", threshold=0.1
+            "relevant output",
+            threshold=0.1,
         )
 
         # Assert
@@ -575,7 +625,8 @@ class TestShortTermMemory:
         assert len(records) > 0
 
     def test_retrieve_intent_empty_trajectory(
-        self, short_term_memory: ShortTermMemory
+        self,
+        short_term_memory: ShortTermMemory,
     ) -> None:
         """Test retrieve_intent with empty trajectory."""
         # Setup
@@ -589,10 +640,14 @@ class TestShortTermMemory:
         assert intent is None
 
     @patch.object(
-        ShortTermMemory, "_get_embedding", return_value=np.array([[0.1, 0.2, 0.3]])
+        ShortTermMemory,
+        "_get_embedding",
+        return_value=np.array([[0.1, 0.2, 0.3]]),
     )
     def test_retrieve_intent_below_threshold(
-        self, mock_get_embedding: Mock, short_term_memory: ShortTermMemory
+        self,
+        mock_get_embedding: Mock,
+        short_term_memory: ShortTermMemory,
     ) -> None:
         """Test retrieve_intent when best score is below threshold (line 329)."""
         # Setup - create a record with personalized intent that will have low similarity
@@ -606,7 +661,8 @@ class TestShortTermMemory:
 
         # Execute with a query that will have low similarity
         found, intent = short_term_memory.retrieve_intent(
-            "completely different query", string_threshold=0.8
+            "completely different query",
+            string_threshold=0.8,
         )
 
         # Assert - should return False, None when best score is below threshold

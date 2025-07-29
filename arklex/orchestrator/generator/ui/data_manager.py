@@ -21,6 +21,7 @@ class TaskDataManager:
 
         Returns:
             The extracted text string
+
         """
         if hasattr(label, "plain"):
             return label.plain
@@ -35,6 +36,7 @@ class TaskDataManager:
 
         Returns:
             List of task dictionaries
+
         """
         if not root:
             return []
@@ -57,13 +59,15 @@ class TaskDataManager:
 
     @staticmethod
     def populate_tree_from_tasks(
-        tree: TreeProtocol, tasks: list[dict[str, Any]]
+        tree: TreeProtocol,
+        tasks: list[dict[str, Any]],
     ) -> None:
         """Populate tree with task data.
 
         Args:
             tree: The tree widget to populate
             tasks: List of task dictionaries
+
         """
         if not tree.root:
             return
@@ -74,7 +78,7 @@ class TaskDataManager:
         for task in tasks:
             if tree.root:
                 task_node = tree.root.add(task["name"])
-                if "steps" in task and task["steps"]:
+                if task.get("steps"):
                     for step in task["steps"]:
                         if isinstance(step, dict):
                             step_text = step.get("description", str(step))

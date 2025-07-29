@@ -74,7 +74,10 @@ def interact(
         output: str = chatgpt_chatbot(history, client)
         history.append({"role": "assistant", "content": output, "intent": intent})
         response_data: dict[str, Any] = query_chatbot(
-            model_api, filter_convo(history), model_params, env_config
+            model_api,
+            filter_convo(history),
+            model_params,
+            env_config,
         )
         answer: str = response_data["answer"]
         answer = answer.replace("\n", " ")
@@ -88,7 +91,7 @@ def interact(
                 + "\nRespond to this utterance with the following intent: "
                 + intent
                 + "\nMake sure your response is natural and follows the flow of the conversation. For example, if the bot asks you a question make sure you answer it.",
-            }
+            },
         )
     return history
 
@@ -105,7 +108,12 @@ def generate_labeled_convos(
     model_params = {}
     for intent_path in intent_paths:
         convo: list[dict[str, Any]] = interact(
-            intent_path, summary, model_api, model_params, client, env_config
+            intent_path,
+            summary,
+            model_api,
+            model_params,
+            client,
+            env_config,
         )
         convos.append(flip_hist(filter_convo(convo)))
     return convos
@@ -132,7 +140,12 @@ def get_labeled_convos(
         "client": config["client"],
     }
     convos: list[list[dict[str, Any]]] = generate_labeled_convos(
-        intent_paths, summary, model_api, model_params, client, env_config
+        intent_paths,
+        summary,
+        model_api,
+        model_params,
+        client,
+        env_config,
     )
     return convos
 
@@ -153,7 +166,11 @@ def main() -> None:
     model_params: dict[str, Any] = {}
 
     labeled_convos: list[list[dict[str, Any]]] = get_labeled_convos(
-        data, model_api, synthetic_data_params, model_params, config
+        data,
+        model_api,
+        synthetic_data_params,
+        model_params,
+        config,
     )
 
     with open("files/p2_sample_convos.json", "w") as f:

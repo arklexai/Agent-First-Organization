@@ -43,7 +43,9 @@ class LLMUserSimulationEnv(BaseUserSimulationEnv):
 
     def generate_next_message(self, messages: list[dict[str, Any]]) -> str:
         res = completion(
-            model=self.model, custom_llm_provider=self.provider, messages=messages
+            model=self.model,
+            custom_llm_provider=self.provider,
+            messages=messages,
         )
         message = res.choices[0].message
         self.messages.append(message.model_dump())
@@ -114,7 +116,9 @@ User Response:
 
     def generate_next_message(self, messages: list[dict[str, Any]]) -> str:
         res = completion(
-            model=self.model, custom_llm_provider=self.provider, messages=messages
+            model=self.model,
+            custom_llm_provider=self.provider,
+            messages=messages,
         )
         message = res.choices[0].message
         self.messages.append(message.model_dump())
@@ -134,14 +138,13 @@ User Response:
     def parse_response(self, response: str) -> str:
         if "###STOP###" in response:
             return "###STOP###"
-        elif "Thought:" in response:
+        if "Thought:" in response:
             _, user_response = response.split("Thought:")
             return user_response.strip()
-        elif "User Response:" in response:
+        if "User Response:" in response:
             _, user_response = response.split("User Response:")
             return user_response.strip()
-        else:
-            raise ValueError(f"Invalid response format: {response}")
+        raise ValueError(f"Invalid response format: {response}")
 
     def step(self, content: str) -> str:
         self.messages.append({"role": "user", "content": content})
@@ -163,7 +166,9 @@ class VerifyUserSimulationEnv(LLMUserSimulationEnv):
         cur_message = None
         while attempts < self.max_attempts:
             res = completion(
-                model=self.model, custom_llm_provider=self.provider, messages=messages
+                model=self.model,
+                custom_llm_provider=self.provider,
+                messages=messages,
             )
             cur_message = res.choices[0].message
             self.total_cost = res._hidden_params["response_cost"]
@@ -195,20 +200,22 @@ class VerifyUserSimulationEnv(LLMUserSimulationEnv):
 def map_role_label(role: str) -> str:
     if role == "user":
         return "Customer"
-    elif role == "assistant":
+    if role == "assistant":
         return "Agent"
-    else:
-        return role.capitalize()
+    return role.capitalize()
 
 
 def verify(
-    model: str, provider: str, response: str, messages: list[dict[str, Any]]
+    model: str,
+    provider: str,
+    response: str,
+    messages: list[dict[str, Any]],
 ) -> bool:
     transcript = "\n".join(
         [
             f"{map_role_label(message['role'])}: {message['content']}"
             for message in messages
-        ]
+        ],
     )
     prompt = f"""You are a supervisor of the Agent in the conversation. You are given a Transcript of a conversation between a Customer and an Agent. The Customer has generated a Response, and you need to verify if it is satisfactory (true) or not (false).
 Your answer will be parsed, so do not include any other text than the classification (true or false).
@@ -231,13 +238,16 @@ Classification:"""
 
 
 def reflect(
-    model: str, provider: str, response: str, messages: list[dict[str, Any]]
+    model: str,
+    provider: str,
+    response: str,
+    messages: list[dict[str, Any]],
 ) -> str:
     transcript = "\n".join(
         [
             f"{map_role_label(message['role'])}: {message['content']}"
             for message in messages
-        ]
+        ],
     )
     prompt = f"""You are a supervisor of the Agent in the conversation. You are given a Transcript of a conversation between a (simulated) Customer and an Agent. The Customer generated a Response that was marked as unsatisfactory by you.
 You need to generate a Reflection on what went wrong in the conversation, and propose a new Response that should fix the issues.
@@ -280,7 +290,10 @@ class ReflectionUserSimulationEnv(LLMUserSimulationEnv):
         attempts = 1
         while attempts < self.max_attempts:
             new_message = reflect(
-                self.model, self.provider, initial_response, cur_messages
+                self.model,
+                self.provider,
+                initial_response,
+                cur_messages,
             )
             cur_messages.append({"role": "user", "content": new_message})
             new_response = super().generate_next_message(cur_messages)
@@ -324,25 +337,25 @@ def load_user(
         user_strategy = UserStrategy(user_strategy)
     if user_strategy == UserStrategy.HUMAN:
         return HumanUserSimulationEnv()
-    elif user_strategy == UserStrategy.LLM:
+    if user_strategy == UserStrategy.LLM:
         if model is None:
             raise ValueError("LLM user strategy requires a model")
         if provider is None:
             raise ValueError("LLM user strategy requires a model provider")
         return LLMUserSimulationEnv(model=model, provider=provider)
-    elif user_strategy == UserStrategy.REACT:
+    if user_strategy == UserStrategy.REACT:
         if model is None:
             raise ValueError("React user strategy requires a model")
         if provider is None:
             raise ValueError("React user strategy requires a model provider")
         return ReactUserSimulationEnv(model=model, provider=provider)
-    elif user_strategy == UserStrategy.VERIFY:
+    if user_strategy == UserStrategy.VERIFY:
         if model is None:
             raise ValueError("Verify user strategy requires a model")
         if provider is None:
             raise ValueError("Verify user strategy requires a model provider")
         return VerifyUserSimulationEnv(model=model, provider=provider)
-    elif user_strategy == UserStrategy.REFLECTION:
+    if user_strategy == UserStrategy.REFLECTION:
         if model is None:
             raise ValueError("Reflection user strategy requires a model")
         if provider is None:

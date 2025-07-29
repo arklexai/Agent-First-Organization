@@ -61,6 +61,7 @@ class ShopifyLoader(Loader):
     Methods:
         load: Loads product data from Shopify's GraphQL API
         chunk: Splits product documents into manageable chunks
+
     """
 
     def __init__(self) -> None:
@@ -88,6 +89,7 @@ class ShopifyLoader(Loader):
         Raises:
             shopify.ShopifyError: If there's an error accessing the Shopify API
             json.JSONDecodeError: If the API response cannot be parsed
+
         """
         docs = []
         response = shopify.GraphQL().execute("""
@@ -110,7 +112,7 @@ class ShopifyLoader(Loader):
                 Document(
                     page_content=product_doc["node"]["description"],
                     metadata={"title": product_doc["node"]["title"]},
-                )
+                ),
             )
         return docs
 
@@ -143,9 +145,12 @@ class ShopifyLoader(Loader):
             - cl100k_base encoding
             - 200 token chunk size
             - 40 token chunk overlap
+
         """
         text_splitter = RecursiveCharacterTextSplitter.from_tiktoken_encoder(
-            encoding_name="cl100k_base", chunk_size=200, chunk_overlap=40
+            encoding_name="cl100k_base",
+            chunk_size=200,
+            chunk_overlap=40,
         )
         docs = []
         langchain_docs = []

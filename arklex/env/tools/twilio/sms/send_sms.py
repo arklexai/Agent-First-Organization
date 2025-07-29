@@ -17,7 +17,7 @@ slots = [
         "description": "The message to send",
         "required": True,
         "type": "str",
-    }
+    },
 ]
 
 outputs = []
@@ -42,13 +42,15 @@ def send_sms(**kwargs: SendSmsKwargs) -> str:
     phone_no_from = kwargs.get("phone_no_from")
     message_text = kwargs.get("message")
     log_context.info(
-        f"Sending SMS to {phone_no_to} from {phone_no_from}: {message_text}"
+        f"Sending SMS to {phone_no_to} from {phone_no_from}: {message_text}",
     )
     try:
         message = twilio_client.messages.create(
-            body=message_text, from_=phone_no_from, to=phone_no_to
+            body=message_text,
+            from_=phone_no_from,
+            to=phone_no_to,
         )
         log_context.info(f"Message sent: {message.sid}")
         return f"SMS sent successfully. SID: {message.sid}"
     except Exception as e:
-        return f"Error sending SMS: {str(e)}"
+        return f"Error sending SMS: {e!s}"

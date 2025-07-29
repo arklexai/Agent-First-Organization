@@ -199,7 +199,8 @@ class TestTaskGraphBase:
             assert start_node is None
 
     def test_create_graph_not_implemented(
-        self, patched_sample_config: dict[str, Any]
+        self,
+        patched_sample_config: dict[str, Any],
     ) -> None:
         """Test that create_graph raises NotImplementedError in base class."""
         with pytest.raises(NotImplementedError):
@@ -228,7 +229,9 @@ class TestTaskGraphInitialization:
         assert task_graph.start_node == "start_node"
 
     def test_init_without_model_service(
-        self, patched_sample_config: dict[str, Any], sample_llm_config: LLMConfig
+        self,
+        patched_sample_config: dict[str, Any],
+        sample_llm_config: LLMConfig,
     ) -> None:
         """Test initialization without model service raises ValueError."""
         with pytest.raises(ValueError, match="model_service is required"):
@@ -275,7 +278,9 @@ class TestTaskGraphInitialization:
         assert task_graph.slotfillapi.model_service == always_valid_mock_model
 
     def test_create_graph(
-        self, sample_llm_config: LLMConfig, always_valid_mock_model: Mock
+        self,
+        sample_llm_config: LLMConfig,
+        always_valid_mock_model: Mock,
     ) -> None:
         """Test graph creation from configuration."""
         config = {
@@ -287,7 +292,7 @@ class TestTaskGraphInitialization:
                         "resource": {"name": "resource1", "id": "id1"},
                         "attribute": {},
                     },
-                ]
+                ],
             ],
             "edges": [
                 (
@@ -297,7 +302,7 @@ class TestTaskGraphInitialization:
                         "intent": "TEST_INTENT",
                         "attribute": {"weight": 1.0, "pred": True},
                     },
-                )
+                ),
             ],
         }
         task_graph = TaskGraph(
@@ -332,7 +337,7 @@ class TestTaskGraphInitialization:
                     "intent": "none",
                     "attribute": {"weight": 1.0, "pred": False},
                 },
-            )
+            ),
         )
 
         task_graph = TaskGraph(
@@ -345,7 +350,9 @@ class TestTaskGraphInitialization:
         assert initial_node in ["start_node", "task_node"]
 
     def test_get_initial_flow_no_services_nodes(
-        self, sample_llm_config: LLMConfig, always_valid_mock_model: Mock
+        self,
+        sample_llm_config: LLMConfig,
+        always_valid_mock_model: Mock,
     ) -> None:
         """Test getting initial flow without services nodes."""
         config = {
@@ -357,7 +364,7 @@ class TestTaskGraphInitialization:
                         "resource": {"name": "resource1", "id": "id1"},
                         "attribute": {},
                     },
-                ]
+                ],
             ],
             "edges": [],
         }
@@ -408,7 +415,7 @@ class TestTaskGraphNodeManagement:
                     "intent": "none",
                     "attribute": {"weight": 1.0, "pred": False},
                 },
-            )
+            ),
         )
 
         task_graph = TaskGraph(
@@ -419,7 +426,9 @@ class TestTaskGraphNodeManagement:
         )
         # Test with non-existent intent
         next_node, next_intent = task_graph.jump_to_node(
-            "non_existent", 0, "start_node"
+            "non_existent",
+            0,
+            "start_node",
         )
         assert next_node == "start_node"
 
@@ -459,10 +468,12 @@ class TestTaskGraphNodeManagement:
             model_service=always_valid_mock_model,
         )
         sample_params.taskgraph.available_global_intents = {
-            "test_intent": [{"target_node": "task_node"}]
+            "test_intent": [{"target_node": "task_node"}],
         }
         node_info, updated_params = task_graph._get_node(
-            "task_node", sample_params, intent="test_intent"
+            "task_node",
+            sample_params,
+            intent="test_intent",
         )
         assert node_info.node_id == "task_node"
         # Check that intent was removed from available intents
@@ -543,7 +554,8 @@ class TestTaskGraphIntentHandling:
             model_service=always_valid_mock_model,
         )
         found, real_intent, idx = task_graph._postprocess_intent(
-            "test_intent", ["test_intent"]
+            "test_intent",
+            ["test_intent"],
         )
         assert found is True
         assert real_intent == "test_intent"
@@ -563,7 +575,8 @@ class TestTaskGraphIntentHandling:
             model_service=always_valid_mock_model,
         )
         found, real_intent, idx = task_graph._postprocess_intent(
-            "test_intent__<2>", ["test_intent"]
+            "test_intent__<2>",
+            ["test_intent"],
         )
         assert found is True
         assert real_intent == "test_intent"
@@ -583,7 +596,8 @@ class TestTaskGraphIntentHandling:
             model_service=always_valid_mock_model,
         )
         found, real_intent, idx = task_graph._postprocess_intent(
-            "unknown_intent", ["test_intent"]
+            "unknown_intent",
+            ["test_intent"],
         )
         assert found is False
         assert real_intent == "unknown_intent"
@@ -681,7 +695,9 @@ class TestTaskGraphIntentHandling:
             model_service=always_valid_mock_model,
         )
         path_node = PathNode(
-            node_id="stack_node", in_flow_stack=True, global_intent="test_intent"
+            node_id="stack_node",
+            in_flow_stack=True,
+            global_intent="test_intent",
         )
         sample_params.taskgraph.path = [path_node]
         last_node = task_graph.get_last_flow_stack_node(sample_params)
@@ -726,7 +742,8 @@ class TestTaskGraphNodeStatusHandling:
         )
         sample_params.taskgraph.node_status = {"task_node": StatusEnum.STAY}
         is_multi_step, node_info, updated_params = task_graph.handle_multi_step_node(
-            "task_node", sample_params
+            "task_node",
+            sample_params,
         )
         assert is_multi_step is True
         assert isinstance(node_info, NodeInfo)
@@ -748,7 +765,8 @@ class TestTaskGraphNodeStatusHandling:
         )
         sample_params.taskgraph.node_status = {"task_node": StatusEnum.COMPLETE}
         is_multi_step, node_info, updated_params = task_graph.handle_multi_step_node(
-            "task_node", sample_params
+            "task_node",
+            sample_params,
         )
         assert is_multi_step is False
 
@@ -768,7 +786,8 @@ class TestTaskGraphNodeStatusHandling:
         )
         sample_params.taskgraph.node_status = {"task_node": StatusEnum.INCOMPLETE}
         is_incomplete, node_info, updated_params = task_graph.handle_incomplete_node(
-            "task_node", sample_params
+            "task_node",
+            sample_params,
         )
         assert is_incomplete is True
         assert isinstance(node_info, NodeInfo)
@@ -790,7 +809,8 @@ class TestTaskGraphNodeStatusHandling:
         )
         sample_params.taskgraph.node_status = {"task_node": StatusEnum.COMPLETE}
         is_incomplete, node_info, updated_params = task_graph.handle_incomplete_node(
-            "task_node", sample_params
+            "task_node",
+            sample_params,
         )
         assert is_incomplete is False
         assert node_info == {}
@@ -817,7 +837,10 @@ class TestTaskGraphIntentPrediction:
         excluded_intents = {}
         found, pred_intent, node_output, updated_params = (
             task_graph.global_intent_prediction(
-                "task_node", sample_params, available_intents, excluded_intents
+                "task_node",
+                sample_params,
+                available_intents,
+                excluded_intents,
             )
         )
         assert found is False
@@ -849,7 +872,10 @@ class TestTaskGraphIntentPrediction:
         excluded_intents = {}
         found, pred_intent, node_output, updated_params = (
             task_graph.global_intent_prediction(
-                "task_node", sample_params, available_intents, excluded_intents
+                "task_node",
+                sample_params,
+                available_intents,
+                excluded_intents,
             )
         )
         assert isinstance(found, bool)
@@ -871,7 +897,8 @@ class TestTaskGraphIntentPrediction:
         )
         sample_params.taskgraph.curr_node = "task_node"
         found, node_output, updated_params = task_graph.handle_random_next_node(
-            "task_node", sample_params
+            "task_node",
+            sample_params,
         )
         # The method should return False when there are no valid next nodes
         # (task_node only has a self-loop edge which might not be considered valid)
@@ -897,10 +924,12 @@ class TestTaskGraphIntentPrediction:
         task_graph.chat_history_str = ""
 
         local_intents = {
-            "test_intent": [{"target_node": "task_node", "attribute": {"weight": 1.0}}]
+            "test_intent": [{"target_node": "task_node", "attribute": {"weight": 1.0}}],
         }
         found, node_info, updated_params = task_graph.local_intent_prediction(
-            "start_node", sample_params, local_intents
+            "start_node",
+            sample_params,
+            local_intents,
         )
         # The result depends on the mock model service response
         assert isinstance(found, bool)
@@ -933,10 +962,12 @@ class TestTaskGraphIntentPrediction:
         always_valid_mock_model.get_response.return_value = "1) unknown_intent"
 
         local_intents = {
-            "test_intent": [{"target_node": "task_node", "attribute": {"weight": 1.0}}]
+            "test_intent": [{"target_node": "task_node", "attribute": {"weight": 1.0}}],
         }
         found, node_info, updated_params = task_graph.local_intent_prediction(
-            "start_node", sample_params, local_intents
+            "start_node",
+            sample_params,
+            local_intents,
         )
         # When an unknown intent is predicted, the system falls back to "others" intent
         # and returns True because it found a fallback intent
@@ -977,7 +1008,10 @@ class TestTaskGraphIntentPrediction:
 
         found, pred_intent, node_output, updated_params = (
             task_graph.global_intent_prediction(
-                "task_node", sample_params, available_intents, excluded_intents
+                "task_node",
+                sample_params,
+                available_intents,
+                excluded_intents,
             )
         )
         assert found is False
@@ -1002,10 +1036,12 @@ class TestTaskGraphIntentPrediction:
         task_graph.chat_history_str = ""
 
         local_intents = {
-            "test_intent": [{"target_node": "task_node", "attribute": {"weight": 1.0}}]
+            "test_intent": [{"target_node": "task_node", "attribute": {"weight": 1.0}}],
         }
         found, node_info, updated_params = task_graph.local_intent_prediction(
-            "start_node", sample_params, local_intents
+            "start_node",
+            sample_params,
+            local_intents,
         )
         # The result depends on the mock model service response
         assert isinstance(found, bool)
@@ -1032,14 +1068,17 @@ class TestTaskGraphIntentPrediction:
         available_intents = {}
         for i in range(50):
             available_intents[f"intent_{i}"] = [
-                {"target_node": "task_node", "attribute": {"weight": 1.0}}
+                {"target_node": "task_node", "attribute": {"weight": 1.0}},
             ]
         available_intents["others"] = [task_graph.unsure_intent]
 
         excluded_intents = {}
         found, pred_intent, node_output, updated_params = (
             task_graph.global_intent_prediction(
-                "task_node", sample_params, available_intents, excluded_intents
+                "task_node",
+                sample_params,
+                available_intents,
+                excluded_intents,
             )
         )
         assert isinstance(found, bool)
@@ -1064,7 +1103,8 @@ class TestTaskGraphSpecialHandling:
             model_service=always_valid_mock_model,
         )
         node_info, updated_params = task_graph.handle_unknown_intent(
-            "task_node", sample_params
+            "task_node",
+            sample_params,
         )
         assert isinstance(node_info, NodeInfo)
         assert node_info.resource_id == "planner"
@@ -1087,7 +1127,8 @@ class TestTaskGraphSpecialHandling:
             model_service=always_valid_mock_model,
         )
         curr_node, updated_params = task_graph.handle_leaf_node(
-            "task_node", sample_params
+            "task_node",
+            sample_params,
         )
         assert curr_node == "task_node"
 
@@ -1113,7 +1154,7 @@ class TestTaskGraphSpecialHandling:
                         "node_specific_data": {},
                     },
                 },
-            ]
+            ],
         )
         config["edges"].append(
             (
@@ -1123,7 +1164,7 @@ class TestTaskGraphSpecialHandling:
                     "intent": "none",
                     "attribute": {"weight": 1.0, "pred": False},
                 },
-            )
+            ),
         )
 
         task_graph = TaskGraph(
@@ -1133,10 +1174,11 @@ class TestTaskGraphSpecialHandling:
             model_service=always_valid_mock_model,
         )
         sample_params.taskgraph.path = [
-            PathNode(node_id="stack_node", in_flow_stack=True)
+            PathNode(node_id="stack_node", in_flow_stack=True),
         ]
         curr_node, updated_params = task_graph.handle_leaf_node(
-            "leaf_node", sample_params
+            "leaf_node",
+            sample_params,
         )
         assert curr_node == "stack_node"
 
@@ -1156,7 +1198,8 @@ class TestTaskGraphSpecialHandling:
         )
         sample_params.taskgraph.path = []
         curr_node, updated_params = task_graph.handle_leaf_node(
-            "leaf_node", sample_params
+            "leaf_node",
+            sample_params,
         )
         # Should return the leaf_node itself when no flow stack
         assert curr_node == "leaf_node"
@@ -1183,7 +1226,7 @@ class TestTaskGraphSpecialHandling:
                         "node_specific_data": {},
                     },
                 },
-            ]
+            ],
         )
 
         task_graph = TaskGraph(
@@ -1193,7 +1236,7 @@ class TestTaskGraphSpecialHandling:
             model_service=always_valid_mock_model,
         )
         with patch(
-            "arklex.orchestrator.task_graph.task_graph.NestedGraph"
+            "arklex.orchestrator.task_graph.task_graph.NestedGraph",
         ) as mock_nested_graph:
             mock_nested_graph.get_nested_graph_component_node.return_value = (
                 NodeInfo(
@@ -1204,7 +1247,8 @@ class TestTaskGraphSpecialHandling:
                 sample_params,
             )
             curr_node, updated_params = task_graph.handle_leaf_node(
-                "leaf_node", sample_params
+                "leaf_node",
+                sample_params,
             )
             assert curr_node == "nested_node"
 
@@ -1325,7 +1369,9 @@ class TestTaskGraphMainFlow:
             model_service=always_valid_mock_model,
         )
         node_info = NodeInfo(
-            node_id="test_node", resource_id="test_id", resource_name="test_name"
+            node_id="test_node",
+            resource_id="test_id",
+            resource_name="test_name",
         )
         node_tuple = (node_info, sample_params)
         processed_node, processed_params = task_graph.postprocess_node(node_tuple)
@@ -1337,7 +1383,9 @@ class TestTaskGraphValidation:
     """Test TaskGraph validation methods."""
 
     def test_validate_node_valid(
-        self, sample_llm_config: LLMConfig, always_valid_mock_model: Mock
+        self,
+        sample_llm_config: LLMConfig,
+        always_valid_mock_model: Mock,
     ) -> None:
         """Test _validate_node with valid node."""
         config = {"nodes": [], "edges": []}
@@ -1356,7 +1404,9 @@ class TestTaskGraphValidation:
         task_graph._validate_node(valid_node)
 
     def test_validate_node_not_dict(
-        self, sample_llm_config: LLMConfig, always_valid_mock_model: Mock
+        self,
+        sample_llm_config: LLMConfig,
+        always_valid_mock_model: Mock,
     ) -> None:
         """Test _validate_node with non-dict node raises TaskGraphError."""
         config = {"nodes": [], "edges": []}
@@ -1370,7 +1420,9 @@ class TestTaskGraphValidation:
             task_graph._validate_node("not_a_dict")
 
     def test_validate_node_no_id(
-        self, sample_llm_config: LLMConfig, always_valid_mock_model: Mock
+        self,
+        sample_llm_config: LLMConfig,
+        always_valid_mock_model: Mock,
     ) -> None:
         """Test _validate_node with node missing id raises TaskGraphError."""
         config = {"nodes": [], "edges": []}
@@ -1385,7 +1437,9 @@ class TestTaskGraphValidation:
             task_graph._validate_node(invalid_node)
 
     def test_validate_node_no_type(
-        self, sample_llm_config: LLMConfig, always_valid_mock_model: Mock
+        self,
+        sample_llm_config: LLMConfig,
+        always_valid_mock_model: Mock,
     ) -> None:
         """Test _validate_node with node missing type raises TaskGraphError."""
         config = {"nodes": [], "edges": []}
@@ -1400,7 +1454,9 @@ class TestTaskGraphValidation:
             task_graph._validate_node(invalid_node)
 
     def test_validate_node_invalid_next(
-        self, sample_llm_config: LLMConfig, always_valid_mock_model: Mock
+        self,
+        sample_llm_config: LLMConfig,
+        always_valid_mock_model: Mock,
     ) -> None:
         """Test _validate_node with invalid next field raises TaskGraphError."""
         config = {"nodes": [], "edges": []}
@@ -1435,7 +1491,7 @@ class TestTaskGraphEdgeCases:
                     "intent": "none",
                     "attribute": {"weight": 1.0, "pred": False},
                 },
-            )
+            ),
         )
 
         task_graph = TaskGraph(
@@ -1469,10 +1525,10 @@ class TestTaskGraphEdgeCases:
                                 "simple_key": "simple_value",
                                 "nested_dict": {"nested_key": "nested_value"},
                                 "another_nested": {"another_key": "another_value"},
-                            }
+                            },
                         },
                     },
-                ]
+                ],
             ],
             "edges": [],
         }
@@ -1523,7 +1579,10 @@ class TestTaskGraphEdgeCases:
 
         found, pred_intent, node_output, updated_params = (
             task_graph.global_intent_prediction(
-                "task_node", sample_params, available_intents, excluded_intents
+                "task_node",
+                sample_params,
+                available_intents,
+                excluded_intents,
             )
         )
         assert found is False
@@ -1551,7 +1610,7 @@ class TestTaskGraphEdgeCases:
                         "node_specific_data": {},
                     },
                 },
-            ]
+            ],
         )
 
         task_graph = TaskGraph(
@@ -1561,7 +1620,7 @@ class TestTaskGraphEdgeCases:
             model_service=always_valid_mock_model,
         )
         with patch(
-            "arklex.orchestrator.task_graph.task_graph.NestedGraph"
+            "arklex.orchestrator.task_graph.task_graph.NestedGraph",
         ) as mock_nested_graph:
             mock_nested_graph.get_nested_graph_component_node.return_value = (
                 NodeInfo(
@@ -1572,7 +1631,8 @@ class TestTaskGraphEdgeCases:
                 sample_params,
             )
             curr_node, updated_params = task_graph.handle_leaf_node(
-                "leaf_node", sample_params
+                "leaf_node",
+                sample_params,
             )
             assert curr_node == "nested_node"
 
@@ -1710,7 +1770,7 @@ class TestTaskGraphIntegration:
             model_service=always_valid_mock_model,
         )
         sample_params.taskgraph.available_global_intents = {
-            "test_intent": [{"target_node": "task_node", "attribute": {"weight": 1.0}}]
+            "test_intent": [{"target_node": "task_node", "attribute": {"weight": 1.0}}],
         }
         sample_params.taskgraph.curr_node = "start_node"
         inputs = {
@@ -1739,13 +1799,19 @@ class TestTaskGraphIntegration:
 
         # Add nodes to flow stack
         path_node1 = PathNode(
-            node_id="node1", in_flow_stack=True, global_intent="intent1"
+            node_id="node1",
+            in_flow_stack=True,
+            global_intent="intent1",
         )
         path_node2 = PathNode(
-            node_id="node2", in_flow_stack=False, global_intent="intent2"
+            node_id="node2",
+            in_flow_stack=False,
+            global_intent="intent2",
         )
         path_node3 = PathNode(
-            node_id="node3", in_flow_stack=True, global_intent="intent3"
+            node_id="node3",
+            in_flow_stack=True,
+            global_intent="intent3",
         )
         sample_params.taskgraph.path = [path_node1, path_node2, path_node3]
 
@@ -1786,7 +1852,9 @@ class TestTaskGraphErrorHandling:
     """Test TaskGraph error handling and edge cases."""
 
     def test_create_graph_with_none_intent(
-        self, sample_llm_config: LLMConfig, always_valid_mock_model: Mock
+        self,
+        sample_llm_config: LLMConfig,
+        always_valid_mock_model: Mock,
     ) -> None:
         """Test create_graph handles None intent correctly."""
         config = {
@@ -1798,7 +1866,7 @@ class TestTaskGraphErrorHandling:
                         "resource": {"name": "resource1", "id": "id1"},
                         "attribute": {},
                     },
-                ]
+                ],
             ],
             "edges": [
                 (
@@ -1808,7 +1876,7 @@ class TestTaskGraphErrorHandling:
                         "intent": None,
                         "attribute": {"weight": 1.0, "pred": True},
                     },
-                )
+                ),
             ],
         }
         task_graph = TaskGraph(
@@ -1821,7 +1889,9 @@ class TestTaskGraphErrorHandling:
         assert edge_data["intent"] == "none"
 
     def test_create_graph_with_empty_intent(
-        self, sample_llm_config: LLMConfig, always_valid_mock_model: Mock
+        self,
+        sample_llm_config: LLMConfig,
+        always_valid_mock_model: Mock,
     ) -> None:
         """Test create_graph handles empty intent correctly."""
         config = {
@@ -1833,7 +1903,7 @@ class TestTaskGraphErrorHandling:
                         "resource": {"name": "resource1", "id": "id1"},
                         "attribute": {},
                     },
-                ]
+                ],
             ],
             "edges": [
                 (
@@ -1843,7 +1913,7 @@ class TestTaskGraphErrorHandling:
                         "intent": "",
                         "attribute": {"weight": 1.0, "pred": True},
                     },
-                )
+                ),
             ],
         }
         task_graph = TaskGraph(
@@ -1856,7 +1926,9 @@ class TestTaskGraphErrorHandling:
         assert edge_data["intent"] == "none"
 
     def test_get_initial_flow_with_invalid_weights(
-        self, sample_llm_config: LLMConfig, always_valid_mock_model: Mock
+        self,
+        sample_llm_config: LLMConfig,
+        always_valid_mock_model: Mock,
     ) -> None:
         """Test get_initial_flow handles invalid weights gracefully."""
         config = {
@@ -1868,7 +1940,7 @@ class TestTaskGraphErrorHandling:
                         "resource": {"name": "resource1", "id": "id1"},
                         "attribute": {},
                     },
-                ]
+                ],
             ],
             "edges": [
                 (
@@ -1878,7 +1950,7 @@ class TestTaskGraphErrorHandling:
                         "intent": "none",
                         "attribute": {"weight": 1.0, "pred": False},
                     },
-                )
+                ),
             ],
             "services_nodes": {"service1": "node1"},
         }
@@ -1908,7 +1980,7 @@ class TestTaskGraphErrorHandling:
                     "intent": "none",
                     "attribute": {"weight": 1.0, "pred": False},
                 },
-            )
+            ),
         )
 
         task_graph = TaskGraph(
@@ -1919,7 +1991,9 @@ class TestTaskGraphErrorHandling:
         )
         # Test with index out of range
         next_node, next_intent = task_graph.jump_to_node(
-            "test_intent", 999, "start_node"
+            "test_intent",
+            999,
+            "start_node",
         )
         assert next_node == "start_node"
 
@@ -1955,14 +2029,16 @@ class TestTaskGraphErrorHandling:
         )
         # Test with very similar intent
         found, real_intent, idx = task_graph._postprocess_intent(
-            "test_intent", ["test_intent"]
+            "test_intent",
+            ["test_intent"],
         )
         assert found is True
         assert real_intent == "test_intent"
 
         # Test with dissimilar intent
         found, real_intent, idx = task_graph._postprocess_intent(
-            "completely_different", ["test_intent"]
+            "completely_different",
+            ["test_intent"],
         )
         assert found is False
         assert real_intent == "completely_different"
@@ -1986,7 +2062,9 @@ class TestTaskGraphCoverage:
         )
         with patch.object(task_graph.graph, "in_edges", side_effect=Exception("fail")):
             next_node, next_intent = task_graph.jump_to_node(
-                "test_intent", 0, "start_node"
+                "test_intent",
+                0,
+                "start_node",
             )
             assert (
                 next_node == "task_node"
@@ -2011,12 +2089,16 @@ class TestTaskGraphCoverage:
         sample_params.taskgraph.curr_node = "task_node"
         # Use a valid node name that exists in the graph
         node_info, params2 = task_graph._get_node(
-            "task_node", sample_params, intent="test_intent"
+            "task_node",
+            sample_params,
+            intent="test_intent",
         )
         assert "test_intent" not in params2.taskgraph.available_global_intents
 
     def test__postprocess_intent_with_idx(
-        self, sample_llm_config: LLMConfig, always_valid_mock_model: Mock
+        self,
+        sample_llm_config: LLMConfig,
+        always_valid_mock_model: Mock,
     ) -> None:
         from arklex.orchestrator.task_graph.task_graph import TaskGraph
 
@@ -2032,7 +2114,9 @@ class TestTaskGraphCoverage:
         assert idx == 0
 
     def test__postprocess_intent_similarity(
-        self, sample_llm_config: LLMConfig, always_valid_mock_model: Mock
+        self,
+        sample_llm_config: LLMConfig,
+        always_valid_mock_model: Mock,
     ) -> None:
         from arklex.orchestrator.task_graph.task_graph import TaskGraph
 
@@ -2043,7 +2127,8 @@ class TestTaskGraphCoverage:
             model_service=always_valid_mock_model,
         )
         found, intent, idx = task_graph._postprocess_intent(
-            "2", {"1": "test_intent", "2": "2"}
+            "2",
+            {"1": "test_intent", "2": "2"},
         )
         assert found is True
         assert intent == "2"
@@ -2114,7 +2199,8 @@ class TestTaskGraphCoverage:
         )
         with patch.object(task_graph, "is_leaf", return_value=False, create=True):
             curr_node, updated_params = task_graph.handle_leaf_node(
-                "start_node", sample_params
+                "start_node",
+                sample_params,
             )
             assert curr_node == "start_node"
 
@@ -2135,7 +2221,9 @@ class TestTaskGraphCoverage:
         assert curr_node[0] == "start_node"
 
     def test_validate_node_all_errors(
-        self, sample_llm_config: LLMConfig, always_valid_mock_model: Mock
+        self,
+        sample_llm_config: LLMConfig,
+        always_valid_mock_model: Mock,
     ) -> None:
         from arklex.orchestrator.task_graph.task_graph import TaskGraphError
 
@@ -2148,7 +2236,7 @@ class TestTaskGraphCoverage:
                         "resource": {"name": "test", "id": "test"},
                         "attribute": {},
                     },
-                ]
+                ],
             ],
             "edges": [],
         }
@@ -2391,7 +2479,7 @@ class TestTaskGraphCoverage:
         # Setup params with current node and no local intents
         sample_params.taskgraph.curr_node = "task_node"
         sample_params.taskgraph.available_global_intents = {
-            "test_intent": [{"target_node": "leaf_node"}]
+            "test_intent": [{"target_node": "leaf_node"}],
         }
 
         # Patch intent_detector.execute to return 'unsure'
@@ -2432,7 +2520,7 @@ class TestTaskGraphCoverage:
         )
         sample_params.taskgraph.curr_node = "leaf_node"
         with patch(
-            "arklex.orchestrator.task_graph.task_graph.NestedGraph"
+            "arklex.orchestrator.task_graph.task_graph.NestedGraph",
         ) as mock_nested_graph:
             mock_node_info = Mock()
             mock_node_info.node_id = "nested_node"
@@ -2448,10 +2536,13 @@ class TestTaskGraphCoverage:
                 return []
 
             with patch.object(
-                task_graph.graph, "successors", side_effect=successors_side_effect
+                task_graph.graph,
+                "successors",
+                side_effect=successors_side_effect,
             ):
                 curr_node, params = task_graph.handle_leaf_node(
-                    "leaf_node", sample_params
+                    "leaf_node",
+                    sample_params,
                 )
                 assert curr_node == "nested_node"
                 assert params.taskgraph.curr_node == "nested_node"
@@ -2496,7 +2587,7 @@ class TestTaskGraphCoverage:
         )
         sample_params.taskgraph.curr_node = "task_node"
         sample_params.taskgraph.available_global_intents = {
-            "test_intent": [{"target_node": "leaf_node"}]
+            "test_intent": [{"target_node": "leaf_node"}],
         }
         with (
             patch.object(task_graph.intent_detector, "execute", return_value="unsure"),
@@ -2549,12 +2640,16 @@ class TestTaskGraphCoverage:
 
         # Mock the graph to raise an exception when accessing in_edges
         with patch.object(
-            task_graph.graph, "in_edges", side_effect=Exception("Test exception")
+            task_graph.graph,
+            "in_edges",
+            side_effect=Exception("Test exception"),
         ):
             # This should trigger the exception handling branch
             try:
                 next_node, next_intent = task_graph.jump_to_node(
-                    "test_intent", 0, "start_node"
+                    "test_intent",
+                    0,
+                    "start_node",
                 )
                 # Should return 'task_node' as next_node (from the only edge in the sample config)
                 assert next_node == "task_node"
@@ -2581,7 +2676,9 @@ class TestTaskGraphCoverage:
             # This should trigger the exception handling branch due to IndexError
             try:
                 next_node, next_intent = task_graph.jump_to_node(
-                    "test_intent", 0, "start_node"
+                    "test_intent",
+                    0,
+                    "start_node",
                 )
                 # Should return 'task_node' as next_node (from the only edge in the sample config)
                 assert next_node == "task_node"
@@ -2612,13 +2709,15 @@ class TestTaskGraphCoverage:
                     "node1",
                     "node2",
                     {"intent": "test_intent", "attribute": {"weight": "invalid"}},
-                )
+                ),
             ],
         ):
             # This should trigger the exception handling branch when normalize fails
             try:
                 next_node, next_intent = task_graph.jump_to_node(
-                    "test_intent", 0, "start_node"
+                    "test_intent",
+                    0,
+                    "start_node",
                 )
                 assert next_node == "task_node"
             except (IndexError, ValueError):
@@ -2644,13 +2743,15 @@ class TestTaskGraphCoverage:
             task_graph.graph,
             "in_edges",
             return_value=[
-                ("node1", "node2", {"intent": "test_intent"})  # Missing attribute key
+                ("node1", "node2", {"intent": "test_intent"}),  # Missing attribute key
             ],
         ):
             # This should trigger the exception handling branch when accessing missing attribute
             try:
                 next_node, next_intent = task_graph.jump_to_node(
-                    "test_intent", 0, "start_node"
+                    "test_intent",
+                    0,
+                    "start_node",
                 )
                 assert next_node == "task_node"
             except (IndexError, KeyError):
@@ -2675,13 +2776,15 @@ class TestTaskGraphCoverage:
             task_graph.graph,
             "in_edges",
             return_value=[
-                ("node1", "node2", None)  # Invalid edge data
+                ("node1", "node2", None),  # Invalid edge data
             ],
         ):
             # This should trigger the exception handling branch when accessing None data
             try:
                 next_node, next_intent = task_graph.jump_to_node(
-                    "test_intent", 0, "start_node"
+                    "test_intent",
+                    0,
+                    "start_node",
                 )
                 assert next_node == "task_node"
             except (IndexError, TypeError):
@@ -2712,7 +2815,9 @@ class TestTaskGraphCoverage:
         ):
             try:
                 next_node, next_intent = task_graph.jump_to_node(
-                    "test_intent", 0, "start_node"
+                    "test_intent",
+                    0,
+                    "start_node",
                 )
                 # Should return start_node when exception handling occurs
                 assert next_node == "start_node"
@@ -2744,7 +2849,9 @@ class TestTaskGraphCoverage:
         ):
             try:
                 next_node, next_intent = task_graph.jump_to_node(
-                    "test_intent", 0, "start_node"
+                    "test_intent",
+                    0,
+                    "start_node",
                 )
                 # Should return start_node when exception handling occurs
                 assert next_node == "start_node"
@@ -2772,8 +2879,8 @@ class TestTaskGraphCoverage:
                 "intents",
                 {
                     "test_intent": [
-                        {"target_node": "task_node", "attribute": {}}
-                    ]  # Missing weight
+                        {"target_node": "task_node", "attribute": {}},
+                    ],  # Missing weight
                 },
             ),
             patch.object(
@@ -2784,7 +2891,9 @@ class TestTaskGraphCoverage:
         ):
             try:
                 next_node, next_intent = task_graph.jump_to_node(
-                    "test_intent", 0, "start_node"
+                    "test_intent",
+                    0,
+                    "start_node",
                 )
                 # Should return start_node when exception handling occurs
                 assert next_node == "start_node"
@@ -2812,8 +2921,11 @@ class TestTaskGraphCoverage:
                 "intents",
                 {
                     "test_intent": [
-                        {"target_node": "task_node", "attribute": {"weight": "invalid"}}
-                    ]
+                        {
+                            "target_node": "task_node",
+                            "attribute": {"weight": "invalid"},
+                        },
+                    ],
                 },
             ),
             patch.object(
@@ -2824,7 +2936,9 @@ class TestTaskGraphCoverage:
         ):
             try:
                 next_node, next_intent = task_graph.jump_to_node(
-                    "test_intent", 0, "start_node"
+                    "test_intent",
+                    0,
+                    "start_node",
                 )
                 # Should return start_node when exception handling occurs
                 assert next_node == "start_node"
@@ -2856,12 +2970,14 @@ class TestTaskGraphMissingCoverage:
             mock_graph.out_edges.return_value = []
             # Mock in_edges to return a valid edge for the fallback
             mock_graph.in_edges.return_value = [
-                ("prev_node", "start_node", "test_intent")
+                ("prev_node", "start_node", "test_intent"),
             ]
 
             # This should trigger the protection branch
             next_node, next_intent = task_graph.jump_to_node(
-                "test_intent", 0, "start_node"
+                "test_intent",
+                0,
+                "start_node",
             )
 
             # Verify the protection branch was executed
@@ -2889,7 +3005,7 @@ class TestTaskGraphMissingCoverage:
 
         # Set up the scenario where global intent prediction succeeds
         available_global_intents = {
-            "test_intent": [{"target_node": "task_node", "source_node": "start_node"}]
+            "test_intent": [{"target_node": "task_node", "source_node": "start_node"}],
         }
 
         with patch.object(task_graph, "jump_to_node") as mock_jump:
@@ -2913,7 +3029,10 @@ class TestTaskGraphMissingCoverage:
                     mock_graph.successors.return_value = ["task_node"]
 
                     result = task_graph.global_intent_prediction(
-                        "start_node", sample_params, available_global_intents, {}
+                        "start_node",
+                        sample_params,
+                        available_global_intents,
+                        {},
                     )
 
                     # Verify the success return path was taken
@@ -2957,7 +3076,7 @@ class TestTaskGraphMissingCoverage:
                         "start_node",
                         "task_node",
                         {"intent": "none", "attribute": {"weight": 1.0}},
-                    )
+                    ),
                 ]
 
                 result = task_graph.handle_random_next_node("start_node", sample_params)
@@ -2989,7 +3108,7 @@ class TestTaskGraphMissingCoverage:
 
             # Mock NestedGraph to return None
             with patch(
-                "arklex.orchestrator.task_graph.task_graph.NestedGraph"
+                "arklex.orchestrator.task_graph.task_graph.NestedGraph",
             ) as mock_nested:
                 mock_nested.get_nested_graph_component_node.return_value = (
                     None,
@@ -2998,7 +3117,8 @@ class TestTaskGraphMissingCoverage:
 
                 # Mock get_last_flow_stack_node to return None
                 with patch.object(
-                    task_graph, "get_last_flow_stack_node"
+                    task_graph,
+                    "get_last_flow_stack_node",
                 ) as mock_get_last:
                     mock_get_last.return_value = None
 
@@ -3040,17 +3160,19 @@ class TestTaskGraphMissingCoverage:
                 mock_leaf.return_value = ("start_node", sample_params)
 
                 with patch.object(
-                    task_graph, "get_available_global_intents"
+                    task_graph,
+                    "get_available_global_intents",
                 ) as mock_available:
                     mock_available.return_value = {
-                        "test_intent": [{"target_node": "task_node"}]
+                        "test_intent": [{"target_node": "task_node"}],
                     }
 
                     with patch.object(task_graph, "get_local_intent") as mock_local:
                         mock_local.return_value = {}  # No local intents
 
                         with patch.object(
-                            task_graph, "global_intent_prediction"
+                            task_graph,
+                            "global_intent_prediction",
                         ) as mock_global:
                             mock_node_info = NodeInfo(
                                 node_id="task_node",
@@ -3104,22 +3226,25 @@ class TestTaskGraphMissingCoverage:
                 mock_leaf.return_value = ("start_node", sample_params)
 
                 with patch.object(
-                    task_graph, "get_available_global_intents"
+                    task_graph,
+                    "get_available_global_intents",
                 ) as mock_available:
                     mock_available.return_value = {
-                        "test_intent": [{"target_node": "task_node"}]
+                        "test_intent": [{"target_node": "task_node"}],
                     }
 
                     with patch.object(task_graph, "get_local_intent") as mock_local:
                         mock_local.return_value = {}  # No local intents
 
                         with patch.object(
-                            task_graph, "global_intent_prediction"
+                            task_graph,
+                            "global_intent_prediction",
                         ) as mock_global:
                             mock_global.return_value = (False, None, {}, sample_params)
 
                             with patch.object(
-                                task_graph, "handle_incomplete_node"
+                                task_graph,
+                                "handle_incomplete_node",
                             ) as mock_incomplete:
                                 mock_incomplete.return_value = (
                                     False,
@@ -3128,7 +3253,8 @@ class TestTaskGraphMissingCoverage:
                                 )
 
                                 with patch.object(
-                                    task_graph, "handle_random_next_node"
+                                    task_graph,
+                                    "handle_random_next_node",
                                 ) as mock_random:
                                     mock_random.return_value = (
                                         False,
@@ -3137,7 +3263,8 @@ class TestTaskGraphMissingCoverage:
                                     )
 
                                     with patch.object(
-                                        task_graph, "local_intent_prediction"
+                                        task_graph,
+                                        "local_intent_prediction",
                                     ) as mock_local_pred:
                                         mock_local_pred.return_value = (
                                             False,
@@ -3146,7 +3273,8 @@ class TestTaskGraphMissingCoverage:
                                         )
 
                                         with patch.object(
-                                            task_graph, "handle_unknown_intent"
+                                            task_graph,
+                                            "handle_unknown_intent",
                                         ) as mock_unknown:
                                             mock_node_info = NodeInfo(
                                                 node_id=None,
@@ -3194,7 +3322,10 @@ class TestTaskGraphAdditionalCoverage:
         # Mock the graph to have outgoing edges with intent "none"
         task_graph.graph.remove_edges_from(list(task_graph.graph.edges()))
         task_graph.graph.add_edge(
-            "task_node", "next_node", intent="none", attribute={"weight": 1.0}
+            "task_node",
+            "next_node",
+            intent="none",
+            attribute={"weight": 1.0},
         )
 
         # Add the test_intent to the intents dictionary
@@ -3203,14 +3334,16 @@ class TestTaskGraphAdditionalCoverage:
                 "intent": "test_intent",
                 "target_node": "next_node",
                 "attribute": {"weight": 1.0},
-            }
+            },
         ]
 
         # Mock random.choice to return a valid candidate
         with patch("random.choice", return_value="next_node"):
             # Execute - this should trigger the else branch
             next_node, next_intent = task_graph.jump_to_node(
-                "test_intent", 0, "task_node"
+                "test_intent",
+                0,
+                "task_node",
             )
 
             # Assert
@@ -3239,7 +3372,10 @@ class TestTaskGraphAdditionalCoverage:
         # Mock the graph to have edges with intent "none" and ensure next_node has resource info
         task_graph.graph.remove_edges_from(list(task_graph.graph.edges()))
         task_graph.graph.add_edge(
-            "task_node", "next_node", intent="none", attribute={"weight": 1.0}
+            "task_node",
+            "next_node",
+            intent="none",
+            attribute={"weight": 1.0},
         )
 
         # Add resource information to next_node
@@ -3285,13 +3421,14 @@ class TestTaskGraphAdditionalCoverage:
         mock_node_info.node_id = "leaf_node"  # This node has no successors
 
         with patch(
-            "arklex.orchestrator.task_graph.task_graph.NestedGraph.get_nested_graph_component_node"
+            "arklex.orchestrator.task_graph.task_graph.NestedGraph.get_nested_graph_component_node",
         ) as mock_get_nested:
             mock_get_nested.return_value = (mock_node_info, sample_params)
 
             # Execute with a leaf node
             result_node, result_params = task_graph.handle_leaf_node(
-                "leaf_node", sample_params
+                "leaf_node",
+                sample_params,
             )
 
             # Assert
@@ -3574,7 +3711,9 @@ class TestTaskGraphAdditionalCoverage:
         with patch("random.choice", side_effect=Exception("Random choice error")):
             # Execute - this should trigger the else branch
             next_node, next_intent = task_graph.jump_to_node(
-                "test_intent", 0, "task_node"
+                "test_intent",
+                0,
+                "task_node",
             )
 
             # Assert
@@ -3638,13 +3777,14 @@ class TestTaskGraphAdditionalCoverage:
         mock_node_info.node_id = "task_node"  # This node has successors
 
         with patch(
-            "arklex.orchestrator.task_graph.task_graph.NestedGraph.get_nested_graph_component_node"
+            "arklex.orchestrator.task_graph.task_graph.NestedGraph.get_nested_graph_component_node",
         ) as mock_get_nested:
             mock_get_nested.return_value = (mock_node_info, sample_params)
 
             # Execute with a leaf node
             result_node, result_params = task_graph.handle_leaf_node(
-                "leaf_node", sample_params
+                "leaf_node",
+                sample_params,
             )
 
             # Assert
@@ -3714,7 +3854,7 @@ class TestTaskGraphAdditionalCoverage:
 
         # Mock the graph to have no outgoing edges from curr_node
         task_graph.graph.remove_edges_from(
-            list(task_graph.graph.out_edges("task_node"))
+            list(task_graph.graph.out_edges("task_node")),
         )
 
         # Add a self-loop edge to ensure there's at least one in_edge
@@ -3724,7 +3864,9 @@ class TestTaskGraphAdditionalCoverage:
         with patch("random.choice", side_effect=IndexError("Empty list")):
             # Execute - this should trigger the else branch
             next_node, next_intent = task_graph.jump_to_node(
-                "test_intent", 0, "task_node"
+                "test_intent",
+                0,
+                "task_node",
             )
 
             # Assert
@@ -3768,7 +3910,8 @@ class TestTaskGraphAdditionalCoverage:
         assert len(updated_params.taskgraph.nlu_records) == 0
 
     def test__get_node_removes_intent_from_available_global_intents(
-        self, sample_params: Params
+        self,
+        sample_params: Params,
     ) -> None:
         from arklex.orchestrator.task_graph.task_graph import TaskGraph
 
@@ -3808,7 +3951,7 @@ class TestTaskGraphFinalCoverage:
 
         # Mock the graph to have no outgoing edges from curr_node
         task_graph.graph.remove_edges_from(
-            list(task_graph.graph.out_edges("task_node"))
+            list(task_graph.graph.out_edges("task_node")),
         )
 
         # Add a self-loop edge to ensure there's at least one in_edge
@@ -3818,7 +3961,9 @@ class TestTaskGraphFinalCoverage:
         with patch("random.choice", side_effect=Exception("Random choice failed")):
             # Execute - this should trigger the exception handling branch
             next_node, next_intent = task_graph.jump_to_node(
-                "test_intent", 0, "task_node"
+                "test_intent",
+                0,
+                "task_node",
             )
 
             # Assert
@@ -3906,27 +4051,31 @@ class TestTaskGraphFinalCoverage:
                 with patch.object(task_graph, "get_current_node") as mock_get_current:
                     mock_get_current.return_value = ("task_node", sample_params)
                 with patch.object(
-                    task_graph, "handle_multi_step_node"
+                    task_graph,
+                    "handle_multi_step_node",
                 ) as mock_multi_step:
                     mock_multi_step.return_value = (False, None, sample_params)
                 with patch.object(task_graph, "handle_leaf_node") as mock_leaf:
                     mock_leaf.return_value = ("task_node", sample_params)
                 with patch.object(
-                    task_graph, "get_available_global_intents"
+                    task_graph,
+                    "get_available_global_intents",
                 ) as mock_available:
                     mock_available.return_value = {
-                        "test_intent": [{"target_node": "test_node"}]
+                        "test_intent": [{"target_node": "test_node"}],
                     }
                 with patch.object(task_graph, "update_node_limit") as mock_limit:
                     mock_limit.return_value = sample_params
                 with patch.object(task_graph, "get_local_intent") as mock_local:
                     mock_local.return_value = {}
                 with patch.object(
-                    task_graph, "handle_incomplete_node"
+                    task_graph,
+                    "handle_incomplete_node",
                 ) as mock_incomplete:
                     mock_incomplete.return_value = (False, None, sample_params)
                 with patch.object(
-                    task_graph, "local_intent_prediction"
+                    task_graph,
+                    "local_intent_prediction",
                 ) as mock_local_pred:
                     mock_local_pred.return_value = (False, None, sample_params)
                 with patch.object(task_graph, "handle_unknown_intent") as mock_unknown:
@@ -3941,7 +4090,9 @@ class TestTaskGraphFinalCoverage:
                 assert node_info.node_id == "start_node"
 
     def test_validate_node_with_invalid_next_type(
-        self, sample_llm_config: LLMConfig, always_valid_mock_model: Mock
+        self,
+        sample_llm_config: LLMConfig,
+        always_valid_mock_model: Mock,
     ) -> None:
         """Test validate_node with invalid next type."""
         config = {
@@ -3967,7 +4118,9 @@ class TestTaskGraphFinalCoverage:
             task_graph._validate_node(invalid_node)
 
     def test_validate_node_with_valid_next_list(
-        self, sample_llm_config: LLMConfig, always_valid_mock_model: Mock
+        self,
+        sample_llm_config: LLMConfig,
+        always_valid_mock_model: Mock,
     ) -> None:
         """Test _validate_node with valid next list."""
         # Setup - provide minimal config with nodes
@@ -3994,7 +4147,9 @@ class TestTaskGraphFinalCoverage:
         task_graph._validate_node(valid_node)
 
     def test_validate_node_without_next_field(
-        self, sample_llm_config: LLMConfig, always_valid_mock_model: Mock
+        self,
+        sample_llm_config: LLMConfig,
+        always_valid_mock_model: Mock,
     ) -> None:
         """Test _validate_node without next field."""
         # Setup - provide minimal config with nodes
@@ -4021,7 +4176,9 @@ class TestTaskGraphFinalCoverage:
         task_graph._validate_node(valid_node)
 
     def test_create_graph_with_dict_node_format(
-        self, sample_llm_config: LLMConfig, always_valid_mock_model: Mock
+        self,
+        sample_llm_config: LLMConfig,
+        always_valid_mock_model: Mock,
     ) -> None:
         """Test create_graph with dict node format (line 881)."""
         config = {
@@ -4031,7 +4188,7 @@ class TestTaskGraphFinalCoverage:
                     "type": "task",
                     "resource": {"name": "dict_resource", "id": "dict_id"},
                     "attribute": {"can_skipped": False},
-                }
+                },
             ],
             "edges": [],
         }
@@ -4076,7 +4233,9 @@ class TestTaskGraphFinalCoverage:
                 )  # found_pred_in_avil = False
 
                 next_node, next_intent = task_graph.jump_to_node(
-                    "test_intent", 0, "curr_node"
+                    "test_intent",
+                    0,
+                    "curr_node",
                 )
 
                 # Should return current node and intent from in_edges
@@ -4153,29 +4312,33 @@ class TestTaskGraphFinalCoverage:
                 with patch.object(task_graph, "get_current_node") as mock_get_current:
                     mock_get_current.return_value = ("task_node", sample_params)
                 with patch.object(
-                    task_graph, "handle_multi_step_node"
+                    task_graph,
+                    "handle_multi_step_node",
                 ) as mock_multi_step:
                     mock_multi_step.return_value = (False, None, sample_params)
                 with patch.object(task_graph, "handle_leaf_node") as mock_leaf:
                     mock_leaf.return_value = ("task_node", sample_params)
                 with patch.object(
-                    task_graph, "get_available_global_intents"
+                    task_graph,
+                    "get_available_global_intents",
                 ) as mock_available:
                     mock_available.return_value = {
-                        "test_intent": [{"target_node": "test_node"}]
+                        "test_intent": [{"target_node": "test_node"}],
                     }
                 with patch.object(task_graph, "update_node_limit") as mock_limit:
                     mock_limit.return_value = sample_params
                 with patch.object(task_graph, "get_local_intent") as mock_local:
                     mock_local.return_value = {
-                        "local_intent": [{"target_node": "local_node"}]
+                        "local_intent": [{"target_node": "local_node"}],
                     }
                 with patch.object(
-                    task_graph, "handle_incomplete_node"
+                    task_graph,
+                    "handle_incomplete_node",
                 ) as mock_incomplete:
                     mock_incomplete.return_value = (False, None, sample_params)
                 with patch.object(
-                    task_graph, "local_intent_prediction"
+                    task_graph,
+                    "local_intent_prediction",
                 ) as mock_local_pred:
                     mock_local_pred.return_value = (False, None, sample_params)
                 with patch.object(task_graph, "handle_unknown_intent") as mock_unknown:
@@ -4218,12 +4381,13 @@ class TestTaskGraphRemainingCoverage:
 
             # Mock NestedGraph.get_nested_graph_component_node to return None
             with patch(
-                "arklex.orchestrator.task_graph.task_graph.NestedGraph.get_nested_graph_component_node"
+                "arklex.orchestrator.task_graph.task_graph.NestedGraph.get_nested_graph_component_node",
             ) as mock_nested:
                 mock_nested.return_value = (None, sample_params)
 
                 curr_node, params = task_graph.handle_leaf_node(
-                    "leaf_node", sample_params
+                    "leaf_node",
+                    sample_params,
                 )
 
                 # Should return flow_stack_node and set global_intent
@@ -4269,7 +4433,8 @@ class TestTaskGraphRemainingCoverage:
             with patch.object(task_graph, "handle_leaf_node") as mock_leaf:
                 mock_leaf.return_value = ("task_node", sample_params)
             with patch.object(
-                task_graph, "get_available_global_intents"
+                task_graph,
+                "get_available_global_intents",
             ) as mock_available:
                 mock_available.return_value = {}
             with patch.object(task_graph, "update_node_limit") as mock_limit:
@@ -4362,7 +4527,7 @@ class TestTaskGraphRemainingCoverage:
                 # Mock graph.out_edges to return an edge with the found intent
                 with patch.object(task_graph.graph, "out_edges") as mock_out_edges:
                     mock_out_edges.return_value = [
-                        ("curr_node", "next_node", "found_intent")
+                        ("curr_node", "next_node", "found_intent"),
                     ]
 
                     is_found, node_info, params = task_graph.local_intent_prediction(
@@ -4570,7 +4735,8 @@ class TestTaskGraphFinalCoverageGaps:
         available_intents = {"test_intent": [{"intent": "test_intent"}]}
 
         found, real_intent, idx = task_graph._postprocess_intent(
-            pred_intent, available_intents
+            pred_intent,
+            available_intents,
         )
 
         # Should handle the exception gracefully and use original pred_intent
@@ -4597,7 +4763,8 @@ class TestTaskGraphFinalCoverageGaps:
         available_intents = {"test_intent": [{"intent": "test_intent"}]}
 
         found, real_intent, idx = task_graph._postprocess_intent(
-            pred_intent, available_intents
+            pred_intent,
+            available_intents,
         )
 
         # Should use the original pred_intent
@@ -4622,7 +4789,7 @@ class TestTaskGraphFinalCoverageGaps:
 
         # Set up params with only unsure intent available
         sample_params.taskgraph.available_global_intents = {
-            "others": [task_graph.unsure_intent]
+            "others": [task_graph.unsure_intent],
         }
         sample_params.taskgraph.curr_node = "start_node"
 
@@ -4666,10 +4833,14 @@ class TestTaskGraphFinalCoverageGaps:
 
         # Mock intent detector to return intent not in available intents
         with patch.object(
-            task_graph.intent_detector, "execute", return_value="unknown_intent"
+            task_graph.intent_detector,
+            "execute",
+            return_value="unknown_intent",
         ):
             found, node_output, updated_params = task_graph.local_intent_prediction(
-                "start_node", sample_params, curr_local_intents
+                "start_node",
+                sample_params,
+                curr_local_intents,
             )
 
         # Should return False since intent not found
@@ -4695,7 +4866,8 @@ class TestTaskGraphFinalCoverageGaps:
         sample_params.taskgraph.nlu_records = []
 
         node_info, updated_params = task_graph.handle_unknown_intent(
-            "start_node", sample_params
+            "start_node",
+            sample_params,
         )
 
         # Should create a new nlu_record
@@ -4848,7 +5020,8 @@ class TestTaskGraphFinalCoverageGaps:
         available_intents = {"others": [{"intent": "others"}]}
 
         found, real_intent, idx = task_graph._postprocess_intent(
-            pred_intent, available_intents
+            pred_intent,
+            available_intents,
         )
 
         # Should find the intent due to fallback
@@ -4875,7 +5048,8 @@ class TestTaskGraphFinalCoverageGaps:
         available_intents = {"test_intent": [{"intent": "test_intent"}]}
 
         found, real_intent, idx = task_graph._postprocess_intent(
-            pred_intent, available_intents
+            pred_intent,
+            available_intents,
         )
 
         # Should find the intent
@@ -4902,7 +5076,8 @@ class TestTaskGraphFinalCoverageGaps:
         available_intents = ["test_intent", "other_intent"]
 
         found, real_intent, idx = task_graph._postprocess_intent(
-            pred_intent, available_intents
+            pred_intent,
+            available_intents,
         )
 
         # Should find the intent
@@ -4950,7 +5125,7 @@ class TestTaskGraphFinalCoverageGaps:
                     "start_node",
                     "task_node",
                     {"intent": "test_intent", "attribute": {"weight": 1.0}},
-                )
+                ),
             ],
         }
 
@@ -4983,7 +5158,7 @@ class TestTaskGraphFinalCoverageGaps:
                     "start_node",
                     "task_node",
                     {"intent": "test_intent", "attribute": {"weight": 1.0}},
-                )
+                ),
             ],
         }
 
@@ -5014,7 +5189,7 @@ class TestTaskGraphFinalCoverageGaps:
                     "start_node",
                     "task_node",
                     {"intent": None, "attribute": {"weight": 1.0}},
-                )
+                ),
             ],
         }
 
@@ -5045,7 +5220,7 @@ class TestTaskGraphFinalCoverageGaps:
                     "start_node",
                     "task_node",
                     {"intent": "", "attribute": {"weight": 1.0}},
-                )
+                ),
             ],
         }
 
@@ -5076,7 +5251,7 @@ class TestTaskGraphFinalCoverageGaps:
                     "start_node",
                     "task_node",
                     {"intent": "TEST_INTENT", "attribute": {"weight": 1.0}},
-                )
+                ),
             ],
         }
 
@@ -5231,10 +5406,10 @@ class TestTaskGraphFinalCoverageGaps:
                                 "voice": "alloy",
                                 "model": "gpt-4",
                                 "temperature": 0.7,
-                            }
+                            },
                         },
                     },
-                ]
+                ],
             ],
             "edges": [],
         }
@@ -5260,7 +5435,7 @@ class TestTaskGraphFinalCoverageGaps:
                         "type": "tool",
                         "resource": {"name": "test_tool", "id": "test_id"},
                     },
-                ]
+                ],
             ],
             "edges": [],
         }
@@ -5281,7 +5456,7 @@ class TestTaskGraphFinalCoverageGaps:
                             "node_specific_data": {
                                 "name": "agent_1",
                                 "prompt": "prompt 1",
-                            }
+                            },
                         },
                     },
                 ],
@@ -5294,7 +5469,7 @@ class TestTaskGraphFinalCoverageGaps:
                             "node_specific_data": {
                                 "name": "agent_2",
                                 "prompt": "prompt 2",
-                            }
+                            },
                         },
                     },
                 ],
@@ -5330,7 +5505,7 @@ class TestAgentGraph:
                                 "speed": 1.0,
                                 "turn_detection": {},
                                 "prompt_variables_test_values": [],
-                            }
+                            },
                         },
                     },
                 ],
@@ -5384,7 +5559,7 @@ class TestAgentGraph:
                                 "speed": 1.0,
                                 "turn_detection": {},
                                 "prompt_variables_test_values": [],
-                            }
+                            },
                         },
                     },
                 ],
@@ -5413,7 +5588,7 @@ class TestAgentGraph:
             ],
         }
         with patch(
-            "arklex.orchestrator.task_graph.task_graph.DefaultResourceInitializer"
+            "arklex.orchestrator.task_graph.task_graph.DefaultResourceInitializer",
         ) as mock_initializer:
             mock_initializer.return_value.init_tools.return_value = {}
             agent_graph = AgentGraph("test_agent_graph", config)
@@ -5439,7 +5614,7 @@ class TestAgentGraph:
                                 "transcription_language": "en",
                                 "speed": 1.0,
                                 "turn_detection": {},
-                            }
+                            },
                         },
                     },
                 ],
@@ -5448,7 +5623,7 @@ class TestAgentGraph:
             "prompt_variables": [{"name": "var1", "value": "test"}],
         }
         with patch(
-            "arklex.orchestrator.task_graph.task_graph.DefaultResourceInitializer"
+            "arklex.orchestrator.task_graph.task_graph.DefaultResourceInitializer",
         ) as mock_initializer:
             mock_initializer.return_value.init_tools.return_value = {}
             agent_graph = AgentGraph("test_agent_graph", config)
@@ -5469,7 +5644,7 @@ class TestAgentGraph:
                         "attribute": {
                             "node_specific_data": {
                                 "name": "unsupported_agent",
-                            }
+                            },
                         },
                     },
                 ],
@@ -5477,11 +5652,11 @@ class TestAgentGraph:
             "edges": [],
         }
         with patch(
-            "arklex.orchestrator.task_graph.task_graph.DefaultResourceInitializer"
+            "arklex.orchestrator.task_graph.task_graph.DefaultResourceInitializer",
         ) as mock_initializer:
             mock_initializer.return_value.init_tools.return_value = {}
             with patch(
-                "arklex.orchestrator.task_graph.task_graph.log_context"
+                "arklex.orchestrator.task_graph.task_graph.log_context",
             ) as mock_log:
                 AgentGraph("test_agent_graph", config)
                 mock_log.warning.assert_called_once()
@@ -5515,7 +5690,7 @@ class TestAgentGraph:
                                 "speed": 1.0,
                                 "turn_detection": {},
                                 "prompt_variables_test_values": [],
-                            }
+                            },
                         },
                     },
                 ],
@@ -5532,7 +5707,7 @@ class TestAgentGraph:
             ],
         }
         with patch(
-            "arklex.orchestrator.task_graph.task_graph.DefaultResourceInitializer"
+            "arklex.orchestrator.task_graph.task_graph.DefaultResourceInitializer",
         ) as mock_initializer:
             mock_initializer.return_value.init_tools.return_value = {}
             agent_graph = AgentGraph("test_agent_graph", config)
@@ -5567,7 +5742,7 @@ class TestAgentGraph:
                                 "speed": 1.0,
                                 "turn_detection": {},
                                 "prompt_variables_test_values": [],
-                            }
+                            },
                         },
                     },
                 ],
@@ -5584,7 +5759,7 @@ class TestAgentGraph:
             ],
         }
         with patch(
-            "arklex.orchestrator.task_graph.task_graph.DefaultResourceInitializer"
+            "arklex.orchestrator.task_graph.task_graph.DefaultResourceInitializer",
         ) as mock_initializer:
             mock_initializer.return_value.init_tools.return_value = {}
             AgentGraph("test_agent_graph", config)
@@ -5610,7 +5785,8 @@ class TestTaskGraphMissingLinesCoverage:
         )
         # Test with malformed intent that will cause exception
         found, real_intent, idx = task_graph._postprocess_intent(
-            "malformed_intent", ["test_intent"]
+            "malformed_intent",
+            ["test_intent"],
         )
         assert found is False
         assert real_intent == "malformed_intent"
@@ -5631,7 +5807,8 @@ class TestTaskGraphMissingLinesCoverage:
         )
         # Test with "others" intent that should be found
         found, real_intent, idx = task_graph._postprocess_intent(
-            "others", ["others", "test_intent"]
+            "others",
+            ["others", "test_intent"],
         )
         assert found is True
         assert real_intent == "others"
@@ -5664,11 +5841,16 @@ class TestTaskGraphMissingLinesCoverage:
 
         # Mock the intent detector to return the same intent
         with patch.object(
-            task_graph.intent_detector, "execute", return_value="test_intent"
+            task_graph.intent_detector,
+            "execute",
+            return_value="test_intent",
         ):
             found, pred_intent, node_output, updated_params = (
                 task_graph.global_intent_prediction(
-                    "task_node", sample_params, available_intents, excluded_intents
+                    "task_node",
+                    sample_params,
+                    available_intents,
+                    excluded_intents,
                 )
             )
 
@@ -5695,7 +5877,8 @@ class TestTaskGraphMissingLinesCoverage:
         # from the patched_sample_config fixture
 
         found, node_output, updated_params = task_graph.handle_random_next_node(
-            "task_node", sample_params
+            "task_node",
+            sample_params,
         )
         # For self-loops, the method should return False as per the implementation
         assert found is False
@@ -5723,7 +5906,8 @@ class TestTaskGraphMissingLinesCoverage:
         # from the patched_sample_config fixture
 
         found, node_output, updated_params = task_graph.handle_random_next_node(
-            "task_node", sample_params
+            "task_node",
+            sample_params,
         )
         # For self-loops, the method should return False as per the implementation
         assert found is False
@@ -5759,15 +5943,19 @@ class TestTaskGraphMissingLinesCoverage:
 
         # Mock the intent detector to return the expected intent
         with patch.object(
-            task_graph.intent_detector, "execute", return_value="test_intent"
+            task_graph.intent_detector,
+            "execute",
+            return_value="test_intent",
         ):
             local_intents = {
                 "test_intent": [
-                    {"target_node": "task_node", "attribute": {"weight": 1.0}}
-                ]
+                    {"target_node": "task_node", "attribute": {"weight": 1.0}},
+                ],
             }
             found, node_info, updated_params = task_graph.local_intent_prediction(
-                "start_node", sample_params, local_intents
+                "start_node",
+                sample_params,
+                local_intents,
             )
             assert found is True
             assert node_info.node_id == "task_node"
@@ -5789,7 +5977,8 @@ class TestTaskGraphMissingLinesCoverage:
         sample_params.taskgraph.nlu_records = [{"test": "record"}]
 
         node_info, updated_params = task_graph.handle_unknown_intent(
-            "task_node", sample_params
+            "task_node",
+            sample_params,
         )
         assert node_info.resource_id == "planner"
         assert updated_params.taskgraph.nlu_records[-1]["no_intent"] is True
@@ -5811,7 +6000,8 @@ class TestTaskGraphMissingLinesCoverage:
         sample_params.taskgraph.nlu_records = []
 
         node_info, updated_params = task_graph.handle_unknown_intent(
-            "task_node", sample_params
+            "task_node",
+            sample_params,
         )
         assert node_info.resource_id == "planner"
         assert len(updated_params.taskgraph.nlu_records) == 1
@@ -5833,7 +6023,7 @@ class TestTaskGraphMissingLinesCoverage:
         )
 
         with patch(
-            "arklex.orchestrator.task_graph.task_graph.NestedGraph"
+            "arklex.orchestrator.task_graph.task_graph.NestedGraph",
         ) as mock_nested_graph:
             mock_node_info = Mock()
             mock_node_info.node_id = "nested_node"
@@ -5849,10 +6039,13 @@ class TestTaskGraphMissingLinesCoverage:
                 return []
 
             with patch.object(
-                task_graph.graph, "successors", side_effect=successors_side_effect
+                task_graph.graph,
+                "successors",
+                side_effect=successors_side_effect,
             ):
                 curr_node, params = task_graph.handle_leaf_node(
-                    "leaf_node", sample_params
+                    "leaf_node",
+                    sample_params,
                 )
                 assert curr_node == "nested_node"
                 assert params.taskgraph.curr_node == "nested_node"
@@ -5874,7 +6067,9 @@ class TestTaskGraphMissingLinesCoverage:
 
         # Add a flow stack node
         path_node = PathNode(
-            node_id="stack_node", in_flow_stack=True, global_intent="test_intent"
+            node_id="stack_node",
+            in_flow_stack=True,
+            global_intent="test_intent",
         )
         sample_params.taskgraph.path = [path_node]
 

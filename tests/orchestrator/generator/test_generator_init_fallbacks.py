@@ -13,16 +13,20 @@ def create_placeholder_classes() -> tuple[type, type]:
 
     Returns:
         Tuple[Type, Type]: Tuple of (TaskEditorApp, InputModal) placeholder classes
+
     """
 
     class TaskEditorApp:
         """Placeholder class when UI components are not available."""
 
         def __init__(
-            self, tasks: object = None, *args: object, **kwargs: object
+            self,
+            tasks: object = None,
+            *args: object,
+            **kwargs: object,
         ) -> None:
             raise ImportError(
-                "TaskEditorApp requires 'textual' package to be installed"
+                "TaskEditorApp requires 'textual' package to be installed",
             )
 
     class InputModal:
@@ -39,6 +43,7 @@ def should_force_ui_import_error() -> bool:
 
     Returns:
         bool: True if UI import error should be forced
+
     """
     return os.environ.get("ARKLEX_FORCE_UI_IMPORT_ERROR") == "1"
 
@@ -48,6 +53,7 @@ def import_ui_components() -> tuple[type, type, list[str]]:
 
     Returns:
         Tuple[Type, Type, List[str]]: Tuple of (TaskEditorApp, InputModal, ui_components_list)
+
     """
     if should_force_ui_import_error():
         # Create placeholder classes when UI dependencies are not available (test hook)
@@ -87,36 +93,35 @@ class PlaceholderTaskEditorModule:
         if name == "TaskEditorApp":
             TaskEditorApp, _ = create_placeholder_classes()
             return TaskEditorApp
-        elif name == "InputModal":
+        if name == "InputModal":
             _, InputModal = create_placeholder_classes()
             return InputModal
-        elif name == "log_context":
+        if name == "log_context":
             # Return a mock logger for tests
             import logging
 
             return logging.getLogger("arklex.orchestrator.generator.ui.task_editor")
-        elif name == "Tree":
+        if name == "Tree":
             # Return a mock Tree class for tests
             class MockTree:
                 pass
 
             return MockTree
-        elif name == "Label":
+        if name == "Label":
             # Return a mock Label class for tests
             class MockLabel:
                 pass
 
             return MockLabel
-        elif name == "TreeNode":
+        if name == "TreeNode":
             # Return a mock TreeNode class for tests
             class MockTreeNode:
                 pass
 
             return MockTreeNode
-        else:
-            raise AttributeError(
-                f"'{self.__class__.__name__}' object has no attribute '{name}'"
-            )
+        raise AttributeError(
+            f"'{self.__class__.__name__}' object has no attribute '{name}'",
+        )
 
 
 class PlaceholderInputModalModule:
@@ -126,34 +131,33 @@ class PlaceholderInputModalModule:
         if name == "InputModal":
             _, InputModal = create_placeholder_classes()
             return InputModal
-        elif name == "Screen":
+        if name == "Screen":
             # Return a mock Screen class for tests
             class MockScreen:
                 pass
 
             return MockScreen
-        elif name == "Button":
+        if name == "Button":
             # Return a mock Button class for tests
             class MockButton:
                 pass
 
             return MockButton
-        elif name == "Input":
+        if name == "Input":
             # Return a mock Input class for tests
             class MockInput:
                 pass
 
             return MockInput
-        elif name == "Static":
+        if name == "Static":
             # Return a mock Static class for tests
             class MockStatic:
                 pass
 
             return MockStatic
-        else:
-            raise AttributeError(
-                f"'{self.__class__.__name__}' object has no attribute '{name}'"
-            )
+        raise AttributeError(
+            f"'{self.__class__.__name__}' object has no attribute '{name}'",
+        )
 
 
 def create_placeholder_ui_module() -> PlaceholderUIModule:
@@ -161,6 +165,7 @@ def create_placeholder_ui_module() -> PlaceholderUIModule:
 
     Returns:
         PlaceholderUIModule: A placeholder UI module
+
     """
     return PlaceholderUIModule()
 
@@ -171,6 +176,7 @@ def set_force_ui_import_error(value: str = "1") -> None:
 
     Args:
         value (str): The value to set for ARKLEX_FORCE_UI_IMPORT_ERROR
+
     """
     os.environ["ARKLEX_FORCE_UI_IMPORT_ERROR"] = value
 
@@ -186,5 +192,6 @@ def get_force_ui_import_error() -> str | None:
 
     Returns:
         str | None: The current value or None if not set
+
     """
     return os.environ.get("ARKLEX_FORCE_UI_IMPORT_ERROR")

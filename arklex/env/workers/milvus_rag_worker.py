@@ -55,7 +55,8 @@ class MilvusRAGWorker(BaseWorker):
         workflow.add_node("retriever", retriever_with_args)
         workflow.add_node("tool_generator", ToolGenerator.context_generate)
         workflow.add_node(
-            "stream_tool_generator", ToolGenerator.stream_context_generate
+            "stream_tool_generator",
+            ToolGenerator.stream_context_generate,
         )
         # Add edges
         workflow.add_edge(START, "retriever")
@@ -63,7 +64,9 @@ class MilvusRAGWorker(BaseWorker):
         return workflow
 
     def _execute(
-        self, msg_state: MessageState, **kwargs: MilvusRAGWorkerKwargs
+        self,
+        msg_state: MessageState,
+        **kwargs: MilvusRAGWorkerKwargs,
     ) -> dict[str, Any]:
         self.tags = kwargs.get("tags", {})
         self.action_graph = self._create_action_graph(self.tags)

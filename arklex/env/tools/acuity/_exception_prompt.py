@@ -2,8 +2,7 @@ from arklex.utils.exceptions import ExceptionPrompt
 
 
 class AcuityExceptionPrompt(ExceptionPrompt):
-    """
-    Acuity-specific exception prompts.
+    """Acuity-specific exception prompts.
 
     This class contains all the error messages used in Acuity-related operations.
     Each constant represents a specific error scenario that can occur during

@@ -88,7 +88,9 @@ class TestPromptManager:
     """Test PromptManager initialization and functionality."""
 
     def test_prompt_manager_init(
-        self, prompt_manager: prompts.PromptManager, all_prompt_names: list
+        self,
+        prompt_manager: prompts.PromptManager,
+        all_prompt_names: list,
     ) -> None:
         """Should initialize with all expected prompts and attributes."""
         # All expected keys should be present in .prompts
@@ -106,7 +108,9 @@ class TestPromptManager:
         assert hasattr(prompt_manager, "task_intents_prediction_prompt")
 
     def test_get_prompt_valid(
-        self, prompt_manager: prompts.PromptManager, all_prompt_names: list
+        self,
+        prompt_manager: prompts.PromptManager,
+        all_prompt_names: list,
     ) -> None:
         """Should format prompts with valid names and required kwargs."""
         # Test all prompt names with minimal required kwargs
@@ -123,7 +127,9 @@ class TestPromptManager:
                 assert f"val_{field}" in result or f"{{{field}}}" not in result
 
     def test_get_prompt_invalid_name(
-        self, prompt_manager: prompts.PromptManager, invalid_prompt_name: str
+        self,
+        prompt_manager: prompts.PromptManager,
+        invalid_prompt_name: str,
     ) -> None:
         """Should raise ValueError for invalid prompt names."""
         with pytest.raises(ValueError) as exc_info:
@@ -131,16 +137,20 @@ class TestPromptManager:
         assert "Prompt template 'not_a_prompt' not found" in str(exc_info.value)
 
     def test_get_prompt_missing_kwargs(
-        self, prompt_manager: prompts.PromptManager
+        self,
+        prompt_manager: prompts.PromptManager,
     ) -> None:
         """Should raise KeyError when required kwargs are missing."""
         with pytest.raises(KeyError):
             prompt_manager.get_prompt(
-                "generate_tasks", role="foo"
+                "generate_tasks",
+                role="foo",
             )  # missing required fields
 
     def test_get_prompt_extra_kwargs(
-        self, prompt_manager: prompts.PromptManager, valid_prompt_kwargs: dict
+        self,
+        prompt_manager: prompts.PromptManager,
+        valid_prompt_kwargs: dict,
     ) -> None:
         """Should ignore extra kwargs when formatting prompts."""
         # Add extra kwargs to valid ones

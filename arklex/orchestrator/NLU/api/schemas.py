@@ -28,17 +28,21 @@ class IntentRequest(BaseModel):
         intents: Dictionary mapping intent names to their definitions
         chat_history_str: Formatted chat history providing context
         model: Configuration parameters for the language model
+
     """
 
     text: str = Field(..., description="Input text to analyze for intent detection")
     intents: dict[str, list[dict[str, Any]]] = Field(
-        ..., description="Dictionary mapping intent names to their definitions"
+        ...,
+        description="Dictionary mapping intent names to their definitions",
     )
     chat_history_str: str = Field(
-        ..., description="Formatted chat history providing context"
+        ...,
+        description="Formatted chat history providing context",
     )
     model: dict[str, Any] = Field(
-        ..., description="Configuration parameters for the language model"
+        ...,
+        description="Configuration parameters for the language model",
     )
 
 
@@ -50,6 +54,7 @@ class IntentResponse(BaseModel):
 
     Attributes:
         intent: The predicted intent name
+
     """
 
     intent: str = Field(..., description="The predicted intent name")
@@ -67,14 +72,17 @@ class SlotRequest(BaseModel):
         context: Input context to extract values from
         model: Configuration parameters for the language model
         type: Type of slot filling operation (default: "chat")
+
     """
 
     slots: list[dict[str, Any]] = Field(
-        ..., description="List of slots to fill with their definitions"
+        ...,
+        description="List of slots to fill with their definitions",
     )
     context: str = Field(..., description="Input context to extract values from")
     model: dict[str, Any] = Field(
-        ..., description="Configuration parameters for the language model"
+        ...,
+        description="Configuration parameters for the language model",
     )
     type: str = Field(default="chat", description="Type of slot filling operation")
 
@@ -90,16 +98,20 @@ class SlotVerificationRequest(BaseModel):
         slot: The slot to verify with its current value
         chat_history_str: Formatted chat history providing context
         model: Configuration parameters for the language model
+
     """
 
     slot: dict[str, Any] = Field(
-        ..., description="The slot to verify with its current value"
+        ...,
+        description="The slot to verify with its current value",
     )
     chat_history_str: str = Field(
-        ..., description="Formatted chat history providing context"
+        ...,
+        description="Formatted chat history providing context",
     )
     model: dict[str, Any] = Field(
-        ..., description="Configuration parameters for the language model"
+        ...,
+        description="Configuration parameters for the language model",
     )
 
 
@@ -113,9 +125,11 @@ class VerificationResponse(BaseModel):
     Attributes:
         verification_needed: Whether the slot value needs verification
         thought: Reasoning for the verification decision
+
     """
 
     verification_needed: bool = Field(
-        ..., description="Whether the slot value needs verification"
+        ...,
+        description="Whether the slot value needs verification",
     )
     thought: str = Field(..., description="Reasoning for the verification decision")

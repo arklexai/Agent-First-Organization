@@ -64,6 +64,7 @@ class NodeInfo(BaseModel):
         attributes (Dict[str, Any]): Additional node attributes.
         add_flow_stack (Optional[bool]): Whether to add to flow stack.
         additional_args (Optional[Dict[str, Any]]): Additional arguments for the node.
+
     """
 
     node_id: str | None = Field(default=None)
@@ -98,6 +99,7 @@ class PathNode(BaseModel):
         nested_graph_node_value (Optional[str]): Value for nested graph nodes.
         nested_graph_leaf_jump (Optional[int]): Jump value for nested graph leaves.
         global_intent (str): Global intent associated with the node.
+
     """
 
     node_id: str
@@ -133,6 +135,7 @@ class Taskgraph(BaseModel):
         nlu_records (List[Any]): Natural language understanding records.
         node_status (Dict[str, StatusEnum]): Status of each node.
         available_global_intents (List[str]): List of available global intents.
+
     """
 
     # Need add global intent

@@ -103,7 +103,7 @@ def test_environment_step_tool_executes_and_updates_params(
             function_calling_trajectory=[{"role": "assistant", "content": "call"}],
             slots={},
             status=StatusEnum.COMPLETE,
-        )
+        ),
     )
     tools = [
         {"id": "t1", "name": "fake_tool", "path": "fake_path"},
@@ -131,7 +131,7 @@ def test_environment_step_tool_executes_and_updates_params(
         env.tools["t1"]["fixed_args"] = {"baz": 1}
         result_state, result_params = env.step("t1", state, params, node_info)
         assert result_state.function_calling_trajectory == [
-            {"role": "assistant", "content": "call"}
+            {"role": "assistant", "content": "call"},
         ]
         assert result_params is params
 
@@ -146,7 +146,10 @@ def test_environment_step_invalid_id_raises() -> None:
 
     # This should not raise an exception, it should use the planner
     response_state, updated_params = env.step(
-        "not_a_tool", message_state, params, node_info
+        "not_a_tool",
+        message_state,
+        params,
+        node_info,
     )
     assert isinstance(response_state, MessageState)
     assert isinstance(updated_params, OrchestratorParams)
@@ -164,7 +167,7 @@ def test_environment_step_worker_executes_and_updates_params(
         agents=[],
     )
     env.workers = {
-        "worker1": {"name": "test_worker", "execute": Mock(return_value=mock_worker)}
+        "worker1": {"name": "test_worker", "execute": Mock(return_value=mock_worker)},
     }
     env.id2name = {"worker1": "test_worker"}
     message_state = MessageState()
@@ -192,7 +195,7 @@ def test_environment_step_worker_without_init_slotfilling(
         agents=[],
     )
     env.workers = {
-        "worker1": {"name": "test_worker", "execute": Mock(return_value=mock_worker)}
+        "worker1": {"name": "test_worker", "execute": Mock(return_value=mock_worker)},
     }
     env.id2name = {"worker1": "test_worker"}
     message_state = MessageState()
@@ -210,7 +213,7 @@ def test_environment_step_worker_with_response_content(
 ) -> None:
     """Test environment step with worker that has response content."""
     mock_worker = fake_worker(
-        MessageState(status=StatusEnum.COMPLETE, response="test response")
+        MessageState(status=StatusEnum.COMPLETE, response="test response"),
     )
     env = Environment(
         tools=[],
@@ -218,7 +221,7 @@ def test_environment_step_worker_with_response_content(
         agents=[],
     )
     env.workers = {
-        "worker1": {"name": "test_worker", "execute": Mock(return_value=mock_worker)}
+        "worker1": {"name": "test_worker", "execute": Mock(return_value=mock_worker)},
     }
     env.id2name = {"worker1": "test_worker"}
     message_state = MessageState()
@@ -241,7 +244,7 @@ def test_environment_step_worker_with_message_flow(
 ) -> None:
     """Test environment step with worker that has message_flow but no response."""
     mock_worker = fake_worker(
-        MessageState(status=StatusEnum.COMPLETE, message_flow="test flow")
+        MessageState(status=StatusEnum.COMPLETE, message_flow="test flow"),
     )
     env = Environment(
         tools=[],
@@ -249,7 +252,7 @@ def test_environment_step_worker_with_message_flow(
         agents=[],
     )
     env.workers = {
-        "worker1": {"name": "test_worker", "execute": Mock(return_value=mock_worker)}
+        "worker1": {"name": "test_worker", "execute": Mock(return_value=mock_worker)},
     }
     env.id2name = {"worker1": "test_worker"}
     message_state = MessageState()
@@ -279,7 +282,10 @@ def test_environment_step_planner_executes() -> None:
     params.memory.function_calling_trajectory = []
     node_info = NodeInfo()
     result_state, result_params = env.step(
-        "invalid_id", message_state, params, node_info
+        "invalid_id",
+        message_state,
+        params,
+        node_info,
     )
     assert result_state.status == StatusEnum.COMPLETE
     mock_planner.execute.assert_called_once()
@@ -302,7 +308,7 @@ def test_environment_step_agent_executes() -> None:
                 "name": "test_tool",
                 "description": "test",
                 "path": "test",
-            }
+            },
         ],
         workers=[],
         agents=[{"id": "agent1", "name": "test_agent", "path": "test"}],
@@ -327,7 +333,7 @@ def test_environment_step_agent_executes() -> None:
 
     assert result_state.status == StatusEnum.COMPLETE
     assert result_params.memory.function_calling_trajectory == [
-        {"role": "user", "content": "test"}
+        {"role": "user", "content": "test"},
     ]
     assert result_params.taskgraph.node_status["node1"] == StatusEnum.COMPLETE
 
@@ -341,7 +347,10 @@ def test_environment_step_agent_executes() -> None:
 
     # Verify agent execute was called with correct parameters
     mock_agent_instance.execute.assert_called_once_with(
-        message_state, successors=["node2"], predecessors=["node0"], extra_arg="value"
+        message_state,
+        successors=["node2"],
+        predecessors=["node0"],
+        extra_arg="value",
     )
 
 
@@ -361,7 +370,8 @@ def test_initialize_slotfillapi_with_valid_string() -> None:
 
             mock_api_service.assert_called_once_with(base_url="http://test-api.com")
             mock_slot_filler.assert_called_once_with(
-                model_service=env.model_service, api_service=mock_api_instance
+                model_service=env.model_service,
+                api_service=mock_api_instance,
             )
             assert result == mock_slot_filler_instance
 
@@ -478,7 +488,7 @@ def test_initialize_slotfillapi_with_string() -> None:
     assert isinstance(slotfiller, SlotFiller)
 
 
-def test_initialize_slotfillapi_with_empty_string() -> None:  # noqa: F811
+def test_initialize_slotfillapi_with_empty_string() -> None:
     """Test slotfillapi initialization with empty string."""
     env = Environment(
         tools=[],
@@ -489,7 +499,7 @@ def test_initialize_slotfillapi_with_empty_string() -> None:  # noqa: F811
     assert isinstance(slotfiller, SlotFiller)
 
 
-def test_initialize_slotfillapi_with_non_string() -> None:  # noqa: F811
+def test_initialize_slotfillapi_with_non_string() -> None:
     """Test slotfillapi initialization with non-string value."""
     env = Environment(
         tools=[],
@@ -518,10 +528,10 @@ def test_default_resource_initializer_init_tools_with_http_tool_and_attributes()
                     "schema": [{"name": "field1", "type": "str", "required": True}],
                     "required": True,
                     "repeatable": True,
-                }
+                },
             ],
             "task": "Test task description",
-        }
+        },
     ]
 
     with patch("importlib.import_module") as mock_import:
@@ -579,10 +589,10 @@ def test_default_resource_initializer_init_tools_with_http_tool_no_required_fiel
                     "schema": [{"name": "field1", "type": "str", "required": False}],
                     "required": False,
                     "repeatable": False,
-                }
+                },
             ],
             "task": "Test task description",
-        }
+        },
     ]
 
     with patch("importlib.import_module") as mock_import:
@@ -669,7 +679,7 @@ def test_default_resource_initializer_init_tools_with_http_tool_missing_node_spe
             "slots": [{"name": "slot1", "type": "str"}],
             "task": "Test task description",
             # Missing node_specific_data
-        }
+        },
     ]
 
     with patch("importlib.import_module") as mock_import:
@@ -699,12 +709,12 @@ def test_default_resource_initializer_init_tools_with_http_tool_missing_name_in_
     attributes_list = [
         {
             "node_specific_data": {
-                "http": {"base_url": "http://test.com"}
+                "http": {"base_url": "http://test.com"},
                 # Missing name
             },
             "slots": [{"name": "slot1", "type": "str"}],
             "task": "Test task description",
-        }
+        },
     ]
 
     with patch("importlib.import_module") as mock_import:
@@ -740,7 +750,7 @@ def test_default_resource_initializer_init_tools_with_http_tool_empty_slots_and_
             "slots": [],  # Empty slots
             "slot_groups": [],  # Empty slot groups
             "task": "Test task description",
-        }
+        },
     ]
 
     with patch("importlib.import_module") as mock_import:
@@ -779,10 +789,10 @@ def test_default_resource_initializer_init_tools_with_http_tool_missing_schema_i
                     # Missing schema
                     "required": True,
                     "repeatable": True,
-                }
+                },
             ],
             "task": "Test task description",
-        }
+        },
     ]
 
     with patch("importlib.import_module") as mock_import:
@@ -830,10 +840,10 @@ def test_default_resource_initializer_init_tools_with_http_tool_multiple_require
                     ],
                     "required": True,
                     "repeatable": True,
-                }
+                },
             ],
             "task": "Test task description",
-        }
+        },
     ]
 
     with patch("importlib.import_module") as mock_import:
@@ -867,7 +877,7 @@ def test_default_resource_initializer_init_tools_with_http_tool_fixed_args_and_a
             "path": "test_path",
             "fixed_args": {"arg1": "value1", "arg2": "value2"},
             "auth": {"api_key": "test_key", "token": "test_token"},
-        }
+        },
     ]
     attributes_list = [
         {
@@ -877,7 +887,7 @@ def test_default_resource_initializer_init_tools_with_http_tool_fixed_args_and_a
             },
             "slots": [{"name": "slot1", "type": "str"}],
             "task": "Test task description",
-        }
+        },
     ]
 
     with patch("importlib.import_module") as mock_import:
@@ -912,7 +922,7 @@ def test_default_resource_initializer_init_tools_with_non_http_tool() -> None:
             "node_specific_data": {"http": {"base_url": "http://test.com"}},
             "slots": [{"name": "slot1", "type": "str"}],
             "task": "Test task description",
-        }
+        },
     ]
 
     with patch("importlib.import_module") as mock_import:
@@ -946,7 +956,7 @@ def test_default_resource_initializer_init_tools_with_http_tool_index_mismatch()
             "node_specific_data": {"http": {"base_url": "http://test.com"}},
             "slots": [{"name": "slot1", "type": "str"}],
             "task": "Test task description",
-        }
+        },
         # Only one attribute for two tools
     ]
 
@@ -983,7 +993,7 @@ def test_default_resource_initializer_init_tools_with_http_tool_missing_attribut
             "node_specific_data": {"http": {"base_url": "http://test.com"}},
             "slots": [{"name": "slot1", "type": "str"}],
             "task": "Test task description",
-        }
+        },
         # Only one attribute for two tools
     ]
 
@@ -1079,7 +1089,7 @@ def test_default_resource_initializer_init_tools_with_http_tool_complex_slot_gro
                 },
             ],
             "task": "Test task description",
-        }
+        },
     ]
 
     with patch("importlib.import_module") as mock_import:
@@ -1129,10 +1139,10 @@ def test_default_resource_initializer_init_tools_with_http_tool_empty_schema() -
                     "schema": [],  # Empty schema
                     "required": True,
                     "repeatable": True,
-                }
+                },
             ],
             "task": "Test task description",
-        }
+        },
     ]
 
     with patch("importlib.import_module") as mock_import:
@@ -1179,10 +1189,10 @@ def test_default_resource_initializer_init_tools_with_http_tool_missing_required
                     ],
                     "required": True,
                     "repeatable": True,
-                }
+                },
             ],
             "task": "Test task description",
-        }
+        },
     ]
 
     with patch("importlib.import_module") as mock_import:
@@ -1227,10 +1237,10 @@ def test_default_resource_initializer_init_tools_with_http_tool_all_optional_fie
                     ],
                     "required": True,
                     "repeatable": True,
-                }
+                },
             ],
             "task": "Test task description",
-        }
+        },
     ]
 
     with patch("importlib.import_module") as mock_import:
@@ -1277,10 +1287,10 @@ def test_default_resource_initializer_init_tools_with_http_tool_mixed_required_o
                     ],
                     "required": True,
                     "repeatable": True,
-                }
+                },
             ],
             "task": "Test task description",
-        }
+        },
     ]
 
     with patch("importlib.import_module") as mock_import:
@@ -1325,10 +1335,10 @@ def test_default_resource_initializer_init_tools_with_http_tool_description_form
                     ],
                     "required": True,
                     "repeatable": True,
-                }
+                },
             ],
             "task": "Test task description",
-        }
+        },
     ]
 
     with patch("importlib.import_module") as mock_import:
@@ -1370,10 +1380,10 @@ def test_default_resource_initializer_init_tools_with_http_tool_empty_schema_des
                     "schema": [],  # Empty schema
                     "required": True,
                     "repeatable": True,
-                }
+                },
             ],
             "task": "Test task description",
-        }
+        },
     ]
 
     with patch("importlib.import_module") as mock_import:
@@ -1402,7 +1412,7 @@ def test_default_resource_initializer_init_workers_with_exception() -> None:
     initializer = DefaultResourceInitializer()
 
     result = initializer.init_workers(
-        [{"id": "worker1", "name": "nonexistent_worker", "path": "nonexistent/path"}]
+        [{"id": "worker1", "name": "nonexistent_worker", "path": "nonexistent/path"}],
     )
     assert result == {}
 
@@ -1419,8 +1429,8 @@ def test_default_resource_initializer_init_tools_with_fixed_args() -> None:
                 "name": "nonexistent_tool",
                 "path": "nonexistent/path",
                 "fixed_args": {"arg1": "value1"},
-            }
-        ]
+            },
+        ],
     )
     assert result == {}
 
@@ -1437,8 +1447,8 @@ def test_default_resource_initializer_init_workers_with_fixed_args() -> None:
                 "name": "nonexistent_worker",
                 "path": "nonexistent/path",
                 "fixed_args": {"arg1": "value1"},
-            }
-        ]
+            },
+        ],
     )
     assert result == {}
 
@@ -1724,7 +1734,6 @@ def test_model_aware_resource_initializer_init_workers_with_exception() -> None:
 
 def test_environment_with_model_aware_resource_initializer() -> None:
     """Test Environment initialization with ModelAwareResourceInitializer."""
-
     # Create a mock model service with model_config
     mock_model_service = MagicMock()
     mock_model_service.model_config = {"model_name": "test_model"}
@@ -1801,7 +1810,7 @@ def test_environment_step_agent_with_successors_and_predecessors() -> None:
         "agent1": {
             "name": "test_agent",
             "execute": Mock(return_value=mock_agent_instance),
-        }
+        },
     }
     env.id2name = {"agent1": "test_agent"}
 
@@ -1833,7 +1842,7 @@ def test_environment_step_agent_with_empty_additional_args_second() -> None:
         "agent1": {
             "name": "test_agent",
             "execute": Mock(return_value=mock_agent_instance),
-        }
+        },
     }
     env.id2name = {"agent1": "test_agent"}
 
@@ -1862,7 +1871,7 @@ def test_environment_step_agent_with_none_additional_args() -> None:
         "agent1": {
             "name": "test_agent",
             "execute": Mock(return_value=mock_agent_instance),
-        }
+        },
     }
     env.id2name = {"agent1": "test_agent"}
 
@@ -1894,7 +1903,7 @@ def test_environment_step_agent_with_function_calling_trajectory() -> None:
         "agent1": {
             "name": "test_agent",
             "execute": Mock(return_value=mock_agent_instance),
-        }
+        },
     }
     env.id2name = {"agent1": "test_agent"}
 
@@ -1906,7 +1915,7 @@ def test_environment_step_agent_with_function_calling_trajectory() -> None:
     result_state, result_params = env.step("agent1", message_state, params, node_info)
     assert result_state.status == StatusEnum.COMPLETE
     assert result_params.memory.function_calling_trajectory == [
-        {"role": "assistant", "content": "test"}
+        {"role": "assistant", "content": "test"},
     ]
 
 
@@ -1932,7 +1941,7 @@ def test_environment_step_agent_with_slots() -> None:
         "agent1": {
             "name": "test_agent",
             "execute": Mock(return_value=mock_agent_instance),
-        }
+        },
     }
     env.id2name = {"agent1": "test_agent"}
 
@@ -1964,7 +1973,10 @@ def test_environment_step_planner_with_msg_history() -> None:
     params.memory.function_calling_trajectory = []
     node_info = NodeInfo()
     result_state, result_params = env.step(
-        "invalid_id", message_state, params, node_info
+        "invalid_id",
+        message_state,
+        params,
+        node_info,
     )
     assert result_state.status == StatusEnum.COMPLETE
     mock_planner.execute.assert_called_once()
@@ -1981,7 +1993,7 @@ def test_environment_step_tool_with_attributes_and_slots(
             function_calling_trajectory=[{"role": "assistant", "content": "call"}],
             slots={"slot1": [Slot(name="slot1", value="value1")]},
             status=StatusEnum.COMPLETE,
-        )
+        ),
     )
     tools = [{"id": "t1", "name": "fake_tool", "path": "fake_path"}]
     with patch("importlib.import_module") as mock_import:
@@ -2008,12 +2020,12 @@ def test_environment_step_tool_with_attributes_and_slots(
 
         result_state, result_params = env.step("t1", state, params, node_info)
         assert result_state.function_calling_trajectory == [
-            {"role": "assistant", "content": "call"}
+            {"role": "assistant", "content": "call"},
         ]
         assert result_state.slots == {"slot1": [Slot(name="slot1", value="value1")]}
         assert result_state.status == StatusEnum.COMPLETE
         assert result_params.taskgraph.dialog_states == {
-            "slot1": [Slot(name="slot1", value="value1")]
+            "slot1": [Slot(name="slot1", value="value1")],
         }
         assert result_params.taskgraph.node_status["n1"] == StatusEnum.COMPLETE
 
@@ -2032,7 +2044,7 @@ def test_environment_step_tool_with_none_additional_args(
             function_calling_trajectory=[{"role": "assistant", "content": "call"}],
             slots={},
             status=StatusEnum.COMPLETE,
-        )
+        ),
     )
     tools = [{"id": "t1", "name": "fake_tool", "path": "fake_path"}]
     with patch("importlib.import_module") as mock_import:
@@ -2058,7 +2070,7 @@ def test_environment_step_tool_with_none_additional_args(
 
         result_state, result_params = env.step("t1", state, params, node_info)
         assert result_state.function_calling_trajectory == [
-            {"role": "assistant", "content": "call"}
+            {"role": "assistant", "content": "call"},
         ]
         assert result_params is params
 
@@ -2066,7 +2078,7 @@ def test_environment_step_tool_with_none_additional_args(
         tool.init_slotfiller.assert_called_once_with(env.slotfillapi)
         if tool.load_slots.call_count:
             tool.load_slots.assert_called_once_with(
-                []
+                [],
             )  # Empty list when attributes is empty
 
 
@@ -2079,7 +2091,7 @@ def test_environment_step_tool_with_none_attributes(
             function_calling_trajectory=[{"role": "assistant", "content": "call"}],
             slots={},
             status=StatusEnum.COMPLETE,
-        )
+        ),
     )
     tools = [{"id": "t1", "name": "fake_tool", "path": "fake_path"}]
     with patch("importlib.import_module") as mock_import:
@@ -2107,7 +2119,7 @@ def test_environment_step_tool_with_none_attributes(
 
         result_state, result_params = env.step("t1", state, params, node_info)
         assert result_state.function_calling_trajectory == [
-            {"role": "assistant", "content": "call"}
+            {"role": "assistant", "content": "call"},
         ]
         assert result_params is params
 
@@ -2115,11 +2127,11 @@ def test_environment_step_tool_with_none_attributes(
         tool.init_slotfiller.assert_called_once_with(env.slotfillapi)
         if tool.load_slots.call_count:
             tool.load_slots.assert_called_once_with(
-                []
+                [],
             )  # Empty list when attributes is empty
         if tool.load_slots.call_count:
             tool.load_slots.assert_called_once_with(
-                []
+                [],
             )  # Empty list when attributes is empty
 
 
@@ -2136,7 +2148,7 @@ def test_environment_step_worker_with_none_additional_args(
         agents=[],
     )
     env.workers = {
-        "worker1": {"name": "test_worker", "execute": Mock(return_value=mock_worker)}
+        "worker1": {"name": "test_worker", "execute": Mock(return_value=mock_worker)},
     }
     env.id2name = {"worker1": "test_worker"}
 
@@ -2157,9 +2169,8 @@ def test_environment_step_worker_with_empty_response_and_message_flow(
     fake_worker: Callable[[MessageState | None], Mock],
 ) -> None:
     """Test environment step with worker that has empty response and message_flow."""
-
     mock_worker = fake_worker(
-        MessageState(status=StatusEnum.COMPLETE, response="", message_flow="")
+        MessageState(status=StatusEnum.COMPLETE, response="", message_flow=""),
     )
     mock_worker.init_slotfilling = Mock()
 
@@ -2169,7 +2180,7 @@ def test_environment_step_worker_with_empty_response_and_message_flow(
         agents=[],
     )
     env.workers = {
-        "worker1": {"name": "test_worker", "execute": Mock(return_value=mock_worker)}
+        "worker1": {"name": "test_worker", "execute": Mock(return_value=mock_worker)},
     }
     env.id2name = {"worker1": "test_worker"}
 
@@ -2195,7 +2206,7 @@ def test_environment_step_tool_with_slot_schema_signature_change(
             function_calling_trajectory=[{"role": "assistant", "content": "call"}],
             slots={"slot1": [Slot(name="slot1", value="value1")]},
             status=StatusEnum.COMPLETE,
-        )
+        ),
     )
     tools = [{"id": "t1", "name": "fake_tool", "path": "fake_path"}]
     with patch("importlib.import_module") as mock_import:
@@ -2216,7 +2227,7 @@ def test_environment_step_tool_with_slot_schema_signature_change(
             attributes = {
                 "slots": ["slot1"],
                 "slot_groups": [
-                    {"name": "group1", "schema": [{"name": "slot1", "type": "str"}]}
+                    {"name": "group1", "schema": [{"name": "slot1", "type": "str"}]},
                 ],
             }
 
@@ -2247,7 +2258,7 @@ def test_environment_step_tool_with_verified_slots(
             function_calling_trajectory=[{"role": "assistant", "content": "call"}],
             slots={},
             status=StatusEnum.COMPLETE,
-        )
+        ),
     )
     tools = [{"id": "t1", "name": "fake_tool", "path": "fake_path"}]
     with patch("importlib.import_module") as mock_import:
@@ -2287,7 +2298,7 @@ def test_environment_step_tool_with_missing_required_slots(
             function_calling_trajectory=[{"role": "assistant", "content": "call"}],
             slots={},
             status=StatusEnum.INCOMPLETE,
-        )
+        ),
     )
     tools = [{"id": "t1", "name": "fake_tool", "path": "fake_path"}]
     with patch("importlib.import_module") as mock_import:
@@ -2326,7 +2337,7 @@ def test_environment_step_tool_with_slot_verification_needed(
             function_calling_trajectory=[{"role": "assistant", "content": "call"}],
             slots={},
             status=StatusEnum.INCOMPLETE,
-        )
+        ),
     )
     tools = [{"id": "t1", "name": "fake_tool", "path": "fake_path"}]
     with patch("importlib.import_module") as mock_import:
@@ -2365,7 +2376,7 @@ def test_environment_step_tool_with_group_slots(
             function_calling_trajectory=[{"role": "assistant", "content": "call"}],
             slots={},
             status=StatusEnum.COMPLETE,
-        )
+        ),
     )
     tools = [{"id": "t1", "name": "fake_tool", "path": "fake_path"}]
     with patch("importlib.import_module") as mock_import:
@@ -2389,8 +2400,8 @@ def test_environment_step_tool_with_group_slots(
                         "name": "group_slot",
                         "type": "group",
                         "schema": [{"name": "field1", "type": "str", "required": True}],
-                    }
-                ]
+                    },
+                ],
             }
 
         state = MessageState()
@@ -2411,7 +2422,7 @@ def test_environment_step_tool_with_repeatable_slots(
             function_calling_trajectory=[{"role": "assistant", "content": "call"}],
             slots={},
             status=StatusEnum.COMPLETE,
-        )
+        ),
     )
     tools = [{"id": "t1", "name": "fake_tool", "path": "fake_path"}]
     with patch("importlib.import_module") as mock_import:
@@ -2436,8 +2447,8 @@ def test_environment_step_tool_with_repeatable_slots(
                         "type": "str",
                         "repeatable": True,
                         "required": True,
-                    }
-                ]
+                    },
+                ],
             }
 
         state = MessageState()
@@ -2460,7 +2471,7 @@ def test_environment_step_tool_with_function_calling_trajectory(
                 {"role": "function", "content": "result"},
             ],
             status=StatusEnum.COMPLETE,
-        )
+        ),
     )
     tools = [{"id": "t1", "name": "fake_tool", "path": "fake_path"}]
     with patch("importlib.import_module") as mock_import:
@@ -2499,7 +2510,7 @@ def test_environment_step_tool_with_slots_parameter(
             function_calling_trajectory=[{"role": "assistant", "content": "call"}],
             slots={},
             status=StatusEnum.COMPLETE,
-        )
+        ),
     )
     tools = [{"id": "t1", "name": "fake_tool", "path": "fake_path"}]
     with patch("importlib.import_module") as mock_import:
@@ -2537,7 +2548,7 @@ def test_environment_step_tool_with_missing_required_arguments(
             function_calling_trajectory=[{"role": "assistant", "content": "call"}],
             slots={},
             status=StatusEnum.INCOMPLETE,
-        )
+        ),
     )
     tools = [{"id": "t1", "name": "fake_tool", "path": "fake_path"}]
     with patch("importlib.import_module") as mock_import:
@@ -2577,7 +2588,7 @@ def test_environment_step_tool_with_authentication_error(
             slots={},
             status=StatusEnum.INCOMPLETE,
             response="Authentication failed",
-        )
+        ),
     )
     tools = [{"id": "t1", "name": "fake_tool", "path": "fake_path"}]
     with patch("importlib.import_module") as mock_import:
@@ -2617,7 +2628,7 @@ def test_environment_step_tool_with_tool_execution_error(
             slots={},
             status=StatusEnum.INCOMPLETE,
             response="Tool execution failed",
-        )
+        ),
     )
     tools = [{"id": "t1", "name": "fake_tool", "path": "fake_path"}]
     with patch("importlib.import_module") as mock_import:
@@ -2657,7 +2668,7 @@ def test_environment_step_tool_with_general_exception(
             slots={},
             status=StatusEnum.INCOMPLETE,
             response="General error occurred",
-        )
+        ),
     )
     tools = [{"id": "t1", "name": "fake_tool", "path": "fake_path"}]
     with patch("importlib.import_module") as mock_import:
@@ -2718,7 +2729,7 @@ def test_environment_name2id_mapping_with_duplicate_names() -> None:
     """Test Environment name2id mapping with duplicate names (should overwrite)."""
     tools = [{"id": "tool1", "name": "test_tool", "path": "test_path"}]
     workers = [
-        {"id": "worker1", "name": "test_tool", "path": "test_path"}
+        {"id": "worker1", "name": "test_tool", "path": "test_path"},
     ]  # Same name as tool
     agents = []
 
@@ -2795,7 +2806,7 @@ def test_environment_initialization_with_attributes_kwarg() -> None:
             "node_specific_data": {"http": {"base_url": "http://test.com"}},
             "slots": [{"name": "slot1", "type": "str"}],
             "task": "Test task",
-        }
+        },
     ]
 
     with patch("importlib.import_module") as mock_import:
@@ -2811,7 +2822,10 @@ def test_environment_initialization_with_attributes_kwarg() -> None:
         mock_import.return_value = fake_module
 
         env = Environment(
-            tools=tools, workers=workers, agents=agents, attributes=attributes
+            tools=tools,
+            workers=workers,
+            agents=agents,
+            attributes=attributes,
         )
 
         # Should process attributes correctly
@@ -2871,7 +2885,10 @@ def test_environment_initialization_with_slot_fill_api_alias() -> None:
     agents = []
 
     env = Environment(
-        tools=tools, workers=workers, agents=agents, slot_fill_api="http://test-api.com"
+        tools=tools,
+        workers=workers,
+        agents=agents,
+        slot_fill_api="http://test-api.com",
     )
 
     # Should use slot_fill_api as slotsfillapi
@@ -2907,7 +2924,10 @@ def test_environment_initialization_with_model_service_with_model_config() -> No
     mock_model_service.model_config = {"model_name": "test_model"}
 
     env = Environment(
-        tools=tools, workers=workers, agents=agents, model_service=mock_model_service
+        tools=tools,
+        workers=workers,
+        agents=agents,
+        model_service=mock_model_service,
     )
 
     # Should use ModelAwareResourceInitializer when model_service has model_config
@@ -2927,7 +2947,10 @@ def test_environment_initialization_with_model_service_without_model_config() ->
         delattr(mock_model_service, "model_config")
 
     env = Environment(
-        tools=tools, workers=workers, agents=agents, model_service=mock_model_service
+        tools=tools,
+        workers=workers,
+        agents=agents,
+        model_service=mock_model_service,
     )
 
     # Should use DefaultResourceInitializer when model_service doesn't have model_config
@@ -2985,7 +3008,10 @@ def test_environment_initialization_with_planner_disabled() -> None:
     agents = []
 
     env = Environment(
-        tools=tools, workers=workers, agents=agents, planner_enabled=False
+        tools=tools,
+        workers=workers,
+        agents=agents,
+        planner_enabled=False,
     )
 
     # Should use DefaultPlanner when planner_enabled=False
@@ -3011,7 +3037,10 @@ def test_environment_initialization_with_planner_enabled_and_tools_workers() -> 
         mock_import.return_value = fake_module
 
         env = Environment(
-            tools=tools, workers=workers, agents=agents, planner_enabled=True
+            tools=tools,
+            workers=workers,
+            agents=agents,
+            planner_enabled=True,
         )
 
         # Should use ReactPlanner with tools and workers
@@ -3034,7 +3063,10 @@ def test_environment_initialization_with_planner_disabled_and_tools_workers() ->
         mock_import.return_value = fake_module
 
         env = Environment(
-            tools=tools, workers=workers, agents=agents, planner_enabled=False
+            tools=tools,
+            workers=workers,
+            agents=agents,
+            planner_enabled=False,
         )
 
         # Should use DefaultPlanner with tools and workers
@@ -3060,10 +3092,11 @@ def test_initialize_slotfillapi_with_valid_url_string() -> None:
             result = env.initialize_slotfillapi("https://api.example.com/slots")
 
             mock_api_service.assert_called_once_with(
-                base_url="https://api.example.com/slots"
+                base_url="https://api.example.com/slots",
             )
             mock_slot_filler.assert_called_once_with(
-                model_service=env.model_service, api_service=mock_api_instance
+                model_service=env.model_service,
+                api_service=mock_api_instance,
             )
             assert result == mock_slot_filler_instance
 
@@ -3083,10 +3116,11 @@ def test_initialize_slotfillapi_with_http_url_string() -> None:
             result = env.initialize_slotfillapi("http://localhost:8000/api")
 
             mock_api_service.assert_called_once_with(
-                base_url="http://localhost:8000/api"
+                base_url="http://localhost:8000/api",
             )
             mock_slot_filler.assert_called_once_with(
-                model_service=env.model_service, api_service=mock_api_instance
+                model_service=env.model_service,
+                api_service=mock_api_instance,
             )
             assert result == mock_slot_filler_instance
 
@@ -3108,7 +3142,8 @@ def test_initialize_slotfillapi_with_whitespace_string() -> None:
             # Should call APIClientService even for whitespace strings
             mock_api_service.assert_called_once_with(base_url="   ")
             mock_slot_filler.assert_called_once_with(
-                model_service=env.model_service, api_service=mock_api_instance
+                model_service=env.model_service,
+                api_service=mock_api_instance,
             )
         assert result == mock_slot_filler_instance
 
@@ -3195,7 +3230,10 @@ def test_initialize_slotfillapi_with_custom_model_service() -> None:
     custom_model_service.model_config = {"model_name": "custom_model"}
 
     env = Environment(
-        tools=[], workers=[], agents=[], model_service=custom_model_service
+        tools=[],
+        workers=[],
+        agents=[],
+        model_service=custom_model_service,
     )
 
     with patch("arklex.env.env.SlotFiller") as mock_slot_filler:
@@ -3216,7 +3254,10 @@ def test_initialize_slotfillapi_with_api_service_and_custom_model_service() -> N
     custom_model_service.model_config = {"model_name": "custom_model"}
 
     env = Environment(
-        tools=[], workers=[], agents=[], model_service=custom_model_service
+        tools=[],
+        workers=[],
+        agents=[],
+        model_service=custom_model_service,
     )
 
     with patch("arklex.env.env.APIClientService") as mock_api_service:
@@ -3231,7 +3272,8 @@ def test_initialize_slotfillapi_with_api_service_and_custom_model_service() -> N
 
             # Should use both custom model service and API service
             mock_slot_filler.assert_called_once_with(
-                model_service=custom_model_service, api_service=mock_api_instance
+                model_service=custom_model_service,
+                api_service=mock_api_instance,
             )
             assert result == mock_slot_filler_instance
 
@@ -3286,7 +3328,8 @@ def test_initialize_slotfillapi_with_complex_url() -> None:
 
             mock_api_service.assert_called_once_with(base_url=complex_url)
             mock_slot_filler.assert_called_once_with(
-                model_service=env.model_service, api_service=mock_api_instance
+                model_service=env.model_service,
+                api_service=mock_api_instance,
             )
             assert result == mock_slot_filler_instance
 
@@ -3309,7 +3352,8 @@ def test_initialize_slotfillapi_with_localhost_url() -> None:
 
             mock_api_service.assert_called_once_with(base_url=localhost_url)
             mock_slot_filler.assert_called_once_with(
-                model_service=env.model_service, api_service=mock_api_instance
+                model_service=env.model_service,
+                api_service=mock_api_instance,
             )
             assert result == mock_slot_filler_instance
 
@@ -3332,7 +3376,8 @@ def test_initialize_slotfillapi_with_ip_address_url() -> None:
 
             mock_api_service.assert_called_once_with(base_url=ip_url)
             mock_slot_filler.assert_called_once_with(
-                model_service=env.model_service, api_service=mock_api_instance
+                model_service=env.model_service,
+                api_service=mock_api_instance,
             )
             assert result == mock_slot_filler_instance
 
@@ -3349,7 +3394,7 @@ def test_environment_step_tool_with_none_node_info() -> None:
         fake_tool_instance.description = "test description"
         fake_tool_instance.init_slotfiller = MagicMock()
         fake_tool_instance.execute = MagicMock(
-            return_value=MessageState(status=StatusEnum.COMPLETE)
+            return_value=MessageState(status=StatusEnum.COMPLETE),
         )
 
         fake_module.fake_tool = MagicMock(return_value=fake_tool_instance)
@@ -3385,7 +3430,7 @@ def test_environment_step_tool_with_none_additional_args_in_node_info() -> None:
         fake_tool_instance.description = "test description"
         fake_tool_instance.init_slotfiller = MagicMock()
         fake_tool_instance.execute = MagicMock(
-            return_value=MessageState(status=StatusEnum.COMPLETE)
+            return_value=MessageState(status=StatusEnum.COMPLETE),
         )
 
         fake_module.fake_tool = MagicMock(return_value=fake_tool_instance)
@@ -3422,7 +3467,7 @@ def test_environment_step_tool_with_empty_additional_args_in_node_info() -> None
         fake_tool_instance.description = "test description"
         fake_tool_instance.init_slotfiller = MagicMock()
         fake_tool_instance.execute = MagicMock(
-            return_value=MessageState(status=StatusEnum.COMPLETE)
+            return_value=MessageState(status=StatusEnum.COMPLETE),
         )
 
         fake_module.fake_tool = MagicMock(return_value=fake_tool_instance)
@@ -3459,7 +3504,7 @@ def test_environment_step_tool_with_missing_fixed_args() -> None:
         fake_tool_instance.description = "test description"
         fake_tool_instance.init_slotfiller = MagicMock()
         fake_tool_instance.execute = MagicMock(
-            return_value=MessageState(status=StatusEnum.COMPLETE)
+            return_value=MessageState(status=StatusEnum.COMPLETE),
         )
 
         fake_module.fake_tool = MagicMock(return_value=fake_tool_instance)
@@ -3496,7 +3541,7 @@ def test_environment_step_tool_with_missing_auth() -> None:
         fake_tool_instance.description = "test description"
         fake_tool_instance.init_slotfiller = MagicMock()
         fake_tool_instance.execute = MagicMock(
-            return_value=MessageState(status=StatusEnum.COMPLETE)
+            return_value=MessageState(status=StatusEnum.COMPLETE),
         )
 
         fake_module.fake_tool = MagicMock(return_value=fake_tool_instance)
@@ -3533,7 +3578,7 @@ def test_environment_step_tool_with_none_message_state() -> None:
         fake_tool_instance.description = "test description"
         fake_tool_instance.init_slotfiller = MagicMock()
         fake_tool_instance.execute = MagicMock(
-            return_value=MessageState(status=StatusEnum.COMPLETE)
+            return_value=MessageState(status=StatusEnum.COMPLETE),
         )
 
         fake_module.fake_tool = MagicMock(return_value=fake_tool_instance)
@@ -3556,7 +3601,8 @@ def test_environment_step_tool_with_none_message_state() -> None:
 
         assert result_state.status == StatusEnum.COMPLETE
         fake_tool_instance.execute.assert_called_once_with(
-            message_state, extra_arg="value"
+            message_state,
+            extra_arg="value",
         )
 
 
@@ -3572,7 +3618,7 @@ def test_environment_step_tool_with_none_params() -> None:
         fake_tool_instance.description = "test description"
         fake_tool_instance.init_slotfiller = MagicMock()
         fake_tool_instance.execute = MagicMock(
-            return_value=MessageState(status=StatusEnum.COMPLETE)
+            return_value=MessageState(status=StatusEnum.COMPLETE),
         )
 
         fake_module.fake_tool = MagicMock(return_value=fake_tool_instance)
@@ -3609,7 +3655,7 @@ def test_environment_step_tool_with_tool_execution_exception() -> None:
         fake_tool_instance.description = "test description"
         fake_tool_instance.init_slotfiller = MagicMock()
         fake_tool_instance.execute = MagicMock(
-            side_effect=Exception("Tool execution failed")
+            side_effect=Exception("Tool execution failed"),
         )
 
         fake_module.fake_tool = MagicMock(return_value=fake_tool_instance)
@@ -3643,10 +3689,10 @@ def test_environment_step_tool_with_init_slotfiller_exception() -> None:
         fake_tool_instance.auth = {}
         fake_tool_instance.description = "test description"
         fake_tool_instance.init_slotfiller = MagicMock(
-            side_effect=Exception("Slot filler init failed")
+            side_effect=Exception("Slot filler init failed"),
         )
         fake_tool_instance.execute = MagicMock(
-            return_value=MessageState(status=StatusEnum.COMPLETE)
+            return_value=MessageState(status=StatusEnum.COMPLETE),
         )
 
         fake_module.fake_tool = MagicMock(return_value=fake_tool_instance)
@@ -3677,7 +3723,7 @@ def test_environment_step_worker_with_none_node_info() -> None:
         fake_module = MagicMock()
         fake_worker_instance = MagicMock()
         fake_worker_instance.execute = MagicMock(
-            return_value=MessageState(status=StatusEnum.COMPLETE)
+            return_value=MessageState(status=StatusEnum.COMPLETE),
         )
         fake_worker_instance.init_slotfilling = MagicMock()
 
@@ -3708,7 +3754,7 @@ def test_environment_step_worker_with_none_additional_args_in_node_info() -> Non
         fake_module = MagicMock()
         fake_worker_instance = MagicMock()
         fake_worker_instance.execute = MagicMock(
-            return_value=MessageState(status=StatusEnum.COMPLETE)
+            return_value=MessageState(status=StatusEnum.COMPLETE),
         )
         fake_worker_instance.init_slotfilling = MagicMock()
 
@@ -3740,7 +3786,7 @@ def test_environment_step_worker_with_empty_additional_args_in_node_info() -> No
         fake_module = MagicMock()
         fake_worker_instance = MagicMock()
         fake_worker_instance.execute = MagicMock(
-            return_value=MessageState(status=StatusEnum.COMPLETE)
+            return_value=MessageState(status=StatusEnum.COMPLETE),
         )
         fake_worker_instance.init_slotfilling = MagicMock()
 
@@ -3772,7 +3818,7 @@ def test_environment_step_worker_with_execution_exception() -> None:
         fake_module = MagicMock()
         fake_worker_instance = MagicMock()
         fake_worker_instance.execute = MagicMock(
-            side_effect=Exception("Worker execution failed")
+            side_effect=Exception("Worker execution failed"),
         )
         fake_worker_instance.init_slotfilling = MagicMock()
 
@@ -3802,10 +3848,10 @@ def test_environment_step_worker_with_init_slotfilling_exception() -> None:
         fake_module = MagicMock()
         fake_worker_instance = MagicMock()
         fake_worker_instance.execute = MagicMock(
-            return_value=MessageState(status=StatusEnum.COMPLETE)
+            return_value=MessageState(status=StatusEnum.COMPLETE),
         )
         fake_worker_instance.init_slotfilling = MagicMock(
-            side_effect=Exception("Slot filling init failed")
+            side_effect=Exception("Slot filling init failed"),
         )
 
         fake_module.fake_worker = MagicMock(return_value=fake_worker_instance)
@@ -3834,7 +3880,7 @@ def test_environment_step_agent_with_none_node_info() -> None:
         fake_module = MagicMock()
         fake_agent_instance = MagicMock()
         fake_agent_instance.execute = MagicMock(
-            return_value=MessageState(status=StatusEnum.COMPLETE)
+            return_value=MessageState(status=StatusEnum.COMPLETE),
         )
 
         fake_module.fake_agent = MagicMock(return_value=fake_agent_instance)
@@ -3865,7 +3911,7 @@ def test_environment_step_agent_with_none_additional_args_in_node_info() -> None
         fake_module = MagicMock()
         fake_agent_instance = MagicMock()
         fake_agent_instance.execute = MagicMock(
-            return_value=MessageState(status=StatusEnum.COMPLETE)
+            return_value=MessageState(status=StatusEnum.COMPLETE),
         )
 
         fake_module.fake_agent = MagicMock(return_value=fake_agent_instance)
@@ -3897,7 +3943,7 @@ def test_environment_step_agent_with_empty_additional_args_in_node_info() -> Non
         fake_module = MagicMock()
         fake_agent_instance = MagicMock()
         fake_agent_instance.execute = MagicMock(
-            return_value=MessageState(status=StatusEnum.COMPLETE)
+            return_value=MessageState(status=StatusEnum.COMPLETE),
         )
 
         fake_module.fake_agent = MagicMock(return_value=fake_agent_instance)
@@ -3929,7 +3975,7 @@ def test_environment_step_agent_with_execution_exception() -> None:
         fake_module = MagicMock()
         fake_agent_instance = MagicMock()
         fake_agent_instance.execute = MagicMock(
-            side_effect=Exception("Agent execution failed")
+            side_effect=Exception("Agent execution failed"),
         )
 
         fake_module.fake_agent = MagicMock(return_value=fake_agent_instance)
@@ -3958,7 +4004,7 @@ def test_environment_step_agent_with_initialization_exception() -> None:
     with patch("importlib.import_module") as mock_import:
         fake_module = MagicMock()
         fake_module.fake_agent = MagicMock(
-            side_effect=Exception("Agent initialization failed")
+            side_effect=Exception("Agent initialization failed"),
         )
         mock_import.return_value = fake_module
 
@@ -3997,7 +4043,10 @@ def test_environment_step_planner_with_none_message_state() -> None:
     # Test with valid message_state instead of None
     message_state = MessageState()
     result_state, result_params = env.step(
-        "invalid_id", message_state, params, node_info
+        "invalid_id",
+        message_state,
+        params,
+        node_info,
     )
 
     assert result_state.status == StatusEnum.COMPLETE
@@ -4023,7 +4072,10 @@ def test_environment_step_planner_with_none_params() -> None:
     params = OrchestratorParams()
     params.memory.function_calling_trajectory = []
     result_state, result_params = env.step(
-        "invalid_id", message_state, params, node_info
+        "invalid_id",
+        message_state,
+        params,
+        node_info,
     )
 
     assert result_state.status == StatusEnum.COMPLETE
@@ -4238,7 +4290,7 @@ def test_register_tool_with_attribute_error() -> None:
     class ProblematicTool:
         def __getattr__(self, name: str) -> None:
             raise AttributeError(
-                f"'{self.__class__.__name__}' object has no attribute '{name}'"
+                f"'{self.__class__.__name__}' object has no attribute '{name}'",
             )
 
     problematic_tool = ProblematicTool()
@@ -4342,10 +4394,10 @@ def test_environment_with_duplicate_names_across_registries() -> None:
 def test_environment_with_special_characters_in_names() -> None:
     """Test Environment initialization with special characters in names."""
     tools = [
-        {"id": "tool1", "name": "test-tool_with.special@chars", "path": "test_path"}
+        {"id": "tool1", "name": "test-tool_with.special@chars", "path": "test_path"},
     ]
     workers = [
-        {"id": "worker1", "name": "test_worker_with-spaces", "path": "test_path"}
+        {"id": "worker1", "name": "test_worker_with-spaces", "path": "test_path"},
     ]
     agents = [{"id": "agent1", "name": "test.agent.with.dots", "path": "test_path"}]
 
@@ -4474,7 +4526,7 @@ def test_environment_with_complex_paths() -> None:
 def test_environment_with_windows_paths() -> None:
     """Test Environment initialization with Windows-style paths."""
     tools = [
-        {"id": "tool1", "name": "test_tool", "path": "deeply\\nested\\module\\path"}
+        {"id": "tool1", "name": "test_tool", "path": "deeply\\nested\\module\\path"},
     ]
     workers = [{"id": "worker1", "name": "test_worker", "path": "another\\deep\\path"}]
     agents = [{"id": "agent1", "name": "test_agent", "path": "yet\\another\\path"}]
@@ -4499,10 +4551,10 @@ def test_environment_with_absolute_paths() -> None:
     """Test Environment initialization with absolute paths."""
     tools = [{"id": "tool1", "name": "test_tool", "path": "/absolute/path/to/module"}]
     workers = [
-        {"id": "worker1", "name": "test_worker", "path": "/another/absolute/path"}
+        {"id": "worker1", "name": "test_worker", "path": "/another/absolute/path"},
     ]
     agents = [
-        {"id": "agent1", "name": "test_agent", "path": "/yet/another/absolute/path"}
+        {"id": "agent1", "name": "test_agent", "path": "/yet/another/absolute/path"},
     ]
 
     with patch("importlib.import_module") as mock_import:
@@ -4525,7 +4577,7 @@ def test_environment_with_paths_containing_dots() -> None:
     """Test Environment initialization with paths containing dots."""
     tools = [{"id": "tool1", "name": "test_tool", "path": "module.with.dots"}]
     workers = [
-        {"id": "worker1", "name": "test_worker", "path": "another.module.with.dots"}
+        {"id": "worker1", "name": "test_worker", "path": "another.module.with.dots"},
     ]
     agents = [{"id": "agent1", "name": "test_agent", "path": "yet.another.module"}]
 
@@ -4553,7 +4605,7 @@ def test_environment_with_paths_containing_underscores() -> None:
             "id": "worker1",
             "name": "test_worker",
             "path": "another_module_with_underscores",
-        }
+        },
     ]
     agents = [{"id": "agent1", "name": "test_agent", "path": "yet_another_module"}]
 
@@ -4577,7 +4629,7 @@ def test_environment_with_paths_containing_hyphens() -> None:
     """Test Environment initialization with paths containing hyphens."""
     tools = [{"id": "tool1", "name": "test_tool", "path": "module-with-hyphens"}]
     workers = [
-        {"id": "worker1", "name": "test_worker", "path": "another-module-with-hyphens"}
+        {"id": "worker1", "name": "test_worker", "path": "another-module-with-hyphens"},
     ]
     agents = [{"id": "agent1", "name": "test_agent", "path": "yet-another-module"}]
 
@@ -4601,7 +4653,7 @@ def test_environment_with_paths_containing_spaces() -> None:
     """Test Environment initialization with paths containing spaces."""
     tools = [{"id": "tool1", "name": "test_tool", "path": "module with spaces"}]
     workers = [
-        {"id": "worker1", "name": "test_worker", "path": "another module with spaces"}
+        {"id": "worker1", "name": "test_worker", "path": "another module with spaces"},
     ]
     agents = [{"id": "agent1", "name": "test_agent", "path": "yet another module"}]
 
@@ -4625,7 +4677,7 @@ def test_environment_with_paths_containing_special_characters() -> None:
     """Test Environment initialization with paths containing special characters."""
     tools = [{"id": "tool1", "name": "test_tool", "path": "module@with#special$chars"}]
     workers = [
-        {"id": "worker1", "name": "test_worker", "path": "another@module#with$chars"}
+        {"id": "worker1", "name": "test_worker", "path": "another@module#with$chars"},
     ]
     agents = [{"id": "agent1", "name": "test_agent", "path": "yet@another#module"}]
 

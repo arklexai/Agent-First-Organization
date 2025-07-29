@@ -21,7 +21,7 @@ def build_rag(folder_path: str, rag_docs: list[dict[str, Any]]) -> None:
     docs: list[Any] = []
     if Path(filepath).exists():
         log_context.warning(
-            f"Loading existing documents from {os.path.join(folder_path, 'documents.pkl')}! If you want to recrawl, please delete the file or specify a new --output-dir when initiate Generator."
+            f"Loading existing documents from {os.path.join(folder_path, 'documents.pkl')}! If you want to recrawl, please delete the file or specify a new --output-dir when initiate Generator.",
         )
         with open(os.path.join(folder_path, "documents.pkl"), "rb") as f:
             docs = pickle.load(f)
@@ -59,7 +59,7 @@ def build_rag(folder_path: str, rag_docs: list[dict[str, Any]]) -> None:
                     docs.extend(loader.to_crawled_local_objs(file_list))
                 else:
                     raise FileNotFoundError(
-                        f"Source path '{source}' does not exist or is not accessible"
+                        f"Source path '{source}' does not exist or is not accessible",
                     )
 
             elif doc.get("type") == "text":
@@ -67,7 +67,7 @@ def build_rag(folder_path: str, rag_docs: list[dict[str, Any]]) -> None:
             else:
                 # TODO: Implement type validation and default type handling in document processing
                 raise Exception(
-                    "type must be one of [url, file, text] and it must be provided"
+                    "type must be one of [url, file, text] and it must be provided",
                 )
 
         log_context.info(f"Content: {[doc.content for doc in docs]}")
@@ -85,10 +85,16 @@ def main() -> None:
 
     parser.add_argument("--base_url", required=True, type=str, help="base url to crawl")
     parser.add_argument(
-        "--folder_path", required=True, type=str, help="location to save the documents"
+        "--folder_path",
+        required=True,
+        type=str,
+        help="location to save the documents",
     )
     parser.add_argument(
-        "--max_num", type=int, default=10, help="maximum number of urls to crawl"
+        "--max_num",
+        type=int,
+        default=10,
+        help="maximum number of urls to crawl",
     )
     args: argparse.Namespace = parser.parse_args()
 

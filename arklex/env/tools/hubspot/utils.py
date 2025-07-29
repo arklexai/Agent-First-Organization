@@ -1,5 +1,4 @@
-"""
-Utility functions for HubSpot tool authentication in the Arklex framework.
+"""Utility functions for HubSpot tool authentication in the Arklex framework.
 
 This module provides helper functions for authenticating HubSpot API requests within the Arklex tool system.
 """
@@ -22,8 +21,7 @@ HUBSPOT_AUTH_ERROR: str = "Missing some or all required hubspot authentication p
 
 
 def authenticate_hubspot(kwargs: dict[str, Any]) -> str:
-    """
-    Authenticate with HubSpot using the provided access token.
+    """Authenticate with HubSpot using the provided access token.
 
     Args:
         kwargs (Dict[str, Any]): Dictionary containing authentication parameters
@@ -33,6 +31,7 @@ def authenticate_hubspot(kwargs: dict[str, Any]) -> str:
 
     Raises:
         AuthenticationError: If access token is missing
+
     """
     access_token: str = kwargs.get("access_token")
     if not access_token:
@@ -47,7 +46,7 @@ class HubspotNotIntegratedError(Exception):
         self.bot_id = bot_id
         self.bot_version = bot_version
         super().__init__(
-            f"HubSpot not integrated for bot {bot_id} version {bot_version}"
+            f"HubSpot not integrated for bot {bot_id} version {bot_version}",
         )
 
 
@@ -58,7 +57,9 @@ class HubspotAuthTokens(BaseModel):
 
 
 def refresh_token_if_needed(
-    bot_id: str, bot_version: str, hubspot_auth_tokens: HubspotAuthTokens
+    bot_id: str,
+    bot_version: str,
+    hubspot_auth_tokens: HubspotAuthTokens,
 ) -> HubspotAuthTokens:
     """Get the valid access token for HubSpot from the database.
 
@@ -72,22 +73,23 @@ def refresh_token_if_needed(
 
     Raises:
         HubspotNotIntegratedError: If HubSpot is not integrated for the bot
+
     """
     log_context.info(
-        f"Refreshing HubSpot auth tokens for bot {bot_id} version {bot_version}"
+        f"Refreshing HubSpot auth tokens for bot {bot_id} version {bot_version}",
     )
     hubspot_client_id = os.getenv("HUBSPOT_CLIENT_ID")
     hubspot_client_secret = os.getenv("HUBSPOT_CLIENT_SECRET")
     if not hubspot_client_id or not hubspot_client_secret:
         raise Exception(
-            "HubSpot client ID and secret not found in environment variables"
+            "HubSpot client ID and secret not found in environment variables",
         )
 
     try:
         # Check if token is expired
         try:
             expiry = datetime.fromisoformat(
-                hubspot_auth_tokens.expiry_time_str.replace("Z", "+00:00")
+                hubspot_auth_tokens.expiry_time_str.replace("Z", "+00:00"),
             )
             if datetime.now(expiry.tzinfo) < expiry - timedelta(minutes=15):
                 return hubspot_auth_tokens
@@ -140,4 +142,4 @@ def refresh_token_if_needed(
     except Exception as e:
         if isinstance(e, HubspotNotIntegratedError):
             raise
-        raise Exception(f"Failed to get HubSpot access token: {str(e)}") from e
+        raise Exception(f"Failed to get HubSpot access token: {e!s}") from e

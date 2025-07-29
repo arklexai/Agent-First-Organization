@@ -26,7 +26,7 @@ slots = [
         "description": "The query to search for in the knowledge base",
         "prompt": "Please provide the minimum time to query the busy times",
         "required": True,
-    }
+    },
 ]
 
 outputs = []
@@ -40,7 +40,7 @@ def retriever(query: str, **kwargs: RetrieverParams) -> str:
     bot_id = kwargs.get("bot_id")
     version = kwargs.get("version")
     log_context.info(
-        f"Retrieving from collection {collection_name} for bot {bot_id} version {version} with query {query}"
+        f"Retrieving from collection {collection_name} for bot {bot_id} version {version} with query {query}",
     )
     with MilvusRetriever() as retriever:
         retriever_results = retriever.search(collection_name, bot_id, version, query)

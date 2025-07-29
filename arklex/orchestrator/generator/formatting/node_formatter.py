@@ -38,6 +38,7 @@ class NodeFormatter:
 
         Returns:
             List[Any]: Formatted node as [id, data] pair
+
         """
         node_data = {
             "resource": {
@@ -64,6 +65,7 @@ class NodeFormatter:
 
         Returns:
             Dict[str, Any]: Formatted node data
+
         """
         return {
             "resource": self._default_resource,
@@ -82,6 +84,7 @@ class NodeFormatter:
 
         Returns:
             Dict[str, Any]: Formatted node style
+
         """
         # Get priority color
         priority_colors = {"high": "#ff0000", "medium": "#ffa500", "low": "#00ff00"}
@@ -105,6 +108,7 @@ class NodeFormatter:
 
         Returns:
             bool: True if node is valid
+
         """
         # Require 'id' and 'type' at the top level
         if "id" not in node or not isinstance(node["id"], str):
@@ -133,6 +137,7 @@ class NodeFormatter:
 
         Returns:
             bool: True if attribute is valid
+
         """
         if attr == "steps":
             if not isinstance(value, list):

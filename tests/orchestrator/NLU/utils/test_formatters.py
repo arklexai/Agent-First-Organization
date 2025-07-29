@@ -25,9 +25,9 @@ class TestFormatIntentInput:
                     "attribute": {
                         "definition": "User greets the system",
                         "sample_utterances": ["Hello", "Hi there", "Good morning"],
-                    }
-                }
-            ]
+                    },
+                },
+            ],
         }
         chat_history = "User: Hello\nAssistant: Hi! How can I help you?"
 
@@ -49,16 +49,16 @@ class TestFormatIntentInput:
                     "attribute": {
                         "definition": "User greets the system",
                         "sample_utterances": ["Hello", "Hi"],
-                    }
-                }
+                    },
+                },
             ],
             "booking": [
                 {
                     "attribute": {
                         "definition": "User wants to book something",
                         "sample_utterances": ["I want to book", "Can I reserve"],
-                    }
-                }
+                    },
+                },
             ],
         }
         chat_history = "User: I want to book a table\nAssistant: Sure!"
@@ -81,15 +81,15 @@ class TestFormatIntentInput:
                     "attribute": {
                         "definition": "Book a table",
                         "sample_utterances": ["Book table", "Reserve table"],
-                    }
+                    },
                 },
                 {
                     "attribute": {
                         "definition": "Book a room",
                         "sample_utterances": ["Book room", "Reserve room"],
-                    }
+                    },
                 },
-            ]
+            ],
         }
         chat_history = "User: I need a room\nAssistant: I can help with that."
 
@@ -106,7 +106,7 @@ class TestFormatIntentInput:
     def test_format_intent_input_no_definitions(self) -> None:
         """Test formatting with intents that have no definitions."""
         intents = {
-            "greeting": [{"attribute": {"definition": "", "sample_utterances": []}}]
+            "greeting": [{"attribute": {"definition": "", "sample_utterances": []}}],
         }
         chat_history = "User: Hello\nAssistant: Hi!"
 
@@ -124,9 +124,9 @@ class TestFormatIntentInput:
                     "attribute": {
                         "definition": "User greets the system",
                         "sample_utterances": [],
-                    }
-                }
-            ]
+                    },
+                },
+            ],
         }
         chat_history = "User: Hello\nAssistant: Hi!"
 
@@ -145,8 +145,8 @@ class TestFormatIntentInput:
                     "attribute": {
                         "definition": "User greets the system",
                         "sample_utterances": ["Hello", "Hi"],
-                    }
-                }
+                    },
+                },
             ],
             "unknown": [{"attribute": {"definition": "", "sample_utterances": []}}],
         }
@@ -181,9 +181,9 @@ class TestFormatIntentInput:
                     "attribute": {
                         "definition": "Book a service",
                         "sample_utterances": ["I want to book", "Can I reserve"],
-                    }
-                }
-            ]
+                    },
+                },
+            ],
         }
         chat_history = """User: Hi, I need help
 Assistant: Hello! I'm here to help you.
@@ -252,7 +252,7 @@ class TestFormatSlotInput:
     def test_format_slot_input_with_type_information(self) -> None:
         """Test slot input formatting with type information."""
         slots = [
-            Slot(name="age", description="User's age", required=True, type="integer")
+            Slot(name="age", description="User's age", required=True, type="integer"),
         ]
         context = "User: I am 25 years old."
         result = format_slot_input(slots, context)
@@ -403,7 +403,7 @@ class TestPrivateFunctions:
     def test_format_slot_description_through_slot_input(self) -> None:
         """Test _format_slot_description through format_slot_input."""
         slots = [
-            Slot(name="age", description="User's age", required=True, type="integer")
+            Slot(name="age", description="User's age", required=True, type="integer"),
         ]
         context = "User: I am 25 years old."
         result = format_slot_input(slots, context)
@@ -412,7 +412,7 @@ class TestPrivateFunctions:
     def test_format_slot_description_optional_slot(self) -> None:
         """Test _format_slot_description with optional slot."""
         slots = [
-            Slot(name="age", description="User's age", required=False, type="integer")
+            Slot(name="age", description="User's age", required=False, type="integer"),
         ]
         context = "User: I am 25 years old."
         result = format_slot_input(slots, context)
@@ -438,9 +438,9 @@ class TestPrivateFunctions:
                         description="User's name",
                         required=False,
                         type=None,
-                    )
-                ]
-            )
+                    ),
+                ],
+            ),
         )
 
         context = "User: My name is John."

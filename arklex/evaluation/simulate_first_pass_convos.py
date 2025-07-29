@@ -59,7 +59,10 @@ def join_messages(messages: list[dict[str, Any]]) -> str:
 
 
 def create_convo_profile(
-    best_match: list[str], attr_vals: list[str], summary: str, client: object
+    best_match: list[str],
+    attr_vals: list[str],
+    summary: str,
+    client: object,
 ) -> str:
     dict_profile: dict[str, str] = {}
     for i in range(len(USER_DATA_KEYS)):
@@ -75,9 +78,10 @@ def create_convo_profile(
             {
                 "role": "user",
                 "content": ATTR_TO_PROFILE.format(
-                    company_summary=summary, user_attr=text_profile[:-1]
+                    company_summary=summary,
+                    user_attr=text_profile[:-1],
                 ),
-            }
+            },
         ],
         client,
     )
@@ -119,7 +123,11 @@ def get_example_convo(
     all_profiles: list[str] = list(user_convos.keys())
     attr_vals: list[str] = get_relevant_vals(attr)
     convo, matching_profile = retrieve_convo(
-        attr_vals, all_profiles, user_convos, summary, client
+        attr_vals,
+        all_profiles,
+        user_convos,
+        summary,
+        client,
     )
     return convo, matching_profile
 
@@ -137,7 +145,10 @@ def retrieve_prompts(
         start_text: str = "Humans write short questions with occasional typos. Here are some examples of what a human customer would type: [how much is it?, Can you send info to my email, yes I need a job, want to check both proposals to rent and buy, How much does it cost a [PRODUCT_HERE], Im interested in [PRODUCT_HERE], hi i would like to rent out [PRODUCT_HERE] but im wondering which countries are available for rental]. Replicate the writing behavior of a human customer and begin the conversation with a question to achieve your goal."
     else:
         example_convo, matching_profile = get_example_convo(
-            attr, synthetic_data_params, summary, client
+            attr,
+            synthetic_data_params,
+            summary,
+            client,
         )
         instructional_prompt: str = f"Pretend you are a human interacting with a customer service chatbot for the following company: {summary}\nYou have the following goal when interacting with this chatbot:\n{goal}\nHere is a description of the customer you are pretending to be:\n{profile}\nHave a conversation with the chatbot while trying to achieve your goal as this customer. Make sure the conversation is natural. For example, if the chatbot asks you a question you should answer it. Below is an example conversation between a user with a similar profile to yours that you can use a guide. However, keep in mind that the users profile may not be the exact same as yours, so take that into consideration when conducting the conversation. Here is the sample users profile:\n{matching_profile}\nAnd here is the conversation between this user and the chatbot:\n{example_convo}"
         start_text: str = "Replicate the writing behavior of a human customer and begin the conversation with a question to achieve your goal."
@@ -145,7 +156,9 @@ def retrieve_prompts(
 
 
 def check_goal_completion(
-    goal: str, convo: list[dict[str, Any]], client: object
+    goal: str,
+    convo: list[dict[str, Any]],
+    client: object,
 ) -> bool:
     convo_str: str = format_chat_history_str(flip_hist_content_only(convo[2:]))
     prompt: str = f"Here is a conversation between a user and a customer service chatbot assistant:\n{convo_str}\n\nThe user's goal is the following: {goal}\nOutput False if the user needs to learn more information regarding their goal. Output True otherwise. Only onput True or False and nothing else."
@@ -165,7 +178,12 @@ def conversation(
     env_config: dict[str, Any],
 ) -> tuple[list[dict[str, Any]], bool]:
     instructional_prompt, start_text = retrieve_prompts(
-        profile, goal, attr, summary, synthetic_data_params, env_config["client"]
+        profile,
+        goal,
+        attr,
+        summary,
+        synthetic_data_params,
+        env_config["client"],
     )
     history: list[dict[str, Any]] = []
     history.append({"role": "system", "content": instructional_prompt})
@@ -183,7 +201,10 @@ def conversation(
         history.append({"role": "assistant", "content": output})
         chatbot_history.append({"role": "assistant", "content": output})
         response_data: dict[str, Any] = query_chatbot(
-            model_api, chatbot_history, model_params, env_config
+            model_api,
+            chatbot_history,
+            model_params,
+            env_config,
         )
         answer: str = response_data["answer"]
         answer = answer.replace("\n", " ")
@@ -220,7 +241,7 @@ def generate_conversations(
     # Create input combinations with IDs
     input_combinations = []
     for i, (profile, goal, attr, sys_input) in enumerate(
-        zip(profiles, goals, attributes_list, system_inputs, strict=False)
+        zip(profiles, goals, attributes_list, system_inputs, strict=False),
     ):
         input_combinations.append(
             {
@@ -229,16 +250,16 @@ def generate_conversations(
                 "goal": goal,
                 "attr": attr,
                 "sys_input": sys_input,
-            }
+            },
         )
 
     print(
-        f"Starting conversation generation for {len(input_combinations)} combinations..."
+        f"Starting conversation generation for {len(input_combinations)} combinations...",
     )
 
     def worker(input_combo: dict[str, Any]) -> dict[str, Any]:
         print(
-            f"Processing conversation {input_combo['id'] + 1}/{len(input_combinations)}"
+            f"Processing conversation {input_combo['id'] + 1}/{len(input_combinations)}",
         )
         convo, goal_completion = conversation(
             model_api,
@@ -253,7 +274,7 @@ def generate_conversations(
         )
         syn_convo = flip_hist(filter_convo(convo, filter_turns=False))
         print(
-            f"Completed conversation {input_combo['id'] + 1} (goal completion: {goal_completion})"
+            f"Completed conversation {input_combo['id'] + 1} (goal completion: {goal_completion})",
         )
         return {
             "id": input_combo["id"],
@@ -293,7 +314,8 @@ def simulate_conversations(
     if config["task"] == "first_pass" or config["task"] == "all":
         print("Building user profiles...")
         profiles, goals, attributes_list, system_inputs, labels_list = build_profile(
-            synthetic_data_params, config
+            synthetic_data_params,
+            config,
         )
         print(f"Built {len(profiles)} profiles, {len(goals)} goals")
 
@@ -301,11 +323,13 @@ def simulate_conversations(
         print("Saving profile data to files...")
         os.makedirs(os.path.join(config["output_dir"], "simulate_data"), exist_ok=True)
         with open(
-            os.path.join(config["output_dir"], "simulate_data", "profiles.json"), "w"
+            os.path.join(config["output_dir"], "simulate_data", "profiles.json"),
+            "w",
         ) as f:
             json.dump(profiles, f, indent=4)
         with open(
-            os.path.join(config["output_dir"], "simulate_data", "goals.json"), "w"
+            os.path.join(config["output_dir"], "simulate_data", "goals.json"),
+            "w",
         ) as f:
             json.dump(goals, f, indent=4)
         with open(
@@ -319,7 +343,8 @@ def simulate_conversations(
         ) as f:
             json.dump(system_inputs, f, indent=4)
         with open(
-            os.path.join(config["output_dir"], "simulate_data", "labels_list.json"), "w"
+            os.path.join(config["output_dir"], "simulate_data", "labels_list.json"),
+            "w",
         ) as f:
             json.dump(labels_list, f, indent=4)
         print("Profile data saved successfully.")
@@ -327,11 +352,11 @@ def simulate_conversations(
     elif config["task"] == "simulate_conv_only":
         print("Loading existing profile data...")
         with open(
-            os.path.join(config["output_dir"], "simulate_data", "profiles.json")
+            os.path.join(config["output_dir"], "simulate_data", "profiles.json"),
         ) as f:
             profiles = json.load(f)
         with open(
-            os.path.join(config["output_dir"], "simulate_data", "goals.json")
+            os.path.join(config["output_dir"], "simulate_data", "goals.json"),
         ) as f:
             goals = json.load(f)
         with open(
@@ -343,7 +368,7 @@ def simulate_conversations(
         ) as f:
             system_inputs = json.load(f)
         with open(
-            os.path.join(config["output_dir"], "simulate_data", "labels_list.json")
+            os.path.join(config["output_dir"], "simulate_data", "labels_list.json"),
         ) as f:
             labels_list = json.load(f)
         print("Profile data loaded successfully.")
@@ -378,8 +403,7 @@ def main(
     config: dict[str, Any] | None = None,
     output_file: str = "p1_sample_convos.json",
 ) -> list[dict[str, Any]]:
-    """
-    Main function to simulate conversations with configurable parameters.
+    """Main function to simulate conversations with configurable parameters.
 
     Args:
         model_api: The API endpoint for the model
@@ -390,6 +414,7 @@ def main(
 
     Returns:
         List of conversation dictionaries
+
     """
     # Set default values if not provided
     if synthetic_data_params is None:
@@ -414,7 +439,10 @@ def main(
 
     # Simulate conversations
     convos, _ = simulate_conversations(
-        model_api, model_params, synthetic_data_params, config
+        model_api,
+        model_params,
+        synthetic_data_params,
+        config,
     )
 
     # Save to file if output_file is provided

@@ -1,5 +1,4 @@
-"""
-Tests for RAG workers functionality.
+"""Tests for RAG workers functionality.
 
 This module contains comprehensive tests for all RAG worker classes including
 FaissRAGWorker, MilvusRAGWorker, RagMsgWorker, and RAGMessageWorker.
@@ -53,10 +52,10 @@ class TestRagMsgWorker:
         mock_state.user_message.history = "test history"
 
         with patch(
-            "arklex.env.workers.rag_message_worker.load_prompts"
+            "arklex.env.workers.rag_message_worker.load_prompts",
         ) as mock_load_prompts:
             mock_load_prompts.return_value = {
-                "retrieval_needed_prompt": "Test prompt {formatted_chat}"
+                "retrieval_needed_prompt": "Test prompt {formatted_chat}",
             }
 
             result = worker._choose_retriever(mock_state)
@@ -80,10 +79,10 @@ class TestRagMsgWorker:
         mock_state.user_message.history = "test history"
 
         with patch(
-            "arklex.env.workers.rag_message_worker.load_prompts"
+            "arklex.env.workers.rag_message_worker.load_prompts",
         ) as mock_load_prompts:
             mock_load_prompts.return_value = {
-                "retrieval_needed_prompt": "Test prompt {formatted_chat}"
+                "retrieval_needed_prompt": "Test prompt {formatted_chat}",
             }
 
             result = worker._choose_retriever(mock_state)
@@ -98,7 +97,7 @@ class TestRagMsgWorker:
         with (
             patch("arklex.env.workers.rag_message_worker.RetrieveEngine"),
             patch(
-                "arklex.env.workers.rag_message_worker.MessageWorker"
+                "arklex.env.workers.rag_message_worker.MessageWorker",
             ) as mock_message_worker,
         ):
             mock_message_worker.return_value = Mock()
@@ -125,7 +124,7 @@ class TestRagMsgWorker:
         mock_graph.invoke.return_value = {"result": "success"}
 
         with patch(
-            "arklex.env.workers.rag_message_worker.PROVIDER_MAP"
+            "arklex.env.workers.rag_message_worker.PROVIDER_MAP",
         ) as mock_provider_map:
             mock_provider_map.get.return_value = Mock(return_value=mock_llm)
 
@@ -155,7 +154,7 @@ class TestRagMsgWorker:
         mock_graph.invoke.return_value = {"result": "success"}
 
         with patch(
-            "arklex.env.workers.rag_message_worker.PROVIDER_MAP"
+            "arklex.env.workers.rag_message_worker.PROVIDER_MAP",
         ) as mock_provider_map:
             mock_provider_map.get.return_value = Mock(return_value=mock_llm)
 
@@ -183,7 +182,7 @@ class TestRagMsgWorker:
         mock_graph.invoke.return_value = {"result": "success"}
 
         with patch(
-            "arklex.env.workers.rag_message_worker.PROVIDER_MAP"
+            "arklex.env.workers.rag_message_worker.PROVIDER_MAP",
         ) as mock_provider_map:
             mock_provider_map.get.return_value = Mock(return_value=mock_llm)
 
@@ -211,10 +210,10 @@ class TestRagMsgWorker:
         mock_state.user_message.history = "test history"
 
         with patch(
-            "arklex.env.workers.rag_message_worker.load_prompts"
+            "arklex.env.workers.rag_message_worker.load_prompts",
         ) as mock_load_prompts:
             mock_load_prompts.return_value = {
-                "retrieval_needed_prompt": "Test prompt {formatted_chat}"
+                "retrieval_needed_prompt": "Test prompt {formatted_chat}",
             }
 
             with patch("arklex.env.workers.rag_message_worker.log_context") as mock_log:
@@ -231,7 +230,7 @@ class TestRagMsgWorker:
         with (
             patch("arklex.env.workers.rag_message_worker.RetrieveEngine"),
             patch(
-                "arklex.env.workers.rag_message_worker.MessageWorker"
+                "arklex.env.workers.rag_message_worker.MessageWorker",
             ) as mock_message_worker,
         ):
             mock_message_worker.return_value = Mock()
@@ -265,10 +264,10 @@ class TestRagMsgWorker:
         mock_state.user_message.history = "test history"
 
         with patch(
-            "arklex.env.workers.rag_message_worker.load_prompts"
+            "arklex.env.workers.rag_message_worker.load_prompts",
         ) as mock_load_prompts:
             mock_load_prompts.return_value = {
-                "retrieval_needed_prompt": "Test prompt {formatted_chat}"
+                "retrieval_needed_prompt": "Test prompt {formatted_chat}",
             }
 
             for response, expected in test_cases:
@@ -383,7 +382,7 @@ class TestRAGMessageWorker:
         }
 
         with patch(
-            "arklex.env.workers.rag_message_worker.PROVIDER_MAP"
+            "arklex.env.workers.rag_message_worker.PROVIDER_MAP",
         ) as mock_provider_map:
             mock_llm_class = Mock()
             mock_provider_map.get.return_value = mock_llm_class
@@ -501,7 +500,7 @@ class TestRAGMessageWorker:
         mock_state.orchestrator_message = mock_orchestrator_message
 
         with patch(
-            "arklex.env.workers.rag_message_worker.PROVIDER_MAP"
+            "arklex.env.workers.rag_message_worker.PROVIDER_MAP",
         ) as mock_provider_map:
             mock_llm_class = Mock()
             mock_provider_map.get.return_value = mock_llm_class
@@ -574,7 +573,7 @@ class TestRAGMessageWorker:
         mock_state.orchestrator_message = mock_orchestrator_message
 
         with patch(
-            "arklex.env.workers.rag_message_worker.PROVIDER_MAP"
+            "arklex.env.workers.rag_message_worker.PROVIDER_MAP",
         ) as mock_provider_map:
             mock_llm_class = Mock()
             mock_provider_map.get.return_value = mock_llm_class
@@ -726,7 +725,7 @@ class TestRAGWorkersErrorHandling:
 
         # Test with missing prompts
         with patch(
-            "arklex.env.workers.rag_message_worker.load_prompts"
+            "arklex.env.workers.rag_message_worker.load_prompts",
         ) as mock_load_prompts:
             mock_load_prompts.side_effect = RuntimeError("Prompts not found")
 
@@ -741,10 +740,10 @@ class TestRAGWorkersErrorHandling:
         # Test with missing dependencies - this should not raise an error
         # because the function is not called during graph creation
         with patch(
-            "arklex.env.workers.rag_message_worker.RetrieveEngine"
+            "arklex.env.workers.rag_message_worker.RetrieveEngine",
         ) as mock_retrieve_engine:
             mock_retrieve_engine.milvus_retrieve.side_effect = RuntimeError(
-                "RetrieveEngine error"
+                "RetrieveEngine error",
             )
 
             # The graph creation should succeed because the function is not called

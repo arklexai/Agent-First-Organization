@@ -17,6 +17,7 @@ class DocumentValidator:
     Attributes:
         _required_fields (List[str]): List of required document fields
         _section_fields (List[str]): List of required section fields
+
     """
 
     def __init__(self) -> None:
@@ -32,6 +33,7 @@ class DocumentValidator:
 
         Returns:
             bool: True if document structure is valid
+
         """
         # Check required fields
         if not all(field in document for field in self._required_fields):
@@ -52,6 +54,7 @@ class DocumentValidator:
 
         Returns:
             bool: True if all required fields are present
+
         """
         # Check document fields
         if not all(field in document for field in self._required_fields):
@@ -72,6 +75,7 @@ class DocumentValidator:
 
         Returns:
             bool: True if document is consistent
+
         """
         # Check section names are unique
         section_names = [
@@ -95,6 +99,7 @@ class DocumentValidator:
 
         Returns:
             List[str]: List of error messages
+
         """
         errors = []
 
@@ -120,6 +125,7 @@ class DocumentValidator:
 
         Returns:
             bool: True if section is valid
+
         """
         # Check required fields
         if not all(field in section for field in self._section_fields):

@@ -1,6 +1,4 @@
-"""
-Custom tools package
-"""
+"""Custom tools package"""
 
 from .http_tool import http_tool
 

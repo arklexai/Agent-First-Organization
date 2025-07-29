@@ -83,7 +83,8 @@ class TestNestedGraph:
 
         # Execute
         result_node, result_params = NestedGraph.get_nested_graph_component_node(
-            params, is_leaf_func
+            params,
+            is_leaf_func,
         )
 
         # Assert
@@ -114,7 +115,8 @@ class TestNestedGraph:
 
         # Execute
         result_node, result_params = NestedGraph.get_nested_graph_component_node(
-            params, is_leaf_func
+            params,
+            is_leaf_func,
         )
 
         # Assert
@@ -145,7 +147,8 @@ class TestNestedGraph:
 
         # Execute
         result_node, result_params = NestedGraph.get_nested_graph_component_node(
-            params, is_leaf_func
+            params,
+            is_leaf_func,
         )
 
         # Assert
@@ -163,7 +166,8 @@ class TestNestedGraph:
             return node_id == "node1"
 
         result_node, result_params = NestedGraph.get_nested_graph_component_node(
-            params, is_leaf_func
+            params,
+            is_leaf_func,
         )
 
         assert result_node is not None
@@ -185,7 +189,8 @@ class TestNestedGraph:
             return node_id in ["node1", "node2"]  # node1 and node2 are leaves
 
         result_node, result_params = NestedGraph.get_nested_graph_component_node(
-            params, is_leaf_func
+            params,
+            is_leaf_func,
         )
 
         assert result_node is not None
@@ -205,7 +210,8 @@ class TestNestedGraph:
             return node_id == "node1"
 
         result_node, result_params = NestedGraph.get_nested_graph_component_node(
-            params, is_leaf_func
+            params,
+            is_leaf_func,
         )
 
         assert result_node is not None
@@ -224,7 +230,8 @@ class TestNestedGraph:
             return False
 
         result_node, result_params = NestedGraph.get_nested_graph_component_node(
-            params, is_leaf_func
+            params,
+            is_leaf_func,
         )
 
         assert result_node is None
@@ -240,7 +247,8 @@ class TestNestedGraph:
             return False
 
         result_node, result_params = NestedGraph.get_nested_graph_component_node(
-            params, is_leaf_func
+            params,
+            is_leaf_func,
         )
 
         assert result_node is not None
@@ -259,7 +267,8 @@ class TestNestedGraph:
             return node_id in ["node1", "node2", "node3"]  # All except node4 are leaves
 
         result_node, result_params = NestedGraph.get_nested_graph_component_node(
-            params, is_leaf_func
+            params,
+            is_leaf_func,
         )
 
         assert result_node is not None
@@ -278,7 +287,8 @@ class TestNestedGraph:
             return False
 
         result_node, result_params = NestedGraph.get_nested_graph_component_node(
-            params, is_leaf_func
+            params,
+            is_leaf_func,
         )
 
         assert result_node is not None
@@ -297,7 +307,8 @@ class TestNestedGraph:
             return node_id == "node1"
 
         result_node, result_params = NestedGraph.get_nested_graph_component_node(
-            params, is_leaf_func
+            params,
+            is_leaf_func,
         )
 
         assert result_node is not None
@@ -312,7 +323,8 @@ class TestNestedGraph:
         params = OrchestratorParams()
         # Create a valid scenario where the leaf jump points to a valid index
         path_node1 = PathNode(
-            node_id="node1", nested_graph_leaf_jump=0
+            node_id="node1",
+            nested_graph_leaf_jump=0,
         )  # Points to itself
         path_node2 = PathNode(node_id="node2")
         path_node3 = PathNode(node_id="node3", nested_graph_node_value="node1")
@@ -323,7 +335,8 @@ class TestNestedGraph:
             return node_id == "node1"
 
         result_node, result_params = NestedGraph.get_nested_graph_component_node(
-            params, is_leaf_func
+            params,
+            is_leaf_func,
         )
 
         assert result_node is not None
@@ -403,7 +416,7 @@ class TestNestedGraph:
         try:
             result = NestedGraph.get_nested_graph_component_node(None, is_leaf_func)
             raise AssertionError(
-                "Expected AttributeError but got result: " + str(result)
+                "Expected AttributeError but got result: " + str(result),
             )
         except AttributeError:
             pass  # Expected behavior
@@ -416,7 +429,8 @@ class TestNestedGraph:
 
         # Execute - The code actually handles None gracefully
         result_node, result_params = NestedGraph.get_nested_graph_component_node(
-            params, None
+            params,
+            None,
         )
 
         # Assert - Should return the current node
@@ -436,7 +450,8 @@ class TestNestedGraph:
 
         # Execute - The code actually handles exceptions gracefully
         result_node, result_params = NestedGraph.get_nested_graph_component_node(
-            params, is_leaf_func
+            params,
+            is_leaf_func,
         )
 
         # Assert - Should return the current node even when is_leaf_func raises
@@ -456,7 +471,7 @@ class TestNestedGraph:
         try:
             result = NestedGraph.get_nested_graph_component_node(params, is_leaf_func)
             raise AssertionError(
-                "Expected AttributeError but got result: " + str(result)
+                "Expected AttributeError but got result: " + str(result),
             )
         except AttributeError:
             pass  # Expected behavior
@@ -469,7 +484,8 @@ class TestNestedGraph:
         params = OrchestratorParams()
         path_node1 = PathNode(node_id="node1")
         path_node2 = PathNode(
-            node_id="node2", nested_graph_node_value="nonexistent_node"
+            node_id="node2",
+            nested_graph_node_value="nonexistent_node",
         )
         params.taskgraph.path = [path_node1, path_node2]
         params.taskgraph.node_status = {}
@@ -479,7 +495,8 @@ class TestNestedGraph:
 
         # Execute
         result_node, result_params = NestedGraph.get_nested_graph_component_node(
-            params, is_leaf_func
+            params,
+            is_leaf_func,
         )
 
         # Assert - Should return current node since no valid nested graph is found
@@ -500,7 +517,8 @@ class TestNestedGraph:
 
         # Execute - The code actually handles negative indices gracefully
         result_node, result_params = NestedGraph.get_nested_graph_component_node(
-            params, is_leaf_func
+            params,
+            is_leaf_func,
         )
 
         # Assert - Should return the current node (node2)
@@ -512,7 +530,8 @@ class TestNestedGraph:
         # Setup
         params = OrchestratorParams()
         path_node1 = PathNode(
-            node_id="node1", nested_graph_leaf_jump=10
+            node_id="node1",
+            nested_graph_leaf_jump=10,
         )  # Out of bounds
         path_node2 = PathNode(node_id="node2")
         params.taskgraph.path = [path_node1, path_node2]
@@ -535,7 +554,7 @@ class TestNestedGraph:
         # Configure the mock to raise AttributeError when accessing path
         params.taskgraph.path = Mock()
         params.taskgraph.path.__len__ = Mock(
-            side_effect=AttributeError("path attribute missing")
+            side_effect=AttributeError("path attribute missing"),
         )
 
         def is_leaf_func(node_id: str) -> bool:
@@ -545,7 +564,7 @@ class TestNestedGraph:
         try:
             result = NestedGraph.get_nested_graph_component_node(params, is_leaf_func)
             raise AssertionError(
-                "Expected AttributeError but got result: " + str(result)
+                "Expected AttributeError but got result: " + str(result),
             )
         except AttributeError:
             pass  # Expected behavior
@@ -564,7 +583,8 @@ class TestNestedGraph:
 
         # Execute - The code actually handles missing node_status gracefully
         result_node, result_params = NestedGraph.get_nested_graph_component_node(
-            params, is_leaf_func
+            params,
+            is_leaf_func,
         )
 
         # Assert - Should return the current node (node2)
@@ -585,7 +605,8 @@ class TestNestedGraph:
 
         # Execute
         result_node, result_params = NestedGraph.get_nested_graph_component_node(
-            params, is_leaf_func
+            params,
+            is_leaf_func,
         )
 
         # Assert - Should handle circular reference gracefully
@@ -599,10 +620,14 @@ class TestNestedGraph:
         # Setup
         params = OrchestratorParams()
         path_node1 = PathNode(
-            node_id="node1", nested_graph_leaf_jump=None, nested_graph_node_value=None
+            node_id="node1",
+            nested_graph_leaf_jump=None,
+            nested_graph_node_value=None,
         )
         path_node2 = PathNode(
-            node_id="node2", nested_graph_leaf_jump=None, nested_graph_node_value=None
+            node_id="node2",
+            nested_graph_leaf_jump=None,
+            nested_graph_node_value=None,
         )
         params.taskgraph.path = [path_node1, path_node2]
         params.taskgraph.node_status = {}
@@ -612,7 +637,8 @@ class TestNestedGraph:
 
         # Execute
         result_node, result_params = NestedGraph.get_nested_graph_component_node(
-            params, is_leaf_func
+            params,
+            is_leaf_func,
         )
 
         # Assert - Should work normally with None attributes
@@ -629,7 +655,8 @@ class TestNestedGraph:
             return True
 
         result_node, result_params = NestedGraph.get_nested_graph_component_node(
-            params, is_leaf_func
+            params,
+            is_leaf_func,
         )
 
         assert result_node is None
@@ -644,7 +671,8 @@ class TestNestedGraph:
             return True
 
         result_node, result_params = NestedGraph.get_nested_graph_component_node(
-            params, is_leaf_func
+            params,
+            is_leaf_func,
         )
         assert result_node is None
         assert result_params == params
@@ -660,7 +688,8 @@ class TestNestedGraph:
             return True
 
         result_node, result_params = NestedGraph.get_nested_graph_component_node(
-            params, is_leaf_func
+            params,
+            is_leaf_func,
         )
 
         # Should return None and params in the fallback case
@@ -682,7 +711,8 @@ class TestNestedGraph:
             return True  # All nodes are leaves
 
         result_node, result_params = NestedGraph.get_nested_graph_component_node(
-            params, is_leaf_func
+            params,
+            is_leaf_func,
         )
 
         # When all nodes are leaves, the algorithm returns the first node in the path
@@ -700,7 +730,8 @@ class TestNestedGraph:
             return True
 
         result_node, result_params = NestedGraph.get_nested_graph_component_node(
-            params, is_leaf_func
+            params,
+            is_leaf_func,
         )
 
         # Should return None when path is empty
@@ -723,7 +754,8 @@ class TestNestedGraph:
             return True
 
         result_node, result_params = NestedGraph.get_nested_graph_component_node(
-            params, is_leaf_func
+            params,
+            is_leaf_func,
         )
 
         # When all nodes are leaves, the algorithm returns the first node in the path
@@ -743,7 +775,8 @@ class TestNestedGraph:
             return False
 
         result_node, result_params = NestedGraph.get_nested_graph_component_node(
-            params, is_leaf_func
+            params,
+            is_leaf_func,
         )
         assert result_node is None
         assert result_params == params
@@ -759,7 +792,8 @@ class TestNestedGraph:
             return True
 
         result_node, result_params = NestedGraph.get_nested_graph_component_node(
-            params, is_leaf_func
+            params,
+            is_leaf_func,
         )
         assert result_node is None
         assert result_params == params
@@ -771,7 +805,8 @@ class TestNestedGraph:
         params = OrchestratorParams()
         params.taskgraph.path = []
         result_node, result_params = NestedGraph.get_nested_graph_component_node(
-            params, None
+            params,
+            None,
         )
         assert result_node is None
         assert result_params == params
@@ -824,7 +859,8 @@ class TestNestedGraph:
         # This should trigger the fallback return None, params when the path is empty
         # and cur_node_i becomes -1 (len(path) - 1 = -1)
         result_node, result_params = NestedGraph.get_nested_graph_component_node(
-            params, is_leaf_func
+            params,
+            is_leaf_func,
         )
 
         # The fallback should return None, params when the path is empty
@@ -845,7 +881,8 @@ class TestNestedGraph:
             return False
 
         result_node, result_params = NestedGraph.get_nested_graph_component_node(
-            params, is_leaf_func
+            params,
+            is_leaf_func,
         )
         # Should return the nested graph component node (node2) and params
         assert result_node is not None

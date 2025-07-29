@@ -1,5 +1,4 @@
-"""
-This module provides functionality to retrieve detailed user information from the Shopify store
+"""This module provides functionality to retrieve detailed user information from the Shopify store
 using the Admin API. It supports retrieving comprehensive user profiles including contact details,
 order history, and spending information.
 
@@ -49,8 +48,7 @@ class GetUserDetailsAdminParams(TypedDict, total=False):
 
 @register_tool(description, slots, outputs)
 def get_user_details_admin(user_id: str, **kwargs: GetUserDetailsAdminParams) -> str:
-    """
-    Retrieve detailed information about a user using the Shopify Admin API.
+    """Retrieve detailed information about a user using the Shopify Admin API.
 
     Args:
         user_id (str): The ID of the user to retrieve information for.
@@ -77,6 +75,7 @@ def get_user_details_admin(user_id: str, **kwargs: GetUserDetailsAdminParams) ->
     Note:
         The function expects a valid Shopify user ID. The response is returned
         as a JSON string that can be parsed to access individual user details.
+
     """
     func_name = inspect.currentframe().f_code.co_name
     nav = cursorify(kwargs)
@@ -119,11 +118,10 @@ def get_user_details_admin(user_id: str, **kwargs: GetUserDetailsAdminParams) ->
             data: dict[str, str] | None = json.loads(response)["data"]["customer"]
             if data:
                 return json.dumps(data)
-            else:
-                raise ToolExecutionError(
-                    func_name,
-                    extra_message=ShopifyExceptionPrompt.USER_NOT_FOUND_PROMPT,
-                )
+            raise ToolExecutionError(
+                func_name,
+                extra_message=ShopifyExceptionPrompt.USER_NOT_FOUND_PROMPT,
+            )
 
     except Exception as e:
         raise ToolExecutionError(

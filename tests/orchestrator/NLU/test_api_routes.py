@@ -4,7 +4,7 @@ import pytest
 from fastapi import FastAPI
 from fastapi.testclient import TestClient
 
-import arklex.orchestrator.NLU.api.routes as routes
+from arklex.orchestrator.NLU.api import routes
 from arklex.utils.exceptions import ValidationError
 
 
@@ -26,7 +26,7 @@ def test_predict_intent_route() -> None:
     data = {
         "text": "hello",
         "intents": {
-            "greet": [{"definition": "Say hello", "sample_utterances": ["hello"]}]
+            "greet": [{"definition": "Say hello", "sample_utterances": ["hello"]}],
         },
         "chat_history_str": "",
         "model": {"model_name": "test", "model_type_or_path": "test"},
@@ -64,7 +64,7 @@ def test_predict_slots_route() -> None:
         mock_service.format_slot_input.return_value = "prompt"
         mock_service.get_model_response.return_value = "response"
         mock_service.process_slot_response.return_value = [
-            {"name": "user_name", "value": "John"}
+            {"name": "user_name", "value": "John"},
         ]
         response = client.post("/slotfill/predict", json=data)
         assert response.status_code == 200
@@ -160,7 +160,7 @@ def test_fill_slots_router_success() -> None:
     with patch("arklex.orchestrator.NLU.api.routes.ModelService") as MockModelService:
         mock_service = MockModelService.return_value
         mock_service.fill_slots.return_value = {
-            "slots": [{"name": "user", "value": "John"}]
+            "slots": [{"name": "user", "value": "John"}],
         }
         from arklex.orchestrator.NLU.api.routes import (
             fill_slots as router_fill_slots,
@@ -366,7 +366,7 @@ def test_predict_intent_app_with_type_parameter() -> None:
         mock_service.format_slot_input.return_value = "prompt"
         mock_service.get_model_response.return_value = "response"
         mock_service.process_slot_response.return_value = [
-            {"name": "user_name", "value": "John"}
+            {"name": "user_name", "value": "John"},
         ]
         response = client.post("/slotfill/predict", json=data)
         assert response.status_code == 200
@@ -381,7 +381,7 @@ def test_predict_intent_app_with_others_fallback() -> None:
     data = {
         "text": "hello",
         "intents": {
-            "greet": [{"definition": "Say hello", "sample_utterances": ["hello"]}]
+            "greet": [{"definition": "Say hello", "sample_utterances": ["hello"]}],
         },
         "chat_history_str": "",
         "model": {"model_name": "test", "model_type_or_path": "test"},
@@ -407,10 +407,11 @@ def test_router_fill_slots_with_client() -> None:
         mock_service = MockModelService.return_value
         # SlotResponse expects 'slot' and 'value' fields
         mock_service.fill_slots = AsyncMock(
-            return_value={"slot": "user", "value": "John", "confidence": 0.8}
+            return_value={"slot": "user", "value": "John", "confidence": 0.8},
         )
         response = client.post(
-            "/fill_slots", params={"text": "my name is John", "intent": "greet"}
+            "/fill_slots",
+            params={"text": "my name is John", "intent": "greet"},
         )
         assert response.status_code == 200
         assert response.json()["slot"] == "user"
@@ -431,7 +432,7 @@ def test_router_verify_slots_with_client() -> None:
                 "reason": "valid",
                 "verified": True,
                 "confidence": 0.8,
-            }
+            },
         )
         response = client.post(
             "/verify_slots",
@@ -453,7 +454,7 @@ def test_router_predict_intent_with_client() -> None:
         mock_service = MockModelService.return_value
         # IntentResponse expects 'intent' and 'confidence' fields
         mock_service.predict_intent = AsyncMock(
-            return_value={"intent": "greet", "confidence": 0.9}
+            return_value={"intent": "greet", "confidence": 0.9},
         )
         response = client.post("/predict_intent", params={"text": "hello"})
         assert response.status_code == 200

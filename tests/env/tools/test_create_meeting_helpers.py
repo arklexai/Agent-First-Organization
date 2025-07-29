@@ -1,5 +1,4 @@
-"""
-Unit tests for helper functions in create_meeting.py.
+"""Unit tests for helper functions in create_meeting.py.
 
 This module contains comprehensive unit tests for the helper functions
 used in the create_meeting tool, including parse_natural_date and is_iso8601.
@@ -33,7 +32,9 @@ class TestParseNaturalDate:
     def test_parse_natural_date_date_only(self) -> None:
         """Test date-only parsing with date_input=True."""
         result = parse_natural_date(
-            "May 1st", timezone="America/New_York", date_input=True
+            "May 1st",
+            timezone="America/New_York",
+            date_input=True,
         )
         assert isinstance(result, datetime)
         # When timezone is provided, the time is converted to UTC
@@ -269,7 +270,9 @@ class TestCreateMeetingIntegration:
         """Test edge case handling in parse_natural_date function."""
         # Test with None base_date
         result = parse_natural_date(
-            "tomorrow", base_date=None, timezone="America/New_York"
+            "tomorrow",
+            base_date=None,
+            timezone="America/New_York",
         )
         assert isinstance(result, datetime)
         assert result.tzinfo is not None
@@ -282,7 +285,9 @@ class TestCreateMeetingIntegration:
 
         # Test date_input=True with timezone
         result = parse_natural_date(
-            "May 1st", timezone="America/New_York", date_input=True
+            "May 1st",
+            timezone="America/New_York",
+            date_input=True,
         )
         assert isinstance(result, datetime)
         assert result.tzinfo is not None
@@ -394,7 +399,9 @@ class TestCreateMeetingIntegration:
 
         # Test natural language parsing for create_meeting date parsing
         result = parse_natural_date(
-            "tomorrow", timezone="America/New_York", date_input=True
+            "tomorrow",
+            timezone="America/New_York",
+            date_input=True,
         )
         assert isinstance(result, datetime)
         assert result.tzinfo is not None
@@ -423,7 +430,9 @@ class TestCreateMeetingIntegration:
 
         # Test return path with date_input=True and timezone
         result = parse_natural_date(
-            "May 1st", timezone="America/New_York", date_input=True
+            "May 1st",
+            timezone="America/New_York",
+            date_input=True,
         )
         assert isinstance(result, datetime)
         assert result.tzinfo is not None

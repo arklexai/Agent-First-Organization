@@ -88,7 +88,8 @@ class VLLMChatModel(ChatModel):
             latency_ms_per_output_token
             if latency_ms_per_output_token is not None
             else LATENCY_MS_PER_OUTPUT_TOKEN_MAP.get(
-                model, LATENCY_MS_PER_OUTPUT_TOKEN_FALLBACK
+                model,
+                LATENCY_MS_PER_OUTPUT_TOKEN_FALLBACK,
             )
         )
         self.max_context_length: int = (
@@ -104,7 +105,8 @@ class VLLMChatModel(ChatModel):
     def get_latency(self, dp: Datapoint) -> float:
         latency_per_output_token: float = self.latency_ms_per_output_token
         return approx_cost_for_datapoint(
-            dp=dp, price_per_input_token=latency_per_output_token
+            dp=dp,
+            price_per_input_token=latency_per_output_token,
         )
 
     def get_capability(self) -> float:
@@ -129,7 +131,9 @@ class VLLMChatModel(ChatModel):
             temperature=wrap_temperature(temperature=temperature),
         )
         return self.handle_generate_message_response(
-            prompt=msgs, content=res.choices[0].message.content, force_json=force_json
+            prompt=msgs,
+            content=res.choices[0].message.content,
+            force_json=force_json,
         )
 
     def force_json_prompt(self, text: str, _: bool = False) -> str:

@@ -131,7 +131,8 @@ class TestTaskGraphFormatter:
     """Test the TaskGraphFormatter class."""
 
     def test_task_graph_formatter_initialization(
-        self, task_graph_formatter: TaskGraphFormatter
+        self,
+        task_graph_formatter: TaskGraphFormatter,
     ) -> None:
         """Test TaskGraphFormatter initialization with all parameters."""
         assert task_graph_formatter._role == "test_role"
@@ -154,7 +155,8 @@ class TestTaskGraphFormatter:
         assert task_graph_formatter._model is not None
 
     def test_task_graph_formatter_minimal_initialization(
-        self, task_graph_formatter_minimal: TaskGraphFormatter
+        self,
+        task_graph_formatter_minimal: TaskGraphFormatter,
     ) -> None:
         """Test TaskGraphFormatter initialization with minimal parameters."""
         assert task_graph_formatter_minimal._role == ""
@@ -179,7 +181,8 @@ class TestTaskGraphFormatter:
         assert task_graph_formatter_minimal._model is None
 
     def test_find_worker_by_name_existing_worker(
-        self, task_graph_formatter: TaskGraphFormatter
+        self,
+        task_graph_formatter: TaskGraphFormatter,
     ) -> None:
         """Test finding worker by name when worker exists."""
         worker_info = task_graph_formatter._find_worker_by_name("MessageWorker")
@@ -187,7 +190,8 @@ class TestTaskGraphFormatter:
         assert worker_info["name"] == "MessageWorker"
 
     def test_find_worker_by_name_fallback_mapping(
-        self, task_graph_formatter_minimal: TaskGraphFormatter
+        self,
+        task_graph_formatter_minimal: TaskGraphFormatter,
     ) -> None:
         """Test finding worker by name using fallback mappings."""
         # Test MessageWorker fallback
@@ -197,7 +201,7 @@ class TestTaskGraphFormatter:
 
         # Test FaissRAGWorker fallback
         worker_info = task_graph_formatter_minimal._find_worker_by_name(
-            "FaissRAGWorker"
+            "FaissRAGWorker",
         )
         assert worker_info["id"] == "FaissRAGWorker"
         assert worker_info["name"] == "FaissRAGWorker"
@@ -208,7 +212,8 @@ class TestTaskGraphFormatter:
         assert worker_info["name"] == "SearchWorker"
 
     def test_find_worker_by_name_unknown_worker(
-        self, task_graph_formatter_minimal: TaskGraphFormatter
+        self,
+        task_graph_formatter_minimal: TaskGraphFormatter,
     ) -> None:
         """Test finding worker by name for unknown worker."""
         worker_info = task_graph_formatter_minimal._find_worker_by_name("UnknownWorker")
@@ -216,7 +221,8 @@ class TestTaskGraphFormatter:
         assert worker_info["name"] == "UnknownWorker"
 
     def test_find_worker_by_name_worker_without_id(
-        self, task_graph_formatter: TaskGraphFormatter
+        self,
+        task_graph_formatter: TaskGraphFormatter,
     ) -> None:
         """Test finding worker by name when worker exists but has no id."""
         # Add a worker without id to the formatter
@@ -226,7 +232,8 @@ class TestTaskGraphFormatter:
         assert worker_info["name"] == "WorkerWithoutId"
 
     def test_find_worker_by_name_worker_without_name(
-        self, task_graph_formatter: TaskGraphFormatter
+        self,
+        task_graph_formatter: TaskGraphFormatter,
     ) -> None:
         """Test finding worker by name when worker exists but has no name."""
         # Add a worker without name to the formatter
@@ -237,7 +244,8 @@ class TestTaskGraphFormatter:
         assert worker_info["name"] == "SomeWorker"
 
     def test_format_task_graph_with_predefined_nodes_edges(
-        self, task_graph_formatter: TaskGraphFormatter
+        self,
+        task_graph_formatter: TaskGraphFormatter,
     ) -> None:
         """Test format_task_graph with predefined nodes and edges."""
         task_graph_formatter._nodes = [["node1", {"data": "test"}]]
@@ -261,7 +269,8 @@ class TestTaskGraphFormatter:
         assert isinstance(result["edges"], list)
 
     def test_create_edge_attributes_with_all_parameters(
-        self, task_graph_formatter: TaskGraphFormatter
+        self,
+        task_graph_formatter: TaskGraphFormatter,
     ) -> None:
         """Test _create_edge_attributes with all parameters."""
         attributes = task_graph_formatter._create_edge_attributes(
@@ -282,7 +291,8 @@ class TestTaskGraphFormatter:
         ]
 
     def test_create_edge_attributes_with_defaults(
-        self, task_graph_formatter: TaskGraphFormatter
+        self,
+        task_graph_formatter: TaskGraphFormatter,
     ) -> None:
         """Test _create_edge_attributes with default values."""
         attributes = task_graph_formatter._create_edge_attributes()
@@ -296,11 +306,13 @@ class TestTaskGraphFormatter:
         )  # Default sample_utterances
 
     def test_create_edge_attributes_with_none_values(
-        self, task_graph_formatter_minimal: TaskGraphFormatter
+        self,
+        task_graph_formatter_minimal: TaskGraphFormatter,
     ) -> None:
         """Test _create_edge_attributes with None values."""
         attributes = task_graph_formatter_minimal._create_edge_attributes(
-            intent=None, sample_utterances=None
+            intent=None,
+            sample_utterances=None,
         )
 
         assert attributes["intent"] is None
@@ -318,7 +330,7 @@ class TestTaskGraphFormatter:
     ) -> None:
         """Test _format_nodes with basic tasks."""
         nodes, node_lookup, all_task_node_ids = task_graph_formatter._format_nodes(
-            sample_tasks
+            sample_tasks,
         )
 
         assert isinstance(nodes, list)
@@ -329,7 +341,8 @@ class TestTaskGraphFormatter:
         assert len(all_task_node_ids) > 0
 
     def test_format_nodes_empty_tasks(
-        self, task_graph_formatter: TaskGraphFormatter
+        self,
+        task_graph_formatter: TaskGraphFormatter,
     ) -> None:
         """Test _format_nodes with empty tasks list."""
         nodes, node_lookup, all_task_node_ids = task_graph_formatter._format_nodes([])
@@ -348,33 +361,41 @@ class TestTaskGraphFormatter:
         """Test _format_edges with basic tasks."""
         # First format nodes to get node_lookup
         nodes, node_lookup, all_task_node_ids = task_graph_formatter._format_nodes(
-            sample_tasks
+            sample_tasks,
         )
         start_node_id = "0"
 
         edges, nested_graph_nodes = task_graph_formatter._format_edges(
-            sample_tasks, node_lookup, all_task_node_ids, start_node_id
+            sample_tasks,
+            node_lookup,
+            all_task_node_ids,
+            start_node_id,
         )
 
         assert isinstance(edges, list)
         assert isinstance(nested_graph_nodes, list)
 
     def test_format_edges_empty_tasks(
-        self, task_graph_formatter: TaskGraphFormatter
+        self,
+        task_graph_formatter: TaskGraphFormatter,
     ) -> None:
         """Test _format_edges with empty tasks list."""
         nodes, node_lookup, all_task_node_ids = task_graph_formatter._format_nodes([])
         start_node_id = "0"
 
         edges, nested_graph_nodes = task_graph_formatter._format_edges(
-            [], node_lookup, all_task_node_ids, start_node_id
+            [],
+            node_lookup,
+            all_task_node_ids,
+            start_node_id,
         )
 
         assert isinstance(edges, list)
         assert isinstance(nested_graph_nodes, list)
 
     def test_ensure_nested_graph_connectivity(
-        self, task_graph_formatter: TaskGraphFormatter
+        self,
+        task_graph_formatter: TaskGraphFormatter,
     ) -> None:
         """Test ensure_nested_graph_connectivity method."""
         graph = {
@@ -414,7 +435,8 @@ class TestTaskGraphFormatter:
         assert nested_graph_node[1]["attribute"]["value"] == "old_value"
 
     def test_ensure_nested_graph_connectivity_no_nested_graph(
-        self, task_graph_formatter: TaskGraphFormatter
+        self,
+        task_graph_formatter: TaskGraphFormatter,
     ) -> None:
         """Test ensure_nested_graph_connectivity with no NestedGraph nodes."""
         graph = {
@@ -436,7 +458,8 @@ class TestTaskGraphFormatter:
         assert result == graph  # Should return unchanged graph
 
     def test_ensure_nested_graph_connectivity_nested_graph_no_target(
-        self, task_graph_formatter: TaskGraphFormatter
+        self,
+        task_graph_formatter: TaskGraphFormatter,
     ) -> None:
         """Test ensure_nested_graph_connectivity with NestedGraph but no valid target."""
         graph = {
@@ -473,7 +496,8 @@ class TestTaskGraphFormatter:
         assert nested_graph_node[1]["attribute"]["value"] == "old_value"
 
     def test_ensure_nested_graph_connectivity_nested_graph_no_edges(
-        self, task_graph_formatter: TaskGraphFormatter
+        self,
+        task_graph_formatter: TaskGraphFormatter,
     ) -> None:
         """Test ensure_nested_graph_connectivity with NestedGraph but no edges."""
         graph = {
@@ -508,7 +532,8 @@ class TestTaskGraphFormatter:
         assert nested_graph_node[1]["attribute"]["value"] == "old_value"
 
     def test_ensure_nested_graph_connectivity_nested_graph_no_task_nodes(
-        self, task_graph_formatter: TaskGraphFormatter
+        self,
+        task_graph_formatter: TaskGraphFormatter,
     ) -> None:
         """Test ensure_nested_graph_connectivity with NestedGraph but no task nodes."""
         graph = {
@@ -536,7 +561,8 @@ class TestTaskGraphFormatter:
         assert nested_graph_node[1]["attribute"]["value"] == "old_value"
 
     def test_ensure_nested_graph_connectivity_dict_value(
-        self, task_graph_formatter: TaskGraphFormatter
+        self,
+        task_graph_formatter: TaskGraphFormatter,
     ) -> None:
         """Test ensure_nested_graph_connectivity with dict value in non-NestedGraph node."""
         graph = {
@@ -564,7 +590,8 @@ class TestTaskGraphFormatter:
         assert node[1]["attribute"]["value"] == {"description": "test_desc"}
 
     def test_ensure_nested_graph_connectivity_dict_value_no_description(
-        self, task_graph_formatter: TaskGraphFormatter
+        self,
+        task_graph_formatter: TaskGraphFormatter,
     ) -> None:
         """Test ensure_nested_graph_connectivity with dict value but no description."""
         graph = {
@@ -592,7 +619,8 @@ class TestTaskGraphFormatter:
         assert node[1]["attribute"]["value"] == {"other": "data"}
 
     def test_ensure_nested_graph_connectivity_list_value(
-        self, task_graph_formatter: TaskGraphFormatter
+        self,
+        task_graph_formatter: TaskGraphFormatter,
     ) -> None:
         """Test ensure_nested_graph_connectivity with list value."""
         graph = {
@@ -648,7 +676,7 @@ class TestTaskGraphFormatter:
     ) -> None:
         """Test format_task_graph processes complex values correctly."""
         result = task_graph_formatter.format_task_graph(
-            sample_tasks_with_complex_values
+            sample_tasks_with_complex_values,
         )
 
         assert "nodes" in result
@@ -690,7 +718,8 @@ class TestTaskGraphFormatter:
         assert formatter._model is None
 
     def test_format_task_graph_handles_dict_value(
-        self, task_graph_formatter: TaskGraphFormatter
+        self,
+        task_graph_formatter: TaskGraphFormatter,
     ) -> None:
         tasks = [
             {
@@ -699,7 +728,7 @@ class TestTaskGraphFormatter:
                 "description": "desc",
                 "steps": [],
                 "attribute": {"value": {"description": "desc text"}},
-            }
+            },
         ]
         # Create mock nodes that include the expected structure
         mock_nodes = [
@@ -725,7 +754,8 @@ class TestTaskGraphFormatter:
             assert graph["nodes"][1][1]["attribute"]["value"] == "desc"
 
     def test_format_task_graph_handles_dict_value_no_description(
-        self, task_graph_formatter: TaskGraphFormatter
+        self,
+        task_graph_formatter: TaskGraphFormatter,
     ) -> None:
         tasks = [
             {
@@ -734,7 +764,7 @@ class TestTaskGraphFormatter:
                 "description": "desc",
                 "steps": [],
                 "attribute": {"value": {"other": "no desc"}},
-            }
+            },
         ]
         # Create mock nodes that include the expected structure
         mock_nodes = [
@@ -759,7 +789,8 @@ class TestTaskGraphFormatter:
             assert graph["nodes"][1][1]["attribute"]["value"] == "desc"
 
     def test_format_task_graph_handles_list_value(
-        self, task_graph_formatter: TaskGraphFormatter
+        self,
+        task_graph_formatter: TaskGraphFormatter,
     ) -> None:
         tasks = [
             {
@@ -768,7 +799,7 @@ class TestTaskGraphFormatter:
                 "description": "desc",
                 "steps": [],
                 "attribute": {"value": [1, 2, 3]},
-            }
+            },
         ]
         # Create mock nodes that include the expected structure
         mock_nodes = [
@@ -793,7 +824,8 @@ class TestTaskGraphFormatter:
             assert graph["nodes"][1][1]["attribute"]["value"] == "desc"
 
     def test_format_task_graph_fallback_to_node_1(
-        self, task_graph_formatter: TaskGraphFormatter
+        self,
+        task_graph_formatter: TaskGraphFormatter,
     ) -> None:
         # Simulate no task_node_ids, should fallback to '1'
         tasks = [
@@ -802,7 +834,7 @@ class TestTaskGraphFormatter:
                 "name": "Task 1",
                 "description": "desc",
                 "steps": [],
-            }
+            },
         ]
         # Patch ensure_nested_graph_connectivity to just return its input
         with (
@@ -812,7 +844,9 @@ class TestTaskGraphFormatter:
                 side_effect=lambda g: g,
             ),
             patch.object(
-                task_graph_formatter, "_format_nodes", return_value=([], {}, [])
+                task_graph_formatter,
+                "_format_nodes",
+                return_value=([], {}, []),
             ),
             patch.object(task_graph_formatter, "_format_edges", return_value=([], [])),
         ):
@@ -822,7 +856,8 @@ class TestTaskGraphFormatter:
             assert "nodes" in graph
 
     def test_format_nodes_creates_start_node(
-        self, task_graph_formatter: TaskGraphFormatter
+        self,
+        task_graph_formatter: TaskGraphFormatter,
     ) -> None:
         nodes, node_lookup, all_task_node_ids = task_graph_formatter._format_nodes([])
         assert nodes[0][1]["type"] == "start"
@@ -831,7 +866,8 @@ class TestTaskGraphFormatter:
         assert all_task_node_ids == []
 
     def test_format_nodes_with_task_and_step(
-        self, task_graph_formatter: TaskGraphFormatter
+        self,
+        task_graph_formatter: TaskGraphFormatter,
     ) -> None:
         tasks = [
             {
@@ -839,17 +875,18 @@ class TestTaskGraphFormatter:
                 "name": "Task 1",
                 "description": "desc",
                 "steps": [{"description": "stepdesc", "step_id": "step1"}],
-            }
+            },
         ]
         nodes, node_lookup, all_task_node_ids = task_graph_formatter._format_nodes(
-            tasks
+            tasks,
         )
         assert any("stepdesc" in n[1]["attribute"]["value"] for n in nodes)
         assert "task1" in node_lookup
         assert len(all_task_node_ids) == 1
 
     def test_format_nodes_with_step_as_string(
-        self, task_graph_formatter: TaskGraphFormatter
+        self,
+        task_graph_formatter: TaskGraphFormatter,
     ) -> None:
         tasks = [
             {
@@ -857,15 +894,16 @@ class TestTaskGraphFormatter:
                 "name": "Task 1",
                 "description": "desc",
                 "steps": ["step as string"],
-            }
+            },
         ]
         nodes, node_lookup, all_task_node_ids = task_graph_formatter._format_nodes(
-            tasks
+            tasks,
         )
         assert any("step as string" in n[1]["attribute"]["value"] for n in nodes)
 
     def test_format_nodes_with_step_as_non_dict(
-        self, task_graph_formatter: TaskGraphFormatter
+        self,
+        task_graph_formatter: TaskGraphFormatter,
     ) -> None:
         tasks = [
             {
@@ -873,10 +911,10 @@ class TestTaskGraphFormatter:
                 "name": "Task 1",
                 "description": "desc",
                 "steps": [123],
-            }
+            },
         ]
         nodes, node_lookup, all_task_node_ids = task_graph_formatter._format_nodes(
-            tasks
+            tasks,
         )
         assert any("123" in n[1]["attribute"]["value"] for n in nodes)
 
@@ -889,19 +927,23 @@ class TestTaskGraphFormatter:
         task_graph_formatter._model = Mock()
         task_graph_formatter._model.invoke.side_effect = Exception("fail")
         nodes, node_lookup, all_task_node_ids = task_graph_formatter._format_nodes(
-            sample_tasks
+            sample_tasks,
         )
         start_node_id = "0"
         # Should fallback to default intent
         edges, _ = task_graph_formatter._format_edges(
-            sample_tasks, node_lookup, all_task_node_ids, start_node_id
+            sample_tasks,
+            node_lookup,
+            all_task_node_ids,
+            start_node_id,
         )
         assert any(
             e[2]["intent"] == "User inquires about purchasing options" for e in edges
         )
 
     def test_format_edges_dependency_edge_cases(
-        self, task_graph_formatter: TaskGraphFormatter
+        self,
+        task_graph_formatter: TaskGraphFormatter,
     ) -> None:
         # dep is None, not a string/dict, or dict without 'id'
         tasks = [
@@ -919,22 +961,28 @@ class TestTaskGraphFormatter:
             },
         ]
         nodes, node_lookup, all_task_node_ids = task_graph_formatter._format_nodes(
-            tasks
+            tasks,
         )
         start_node_id = "0"
         # Should not raise, just skip invalid deps
         edges, _ = task_graph_formatter._format_edges(
-            tasks, node_lookup, all_task_node_ids, start_node_id
+            tasks,
+            node_lookup,
+            all_task_node_ids,
+            start_node_id,
         )
         assert isinstance(edges, list)
 
     def test_format_task_graph_fallback_to_node_1_explicit(
-        self, task_graph_formatter: TaskGraphFormatter
+        self,
+        task_graph_formatter: TaskGraphFormatter,
     ) -> None:
         # Patch _format_nodes and _format_edges to return no task nodes
         with (
             patch.object(
-                task_graph_formatter, "_format_nodes", return_value=([], {}, [])
+                task_graph_formatter,
+                "_format_nodes",
+                return_value=([], {}, []),
             ),
             patch.object(task_graph_formatter, "_format_edges", return_value=([], [])),
             patch.object(
@@ -950,14 +998,15 @@ class TestTaskGraphFormatter:
                     "description": "desc",
                     "steps": [],
                     "resource": "NestedGraph",
-                }
+                },
             ]
             graph = task_graph_formatter.format_task_graph(tasks)
             # Should not error, fallback to '1' for value
             assert "nodes" in graph
 
     def test_format_nodes_step_with_resource_as_string(
-        self, task_graph_formatter: TaskGraphFormatter
+        self,
+        task_graph_formatter: TaskGraphFormatter,
     ) -> None:
         tasks = [
             {
@@ -965,26 +1014,28 @@ class TestTaskGraphFormatter:
                 "name": "Task 1",
                 "description": "desc",
                 "steps": [{"description": "stepdesc", "resource": "CustomWorker"}],
-            }
+            },
         ]
         nodes, node_lookup, all_task_node_ids = task_graph_formatter._format_nodes(
-            tasks
+            tasks,
         )
         # Should create a step node with resource name 'CustomWorker'
         assert any(n[1]["resource"]["name"] == "CustomWorker" for n in nodes)
 
     def test_format_nodes_task_with_no_steps_no_description(
-        self, task_graph_formatter: TaskGraphFormatter
+        self,
+        task_graph_formatter: TaskGraphFormatter,
     ) -> None:
         tasks = [{"id": "task1", "name": "Task 1"}]
         nodes, node_lookup, all_task_node_ids = task_graph_formatter._format_nodes(
-            tasks
+            tasks,
         )
         # Should still create a task node
         assert any(n[1]["resource"]["name"] == "MessageWorker" for n in nodes)
 
     def test_format_task_graph_fallback_to_node_1_when_no_task_nodes(
-        self, task_graph_formatter: TaskGraphFormatter
+        self,
+        task_graph_formatter: TaskGraphFormatter,
     ) -> None:
         """Test format_task_graph fallback to node '1' when no task nodes are found."""
         # Create tasks that will result in no task_node_ids
@@ -995,14 +1046,14 @@ class TestTaskGraphFormatter:
                 "description": "First task",
                 "steps": [{"task": "step1"}],
                 "dependencies": [],
-            }
+            },
         ]
 
         # Mock _format_nodes to return no task nodes
         with patch.object(task_graph_formatter, "_format_nodes") as mock_format_nodes:
             mock_format_nodes.return_value = (
                 [
-                    ["0", {"resource": {"id": "worker1", "name": "MessageWorker"}}]
+                    ["0", {"resource": {"id": "worker1", "name": "MessageWorker"}}],
                 ],  # nodes
                 {},  # node_lookup
                 [],  # all_task_node_ids (empty)
@@ -1010,7 +1061,8 @@ class TestTaskGraphFormatter:
 
             # Mock _format_edges to return empty edges
             with patch.object(
-                task_graph_formatter, "_format_edges"
+                task_graph_formatter,
+                "_format_edges",
             ) as mock_format_edges:
                 mock_format_edges.return_value = ([], [])  # edges, nested_graph_nodes
 
@@ -1021,7 +1073,8 @@ class TestTaskGraphFormatter:
                 # The fallback logic should set the value to "1" when no task_node_ids are found
 
     def test_format_task_graph_handles_attribute_value_types(
-        self, task_graph_formatter: TaskGraphFormatter
+        self,
+        task_graph_formatter: TaskGraphFormatter,
     ) -> None:
         # Task node with description - the formatter uses task.description, not task.attribute.value
         tasks = [
@@ -1030,7 +1083,7 @@ class TestTaskGraphFormatter:
                 "name": "Task with description",
                 "description": "desc",
                 "resource": {"name": "MessageWorker"},
-            }
+            },
         ]
         with patch.object(
             task_graph_formatter,
@@ -1050,7 +1103,7 @@ class TestTaskGraphFormatter:
                 "name": "Task with empty description",
                 "description": "",
                 "resource": {"name": "MessageWorker"},
-            }
+            },
         ]
         with patch.object(
             task_graph_formatter,
@@ -1069,7 +1122,7 @@ class TestTaskGraphFormatter:
                 "id": "t3",
                 "name": "Task with no description",
                 "resource": {"name": "MessageWorker"},
-            }
+            },
         ]
         with patch.object(
             task_graph_formatter,
@@ -1084,61 +1137,68 @@ class TestTaskGraphFormatter:
             )
 
     def test_format_nodes_task_and_step_resource_as_string(
-        self, task_graph_formatter: TaskGraphFormatter
+        self,
+        task_graph_formatter: TaskGraphFormatter,
     ) -> None:
         tasks = [
             {
                 "id": "t1",
                 "resource": "CustomWorker",
                 "steps": [{"resource": "StepWorker"}],
-            }
+            },
         ]
         nodes, node_lookup, all_task_node_ids = task_graph_formatter._format_nodes(
-            tasks
+            tasks,
         )
         assert any(n[1]["resource"]["name"] == "CustomWorker" for n in nodes)
         assert any(n[1]["resource"]["name"] == "StepWorker" for n in nodes)
 
     def test_format_nodes_step_as_string_and_int(
-        self, task_graph_formatter: TaskGraphFormatter
+        self,
+        task_graph_formatter: TaskGraphFormatter,
     ) -> None:
         tasks = [{"id": "t1", "steps": ["step as string", 123]}]
         nodes, node_lookup, all_task_node_ids = task_graph_formatter._format_nodes(
-            tasks
+            tasks,
         )
         # Should create nodes for each step
         assert len(nodes) >= 3  # start + task + 2 steps
 
     def test_format_nodes_step_with_complex_structure(
-        self, task_graph_formatter: TaskGraphFormatter
+        self,
+        task_graph_formatter: TaskGraphFormatter,
     ) -> None:
         tasks = [
             {
                 "id": "t1",
                 "steps": [{"task": "t", "description": "desc", "step_id": "s1"}],
-            }
+            },
         ]
         nodes, node_lookup, all_task_node_ids = task_graph_formatter._format_nodes(
-            tasks
+            tasks,
         )
         # Should extract just the description for the step node
         assert any(n[1]["attribute"]["value"] == "desc" for n in nodes)
 
     def test_format_edges_dependency_edge_cases_and_source_not_found(
-        self, task_graph_formatter: TaskGraphFormatter
+        self,
+        task_graph_formatter: TaskGraphFormatter,
     ) -> None:
         tasks = [
             {"id": "t1", "dependencies": [None, 123, {"foo": "bar"}, "t2"]},
             {"id": "t2"},
         ]
         nodes, node_lookup, all_task_node_ids = task_graph_formatter._format_nodes(
-            tasks
+            tasks,
         )
         start_node_id = "0"
         # Patch node_lookup to not contain t2
         node_lookup.pop("t2", None)
         edges, nested_graph_nodes = task_graph_formatter._format_edges(
-            tasks, node_lookup, all_task_node_ids, start_node_id
+            tasks,
+            node_lookup,
+            all_task_node_ids,
+            start_node_id,
         )
         # Should log warnings and skip invalid dependencies, and warn for missing source node
         assert isinstance(edges, list)
@@ -1152,18 +1212,22 @@ class TestTaskGraphFormatter:
         task_graph_formatter._model = Mock()
         task_graph_formatter._model.invoke.side_effect = Exception("fail")
         nodes, node_lookup, all_task_node_ids = task_graph_formatter._format_nodes(
-            sample_tasks
+            sample_tasks,
         )
         start_node_id = "0"
         edges, _ = task_graph_formatter._format_edges(
-            sample_tasks, node_lookup, all_task_node_ids, start_node_id
+            sample_tasks,
+            node_lookup,
+            all_task_node_ids,
+            start_node_id,
         )
         assert any(
             e[2]["intent"] == "User inquires about purchasing options" for e in edges
         )
 
     def test_ensure_nested_graph_connectivity_nested_graph_no_task(
-        self, task_graph_formatter: TaskGraphFormatter
+        self,
+        task_graph_formatter: TaskGraphFormatter,
     ) -> None:
         # NestedGraph node with no corresponding task
         graph = {
@@ -1171,7 +1235,7 @@ class TestTaskGraphFormatter:
                 [
                     "ng1",
                     {"resource": {"name": "NestedGraph"}, "attribute": {"value": "v"}},
-                ]
+                ],
             ],
             "edges": [],
             "tasks": [],
@@ -1182,7 +1246,8 @@ class TestTaskGraphFormatter:
         assert ng_node[1]["attribute"]["value"] == "v"
 
     def test_ensure_nested_graph_connectivity_nested_graph_no_steps(
-        self, task_graph_formatter: TaskGraphFormatter
+        self,
+        task_graph_formatter: TaskGraphFormatter,
     ) -> None:
         # NestedGraph node with corresponding task but no steps
         graph = {
@@ -1190,7 +1255,7 @@ class TestTaskGraphFormatter:
                 [
                     "ng1",
                     {"resource": {"name": "NestedGraph"}, "attribute": {"value": "v"}},
-                ]
+                ],
             ],
             "edges": [],
             "tasks": [{"id": "t1", "steps": []}],
@@ -1201,7 +1266,8 @@ class TestTaskGraphFormatter:
         assert ng_node[1]["attribute"]["value"] == "v"
 
     def test_ensure_nested_graph_connectivity_nested_graph_last_step(
-        self, task_graph_formatter: TaskGraphFormatter
+        self,
+        task_graph_formatter: TaskGraphFormatter,
     ) -> None:
         # NestedGraph node that is the last step
         graph = {
@@ -1209,7 +1275,7 @@ class TestTaskGraphFormatter:
                 [
                     "ng1",
                     {"resource": {"name": "NestedGraph"}, "attribute": {"value": "v"}},
-                ]
+                ],
             ],
             "edges": [],
             "tasks": [{"id": "t1", "steps": [{}, {}]}],
@@ -1223,7 +1289,8 @@ class TestTaskGraphFormatter:
             assert ng_node[1]["attribute"]["value"] == "v"
 
     def test_format_task_graph_fallback_to_node_1_for_nestedgraph_step(
-        self, task_graph_formatter: TaskGraphFormatter
+        self,
+        task_graph_formatter: TaskGraphFormatter,
     ) -> None:
         # Covers lines 186, 191-195, 198: fallback to node '1' for NestedGraph step node
         tasks = [
@@ -1238,7 +1305,7 @@ class TestTaskGraphFormatter:
                     },
                 ],
                 "resource": {"name": "MessageWorker"},
-            }
+            },
         ]
         with patch.object(
             task_graph_formatter,
@@ -1256,7 +1323,8 @@ class TestTaskGraphFormatter:
             assert found
 
     def test_format_nodes_step_with_type_and_limit(
-        self, task_graph_formatter: TaskGraphFormatter
+        self,
+        task_graph_formatter: TaskGraphFormatter,
     ) -> None:
         # Covers lines 308, 310: step node with type and limit fields
         tasks = [
@@ -1267,10 +1335,10 @@ class TestTaskGraphFormatter:
                 "steps": [
                     {"description": "stepdesc", "type": "custom_type", "limit": 2},
                 ],
-            }
+            },
         ]
         nodes, node_lookup, all_task_node_ids = task_graph_formatter._format_nodes(
-            tasks
+            tasks,
         )
         # Find the step node and verify it was created
         found = False
@@ -1280,7 +1348,9 @@ class TestTaskGraphFormatter:
         assert found
 
     def test_format_edges_dependency_edge_cases_and_logging(
-        self, task_graph_formatter: TaskGraphFormatter, caplog: pytest.LogCaptureFixture
+        self,
+        task_graph_formatter: TaskGraphFormatter,
+        caplog: pytest.LogCaptureFixture,
     ) -> None:
         # Covers line 496: dependency is None, not a string/dict, or dict without 'id'
         tasks = [
@@ -1293,12 +1363,15 @@ class TestTaskGraphFormatter:
             {"id": "t2", "name": "Task 2", "description": "desc", "dependencies": []},
         ]
         nodes, node_lookup, all_task_node_ids = task_graph_formatter._format_nodes(
-            tasks
+            tasks,
         )
         start_node_id = "0"
         with caplog.at_level(logging.WARNING):
             edges, nested_graph_nodes = task_graph_formatter._format_edges(
-                tasks, node_lookup, all_task_node_ids, start_node_id
+                tasks,
+                node_lookup,
+                all_task_node_ids,
+                start_node_id,
             )
             # Should log warnings for None, int, and dict without 'id'
             assert any(
@@ -1314,7 +1387,9 @@ class TestTaskGraphFormatter:
             )
 
     def test_format_edges_dependency_source_node_not_found(
-        self, task_graph_formatter: TaskGraphFormatter, caplog: pytest.LogCaptureFixture
+        self,
+        task_graph_formatter: TaskGraphFormatter,
+        caplog: pytest.LogCaptureFixture,
     ) -> None:
         # Covers line 643: log warning when source node for dependency is not found
         tasks = [
@@ -1326,12 +1401,15 @@ class TestTaskGraphFormatter:
             },
         ]
         nodes, node_lookup, all_task_node_ids = task_graph_formatter._format_nodes(
-            tasks
+            tasks,
         )
         start_node_id = "0"
         with caplog.at_level(logging.WARNING):
             edges, nested_graph_nodes = task_graph_formatter._format_edges(
-                tasks, node_lookup, all_task_node_ids, start_node_id
+                tasks,
+                node_lookup,
+                all_task_node_ids,
+                start_node_id,
             )
             assert any(
                 "Could not find source node for dependency" in m
@@ -1339,7 +1417,8 @@ class TestTaskGraphFormatter:
             )
 
     def test_ensure_nested_graph_connectivity_nested_graph_last_step_new(
-        self, task_graph_formatter: TaskGraphFormatter
+        self,
+        task_graph_formatter: TaskGraphFormatter,
     ) -> None:
         # Covers lines 659-661: NestedGraph node that is the last step
         graph = {
@@ -1347,7 +1426,7 @@ class TestTaskGraphFormatter:
                 [
                     "ng1",
                     {"resource": {"name": "NestedGraph"}, "attribute": {"value": "v"}},
-                ]
+                ],
             ],
             "edges": [],
             "tasks": [{"id": "t1", "steps": [{}, {}]}],
@@ -1359,7 +1438,8 @@ class TestTaskGraphFormatter:
         assert result["nodes"][0][1]["attribute"]["value"] == "v"
 
     def test_format_task_graph_no_valid_target_fallback(
-        self, task_graph_formatter: TaskGraphFormatter
+        self,
+        task_graph_formatter: TaskGraphFormatter,
     ) -> None:
         # Covers lines 165-169, 172: no valid target found, fallback to first task node
         tasks = [
@@ -1368,7 +1448,7 @@ class TestTaskGraphFormatter:
                 "name": "Task 1",
                 "description": "desc",
                 "steps": [{"resource": {"name": "NestedGraph"}}],
-            }
+            },
         ]
         with patch.object(
             task_graph_formatter,
@@ -1383,7 +1463,8 @@ class TestTaskGraphFormatter:
             assert len(nested_graph_nodes) > 0
 
     def test_format_nodes_task_resource_edge_cases(
-        self, task_graph_formatter: TaskGraphFormatter
+        self,
+        task_graph_formatter: TaskGraphFormatter,
     ) -> None:
         # Covers lines 273, 294: task resource handling edge cases
         tasks = [
@@ -1401,7 +1482,7 @@ class TestTaskGraphFormatter:
             },
         ]
         nodes, node_lookup, all_task_node_ids = task_graph_formatter._format_nodes(
-            tasks
+            tasks,
         )
         # Should have NestedGraph nodes
         nested_graph_nodes = [
@@ -1410,7 +1491,8 @@ class TestTaskGraphFormatter:
         assert len(nested_graph_nodes) >= 2
 
     def test_format_nodes_task_with_type_and_limit(
-        self, task_graph_formatter: TaskGraphFormatter
+        self,
+        task_graph_formatter: TaskGraphFormatter,
     ) -> None:
         # Covers lines 308, 310: task with type and limit fields
         tasks = [
@@ -1420,10 +1502,10 @@ class TestTaskGraphFormatter:
                 "description": "desc",
                 "type": "custom_type",
                 "limit": 5,
-            }
+            },
         ]
         nodes, node_lookup, all_task_node_ids = task_graph_formatter._format_nodes(
-            tasks
+            tasks,
         )
         # Find the task node and check type and limit
         task_node = next(n for n in nodes if n[1]["attribute"]["value"] == "desc")
@@ -1431,7 +1513,8 @@ class TestTaskGraphFormatter:
         assert task_node[1].get("limit") == 5
 
     def test_format_edges_model_exception_in_intent_generation(
-        self, task_graph_formatter: TaskGraphFormatter
+        self,
+        task_graph_formatter: TaskGraphFormatter,
     ) -> None:
         # Covers lines 587-593: model exception handling in intent generation
         tasks = [
@@ -1440,24 +1523,28 @@ class TestTaskGraphFormatter:
                 "name": "Task 1",
                 "description": "desc",
                 "dependencies": [],
-            }
+            },
         ]
         # Patch model to raise exception
         task_graph_formatter._model = Mock()
         task_graph_formatter._model.invoke.side_effect = Exception("Model error")
 
         nodes, node_lookup, all_task_node_ids = task_graph_formatter._format_nodes(
-            tasks
+            tasks,
         )
         start_node_id = "0"
         edges, nested_graph_nodes = task_graph_formatter._format_edges(
-            tasks, node_lookup, all_task_node_ids, start_node_id
+            tasks,
+            node_lookup,
+            all_task_node_ids,
+            start_node_id,
         )
         # Should still create edges with fallback intent
         assert len(edges) > 0
 
     def test_format_edges_model_invalid_intent_fallback(
-        self, task_graph_formatter: TaskGraphFormatter
+        self,
+        task_graph_formatter: TaskGraphFormatter,
     ) -> None:
         # Covers lines 587-593: model returns invalid intent, should fallback
         tasks = [
@@ -1466,7 +1553,7 @@ class TestTaskGraphFormatter:
                 "name": "Task 1",
                 "description": "desc",
                 "dependencies": [],
-            }
+            },
         ]
         # Patch model to return invalid intent
         mock_response = Mock()
@@ -1475,17 +1562,22 @@ class TestTaskGraphFormatter:
         task_graph_formatter._model.invoke.return_value = mock_response
 
         nodes, node_lookup, all_task_node_ids = task_graph_formatter._format_nodes(
-            tasks
+            tasks,
         )
         start_node_id = "0"
         edges, nested_graph_nodes = task_graph_formatter._format_edges(
-            tasks, node_lookup, all_task_node_ids, start_node_id
+            tasks,
+            node_lookup,
+            all_task_node_ids,
+            start_node_id,
         )
         # Should still create edges with fallback intent
         assert len(edges) > 0
 
     def test_format_edges_dependency_edge_cases_comprehensive(
-        self, task_graph_formatter: TaskGraphFormatter, caplog: pytest.LogCaptureFixture
+        self,
+        task_graph_formatter: TaskGraphFormatter,
+        caplog: pytest.LogCaptureFixture,
     ) -> None:
         # Covers lines 496-498: comprehensive dependency edge cases
         tasks = [
@@ -1503,18 +1595,22 @@ class TestTaskGraphFormatter:
             },
         ]
         nodes, node_lookup, all_task_node_ids = task_graph_formatter._format_nodes(
-            tasks
+            tasks,
         )
         start_node_id = "0"
         with caplog.at_level(logging.WARNING):
             edges, nested_graph_nodes = task_graph_formatter._format_edges(
-                tasks, node_lookup, all_task_node_ids, start_node_id
+                tasks,
+                node_lookup,
+                all_task_node_ids,
+                start_node_id,
             )
             # Should log warnings for invalid dependencies but still create edges
             assert len(edges) > 0
 
     def test_ensure_nested_graph_connectivity_comprehensive_edge_cases(
-        self, task_graph_formatter: TaskGraphFormatter
+        self,
+        task_graph_formatter: TaskGraphFormatter,
     ) -> None:
         # Covers lines 655-661: comprehensive nested graph connectivity edge cases
         graph = {
@@ -1568,7 +1664,8 @@ class TestTaskGraphFormatter:
         assert "t1_step0" in edge_sources
 
     def test_format_task_graph_nestedgraph_value_processing_edge_cases(
-        self, task_graph_formatter: TaskGraphFormatter
+        self,
+        task_graph_formatter: TaskGraphFormatter,
     ) -> None:
         # Covers lines 186, 191-195, 198: NestedGraph value processing edge cases
         tasks = [
@@ -1580,9 +1677,9 @@ class TestTaskGraphFormatter:
                     {
                         "resource": {"name": "NestedGraph"},
                         "attribute": {"value": {"description": "nested_desc"}},
-                    }
+                    },
                 ],
-            }
+            },
         ]
         with patch.object(
             task_graph_formatter,
@@ -1597,7 +1694,8 @@ class TestTaskGraphFormatter:
             assert len(nested_graph_nodes) > 0
 
     def test_format_nodes_task_resource_workflow_edge_case(
-        self, task_graph_formatter: TaskGraphFormatter
+        self,
+        task_graph_formatter: TaskGraphFormatter,
     ) -> None:
         # Covers line 273: task resource with workflow in name
         tasks = [
@@ -1606,10 +1704,10 @@ class TestTaskGraphFormatter:
                 "name": "Task with workflow resource",
                 "description": "desc",
                 "resource": "SomeWorkflow",  # Contains "workflow" in name
-            }
+            },
         ]
         nodes, node_lookup, all_task_node_ids = task_graph_formatter._format_nodes(
-            tasks
+            tasks,
         )
         # Should create NestedGraph node
         nested_graph_nodes = [
@@ -1618,7 +1716,9 @@ class TestTaskGraphFormatter:
         assert len(nested_graph_nodes) > 0
 
     def test_format_edges_dependency_dict_without_id_edge_case(
-        self, task_graph_formatter: TaskGraphFormatter, caplog: pytest.LogCaptureFixture
+        self,
+        task_graph_formatter: TaskGraphFormatter,
+        caplog: pytest.LogCaptureFixture,
     ) -> None:
         # Covers line 498: dependency dict without 'id' field
         tasks = [
@@ -1627,15 +1727,18 @@ class TestTaskGraphFormatter:
                 "name": "Task 1",
                 "description": "desc",
                 "dependencies": [{"foo": "bar"}],  # Dict without 'id'
-            }
+            },
         ]
         nodes, node_lookup, all_task_node_ids = task_graph_formatter._format_nodes(
-            tasks
+            tasks,
         )
         start_node_id = "0"
         with caplog.at_level(logging.WARNING):
             edges, nested_graph_nodes = task_graph_formatter._format_edges(
-                tasks, node_lookup, all_task_node_ids, start_node_id
+                tasks,
+                node_lookup,
+                all_task_node_ids,
+                start_node_id,
             )
             # Should log warning for dict without 'id'
             assert any(
@@ -1644,7 +1747,8 @@ class TestTaskGraphFormatter:
             )
 
     def test_format_edges_model_exception_comprehensive(
-        self, task_graph_formatter: TaskGraphFormatter
+        self,
+        task_graph_formatter: TaskGraphFormatter,
     ) -> None:
         # Covers lines 587-593: comprehensive model exception handling
         tasks = [
@@ -1653,7 +1757,7 @@ class TestTaskGraphFormatter:
                 "name": "Task 1",
                 "description": "desc",
                 "dependencies": [],
-            }
+            },
         ]
         # Test different model exception scenarios
         test_cases = [
@@ -1667,17 +1771,22 @@ class TestTaskGraphFormatter:
             task_graph_formatter._model.invoke.side_effect = exception
 
             nodes, node_lookup, all_task_node_ids = task_graph_formatter._format_nodes(
-                tasks
+                tasks,
             )
             start_node_id = "0"
             edges, nested_graph_nodes = task_graph_formatter._format_edges(
-                tasks, node_lookup, all_task_node_ids, start_node_id
+                tasks,
+                node_lookup,
+                all_task_node_ids,
+                start_node_id,
             )
             # Should still create edges with fallback intent
             assert len(edges) > 0
 
     def test_format_edges_source_node_not_found_comprehensive(
-        self, task_graph_formatter: TaskGraphFormatter, caplog: pytest.LogCaptureFixture
+        self,
+        task_graph_formatter: TaskGraphFormatter,
+        caplog: pytest.LogCaptureFixture,
     ) -> None:
         # Covers line 643: comprehensive source node not found scenarios
         tasks = [
@@ -1686,15 +1795,18 @@ class TestTaskGraphFormatter:
                 "name": "Task 1",
                 "description": "desc",
                 "dependencies": ["nonexistent1", "nonexistent2"],
-            }
+            },
         ]
         nodes, node_lookup, all_task_node_ids = task_graph_formatter._format_nodes(
-            tasks
+            tasks,
         )
         start_node_id = "0"
         with caplog.at_level(logging.WARNING):
             edges, nested_graph_nodes = task_graph_formatter._format_edges(
-                tasks, node_lookup, all_task_node_ids, start_node_id
+                tasks,
+                node_lookup,
+                all_task_node_ids,
+                start_node_id,
             )
             # Should log warnings for each nonexistent dependency
             warnings = [
@@ -1705,7 +1817,8 @@ class TestTaskGraphFormatter:
             assert len(warnings) >= 2
 
     def test_format_task_graph_with_dict_value_fallback(
-        self, task_graph_formatter: TaskGraphFormatter
+        self,
+        task_graph_formatter: TaskGraphFormatter,
     ) -> None:
         """Test format_task_graph with dict value fallback logic."""
         tasks = [
@@ -1714,7 +1827,7 @@ class TestTaskGraphFormatter:
                 "name": "Task 1",
                 "description": {"description": "Task description", "other": "data"},
                 "steps": [],
-            }
+            },
         ]
 
         result = task_graph_formatter.format_task_graph(tasks)
@@ -1732,7 +1845,8 @@ class TestTaskGraphFormatter:
         assert task_node[1]["attribute"]["value"] == "Task description"
 
     def test_format_task_graph_with_list_value_fallback(
-        self, task_graph_formatter: TaskGraphFormatter
+        self,
+        task_graph_formatter: TaskGraphFormatter,
     ) -> None:
         """Test format_task_graph with list value fallback logic."""
         tasks = [
@@ -1741,7 +1855,7 @@ class TestTaskGraphFormatter:
                 "name": "Task 1",
                 "description": ["step1", "step2", "step3"],
                 "steps": [],
-            }
+            },
         ]
 
         result = task_graph_formatter.format_task_graph(tasks)
@@ -1759,7 +1873,8 @@ class TestTaskGraphFormatter:
         assert task_node[1]["attribute"]["value"] == "step1, step2, step3"
 
     def test_format_task_graph_with_empty_task_node_ids_fallback(
-        self, task_graph_formatter: TaskGraphFormatter
+        self,
+        task_graph_formatter: TaskGraphFormatter,
     ) -> None:
         """Test format_task_graph with empty task_node_ids fallback."""
         tasks = [
@@ -1768,7 +1883,7 @@ class TestTaskGraphFormatter:
                 "name": "Task 1",
                 "description": "Task description",
                 "steps": [],
-            }
+            },
         ]
 
         # Create mock nodes that include a start node but empty task_node_ids
@@ -1779,7 +1894,9 @@ class TestTaskGraphFormatter:
         # Mock the _format_nodes method to return nodes with empty task_node_ids
         with (
             patch.object(
-                task_graph_formatter, "_format_nodes", return_value=(mock_nodes, {}, [])
+                task_graph_formatter,
+                "_format_nodes",
+                return_value=(mock_nodes, {}, []),
             ),
             patch.object(task_graph_formatter, "_format_edges", return_value=([], [])),
             patch.object(
@@ -1804,7 +1921,8 @@ class TestTaskGraphFormatter:
             assert start_node[1]["attribute"]["value"] == "1"
 
     def test_format_task_graph_with_dict_value_no_description(
-        self, task_graph_formatter: TaskGraphFormatter
+        self,
+        task_graph_formatter: TaskGraphFormatter,
     ) -> None:
         """Test format_task_graph with dict value that has no description."""
         tasks = [
@@ -1813,7 +1931,7 @@ class TestTaskGraphFormatter:
                 "name": "Task 1",
                 "description": {"other": "data", "no_description": "here"},
                 "steps": [],
-            }
+            },
         ]
 
         result = task_graph_formatter.format_task_graph(tasks)
@@ -1834,7 +1952,8 @@ class TestTaskGraphFormatter:
         )
 
     def test_ensure_nested_graph_connectivity_simple_case(
-        self, task_graph_formatter: TaskGraphFormatter
+        self,
+        task_graph_formatter: TaskGraphFormatter,
     ) -> None:
         """Test ensure_nested_graph_connectivity method with simple case."""
         graph = {
@@ -1861,7 +1980,8 @@ class TestTaskGraphFormatter:
         assert len(result["edges"]) == 2
 
     def test_ensure_nested_graph_connectivity_complex_nesting(
-        self, task_graph_formatter: TaskGraphFormatter
+        self,
+        task_graph_formatter: TaskGraphFormatter,
     ) -> None:
         """Test ensure_nested_graph_connectivity with complex nested graphs."""
         graph = {
@@ -1964,9 +2084,9 @@ class TestTaskGraphFormatter:
                             "name": "NestedGraph",
                             "description": "Nested workflow",
                         },
-                    }
+                    },
                 ],
-            }
+            },
         ]
 
         result = formatter.format_task_graph(tasks)
@@ -1993,9 +2113,9 @@ class TestTaskGraphFormatter:
                             "name": "NestedGraph",
                             "description": "Nested workflow",
                         },
-                    }
+                    },
                 ],
-            }
+            },
         ]
 
         result = formatter.format_task_graph(tasks)
@@ -2039,7 +2159,7 @@ class TestTaskGraphFormatter:
                 {
                     "id": "task1",
                     "steps": [{"description": "Step 1"}, {"description": "Step 2"}],
-                }
+                },
             ],
         }
 
@@ -2097,7 +2217,7 @@ class TestTaskGraphFormatter:
                         "resource": {"name": "NestedGraph"},
                         "attribute": {"value": "nested"},
                     },
-                ]
+                ],
             ],
             "edges": [],
             "tasks": [],  # No tasks
@@ -2123,7 +2243,7 @@ class TestTaskGraphFormatter:
                         "resource": {"name": "NestedGraph"},
                         "attribute": {"value": "nested"},
                     },
-                ]
+                ],
             ],
             "edges": [],
             "tasks": [{"id": "task1", "steps": [{"description": "Step 1"}]}],
@@ -2152,9 +2272,9 @@ class TestTaskGraphFormatter:
                         "description": "First step",
                         "step_id": "step_1",
                         "resource": {"name": "MessageWorker"},
-                    }
+                    },
                 ],
-            }
+            },
         ]
 
         nodes, node_lookup, all_task_node_ids = formatter._format_nodes(tasks)
@@ -2176,7 +2296,7 @@ class TestTaskGraphFormatter:
                 "name": "Task 1",
                 "description": "Test task",
                 "steps": [{"description": "Step 1"}],
-            }
+            },
         ]
 
         nodes, node_lookup, all_task_node_ids = formatter._format_nodes(tasks)
@@ -2198,7 +2318,7 @@ class TestTaskGraphFormatter:
                 "name": "Task 1",
                 "description": "Test task",
                 "steps": ["Step 1"],
-            }
+            },
         ]
 
         nodes, node_lookup, all_task_node_ids = formatter._format_nodes(tasks)
@@ -2220,9 +2340,9 @@ class TestTaskGraphFormatter:
                 "name": "Task 1",
                 "description": "Test task",
                 "steps": [
-                    123  # Non-dict step
+                    123,  # Non-dict step
                 ],
-            }
+            },
         ]
 
         nodes, node_lookup, all_task_node_ids = formatter._format_nodes(tasks)
@@ -2244,7 +2364,7 @@ class TestTaskGraphFormatter:
                 "name": "Task 1",
                 "description": "Test task",
                 # No steps
-            }
+            },
         ]
 
         nodes, node_lookup, all_task_node_ids = formatter._format_nodes(tasks)
@@ -2265,7 +2385,7 @@ class TestTaskGraphFormatter:
                 "id": "task1",
                 "name": "Task 1",
                 # No description
-            }
+            },
         ]
 
         nodes, node_lookup, all_task_node_ids = formatter._format_nodes(tasks)
@@ -2303,7 +2423,10 @@ class TestTaskGraphFormatter:
         start_node_id = "0"
 
         edges, nested_graph_nodes = formatter._format_edges(
-            tasks, node_lookup, all_task_node_ids, start_node_id
+            tasks,
+            node_lookup,
+            all_task_node_ids,
+            start_node_id,
         )
         assert len(edges) > 0
 
@@ -2322,7 +2445,7 @@ class TestTaskGraphFormatter:
                 "description": "Test task 1",
                 "dependencies": [None],  # None dependency
                 "steps": [],
-            }
+            },
         ]
 
         node_lookup = {"task1": "1"}
@@ -2330,7 +2453,10 @@ class TestTaskGraphFormatter:
         start_node_id = "0"
 
         edges, nested_graph_nodes = formatter._format_edges(
-            tasks, node_lookup, all_task_node_ids, start_node_id
+            tasks,
+            node_lookup,
+            all_task_node_ids,
+            start_node_id,
         )
         assert len(edges) >= 0  # Should handle None dependency gracefully
 
@@ -2364,7 +2490,10 @@ class TestTaskGraphFormatter:
         start_node_id = "0"
 
         edges, nested_graph_nodes = formatter._format_edges(
-            tasks, node_lookup, all_task_node_ids, start_node_id
+            tasks,
+            node_lookup,
+            all_task_node_ids,
+            start_node_id,
         )
         assert len(edges) > 0
 
@@ -2383,7 +2512,7 @@ class TestTaskGraphFormatter:
                 "description": "Test task 1",
                 "dependencies": [{"name": "task2"}],  # Dict dependency without id
                 "steps": [],
-            }
+            },
         ]
 
         node_lookup = {"task1": "1"}
@@ -2391,7 +2520,10 @@ class TestTaskGraphFormatter:
         start_node_id = "0"
 
         edges, nested_graph_nodes = formatter._format_edges(
-            tasks, node_lookup, all_task_node_ids, start_node_id
+            tasks,
+            node_lookup,
+            all_task_node_ids,
+            start_node_id,
         )
         assert len(edges) >= 0  # Should handle missing id gracefully
 
@@ -2410,7 +2542,7 @@ class TestTaskGraphFormatter:
                 "description": "Test task 1",
                 "dependencies": [123],  # Invalid dependency type
                 "steps": [],
-            }
+            },
         ]
 
         node_lookup = {"task1": "1"}
@@ -2418,7 +2550,10 @@ class TestTaskGraphFormatter:
         start_node_id = "0"
 
         edges, nested_graph_nodes = formatter._format_edges(
-            tasks, node_lookup, all_task_node_ids, start_node_id
+            tasks,
+            node_lookup,
+            all_task_node_ids,
+            start_node_id,
         )
         assert len(edges) >= 0  # Should handle invalid type gracefully
 
@@ -2441,7 +2576,10 @@ class TestTaskGraphFormatter:
         nodes, node_lookup, all_task_node_ids = formatter._format_nodes(tasks)
         start_node_id = "0"
         edges, nested_graph_nodes = formatter._format_edges(
-            tasks, node_lookup, all_task_node_ids, start_node_id
+            tasks,
+            node_lookup,
+            all_task_node_ids,
+            start_node_id,
         )
         assert len(edges) >= 0  # Should handle missing source task gracefully
 
@@ -2475,12 +2613,16 @@ class TestTaskGraphFormatter:
         start_node_id = "0"
 
         edges, nested_graph_nodes = formatter._format_edges(
-            tasks, node_lookup, all_task_node_ids, start_node_id
+            tasks,
+            node_lookup,
+            all_task_node_ids,
+            start_node_id,
         )
         assert len(edges) >= 0  # Should handle missing source node gracefully
 
     def test_ensure_nested_graph_connectivity_with_nested_graph_still_leaf(
-        self, task_graph_formatter: TaskGraphFormatter
+        self,
+        task_graph_formatter: TaskGraphFormatter,
     ) -> None:
         """Test ensure_nested_graph_connectivity when nested graph node is still a leaf after update."""
         # Create a graph with a nested graph node that remains a leaf
@@ -2504,7 +2646,7 @@ class TestTaskGraphFormatter:
                         {"resource": {"name": "NestedGraph"}},
                         {"description": "Step 2"},
                     ],
-                }
+                },
             ],
         }
 
@@ -2517,7 +2659,8 @@ class TestTaskGraphFormatter:
         assert len(result["edges"]) > 0
 
     def test_format_task_graph_with_dict_value_fallback_to_string(
-        self, task_graph_formatter: TaskGraphFormatter
+        self,
+        task_graph_formatter: TaskGraphFormatter,
     ) -> None:
         """Test format_task_graph with dict value that falls back to string representation."""
         # Create tasks with dict values that don't have description
@@ -2528,7 +2671,7 @@ class TestTaskGraphFormatter:
                 "description": "First task",
                 "steps": [{"task": "step1"}],
                 "dependencies": [],
-            }
+            },
         ]
 
         # Mock _format_nodes to return nodes with dict values
@@ -2541,7 +2684,7 @@ class TestTaskGraphFormatter:
                         {
                             "resource": {"id": "worker1", "name": "MessageWorker"},
                             "attribute": {
-                                "value": {"key": "value", "no_description": "test"}
+                                "value": {"key": "value", "no_description": "test"},
                             },
                         },
                     ],
@@ -2552,7 +2695,8 @@ class TestTaskGraphFormatter:
 
             # Mock _format_edges to return empty edges
             with patch.object(
-                task_graph_formatter, "_format_edges"
+                task_graph_formatter,
+                "_format_edges",
             ) as mock_format_edges:
                 mock_format_edges.return_value = ([], [])  # edges, nested_graph_nodes
 
@@ -2567,7 +2711,8 @@ class TestTaskGraphFormatterSpecificLineCoverage:
     """Test specific missing lines in task_graph_formatter.py."""
 
     def test_format_task_graph_else_branch_dict_value(
-        self, task_graph_formatter: TaskGraphFormatter
+        self,
+        task_graph_formatter: TaskGraphFormatter,
     ) -> None:
         """Test format_task_graph else branch for dict value (line 190)."""
         # Create a task with a dict value that will trigger the else branch
@@ -2581,7 +2726,7 @@ class TestTaskGraphFormatterSpecificLineCoverage:
                 "required_resources": [],
                 "estimated_duration": "1 hour",
                 "priority": 3,
-            }
+            },
         ]
 
         # Mock _format_nodes to return a task node with dict value
@@ -2594,13 +2739,15 @@ class TestTaskGraphFormatterSpecificLineCoverage:
 
             # Mock _format_edges to return edges
             with patch.object(
-                task_graph_formatter, "_format_edges"
+                task_graph_formatter,
+                "_format_edges",
             ) as mock_format_edges:
                 mock_format_edges.return_value = ([], [])
 
                 # Mock ensure_nested_graph_connectivity
                 with patch.object(
-                    task_graph_formatter, "ensure_nested_graph_connectivity"
+                    task_graph_formatter,
+                    "ensure_nested_graph_connectivity",
                 ) as mock_ensure:
                     mock_ensure.return_value = {"nodes": [], "edges": []}
 
@@ -2613,7 +2760,8 @@ class TestTaskGraphFormatterSpecificLineCoverage:
                     mock_ensure.assert_called_once()
 
     def test_ensure_nested_graph_connectivity_else_branch(
-        self, task_graph_formatter: TaskGraphFormatter
+        self,
+        task_graph_formatter: TaskGraphFormatter,
     ) -> None:
         """Test ensure_nested_graph_connectivity else branch (line 648)."""
         # Create a graph with nested graph nodes
@@ -2630,7 +2778,7 @@ class TestTaskGraphFormatterSpecificLineCoverage:
                         {"description": "step1"},
                         {"description": "step2"},
                     ],
-                }
+                },
             ],
         }
 

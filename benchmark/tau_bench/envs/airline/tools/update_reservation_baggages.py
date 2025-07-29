@@ -24,7 +24,7 @@ class UpdateReservationBaggages(Tool):
         payment_method = users[reservation["user_id"]]["payment_methods"][payment_id]
         if payment_method["source"] == "certificate":
             return "Error: certificate cannot be used to update reservation"
-        elif (
+        if (
             payment_method["source"] == "gift_card"
             and payment_method["amount"] < total_price
         ):
@@ -40,7 +40,7 @@ class UpdateReservationBaggages(Tool):
                 {
                     "payment_id": payment_id,
                     "amount": total_price,
-                }
+                },
             )
 
         return json.dumps(reservation)

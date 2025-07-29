@@ -30,7 +30,10 @@ class ToolCallingAgent(Agent):
         self.temperature: float = temperature
 
     def solve(
-        self, env: Env, task_index: int | None = None, max_num_steps: int = 30
+        self,
+        env: Env,
+        task_index: int | None = None,
+        max_num_steps: int = 30,
     ) -> SolveResult:
         total_cost: float = 0.0
         env_reset_res: EnvResetResponse = env.reset(task_index=task_index)
@@ -66,14 +69,14 @@ class ToolCallingAgent(Agent):
                             "name": next_message["tool_calls"][0]["function"]["name"],
                             "content": env_response.observation,
                         },
-                    ]
+                    ],
                 )
             else:
                 messages.extend(
                     [
                         next_message,
                         {"role": "user", "content": env_response.observation},
-                    ]
+                    ],
                 )
             if env_response.done:
                 break
@@ -99,5 +102,4 @@ def message_to_action(
             name=tool_call["function"]["name"],
             kwargs=json.loads(tool_call["function"]["arguments"]),
         )
-    else:
-        return Action(name=RESPOND_ACTION_NAME, kwargs={"content": message["content"]})
+    return Action(name=RESPOND_ACTION_NAME, kwargs={"content": message["content"]})

@@ -16,7 +16,9 @@ class ConcreteTreeNode:
     """Concrete implementation of TreeNodeProtocol for testing coverage."""
 
     def __init__(
-        self, label: str = "", parent: "ConcreteTreeNode | None" = None
+        self,
+        label: str = "",
+        parent: "ConcreteTreeNode | None" = None,
     ) -> None:
         self._label = label
         self._parent = parent
@@ -45,7 +47,6 @@ class ConcreteTreeNode:
     def expand(self) -> None:
         """Expand the node."""
         # No-op for this implementation
-        pass
 
     @property
     def children(self) -> list["ConcreteTreeNode"]:
@@ -73,7 +74,6 @@ class ConcreteTree:
     def focus(self) -> None:
         """Focus the tree."""
         # No-op for this implementation
-        pass
 
     @property
     def root(self) -> ConcreteTreeNode | None:

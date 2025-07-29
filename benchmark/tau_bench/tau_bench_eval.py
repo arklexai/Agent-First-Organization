@@ -54,6 +54,7 @@ def get_tool_name_class_map() -> dict[str, Any]:
 
     Returns:
         Dict[str, Any]: A dictionary mapping tool names to their class implementations.
+
     """
     tool_map: dict[str, Any] = {}
     for tool in ALL_TOOLS:
@@ -84,6 +85,7 @@ class TauBenchResourceInitializer(DefaultResourceInitializer):
 
         Returns:
             Dict[str, Any]: Dictionary of initialized tools with their configurations.
+
         """
         tool_name_class_map: dict[str, Any] = get_tool_name_class_map()
         tool_registry: dict[str, Any] = {}
@@ -124,7 +126,7 @@ class TauBenchResourceInitializer(DefaultResourceInitializer):
                     tool_slots,
                     tool_output,
                     isResponse=False,
-                )
+                ),
             )
 
             tool_registry[tool_id] = {
@@ -146,6 +148,7 @@ def generate_tau_bench_config(output_dir: str) -> None:
 
     Args:
         output_dir (str): Directory where the configuration file will be saved.
+
     """
     retain_tools: list[Any] = ALL_TOOLS
     tools: dict[str, Any] = {}
@@ -164,7 +167,7 @@ def generate_tau_bench_config(output_dir: str) -> None:
             {
                 "source": "https://raw.githubusercontent.com/sierra-research/tau-bench/refs/heads/main/tau_bench/envs/retail/wiki.md",
                 "num": 20,
-            }
+            },
         ],
         "rag_docs": [],
         "tasks": [],
@@ -192,6 +195,7 @@ def generate_taskgraph(config_file: str, output_dir: str) -> None:
     Args:
         config_file (str): Path to the configuration file.
         output_dir (str): Directory where the task graph will be saved.
+
     """
     model: ChatOpenAI = ChatOpenAI(model=MODEL["model_type_or_path"], timeout=30000)
     resource_initializer: TauBenchResourceInitializer = TauBenchResourceInitializer()
@@ -235,6 +239,7 @@ def run_tau_bench_eval(
         user_strategy (str, optional): User strategy to use. Defaults to "llm".
         max_concurrency (int, optional): Maximum number of concurrent tasks.
             Defaults to 10.
+
     """
     start_index: int = 0
     end_index: int = -1
@@ -278,10 +283,15 @@ if __name__ == "__main__":
     # parser.add_argument('--task-ids', type=list, default=[1,2,3,4,5,6,7,8,9,10])
 
     parser.add_argument(
-        "--model_api", type=str, default="http://127.0.0.1:8000/eval/chat"
+        "--model_api",
+        type=str,
+        default="http://127.0.0.1:8000/eval/chat",
     )
     parser.add_argument(
-        "--model", type=str, default="gpt-4o-mini", help="Model to use for evaluation"
+        "--model",
+        type=str,
+        default="gpt-4o-mini",
+        help="Model to use for evaluation",
     )
     parser.add_argument(
         "--log-level",

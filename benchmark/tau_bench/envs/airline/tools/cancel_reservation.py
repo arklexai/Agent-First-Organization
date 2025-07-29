@@ -22,7 +22,7 @@ class CancelReservation(Tool):
                 {
                     "payment_id": payment["payment_id"],
                     "amount": -payment["amount"],
-                }
+                },
             )
         reservation["payment_history"].extend(refunds)
         reservation["status"] = "cancelled"

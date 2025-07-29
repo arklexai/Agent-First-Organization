@@ -742,8 +742,7 @@ class PromptManager:
         }
 
     def get_prompt(self, name: str, **kwargs: object) -> str:
-        """
-        Get a formatted prompt by name.
+        """Get a formatted prompt by name.
 
         Args:
             name: The name of the prompt to get
@@ -751,6 +750,7 @@ class PromptManager:
 
         Returns:
             The formatted prompt string
+
         """
         prompt_template = self.prompts.get(name)
         if prompt_template is None:

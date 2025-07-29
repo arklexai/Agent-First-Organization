@@ -40,7 +40,10 @@ PYTHON_TO_JSON_SCHEMA = {
 
 
 def chunk_string(
-    text: str, tokenizer: str, max_length: int, from_end: bool = True
+    text: str,
+    tokenizer: str,
+    max_length: int,
+    from_end: bool = True,
 ) -> str:
     """Chunk a string into tokens of specified maximum length.
 
@@ -62,6 +65,7 @@ def chunk_string(
 
     Returns:
         str: The chunked text string, containing at most max_length tokens.
+
     """
     # Initialize the tokenizer
     encoding: tiktoken.Encoding = tiktoken.get_encoding(tokenizer)
@@ -91,6 +95,7 @@ def normalize(lst: list[float]) -> list[float]:
 
     Returns:
         List[float]: The normalized list of numbers, where sum(result) = 1.
+
     """
     return [float(num) / sum(lst) for num in lst]
 
@@ -116,6 +121,7 @@ def str_similarity(string1: str, string2: str) -> float:
 
     Returns:
         float: A similarity score between 0 and 1, where 1 indicates identical strings.
+
     """
     try:
         distance: int = Levenshtein.distance(string1, string2)
@@ -151,6 +157,7 @@ def postprocess_json(raw_code: str) -> dict[str, Any] | None:
 
     Returns:
         Optional[Dict[str, Any]]: The parsed JSON as a dictionary, or None if parsing fails.
+
     """
     valid_phrases: list[str] = ['"', "{", "}", "[", "]"]
 
@@ -195,6 +202,7 @@ def truncate_string(text: str, max_length: int = 400) -> str:
 
     Returns:
         str: The truncated string, with "..." appended if truncation occurred.
+
     """
     if len(text) > max_length:
         text = text[:max_length] + "..."
@@ -219,6 +227,7 @@ def format_chat_history(chat_history: list[dict[str, str]]) -> str:
 
     Returns:
         str: The formatted chat history string, with each message on a new line.
+
     """
     chat_history_str: str = ""
     for turn in chat_history:
@@ -227,7 +236,8 @@ def format_chat_history(chat_history: list[dict[str, str]]) -> str:
 
 
 def format_truncated_chat_history(
-    chat_history: list[dict[str, str]], max_length: int = 400
+    chat_history: list[dict[str, str]],
+    max_length: int = 400,
 ) -> str:
     """Format chat history with truncated message content.
 
@@ -248,6 +258,7 @@ def format_truncated_chat_history(
 
     Returns:
         str: The formatted chat history string with truncated messages.
+
     """
     chat_history_str: str = ""
     for turn in chat_history:

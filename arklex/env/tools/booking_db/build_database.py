@@ -237,7 +237,10 @@ def main() -> None:
     """Main function to handle command-line interface."""
     parser: argparse.ArgumentParser = argparse.ArgumentParser()
     parser.add_argument(
-        "--folder_path", required=True, type=str, help="location to save the documents"
+        "--folder_path",
+        required=True,
+        type=str,
+        help="location to save the documents",
     )
     args: argparse.Namespace = parser.parse_args()
 

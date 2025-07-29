@@ -79,6 +79,7 @@ class LLMConfig(BaseModel):
     Attributes:
         model_type_or_path (str): The model identifier or path to use.
         llm_provider (str): The provider of the language model (e.g., 'openai', 'anthropic').
+
     """
 
     model_type_or_path: str

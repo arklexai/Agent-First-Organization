@@ -2,8 +2,7 @@ from arklex.utils.exceptions import ExceptionPrompt
 
 
 class HubspotExceptionPrompt(ExceptionPrompt):
-    """
-    HubSpot-specific exception prompts.
+    """HubSpot-specific exception prompts.
 
     This class contains all the error messages used in HubSpot-related operations.
     Each constant represents a specific error scenario that can occur during

@@ -1,5 +1,4 @@
-"""
-Standalone API key validation script for testing create.py/run.py functionality.
+"""Standalone API key validation script for testing create.py/run.py functionality.
 
 This script validates API keys and tests the customer service example with real API calls.
 It should be run manually by developers to verify their API keys work correctly.
@@ -43,8 +42,7 @@ from arklex.utils.provider_utils import get_api_key_for_provider, get_provider_c
 
 
 class APITestConfiguration:
-    """
-    Holds configuration constants for API testing across different providers.
+    """Holds configuration constants for API testing across different providers.
     This class centralizes all static configuration, such as supported API keys, provider mappings,
     default models, API endpoints, and timeouts, to ensure consistency across the test suite.
     """
@@ -84,14 +82,14 @@ class APITestConfiguration:
 
     @classmethod
     def get_env_key_for_provider(cls, provider: str) -> str:
-        """
-        Get the correct environment variable name for a given provider.
+        """Get the correct environment variable name for a given provider.
 
         Args:
             provider: The provider name (e.g., 'openai', 'anthropic', 'google')
 
         Returns:
             The environment variable name for the provider
+
         """
         # Create reverse mapping
         provider_to_env_map = {v: k for k, v in cls.ENV_TO_PROVIDER_MAP.items()}
@@ -99,29 +97,28 @@ class APITestConfiguration:
 
 
 class EnvironmentManager:
-    """
-    Handles loading and parsing of environment variables from a .env file.
+    """Handles loading and parsing of environment variables from a .env file.
     This class is responsible for extracting API keys and other environment variables needed for testing,
     and provides user-friendly feedback if the .env file or required keys are missing.
     """
 
     def __init__(self, env_file_path: str = ".env") -> None:
-        """
-        Initialize the EnvironmentManager.
+        """Initialize the EnvironmentManager.
 
         Args:
             env_file_path: Path to the .env file to load. Defaults to '.env'.
+
         """
         self.env_file_path = Path(env_file_path)
         self.env_variables: dict[str, str] = {}
 
     def load_environment_variables(self) -> dict[str, str]:
-        """
-        Load environment variables from the .env file, parse them, and print a summary.
+        """Load environment variables from the .env file, parse them, and print a summary.
         If the file is missing, prints instructions for creating it.
 
         Returns:
             Dictionary containing environment variables from the .env file.
+
         """
         if not self.env_file_path.exists():
             self._display_env_file_instructions()
@@ -134,20 +131,18 @@ class EnvironmentManager:
         return self.env_variables
 
     def _display_env_file_instructions(self) -> None:
-        """
-        Print instructions for creating a .env file with the required API keys.
-        """
+        """Print instructions for creating a .env file with the required API keys."""
         print(f"⚠️  No .env file found at {self.env_file_path.absolute()}")
         print("💡 Please create a .env file with your API keys:")
         for key in APITestConfiguration.SUPPORTED_API_KEYS:
             print(f"   {key}=your_{key.lower()}_here")
 
     def _parse_env_file(self) -> dict[str, str]:
-        """
-        Parse the .env file and extract key-value pairs, ignoring comments and blank lines.
+        """Parse the .env file and extract key-value pairs, ignoring comments and blank lines.
 
         Returns:
             Dictionary of environment variables from the .env file.
+
         """
         env_vars = {}
         with open(self.env_file_path) as f:
@@ -159,8 +154,7 @@ class EnvironmentManager:
         return env_vars
 
     def _display_api_key_summary(self) -> None:
-        """
-        Print a summary of found API keys, masking their values for security.
+        """Print a summary of found API keys, masking their values for security.
         If no keys are found, prints instructions for adding them.
         """
         found_keys = [
@@ -183,9 +177,7 @@ class EnvironmentManager:
             print(f"   {key}: {masked_key}")
 
     def _display_missing_api_keys_instructions(self) -> None:
-        """
-        Print instructions for adding missing API keys to the .env file.
-        """
+        """Print instructions for adding missing API keys to the .env file."""
         print("⚠️  No API keys found in .env file")
         print("💡 Please add your API keys to the .env file:")
         for key in APITestConfiguration.SUPPORTED_API_KEYS:
@@ -193,21 +185,17 @@ class EnvironmentManager:
 
 
 class APIKeyValidator:
-    """
-    Validates API keys for supported providers by making real API calls.
+    """Validates API keys for supported providers by making real API calls.
     This class is responsible for confirming that the provided API keys are valid and functional
     by sending minimal requests to each provider's API and interpreting the responses.
     """
 
     def __init__(self) -> None:
-        """
-        Initialize the APIKeyValidator with the default timeout for API requests.
-        """
+        """Initialize the APIKeyValidator with the default timeout for API requests."""
         self.timeout = APITestConfiguration.API_TIMEOUT_SECONDS
 
     def validate_api_key(self, provider: str, api_key: str) -> bool:
-        """
-        Validate an API key by making a test API call to the specified provider.
+        """Validate an API key by making a test API call to the specified provider.
         Prints detailed feedback about the validation process and result.
 
         Args:
@@ -216,6 +204,7 @@ class APIKeyValidator:
 
         Returns:
             True if the API key is valid and accepted by the provider, False otherwise.
+
         """
         print(f"🔍 Validating {provider} API key...")
         print(f"🔑 API key starts with: {api_key[:10]}...")
@@ -223,13 +212,12 @@ class APIKeyValidator:
         try:
             if provider == "openai":
                 return self._validate_openai_api_key(api_key)
-            elif provider == "anthropic":
+            if provider == "anthropic":
                 return self._validate_anthropic_api_key(api_key)
-            elif provider == "google":
+            if provider == "google":
                 return self._validate_google_api_key(api_key)
-            else:
-                print(f"❌ Unknown provider: {provider}")
-                return False
+            print(f"❌ Unknown provider: {provider}")
+            return False
 
         except requests.exceptions.Timeout:
             print(f"⏰ Timeout validating {provider} API key ({self.timeout}s timeout)")
@@ -243,8 +231,7 @@ class APIKeyValidator:
             return False
 
     def _validate_openai_api_key(self, api_key: str) -> bool:
-        """
-        Validate an OpenAI API key by making a test completion request.
+        """Validate an OpenAI API key by making a test completion request.
         Prints request and response details for debugging.
 
         Args:
@@ -252,6 +239,7 @@ class APIKeyValidator:
 
         Returns:
             True if the API key is valid, False otherwise.
+
         """
         print("🌐 Making OpenAI API call...")
         print("📡 Request URL: https://api.openai.com/v1/chat/completions")
@@ -278,8 +266,7 @@ class APIKeyValidator:
         return self._process_api_response(response, "OpenAI")
 
     def _validate_anthropic_api_key(self, api_key: str) -> bool:
-        """
-        Validate an Anthropic API key by making a test message request.
+        """Validate an Anthropic API key by making a test message request.
         Prints request and response details for debugging.
 
         Args:
@@ -287,6 +274,7 @@ class APIKeyValidator:
 
         Returns:
             True if the API key is valid, False otherwise.
+
         """
         print("🌐 Making Anthropic API call...")
         print("📡 Request URL: https://api.anthropic.com/v1/messages")
@@ -314,8 +302,7 @@ class APIKeyValidator:
         return self._process_api_response(response, "Anthropic")
 
     def _validate_google_api_key(self, api_key: str) -> bool:
-        """
-        Validate a Google API key by making a test content generation request.
+        """Validate a Google API key by making a test content generation request.
         Prints request and response details for debugging.
 
         Args:
@@ -323,10 +310,11 @@ class APIKeyValidator:
 
         Returns:
             True if the API key is valid, False otherwise.
+
         """
         print("🌐 Making Google API call...")
         print(
-            "📡 Request URL: https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent"
+            "📡 Request URL: https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent",
         )
         print("📡 Request model: gemini-1.5-flash")
 
@@ -347,10 +335,11 @@ class APIKeyValidator:
         return self._process_api_response(response, "Google")
 
     def _process_api_response(
-        self, response: requests.Response, provider_name: str
+        self,
+        response: requests.Response,
+        provider_name: str,
     ) -> bool:
-        """
-        Process the API response and determine if the key is valid.
+        """Process the API response and determine if the key is valid.
         Prints status and a preview of the response content.
 
         Args:
@@ -359,12 +348,13 @@ class APIKeyValidator:
 
         Returns:
             True if the response indicates a valid API key, False otherwise.
+
         """
         print(f"📡 {provider_name} response status: {response.status_code}")
 
         if response.status_code != 200:
             print(
-                f"❌ {provider_name} API key validation failed: {response.status_code}"
+                f"❌ {provider_name} API key validation failed: {response.status_code}",
             )
             print(f"📤 Error response: {response.text[:200]}...")
             return False
@@ -374,11 +364,11 @@ class APIKeyValidator:
         return True
 
     def _display_response_preview(
-        self, response: requests.Response, provider_name: str
+        self,
+        response: requests.Response,
+        provider_name: str,
     ) -> None:
-        """
-        Print a preview of the API response content for the given provider.
-        """
+        """Print a preview of the API response content for the given provider."""
         try:
             response_data = response.json()
 
@@ -415,25 +405,25 @@ class APIKeyValidator:
 
 
 class ProviderUtilityTester:
-    """
-    Tests provider utility functions (such as key retrieval and config generation) with real API keys.
+    """Tests provider utility functions (such as key retrieval and config generation) with real API keys.
     Ensures that the utility functions used throughout the codebase work as expected with actual credentials.
     """
 
     def __init__(self, validator: APIKeyValidator) -> None:
-        """
-        Initialize the ProviderUtilityTester with a reference to an APIKeyValidator.
+        """Initialize the ProviderUtilityTester with a reference to an APIKeyValidator.
 
         Args:
             validator: APIKeyValidator instance used for key validation.
+
         """
         self.validator = validator
 
     def test_provider_utilities_with_real_keys(
-        self, env_vars: dict[str, str], providers: list[str] | None = None
+        self,
+        env_vars: dict[str, str],
+        providers: list[str] | None = None,
     ) -> bool:
-        """
-        Test that provider utility functions work correctly with real API keys.
+        """Test that provider utility functions work correctly with real API keys.
         Runs tests for specified providers and prints results.
 
         Args:
@@ -442,6 +432,7 @@ class ProviderUtilityTester:
 
         Returns:
             True if all provider utilities work correctly, False otherwise.
+
         """
         if providers is None:
             providers = APITestConfiguration.ALL_PROVIDERS
@@ -466,8 +457,7 @@ class ProviderUtilityTester:
         return all(results)
 
     def _test_single_provider_utility(self, provider: str, api_key: str) -> bool:
-        """
-        Test utility functions for a single provider, including key validation and config retrieval.
+        """Test utility functions for a single provider, including key validation and config retrieval.
         Prints detailed feedback for each step.
 
         Args:
@@ -476,6 +466,7 @@ class ProviderUtilityTester:
 
         Returns:
             True if all utility functions work correctly, False otherwise.
+
         """
         print(f"\n🧪 Testing {provider}...")
         print(f"🔑 Found {provider} API key: {api_key[:10]}...")
@@ -492,10 +483,11 @@ class ProviderUtilityTester:
         return self._test_get_provider_config_function(provider, api_key)
 
     def _test_get_api_key_for_provider_function(
-        self, provider: str, api_key: str
+        self,
+        provider: str,
+        api_key: str,
     ) -> bool:
-        """
-        Test the get_api_key_for_provider function for the given provider.
+        """Test the get_api_key_for_provider function for the given provider.
         Checks that the returned key matches the expected value.
 
         Args:
@@ -504,12 +496,13 @@ class ProviderUtilityTester:
 
         Returns:
             True if the function works correctly, False otherwise.
+
         """
         try:
             retrieved_key = get_api_key_for_provider(provider)
             if retrieved_key != api_key:
                 print(
-                    f"❌ get_api_key_for_provider('{provider}') failed - keys don't match"
+                    f"❌ get_api_key_for_provider('{provider}') failed - keys don't match",
                 )
                 return False
             print(f"✅ get_api_key_for_provider('{provider}') works correctly")
@@ -519,8 +512,7 @@ class ProviderUtilityTester:
             return False
 
     def _test_get_provider_config_function(self, provider: str, api_key: str) -> bool:
-        """
-        Test the get_provider_config function for the given provider.
+        """Test the get_provider_config function for the given provider.
         Checks that the returned config contains the correct API key.
 
         Args:
@@ -529,6 +521,7 @@ class ProviderUtilityTester:
 
         Returns:
             True if the function works correctly, False otherwise.
+
         """
         try:
             config = get_provider_config(provider, f"{provider}-test-model")
@@ -543,19 +536,19 @@ class ProviderUtilityTester:
 
 
 class ProcessExecutor:
-    """
-    Executes subprocess commands with real-time output monitoring and progress reporting.
+    """Executes subprocess commands with real-time output monitoring and progress reporting.
     Used to run create.py and run.py scripts and capture their output for validation.
     """
 
     def __init__(
-        self, timeout: int = APITestConfiguration.PROCESS_TIMEOUT_SECONDS
+        self,
+        timeout: int = APITestConfiguration.PROCESS_TIMEOUT_SECONDS,
     ) -> None:
-        """
-        Initialize the ProcessExecutor with a default timeout for process execution.
+        """Initialize the ProcessExecutor with a default timeout for process execution.
 
         Args:
             timeout: Timeout in seconds for process execution. Defaults to APITestConfiguration.PROCESS_TIMEOUT_SECONDS.
+
         """
         self.timeout = timeout
 
@@ -566,8 +559,7 @@ class ProcessExecutor:
         input_text: str | None = None,
         timeout: int | None = None,
     ) -> tuple[int, str, str]:
-        """
-        Execute a command as a subprocess, capturing and printing output in real time.
+        """Execute a command as a subprocess, capturing and printing output in real time.
         Optionally sends input to the process. Handles timeouts and prints progress.
 
         Args:
@@ -578,6 +570,7 @@ class ProcessExecutor:
 
         Returns:
             Tuple of (return_code, stdout, stderr) from the process.
+
         """
         timeout = timeout or self.timeout
         print(f"🚀 Running: {' '.join(cmd)}")
@@ -586,14 +579,16 @@ class ProcessExecutor:
 
         if input_text:
             return self._execute_process_with_input(cmd, env, input_text, timeout)
-        else:
-            return self._execute_process_without_input(cmd, env, timeout)
+        return self._execute_process_without_input(cmd, env, timeout)
 
     def _execute_process_with_input(
-        self, cmd: list[str], env: dict[str, str], input_text: str, timeout: int
+        self,
+        cmd: list[str],
+        env: dict[str, str],
+        input_text: str,
+        timeout: int,
     ) -> tuple[int, str, str]:
-        """
-        Execute a process that expects input, sending the provided input text.
+        """Execute a process that expects input, sending the provided input text.
         Captures and prints output in real time.
 
         Args:
@@ -604,9 +599,10 @@ class ProcessExecutor:
 
         Returns:
             Tuple of (return_code, stdout, stderr) from the process.
+
         """
         print("📝 Sending input to process...")
-        print(f"📤 Input preview: {repr(input_text[:100])}...")
+        print(f"📤 Input preview: {input_text[:100]!r}...")
 
         process = subprocess.Popen(
             cmd,
@@ -634,10 +630,12 @@ class ProcessExecutor:
             raise
 
     def _execute_process_without_input(
-        self, cmd: list[str], env: dict[str, str], timeout: int
+        self,
+        cmd: list[str],
+        env: dict[str, str],
+        timeout: int,
     ) -> tuple[int, str, str]:
-        """
-        Execute a process that does not expect input, capturing and printing output in real time.
+        """Execute a process that does not expect input, capturing and printing output in real time.
 
         Args:
             cmd: Command to execute.
@@ -646,6 +644,7 @@ class ProcessExecutor:
 
         Returns:
             Tuple of (return_code, stdout, stderr) from the process.
+
         """
         process = subprocess.Popen(
             cmd,
@@ -669,16 +668,26 @@ class ProcessExecutor:
             print("⏳ Process started, waiting for first output...")
 
             stdout_lines, stderr_lines, output_count = self._monitor_process_output(
-                process, stdout_lines, stderr_lines, start_time, timeout
+                process,
+                stdout_lines,
+                stderr_lines,
+                start_time,
+                timeout,
             )
 
             remaining_stdout, remaining_stderr = process.communicate()
             stdout_lines, stderr_lines = self._add_remaining_output(
-                remaining_stdout, remaining_stderr, stdout_lines, stderr_lines
+                remaining_stdout,
+                remaining_stderr,
+                stdout_lines,
+                stderr_lines,
             )
 
             return self._process_final_output(
-                process, "".join(stdout_lines), "".join(stderr_lines), start_time
+                process,
+                "".join(stdout_lines),
+                "".join(stderr_lines),
+                start_time,
             )
 
         except subprocess.TimeoutExpired:
@@ -694,8 +703,7 @@ class ProcessExecutor:
         start_time: float,
         timeout: int,
     ) -> tuple[list[str], list[str], int]:
-        """
-        Monitor process output in real time, printing progress and handling timeouts.
+        """Monitor process output in real time, printing progress and handling timeouts.
 
         Args:
             process: The subprocess to monitor.
@@ -706,6 +714,7 @@ class ProcessExecutor:
 
         Returns:
             Tuple of (stdout_lines, stderr_lines, output_count).
+
         """
         last_output_time = time.time()
         output_count = 0
@@ -719,12 +728,19 @@ class ProcessExecutor:
 
             stdout_lines, stderr_lines, output_count, last_output_time = (
                 self._read_available_output(
-                    process, stdout_lines, stderr_lines, output_count, last_output_time
+                    process,
+                    stdout_lines,
+                    stderr_lines,
+                    output_count,
+                    last_output_time,
                 )
             )
 
             last_progress_time = self._print_progress_if_needed(
-                start_time, last_output_time, output_count, last_progress_time
+                start_time,
+                last_output_time,
+                output_count,
+                last_progress_time,
             )
             time.sleep(0.01)
 
@@ -738,8 +754,7 @@ class ProcessExecutor:
         output_count: int,
         last_output_time: float,
     ) -> tuple[list[str], list[str], int, float]:
-        """
-        Read available output from process streams (stdout and stderr), updating output counters.
+        """Read available output from process streams (stdout and stderr), updating output counters.
 
         Args:
             process: The subprocess to read from.
@@ -750,6 +765,7 @@ class ProcessExecutor:
 
         Returns:
             Tuple of (stdout_lines, stderr_lines, output_count, last_output_time).
+
         """
         import select
 
@@ -791,8 +807,7 @@ class ProcessExecutor:
         output_count: int,
         last_progress_time: float,
     ) -> float:
-        """
-        Print a progress message if enough time has elapsed since the last output.
+        """Print a progress message if enough time has elapsed since the last output.
 
         Args:
             start_time: When the process started.
@@ -802,6 +817,7 @@ class ProcessExecutor:
 
         Returns:
             Updated last_progress_time.
+
         """
         current_time = time.time()
         if (
@@ -822,8 +838,7 @@ class ProcessExecutor:
         stdout_lines: list[str],
         stderr_lines: list[str],
     ) -> tuple[list[str], list[str]]:
-        """
-        Add any remaining output from the process to the output lists.
+        """Add any remaining output from the process to the output lists.
 
         Args:
             remaining_stdout: Remaining stdout content.
@@ -833,6 +848,7 @@ class ProcessExecutor:
 
         Returns:
             Tuple of (stdout_lines, stderr_lines).
+
         """
         if remaining_stdout:
             print(f"📤 FINAL STDOUT: {remaining_stdout}")
@@ -843,10 +859,13 @@ class ProcessExecutor:
         return stdout_lines, stderr_lines
 
     def _process_final_output(
-        self, process: subprocess.Popen, stdout: str, stderr: str, start_time: float
+        self,
+        process: subprocess.Popen,
+        stdout: str,
+        stderr: str,
+        start_time: float,
     ) -> tuple[int, str, str]:
-        """
-        Process and print the final output from a completed subprocess, including elapsed time and status.
+        """Process and print the final output from a completed subprocess, including elapsed time and status.
 
         Args:
             process: The completed subprocess.
@@ -856,6 +875,7 @@ class ProcessExecutor:
 
         Returns:
             Tuple of (return_code, stdout, stderr).
+
         """
         output_count = 0
         stdout_lines = []
@@ -880,7 +900,7 @@ class ProcessExecutor:
         elapsed_time = int(time.time() - start_time)
         print("=" * 80)
         print(
-            f"🏁 Command finished with return code: {process.returncode} (elapsed: {elapsed_time}s, total outputs: {output_count})"
+            f"🏁 Command finished with return code: {process.returncode} (elapsed: {elapsed_time}s, total outputs: {output_count})",
         )
 
         if process.returncode == 0:
@@ -892,23 +912,21 @@ class ProcessExecutor:
 
 
 class EnvironmentTester:
-    """
-    Tests environment loading and API key validation by checking .env file parsing and key validity.
+    """Tests environment loading and API key validation by checking .env file parsing and key validity.
     This class ensures that the environment is set up correctly before running further tests.
     """
 
     def __init__(self, validator: APIKeyValidator) -> None:
-        """
-        Initialize the EnvironmentTester with a reference to an APIKeyValidator.
+        """Initialize the EnvironmentTester with a reference to an APIKeyValidator.
 
         Args:
             validator: APIKeyValidator instance used for key validation.
+
         """
         self.validator = validator
 
     def test_environment_loading(self, providers: list[str] | None = None) -> bool:
-        """
-        Test that .env file loading and API key extraction work correctly.
+        """Test that .env file loading and API key extraction work correctly.
         Prints a summary of valid and invalid keys.
 
         Args:
@@ -916,12 +934,13 @@ class EnvironmentTester:
 
         Returns:
             True if at least one valid API key is found, False otherwise.
+
         """
         if providers is None:
             providers = APITestConfiguration.ALL_PROVIDERS
 
         print(
-            f"\n🔍 Testing .env file loading for providers: {', '.join(providers)}..."
+            f"\n🔍 Testing .env file loading for providers: {', '.join(providers)}...",
         )
 
         try:
@@ -930,25 +949,25 @@ class EnvironmentTester:
             if valid_keys:
                 print(f"✅ Valid API keys: {', '.join(valid_keys)}")
                 return True
-            else:
-                print("❌ No valid API keys found")
-                return False
+            print("❌ No valid API keys found")
+            return False
 
         except Exception as e:
             print(f"❌ Error testing .env file loading: {e}")
             return False
 
     def _validate_loaded_keys(
-        self, providers: list[str]
+        self,
+        providers: list[str],
     ) -> tuple[list[str], list[str]]:
-        """
-        Validate loaded API keys by checking each against its provider.
+        """Validate loaded API keys by checking each against its provider.
 
         Args:
             providers: List of providers to validate.
 
         Returns:
             Tuple of (valid_keys, invalid_keys), where each is a list of environment variable names.
+
         """
         from dotenv import load_dotenv
 
@@ -982,27 +1001,26 @@ class EnvironmentTester:
 
 
 class CustomerServiceExampleTester:
-    """
-    Tests the customer service example workflow with real API keys and all supported providers.
+    """Tests the customer service example workflow with real API keys and all supported providers.
     This class runs both create.py and run.py scripts for each provider, validating end-to-end functionality.
     """
 
     def __init__(self, executor: ProcessExecutor, validator: APIKeyValidator) -> None:
-        """
-        Initialize the CustomerServiceExampleTester with references to a ProcessExecutor and APIKeyValidator.
+        """Initialize the CustomerServiceExampleTester with references to a ProcessExecutor and APIKeyValidator.
 
         Args:
             executor: ProcessExecutor instance used to run scripts.
             validator: APIKeyValidator instance used for key validation.
+
         """
         self.executor = executor
         self.validator = validator
 
     def test_customer_service_example_with_all_providers(
-        self, providers: list[str] | None = None
+        self,
+        providers: list[str] | None = None,
     ) -> bool:
-        """
-        Test the customer service example with specified providers by running create.py and run.py.
+        """Test the customer service example with specified providers by running create.py and run.py.
         Prints detailed feedback for each provider.
 
         Args:
@@ -1010,12 +1028,13 @@ class CustomerServiceExampleTester:
 
         Returns:
             True if at least one provider works end-to-end, False otherwise.
+
         """
         if providers is None:
             providers = APITestConfiguration.ALL_PROVIDERS
 
         print(
-            f"\n🔍 Testing customer service example with providers: {', '.join(providers)}..."
+            f"\n🔍 Testing customer service example with providers: {', '.join(providers)}...",
         )
         print("🔧 Testing both create.py and run.py for each provider")
 
@@ -1033,17 +1052,21 @@ class CustomerServiceExampleTester:
                 continue
 
             result = self._test_customer_service_with_provider(
-                provider, api_key, env_vars
+                provider,
+                api_key,
+                env_vars,
             )
             results.append(result)
 
         return any(results)
 
     def _test_customer_service_with_provider(
-        self, provider: str, api_key: str, env_vars: dict[str, str]
+        self,
+        provider: str,
+        api_key: str,
+        env_vars: dict[str, str],
     ) -> bool:
-        """
-        Test the customer service example workflow with a specific provider.
+        """Test the customer service example workflow with a specific provider.
         Runs both create.py and run.py, printing detailed feedback.
 
         Args:
@@ -1053,13 +1076,14 @@ class CustomerServiceExampleTester:
 
         Returns:
             True if the provider works correctly, False otherwise.
+
         """
         print(f"\n🧪 Testing customer service example with {provider}...")
         print(f"🔧 Testing both create.py and run.py with {provider}")
 
         if not self.validator.validate_api_key(provider, api_key):
             print(
-                f"❌ Skipping {provider} - API key is invalid or cannot generate responses"
+                f"❌ Skipping {provider} - API key is invalid or cannot generate responses",
             )
             return False
 
@@ -1090,10 +1114,13 @@ class CustomerServiceExampleTester:
             return False
 
     def _test_create_script(
-        self, provider: str, api_key: str, env: dict[str, str], config_path: str
+        self,
+        provider: str,
+        api_key: str,
+        env: dict[str, str],
+        config_path: str,
     ) -> bool:
-        """
-        Test the create.py script with a specific provider and configuration.
+        """Test the create.py script with a specific provider and configuration.
         Prints output and error details.
 
         Args:
@@ -1104,6 +1131,7 @@ class CustomerServiceExampleTester:
 
         Returns:
             True if create.py works correctly, False otherwise.
+
         """
         print(f"📝 Step 1: Testing create.py with {provider}...")
 
@@ -1123,7 +1151,9 @@ class CustomerServiceExampleTester:
 
         create_returncode, create_stdout, create_stderr = (
             self.executor.execute_command_with_realtime_output(
-                create_cmd, env, timeout=600
+                create_cmd,
+                env,
+                timeout=600,
             )
         )
 
@@ -1135,10 +1165,12 @@ class CustomerServiceExampleTester:
         return True
 
     def _test_run_script(
-        self, provider: str, api_key: str, env: dict[str, str]
+        self,
+        provider: str,
+        api_key: str,
+        env: dict[str, str],
     ) -> bool:
-        """
-        Test the run.py script with a specific provider, sending a test input.
+        """Test the run.py script with a specific provider, sending a test input.
         Prints output and error details.
 
         Args:
@@ -1148,6 +1180,7 @@ class CustomerServiceExampleTester:
 
         Returns:
             True if run.py works correctly, False otherwise.
+
         """
         print(f"🤖 Step 2: Testing run.py with {provider}...")
         print("💬 Sending test input: 'Tell me about your robots.'")
@@ -1166,7 +1199,10 @@ class CustomerServiceExampleTester:
         test_input = "Tell me about your robots.\nquit\n"
         run_returncode, run_stdout, run_stderr = (
             self.executor.execute_command_with_realtime_output(
-                run_cmd, env=env, input_text=test_input, timeout=60
+                run_cmd,
+                env=env,
+                input_text=test_input,
+                timeout=60,
             )
         )
 
@@ -1180,22 +1216,21 @@ class CustomerServiceExampleTester:
 
 
 class ConnectivityTester:
-    """
-    Tests network connectivity to API endpoints and checks for required package installations.
+    """Tests network connectivity to API endpoints and checks for required package installations.
     Ensures that the environment is ready for API key validation and end-to-end tests.
     """
 
     def __init__(self) -> None:
-        """
-        Initialize the ConnectivityTester with a default timeout for connectivity checks.
-        """
+        """Initialize the ConnectivityTester with a default timeout for connectivity checks."""
         self.timeout = APITestConfiguration.CONNECTIVITY_TIMEOUT_SECONDS
 
     def check_connectivity_to_url(
-        self, url: str, name: str, timeout: int | None = None
+        self,
+        url: str,
+        name: str,
+        timeout: int | None = None,
     ) -> bool:
-        """
-        Check network connectivity to a specific URL, printing the result.
+        """Check network connectivity to a specific URL, printing the result.
 
         Args:
             url: URL to test connectivity to.
@@ -1204,6 +1239,7 @@ class ConnectivityTester:
 
         Returns:
             True if connectivity is successful, False otherwise.
+
         """
         timeout = timeout or self.timeout
         try:
@@ -1215,11 +1251,11 @@ class ConnectivityTester:
             return False
 
     def check_package_availability(self) -> list[str]:
-        """
-        Check if required packages are installed, printing the result for each.
+        """Check if required packages are installed, printing the result for each.
 
         Returns:
             List of missing package names (empty if all are installed).
+
         """
         required_packages = ["requests", "python-dotenv"]
         missing_packages = []
@@ -1243,11 +1279,11 @@ class ConnectivityTester:
         return missing_packages
 
     def test_api_connectivity(self) -> tuple[int, int]:
-        """
-        Test connectivity to all configured API endpoints, printing the result for each.
+        """Test connectivity to all configured API endpoints, printing the result for each.
 
         Returns:
             Tuple of (successful_connections, total_connections).
+
         """
         connectivity_results = []
         for url, name in APITestConfiguration.API_ENDPOINTS:
@@ -1261,30 +1297,30 @@ class ConnectivityTester:
             print(f"✅ All {total_connections} API endpoints are reachable")
         elif successful_connections > 0:
             print(
-                f"⚠️  {successful_connections}/{total_connections} API endpoints are reachable"
+                f"⚠️  {successful_connections}/{total_connections} API endpoints are reachable",
             )
         else:
             print(f"❌ None of the {total_connections} API endpoints are reachable")
 
         print(
-            "💡 If any connectivity tests failed, API key validation might be affected"
+            "💡 If any connectivity tests failed, API key validation might be affected",
         )
         return successful_connections, total_connections
 
     def check_all_requirements(self) -> bool:
-        """
-        Check if all requirements (packages and connectivity) are met before running tests.
+        """Check if all requirements (packages and connectivity) are met before running tests.
         Prints detailed feedback for missing requirements.
 
         Returns:
             True if all requirements are met, False otherwise.
+
         """
         print("🔍 Checking requirements...")
 
         missing_packages = self.check_package_availability()
         if missing_packages:
             print(
-                f"\n⚠️  Please install missing packages: pip install {' '.join(missing_packages)}"
+                f"\n⚠️  Please install missing packages: pip install {' '.join(missing_packages)}",
             )
             return False
 
@@ -1296,33 +1332,31 @@ class ConnectivityTester:
 
 
 class TestRunner:
-    """
-    Orchestrates all test components, running the full suite in order and summarizing results.
+    """Orchestrates all test components, running the full suite in order and summarizing results.
     This class is the main entry point for running the test script as a whole.
     """
 
     def __init__(self) -> None:
-        """
-        Initialize the TestRunner with all necessary test components.
-        """
+        """Initialize the TestRunner with all necessary test components."""
         self.validator = APIKeyValidator()
         self.executor = ProcessExecutor()
         self.connectivity_tester = ConnectivityTester()
         self.environment_tester = EnvironmentTester(self.validator)
         self.provider_utility_tester = ProviderUtilityTester(self.validator)
         self.customer_service_tester = CustomerServiceExampleTester(
-            self.executor, self.validator
+            self.executor,
+            self.validator,
         )
 
     def run_all_tests(self, providers: list[str] | None = None) -> bool:
-        """
-        Run all tests in the test suite in order, printing progress and a final summary.
+        """Run all tests in the test suite in order, printing progress and a final summary.
 
         Args:
             providers: List of providers to test. If None, tests all providers.
 
         Returns:
             True if all tests pass, False otherwise.
+
         """
         if providers is None:
             providers = APITestConfiguration.ALL_PROVIDERS
@@ -1374,10 +1408,12 @@ class TestRunner:
         return self._check_all_tests_passed(results)
 
     def _run_single_test_step(
-        self, step_name: str, test_func: Callable, *args: object
+        self,
+        step_name: str,
+        test_func: Callable,
+        *args: object,
     ) -> tuple[str, bool]:
-        """
-        Run a single test step, printing the step name and result.
+        """Run a single test step, printing the step name and result.
 
         Args:
             step_name: Name of the test step.
@@ -1386,6 +1422,7 @@ class TestRunner:
 
         Returns:
             Tuple of (step_name, result).
+
         """
         print(f"\n{'=' * 60}")
         print(f"🔍 STEP: {step_name}")
@@ -1394,11 +1431,11 @@ class TestRunner:
         return step_name, result
 
     def _display_final_test_summary(self, results: list[tuple[str, bool]]) -> None:
-        """
-        Print a summary of all test results, including pass/fail status for each step.
+        """Print a summary of all test results, including pass/fail status for each step.
 
         Args:
             results: List of (test_name, result) tuples.
+
         """
         print(f"\n{'=' * 60}")
         print("📊 FINAL TEST SUMMARY")
@@ -1417,14 +1454,14 @@ class TestRunner:
         print(f"Total: {total}, Passed: {passed}, Failed: {total - passed}")
 
     def _check_all_tests_passed(self, results: list[tuple[str, bool]]) -> bool:
-        """
-        Check if all tests passed and print a final message with next steps.
+        """Check if all tests passed and print a final message with next steps.
 
         Args:
             results: List of (test_name, result) tuples.
 
         Returns:
             True if all tests passed, False otherwise.
+
         """
         passed = sum(1 for _, result in results if result)
         total = len(results)
@@ -1438,21 +1475,20 @@ class TestRunner:
             print("✅ End-to-end customer service example working")
             print("✅ All providers tested in order: OpenAI → Anthropic → Google")
             return True
-        else:
-            print("⚠️  Some tests failed. Please check:")
-            print("   - Your .env file contains valid API keys")
-            print("   - API keys have sufficient credits/permissions")
-            print("   - Network connectivity for API calls")
-            print("   - Required packages are installed")
-            return False
+        print("⚠️  Some tests failed. Please check:")
+        print("   - Your .env file contains valid API keys")
+        print("   - API keys have sufficient credits/permissions")
+        print("   - Network connectivity for API calls")
+        print("   - Required packages are installed")
+        return False
 
 
 def parse_arguments() -> argparse.Namespace:
-    """
-    Parse command-line arguments for the test script.
+    """Parse command-line arguments for the test script.
 
     Returns:
         Parsed arguments namespace.
+
     """
     parser = argparse.ArgumentParser(
         description="Test API keys and customer service example functionality",
@@ -1476,11 +1512,11 @@ Examples:
 
 
 def main() -> bool:
-    """
-    Main entry point for the test suite. Instantiates the TestRunner and runs all tests.
+    """Main entry point for the test suite. Instantiates the TestRunner and runs all tests.
 
     Returns:
         True if all tests pass, False otherwise.
+
     """
     args = parse_arguments()
     test_runner = TestRunner()

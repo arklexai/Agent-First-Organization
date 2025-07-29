@@ -20,27 +20,20 @@ class FallbackApp:
 
     def exit(self, result: object = None) -> None:
         """Exit the app (fallback implementation)."""
-        pass
 
     def push_screen(self, screen: object) -> None:
         """Push a screen (fallback implementation)."""
-        pass
 
     def call_later(self, callback: object) -> None:
         """Call a callback later (fallback implementation)."""
-        pass
 
 
 class FallbackComposeResult:
     """Fallback ComposeResult class."""
 
-    pass
-
 
 class FallbackReturnType:
     """Fallback ReturnType class."""
-
-    pass
 
 
 class FallbackKey:
@@ -67,7 +60,6 @@ class FallbackTree:
 
     def focus(self) -> None:
         """Focus the tree (fallback implementation)."""
-        pass
 
     def query_one(self, selector: str, widget_type: type = None) -> object:
         """Query for a widget (fallback implementation)."""
@@ -90,7 +82,6 @@ class FallbackTreeNode:
 
     def expand(self) -> None:
         """Expand the node (fallback implementation)."""
-        pass
 
     def add(self, label: str) -> "FallbackTreeNode":
         """Add a child node (fallback implementation)."""
@@ -203,7 +194,7 @@ class FallbackTaskEditorApp:
         tasks = self.tasks if self.tasks is not None else []
         for task in tasks:
             task_node = self.task_tree.root.add(task["name"])
-            if "steps" in task and task["steps"]:
+            if task.get("steps"):
                 for step in task["steps"]:
                     if isinstance(step, dict):
                         step_text = step.get("description", str(step))
@@ -219,19 +210,15 @@ class FallbackTaskEditorApp:
 
     async def on_tree_node_selected(self, event: FallbackTree.NodeSelected) -> None:
         """Fallback node selection handler."""
-        pass
 
     async def on_key(self, event: FallbackKey) -> None:
         """Fallback keyboard handler."""
-        pass
 
     async def action_add_node(self, node: FallbackTreeNode) -> None:
         """Fallback add node action."""
-        pass
 
     def push_screen(self, screen: FallbackInputModal) -> None:
         """Fallback push screen method."""
-        pass
 
     def show_input_modal(self, title: str, default: str = "") -> str:
         """Fallback show input modal method."""

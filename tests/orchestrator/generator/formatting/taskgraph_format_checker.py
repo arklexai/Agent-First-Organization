@@ -41,6 +41,7 @@ class TaskGraphFormatChecker:
 
         Returns:
             tuple[bool, list[str], list[str]]: (is_valid, errors, warnings)
+
         """
         self.errors = []
         self.warnings = []
@@ -78,6 +79,7 @@ class TaskGraphFormatChecker:
 
         Returns:
             bool: True if structure is valid
+
         """
         if not isinstance(taskgraph, dict):
             self.errors.append("TaskGraph must be a dictionary")
@@ -98,7 +100,8 @@ class TaskGraphFormatChecker:
 
         # Check referential integrity
         referential_valid = self._check_referential_integrity(
-            taskgraph.get("nodes", []), taskgraph.get("edges", [])
+            taskgraph.get("nodes", []),
+            taskgraph.get("edges", []),
         )
 
         return all(
@@ -108,7 +111,7 @@ class TaskGraphFormatChecker:
                 templates_valid,
                 settings_valid,
                 referential_valid,
-            ]
+            ],
         )
 
     def _validate_nodes(self, nodes: list[Any]) -> bool:
@@ -119,6 +122,7 @@ class TaskGraphFormatChecker:
 
         Returns:
             bool: True if nodes are valid
+
         """
         if not isinstance(nodes, list):
             self.errors.append("Nodes must be a list")
@@ -177,7 +181,7 @@ class TaskGraphFormatChecker:
 
             if "id" not in resource or "name" not in resource:
                 self.errors.append(
-                    f"Node {node_id} resource must have 'id' and 'name' fields"
+                    f"Node {node_id} resource must have 'id' and 'name' fields",
                 )
                 valid_nodes = False
                 continue
@@ -191,7 +195,7 @@ class TaskGraphFormatChecker:
 
             if "value" not in attribute or "task" not in attribute:
                 self.errors.append(
-                    f"Node {node_id} attribute must have 'value' and 'task' fields"
+                    f"Node {node_id} attribute must have 'value' and 'task' fields",
                 )
                 valid_nodes = False
                 continue
@@ -199,7 +203,7 @@ class TaskGraphFormatChecker:
             # Check for directed field in attribute
             if "directed" in attribute and not isinstance(attribute["directed"], bool):
                 self.warnings.append(
-                    f"Node {node_id} attribute 'directed' should be boolean"
+                    f"Node {node_id} attribute 'directed' should be boolean",
                 )
 
             # Check for optional fields
@@ -219,6 +223,7 @@ class TaskGraphFormatChecker:
 
         Returns:
             bool: True if edges are valid
+
         """
         if not isinstance(edges, list):
             self.errors.append("Edges must be a list")
@@ -266,7 +271,7 @@ class TaskGraphFormatChecker:
             intent = data["intent"]
             if intent is not None and not isinstance(intent, str):
                 self.warnings.append(
-                    f"Edge {i} intent should be string or None, got {type(intent)}"
+                    f"Edge {i} intent should be string or None, got {type(intent)}",
                 )
 
             # Validate attribute structure
@@ -300,23 +305,24 @@ class TaskGraphFormatChecker:
 
             # Check for optional attribute fields
             if "definition" in attribute and not isinstance(
-                attribute["definition"], str
+                attribute["definition"],
+                str,
             ):
                 self.warnings.append(
-                    f"Edge {i} attribute 'definition' should be string"
+                    f"Edge {i} attribute 'definition' should be string",
                 )
 
             if "sample_utterances" in attribute:
                 sample_utterances = attribute["sample_utterances"]
                 if not isinstance(sample_utterances, list):
                     self.warnings.append(
-                        f"Edge {i} attribute 'sample_utterances' should be list"
+                        f"Edge {i} attribute 'sample_utterances' should be list",
                     )
                 elif sample_utterances and not all(
                     isinstance(u, str) for u in sample_utterances
                 ):
                     self.warnings.append(
-                        f"Edge {i} attribute 'sample_utterances' should contain strings"
+                        f"Edge {i} attribute 'sample_utterances' should contain strings",
                     )
 
         return valid_edges
@@ -329,6 +335,7 @@ class TaskGraphFormatChecker:
 
         Returns:
             bool: True if reusable tasks are valid
+
         """
         if not isinstance(reusable_tasks, dict):
             self.errors.append("Reusable tasks must be a dictionary")
@@ -340,7 +347,7 @@ class TaskGraphFormatChecker:
         for template_id, template_data in reusable_tasks.items():
             if not isinstance(template_id, str):
                 self.errors.append(
-                    f"Template ID must be string, got {type(template_id)}"
+                    f"Template ID must be string, got {type(template_id)}",
                 )
                 valid_templates = False
                 continue
@@ -374,7 +381,7 @@ class TaskGraphFormatChecker:
                 for field in required_fields:
                     if field not in template_data:
                         self.errors.append(
-                            f"Template {template_id} missing required field: {field}"
+                            f"Template {template_id} missing required field: {field}",
                         )
                         valid_templates = False
                         continue
@@ -382,7 +389,7 @@ class TaskGraphFormatChecker:
                 # Validate template_id matches the key
                 if template_data["template_id"] != template_id:
                     self.errors.append(
-                        f"Template {template_id} template_id field does not match key"
+                        f"Template {template_id} template_id field does not match key",
                     )
                     valid_templates = False
                     continue
@@ -395,7 +402,7 @@ class TaskGraphFormatChecker:
 
                 if not isinstance(template_data["description"], str):
                     self.errors.append(
-                        f"Template {template_id} 'description' must be string"
+                        f"Template {template_id} 'description' must be string",
                     )
                     valid_templates = False
                     continue
@@ -407,28 +414,28 @@ class TaskGraphFormatChecker:
 
                 if not isinstance(template_data["parameters"], dict):
                     self.errors.append(
-                        f"Template {template_id} 'parameters' must be dictionary"
+                        f"Template {template_id} 'parameters' must be dictionary",
                     )
                     valid_templates = False
                     continue
 
                 if not isinstance(template_data["examples"], list):
                     self.errors.append(
-                        f"Template {template_id} 'examples' must be list"
+                        f"Template {template_id} 'examples' must be list",
                     )
                     valid_templates = False
                     continue
 
                 if not isinstance(template_data["version"], str):
                     self.errors.append(
-                        f"Template {template_id} 'version' must be string"
+                        f"Template {template_id} 'version' must be string",
                     )
                     valid_templates = False
                     continue
 
                 if not isinstance(template_data["category"], str):
                     self.errors.append(
-                        f"Template {template_id} 'category' must be string"
+                        f"Template {template_id} 'category' must be string",
                     )
                     valid_templates = False
                     continue
@@ -438,7 +445,7 @@ class TaskGraphFormatChecker:
                 for j, step in enumerate(steps):
                     if not isinstance(step, dict):
                         self.errors.append(
-                            f"Template {template_id} step {j} must be dictionary"
+                            f"Template {template_id} step {j} must be dictionary",
                         )
                         valid_templates = False
                         continue
@@ -453,7 +460,7 @@ class TaskGraphFormatChecker:
                     for field in step_required_fields:
                         if field not in step:
                             self.errors.append(
-                                f"Template {template_id} step {j} missing required field: {field}"
+                                f"Template {template_id} step {j} missing required field: {field}",
                             )
                             valid_templates = False
                             continue
@@ -461,28 +468,28 @@ class TaskGraphFormatChecker:
                     # Validate step field types
                     if not isinstance(step["task"], str):
                         self.errors.append(
-                            f"Template {template_id} step {j} 'task' must be string"
+                            f"Template {template_id} step {j} 'task' must be string",
                         )
                         valid_templates = False
                         continue
 
                     if not isinstance(step["description"], str):
                         self.errors.append(
-                            f"Template {template_id} step {j} 'description' must be string"
+                            f"Template {template_id} step {j} 'description' must be string",
                         )
                         valid_templates = False
                         continue
 
                     if not isinstance(step["step_id"], str):
                         self.errors.append(
-                            f"Template {template_id} step {j} 'step_id' must be string"
+                            f"Template {template_id} step {j} 'step_id' must be string",
                         )
                         valid_templates = False
                         continue
 
                     if not isinstance(step["required_fields"], list):
                         self.errors.append(
-                            f"Template {template_id} step {j} 'required_fields' must be list"
+                            f"Template {template_id} step {j} 'required_fields' must be list",
                         )
                         valid_templates = False
                         continue
@@ -492,29 +499,30 @@ class TaskGraphFormatChecker:
                 resource = template_data["resource"]
                 if not isinstance(resource, dict):
                     self.errors.append(
-                        f"Nested graph {template_id} resource must be a dictionary"
+                        f"Nested graph {template_id} resource must be a dictionary",
                     )
                     valid_templates = False
                     continue
 
                 if "id" not in resource or "name" not in resource:
                     self.errors.append(
-                        f"Nested graph {template_id} resource must have 'id' and 'name' fields"
+                        f"Nested graph {template_id} resource must have 'id' and 'name' fields",
                     )
                     valid_templates = False
                     continue
 
                 # Check for optional limit field
                 if "limit" in template_data and not isinstance(
-                    template_data["limit"], int | float
+                    template_data["limit"],
+                    int | float,
                 ):
                     self.warnings.append(
-                        f"Nested graph {template_id} 'limit' should be numeric"
+                        f"Nested graph {template_id} 'limit' should be numeric",
                     )
             else:
                 # Unknown structure
                 self.errors.append(
-                    f"Template {template_id} has unknown structure - must be template or nested graph resource"
+                    f"Template {template_id} has unknown structure - must be template or nested graph resource",
                 )
                 valid_templates = False
                 continue
@@ -529,6 +537,7 @@ class TaskGraphFormatChecker:
 
         Returns:
             bool: True if settings are valid
+
         """
         if not isinstance(settings, dict):
             self.errors.append("Settings must be a dictionary")
@@ -547,6 +556,7 @@ class TaskGraphFormatChecker:
 
         Returns:
             bool: True if referential integrity is maintained
+
         """
         valid_integrity = True
 
@@ -563,13 +573,13 @@ class TaskGraphFormatChecker:
 
                 if source not in node_ids:
                     self.errors.append(
-                        f"Edge {i} references non-existent source node: {source}"
+                        f"Edge {i} references non-existent source node: {source}",
                     )
                     valid_integrity = False
 
                 if target not in node_ids:
                     self.errors.append(
-                        f"Edge {i} references non-existent target node: {target}"
+                        f"Edge {i} references non-existent target node: {target}",
                     )
                     valid_integrity = False
 
@@ -580,6 +590,7 @@ class TaskGraphFormatChecker:
 
         Returns:
             dict[str, Any]: Summary with error count, warning count, and details
+
         """
         return {
             "is_valid": len(self.errors) == 0,

@@ -290,7 +290,7 @@ TASKS_TEST = [
             Action(
                 name="transfer_to_human_agents",
                 kwargs={
-                    "summary": "The user wants to refund each order to the opposite order's payment method, but the agent cannot help."
+                    "summary": "The user wants to refund each order to the opposite order's payment method, but the agent cannot help.",
                 },
             ),
         ],
@@ -355,7 +355,7 @@ TASKS_TEST = [
             Action(
                 name="transfer_to_human_agents",
                 kwargs={
-                    "summary": "The user prefers PayPal for refund, but the agent cannot help."
+                    "summary": "The user prefers PayPal for refund, but the agent cannot help.",
                 },
             ),
         ],
@@ -471,7 +471,8 @@ TASKS_TEST = [
             Action(name="get_order_details", kwargs={"order_id": "#W8665881"}),
             Action(name="get_order_details", kwargs={"order_id": "#W9389413"}),
             Action(
-                name="calculate", kwargs={"expression": "3131.1 + 4777.75 + 367.38"}
+                name="calculate",
+                kwargs={"expression": "3131.1 + 4777.75 + 367.38"},
             ),
             Action(
                 name="cancel_pending_order",
@@ -823,7 +824,7 @@ TASKS_TEST = [
             Action(
                 name="transfer_to_human_agents",
                 kwargs={
-                    "summary": "The user wants to refund to the amex credit card, but the agent cannot help."
+                    "summary": "The user wants to refund to the amex credit card, but the agent cannot help.",
                 },
             ),
         ],
@@ -1683,9 +1684,9 @@ TASKS_TEST = [
             Action(
                 name="transfer_to_human_agents",
                 kwargs={
-                    "summary": "The user urgently needs to undo a cancellation of an order and insists on receiving the items from the initial order as soon as possible. The user acknowledges the policy but requests exceptional measures due to the urgency of the situation."
+                    "summary": "The user urgently needs to undo a cancellation of an order and insists on receiving the items from the initial order as soon as possible. The user acknowledges the policy but requests exceptional measures due to the urgency of the situation.",
                 },
-            )
+            ),
         ],
         outputs=[],
     ),
@@ -2053,7 +2054,8 @@ TASKS_TEST = [
             Action(name="get_order_details", kwargs={"order_id": "#W5061109"}),
             Action(name="get_product_details", kwargs={"product_id": "4768869376"}),
             Action(
-                name="calculate", kwargs={"expression": "1319.43 - 302.67 + 271.89"}
+                name="calculate",
+                kwargs={"expression": "1319.43 - 302.67 + 271.89"},
             ),
             Action(
                 name="modify_pending_order_items",
@@ -2214,7 +2216,7 @@ TASKS_TEST = [
                     "new_item_ids": ["9013366374"],
                     "payment_method_id": "credit_card_7901829",
                 },
-            )
+            ),
         ],
         outputs=["22.55"],
     ),
@@ -2293,7 +2295,7 @@ TASKS_TEST = [
                     ],
                     "payment_method_id": "credit_card_6824399",
                 },
-            )
+            ),
         ],
         outputs=[],
     ),
@@ -2331,7 +2333,7 @@ TASKS_TEST = [
                     "new_item_ids": ["4063058357"],
                     "payment_method_id": "paypal_4518393",
                 },
-            )
+            ),
         ],
         outputs=[],
     ),
@@ -2364,7 +2366,7 @@ TASKS_TEST = [
                     "new_item_ids": ["3399869890"],
                     "payment_method_id": "paypal_6918118",
                 },
-            )
+            ),
         ],
         outputs=[],
     ),
@@ -2414,7 +2416,7 @@ TASKS_TEST = [
                     "new_item_ids": ["2439754078"],
                     "payment_method_id": "credit_card_7239357",
                 },
-            )
+            ),
         ],
         outputs=[],
     ),
@@ -2431,7 +2433,7 @@ TASKS_TEST = [
                     "new_item_ids": ["9354168549"],
                     "payment_method_id": "gift_card_2611937",
                 },
-            )
+            ),
         ],
         outputs=[],
     ),
@@ -2468,7 +2470,7 @@ TASKS_TEST = [
                     ],
                     "payment_method_id": "gift_card_7250692",
                 },
-            )
+            ),
         ],
         outputs=[],
     ),
@@ -2484,7 +2486,7 @@ TASKS_TEST = [
                     "item_ids": ["6065192424"],
                     "payment_method_id": "gift_card_7250692",
                 },
-            )
+            ),
         ],
         outputs=[],
     ),
@@ -2500,7 +2502,7 @@ TASKS_TEST = [
                     "item_ids": ["6065192424"],
                     "payment_method_id": "gift_card_7250692",
                 },
-            )
+            ),
         ],
         outputs=[],
     ),
@@ -2517,7 +2519,7 @@ TASKS_TEST = [
                     "new_item_ids": ["8733974883"],
                     "payment_method_id": "paypal_7529813",
                 },
-            )
+            ),
         ],
         outputs=[],
     ),
@@ -2614,7 +2616,7 @@ TASKS_TEST = [
             Action(
                 name="cancel_pending_order",
                 kwargs={"order_id": "#W8835847", "reason": "ordered by mistake"},
-            )
+            ),
         ],
         outputs=[],
     ),
@@ -2630,7 +2632,7 @@ TASKS_TEST = [
                     "item_ids": ["9690244451"],
                     "payment_method_id": "paypal_2417743",
                 },
-            )
+            ),
         ],
         outputs=["226.11", "tactile", "white", "full"],
     ),
@@ -2642,7 +2644,7 @@ TASKS_TEST = [
             Action(
                 name="cancel_pending_order",
                 kwargs={"order_id": "#W9284598", "reason": "ordered by mistake"},
-            )
+            ),
         ],
         outputs=[],
     ),
@@ -2708,7 +2710,7 @@ TASKS_TEST = [
                     "new_item_ids": ["9844888101"],
                     "payment_method_id": "credit_card_3677959",
                 },
-            )
+            ),
         ],
         outputs=[],
     ),
@@ -2725,7 +2727,7 @@ TASKS_TEST = [
                     "new_item_ids": ["9844888101"],
                     "payment_method_id": "credit_card_3677959",
                 },
-            )
+            ),
         ],
         outputs=[],
     ),
@@ -2742,7 +2744,7 @@ TASKS_TEST = [
                     "new_item_ids": ["9844888101"],
                     "payment_method_id": "credit_card_3677959",
                 },
-            )
+            ),
         ],
         outputs=[],
     ),
@@ -3090,7 +3092,7 @@ TASKS_TEST = [
                     "new_item_ids": ["3761330360", "9647374798"],
                     "payment_method_id": "gift_card_7245904",
                 },
-            )
+            ),
         ],
         outputs=[],
     ),
@@ -3107,7 +3109,7 @@ TASKS_TEST = [
                     "new_item_ids": ["2060066974"],
                     "payment_method_id": "paypal_5334408",
                 },
-            )
+            ),
         ],
         outputs=[],
     ),
@@ -3149,7 +3151,7 @@ TASKS_TEST = [
                     "item_ids": ["9612497925", "7127170374", "6268080249"],
                     "payment_method_id": "paypal_3022415",
                 },
-            )
+            ),
         ],
         outputs=["346.93"],
     ),

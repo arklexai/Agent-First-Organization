@@ -72,6 +72,7 @@ class RequestIdFilter(logging.Filter):
 
         Args:
             request_id: The request ID to add to log records
+
         """
         super().__init__()
         self.request_id = request_id
@@ -84,6 +85,7 @@ class RequestIdFilter(logging.Filter):
 
         Returns:
             True to allow the record to be processed.
+
         """
         record.request_id = self.request_id
         return True
@@ -97,6 +99,7 @@ class ContextFilter(logging.Filter):
 
         Args:
             context: Dictionary of context information to add to log records
+
         """
         super().__init__()
         self.context = context or {}
@@ -109,6 +112,7 @@ class ContextFilter(logging.Filter):
 
         Returns:
             True to allow the record to be processed.
+
         """
         record.context = self.context
         return True
@@ -122,6 +126,7 @@ class JSONFormatter(logging.Formatter):
 
         Args:
             include_hostname: Whether to include hostname in log records
+
         """
         super().__init__()
         self.include_hostname = include_hostname
@@ -138,6 +143,7 @@ class JSONFormatter(logging.Formatter):
 
         Returns:
             JSON string representation of the log record.
+
         """
         log_data = {
             "timestamp": datetime.fromtimestamp(record.created).isoformat(),
@@ -159,7 +165,7 @@ class JSONFormatter(logging.Formatter):
                     "hostname": self.hostname,
                     "platform": platform.platform(),
                     "python_version": platform.python_version(),
-                }
+                },
             )
 
         # Add request tracking information
@@ -200,6 +206,7 @@ def setup_logging(
         use_json: Whether to use JSON formatting for logs.
         max_bytes: Maximum bytes for log rotation.
         include_hostname: Whether to include hostname in log records.
+
     """
     root_log_context = logging.getLogger()
     # Remove all existing handlers

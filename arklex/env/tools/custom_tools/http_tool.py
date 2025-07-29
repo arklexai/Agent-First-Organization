@@ -1,5 +1,4 @@
-"""
-HTTP request tool for external APIs in the Arklex framework.
+"""HTTP request tool for external APIs in the Arklex framework.
 
 This module defines a tool for making HTTP requests to external APIs and handling responses. It is designed to be registered and used within the Arklex framework's tool system, providing a flexible interface for API integrations.
 """
@@ -18,14 +17,14 @@ log_context = LogContext(__name__)
 
 
 def clean_json_data(data: dict[str, Any]) -> dict[str, Any]:
-    """
-    Clean JSON data by removing or replacing invalid values that could cause parsing errors.
+    """Clean JSON data by removing or replacing invalid values that could cause parsing errors.
 
     Args:
         data: Dictionary to clean
 
     Returns:
         Cleaned dictionary with valid JSON values
+
     """
     if not isinstance(data, dict):
         return data
@@ -53,14 +52,14 @@ def clean_json_data(data: dict[str, Any]) -> dict[str, Any]:
 
 
 def validate_request_body(body: dict[str, Any] | None) -> dict[str, Any] | None:
-    """
-    Validate and clean the request body to ensure it's valid JSON.
+    """Validate and clean the request body to ensure it's valid JSON.
 
     Args:
         body: Request body to validate
 
     Returns:
         Cleaned and validated request body
+
     """
     if body is None:
         return None
@@ -76,7 +75,7 @@ def validate_request_body(body: dict[str, Any] | None) -> dict[str, Any] | None:
 
         return cleaned_body
     except (TypeError, ValueError) as e:
-        log_context.error(f"Invalid request body after cleaning: {str(e)}")
+        log_context.error(f"Invalid request body after cleaning: {e!s}")
         # Return a minimal valid body if cleaning fails
         return {"error": "Invalid request body", "details": str(e)}
 
@@ -85,8 +84,7 @@ def replace_placeholders(
     data: dict[str, object] | list[object] | str | object,
     slot_map: dict[str, object],
 ) -> dict[str, object] | list[object] | str | object:
-    """
-    Recursively replace {{slot_name}} in all string values in data with slot_map[slot_name].
+    """Recursively replace {{slot_name}} in all string values in data with slot_map[slot_name].
     If the slot is not found, replace the placeholder with appropriate default values based on type.
     Only supports entire placeholder replacement (no partial placeholder support).
     """
@@ -121,23 +119,20 @@ def replace_placeholders(
                     "boolean": False,
                 }
                 return defaults.get(slot_type)
-            else:
-                # If slot not found in slot_map, return appropriate default
-                return ""
+            # If slot not found in slot_map, return appropriate default
+            return ""
         return None  # Not a full placeholder
 
     if isinstance(data, dict):
         return handle_dict(data)
-    elif isinstance(data, list):
+    if isinstance(data, list):
         return handle_list(data)
-    elif isinstance(data, str):
+    if isinstance(data, str):
         entire_placeholder_result = handle_entire_placeholder(data)
         if entire_placeholder_result is not None:
             return entire_placeholder_result
-        else:
-            return data
-    else:
         return data
+    return data
 
 
 @register_tool(
@@ -147,14 +142,15 @@ def replace_placeholders(
     isResponse=False,
 )
 def http_tool(
-    slots: list[dict[str, Any]] | None = None, **kwargs: dict[str, Any]
+    slots: list[dict[str, Any]] | None = None,
+    **kwargs: dict[str, Any],
 ) -> str:
     """Make an HTTP request and return the response"""
     func_name: str = inspect.currentframe().f_code.co_name
     try:
         params: HTTPParams = HTTPParams(**kwargs)
         log_context.info(
-            f"HTTPTool execution called with args: {kwargs}, slots: {slots}"
+            f"HTTPTool execution called with args: {kwargs}, slots: {slots}",
         )
         if slots:
             # Process slots based on their target
@@ -183,7 +179,7 @@ def http_tool(
                         params.params = {}
                     params.params[slot_name] = slot_value
                     log_context.info(
-                        f"Added slot '{slot_name}' with value '{slot_value}' to params"
+                        f"Added slot '{slot_name}' with value '{slot_value}' to params",
                     )
 
             # Build slot_map once after all slots are processed
@@ -221,7 +217,7 @@ def http_tool(
                 ):
                     keys_to_remove.append(key)
                     log_context.info(
-                        f"Removing placeholder '{key}' with value '{value}'"
+                        f"Removing placeholder '{key}' with value '{value}'",
                     )
             for key in keys_to_remove:
                 del data_dict[key]
@@ -230,7 +226,7 @@ def http_tool(
         remove_placeholders(params.body)
 
         log_context.info(
-            f"Making a {params.method} request to {params.endpoint}, with body: {params.body} and params: {params.params}"
+            f"Making a {params.method} request to {params.endpoint}, with body: {params.body} and params: {params.params}",
         )
 
         response: requests.Response = requests.request(
@@ -246,7 +242,7 @@ def http_tool(
         try:
             response_data: dict[str, Any] | list[Any] = response.json()
         except ValueError as json_error:
-            log_context.error(f"Failed to parse JSON response: {str(json_error)}")
+            log_context.error(f"Failed to parse JSON response: {json_error!s}")
             # Return the raw text if JSON parsing fails
             response_data = {
                 "raw_response": response.text,
@@ -254,18 +250,19 @@ def http_tool(
             }
 
         log_context.info(
-            f"Response from the {params.endpoint} for body: {params.body} and params: {params.params} is: {response_data}"
+            f"Response from the {params.endpoint} for body: {params.body} and params: {params.params} is: {response_data}",
         )
         return str(response_data)
 
     except requests.exceptions.RequestException as e:
-        log_context.error(f"Error making HTTP request: {str(e)}")
+        log_context.error(f"Error making HTTP request: {e!s}")
         raise ToolExecutionError(
-            func_name, f"Error making HTTP request: {str(e)}"
+            func_name,
+            f"Error making HTTP request: {e!s}",
         ) from e
     except Exception as e:
-        log_context.error(f"Unexpected error in HTTPTool: {str(e)}")
-        raise ToolExecutionError(func_name, f"Unexpected error: {str(e)}") from e
+        log_context.error(f"Unexpected error in HTTPTool: {e!s}")
+        raise ToolExecutionError(func_name, f"Unexpected error: {e!s}") from e
 
 
 http_tool.__name__ = "http_tool"

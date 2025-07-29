@@ -23,7 +23,7 @@ tasks = [
                         },
                     ],
                     "passengers": [
-                        {"first_name": "Mia", "last_name": "Li", "dob": "1990-04-05"}
+                        {"first_name": "Mia", "last_name": "Li", "dob": "1990-04-05"},
                     ],
                     "payment_methods": [
                         {"payment_id": "certificate_7504069", "amount": 250},
@@ -176,7 +176,7 @@ tasks = [
                             "first_name": "Omar",
                             "last_name": "Rossi",
                             "dob": "1970-06-06",
-                        }
+                        },
                     ],
                 },
             },
@@ -223,7 +223,7 @@ tasks = [
                             "first_name": "Omar",
                             "last_name": "Rossi",
                             "dob": "1970-06-06",
-                        }
+                        },
                     ],
                 },
             },
@@ -254,7 +254,7 @@ tasks = [
                     ],
                     "payment_id": "gift_card_8887175",
                 },
-            }
+            },
         ],
     },
     {
@@ -273,7 +273,7 @@ tasks = [
                     ],
                     "payment_id": "gift_card_8887175",
                 },
-            }
+            },
         ],
     },
     {
@@ -350,7 +350,7 @@ tasks = [
                             "first_name": "Mohamed",
                             "last_name": "Silva",
                             "dob": "1960-11-26",
-                        }
+                        },
                     ],
                     "payment_methods": [
                         {"payment_id": "certificate_3765853", "amount": 500},
@@ -381,7 +381,7 @@ tasks = [
                             "first_name": "Aarav",
                             "last_name": "Sanchez",
                             "dob": "1986-09-12",
-                        }
+                        },
                     ],
                     "payment_methods": [
                         {"payment_id": "certificate_9984806", "amount": 250},
@@ -410,7 +410,7 @@ tasks = [
                             "first_name": "Evelyn",
                             "last_name": "Wilson",
                             "dob": "1980-03-27",
-                        }
+                        },
                     ],
                     "payment_methods": [
                         {"payment_id": "certificate_2765295", "amount": 250},
@@ -443,7 +443,7 @@ tasks = [
                         {"flight_number": "HAT276", "date": "2024-05-25"},
                     ],
                     "passengers": [
-                        {"first_name": "Mia", "last_name": "Kim", "dob": "1965-06-09"}
+                        {"first_name": "Mia", "last_name": "Kim", "dob": "1965-06-09"},
                     ],
                     "payment_methods": [
                         {"payment_id": "gift_card_7359776", "amount": 39},
@@ -478,7 +478,7 @@ tasks = [
                             "first_name": "Ivan",
                             "last_name": "Smith",
                             "dob": "1986-03-14",
-                        }
+                        },
                     ],
                     "payment_methods": [
                         {"payment_id": "gift_card_8516878", "amount": 128},
@@ -766,16 +766,16 @@ tasks = [
                             "first_name": "Aarav",
                             "last_name": "Ahmed",
                             "dob": "1985-04-04",
-                        }
+                        },
                     ],
                     "payment_methods": [
-                        {"payment_id": "credit_card_9074831", "amount": 290}
+                        {"payment_id": "credit_card_9074831", "amount": 290},
                     ],
                     "total_baggages": 0,
                     "nonfree_baggages": 0,
                     "insurance": "no",
                 },
-            }
+            },
         ],
     },
     {
@@ -1046,7 +1046,7 @@ tasks = [
                         },
                     ],
                     "payment_methods": [
-                        {"payment_id": "certificate_8045380", "amount": 348}
+                        {"payment_id": "certificate_8045380", "amount": 348},
                     ],
                     "total_baggages": 0,
                     "nonfree_baggages": 0,
@@ -1240,7 +1240,7 @@ tasks = [
             {
                 "name": "transfer_to_human_agents",
                 "arguments": {
-                    "summary": "User Sophia Taylor (ID: sophia_taylor_9065) needs to cancel or modify a Basic Economy reservation (ID: PEP4E0) due to a serious family emergency. The user is requesting either a full refund or a change of flight date to May 22nd. Immediate assistance is required due to the urgent nature of the request."
+                    "summary": "User Sophia Taylor (ID: sophia_taylor_9065) needs to cancel or modify a Basic Economy reservation (ID: PEP4E0) due to a serious family emergency. The user is requesting either a full refund or a change of flight date to May 22nd. Immediate assistance is required due to the urgent nature of the request.",
                 },
             },
         ],
@@ -1257,7 +1257,7 @@ tasks = [
             {
                 "name": "transfer_to_human_agents",
                 "arguments": {
-                    "summary": "User Sophia Taylor (user_id: sophia_taylor_9065) has a reservation (PEP4E0) and believes she added travel insurance during booking, but it is not showing up. She requests to have the insurance added to her existing booking."
+                    "summary": "User Sophia Taylor (user_id: sophia_taylor_9065) has a reservation (PEP4E0) and believes she added travel insurance during booking, but it is not showing up. She requests to have the insurance added to her existing booking.",
                 },
             },
         ],
@@ -1278,9 +1278,9 @@ tasks = [
             {
                 "name": "transfer_to_human_agents",
                 "arguments": {
-                    "summary": "The user wants to cancel and get a refund for the travel insurance purchased separately from the flight reservation due to a poor experience with the service. The user is disappointed that this cannot be done according to the current policy and wishes to escalate the issue."
+                    "summary": "The user wants to cancel and get a refund for the travel insurance purchased separately from the flight reservation due to a poor experience with the service. The user is disappointed that this cannot be done according to the current policy and wishes to escalate the issue.",
                 },
-            }
+            },
         ],
     },
     {
@@ -1330,7 +1330,7 @@ tasks = [
             {
                 "name": "get_reservation_details",
                 "arguments": {"reservation_id": "3RK2T9"},
-            }
+            },
         ],
     },
     {
@@ -1341,7 +1341,7 @@ tasks = [
             {
                 "name": "get_reservation_details",
                 "arguments": {"reservation_id": "3RK2T9"},
-            }
+            },
         ],
     },
     {
@@ -1442,7 +1442,7 @@ tasks = [
             {
                 "name": "get_reservation_details",
                 "arguments": {"reservation_id": "EUJUY6"},
-            }
+            },
         ],
     },
     {

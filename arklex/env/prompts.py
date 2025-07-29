@@ -56,6 +56,7 @@ class BotConfig:
 
     Attributes:
         language: The language code for the bot (e.g., "EN" for English, "CN" for Chinese)
+
     """
 
     language: str
@@ -79,6 +80,7 @@ def load_prompts(bot_config: BotConfig) -> dict[str, str]:
         Currently supports English (EN) and Chinese (CN) languages.
         Each language has its own set of specialized prompts for different
         use cases and interaction modes.
+
     """
     prompts: dict[str, str]
     if bot_config.language == "EN":

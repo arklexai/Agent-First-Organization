@@ -53,7 +53,7 @@ outputs = [
         "name": "apt_binfo",
         "type": "str",
         "description": "The booking appointment information.",
-    }
+    },
 ]
 
 
@@ -64,7 +64,7 @@ def book_info_session(
     email: str,
     time: str,
     apt_type_id: str,
-    **kwargs: str | int | float | bool | None,
+    **kwargs: str | float | bool | None,
 ) -> str:
     func_name = inspect.currentframe().f_code.co_name
     user_id, api_key = authenticate_acuity(kwargs)
@@ -82,7 +82,7 @@ def book_info_session(
     if response.status_code == 200:
         data = response.json()
         return json.dumps(data)
-    else:
-        raise ToolExecutionError(
-            func_name, AcuityExceptionPrompt.BOOK_SESSION_EXCEPTION_PROMPT
-        )
+    raise ToolExecutionError(
+        func_name,
+        AcuityExceptionPrompt.BOOK_SESSION_EXCEPTION_PROMPT,
+    )

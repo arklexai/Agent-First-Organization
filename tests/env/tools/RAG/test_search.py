@@ -111,11 +111,12 @@ class TestSearchEngine:
     """Test the SearchEngine class."""
 
     def test_search_engine_search_method(
-        self, mock_message_state: MessageState
+        self,
+        mock_message_state: MessageState,
     ) -> None:
         """Test SearchEngine.search method."""
         with patch(
-            "arklex.env.tools.RAG.search.TavilySearchExecutor"
+            "arklex.env.tools.RAG.search.TavilySearchExecutor",
         ) as mock_executor_class:
             mock_executor = Mock()
             mock_executor.search.return_value = "Search results text"
@@ -138,15 +139,16 @@ class TestTavilySearchExecutor:
     """Test the TavilySearchExecutor class."""
 
     def test_tavily_search_executor_initialization_defaults(
-        self, mock_llm_config: LLMConfig
+        self,
+        mock_llm_config: LLMConfig,
     ) -> None:
         """Test TavilySearchExecutor initialization with default parameters."""
         with (
             patch(
-                "arklex.env.tools.RAG.search.validate_and_get_model_class"
+                "arklex.env.tools.RAG.search.validate_and_get_model_class",
             ) as mock_validate,
             patch(
-                "arklex.env.tools.RAG.search.TavilySearchResults"
+                "arklex.env.tools.RAG.search.TavilySearchResults",
             ) as mock_search_tool,
         ):
             mock_model_class = Mock()
@@ -165,7 +167,7 @@ class TestTavilySearchExecutor:
 
             # Verify LLM instantiation
             mock_model_class.assert_called_once_with(
-                model=mock_llm_config.model_type_or_path
+                model=mock_llm_config.model_type_or_path,
             )
 
             # Verify search tool instantiation with defaults
@@ -181,15 +183,16 @@ class TestTavilySearchExecutor:
             assert executor.search_tool == mock_search_tool_instance
 
     def test_tavily_search_executor_initialization_custom_params(
-        self, mock_llm_config: LLMConfig
+        self,
+        mock_llm_config: LLMConfig,
     ) -> None:
         """Test TavilySearchExecutor initialization with custom parameters."""
         with (
             patch(
-                "arklex.env.tools.RAG.search.validate_and_get_model_class"
+                "arklex.env.tools.RAG.search.validate_and_get_model_class",
             ) as mock_validate,
             patch(
-                "arklex.env.tools.RAG.search.TavilySearchResults"
+                "arklex.env.tools.RAG.search.TavilySearchResults",
             ) as mock_search_tool,
         ):
             mock_model_class = Mock()
@@ -221,15 +224,16 @@ class TestTavilySearchExecutor:
             )
 
     def test_process_search_result(
-        self, mock_search_results: list[dict[str, str]]
+        self,
+        mock_search_results: list[dict[str, str]],
     ) -> None:
         """Test process_search_result method."""
         with (
             patch(
-                "arklex.env.tools.RAG.search.validate_and_get_model_class"
+                "arklex.env.tools.RAG.search.validate_and_get_model_class",
             ) as mock_validate,
             patch(
-                "arklex.env.tools.RAG.search.TavilySearchResults"
+                "arklex.env.tools.RAG.search.TavilySearchResults",
             ) as mock_search_tool,
         ):
             mock_model_class = Mock()
@@ -242,7 +246,7 @@ class TestTavilySearchExecutor:
             mock_search_tool.return_value = mock_search_tool_instance
 
             executor = TavilySearchExecutor(
-                LLMConfig(model_type_or_path="gpt-3.5-turbo", llm_provider="openai")
+                LLMConfig(model_type_or_path="gpt-3.5-turbo", llm_provider="openai"),
             )
 
             result = executor.process_search_result(mock_search_results)
@@ -260,10 +264,10 @@ class TestTavilySearchExecutor:
         """Test process_search_result with empty results."""
         with (
             patch(
-                "arklex.env.tools.RAG.search.validate_and_get_model_class"
+                "arklex.env.tools.RAG.search.validate_and_get_model_class",
             ) as mock_validate,
             patch(
-                "arklex.env.tools.RAG.search.TavilySearchResults"
+                "arklex.env.tools.RAG.search.TavilySearchResults",
             ) as mock_search_tool,
         ):
             mock_model_class = Mock()
@@ -276,7 +280,7 @@ class TestTavilySearchExecutor:
             mock_search_tool.return_value = mock_search_tool_instance
 
             executor = TavilySearchExecutor(
-                LLMConfig(model_type_or_path="gpt-3.5-turbo", llm_provider="openai")
+                LLMConfig(model_type_or_path="gpt-3.5-turbo", llm_provider="openai"),
             )
 
             result = executor.process_search_result([])
@@ -291,10 +295,10 @@ class TestTavilySearchExecutor:
         """Test search method."""
         with (
             patch(
-                "arklex.env.tools.RAG.search.validate_and_get_model_class"
+                "arklex.env.tools.RAG.search.validate_and_get_model_class",
             ) as mock_validate,
             patch(
-                "arklex.env.tools.RAG.search.TavilySearchResults"
+                "arklex.env.tools.RAG.search.TavilySearchResults",
             ) as mock_search_tool,
             patch("arklex.env.tools.RAG.search.load_prompts") as mock_load_prompts,
             patch("arklex.env.tools.RAG.search.PromptTemplate") as mock_prompt_template,
@@ -313,7 +317,7 @@ class TestTavilySearchExecutor:
             mock_search_tool_instance.invoke.return_value = mock_search_results
 
             mock_prompts = {
-                "retrieve_contextualize_q_prompt": "Test prompt {chat_history}"
+                "retrieve_contextualize_q_prompt": "Test prompt {chat_history}",
             }
             mock_load_prompts.return_value = mock_prompts
 
@@ -331,7 +335,7 @@ class TestTavilySearchExecutor:
             mock_str_parser.return_value = mock_str_parser_instance
 
             executor = TavilySearchExecutor(
-                LLMConfig(model_type_or_path="gpt-3.5-turbo", llm_provider="openai")
+                LLMConfig(model_type_or_path="gpt-3.5-turbo", llm_provider="openai"),
             )
 
             result = executor.search(mock_message_state)
@@ -341,22 +345,22 @@ class TestTavilySearchExecutor:
 
             # Verify prompt template was created
             mock_prompt_template.from_template.assert_called_once_with(
-                mock_prompts["retrieve_contextualize_q_prompt"]
+                mock_prompts["retrieve_contextualize_q_prompt"],
             )
 
             # Verify chain was invoked with chat history
             mock_chain.invoke.assert_called_once_with(
-                {"chat_history": mock_message_state.user_message.history}
+                {"chat_history": mock_message_state.user_message.history},
             )
 
             # Verify log message
             mock_log_context.info.assert_called_once_with(
-                "Reformulated input for search engine: reformulated query"
+                "Reformulated input for search engine: reformulated query",
             )
 
             # Verify search tool was invoked
             mock_search_tool_instance.invoke.assert_called_once_with(
-                {"query": "reformulated query"}
+                {"query": "reformulated query"},
             )
 
             # Verify result processing
@@ -372,10 +376,10 @@ class TestTavilySearchExecutor:
         """Test load_search_tool method."""
         with (
             patch(
-                "arklex.env.tools.RAG.search.validate_and_get_model_class"
+                "arklex.env.tools.RAG.search.validate_and_get_model_class",
             ) as mock_validate,
             patch(
-                "arklex.env.tools.RAG.search.TavilySearchResults"
+                "arklex.env.tools.RAG.search.TavilySearchResults",
             ) as mock_search_tool,
         ):
             mock_model_class = Mock()
@@ -398,15 +402,16 @@ class TestTavilySearchExecutor:
             assert new_executor.search_tool == mock_search_tool_instance
 
     def test_search_documents_success(
-        self, mock_search_results: list[dict[str, str]]
+        self,
+        mock_search_results: list[dict[str, str]],
     ) -> None:
         """Test search_documents method with successful search."""
         with (
             patch(
-                "arklex.env.tools.RAG.search.validate_and_get_model_class"
+                "arklex.env.tools.RAG.search.validate_and_get_model_class",
             ) as mock_validate,
             patch(
-                "arklex.env.tools.RAG.search.TavilySearchResults"
+                "arklex.env.tools.RAG.search.TavilySearchResults",
             ) as mock_search_tool,
             patch("arklex.env.tools.RAG.search.log_context") as mock_log_context,
         ):
@@ -421,19 +426,19 @@ class TestTavilySearchExecutor:
             mock_search_tool_instance.invoke.return_value = mock_search_results
 
             executor = TavilySearchExecutor(
-                LLMConfig(model_type_or_path="gpt-3.5-turbo", llm_provider="openai")
+                LLMConfig(model_type_or_path="gpt-3.5-turbo", llm_provider="openai"),
             )
 
             result = executor.search_documents("test query", max_results=5)
 
             # Verify search tool was invoked with correct parameters
             mock_search_tool_instance.invoke.assert_called_once_with(
-                {"query": "test query", "max_results": 5}
+                {"query": "test query", "max_results": 5},
             )
 
             # Verify logging
             mock_log_context.info.assert_any_call(
-                "Starting search for query: test query"
+                "Starting search for query: test query",
             )
             mock_log_context.info.assert_any_call("Search completed, found 2 results")
 
@@ -443,10 +448,10 @@ class TestTavilySearchExecutor:
         """Test search_documents method when search fails."""
         with (
             patch(
-                "arklex.env.tools.RAG.search.validate_and_get_model_class"
+                "arklex.env.tools.RAG.search.validate_and_get_model_class",
             ) as mock_validate,
             patch(
-                "arklex.env.tools.RAG.search.TavilySearchResults"
+                "arklex.env.tools.RAG.search.TavilySearchResults",
             ) as mock_search_tool,
             patch("arklex.env.tools.RAG.search.log_context") as mock_log_context,
         ):
@@ -461,7 +466,7 @@ class TestTavilySearchExecutor:
             mock_search_tool_instance.invoke.side_effect = Exception("Search failed")
 
             executor = TavilySearchExecutor(
-                LLMConfig(model_type_or_path="gpt-3.5-turbo", llm_provider="openai")
+                LLMConfig(model_type_or_path="gpt-3.5-turbo", llm_provider="openai"),
             )
 
             # Verify SearchError is raised
@@ -470,19 +475,20 @@ class TestTavilySearchExecutor:
 
             # Verify error logging
             mock_log_context.error.assert_called_once_with(
-                "Search failed: Search failed"
+                "Search failed: Search failed",
             )
 
     def test_search_documents_with_additional_kwargs(
-        self, mock_search_results: list[dict[str, str]]
+        self,
+        mock_search_results: list[dict[str, str]],
     ) -> None:
         """Test search_documents method with additional kwargs."""
         with (
             patch(
-                "arklex.env.tools.RAG.search.validate_and_get_model_class"
+                "arklex.env.tools.RAG.search.validate_and_get_model_class",
             ) as mock_validate,
             patch(
-                "arklex.env.tools.RAG.search.TavilySearchResults"
+                "arklex.env.tools.RAG.search.TavilySearchResults",
             ) as mock_search_tool,
             patch("arklex.env.tools.RAG.search.log_context") as _,
         ):
@@ -497,11 +503,14 @@ class TestTavilySearchExecutor:
             mock_search_tool_instance.invoke.return_value = mock_search_results
 
             executor = TavilySearchExecutor(
-                LLMConfig(model_type_or_path="gpt-3.5-turbo", llm_provider="openai")
+                LLMConfig(model_type_or_path="gpt-3.5-turbo", llm_provider="openai"),
             )
 
             result = executor.search_documents(
-                "test query", max_results=10, search_depth="basic", include_answer=False
+                "test query",
+                max_results=10,
+                search_depth="basic",
+                include_answer=False,
             )
 
             # Verify search tool was invoked with all parameters
@@ -511,7 +520,7 @@ class TestTavilySearchExecutor:
                     "max_results": 10,
                     "search_depth": "basic",
                     "include_answer": False,
-                }
+                },
             )
 
             assert result == mock_search_results
@@ -525,7 +534,7 @@ class TestSearchIntegration:
         """Test the complete search flow from SearchEngine to TavilySearchExecutor."""
         with (
             patch(
-                "arklex.env.tools.RAG.search.TavilySearchExecutor"
+                "arklex.env.tools.RAG.search.TavilySearchExecutor",
             ) as mock_executor_class,
             patch("arklex.env.tools.RAG.search.load_prompts") as mock_load_prompts,
             patch("arklex.env.tools.RAG.search.PromptTemplate") as mock_prompt_template,
@@ -538,7 +547,7 @@ class TestSearchIntegration:
             mock_executor.search.return_value = "Processed search results"
 
             mock_prompts = {
-                "retrieve_contextualize_q_prompt": "Test prompt {chat_history}"
+                "retrieve_contextualize_q_prompt": "Test prompt {chat_history}",
             }
             mock_load_prompts.return_value = mock_prompts
 
@@ -568,7 +577,8 @@ class TestSearchIntegration:
             language="EN",
             bot_type="chat",
             llm_config=LLMConfig(
-                model_type_or_path="gpt-3.5-turbo", llm_provider="openai"
+                model_type_or_path="gpt-3.5-turbo",
+                llm_provider="openai",
             ),
         )
 
@@ -576,7 +586,8 @@ class TestSearchIntegration:
             sys_instruct="You are a helpful assistant.",
             bot_config=en_config,
             user_message=ConvoMessage(
-                history="Previous conversation", message="What is the weather?"
+                history="Previous conversation",
+                message="What is the weather?",
             ),
         )
 
@@ -587,7 +598,8 @@ class TestSearchIntegration:
             language="CN",
             bot_type="chat",
             llm_config=LLMConfig(
-                model_type_or_path="gpt-3.5-turbo", llm_provider="openai"
+                model_type_or_path="gpt-3.5-turbo",
+                llm_provider="openai",
             ),
         )
 
@@ -595,7 +607,8 @@ class TestSearchIntegration:
             sys_instruct="You are a helpful assistant.",
             bot_config=cn_config,
             user_message=ConvoMessage(
-                history="Previous conversation", message="天气怎么样？"
+                history="Previous conversation",
+                message="天气怎么样？",
             ),
         )
 

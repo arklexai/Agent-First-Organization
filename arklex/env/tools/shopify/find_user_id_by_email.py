@@ -1,5 +1,4 @@
-"""
-This module provides functionality to find a user's ID in the Shopify store using their email address.
+"""This module provides functionality to find a user's ID in the Shopify store using their email address.
 It supports searching for users through the Admin API and handles cases where multiple users
 might have the same email address.
 
@@ -42,8 +41,7 @@ outputs = [ShopifyOutputs.USER_ID]
 
 @register_tool(description, slots, outputs)
 def find_user_id_by_email(user_email: str, **kwargs: FindUserParams) -> str:
-    """
-    Find a user's ID using their email address.
+    """Find a user's ID using their email address.
 
     Args:
         user_email (str): The email address of the user to find.
@@ -57,6 +55,7 @@ def find_user_id_by_email(user_email: str, **kwargs: FindUserParams) -> str:
             - No user is found with the given email
             - Multiple users are found with the same email
             - There's an error in the search process
+
     """
     func_name = inspect.currentframe().f_code.co_name
     auth = authorify_admin(kwargs)
@@ -78,11 +77,10 @@ def find_user_id_by_email(user_email: str, **kwargs: FindUserParams) -> str:
         if len(nodes) == 1:
             user_id = nodes[0]["node"]["id"]
             return user_id
-        else:
-            raise ToolExecutionError(
-                func_name,
-                extra_message=ShopifyExceptionPrompt.MULTIPLE_USERS_SAME_EMAIL_ERROR_PROMPT,
-            )
+        raise ToolExecutionError(
+            func_name,
+            extra_message=ShopifyExceptionPrompt.MULTIPLE_USERS_SAME_EMAIL_ERROR_PROMPT,
+        )
     except Exception as err:
         raise ToolExecutionError(
             func_name,

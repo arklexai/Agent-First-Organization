@@ -8,7 +8,7 @@ from unittest.mock import patch
 
 import pytest
 
-import arklex.utils.utils as utils
+from arklex.utils import utils
 
 
 class TestChunkString:

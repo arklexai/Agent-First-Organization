@@ -18,7 +18,8 @@ def dummy_func(a: object = None, b: object = None) -> str:
 def test_register_tool_decorator_creates_tool() -> None:
     """Test that register_tool decorates a function and returns a Tool factory."""
     decorated = register_tool(
-        "desc", slots=[{"name": "a", "type": "str", "description": "A"}]
+        "desc",
+        slots=[{"name": "a", "type": "str", "description": "A"}],
     )(dummy_func)
     tool_instance = decorated()
     assert isinstance(tool_instance, Tool)
@@ -48,7 +49,12 @@ def test_tool_init_slotfiller() -> None:
 def test_tool__init_slots_populates_slots() -> None:
     """Test _init_slots populates slots from state.default_slots."""
     slot = Slot(
-        name="a", type="str", description="A", required=True, value="foo", verified=True
+        name="a",
+        type="str",
+        description="A",
+        required=True,
+        value="foo",
+        verified=True,
     )
     state = Mock(spec=MessageState)
     state.slots = {"default_slots": [slot]}
@@ -70,7 +76,12 @@ def test_tool__init_slots_populates_slots() -> None:
 def test_tool_execute_successful() -> None:
     """Test Tool.execute with all slots filled and verified."""
     slot = Slot(
-        name="a", type="str", description="A", required=True, value="bar", verified=True
+        name="a",
+        type="str",
+        description="A",
+        required=True,
+        value="bar",
+        verified=True,
     )
     state = Mock(spec=MessageState)
     state.slots = {}
@@ -177,7 +188,12 @@ def test_tool_execute_tool_execution_error() -> None:
         raise tools.ToolExecutionError("toolname", "fail", extra_message="extra")
 
     slot = Slot(
-        name="a", type="str", description="A", required=True, value="foo", verified=True
+        name="a",
+        type="str",
+        description="A",
+        required=True,
+        value="foo",
+        verified=True,
     )
     state = Mock(spec=MessageState)
     state.slots = {}
@@ -210,7 +226,12 @@ def test_tool_execute_authentication_error() -> None:
         raise tools.AuthenticationError("auth fail")
 
     slot = Slot(
-        name="a", type="str", description="A", required=True, value="foo", verified=True
+        name="a",
+        type="str",
+        description="A",
+        required=True,
+        value="foo",
+        verified=True,
     )
     state = Mock(spec=MessageState)
     state.slots = {}

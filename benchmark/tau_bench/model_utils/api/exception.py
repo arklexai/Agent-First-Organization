@@ -34,7 +34,9 @@ def generate_report_location() -> str:
 
 class APIError(Exception):
     def __init__(
-        self, short_message: str, report: dict[str, Any] | None = None
+        self,
+        short_message: str,
+        report: dict[str, Any] | None = None,
     ) -> None:
         self.report_path: str = generate_report_location()
         self.short_message: str = short_message
@@ -45,7 +47,7 @@ class APIError(Exception):
                 path=self.report_path,
             )
         super().__init__(
-            f"{short_message}\n\nSee the full report at {self.report_path}"
+            f"{short_message}\n\nSee the full report at {self.report_path}",
         )
 
 

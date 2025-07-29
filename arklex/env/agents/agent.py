@@ -22,6 +22,7 @@ def register_agent(cls: type[T]) -> type[T]:
 
     Returns:
         Type[T]: The registered agent class.
+
     """
     cls.name = cls.__name__  # Automatically set name to the class name
     return cls
@@ -37,6 +38,7 @@ class BaseAgent(ABC):
     Attributes:
         description (Optional[str]): Description of the agent's functionality.
         name (str): The name of the agent class.
+
     """
 
     description: str | None = None
@@ -48,6 +50,7 @@ class BaseAgent(ABC):
 
         Returns:
             str: The name of the agent class.
+
         """
         return f"{self.__class__.__name__}"
 
@@ -56,6 +59,7 @@ class BaseAgent(ABC):
 
         Returns:
             str: The name of the agent class.
+
         """
         return f"{self.__class__.__name__}"
 
@@ -71,6 +75,7 @@ class BaseAgent(ABC):
 
         Returns:
             MessageState: The updated message state after execution.
+
         """
         try:
             response_return: dict[str, Any] = self._execute(msg_state, **kwargs)

@@ -26,12 +26,11 @@ Hashable = str | int | float | tuple["Hashable"] | tuple[tuple[str, "Hashable"]]
 def to_hashable(item: ToHashable) -> Hashable:
     if isinstance(item, dict):
         return tuple((key, to_hashable(value)) for key, value in sorted(item.items()))
-    elif isinstance(item, list):
+    if isinstance(item, list):
         return tuple(to_hashable(element) for element in item)
-    elif isinstance(item, set):
+    if isinstance(item, set):
         return tuple(sorted(to_hashable(element) for element in item))
-    else:
-        return item
+    return item
 
 
 def consistent_hash(
@@ -70,7 +69,9 @@ class Env:
         self.wiki = wiki
         self.rules = rules
         self.user = load_user(
-            user_strategy=user_strategy, model=user_model, provider=user_provider
+            user_strategy=user_strategy,
+            model=user_model,
+            provider=user_provider,
         )
         self.actions: list[Action] = []
 
@@ -83,7 +84,8 @@ class Env:
         self.actions = []
         initial_observation = self.user.reset(instruction=self.task.instruction)
         return EnvResetResponse(
-            observation=initial_observation, info=EnvInfo(task=self.task, source="user")
+            observation=initial_observation,
+            info=EnvInfo(task=self.task, source="user"),
         )
 
     def step(self, action: Action) -> EnvResponse:
@@ -99,7 +101,8 @@ class Env:
         elif action.name in self.tools_map:
             try:
                 observation = self.tools_map[action.name].invoke(
-                    data=self.data, **action.kwargs
+                    data=self.data,
+                    **action.kwargs,
                 )
             except Exception as e:
                 observation = f"Error: {e}"
@@ -135,7 +138,8 @@ class Env:
                 self.step(action)
         gt_data_hash = self.get_data_hash()
         info = RewardActionInfo(
-            r_actions=data_hash == gt_data_hash, gt_data_hash=gt_data_hash
+            r_actions=data_hash == gt_data_hash,
+            gt_data_hash=gt_data_hash,
         )
         if not info.r_actions:
             reward = 0.0

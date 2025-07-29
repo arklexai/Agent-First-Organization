@@ -48,6 +48,7 @@ def run(config: RunConfig) -> list[EnvRunResult]:
     Raises:
         AssertionError: If the environment, user model provider, task split, or
             user strategy is invalid.
+
     """
     assert config.env in ["retail", "airline"], (
         "Only retail and airline envs are supported"
@@ -83,7 +84,7 @@ def run(config: RunConfig) -> list[EnvRunResult]:
         print(f"Running tasks {config.task_ids} (checkpoint path: {ckpt_path})")
     else:
         print(
-            f"Running tasks {config.start_index} to {end_index} (checkpoint path: {ckpt_path})"
+            f"Running tasks {config.start_index} to {end_index} (checkpoint path: {ckpt_path})",
         )
     for i in range(config.num_trials):
         if config.task_ids and len(config.task_ids) > 0:
@@ -169,6 +170,7 @@ def agent_factory(config: RunConfig) -> Agent:
 
     Returns:
         Agent: An instance of the appropriate agent class.
+
     """
     from benchmark.tau_bench.agents.agent_first_org import AgentFirstOrg
 
@@ -189,6 +191,7 @@ def get_metrics(results: list[EnvRunResult]) -> tuple[float, dict[int, float]]:
         Tuple[float, Dict[int, float]]: A tuple containing:
             - float: The average reward across all tasks
             - Dict[int, float]: A dictionary mapping k to pass^k values
+
     """
 
     def is_successful(reward: float) -> bool:
@@ -222,6 +225,7 @@ def display_metrics(avg_reward: float, pass_hat_ks: dict[int, float]) -> None:
     Args:
         avg_reward (float): The average reward across all tasks.
         pass_hat_ks (Dict[int, float]): Dictionary mapping k to pass^k values.
+
     """
     print(f"🏆 Average reward: {avg_reward}")
     print("📈 Pass^k")

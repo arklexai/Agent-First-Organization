@@ -1,5 +1,4 @@
-"""
-Integration tests for complete taskgraph flow execution.
+"""Integration tests for complete taskgraph flow execution.
 
 This module contains comprehensive integration tests that validate the complete
 flow of a taskgraph.json file, testing the entire conversation flow from start
@@ -38,7 +37,9 @@ class MockTool(Tool):
         self.description = f"Mock tool: {name}"
 
     def execute(
-        self, message_state: MessageState, **kwargs: dict[str, Any]
+        self,
+        message_state: MessageState,
+        **kwargs: dict[str, Any],
     ) -> MessageState:
         """Execute the mock tool."""
         message_state.response = f"Mock response from {self.name}"
@@ -54,7 +55,9 @@ class MockWorker(BaseWorker):
         self.description = f"Mock worker: {name}"
 
     def _execute(
-        self, message_state: MessageState, **kwargs: dict[str, Any]
+        self,
+        message_state: MessageState,
+        **kwargs: dict[str, Any],
     ) -> dict[str, Any]:
         """Execute the mock worker's core functionality."""
         return {
@@ -122,8 +125,7 @@ def MessageWorker() -> MockWorker:
 
 
 class TestTaskGraphFullFlow:
-    """
-    Integration tests for complete taskgraph flow execution.
+    """Integration tests for complete taskgraph flow execution.
 
     This test class validates the entire flow of a taskgraph.json file,
     testing realistic conversation scenarios that traverse multiple nodes
@@ -303,9 +305,9 @@ class TestTaskGraphFullFlow:
                                         "node": {
                                             "src": "https://cdn.shopify.com/test-image.jpg",
                                             "altText": "Test Product Image",
-                                        }
-                                    }
-                                ]
+                                        },
+                                    },
+                                ],
                             },
                             "variants": {
                                 "nodes": [
@@ -314,10 +316,10 @@ class TestTaskGraphFullFlow:
                                         "id": "gid://shopify/ProductVariant/67890",
                                         "price": "29.99",
                                         "inventoryQuantity": 10,
-                                    }
-                                ]
+                                    },
+                                ],
                             },
-                        }
+                        },
                     ],
                     "pageInfo": {
                         "endCursor": "cursor123",
@@ -325,8 +327,8 @@ class TestTaskGraphFullFlow:
                         "hasPreviousPage": False,
                         "startCursor": "cursor123",
                     },
-                }
-            }
+                },
+            },
         }
 
     @pytest.fixture
@@ -341,7 +343,7 @@ class TestTaskGraphFullFlow:
                             "name": "#1001",
                             "email": "customer@example.com",
                             "totalPriceSet": {
-                                "shopMoney": {"amount": "99.99", "currencyCode": "USD"}
+                                "shopMoney": {"amount": "99.99", "currencyCode": "USD"},
                             },
                             "lineItems": {
                                 "nodes": [
@@ -352,21 +354,21 @@ class TestTaskGraphFullFlow:
                                             "price": "49.99",
                                             "title": "Small",
                                         },
-                                    }
-                                ]
+                                    },
+                                ],
                             },
                             "fulfillments": {
                                 "nodes": [
                                     {
                                         "id": "gid://shopify/Fulfillment/67890",
                                         "status": "SUCCESS",
-                                    }
-                                ]
+                                    },
+                                ],
                             },
-                        }
-                    ]
-                }
-            }
+                        },
+                    ],
+                },
+            },
         }
 
     @pytest.fixture
@@ -390,18 +392,19 @@ class TestTaskGraphFullFlow:
                                         "handle": "test-product",
                                     },
                                 },
-                            }
-                        ]
+                            },
+                        ],
                     },
-                }
-            }
+                },
+            },
         }
 
     def test_taskgraph_initialization(
-        self, shopify_taskgraph_path: str, mock_environment: Environment
+        self,
+        shopify_taskgraph_path: str,
+        mock_environment: Environment,
     ) -> None:
-        """
-        Test that the taskgraph can be properly initialized from the JSON file.
+        """Test that the taskgraph can be properly initialized from the JSON file.
 
         This test validates that the AgentOrg can successfully load and parse
         the taskgraph.json file, creating all necessary components including
@@ -471,8 +474,7 @@ class TestTaskGraphFullFlow:
         mock_environment: Environment,
         sample_shopify_product_data: dict[str, Any],
     ) -> None:
-        """
-        Test the complete flow for a product search scenario.
+        """Test the complete flow for a product search scenario.
 
         This test simulates a user asking about products, which should:
         1. Start at the initial node
@@ -506,8 +508,7 @@ class TestTaskGraphFullFlow:
         mock_environment: Environment,
         sample_shopify_order_data: dict[str, Any],
     ) -> None:
-        """
-        Test the complete flow for an order inquiry scenario.
+        """Test the complete flow for an order inquiry scenario.
 
         This test simulates a user asking about their past orders, which should:
         1. Start at the initial node
@@ -541,8 +542,7 @@ class TestTaskGraphFullFlow:
         mock_environment: Environment,
         sample_shopify_cart_data: dict[str, Any],
     ) -> None:
-        """
-        Test the complete flow for a cart inquiry scenario.
+        """Test the complete flow for a cart inquiry scenario.
 
         This test simulates a user asking about their shopping cart, which should:
         1. Start at the initial node
@@ -575,8 +575,7 @@ class TestTaskGraphFullFlow:
         shopify_taskgraph_path: str,
         mock_environment: Environment,
     ) -> None:
-        """
-        Test a multi-turn conversation that traverses multiple nodes.
+        """Test a multi-turn conversation that traverses multiple nodes.
 
         This test simulates a conversation where the user:
         1. Asks about products
@@ -625,8 +624,7 @@ class TestTaskGraphFullFlow:
         shopify_taskgraph_path: str,
         mock_environment: Environment,
     ) -> None:
-        """
-        Test error handling in the taskgraph flow.
+        """Test error handling in the taskgraph flow.
 
         This test validates that the taskgraph can properly handle errors
         and continue processing, ensuring robust conversation flow.
@@ -656,8 +654,7 @@ class TestTaskGraphFullFlow:
         shopify_taskgraph_path: str,
         mock_environment: Environment,
     ) -> None:
-        """
-        Test that the taskgraph can properly transition between nodes.
+        """Test that the taskgraph can properly transition between nodes.
 
         This test validates the graph structure and ensures that nodes
         can be properly traversed based on intents and conditions.
@@ -689,8 +686,7 @@ class TestTaskGraphFullFlow:
         self,
         shopify_taskgraph_path: str,
     ) -> None:
-        """
-        Test that the taskgraph configuration is valid and complete.
+        """Test that the taskgraph configuration is valid and complete.
 
         This test validates the structure and content of the taskgraph.json
         file, ensuring it has all required components and valid relationships.
@@ -739,8 +735,7 @@ class TestTaskGraphFullFlow:
         self,
         shopify_taskgraph_path: str,
     ) -> None:
-        """
-        Test that all edges in the taskgraph reference valid nodes.
+        """Test that all edges in the taskgraph reference valid nodes.
 
         This test ensures that the graph structure is consistent and
         all edges connect to existing nodes.
@@ -768,8 +763,7 @@ class TestTaskGraphFullFlow:
         self,
         shopify_taskgraph_path: str,
     ) -> None:
-        """
-        Test that intents are consistently defined across the taskgraph.
+        """Test that intents are consistently defined across the taskgraph.
 
         This test validates that intents are properly defined and used
         consistently throughout the graph structure.
@@ -800,8 +794,7 @@ class TestTaskGraphFullFlow:
         self,
         shopify_taskgraph_path: str,
     ) -> None:
-        """
-        Test that worker configurations are valid and complete.
+        """Test that worker configurations are valid and complete.
 
         This test validates that all workers referenced in nodes are
         properly defined in the workers section.

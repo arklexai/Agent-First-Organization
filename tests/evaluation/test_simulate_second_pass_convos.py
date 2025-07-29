@@ -129,7 +129,12 @@ class TestSimulateSecondPassConvos:
         # Execute
         env_config = {"workers": [], "tools": []}
         result = interact(
-            intent_path, summary, model_api, model_params, client, env_config
+            intent_path,
+            summary,
+            model_api,
+            model_params,
+            client,
+            env_config,
         )
 
         # Assert
@@ -142,7 +147,10 @@ class TestSimulateSecondPassConvos:
     @patch("arklex.evaluation.simulate_second_pass_convos.flip_hist")
     @patch("arklex.evaluation.simulate_second_pass_convos.filter_convo")
     def test_generate_labeled_convos(
-        self, mock_filter_convo: Mock, mock_flip_hist: Mock, mock_interact: Mock
+        self,
+        mock_filter_convo: Mock,
+        mock_flip_hist: Mock,
+        mock_interact: Mock,
     ) -> None:
         """Test generate_labeled_convos function creates labeled conversations."""
         # Setup
@@ -159,7 +167,12 @@ class TestSimulateSecondPassConvos:
         # Execute
         env_config = {"workers": [], "tools": []}
         result = generate_labeled_convos(
-            intent_paths, summary, model_api, model_params, client, env_config
+            intent_paths,
+            summary,
+            model_api,
+            model_params,
+            client,
+            env_config,
         )
 
         # Assert
@@ -171,7 +184,10 @@ class TestSimulateSecondPassConvos:
     @patch("arklex.evaluation.simulate_second_pass_convos.get_paths")
     @patch("arklex.evaluation.simulate_second_pass_convos.build_intent_graph")
     def test_get_labeled_convos(
-        self, mock_build_graph: Mock, mock_get_paths: Mock, mock_generate_convos: Mock
+        self,
+        mock_build_graph: Mock,
+        mock_get_paths: Mock,
+        mock_generate_convos: Mock,
     ) -> None:
         """Test get_labeled_convos function orchestrates labeled conversation generation."""
         # Setup
@@ -191,7 +207,11 @@ class TestSimulateSecondPassConvos:
 
         # Execute
         result = get_labeled_convos(
-            first_pass_data, model_api, synthetic_data_params, model_params, config
+            first_pass_data,
+            model_api,
+            synthetic_data_params,
+            model_params,
+            config,
         )
 
         # Assert
@@ -203,7 +223,8 @@ class TestSimulateSecondPassConvos:
 
     @patch("arklex.evaluation.simulate_second_pass_convos.random.choices")
     def test_sampling_paths_edge_case_empty_intents(
-        self, mock_random_choices: Mock
+        self,
+        mock_random_choices: Mock,
     ) -> None:
         """Test sampling_paths function with empty intents list."""
         # Setup
@@ -228,7 +249,9 @@ class TestSimulateSecondPassConvos:
     @patch("arklex.evaluation.simulate_second_pass_convos.query_chatbot")
     @patch("arklex.evaluation.simulate_second_pass_convos.chatgpt_chatbot")
     def test_interact_single_intent(
-        self, mock_chatgpt: Mock, mock_query_chatbot: Mock
+        self,
+        mock_chatgpt: Mock,
+        mock_query_chatbot: Mock,
     ) -> None:
         """Test interact function with single intent in path."""
         # Setup
@@ -247,7 +270,12 @@ class TestSimulateSecondPassConvos:
         # Execute
         env_config = {"workers": [], "tools": []}
         result = interact(
-            intent_path, summary, model_api, model_params, client, env_config
+            intent_path,
+            summary,
+            model_api,
+            model_params,
+            client,
+            env_config,
         )
 
         # Assert
@@ -258,7 +286,9 @@ class TestSimulateSecondPassConvos:
     @patch("arklex.evaluation.simulate_second_pass_convos.query_chatbot")
     @patch("arklex.evaluation.simulate_second_pass_convos.chatgpt_chatbot")
     def test_interact_with_parameters_update(
-        self, mock_chatgpt: Mock, mock_query_chatbot: Mock
+        self,
+        mock_chatgpt: Mock,
+        mock_query_chatbot: Mock,
     ) -> None:
         """Test interact function updates parameters during conversation."""
         # Setup
@@ -280,7 +310,12 @@ class TestSimulateSecondPassConvos:
         # Execute
         env_config = {"workers": [], "tools": []}
         result = interact(
-            intent_path, summary, model_api, model_params, client, env_config
+            intent_path,
+            summary,
+            model_api,
+            model_params,
+            client,
+            env_config,
         )
 
         # Assert

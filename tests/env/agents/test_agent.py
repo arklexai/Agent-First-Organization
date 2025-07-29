@@ -41,7 +41,7 @@ class TestRegisterAgent:
         assert TestAgent.custom_attr == "custom value"
 
 
-class ConcreteAgent(BaseAgent):  # noqa: D101
+class ConcreteAgent(BaseAgent):
     """Concrete implementation of BaseAgent for testing."""
 
     def _execute(self, msg_state: MessageState, **kwargs: Any) -> dict[str, Any]:  # noqa: ANN401
@@ -55,7 +55,7 @@ class ConcreteAgent(BaseAgent):  # noqa: D101
         }
 
 
-class FailingAgent(BaseAgent):  # noqa: D101
+class FailingAgent(BaseAgent):
     """Agent that raises exceptions for testing error handling."""
 
     def _execute(self, msg_state: MessageState, **kwargs: Any) -> dict[str, Any]:  # noqa: ANN401
@@ -115,7 +115,7 @@ class TestBaseAgent:
                 self,
                 msg_state: MessageState,
                 **kwargs: Any,  # noqa: ANN401
-            ) -> dict[str, Any]:  # noqa: ANN401
+            ) -> dict[str, Any]:
                 return {}
 
         agent = TestAgent()
@@ -123,7 +123,9 @@ class TestBaseAgent:
 
     @patch("arklex.env.agents.agent.MessageState.model_validate")
     def test_execute_success(
-        self, mock_validate: Mock, mock_state: MessageState
+        self,
+        mock_validate: Mock,
+        mock_state: MessageState,
     ) -> None:
         """Test successful execution of agent."""
         # Setup mock return value
@@ -144,8 +146,10 @@ class TestBaseAgent:
 
     @patch("arklex.env.agents.agent.MessageState.model_validate")
     def test_execute_with_message_flow_fallback(
-        self, mock_validate: Mock, mock_state: MessageState
-    ) -> None:  # noqa: E501
+        self,
+        mock_validate: Mock,
+        mock_state: MessageState,
+    ) -> None:
         """Test execution when response is empty but message_flow has content."""
         # Setup mock return value with empty response but message_flow content
         mock_response_state = Mock(spec=MessageState)
@@ -163,7 +167,9 @@ class TestBaseAgent:
 
     @patch("arklex.env.agents.agent.MessageState.model_validate")
     def test_execute_with_none_response_and_message_flow(
-        self, mock_validate: Mock, mock_state: MessageState
+        self,
+        mock_validate: Mock,
+        mock_state: MessageState,
     ) -> None:
         """Test execution when both response and message_flow are None."""
         # Setup mock return value with None values
@@ -182,7 +188,9 @@ class TestBaseAgent:
 
     @patch("arklex.env.agents.agent.MessageState.model_validate")
     def test_execute_with_empty_trajectory(
-        self, mock_validate: Mock, mock_state: MessageState
+        self,
+        mock_validate: Mock,
+        mock_state: MessageState,
     ) -> None:
         """Test execution when trajectory is empty."""
         mock_response_state = Mock(spec=MessageState)
@@ -199,7 +207,9 @@ class TestBaseAgent:
 
     @patch("arklex.env.agents.agent.MessageState.model_validate")
     def test_execute_with_none_trajectory(
-        self, mock_validate: Mock, mock_state: MessageState
+        self,
+        mock_validate: Mock,
+        mock_state: MessageState,
     ) -> None:
         """Test execution when trajectory is None."""
         mock_response_state = Mock(spec=MessageState)
@@ -215,7 +225,9 @@ class TestBaseAgent:
 
     @patch("arklex.env.agents.agent.MessageState.model_validate")
     def test_execute_with_nested_empty_trajectory(
-        self, mock_validate: Mock, mock_state: MessageState
+        self,
+        mock_validate: Mock,
+        mock_state: MessageState,
     ) -> None:
         """Test execution when trajectory has empty nested lists."""
         mock_response_state = Mock(spec=MessageState)
@@ -266,7 +278,9 @@ class TestBaseAgent:
 
     @patch("arklex.env.agents.agent.MessageState.model_validate")
     def test_execute_model_validate_exception(
-        self, mock_validate: Mock, mock_state: MessageState
+        self,
+        mock_validate: Mock,
+        mock_state: MessageState,
     ) -> None:
         """Test execute when MessageState.model_validate raises exception."""
         mock_validate.side_effect = ValueError("Validation error")
@@ -280,7 +294,10 @@ class TestBaseAgent:
     @patch("arklex.env.agents.agent.log_context.error")
     @patch("arklex.env.agents.agent.traceback.format_exc")
     def test_execute_logs_specific_exception_type(
-        self, mock_format_exc: Mock, mock_log_error: Mock, mock_state: MessageState
+        self,
+        mock_format_exc: Mock,
+        mock_log_error: Mock,
+        mock_state: MessageState,
     ) -> None:
         """Test that execute logs the specific exception traceback."""
 
@@ -301,7 +318,7 @@ class TestBaseAgent:
 
         assert result == mock_state
         mock_log_error.assert_called_once_with(
-            "RuntimeError: Custom runtime error\nTraceback..."
+            "RuntimeError: Custom runtime error\nTraceback...",
         )
 
     def test_multiple_agents_different_names(self) -> None:
@@ -331,7 +348,9 @@ class TestBaseAgent:
 
     @patch("arklex.env.agents.agent.MessageState.model_validate")
     def test_execute_with_complex_kwargs(
-        self, mock_validate: Mock, mock_state: MessageState
+        self,
+        mock_validate: Mock,
+        mock_state: MessageState,
     ) -> None:
         """Test execute with complex kwargs including nested objects."""
 
@@ -359,7 +378,10 @@ class TestBaseAgent:
 
         agent = ComplexKwargsAgent()
         result = agent.execute(
-            mock_state, nested={"key": "test_value"}, other_param=42, flag=True
+            mock_state,
+            nested={"key": "test_value"},
+            other_param=42,
+            flag=True,
         )
 
         assert result == mock_response_state
@@ -418,7 +440,7 @@ class TestBaseAgent:
                 self,
                 msg_state: MessageState,
                 **kwargs: Any,  # noqa: ANN401
-            ) -> dict[str, Any]:  # noqa: ANN401
+            ) -> dict[str, Any]:
                 return {
                     "status": StatusEnum.COMPLETE,
                     "response": f"Response with {kwargs.get('test_param', 'default')}",
@@ -431,7 +453,7 @@ class TestBaseAgent:
 
         # Mock MessageState.model_validate to return a proper MessageState
         with patch(
-            "arklex.env.agents.agent.MessageState.model_validate"
+            "arklex.env.agents.agent.MessageState.model_validate",
         ) as mock_validate:
             mock_response_state = Mock(spec=MessageState)
             mock_response_state.response = "Response with custom_value"
@@ -446,7 +468,8 @@ class TestBaseAgent:
             assert "custom_value" in result.response
 
     def test_execute_with_exception_returns_original_state(
-        self, mock_state: MessageState
+        self,
+        mock_state: MessageState,
     ) -> None:
         """Test execute method when _execute raises an exception - should return original state."""
 
@@ -456,7 +479,7 @@ class TestBaseAgent:
                 self,
                 msg_state: MessageState,
                 **kwargs: Any,  # noqa: ANN401
-            ) -> dict[str, Any]:  # noqa: ANN401
+            ) -> dict[str, Any]:
                 raise RuntimeError("Test exception")
 
         agent = ExceptionAgent()
@@ -475,7 +498,7 @@ class TestBaseAgent:
                 self,
                 msg_state: MessageState,
                 **kwargs: Any,  # noqa: ANN401
-            ) -> dict[str, Any]:  # noqa: ANN401
+            ) -> dict[str, Any]:
                 raise ValueError("Test exception")
 
         agent = ExceptionAgent()
@@ -490,7 +513,8 @@ class TestBaseAgent:
             assert "Test exception" in mock_error.call_args[0][0]
 
     def test_execute_with_exception_logs_traceback(
-        self, mock_state: MessageState
+        self,
+        mock_state: MessageState,
     ) -> None:
         """Test execute method logs traceback when _execute raises an exception."""
         from unittest.mock import patch
@@ -501,7 +525,7 @@ class TestBaseAgent:
                 self,
                 msg_state: MessageState,
                 **kwargs: Any,  # noqa: ANN401
-            ) -> dict[str, Any]:  # noqa: ANN401
+            ) -> dict[str, Any]:
                 raise RuntimeError("Test runtime exception")
 
         agent = ExceptionAgent()
@@ -520,7 +544,8 @@ class TestBaseAgent:
             mock_error.assert_called_once_with("Test traceback")
 
     def test_execute_with_exception_returns_original_state_different_exception(
-        self, mock_state: MessageState
+        self,
+        mock_state: MessageState,
     ) -> None:
         """Test execute method returns original state for different exception types."""
 
@@ -530,7 +555,7 @@ class TestBaseAgent:
                 self,
                 msg_state: MessageState,
                 **kwargs: Any,  # noqa: ANN401
-            ) -> dict[str, Any]:  # noqa: ANN401
+            ) -> dict[str, Any]:
                 raise TypeError("Test type error")
 
         agent = DifferentExceptionAgent()
@@ -554,7 +579,7 @@ class TestAgentIntegration:
                 self,
                 msg_state: MessageState,
                 **kwargs: Any,  # noqa: ANN401
-            ) -> dict[str, Any]:  # noqa: ANN401, E501
+            ) -> dict[str, Any]:
                 return {
                     "status": StatusEnum.COMPLETE,
                     "response": "Integration test complete",
@@ -571,7 +596,7 @@ class TestAgentIntegration:
 
         # Test execution
         with patch(
-            "arklex.env.agents.agent.MessageState.model_validate"
+            "arklex.env.agents.agent.MessageState.model_validate",
         ) as mock_validate:
             mock_response_state = Mock(spec=MessageState)
             mock_response_state.response = "Integration test complete"

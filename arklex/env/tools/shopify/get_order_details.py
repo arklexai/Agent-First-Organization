@@ -1,5 +1,4 @@
-"""
-This module provides functionality to retrieve detailed information about orders from the Shopify store.
+"""This module provides functionality to retrieve detailed information about orders from the Shopify store.
 It supports filtering orders by customer ID, order IDs, and order names.
 
 Module Name: get_order_details
@@ -43,8 +42,7 @@ def get_order_details(
     limit: int = 10,
     **kwargs: GetOrderDetailsParams,
 ) -> str:
-    """
-    Retrieve detailed information about orders from the Shopify store.
+    """Retrieve detailed information about orders from the Shopify store.
 
     Args:
         order_ids (List[str]): List of order IDs to filter by.
@@ -66,6 +64,7 @@ def get_order_details(
 
     Raises:
         ToolExecutionError: If there's an error retrieving the orders.
+
     """
     func_name = inspect.currentframe().f_code.co_name
     limit = int(limit) if limit else 10

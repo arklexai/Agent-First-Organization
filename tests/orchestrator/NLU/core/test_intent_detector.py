@@ -45,16 +45,16 @@ def sample_intents() -> dict[str, list[dict[str, Any]]]:
                 "attribute": {
                     "definition": "A greeting",
                     "sample_utterances": ["hello", "hi"],
-                }
-            }
+                },
+            },
         ],
         "farewell": [
             {
                 "attribute": {
                     "definition": "A farewell",
                     "sample_utterances": ["goodbye", "bye"],
-                }
-            }
+                },
+            },
         ],
     }
 
@@ -224,7 +224,8 @@ def test_detect_intent_remote(
 ) -> None:
     """Test remote intent detection."""
     detector = IntentDetector(
-        model_service=mock_model_service, api_service=mock_api_service
+        model_service=mock_model_service,
+        api_service=mock_api_service,
     )
 
     # Test successful remote intent detection
@@ -255,7 +256,8 @@ def test_detect_intent_remote_api_error_types(
 ) -> None:
     """Test different types of API errors in remote intent detection."""
     detector = IntentDetector(
-        model_service=mock_model_service, api_service=mock_api_service
+        model_service=mock_model_service,
+        api_service=mock_api_service,
     )
 
     # Test APIError
@@ -297,7 +299,8 @@ def test_predict_intent(
 
     # Test remote mode
     detector_remote = IntentDetector(
-        model_service=mock_model_service, api_service=mock_api_service
+        model_service=mock_model_service,
+        api_service=mock_api_service,
     )
     result = detector_remote.predict_intent(
         text="hello",
@@ -396,7 +399,8 @@ def test_model_config_passing(
 
     # Verify that the model service was called with the correct config
     mock_model_service.format_intent_input.assert_called_once_with(
-        sample_intents, "User: hello"
+        sample_intents,
+        "User: hello",
     )
     mock_model_service.get_response.assert_called_once_with("Test prompt")
 
@@ -408,7 +412,8 @@ def test_api_service_parameter_passing(
 ) -> None:
     """Test that parameters are properly passed to API service."""
     detector = IntentDetector(
-        model_service=mock_model_service, api_service=mock_api_service
+        model_service=mock_model_service,
+        api_service=mock_api_service,
     )
 
     test_config = {"temperature": 0.8, "max_tokens": 100}

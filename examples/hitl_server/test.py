@@ -39,7 +39,10 @@ class Logic_Test(unittest.TestCase):
         """Method to tear down the test fixture. Run AFTER the test methods."""
 
     def _get_api_bot_response(
-        self, user_text: str, history: list[dict[str, str]], params: dict[str, Any]
+        self,
+        user_text: str,
+        history: list[dict[str, str]],
+        params: dict[str, Any],
     ) -> tuple[str, dict[str, Any], str | None]:
         data: dict[str, Any] = {
             "text": user_text,
@@ -67,7 +70,9 @@ class Logic_Test(unittest.TestCase):
         for user_text in self.TEST_CASES[0]["user_utterance"]:
             print(f"User: {user_text}")
             output, params, hitl = self._get_api_bot_response(
-                user_text, history, params
+                user_text,
+                history,
+                params,
             )
             print(f"Bot: {output}")
             nodes.append(params["taskgraph"]["curr_node"])
@@ -95,7 +100,9 @@ class Logic_Test(unittest.TestCase):
         for user_text in self.TEST_CASES[1]["user_utterance"]:
             print(f"User: {user_text}")
             output, params, hitl = self._get_api_bot_response(
-                user_text, history, params
+                user_text,
+                history,
+                params,
             )
             print(f"Bot: {output}")
             nodes.append(params["taskgraph"]["curr_node"])

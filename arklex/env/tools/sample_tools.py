@@ -40,7 +40,7 @@ def shoutEcho(msg: str) -> str:
             "description": "valid math expression extracted from the user message expressed with only numerical digits and these special characters ['(', ')', '+', '-', '*', '/', '%', '^']",
             "prompt": "Could you please provide the mathematical expression?",
             "required": True,
-        }
+        },
     ],
     [
         {
@@ -48,7 +48,7 @@ def shoutEcho(msg: str) -> str:
             "type": "int",
             "value": "",
             "description": "result of evaluated mathematical expression",
-        }
+        },
     ],
 )
 def calculator(expression: str) -> int:

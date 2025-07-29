@@ -1,5 +1,4 @@
-"""
-Tool for finding the owner ID of a contact via HubSpot in the Arklex framework.
+"""Tool for finding the owner ID of a contact via HubSpot in the Arklex framework.
 
 This module implements a tool for retrieving the owner ID associated with a contact using the HubSpot API. It is designed for integration with the Arklex tool system.
 """
@@ -39,14 +38,13 @@ outputs: list[dict[str, Any]] = [
         "name": "owner_id",
         "type": "int",
         "description": "The id of the owner of the contact. It consists of numbers.",
-    }
+    },
 ]
 
 
 @register_tool(description, slots, outputs)
 def find_owner_id_by_contact_id(cus_cid: str, **kwargs: dict[str, Any]) -> str:
-    """
-    Find the owner ID for a given contact ID.
+    """Find the owner ID for a given contact ID.
 
     Args:
         cus_cid (str): Customer contact ID
@@ -57,6 +55,7 @@ def find_owner_id_by_contact_id(cus_cid: str, **kwargs: dict[str, Any]) -> str:
 
     Raises:
         ToolExecutionError: If owner ID cannot be found
+
     """
     func_name: str = inspect.currentframe().f_code.co_name
     access_token: str = authenticate_hubspot(kwargs)
@@ -70,7 +69,7 @@ def find_owner_id_by_contact_id(cus_cid: str, **kwargs: dict[str, Any]) -> str:
                 "method": "GET",
                 "headers": {"Content-Type": "application/json"},
                 "qs": {"properties": "hubspot_owner_id"},
-            }
+            },
         )
         get_owner_id_response: dict[str, Any] = get_owner_id_response.json()
 
@@ -80,5 +79,6 @@ def find_owner_id_by_contact_id(cus_cid: str, **kwargs: dict[str, Any]) -> str:
     except ApiException as e:
         log_context.info(f"Exception when extracting owner_id of one contact: {e}\n")
         raise ToolExecutionError(
-            func_name, HubspotExceptionPrompt.OWNER_UNFOUND_PROMPT
+            func_name,
+            HubspotExceptionPrompt.OWNER_UNFOUND_PROMPT,
         ) from e

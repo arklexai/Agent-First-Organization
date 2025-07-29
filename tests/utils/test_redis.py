@@ -294,7 +294,8 @@ class TestRedisPoolMethods:
 
         assert result is True
         mock_redis_pool.client.set.assert_called_once_with(
-            "test_key", '{"key": "value", "number": 42}'
+            "test_key",
+            '{"key": "value", "number": 42}',
         )
 
     def test_set_list_value(self, mock_redis_pool: RedisPool) -> None:
@@ -306,7 +307,8 @@ class TestRedisPoolMethods:
 
         assert result is True
         mock_redis_pool.client.set.assert_called_once_with(
-            "test_key", '[1, 2, 3, "test"]'
+            "test_key",
+            '[1, 2, 3, "test"]',
         )
 
     def test_set_with_ttl(self, mock_redis_pool: RedisPool) -> None:
@@ -318,7 +320,9 @@ class TestRedisPoolMethods:
         assert result is True
         # Check that setex was called with the correct parameters
         mock_redis_pool.client.setex.assert_called_once_with(
-            "test_key", 1800, "test_value"
+            "test_key",
+            1800,
+            "test_value",
         )
 
     def test_set_failure(self, mock_redis_pool: RedisPool) -> None:
@@ -561,7 +565,7 @@ class TestRedisPoolMethods:
     def test_close_failure(self, mock_redis_pool: RedisPool) -> None:
         """Test close method when operation fails."""
         mock_redis_pool.connection_pool.disconnect.side_effect = Exception(
-            "Connection error"
+            "Connection error",
         )
 
         result = mock_redis_pool.close()
@@ -618,7 +622,8 @@ class TestRedisPoolEdgeCases:
             assert result is True
             # Check that set was called with the correct parameters
             mock_redis_pool.client.set.assert_called_once_with(
-                "test_key", expected_json
+                "test_key",
+                expected_json,
             )
             # Reset the mock for the next iteration
             mock_redis_pool.client.set.reset_mock()
@@ -769,7 +774,7 @@ class TestRedisPoolLogging:
             mock_redis_pool.client.set.side_effect = Exception("Redis error")
             mock_redis_pool.set("test_key", "test_value")
             mock_log.error.assert_called_with(
-                "Redis SET failed for key test_key: Redis error"
+                "Redis SET failed for key test_key: Redis error",
             )
 
     def test_get_success_logging(self, mock_redis_pool: RedisPool) -> None:
@@ -785,7 +790,7 @@ class TestRedisPoolLogging:
             mock_redis_pool.client.get.side_effect = Exception("Redis error")
             mock_redis_pool.get("test_key")
             mock_log.error.assert_called_with(
-                "Redis GET failed for key test_key: Redis error"
+                "Redis GET failed for key test_key: Redis error",
             )
 
     def test_flush_db_warning_logging(self, mock_redis_pool: RedisPool) -> None:
@@ -806,9 +811,9 @@ class TestRedisPoolLogging:
         """Test that failed close logs error message."""
         with patch("arklex.utils.redis.log_context") as mock_log:
             mock_redis_pool.connection_pool.disconnect.side_effect = Exception(
-                "Connection error"
+                "Connection error",
             )
             mock_redis_pool.close()
             mock_log.error.assert_called_with(
-                "Error closing Redis connection pool: Connection error"
+                "Error closing Redis connection pool: Connection error",
             )

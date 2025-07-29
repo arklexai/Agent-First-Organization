@@ -108,7 +108,10 @@ class TestHITLWorker:
         result = worker.chat(state)
 
         mock_chat_client_class.assert_called_once_with(
-            "127.0.0.1", 8080, name="test_worker", mode="c"
+            "127.0.0.1",
+            8080,
+            name="test_worker",
+            mode="c",
         )
         mock_client.sync_main.assert_called_once()
         assert isinstance(result, MessageState)
@@ -130,7 +133,10 @@ class TestHITLWorker:
         result = worker.multiple_choice(state)
 
         mock_chat_client_class.assert_called_once_with(
-            "127.0.0.1", 8080, name="test_worker", mode="ro"
+            "127.0.0.1",
+            8080,
+            name="test_worker",
+            mode="ro",
         )
         mock_client.sync_main.assert_called_once_with(message=worker.create_prompt())
         assert isinstance(result, MessageState)
@@ -167,7 +173,8 @@ class TestHITLWorker:
 
     @patch.object(HITLWorker, "multiple_choice")
     def test_hitl_mc_mode_max_retries_exceeded(
-        self, mock_multiple_choice: Mock
+        self,
+        mock_multiple_choice: Mock,
     ) -> None:
         worker = HITLWorker(name="test_worker", mode="mc")
         worker.params = {
@@ -294,7 +301,9 @@ class TestHITLWorker:
         state.metadata = Metadata()
 
         with patch.object(
-            worker, "verify", return_value=(False, "Verification failed")
+            worker,
+            "verify",
+            return_value=(False, "Verification failed"),
         ):
             result = worker._execute(state)
 
@@ -309,7 +318,9 @@ class TestHITLWorkerTestChat:
     def test_init_success(self) -> None:
         """Test successful initialization."""
         worker = HITLWorkerTestChat(
-            name="test_chat", server_ip="127.0.0.1", server_port=8080
+            name="test_chat",
+            server_ip="127.0.0.1",
+            server_port=8080,
         )
         assert worker.name == "test_chat"
         assert worker.server_ip == "127.0.0.1"
@@ -329,7 +340,9 @@ class TestHITLWorkerTestChat:
     def test_verify_literal_with_chat(self) -> None:
         """Test verify_literal method with 'chat' in message."""
         worker = HITLWorkerTestChat(
-            name="test_chat", server_ip="127.0.0.1", server_port=8080
+            name="test_chat",
+            server_ip="127.0.0.1",
+            server_port=8080,
         )
         result = worker.verify_literal("I want to chat with someone")
         assert result is True
@@ -337,7 +350,9 @@ class TestHITLWorkerTestChat:
     def test_verify_literal_without_chat(self) -> None:
         """Test verify_literal method without 'chat' in message."""
         worker = HITLWorkerTestChat(
-            name="test_chat", server_ip="127.0.0.1", server_port=8080
+            name="test_chat",
+            server_ip="127.0.0.1",
+            server_port=8080,
         )
         result = worker.verify_literal("I want to buy something")
         assert result is False
@@ -356,7 +371,9 @@ class TestHITLWorkerTestMC:
     def test_init(self) -> None:
         """Test initialization."""
         worker = HITLWorkerTestMC(
-            name="test_mc", server_ip="127.0.0.1", server_port=8080
+            name="test_mc",
+            server_ip="127.0.0.1",
+            server_port=8080,
         )
         assert worker.name == "test_mc"
         assert worker.server_ip == "127.0.0.1"
@@ -370,7 +387,9 @@ class TestHITLWorkerTestMC:
     def test_verify_literal_with_buy(self) -> None:
         """Test verify_literal method with 'buy' in message."""
         worker = HITLWorkerTestMC(
-            name="test_mc", server_ip="127.0.0.1", server_port=8080
+            name="test_mc",
+            server_ip="127.0.0.1",
+            server_port=8080,
         )
         result = worker.verify_literal("I want to buy something")
         assert result is True
@@ -378,7 +397,9 @@ class TestHITLWorkerTestMC:
     def test_verify_literal_without_buy(self) -> None:
         """Test verify_literal method without 'buy' in message."""
         worker = HITLWorkerTestMC(
-            name="test_mc", server_ip="127.0.0.1", server_port=8080
+            name="test_mc",
+            server_ip="127.0.0.1",
+            server_port=8080,
         )
         result = worker.verify_literal("I want to chat with someone")
         assert result is False

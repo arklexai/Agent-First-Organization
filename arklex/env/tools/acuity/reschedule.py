@@ -38,14 +38,13 @@ outputs: list[dict[str, Any]] = [
         "name": "res_apt",
         "type": "list[dict]",
         "description": "The rescheduled appointment information after the user reschedules.",
-    }
+    },
 ]
 
 
 @register_tool(description, slots, outputs)
 def reschedule(apt_id: str, time: str, **kwargs: dict[str, Any]) -> str:
-    """
-    Reschedule an existing appointment to a new time.
+    """Reschedule an existing appointment to a new time.
 
     Args:
         apt_id (str): ID of the appointment to reschedule
@@ -57,6 +56,7 @@ def reschedule(apt_id: str, time: str, **kwargs: dict[str, Any]) -> str:
 
     Raises:
         ToolExecutionError: If rescheduling fails
+
     """
     func_name: str = inspect.currentframe().f_code.co_name
     user_id: str
@@ -71,11 +71,12 @@ def reschedule(apt_id: str, time: str, **kwargs: dict[str, Any]) -> str:
     }
 
     response: requests.Response = requests.put(
-        base_url, json=body, auth=HTTPBasicAuth(user_id, api_key)
+        base_url,
+        json=body,
+        auth=HTTPBasicAuth(user_id, api_key),
     )
 
     if response.status_code == 200:
         data: dict[str, Any] = response.json()
         return json.dumps(data)
-    else:
-        raise ToolExecutionError(func_name, AcuityExceptionPrompt.RESCHEDULE_PROMPT)
+    raise ToolExecutionError(func_name, AcuityExceptionPrompt.RESCHEDULE_PROMPT)

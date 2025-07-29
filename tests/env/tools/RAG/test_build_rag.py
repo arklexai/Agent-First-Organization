@@ -87,7 +87,7 @@ class TestBuildRAG:
         # Mock the loader methods
         mock_loader.get_all_urls.return_value = ["http://example.com"]
         mock_loader.to_crawled_url_objs.return_value = [
-            Mock(content="url content", source="http://example.com")
+            Mock(content="url content", source="http://example.com"),
         ]
 
         rag_docs = [{"source": "http://example.com", "type": "url", "num": 5}]
@@ -101,7 +101,8 @@ class TestBuildRAG:
 
     @patch("arklex.env.tools.RAG.build_rag.Loader")
     def test_build_rag_processes_url_documents_with_default_num(
-        self, mock_loader_class: Mock
+        self,
+        mock_loader_class: Mock,
     ) -> None:
         """Test that build_rag uses default num=1 when num is not provided for URL documents."""
         # Arrange
@@ -110,7 +111,7 @@ class TestBuildRAG:
 
         mock_loader.get_all_urls.return_value = ["http://example.com"]
         mock_loader.to_crawled_url_objs.return_value = [
-            Mock(content="url content", source="http://example.com")
+            Mock(content="url content", source="http://example.com"),
         ]
 
         rag_docs = [{"source": "http://example.com", "type": "url"}]
@@ -123,7 +124,8 @@ class TestBuildRAG:
 
     @patch("arklex.env.tools.RAG.build_rag.Loader")
     def test_build_rag_processes_file_documents_single_file(
-        self, mock_loader_class: Mock
+        self,
+        mock_loader_class: Mock,
     ) -> None:
         """Test that build_rag processes single file documents correctly."""
         # Arrange
@@ -136,7 +138,7 @@ class TestBuildRAG:
             f.write("test content")
 
         mock_loader.to_crawled_local_objs.return_value = [
-            Mock(content="file content", source=test_file)
+            Mock(content="file content", source=test_file),
         ]
 
         rag_docs = [{"source": test_file, "type": "file"}]
@@ -149,7 +151,8 @@ class TestBuildRAG:
 
     @patch("arklex.env.tools.RAG.build_rag.Loader")
     def test_build_rag_processes_file_documents_directory(
-        self, mock_loader_class: Mock
+        self,
+        mock_loader_class: Mock,
     ) -> None:
         """Test that build_rag processes directory documents correctly."""
         # Arrange
@@ -223,7 +226,7 @@ class TestBuildRAG:
         mock_loader_class.return_value = mock_loader
 
         mock_loader.to_crawled_text.return_value = [
-            Mock(content="text content", source="test text")
+            Mock(content="text content", source="test text"),
         ]
 
         rag_docs = [{"source": "test text content", "type": "text"}]
@@ -272,7 +275,8 @@ class TestBuildRAG:
 
     @patch("arklex.env.tools.RAG.build_rag.Loader")
     def test_build_rag_saves_documents_and_chunks(
-        self, mock_loader_class: Mock
+        self,
+        mock_loader_class: Mock,
     ) -> None:
         """Test that build_rag saves both documents and chunked documents."""
         # Arrange
@@ -281,10 +285,10 @@ class TestBuildRAG:
 
         # Mock the loader methods
         mock_loader.to_crawled_text.return_value = [
-            Mock(content="text content", source="test text")
+            Mock(content="text content", source="test text"),
         ]
         mock_loader.chunk.return_value = [
-            Mock(content="chunk content", source="test text")
+            Mock(content="chunk content", source="test text"),
         ]
 
         rag_docs = [{"source": "test text content", "type": "text"}]
@@ -304,7 +308,9 @@ class TestBuildRAG:
 
     @patch("arklex.env.tools.RAG.build_rag.Loader")
     def test_build_rag_logs_crawled_sources(
-        self, mock_loader_class: Mock, caplog: LogCaptureFixture
+        self,
+        mock_loader_class: Mock,
+        caplog: LogCaptureFixture,
     ) -> None:
         """Test that build_rag logs the crawled sources."""
         # Arrange
@@ -312,10 +318,10 @@ class TestBuildRAG:
         mock_loader_class.return_value = mock_loader
 
         mock_loader.to_crawled_text.return_value = [
-            Mock(content="text content", source="test source")
+            Mock(content="text content", source="test source"),
         ]
         mock_loader.chunk.return_value = [
-            Mock(content="chunk content", source="test source")
+            Mock(content="chunk content", source="test source"),
         ]
 
         rag_docs = [{"source": "test text content", "type": "text"}]
@@ -328,7 +334,9 @@ class TestBuildRAG:
 
     @patch("arklex.env.tools.RAG.build_rag.Loader")
     def test_build_rag_logs_content_for_new_documents(
-        self, mock_loader_class: Mock, caplog: LogCaptureFixture
+        self,
+        mock_loader_class: Mock,
+        caplog: LogCaptureFixture,
     ) -> None:
         """Test that build_rag logs content when processing new documents."""
         # Arrange
@@ -336,10 +344,10 @@ class TestBuildRAG:
         mock_loader_class.return_value = mock_loader
 
         mock_loader.to_crawled_text.return_value = [
-            Mock(content="text content", source="test source")
+            Mock(content="text content", source="test source"),
         ]
         mock_loader.chunk.return_value = [
-            Mock(content="chunk content", source="test source")
+            Mock(content="chunk content", source="test source"),
         ]
 
         rag_docs = [{"source": "test text content", "type": "text"}]
@@ -352,7 +360,9 @@ class TestBuildRAG:
 
     @patch("arklex.env.tools.RAG.build_rag.Loader")
     def test_build_rag_warns_when_loading_existing_documents(
-        self, mock_loader_class: Mock, caplog: LogCaptureFixture
+        self,
+        mock_loader_class: Mock,
+        caplog: LogCaptureFixture,
     ) -> None:
         """Test that build_rag warns when loading existing documents."""
         # Arrange
@@ -374,7 +384,9 @@ class TestBuildRAG:
 
     @patch("arklex.env.tools.RAG.build_rag.Loader")
     def test_build_rag_logs_crawling_info_for_urls(
-        self, mock_loader_class: Mock, caplog: LogCaptureFixture
+        self,
+        mock_loader_class: Mock,
+        caplog: LogCaptureFixture,
     ) -> None:
         """Test that build_rag logs crawling information for URL documents."""
         # Arrange
@@ -383,7 +395,7 @@ class TestBuildRAG:
 
         mock_loader.get_all_urls.return_value = ["http://example.com"]
         mock_loader.to_crawled_url_objs.return_value = [
-            Mock(content="url content", source="http://example.com")
+            Mock(content="url content", source="http://example.com"),
         ]
 
         rag_docs = [{"source": "http://example.com", "type": "url", "num": 3}]
@@ -691,7 +703,10 @@ class TestBuildRAGCLI:
         # Test argument parser creation and argument addition
         parser = build_rag_module.argparse.ArgumentParser()
         parser.add_argument(
-            "--base_url", required=True, type=str, help="base url to crawl"
+            "--base_url",
+            required=True,
+            type=str,
+            help="base url to crawl",
         )
         parser.add_argument(
             "--folder_path",
@@ -700,7 +715,10 @@ class TestBuildRAGCLI:
             help="location to save the documents",
         )
         parser.add_argument(
-            "--max_num", type=int, default=10, help="maximum number of urls to crawl"
+            "--max_num",
+            type=int,
+            default=10,
+            help="maximum number of urls to crawl",
         )
 
         # Test parsing arguments
@@ -725,7 +743,10 @@ class TestBuildRAGCLI:
 
         parser = build_rag_module.argparse.ArgumentParser()
         parser.add_argument(
-            "--base_url", required=True, type=str, help="base url to crawl"
+            "--base_url",
+            required=True,
+            type=str,
+            help="base url to crawl",
         )
         parser.add_argument(
             "--folder_path",
@@ -734,7 +755,10 @@ class TestBuildRAGCLI:
             help="location to save the documents",
         )
         parser.add_argument(
-            "--max_num", type=int, default=10, help="maximum number of urls to crawl"
+            "--max_num",
+            type=int,
+            default=10,
+            help="maximum number of urls to crawl",
         )
 
         # Test parsing arguments without max_num
@@ -757,7 +781,10 @@ class TestBuildRAGCLI:
 
         parser = build_rag_module.argparse.ArgumentParser()
         parser.add_argument(
-            "--base_url", required=True, type=str, help="base url to crawl"
+            "--base_url",
+            required=True,
+            type=str,
+            help="base url to crawl",
         )
         parser.add_argument(
             "--folder_path",
@@ -766,7 +793,10 @@ class TestBuildRAGCLI:
             help="location to save the documents",
         )
         parser.add_argument(
-            "--max_num", type=int, default=10, help="maximum number of urls to crawl"
+            "--max_num",
+            type=int,
+            default=10,
+            help="maximum number of urls to crawl",
         )
 
         # Test parsing arguments with zero max_num
@@ -806,7 +836,10 @@ class TestBuildRAGCLI:
             # Execute the main block logic directly instead of trying to reload
             parser = build_rag_module.argparse.ArgumentParser()
             parser.add_argument(
-                "--base_url", required=True, type=str, help="base url to crawl"
+                "--base_url",
+                required=True,
+                type=str,
+                help="base url to crawl",
             )
             parser.add_argument(
                 "--folder_path",
@@ -826,7 +859,7 @@ class TestBuildRAGCLI:
             build_rag_module.build_rag(
                 folder_path=args.folder_path,
                 rag_docs=[
-                    {"source": args.base_url, "type": "url", "num": args.max_num}
+                    {"source": args.base_url, "type": "url", "num": args.max_num},
                 ],
             )
 
@@ -855,7 +888,10 @@ class TestBuildRAGCLI:
             # Execute the main block logic directly
             parser = build_rag_module.argparse.ArgumentParser()
             parser.add_argument(
-                "--base_url", required=True, type=str, help="base url to crawl"
+                "--base_url",
+                required=True,
+                type=str,
+                help="base url to crawl",
             )
             parser.add_argument(
                 "--folder_path",
@@ -875,7 +911,7 @@ class TestBuildRAGCLI:
             build_rag_module.build_rag(
                 folder_path=args.folder_path,
                 rag_docs=[
-                    {"source": args.base_url, "type": "url", "num": args.max_num}
+                    {"source": args.base_url, "type": "url", "num": args.max_num},
                 ],
             )
 
@@ -883,7 +919,7 @@ class TestBuildRAGCLI:
         mock_build_rag.assert_called_once_with(
             folder_path="/tmp/test",
             rag_docs=[
-                {"source": "http://example.com", "type": "url", "num": 10}
+                {"source": "http://example.com", "type": "url", "num": 10},
             ],  # default value
         )
 
@@ -907,7 +943,10 @@ class TestBuildRAGCLI:
             # Execute the main block logic directly
             parser = build_rag_module.argparse.ArgumentParser()
             parser.add_argument(
-                "--base_url", required=True, type=str, help="base url to crawl"
+                "--base_url",
+                required=True,
+                type=str,
+                help="base url to crawl",
             )
             parser.add_argument(
                 "--folder_path",
@@ -927,7 +966,7 @@ class TestBuildRAGCLI:
             build_rag_module.build_rag(
                 folder_path=args.folder_path,
                 rag_docs=[
-                    {"source": args.base_url, "type": "url", "num": args.max_num}
+                    {"source": args.base_url, "type": "url", "num": args.max_num},
                 ],
             )
 
@@ -954,7 +993,10 @@ class TestBuildRAGCLI:
             # Execute the main block logic directly
             parser = build_rag_module.argparse.ArgumentParser()
             parser.add_argument(
-                "--base_url", required=True, type=str, help="base url to crawl"
+                "--base_url",
+                required=True,
+                type=str,
+                help="base url to crawl",
             )
             parser.add_argument(
                 "--folder_path",
@@ -974,7 +1016,7 @@ class TestBuildRAGCLI:
             build_rag_module.build_rag(
                 folder_path=args.folder_path,
                 rag_docs=[
-                    {"source": args.base_url, "type": "url", "num": args.max_num}
+                    {"source": args.base_url, "type": "url", "num": args.max_num},
                 ],
             )
 
@@ -1017,7 +1059,8 @@ class TestBuildRAGCLI:
 
     @patch("arklex.env.tools.RAG.build_rag.build_rag")
     def test_main_function_execution_default_max_num(
-        self, mock_build_rag: Mock
+        self,
+        mock_build_rag: Mock,
     ) -> None:
         """Test that the main function executes correctly with default max_num."""
         import sys

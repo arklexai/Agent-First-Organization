@@ -17,7 +17,8 @@ from tests.utils.utils_workers import MCWorkerOrchestrator, MsgWorkerOrchestrato
 # Register custom markers
 def pytest_configure(config: pytest.Config) -> None:
     config.addinivalue_line(
-        "markers", "no_collect: mark a class to be excluded from pytest collection"
+        "markers",
+        "no_collect: mark a class to be excluded from pytest collection",
     )
 
 
@@ -56,6 +57,7 @@ def load_test_cases(test_cases_path: Path) -> list[dict[str, Any]]:
 
     Raises:
         pytest.fail: If the file cannot be loaded or parsed.
+
     """
     try:
         with open(test_cases_path) as f:
@@ -64,7 +66,8 @@ def load_test_cases(test_cases_path: Path) -> list[dict[str, Any]]:
         pytest.fail(f"Test cases file not found: {test_cases_path}", pytrace=True)
     except json.JSONDecodeError as e:
         pytest.fail(
-            f"Invalid JSON in test cases file {test_cases_path}: {str(e)}", pytrace=True
+            f"Invalid JSON in test cases file {test_cases_path}: {e!s}",
+            pytrace=True,
         )
 
 
@@ -86,6 +89,7 @@ def test_resources(test_case: CaseConfig) -> None:
     Raises:
         pytest.fail: If any test case fails, with a detailed error message
             including the test case number and orchestrator class name.
+
     """
     data_dir = Path(__file__).parent / "data"
     config_path = data_dir / test_case.config_file
@@ -100,6 +104,6 @@ def test_resources(test_case: CaseConfig) -> None:
         except Exception as e:
             pytest.fail(
                 f"Test case {i} failed for {test_case.orchestrator_cls.__name__} "
-                f"from {test_case.test_cases_file}: {str(e)}",
+                f"from {test_case.test_cases_file}: {e!s}",
                 pytrace=True,
             )

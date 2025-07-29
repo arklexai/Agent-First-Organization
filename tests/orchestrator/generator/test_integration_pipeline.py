@@ -111,7 +111,7 @@ def complex_tasks_config(patched_sample_config: dict) -> dict:
                 {"description": "Validate customer info", "step_id": "step_1"},
                 {"description": "Validate payment", "step_id": "step_2"},
             ],
-        }
+        },
     ]
     return patched_sample_config
 
@@ -129,7 +129,7 @@ def nested_graph_config(sample_config: dict) -> dict:
                 {"description": "Step 1", "step_id": "step_1"},
             ],
             "resource": {"name": "NestedGraph"},
-        }
+        },
     ]
     return sample_config
 
@@ -159,7 +159,9 @@ class TestFullGenerationPipeline:
     """Test suite for the complete task graph generation pipeline."""
 
     def test_full_pipeline_with_mock_model(
-        self, patched_sample_config: dict, always_valid_mock_model: object
+        self,
+        patched_sample_config: dict,
+        always_valid_mock_model: object,
     ) -> None:
         """Test the complete pipeline with a mock language model that always returns a valid task."""
         generator = Generator(
@@ -194,7 +196,7 @@ class TestFullGenerationPipeline:
                     {"description": "Get search criteria", "step_id": "step_1"},
                     {"description": "Search database", "step_id": "step_2"},
                 ],
-            }
+            },
         ]
         result = formatter.format_task_graph(tasks)
         assert "nodes" in result
@@ -220,7 +222,7 @@ class TestFullGenerationPipeline:
                     {"description": "Listen to customer", "step_id": "step_1"},
                     {"description": "Provide solution", "step_id": "step_2"},
                 ],
-            }
+            },
         ]
         practices = manager.generate_best_practices(tasks)
         assert len(practices) > 0
@@ -229,7 +231,9 @@ class TestFullGenerationPipeline:
         """Test pipeline behavior when LLM calls fail."""
         mock_model = MockLanguageModelWithErrors(error_type="timeout", error_rate=0.5)
         generator = Generator(
-            config=patched_sample_config, model=mock_model, interactable_with_user=False
+            config=patched_sample_config,
+            model=mock_model,
+            interactable_with_user=False,
         )
         task_graph = generator.generate()
         assert "nodes" in task_graph
@@ -237,7 +241,9 @@ class TestFullGenerationPipeline:
         assert "tasks" in task_graph
 
     def test_pipeline_with_complex_tasks(
-        self, complex_tasks_config: dict, always_valid_mock_model: object
+        self,
+        complex_tasks_config: dict,
+        always_valid_mock_model: object,
     ) -> None:
         """Test pipeline with complex task structures."""
         generator = Generator(
@@ -254,7 +260,9 @@ class TestFullGenerationPipeline:
         assert len(task_graph["tasks"]) > 0
 
     def test_pipeline_with_nested_graphs(
-        self, nested_graph_config: dict, nested_graph_mock_model: object
+        self,
+        nested_graph_config: dict,
+        nested_graph_mock_model: object,
     ) -> None:
         """Test pipeline with nested graph resources."""
         generator = Generator(
@@ -290,7 +298,7 @@ class TestFullGenerationPipeline:
                     {"description": "Analysis", "step_id": "step_2"},
                     {"description": "Reporting", "step_id": "step_3"},
                 ],
-            }
+            },
         ]
         practices = manager.generate_best_practices(tasks)
         assert len(practices) > 0
@@ -302,7 +310,9 @@ class TestFullGenerationPipeline:
         """Test pipeline with comprehensive validation."""
         mock_model = create_mock_model_for_task_generation()
         generator = Generator(
-            config=sample_config, model=mock_model, interactable_with_user=False
+            config=sample_config,
+            model=mock_model,
+            interactable_with_user=False,
         )
         task_graph = generator.generate()
         assert "nodes" in task_graph
@@ -326,7 +336,9 @@ class TestFullGenerationPipeline:
         """Test pipeline with custom prompt configurations."""
         mock_model = create_mock_model_for_task_generation()
         generator = Generator(
-            config=custom_prompts_config, model=mock_model, interactable_with_user=False
+            config=custom_prompts_config,
+            model=mock_model,
+            interactable_with_user=False,
         )
         task_graph = generator.generate()
         assert mock_model.call_count > 0
@@ -335,7 +347,9 @@ class TestFullGenerationPipeline:
         assert "tasks" in task_graph
 
     def test_pipeline_performance(
-        self, performance_config: dict, performance_mock_model: object
+        self,
+        performance_config: dict,
+        performance_mock_model: object,
     ) -> None:
         """Test pipeline performance with a large number of tasks."""
         generator = Generator(

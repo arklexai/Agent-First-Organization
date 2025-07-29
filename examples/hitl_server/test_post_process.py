@@ -81,7 +81,7 @@ class TestLiveChatDetection:
         expected_log_message = test_case.get("expect_log_message")
 
         history: list[dict[str, str]] = [
-            {"role": "assistant", "content": start_message}
+            {"role": "assistant", "content": start_message},
         ]
 
         # Configure caplog to capture INFO level messages from all loggers

@@ -33,6 +33,7 @@ class MCWorkerOrchestrator(MockOrchestrator):
 
         Args:
             config_file_path (str): Path to the configuration file.
+
         """
         super().__init__(config_file_path)
         self.resource_initializer = MockResourceInitializer()
@@ -50,7 +51,7 @@ class MCWorkerOrchestrator(MockOrchestrator):
                 "path": [
                     {"node_id": node_id}
                     for node_id in test_case["expected_taskgraph_path"]
-                ]
+                ],
             }
 
         # Return specific responses based on the expected conversation
@@ -92,6 +93,7 @@ class MCWorkerOrchestrator(MockOrchestrator):
 
         Raises:
             AssertionError: If the task graph path or response content does not match expected values.
+
         """
         # Ensure the expected taskgraph path is set for validation
         if "expected_taskgraph_path" in test_case:
@@ -103,7 +105,7 @@ class MCWorkerOrchestrator(MockOrchestrator):
         node_path = _extract_node_path(params)
         print(f"DEBUG: node_path = {node_path}")
         print(
-            f"DEBUG: expected_taskgraph_path = {test_case['expected_taskgraph_path']}"
+            f"DEBUG: expected_taskgraph_path = {test_case['expected_taskgraph_path']}",
         )
         assert node_path == test_case["expected_taskgraph_path"], (
             f"Taskgraph path mismatch: expected {test_case['expected_taskgraph_path']}, got {node_path}"
@@ -116,7 +118,7 @@ class MCWorkerOrchestrator(MockOrchestrator):
             if message["role"] == "assistant"
         ]
         for i, (actual, expected) in enumerate(
-            zip(assistant_records, expected_records, strict=False)
+            zip(assistant_records, expected_records, strict=False),
         ):
             assert actual["content"] == expected["content"], (
                 f"Response {i} mismatch:\nExpected: {expected['content']}\nActual: {actual['content']}"
@@ -129,6 +131,7 @@ class MsgWorkerOrchestrator(MockOrchestrator):
 
         Args:
             config_file_path (str): Path to the configuration file.
+
         """
         super().__init__(config_file_path)
         self.resource_initializer = MockResourceInitializer()
@@ -146,7 +149,7 @@ class MsgWorkerOrchestrator(MockOrchestrator):
                 "path": [
                     {"node_id": node_id}
                     for node_id in test_case["expected_taskgraph_path"]
-                ]
+                ],
             }
         return {
             "response": f"Mock response to: {user_text}",
@@ -171,6 +174,7 @@ class MsgWorkerOrchestrator(MockOrchestrator):
 
         Raises:
             AssertionError: If the task graph path is incorrect or if the assistant's response is empty.
+
         """
         # Ensure the expected taskgraph path is set for validation
         if "expected_taskgraph_path" in test_case:
@@ -182,7 +186,7 @@ class MsgWorkerOrchestrator(MockOrchestrator):
         node_path = _extract_node_path(params)
         print(f"DEBUG: node_path = {node_path}")
         print(
-            f"DEBUG: expected_taskgraph_path = {test_case['expected_taskgraph_path']}"
+            f"DEBUG: expected_taskgraph_path = {test_case['expected_taskgraph_path']}",
         )
         assert node_path == test_case["expected_taskgraph_path"], (
             f"Taskgraph path mismatch: expected {test_case['expected_taskgraph_path']}, got {node_path}"
@@ -193,5 +197,5 @@ class MsgWorkerOrchestrator(MockOrchestrator):
         )
         print(f"DEBUG: assistant_records = {assistant_records}")
         print(
-            f"DEBUG: expected_conversation = {test_case.get('expected_conversation')}"
+            f"DEBUG: expected_conversation = {test_case.get('expected_conversation')}",
         )

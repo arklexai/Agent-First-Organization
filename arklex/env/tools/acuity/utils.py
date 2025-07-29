@@ -7,8 +7,7 @@ ACUITY_AUTH_ERROR: str = "Missing some or all required hubspot authentication pa
 
 
 def authenticate_acuity(kwargs: dict[str, Any]) -> tuple[str, str]:
-    """
-    Authenticate with Acuity using the provided user ID and API key.
+    """Authenticate with Acuity using the provided user ID and API key.
 
     Args:
         kwargs (Dict[str, Any]): Dictionary containing authentication parameters
@@ -18,6 +17,7 @@ def authenticate_acuity(kwargs: dict[str, Any]) -> tuple[str, str]:
 
     Raises:
         AuthenticationError: If user_id or api_key is missing
+
     """
     user_id: str = kwargs.get("ACUITY_USER_ID")
     api_key: str = kwargs.get("ACUITY_API_KEY")
@@ -28,11 +28,11 @@ def authenticate_acuity(kwargs: dict[str, Any]) -> tuple[str, str]:
 
 
 def get_acuity_client() -> object:
-    """
-    Get an Acuity client instance.
+    """Get an Acuity client instance.
 
     Returns:
         Acuity: An Acuity client instance for making API calls.
+
     """
     try:
         from acuityscheduling import Acuity
@@ -40,5 +40,5 @@ def get_acuity_client() -> object:
         return Acuity()
     except ImportError as err:
         raise ImportError(
-            "acuityscheduling package is required. Please install it with: pip install acuityscheduling"
+            "acuityscheduling package is required. Please install it with: pip install acuityscheduling",
         ) from err

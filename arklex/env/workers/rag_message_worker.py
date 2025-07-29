@@ -46,11 +46,11 @@ class RagMsgWorker(BaseWorker):
     def _choose_retriever(self, state: MessageState) -> str:
         prompts: dict[str, str] = load_prompts(state.bot_config)
         prompt: PromptTemplate = PromptTemplate.from_template(
-            prompts["retrieval_needed_prompt"]
+            prompts["retrieval_needed_prompt"],
         )
         input_prompt = prompt.invoke({"formatted_chat": state.user_message.history})
         log_context.info(
-            f"Prompt for choosing the retriever in RagMsgWorker: {input_prompt.text}"
+            f"Prompt for choosing the retriever in RagMsgWorker: {input_prompt.text}",
         )
         final_chain = self.llm | StrOutputParser()
         answer: str = final_chain.invoke(input_prompt.text)
@@ -73,10 +73,13 @@ class RagMsgWorker(BaseWorker):
         return workflow
 
     def _execute(
-        self, msg_state: MessageState, **kwargs: RagMsgWorkerKwargs
+        self,
+        msg_state: MessageState,
+        **kwargs: RagMsgWorkerKwargs,
     ) -> dict[str, Any]:
         self.llm = PROVIDER_MAP.get(
-            msg_state.bot_config.llm_config.llm_provider, ChatOpenAI
+            msg_state.bot_config.llm_config.llm_provider,
+            ChatOpenAI,
         )(model=msg_state.bot_config.llm_config.model_type_or_path)
         self.tags = kwargs.get("tags", {})
         self.action_graph = self._create_action_graph(self.tags)
@@ -101,6 +104,7 @@ class RAGMessageWorker(BaseWorker):
 
         Args:
             model_config: Optional configuration for the language model.
+
         """
         super().__init__()
         self.llm: BaseChatModel | None = None
@@ -120,6 +124,7 @@ class RAGMessageWorker(BaseWorker):
 
         Returns:
             str: Relevant document content or search results.
+
         """
         if msg_state.orchestrator_message is None:
             return "No query provided for document search."
@@ -143,6 +148,7 @@ class RAGMessageWorker(BaseWorker):
 
         Returns:
             str: Generated response to the user's query.
+
         """
         if msg_state.orchestrator_message is None:
             return "No query provided for response generation."
@@ -159,7 +165,9 @@ class RAGMessageWorker(BaseWorker):
         return f"Response to: {query}"
 
     def _execute(
-        self, msg_state: MessageState, **kwargs: dict[str, Any]
+        self,
+        msg_state: MessageState,
+        **kwargs: dict[str, Any],
     ) -> dict[str, Any]:
         """Execute the RAG message worker.
 
@@ -169,6 +177,7 @@ class RAGMessageWorker(BaseWorker):
 
         Returns:
             dict[str, Any]: The execution result.
+
         """
         # Initialize LLM if not already done
         if not self.llm and msg_state.bot_config:

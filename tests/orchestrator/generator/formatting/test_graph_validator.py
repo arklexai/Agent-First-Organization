@@ -233,14 +233,17 @@ class TestGraphValidator:
     """Test the GraphValidator class."""
 
     def test_graph_validator_initialization(
-        self, graph_validator: GraphValidator
+        self,
+        graph_validator: GraphValidator,
     ) -> None:
         """Test GraphValidator initialization."""
         assert isinstance(graph_validator._errors, list)
         assert len(graph_validator._errors) == 0
 
     def test_validate_graph_valid(
-        self, graph_validator: GraphValidator, valid_graph: dict
+        self,
+        graph_validator: GraphValidator,
+        valid_graph: dict,
     ) -> None:
         """Test validation of a valid graph."""
         result = graph_validator.validate_graph(valid_graph)
@@ -248,7 +251,9 @@ class TestGraphValidator:
         assert len(graph_validator._errors) == 0
 
     def test_validate_graph_not_dict(
-        self, graph_validator: GraphValidator, invalid_graph_not_dict: dict
+        self,
+        graph_validator: GraphValidator,
+        invalid_graph_not_dict: dict,
     ) -> None:
         """Test validation of a graph that is not a dictionary."""
         result = graph_validator.validate_graph(invalid_graph_not_dict)
@@ -256,7 +261,9 @@ class TestGraphValidator:
         assert "Graph must be a dictionary" in graph_validator._errors
 
     def test_validate_graph_missing_nodes_field(
-        self, graph_validator: GraphValidator, invalid_graph_no_nodes: dict
+        self,
+        graph_validator: GraphValidator,
+        invalid_graph_no_nodes: dict,
     ) -> None:
         """Test validation of a graph with missing nodes field (should be valid as it defaults to empty list)."""
         result = graph_validator.validate_graph(invalid_graph_no_nodes)
@@ -265,7 +272,9 @@ class TestGraphValidator:
         )  # Missing nodes field defaults to empty list, which is valid
 
     def test_validate_graph_nodes_not_list(
-        self, graph_validator: GraphValidator, invalid_graph_nodes_not_list: dict
+        self,
+        graph_validator: GraphValidator,
+        invalid_graph_nodes_not_list: dict,
     ) -> None:
         """Test validation of a graph with nodes not being a list."""
         result = graph_validator.validate_graph(invalid_graph_nodes_not_list)
@@ -273,7 +282,9 @@ class TestGraphValidator:
         assert "Nodes must be a list" in graph_validator._errors
 
     def test_validate_graph_missing_edges_field(
-        self, graph_validator: GraphValidator, invalid_graph_no_edges: dict
+        self,
+        graph_validator: GraphValidator,
+        invalid_graph_no_edges: dict,
     ) -> None:
         """Test validation of a graph with missing edges field (should be valid as it defaults to empty list)."""
         result = graph_validator.validate_graph(invalid_graph_no_edges)
@@ -282,7 +293,9 @@ class TestGraphValidator:
         )  # Missing edges field defaults to empty list, which is valid
 
     def test_validate_graph_edges_not_list(
-        self, graph_validator: GraphValidator, invalid_graph_edges_not_list: dict
+        self,
+        graph_validator: GraphValidator,
+        invalid_graph_edges_not_list: dict,
     ) -> None:
         """Test validation of a graph with edges not being a list."""
         result = graph_validator.validate_graph(invalid_graph_edges_not_list)
@@ -290,7 +303,9 @@ class TestGraphValidator:
         assert "Edges must be a list" in graph_validator._errors
 
     def test_validate_graph_edge_wrong_format(
-        self, graph_validator: GraphValidator, invalid_graph_edge_wrong_format: dict
+        self,
+        graph_validator: GraphValidator,
+        invalid_graph_edge_wrong_format: dict,
     ) -> None:
         """Test validation of a graph with edge in wrong format."""
         result = graph_validator.validate_graph(invalid_graph_edge_wrong_format)
@@ -300,7 +315,9 @@ class TestGraphValidator:
         )
 
     def test_validate_graph_edge_source_not_found(
-        self, graph_validator: GraphValidator, invalid_graph_edge_source_not_found: dict
+        self,
+        graph_validator: GraphValidator,
+        invalid_graph_edge_source_not_found: dict,
     ) -> None:
         """Test validation of a graph with edge source not found in nodes."""
         result = graph_validator.validate_graph(invalid_graph_edge_source_not_found)
@@ -310,7 +327,9 @@ class TestGraphValidator:
         )
 
     def test_validate_graph_edge_target_not_found(
-        self, graph_validator: GraphValidator, invalid_graph_edge_target_not_found: dict
+        self,
+        graph_validator: GraphValidator,
+        invalid_graph_edge_target_not_found: dict,
     ) -> None:
         """Test validation of a graph with edge target not found in nodes."""
         result = graph_validator.validate_graph(invalid_graph_edge_target_not_found)
@@ -320,7 +339,9 @@ class TestGraphValidator:
         )
 
     def test_validate_graph_edge_data_not_dict(
-        self, graph_validator: GraphValidator, invalid_graph_edge_data_not_dict: dict
+        self,
+        graph_validator: GraphValidator,
+        invalid_graph_edge_data_not_dict: dict,
     ) -> None:
         """Test validation of a graph with edge data not being a dictionary."""
         result = graph_validator.validate_graph(invalid_graph_edge_data_not_dict)
@@ -338,7 +359,8 @@ class TestGraphValidator:
         assert "Missing required field: workers" in graph_validator._errors
 
     def test_validate_graph_multiple_edge_errors(
-        self, graph_validator: GraphValidator
+        self,
+        graph_validator: GraphValidator,
     ) -> None:
         """Test validation of a graph with multiple edge errors."""
         graph = {
@@ -368,7 +390,8 @@ class TestGraphValidator:
         )
 
     def test_validate_graph_multiple_missing_fields(
-        self, graph_validator: GraphValidator
+        self,
+        graph_validator: GraphValidator,
     ) -> None:
         """Test validation of a graph with multiple missing required fields."""
         graph = {
@@ -388,7 +411,8 @@ class TestGraphValidator:
         assert "Missing required field: workers" in graph_validator._errors
 
     def test_validate_graph_edge_with_none_intent(
-        self, graph_validator: GraphValidator
+        self,
+        graph_validator: GraphValidator,
     ) -> None:
         """Test validation of a graph with edge having None intent."""
         graph = {
@@ -412,7 +436,8 @@ class TestGraphValidator:
         assert result is True  # None intent is valid
 
     def test_validate_graph_empty_nodes_and_edges(
-        self, graph_validator: GraphValidator
+        self,
+        graph_validator: GraphValidator,
     ) -> None:
         """Test validation of a graph with empty nodes and edges."""
         graph = {
@@ -431,7 +456,8 @@ class TestGraphValidator:
         assert result is True
 
     def test_validate_graph_complex_valid_graph(
-        self, graph_validator: GraphValidator
+        self,
+        graph_validator: GraphValidator,
     ) -> None:
         """Test validation of a complex valid graph."""
         graph = {
@@ -467,7 +493,9 @@ class TestGraphValidator:
         assert len(errors) == 0
 
     def test_get_error_messages_with_errors(
-        self, graph_validator: GraphValidator, invalid_graph_not_dict: dict
+        self,
+        graph_validator: GraphValidator,
+        invalid_graph_not_dict: dict,
     ) -> None:
         """Test getting error messages when errors exist."""
         graph_validator.validate_graph(invalid_graph_not_dict)
@@ -494,7 +522,8 @@ class TestGraphValidator:
         assert len(graph_validator._errors) == 0
 
     def test_validate_graph_edge_with_empty_data_dict(
-        self, graph_validator: GraphValidator
+        self,
+        graph_validator: GraphValidator,
     ) -> None:
         """Test validation of a graph with edge having empty data dictionary."""
         graph = {
@@ -518,7 +547,8 @@ class TestGraphValidator:
         assert result is True
 
     def test_validate_graph_node_with_complex_data(
-        self, graph_validator: GraphValidator
+        self,
+        graph_validator: GraphValidator,
     ) -> None:
         """Test validation of a graph with nodes containing complex data."""
         graph = {

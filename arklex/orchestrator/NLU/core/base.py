@@ -26,12 +26,14 @@ class IntentResponse(BaseModel):
         intent: The predicted intent name
         confidence: Confidence score for the prediction
         metadata: Additional metadata about the prediction
+
     """
 
     intent: str = Field(..., description="The predicted intent name")
     confidence: float = Field(..., description="Confidence score for the prediction")
     metadata: dict[str, Any] = Field(
-        default_factory=dict, description="Additional metadata about the prediction"
+        default_factory=dict,
+        description="Additional metadata about the prediction",
     )
 
 
@@ -46,15 +48,18 @@ class SlotResponse(BaseModel):
         value: The extracted or verified value
         confidence: Confidence score for the extraction/verification
         metadata: Additional metadata about the slot
+
     """
 
     slot: str = Field(..., description="The slot name")
     value: str = Field(..., description="The extracted or verified value")
     confidence: float = Field(
-        ..., description="Confidence score for the extraction/verification"
+        ...,
+        description="Confidence score for the extraction/verification",
     )
     metadata: dict[str, Any] = Field(
-        default_factory=dict, description="Additional metadata about the slot"
+        default_factory=dict,
+        description="Additional metadata about the slot",
     )
 
 
@@ -69,13 +74,15 @@ class VerificationResponse(BaseModel):
         verified: Whether the slot value is verified (True/False)
         reason: Reason for the verification result
         metadata: Additional metadata about the verification
+
     """
 
     slot: str = Field(..., description="The slot name")
     verified: bool = Field(..., description="Whether the slot value is verified")
     reason: str = Field(..., description="Reason for the verification result")
     metadata: dict[str, Any] = Field(
-        default_factory=dict, description="Additional metadata about the verification"
+        default_factory=dict,
+        description="Additional metadata about the verification",
     )
 
 
@@ -95,6 +102,7 @@ class BaseNLU(ABC):
     Note:
         All concrete implementations must provide an implementation of
         the predict_intent method.
+
     """
 
     @abstractmethod
@@ -121,6 +129,7 @@ class BaseNLU(ABC):
 
         Raises:
             NotImplementedError: If the concrete class does not implement this method
+
         """
 
 
@@ -139,11 +148,15 @@ class BaseSlotFilling(ABC):
     Note:
         All concrete implementations must provide implementations of
         the verify_slot and fill_slots methods.
+
     """
 
     @abstractmethod
     def verify_slot(
-        self, slot: dict[str, Any], chat_history_str: str, model_config: dict[str, Any]
+        self,
+        slot: dict[str, Any],
+        chat_history_str: str,
+        model_config: dict[str, Any],
     ) -> tuple[bool, str]:
         """Verify if a slot value needs confirmation.
 
@@ -162,6 +175,7 @@ class BaseSlotFilling(ABC):
 
         Raises:
             NotImplementedError: If the concrete class does not implement this method
+
         """
 
     @abstractmethod
@@ -188,4 +202,5 @@ class BaseSlotFilling(ABC):
 
         Raises:
             NotImplementedError: If the concrete class does not implement this method
+
         """

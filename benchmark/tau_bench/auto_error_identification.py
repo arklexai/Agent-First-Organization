@@ -43,6 +43,7 @@ def get_args() -> argparse.Namespace:
             - max-concurrency: Maximum number of concurrent API calls
             - output-dir: Path to the output directory
             - max-num-failed-results: Maximum number of failed results to analyze
+
     """
     parser: argparse.ArgumentParser = api_parser()
     parser.add_argument(
@@ -53,7 +54,10 @@ def get_args() -> argparse.Namespace:
         help="The environment that the original trajectories are from (used to fetch the user instructions)",
     )
     parser.add_argument(
-        "--results-path", type=str, required=True, help="Path to the results file"
+        "--results-path",
+        type=str,
+        required=True,
+        help="Path to the results file",
     )
     parser.add_argument(
         "--max-concurrency",
@@ -62,7 +66,10 @@ def get_args() -> argparse.Namespace:
         help="Maximum number of concurrent API calls",
     )
     parser.add_argument(
-        "--output-dir", type=str, required=True, help="Path to the output file"
+        "--output-dir",
+        type=str,
+        required=True,
+        help="Path to the output file",
     )
     parser.add_argument(
         "--max-num-failed-results",
@@ -85,6 +92,7 @@ class OriginalResult(BaseModel):
         traj (List[Dict[str, Any]]): The sequence of messages in the trajectory.
         ground_truth_actions (List[Action]): The expected actions for the task.
         ground_truth_outputs (List[str]): The expected outputs for the task.
+
     """
 
     task_id: int
@@ -124,6 +132,7 @@ class FaultAssignmentResult(BaseModel):
 
     Methods:
         model_dump: Convert the result to a dictionary format.
+
     """
 
     task_id: int
@@ -135,6 +144,7 @@ class FaultAssignmentResult(BaseModel):
 
         Returns:
             Dict[str, Any]: A dictionary representation of the fault assignment result.
+
         """
         return {
             "task_id": self.task_id,
@@ -175,6 +185,7 @@ class FaultTypeResult(BaseModel):
 
     Methods:
         model_dump: Convert the result to a dictionary format.
+
     """
 
     task_id: int
@@ -186,6 +197,7 @@ class FaultTypeResult(BaseModel):
 
         Returns:
             Dict[str, Any]: A dictionary representation of the fault type result.
+
         """
         return {
             "task_id": self.task_id,
@@ -222,6 +234,7 @@ def context_description(grading_strategy: GradingStrategy) -> str:
 
     Returns:
         str: A description of the context for error analysis.
+
     """
     if grading_strategy == GradingStrategy.ACTIONS:
         return """You will be given a user instruction, the ground truth action sequence, and a trajectory.
@@ -251,6 +264,7 @@ def display_traj(traj: list[dict[str, Any]]) -> str:
 
     Raises:
         ValueError: If the trajectory is empty.
+
     """
     if len(traj) == 0:
         raise ValueError("Trajectory is empty")
@@ -258,7 +272,7 @@ def display_traj(traj: list[dict[str, Any]]) -> str:
         item for item in traj if item["role"] != "system"
     ]
     return "\n".join(
-        [f"{item['role'].capitalize()}: {item['content']}" for item in stripped_traj]
+        [f"{item['role'].capitalize()}: {item['content']}" for item in stripped_traj],
     )
 
 
@@ -273,6 +287,7 @@ def display_actions(actions: list[Action]) -> str:
 
     Returns:
         str: A JSON string representation of the actions.
+
     """
     return json.dumps([action.model_dump() for action in actions], indent=4)
 
@@ -297,6 +312,7 @@ def display_context(
 
     Returns:
         str: A formatted string containing all context information.
+
     """
     traj_display: str = display_traj(trajectory)
     context: str = f"""----- start user instruction -----
@@ -322,7 +338,9 @@ def display_context(
 
 
 def fault_assignment_analysis(
-    api: API, results: list[OriginalResult], max_concurrency: int
+    api: API,
+    results: list[OriginalResult],
+    max_concurrency: int,
 ) -> list[FaultAssignmentResult]:
     """Analyze and assign responsibility for faults.
 
@@ -336,6 +354,7 @@ def fault_assignment_analysis(
 
     Returns:
         List[FaultAssignmentResult]: List of fault assignment results.
+
     """
 
     def assign_fault(
@@ -357,7 +376,10 @@ def fault_assignment_analysis(
         )
         ctx_desc: str = context_description(grading_strategy)
         context: str = display_context(
-            user_instruction, ground_truth_actions, ground_truth_outputs, traj
+            user_instruction,
+            ground_truth_actions,
+            ground_truth_outputs,
+            traj,
         )
         res: int = api.classify(
             instruction=f"{ctx_desc}\n\nDetermine the entity that is responsible for the fault. The user is responsible for the fault if they caused an action that was not grounded in the user instruction. The agent is responsible for the fault if they took an action that was not correct (or took the action with the wrong arguments). The environment is responsible for all other faults.",
@@ -374,7 +396,9 @@ def fault_assignment_analysis(
             text=context,
         )
         return FaultAssignmentResult(
-            task_id=task_id, author=author, description=description
+            task_id=task_id,
+            author=author,
+            description=description,
         )
 
     with ThreadPoolExecutor(max_workers=max_concurrency) as executor:
@@ -395,13 +419,15 @@ def fault_assignment_analysis(
                 trajs,
                 ground_truth_actions,
                 ground_truth_outputs,
-            )
+            ),
         )
     return results
 
 
 def fault_type_analysis(
-    api: API, results: list[OriginalResult], max_concurrency: int
+    api: API,
+    results: list[OriginalResult],
+    max_concurrency: int,
 ) -> list[FaultTypeResult]:
     """Analyze and classify fault types.
 
@@ -415,6 +441,7 @@ def fault_type_analysis(
 
     Returns:
         List[FaultTypeResult]: List of fault type classification results.
+
     """
 
     def get_fault_type(
@@ -437,7 +464,10 @@ def fault_type_analysis(
         )
         ctx_desc: str = context_description(grading_strategy)
         context: str = display_context(
-            user_instruction, ground_truth_actions, ground_truth_outputs, traj
+            user_instruction,
+            ground_truth_actions,
+            ground_truth_outputs,
+            traj,
         )
         res: int = api.classify(
             instruction=f"{ctx_desc}\n\nDetermine the type of fault of the first instance of the fault.",
@@ -455,7 +485,9 @@ def fault_type_analysis(
             text=context,
         )
         return FaultTypeResult(
-            task_id=task_id, fault_type=fault_type, description=description
+            task_id=task_id,
+            fault_type=fault_type,
+            description=description,
         )
 
     with ThreadPoolExecutor(max_workers=max_concurrency) as executor:
@@ -476,7 +508,7 @@ def fault_type_analysis(
                 trajs,
                 ground_truth_actions,
                 ground_truth_outputs,
-            )
+            ),
         )
     return results
 
@@ -502,13 +534,17 @@ def run_error_identification(args: argparse.Namespace) -> None:
                 traj=r["traj"],
                 ground_truth_actions=task.actions,
                 ground_truth_outputs=task.outputs,
-            )
+            ),
         )
     fault_assignment_results: list[FaultAssignmentResult] = fault_assignment_analysis(
-        api, original_results, args.max_concurrency
+        api,
+        original_results,
+        args.max_concurrency,
     )
     fault_type_results: list[FaultTypeResult] = fault_type_analysis(
-        api, original_results, args.max_concurrency
+        api,
+        original_results,
+        args.max_concurrency,
     )
     os.makedirs(args.output_dir, exist_ok=True)
     with open(os.path.join(args.output_dir, "fault_assignment.json"), "w") as f:

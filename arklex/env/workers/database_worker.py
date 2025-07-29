@@ -26,6 +26,7 @@ class DataBaseWorker(BaseWorker):
 
         Args:
             model_config: Model configuration dictionary. If None, will use default model.
+
         """
         if model_config is None:
             # Use default model configuration if none provided
@@ -44,7 +45,7 @@ class DataBaseWorker(BaseWorker):
 
         if not provider:
             raise ValueError(
-                "llm_provider must be explicitly specified in model_config"
+                "llm_provider must be explicitly specified in model_config",
             )
         if not model_name:
             raise ValueError("Model name must be specified in model_config")
@@ -63,7 +64,9 @@ class DataBaseWorker(BaseWorker):
         else:
             # Other providers use api_key parameter
             self.llm: BaseChatModel = model_class(
-                model=model_name, api_key=model_config.get("api_key"), timeout=30000
+                model=model_name,
+                api_key=model_config.get("api_key"),
+                timeout=30000,
             )
 
         self.actions: dict[str, str] = {
@@ -91,26 +94,28 @@ class DataBaseWorker(BaseWorker):
     def verify_action(self, msg_state: MessageState) -> str:
         user_intent: str = msg_state.orchestrator_message.attribute.get("task", "")
         actions_info: str = "\n".join(
-            [f"{name}: {description}" for name, description in self.actions.items()]
+            [f"{name}: {description}" for name, description in self.actions.items()],
         )
         actions_name: str = ", ".join(self.actions.keys())
 
         prompts: dict[str, str] = load_prompts(msg_state.bot_config)
         prompt: PromptTemplate = PromptTemplate.from_template(
-            prompts["database_action_prompt"]
+            prompts["database_action_prompt"],
         )
         input_prompt = prompt.invoke(
             {
                 "user_intent": user_intent,
                 "actions_info": actions_info,
                 "actions_name": actions_name,
-            }
+            },
         )
         chunked_prompt: str = chunk_string(
-            input_prompt.text, tokenizer=MODEL["tokenizer"], max_length=MODEL["context"]
+            input_prompt.text,
+            tokenizer=MODEL["tokenizer"],
+            max_length=MODEL["context"],
         )
         log_context.info(
-            f"Chunked prompt for deciding choosing DB action: {chunked_prompt}"
+            f"Chunked prompt for deciding choosing DB action: {chunked_prompt}",
         )
         final_chain = self.llm | StrOutputParser()
         try:
@@ -118,14 +123,14 @@ class DataBaseWorker(BaseWorker):
             for action_name in self.actions:
                 if action_name in answer:
                     log_context.info(
-                        f"Chosen action in the database worker: {action_name}"
+                        f"Chosen action in the database worker: {action_name}",
                     )
                     return action_name
             log_context.info("Base action chosen in the database worker: Others")
             return "Others"
         except Exception as e:
             log_context.error(
-                f"Error occurred while choosing action in the database worker: {e}"
+                f"Error occurred while choosing action in the database worker: {e}",
             )
             return "Others"
 
@@ -148,7 +153,8 @@ class DataBaseWorker(BaseWorker):
     def _execute(self, msg_state: MessageState) -> MessageState:
         self.DBActions.log_in()
         msg_state.slots = self.DBActions.init_slots(
-            msg_state.slots, msg_state.bot_config
+            msg_state.slots,
+            msg_state.bot_config,
         )
         graph = self.action_graph.compile()
         result: MessageState = graph.invoke(msg_state)

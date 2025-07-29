@@ -23,7 +23,6 @@ class SearchWorkerKwargs(TypedDict, total=False):
     """Type definition for kwargs used in SearchWorker._execute method."""
 
     # Add specific worker parameters as needed
-    pass
 
 
 @register_worker
@@ -48,7 +47,9 @@ class SearchWorker(BaseWorker):
         return workflow
 
     def _execute(
-        self, msg_state: MessageState, **kwargs: SearchWorkerKwargs
+        self,
+        msg_state: MessageState,
+        **kwargs: SearchWorkerKwargs,
     ) -> dict[str, Any]:
         graph = self.action_graph.compile()
         result: dict[str, Any] = graph.invoke(msg_state)

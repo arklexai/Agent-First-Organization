@@ -1,5 +1,4 @@
-"""
-Tool for finding contacts by email via HubSpot in the Arklex framework.
+"""Tool for finding contacts by email via HubSpot in the Arklex framework.
 
 This module provides a tool for searching and retrieving contact information by email using the HubSpot API. It is designed for use within the Arklex tool system and supports updating communication history.
 """
@@ -49,14 +48,13 @@ outputs: list[dict[str, Any]] = [
         "name": "contact_information",
         "type": "dict",
         "description": "The basic contact information for the existing customer (e.g. id, first_name, last_name, etc.)",
-    }
+    },
 ]
 
 
 @register_tool(description, slots, outputs)
 def find_contact_by_email(email: str, chat: str, **kwargs: dict[str, Any]) -> str:
-    """
-    Find a contact in HubSpot by email and update their communication history.
+    """Find a contact in HubSpot by email and update their communication history.
 
     Args:
         email (str): Email address of the contact to find
@@ -68,6 +66,7 @@ def find_contact_by_email(email: str, chat: str, **kwargs: dict[str, Any]) -> st
 
     Raises:
         ToolExecutionError: If contact is not found or API calls fail
+
     """
     func_name: str = inspect.currentframe().f_code.co_name
     access_token: str = authenticate_hubspot(kwargs)
@@ -75,13 +74,13 @@ def find_contact_by_email(email: str, chat: str, **kwargs: dict[str, Any]) -> st
     api_client: hubspot.Client = hubspot.Client.create(access_token=access_token)
     public_object_search_request: PublicObjectSearchRequest = PublicObjectSearchRequest(
         filter_groups=[
-            {"filters": [{"propertyName": "email", "operator": "EQ", "value": email}]}
-        ]
+            {"filters": [{"propertyName": "email", "operator": "EQ", "value": email}]},
+        ],
     )
 
     try:
         contact_search_response: Any = api_client.crm.contacts.search_api.do_search(
-            public_object_search_request=public_object_search_request
+            public_object_search_request=public_object_search_request,
         )
         log_context.info(f"Found contact by email: {email}")
         contact_search_response: dict[str, Any] = contact_search_response.to_dict()
@@ -94,7 +93,7 @@ def find_contact_by_email(email: str, chat: str, **kwargs: dict[str, Any]) -> st
                         "hs_communication_body": chat,
                         "hs_communication_logged_from": "CRM",
                         "hs_timestamp": datetime.now(timezone.utc).isoformat(),
-                    }
+                    },
                 )
             )
             contact_info_properties: dict[str, Any] = {
@@ -110,7 +109,7 @@ def find_contact_by_email(email: str, chat: str, **kwargs: dict[str, Any]) -> st
             try:
                 communication_creation_response: Any = (
                     api_client.crm.objects.communications.basic_api.create(
-                        communication_data
+                        communication_data,
                     )
                 )
                 communication_creation_response: dict[str, Any] = (
@@ -119,8 +118,9 @@ def find_contact_by_email(email: str, chat: str, **kwargs: dict[str, Any]) -> st
                 communication_id: str = communication_creation_response["id"]
                 association_spec: list[AssociationSpec] = [
                     AssociationSpec(
-                        association_category="HUBSPOT_DEFINED", association_type_id=82
-                    )
+                        association_category="HUBSPOT_DEFINED",
+                        association_type_id=82,
+                    ),
                 ]
                 try:
                     api_client.crm.associations.v4.basic_api.create(
@@ -136,12 +136,13 @@ def find_contact_by_email(email: str, chat: str, **kwargs: dict[str, Any]) -> st
                 log_context.info(f"Exception when calling basic_api: {e}\n")
 
             return json.dumps(contact_info_properties)
-        else:
-            raise ToolExecutionError(
-                func_name, HubspotExceptionPrompt.USER_NOT_FOUND_PROMPT
-            )
+        raise ToolExecutionError(
+            func_name,
+            HubspotExceptionPrompt.USER_NOT_FOUND_PROMPT,
+        )
     except ApiException as e:
         log_context.info(f"Exception when calling search_api: {e}\n")
         raise ToolExecutionError(
-            func_name, HubspotExceptionPrompt.USER_NOT_FOUND_PROMPT
+            func_name,
+            HubspotExceptionPrompt.USER_NOT_FOUND_PROMPT,
         ) from e

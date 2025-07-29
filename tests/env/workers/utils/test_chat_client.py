@@ -92,7 +92,8 @@ class TestChatClient:
         assert isinstance(chat_client.async_result, Future)
 
     def test_chat_client_minimal_initialization(
-        self, chat_client_minimal: ChatClient
+        self,
+        chat_client_minimal: ChatClient,
     ) -> None:
         """Test ChatClient initialization with minimal parameters."""
         assert chat_client_minimal.server_address == "127.0.0.1"
@@ -107,7 +108,9 @@ class TestChatClient:
         assert isinstance(chat_client_minimal.async_result, Future)
 
     def test_format_logs(
-        self, chat_client: ChatClient, sample_logs: list[dict[str, str]]
+        self,
+        chat_client: ChatClient,
+        sample_logs: list[dict[str, str]],
     ) -> None:
         """Test format_logs method."""
         formatted = chat_client.format_logs(sample_logs)
@@ -180,7 +183,8 @@ class TestChatClient:
 
     @pytest.mark.asyncio
     async def test_receive_message_single_message(
-        self, chat_client: ChatClient
+        self,
+        chat_client: ChatClient,
     ) -> None:
         """Test receive_message method with single message."""
         # Mock reader
@@ -196,7 +200,8 @@ class TestChatClient:
 
     @pytest.mark.asyncio
     async def test_receive_message_multiple_messages(
-        self, chat_client: ChatClient
+        self,
+        chat_client: ChatClient,
     ) -> None:
         """Test receive_message method with multiple messages."""
         # Mock reader
@@ -226,7 +231,8 @@ class TestChatClient:
 
     @pytest.mark.asyncio
     async def test_receive_message_with_empty_split(
-        self, chat_client: ChatClient
+        self,
+        chat_client: ChatClient,
     ) -> None:
         """Test receive_message method with empty split parts."""
         # Mock reader
@@ -324,7 +330,8 @@ class TestChatClient:
 
     @pytest.mark.asyncio
     async def test_main_write_only_mode(
-        self, chat_client_write_only: ChatClient
+        self,
+        chat_client_write_only: ChatClient,
     ) -> None:
         """Test main method in write-only mode."""
         # Mock all dependencies
@@ -478,7 +485,8 @@ class TestChatClient:
 
     @pytest.mark.asyncio
     async def test_receive_message_connect_mode_server_message(
-        self, chat_client: ChatClient
+        self,
+        chat_client: ChatClient,
     ) -> None:
         """Test receive_message method in connect mode with server message."""
         # Mock reader and print
@@ -497,7 +505,8 @@ class TestChatClient:
 
     @pytest.mark.asyncio
     async def test_receive_message_connect_mode_client_message(
-        self, chat_client: ChatClient
+        self,
+        chat_client: ChatClient,
     ) -> None:
         """Test receive_message method in connect mode with client message."""
         # Mock reader and print
@@ -517,7 +526,8 @@ class TestChatClient:
 
     @pytest.mark.asyncio
     async def test_receive_message_read_only_mode(
-        self, chat_client_read_only: ChatClient
+        self,
+        chat_client_read_only: ChatClient,
     ) -> None:
         """Test receive_message method in read-only mode."""
         # Mock reader and print
@@ -540,7 +550,8 @@ class TestChatClient:
         # Mock open_connection to raise an exception
         with (
             patch(
-                "asyncio.open_connection", side_effect=Exception("Connection failed")
+                "asyncio.open_connection",
+                side_effect=Exception("Connection failed"),
             ),
             pytest.raises(Exception, match="Connection failed"),
         ):
@@ -620,7 +631,8 @@ class TestChatClient:
 
     @pytest.mark.asyncio
     async def test_main_connect_mode_with_task_cancellation(
-        self, chat_client: ChatClient
+        self,
+        chat_client: ChatClient,
     ) -> None:
         """Test main method in connect mode with task cancellation."""
         # Mock all dependencies
@@ -657,7 +669,8 @@ class TestChatClient:
 
     @pytest.mark.asyncio
     async def test_main_connect_mode_with_writer_operations(
-        self, chat_client: ChatClient
+        self,
+        chat_client: ChatClient,
     ) -> None:
         """Test main method in connect mode with writer operations."""
         # Mock all dependencies
@@ -691,7 +704,8 @@ class TestChatClient:
 
     @pytest.mark.asyncio
     async def test_main_connect_mode_with_print_statements(
-        self, chat_client: ChatClient
+        self,
+        chat_client: ChatClient,
     ) -> None:
         """Test main method in connect mode with print statements."""
         # Mock all dependencies
@@ -727,7 +741,8 @@ class TestChatClient:
 
     @pytest.mark.asyncio
     async def test_main_connect_mode_with_format_logs(
-        self, chat_client: ChatClient
+        self,
+        chat_client: ChatClient,
     ) -> None:
         """Test main method in connect mode with format_logs."""
         # Mock all dependencies
@@ -769,7 +784,8 @@ class TestChatClient:
             with (
                 patch("builtins.input", return_value="test_user"),
                 patch(
-                    "sys.argv", ["chat_client.py", "--mode", "wo", "--message", "test"]
+                    "sys.argv",
+                    ["chat_client.py", "--mode", "wo", "--message", "test"],
                 ),
                 patch("asyncio.run") as mock_run,
             ):

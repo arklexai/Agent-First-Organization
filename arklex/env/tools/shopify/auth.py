@@ -1,5 +1,4 @@
-"""
-This module provides functionality for authenticating with Shopify's OAuth 2.0 system.
+"""This module provides functionality for authenticating with Shopify's OAuth 2.0 system.
 It handles the complete authentication flow, including generating auth links,
 receiving authorization codes, and obtaining refresh tokens.
 
@@ -24,8 +23,7 @@ from auth_utils import get_auth_link, get_refresh_token
 
 
 def authenticate() -> str:
-    """
-    Perform the complete Shopify OAuth 2.0 authentication flow.
+    """Perform the complete Shopify OAuth 2.0 authentication flow.
 
     This function:
     1. Generates an authentication link
@@ -37,6 +35,7 @@ def authenticate() -> str:
 
     Note:
         The access token is not currently retrieved as it's commented out in the code.
+
     """
     auth_link = get_auth_link()
     print("Authenticate Link here: ", auth_link)

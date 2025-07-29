@@ -86,7 +86,9 @@ class TestAPIClientServiceMakeRequest:
 
         assert result == {"result": "success"}
         api_service.client.request.assert_called_once_with(
-            "POST", "https://api.example.com/test", json={"data": "test"}
+            "POST",
+            "https://api.example.com/test",
+            json={"data": "test"},
         )
 
     def test_make_request_without_data(self, api_service: APIClientService) -> None:
@@ -101,11 +103,14 @@ class TestAPIClientServiceMakeRequest:
 
         assert result == {"result": "success"}
         api_service.client.request.assert_called_once_with(
-            "GET", "https://api.example.com/test", json=None
+            "GET",
+            "https://api.example.com/test",
+            json=None,
         )
 
     def test_make_request_strips_endpoint_slash(
-        self, api_service: APIClientService
+        self,
+        api_service: APIClientService,
     ) -> None:
         """Test that endpoint leading slash is stripped."""
         mock_response = Mock()
@@ -117,7 +122,9 @@ class TestAPIClientServiceMakeRequest:
         api_service._make_request("//test", "GET")
 
         api_service.client.request.assert_called_once_with(
-            "GET", "https://api.example.com/test", json=None
+            "GET",
+            "https://api.example.com/test",
+            json=None,
         )
 
     def test_make_request_http_error(self, api_service: APIClientService) -> None:
@@ -132,7 +139,8 @@ class TestAPIClientServiceMakeRequest:
             api_service._make_request("/test", "GET")
 
     def test_make_request_http_error_no_response(
-        self, api_service: APIClientService
+        self,
+        api_service: APIClientService,
     ) -> None:
         """Test API request with HTTP error but no response."""
         http_error = httpx.HTTPError("HTTP Error")
@@ -155,7 +163,8 @@ class TestAPIClientServiceMakeRequest:
             api_service._make_request("/test", "GET")
 
     def test_make_request_general_exception(
-        self, api_service: APIClientService
+        self,
+        api_service: APIClientService,
     ) -> None:
         """Test API request with general exception."""
         api_service.client.request.side_effect = Exception("General error")
@@ -175,7 +184,9 @@ class TestAPIClientServicePredictIntent:
 
     @patch("arklex.orchestrator.NLU.services.api_service.validate_intent_response")
     def test_predict_intent_success(
-        self, mock_validate: Mock, api_service: APIClientService
+        self,
+        mock_validate: Mock,
+        api_service: APIClientService,
     ) -> None:
         """Test successful intent prediction."""
         mock_validate.return_value = "booking_intent"
@@ -207,7 +218,9 @@ class TestAPIClientServicePredictIntent:
 
     @patch("arklex.orchestrator.NLU.services.api_service.validate_intent_response")
     def test_predict_intent_validation_error(
-        self, mock_validate: Mock, api_service: APIClientService
+        self,
+        mock_validate: Mock,
+        api_service: APIClientService,
     ) -> None:
         """Test intent prediction with validation error."""
         mock_validate.side_effect = ValidationError("Invalid response")
@@ -217,7 +230,10 @@ class TestAPIClientServicePredictIntent:
 
             with pytest.raises(ValidationError, match="Invalid response"):
                 api_service.predict_intent(
-                    "test text", {"test_intent": []}, "chat history", {"model": "test"}
+                    "test text",
+                    {"test_intent": []},
+                    "chat history",
+                    {"model": "test"},
                 )
 
     def test_predict_intent_api_error(self, api_service: APIClientService) -> None:
@@ -227,7 +243,10 @@ class TestAPIClientServicePredictIntent:
 
             with pytest.raises(APIError, match="API Error"):
                 api_service.predict_intent(
-                    "test text", {"test_intent": []}, "chat history", {"model": "test"}
+                    "test text",
+                    {"test_intent": []},
+                    "chat history",
+                    {"model": "test"},
                 )
 
 
@@ -252,12 +271,14 @@ class TestAPIClientServicePredictSlots:
                         "type": "string",
                         "description": "Travel date",
                         "value": "2024-01-15",
-                    }
-                ]
+                    },
+                ],
             }
 
             result = api_service.predict_slots(
-                "I want to travel on 2024-01-15", slots, {"model": "gpt-4"}
+                "I want to travel on 2024-01-15",
+                slots,
+                {"model": "gpt-4"},
             )
 
             assert len(result) == 1
@@ -286,7 +307,8 @@ class TestAPIClientServicePredictSlots:
             assert result == []
 
     def test_predict_slots_missing_slots_key(
-        self, api_service: APIClientService
+        self,
+        api_service: APIClientService,
     ) -> None:
         """Test slot prediction with missing slots key in response."""
         slots = [Slot(name="date", type="string", description="Travel date")]
@@ -326,7 +348,7 @@ class TestAPIClientServiceVerifySlots:
                 type="string",
                 description="Travel date",
                 value="2024-01-15",
-            )
+            ),
         ]
 
         with patch.object(api_service, "_make_request") as mock_request:
@@ -336,7 +358,9 @@ class TestAPIClientServiceVerifySlots:
             }
 
             result = api_service.verify_slots(
-                "I want to travel on 2024-01-15", slots, {"model": "gpt-4"}
+                "I want to travel on 2024-01-15",
+                slots,
+                {"model": "gpt-4"},
             )
 
             assert result == (True, "Date seems ambiguous")
@@ -352,7 +376,8 @@ class TestAPIClientServiceVerifySlots:
             )
 
     def test_verify_slots_no_verification_needed(
-        self, api_service: APIClientService
+        self,
+        api_service: APIClientService,
     ) -> None:
         """Test slot verification when no verification is needed."""
         slots = [
@@ -361,7 +386,7 @@ class TestAPIClientServiceVerifySlots:
                 type="string",
                 description="Travel date",
                 value="2024-01-15",
-            )
+            ),
         ]
 
         with patch.object(api_service, "_make_request") as mock_request:
@@ -371,7 +396,9 @@ class TestAPIClientServiceVerifySlots:
             }
 
             result = api_service.verify_slots(
-                "I want to travel on 2024-01-15", slots, {"model": "gpt-4"}
+                "I want to travel on 2024-01-15",
+                slots,
+                {"model": "gpt-4"},
             )
 
             assert result == (False, "Date is clear")
@@ -384,7 +411,7 @@ class TestAPIClientServiceVerifySlots:
                 type="string",
                 description="Travel date",
                 value="2024-01-15",
-            )
+            ),
         ]
 
         with patch.object(api_service, "_make_request") as mock_request:
@@ -402,7 +429,7 @@ class TestAPIClientServiceVerifySlots:
                 type="string",
                 description="Travel date",
                 value="2024-01-15",
-            )
+            ),
         ]
 
         with patch.object(api_service, "_make_request") as mock_request:

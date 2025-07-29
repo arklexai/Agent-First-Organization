@@ -1,5 +1,4 @@
-"""
-Tests for arklex.env.tools.shopify.utils_nav module.
+"""Tests for arklex.env.tools.shopify.utils_nav module.
 
 This module tests the pagination utilities used by Shopify tools,
 including the cursorify function and related constants.
@@ -30,7 +29,8 @@ class TestUtilsNavConstants(unittest.TestCase):
         self.assertEqual(limit_slot["name"], "limit")
         self.assertEqual(limit_slot["type"], "string")
         self.assertEqual(
-            limit_slot["description"], "Maximum number of entries to show."
+            limit_slot["description"],
+            "Maximum number of entries to show.",
         )
         self.assertEqual(limit_slot["prompt"], "")
         self.assertFalse(limit_slot["required"])
@@ -40,7 +40,8 @@ class TestUtilsNavConstants(unittest.TestCase):
         self.assertEqual(navigate_slot["name"], "navigate")
         self.assertEqual(navigate_slot["type"], "string")
         self.assertIn(
-            "navigate relative to previous view", navigate_slot["description"]
+            "navigate relative to previous view",
+            navigate_slot["description"],
         )
         self.assertEqual(navigate_slot["prompt"], "")
         self.assertFalse(navigate_slot["required"])
@@ -66,7 +67,8 @@ class TestUtilsNavConstants(unittest.TestCase):
     def test_error_constants(self) -> None:
         """Test that error constants are properly defined."""
         self.assertEqual(
-            NAVIGATE_WITH_NO_CURSOR, "error: cannot navigate without reference cursor"
+            NAVIGATE_WITH_NO_CURSOR,
+            "error: cannot navigate without reference cursor",
         )
         self.assertEqual(NO_NEXT_PAGE, "error: no more pages after")
         self.assertEqual(NO_PREV_PAGE, "error: no more pages before")
@@ -178,7 +180,7 @@ class TestCursorifyFunction(unittest.TestCase):
             "startCursor": "cursor456",
         }
         result, success = cursorify(
-            {"limit": "10", "navigate": "next", "pageInfo": pageinfo}
+            {"limit": "10", "navigate": "next", "pageInfo": pageinfo},
         )
 
         self.assertTrue(success)
@@ -227,7 +229,7 @@ class TestCursorifyFunction(unittest.TestCase):
             "startCursor": "eyJsYXN0X2lkIjo3Mjk2NTgwODQ1NjgxLCJsYXN0X3ZhbHVlIjoiNzI5NjU4MDg0NTY4MSJ9",
         }
         result, success = cursorify(
-            {"limit": "5", "navigate": "next", "pageInfo": pageinfo}
+            {"limit": "5", "navigate": "next", "pageInfo": pageinfo},
         )
 
         self.assertTrue(success)
@@ -247,7 +249,7 @@ class TestCursorifyFunction(unittest.TestCase):
 
         # When hasNextPage is missing, it defaults to False, so navigation should fail
         result, success = cursorify(
-            {"navigate": "next", "pageInfo": pageinfo_incomplete}
+            {"navigate": "next", "pageInfo": pageinfo_incomplete},
         )
 
         self.assertFalse(success)
@@ -284,7 +286,7 @@ class TestCursorifyFunction(unittest.TestCase):
             "startCursor": "cursor456",
         }
         result, success = cursorify(
-            {"limit": "7", "navigate": "prev", "pageInfo": pageinfo}
+            {"limit": "7", "navigate": "prev", "pageInfo": pageinfo},
         )
 
         self.assertTrue(success)

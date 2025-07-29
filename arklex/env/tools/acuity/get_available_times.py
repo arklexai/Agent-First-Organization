@@ -32,14 +32,16 @@ outputs = [
         "name": "time_ls",
         "type": "string",
         "description": "The available times of the specific info session",
-    }
+    },
 ]
 CREDENTIAL_NOT_FOUND = "error: missing credential information"
 
 
 @register_tool(description, slots, outputs)
 def get_available_times(
-    date: str, apt_tid: str, **kwargs: str | int | float | bool | None
+    date: str,
+    apt_tid: str,
+    **kwargs: str | float | bool | None,
 ) -> str:
     func_name = inspect.currentframe().f_code.co_name
     user_id, api_key = authenticate_acuity(kwargs)
@@ -52,7 +54,7 @@ def get_available_times(
         # Filter out unavailable times and return only available ones
         available_times = [item for item in data if item.get("available", False)]
         return json.dumps(available_times)
-    else:
-        raise ToolExecutionError(
-            func_name, AcuityExceptionPrompt.AVAILABLE_DATES_EXCEPTION_PROMPT
-        )
+    raise ToolExecutionError(
+        func_name,
+        AcuityExceptionPrompt.AVAILABLE_DATES_EXCEPTION_PROMPT,
+    )

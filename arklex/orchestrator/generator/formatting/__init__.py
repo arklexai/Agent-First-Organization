@@ -67,4 +67,4 @@ from .graph_validator import GraphValidator
 from .node_formatter import NodeFormatter
 from .task_graph_formatter import TaskGraphFormatter
 
-__all__ = ["TaskGraphFormatter", "EdgeFormatter", "NodeFormatter", "GraphValidator"]
+__all__ = ["EdgeFormatter", "GraphValidator", "NodeFormatter", "TaskGraphFormatter"]

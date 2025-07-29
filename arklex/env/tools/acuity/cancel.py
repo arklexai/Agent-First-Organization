@@ -30,12 +30,12 @@ outputs = [
         "name": "cal_success",
         "type": "string",
         "description": "Cancelling the appointment successfully.",
-    }
+    },
 ]
 
 
 @register_tool(description, slots, outputs)
-def cancel(apt_id: str, **kwargs: str | int | float | bool | None) -> str:
+def cancel(apt_id: str, **kwargs: str | float | bool | None) -> str:
     func_name = inspect.currentframe().f_code.co_name
     user_id, api_key = authenticate_acuity(kwargs)
 
@@ -46,5 +46,4 @@ def cancel(apt_id: str, **kwargs: str | int | float | bool | None) -> str:
 
     if response.status_code == 200:
         return "The appointment is cancelled successfully."
-    else:
-        raise ToolExecutionError(func_name, AcuityExceptionPrompt.CANCEL_PROMPT)
+    raise ToolExecutionError(func_name, AcuityExceptionPrompt.CANCEL_PROMPT)

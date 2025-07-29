@@ -22,17 +22,14 @@ logger = logging.getLogger(__name__)
 
 
 class PromptVariable(BaseModel):
-    """
-    Prompt variable is a variable that is used in the prompt. e.g. Say hello {{name}}
-    """
+    """Prompt variable is a variable that is used in the prompt. e.g. Say hello {{name}}"""
 
     name: str
     value: str = ""
 
 
 class TurnDetection(BaseModel):
-    """
-    Turn detection is a configuration for the turn detection of the agent.
+    """Turn detection is a configuration for the turn detection of the agent.
 
     Valid types are:
     - "server_vad": Server-side voice activity detection
@@ -49,8 +46,7 @@ class TurnDetection(BaseModel):
 
     @classmethod
     def from_dict(cls, data: dict | None) -> "TurnDetection":
-        """
-        Convert a dictionary to a TurnDetection object.
+        """Convert a dictionary to a TurnDetection object.
 
         Args:
             data: Dictionary containing turn detection configuration
@@ -62,26 +58,26 @@ class TurnDetection(BaseModel):
             If data is None, returns default configuration.
             If type is "server_vad", eagerness is set to None.
             Valid types are "server_vad" or "semantic_vad".
+
         """
         if data is None:
             return cls()
-        elif data.get("type") == "server_vad":
+        if data.get("type") == "server_vad":
             return cls(
                 type="server_vad",
                 eagerness=None,
                 **{k: v for k, v in data.items() if k != "type"},
             )
-        elif data.get("type") == "semantic_vad":
+        if data.get("type") == "semantic_vad":
             return cls(
-                type="semantic_vad", **{k: v for k, v in data.items() if k != "type"}
+                type="semantic_vad",
+                **{k: v for k, v in data.items() if k != "type"},
             )
-        else:
-            # If no valid type is specified, return default configuration
-            return cls()
+        # If no valid type is specified, return default configuration
+        return cls()
 
     def model_dump(self) -> dict:
-        """
-        Convert the TurnDetection object to a dictionary.
+        """Convert the TurnDetection object to a dictionary.
 
         Returns:
             dict: Dictionary representation of turn detection configuration
@@ -89,6 +85,7 @@ class TurnDetection(BaseModel):
         Note:
             For "server_vad" type, eagerness is removed.
             For "semantic_vad" type, prefix_padding_ms, silence_duration_ms, and threshold are removed.
+
         """
         # super call to the base class
         data = super().model_dump()
@@ -103,8 +100,7 @@ class TurnDetection(BaseModel):
 
 @register_agent
 class OpenAIRealtimeAgent(BaseAgent):
-    """
-    OpenAI Realtime Agent is an agent that uses the OpenAI Realtime API to interact with the user.
+    """OpenAI Realtime Agent is an agent that uses the OpenAI Realtime API to interact with the user.
 
     This agent supports real-time audio and text interactions with OpenAI's GPT-4o Realtime model.
     It can handle audio streaming, transcription, tool calls, and turn detection for natural
@@ -122,8 +118,7 @@ class OpenAIRealtimeAgent(BaseAgent):
         tool_map: dict[str, Tool] = None,
         prompt_variables: list[PromptVariable] | None = None,
     ) -> None:
-        """
-        Initialize the OpenAI Realtime Agent.
+        """Initialize the OpenAI Realtime Agent.
 
         Args:
             telephony_mode: Whether the agent is in telephone mode (uses g711_ulaw audio format)
@@ -134,6 +129,7 @@ class OpenAIRealtimeAgent(BaseAgent):
             turn_detection: The turn detection configuration for the agent
             tool_map: Dictionary mapping tool names to Tool objects
             prompt_variables: List of PromptVariable objects for template rendering
+
         """
         self.ws = None
         self.modalities: list[str] = ["text"]
@@ -166,8 +162,7 @@ class OpenAIRealtimeAgent(BaseAgent):
         self.transcription_language = transcription_language
 
     def set_telephone_mode(self) -> None:
-        """
-        Enable telephone mode for the agent.
+        """Enable telephone mode for the agent.
 
         This sets the audio format to g711_ulaw which is commonly used in telephony systems.
         """
@@ -176,28 +171,26 @@ class OpenAIRealtimeAgent(BaseAgent):
         self.output_audio_format = "g711_ulaw"
 
     def set_audio_modality(self) -> None:
-        """
-        Enable audio modality for the agent.
+        """Enable audio modality for the agent.
 
         This allows the agent to both receive and send audio in addition to text.
         """
         self.modalities = ["text", "audio"]
 
     def set_text_modality(self) -> None:
-        """
-        Set the agent to text-only modality.
+        """Set the agent to text-only modality.
 
         This disables audio processing and limits the agent to text interactions only.
         """
         self.modalities = ["text"]
 
     async def connect(self) -> None:
-        """
-        Establish WebSocket connection to OpenAI Realtime API.
+        """Establish WebSocket connection to OpenAI Realtime API.
 
         Raises:
             Exception: If OPENAI_API_KEY environment variable is not set
             websockets.exceptions: If WebSocket connection fails
+
         """
         api_key = os.getenv("OPENAI_API_KEY")
         self.ws = await websockets.connect(
@@ -209,14 +202,11 @@ class OpenAIRealtimeAgent(BaseAgent):
         )
 
     async def close(self) -> None:
-        """
-        Close the WebSocket connection to OpenAI Realtime API.
-        """
+        """Close the WebSocket connection to OpenAI Realtime API."""
         await self.ws.close()
 
     def set_automatic_turn_detection(self) -> None:
-        """
-        Configure automatic turn detection using server-side voice activity detection.
+        """Configure automatic turn detection using server-side voice activity detection.
 
         This enables the agent to automatically detect when the user stops speaking
         and create responses accordingly.
@@ -224,8 +214,7 @@ class OpenAIRealtimeAgent(BaseAgent):
         self.turn_detection = {"type": "server_vad", "create_response": False}
 
     async def update_session(self) -> None:
-        """
-        Update the session configuration with current agent settings.
+        """Update the session configuration with current agent settings.
 
         This sends a session.update event to the OpenAI API with the current
         configuration including turn detection, audio formats, voice settings,
@@ -258,22 +247,22 @@ class OpenAIRealtimeAgent(BaseAgent):
         await self.ws.send(json.dumps(event))
 
     async def send_audio(self, b64_encoded_audio: str) -> None:
-        """
-        Send audio data to the OpenAI Realtime API.
+        """Send audio data to the OpenAI Realtime API.
 
         Args:
             b64_encoded_audio: Base64 encoded audio data to send
+
         """
         event = {"type": "input_audio_buffer.append", "audio": b64_encoded_audio}
         await self.ws.send(json.dumps(event))
 
     async def truncate_audio(self, item_id: str, audio_end_ms: int) -> None:
-        """
-        Truncate audio at a specific time point.
+        """Truncate audio at a specific time point.
 
         Args:
             item_id: The ID of the conversation item to truncate
             audio_end_ms: The end time in milliseconds where audio should be truncated
+
         """
         logger.info(f"Truncating audio for item_id: {item_id} at {audio_end_ms} ms")
         event = {
@@ -285,8 +274,7 @@ class OpenAIRealtimeAgent(BaseAgent):
         await self.ws.send(json.dumps(event))
 
     async def commit_audio(self) -> None:
-        """
-        Commit the current audio buffer to be processed by the API.
+        """Commit the current audio buffer to be processed by the API.
 
         This signals that the current audio input is complete and ready for processing.
         """
@@ -294,8 +282,7 @@ class OpenAIRealtimeAgent(BaseAgent):
         await self.ws.send(json.dumps(event))
 
     async def create_response(self) -> None:
-        """
-        Request the creation of a response from the OpenAI model.
+        """Request the creation of a response from the OpenAI model.
 
         This triggers the model to generate a response based on the current conversation context.
         """
@@ -303,8 +290,7 @@ class OpenAIRealtimeAgent(BaseAgent):
         await self.ws.send(json.dumps({"type": "response.create"}))
 
     async def wait_till_input_audio(self) -> bool:
-        """
-        Wait until input audio buffer is committed.
+        """Wait until input audio buffer is committed.
 
         Returns:
             bool: True if audio was committed successfully, False if interrupted
@@ -312,6 +298,7 @@ class OpenAIRealtimeAgent(BaseAgent):
         Note:
             This method waits for the input_audio_buffer.committed event,
             which indicates that the audio input has been processed.
+
         """
         logger.info("Waiting for input audio buffer speech stopped event")
         while True:
@@ -320,20 +307,19 @@ class OpenAIRealtimeAgent(BaseAgent):
                 return False
             # if openai_message.get("type") == "input_audio_buffer.speech_stopped":
             #     return True
-            elif openai_message.get("type") == "input_audio_buffer.committed":
+            if openai_message.get("type") == "input_audio_buffer.committed":
                 return True
-            else:
-                logger.info(
-                    f"Skipping message(wait_till_input_audio): {openai_message}"
-                )
+            logger.info(
+                f"Skipping message(wait_till_input_audio): {openai_message}",
+            )
 
     async def add_function_call_output(self, call_id: str, output: str) -> None:
-        """
-        Add the output of a function call to the conversation.
+        """Add the output of a function call to the conversation.
 
         Args:
             call_id: The ID of the function call
             output: The output/result of the function call
+
         """
         await self.ws.send(
             json.dumps(
@@ -344,13 +330,12 @@ class OpenAIRealtimeAgent(BaseAgent):
                         "call_id": call_id,
                         "output": output,
                     },
-                }
-            )
+                },
+            ),
         )
 
     async def run_voicemail_tool(self, tool: Tool) -> None:
-        """
-        Execute a voicemail tool with specific configuration.
+        """Execute a voicemail tool with specific configuration.
 
         This method updates the agent's prompt and tools to handle voicemail scenarios,
         then executes the voicemail tool with the provided message.
@@ -361,10 +346,11 @@ class OpenAIRealtimeAgent(BaseAgent):
         Note:
             The agent's prompt is temporarily modified to focus on voicemail functionality,
             and tools are cleared except for the voicemail tool.
+
         """
         # update the instructions and tools with just the voicemail tool
         logger.info(
-            f"Running voicemail tool with message: {tool.fixed_args['message']}"
+            f"Running voicemail tool with message: {tool.fixed_args['message']}",
         )
         self.prompt = f"The call has gone to voicemail. Leave the following message: {tool.fixed_args['message']}"
         self.tool_defs = []
@@ -377,8 +363,7 @@ class OpenAIRealtimeAgent(BaseAgent):
         await asyncio.to_thread(tool.func, **combined_kwargs)
 
     async def run_tool(self, call_id: str, tool_name: str, tool_args: dict) -> None:
-        """
-        Execute a tool with the given arguments.
+        """Execute a tool with the given arguments.
 
         Args:
             call_id: The ID of the function call
@@ -392,6 +377,7 @@ class OpenAIRealtimeAgent(BaseAgent):
             This method handles slot filling for complex tool arguments,
             especially for group-type slots with fixed values.
             Tool execution is performed in a separate thread to avoid blocking.
+
         """
         tool = self.tool_map.get(tool_name)
         if not tool:
@@ -411,7 +397,7 @@ class OpenAIRealtimeAgent(BaseAgent):
                                 )
                             else:
                                 filled_ob[schema_obj.get("name")] = schema_obj.get(
-                                    "value"
+                                    "value",
                                 )
 
         if tool.func.__name__ == "http_tool":
@@ -432,11 +418,8 @@ class OpenAIRealtimeAgent(BaseAgent):
         await self.add_function_call_output(call_id, response)
         await self.create_response()
 
-        return
-
     async def create_audio_response(self, prompt: str) -> None:
-        """
-        Create an audio response with a specific prompt.
+        """Create an audio response with a specific prompt.
 
         Args:
             prompt: The prompt to use for generating the audio response
@@ -444,6 +427,7 @@ class OpenAIRealtimeAgent(BaseAgent):
         Note:
             This method temporarily switches the agent to audio modality
             and updates the session with the new prompt before creating a response.
+
         """
         logger.info(f"Creating audio response with: {prompt}")
         self.prompt = prompt
@@ -452,8 +436,7 @@ class OpenAIRealtimeAgent(BaseAgent):
         await self.create_response()
 
     async def receive_events(self) -> None:
-        """
-        Main event loop for receiving and processing events from the OpenAI Realtime API.
+        """Main event loop for receiving and processing events from the OpenAI Realtime API.
 
         This method handles all incoming WebSocket messages and routes them to appropriate
         handlers based on event type. It processes various events including:
@@ -466,6 +449,7 @@ class OpenAIRealtimeAgent(BaseAgent):
         Note:
             This method runs continuously until the WebSocket connection is closed.
             It automatically handles error events and logs them appropriately.
+
         """
         async for openai_message in self.ws:
             try:
@@ -482,7 +466,7 @@ class OpenAIRealtimeAgent(BaseAgent):
                     await self.internal_queue.put(openai_event)
                     # check if the response is a tool call
                     if openai_event.get("response") and openai_event["response"].get(
-                        "output"
+                        "output",
                     ):
                         for output in openai_event["response"]["output"]:
                             if output.get("type") == "function_call":
@@ -495,7 +479,7 @@ class OpenAIRealtimeAgent(BaseAgent):
                                     )
                                 except Exception as e:
                                     logger.error(
-                                        f"Error running tool {output['name']}: {e}"
+                                        f"Error running tool {output['name']}: {e}",
                                     )
                                     logger.exception(e)
                                     raise e
@@ -509,11 +493,12 @@ class OpenAIRealtimeAgent(BaseAgent):
                         "origin": "bot",
                         "id": openai_event["item_id"],
                         "audio_bytes": base64.b64encode(
-                            base64.b64decode(openai_event["delta"])
+                            base64.b64decode(openai_event["delta"]),
                         ).decode("utf-8")
                         if self.telephony_mode
                         else np.frombuffer(
-                            base64.b64decode(openai_event["delta"]), np.int16
+                            base64.b64decode(openai_event["delta"]),
+                            np.int16,
                         ).tolist(),
                     }
                     await self.external_queue.put(event)
@@ -546,20 +531,20 @@ class OpenAIRealtimeAgent(BaseAgent):
                             text=openai_event["transcript"],
                             origin="bot",
                             created_at=datetime.datetime.now(datetime.timezone.utc),
-                        )
+                        ),
                     )
                     await self.external_queue.put(event)
 
                 if event_type == "input_audio_buffer.speech_started":
                     await self.input_audio_buffer_event_queue.put(openai_event)
                     await self.external_queue.put(
-                        {"type": "input_audio_buffer.speech_started"}
+                        {"type": "input_audio_buffer.speech_started"},
                     )
 
                 if event_type == "input_audio_buffer.speech_stopped":
                     await self.input_audio_buffer_event_queue.put(openai_event)
                     await self.external_queue.put(
-                        {"type": "input_audio_buffer.speech_stopped"}
+                        {"type": "input_audio_buffer.speech_stopped"},
                     )
 
                 if event_type == "input_audio_buffer.committed":
@@ -602,7 +587,7 @@ class OpenAIRealtimeAgent(BaseAgent):
                             text=openai_event["transcript"],
                             origin="user",
                             created_at=datetime.datetime.now(datetime.timezone.utc),
-                        )
+                        ),
                     )
                     await self.external_queue.put(event)
 
@@ -617,8 +602,7 @@ class OpenAIRealtimeAgent(BaseAgent):
         await self.close()
 
     async def end_queues(self) -> None:
-        """
-        Signal the end of all queues by sending None to each queue.
+        """Signal the end of all queues by sending None to each queue.
 
         This method is called when the WebSocket connection is closed to properly
         terminate any waiting consumers of the queues.

@@ -28,7 +28,9 @@ def app_with_middleware() -> FastAPI:
 
     @app.get("/{param1}/{param2}")
     async def path_params_endpoint(
-        param1: str, param2: str, request: Request
+        param1: str,
+        param2: str,
+        request: Request,
     ) -> dict[str, str]:
         return {"param1": param1, "param2": param2}
 
@@ -44,7 +46,8 @@ def test_middleware_adds_request_id(app_with_middleware: FastAPI) -> None:
 
 
 def test_middleware_logs_request_start(
-    app_with_middleware: FastAPI, caplog: LogCaptureFixture
+    app_with_middleware: FastAPI,
+    caplog: LogCaptureFixture,
 ) -> None:
     """Test that middleware logs request start."""
     with caplog.at_level("INFO"):
@@ -56,7 +59,8 @@ def test_middleware_logs_request_start(
 
 
 def test_middleware_logs_request_completion(
-    app_with_middleware: FastAPI, caplog: LogCaptureFixture
+    app_with_middleware: FastAPI,
+    caplog: LogCaptureFixture,
 ) -> None:
     """Test that middleware logs request completion."""
     with caplog.at_level("INFO"):
@@ -68,7 +72,8 @@ def test_middleware_logs_request_completion(
 
 
 def test_middleware_logs_errors(
-    app_with_middleware: FastAPI, caplog: LogCaptureFixture
+    app_with_middleware: FastAPI,
+    caplog: LogCaptureFixture,
 ) -> None:
     """Test that middleware logs errors."""
     with caplog.at_level("ERROR"):
@@ -94,7 +99,8 @@ def test_middleware_preserves_request_id(app_with_middleware: FastAPI) -> None:
 
 
 def test_middleware_handles_missing_client(
-    app_with_middleware: FastAPI, caplog: LogCaptureFixture
+    app_with_middleware: FastAPI,
+    caplog: LogCaptureFixture,
 ) -> None:
     """Test that middleware handles requests without client information."""
     with caplog.at_level("INFO"):
@@ -106,7 +112,8 @@ def test_middleware_handles_missing_client(
 
 
 def test_middleware_handles_path_params(
-    app_with_middleware: FastAPI, caplog: LogCaptureFixture
+    app_with_middleware: FastAPI,
+    caplog: LogCaptureFixture,
 ) -> None:
     """Test that middleware handles path parameters correctly (lines 114-123)."""
     with caplog.at_level("INFO"):
@@ -118,7 +125,8 @@ def test_middleware_handles_path_params(
 
 
 def test_middleware_handles_request_without_path_params(
-    app_with_middleware: FastAPI, caplog: LogCaptureFixture
+    app_with_middleware: FastAPI,
+    caplog: LogCaptureFixture,
 ) -> None:
     """Test that middleware handles requests without path_params attribute."""
     with caplog.at_level("INFO"):
@@ -216,7 +224,9 @@ async def test_process_request_with_retry_success() -> None:
     start_time = 0.0
 
     result_response, process_time = await middleware._process_request_with_retry(
-        request, call_next, start_time
+        request,
+        call_next,
+        start_time,
     )
 
     assert result_response == response
@@ -224,7 +234,8 @@ async def test_process_request_with_retry_success() -> None:
 
 
 def test_middleware_retryable_error_handling(
-    app_with_middleware: FastAPI, caplog: LogCaptureFixture
+    app_with_middleware: FastAPI,
+    caplog: LogCaptureFixture,
 ) -> None:
     """Test that middleware properly handles RetryableError exceptions."""
     with caplog.at_level("ERROR"):

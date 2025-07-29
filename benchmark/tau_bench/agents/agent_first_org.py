@@ -40,7 +40,10 @@ class AgentFirstOrg(Agent):
                     break
 
     def get_api_bot_response(
-        self, history: list[dict[str, Any]], user_text: str, parameters: dict[str, Any]
+        self,
+        history: list[dict[str, Any]],
+        user_text: str,
+        parameters: dict[str, Any],
     ) -> tuple[str, dict[str, Any]]:
         data: dict[str, Any] = {
             "text": user_text,
@@ -52,7 +55,10 @@ class AgentFirstOrg(Agent):
         return result["answer"], result["parameters"]
 
     def solve(
-        self, env: Env, task_index: int | None = None, max_num_steps: int = 30
+        self,
+        env: Env,
+        task_index: int | None = None,
+        max_num_steps: int = 30,
     ) -> SolveResult:
         total_cost: float = 0.0
         env_reset_res: EnvResetResponse = env.reset(task_index=task_index)
@@ -60,10 +66,10 @@ class AgentFirstOrg(Agent):
         info: dict[str, Any] = env_reset_res.info.model_dump()
         reward: float = 0.0
         history: list[dict[str, Any]] = [
-            {"role": "assistant", "content": self.start_message}
+            {"role": "assistant", "content": self.start_message},
         ]
         messages: list[dict[str, Any]] = [
-            {"role": "assistant", "content": self.start_message}
+            {"role": "assistant", "content": self.start_message},
         ]
         params: dict[str, Any] = {}
         user_text: str = obs
@@ -74,7 +80,9 @@ class AgentFirstOrg(Agent):
             output: str
             params: dict[str, Any]
             output, params = self.get_api_bot_response(
-                deepcopy(history), user_text, params
+                deepcopy(history),
+                user_text,
+                params,
             )
 
             user_message: dict[str, str] = {"role": "user", "content": user_text}
@@ -189,5 +197,4 @@ def message_to_action(
             name=tool_call["function"]["name"],
             kwargs=json.loads(tool_call["function"]["arguments"]),
         )
-    else:
-        return Action(name=RESPOND_ACTION_NAME, kwargs={"content": message["content"]})
+    return Action(name=RESPOND_ACTION_NAME, kwargs={"content": message["content"]})

@@ -57,6 +57,7 @@ def get_model_service() -> ModelService:
 
     Raises:
         ModelError: If model service initialization fails
+
     """
     try:
         model_service = ModelService(DEFAULT_MODEL_CONFIG)
@@ -86,7 +87,8 @@ model_service_dependency = Depends(get_model_service)
 @router.post("/predict_intent", response_model=IntentResponse)
 @handle_exceptions()
 async def predict_intent(
-    text: str, model_service: ModelService = model_service_dependency
+    text: str,
+    model_service: ModelService = model_service_dependency,
 ) -> IntentResponse:
     """Predict intent from input text.
 
@@ -100,6 +102,7 @@ async def predict_intent(
     Raises:
         ValidationError: If input validation fails
         ModelError: If model prediction fails
+
     """
     log_context.info(
         "Processing intent prediction request",
@@ -116,7 +119,9 @@ async def predict_intent(
 @router.post("/fill_slots", response_model=SlotResponse)
 @handle_exceptions()
 async def fill_slots(
-    text: str, intent: str, model_service: ModelService = model_service_dependency
+    text: str,
+    intent: str,
+    model_service: ModelService = model_service_dependency,
 ) -> SlotResponse:
     """Fill slots based on input text and intent.
 
@@ -131,6 +136,7 @@ async def fill_slots(
     Raises:
         ValidationError: If input validation fails
         ModelError: If slot filling fails
+
     """
     log_context.info(
         "Processing slot filling request",
@@ -164,6 +170,7 @@ async def verify_slots(
     Raises:
         ValidationError: If input validation fails
         ModelError: If slot verification fails
+
     """
     log_context.info(
         "Processing slot verification request",
@@ -208,6 +215,7 @@ def predict_intent_app(
         ValidationError: If input validation fails
         ModelError: If model prediction fails
         APIError: If API interaction fails
+
     """
     try:
         text = data["text"]
@@ -223,10 +231,13 @@ def predict_intent_app(
             },
         )
         prompt, idx2intents_mapping = model_service.format_intent_input(
-            intents, chat_history_str
+            intents,
+            chat_history_str,
         )
         response = model_service.get_model_response(
-            prompt, model_config, note="intent detection"
+            prompt,
+            model_config,
+            note="intent detection",
         )
         pred_intent = idx2intents_mapping.get(response.strip(), "others")
         log_context.info(
@@ -294,6 +305,7 @@ def predict_slots(
         ValidationError: If input validation fails
         ModelError: If slot filling fails
         APIError: If API interaction fails
+
     """
     try:
         slots = [Slot(**slot) for slot in data["slots"]]
@@ -311,7 +323,10 @@ def predict_slots(
         )
         prompt = model_service.format_slot_input(slots, context, type)
         response = model_service.get_model_response(
-            prompt, model_config, response_format="json", note="slot filling"
+            prompt,
+            model_config,
+            response_format="json",
+            note="slot filling",
         )
         filled_slots = model_service.process_slot_response(response, slots)
         log_context.info(
@@ -378,6 +393,7 @@ def verify_slot(
         ValidationError: If input validation fails
         ModelError: If slot verification fails
         APIError: If API interaction fails
+
     """
     try:
         slot = Slot(**data["slot"])
@@ -393,7 +409,10 @@ def verify_slot(
         )
         prompt = model_service.format_verification_input(slot, chat_history_str)
         response = model_service.get_model_response(
-            prompt, model_config, response_format="json", note="slot verification"
+            prompt,
+            model_config,
+            response_format="json",
+            note="slot verification",
         )
         verification = model_service.process_verification_response(response, slot)
         log_context.info(

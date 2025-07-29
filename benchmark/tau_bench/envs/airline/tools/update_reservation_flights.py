@@ -48,7 +48,7 @@ class UpdateReservationFlights(Tool):
             if flight_date_data["status"] != "available":
                 return f"Error: flight {flight_number} not available on date {flight['date']}"
             if flight_date_data["available_seats"][cabin] < len(
-                reservation["passengers"]
+                reservation["passengers"],
             ):
                 return f"Error: not enough seats on flight {flight_number}"
             flight["price"] = flight_date_data["prices"][cabin]
@@ -57,7 +57,7 @@ class UpdateReservationFlights(Tool):
             total_price += flight["price"] * len(reservation["passengers"])
 
         total_price -= sum(flight["price"] for flight in reservation["flights"]) * len(
-            reservation["passengers"]
+            reservation["passengers"],
         )
 
         # check payment
@@ -66,7 +66,7 @@ class UpdateReservationFlights(Tool):
         payment_method = users[reservation["user_id"]]["payment_methods"][payment_id]
         if payment_method["source"] == "certificate":
             return "Error: certificate cannot be used to update reservation"
-        elif (
+        if (
             payment_method["source"] == "gift_card"
             and payment_method["amount"] < total_price
         ):
@@ -81,7 +81,7 @@ class UpdateReservationFlights(Tool):
                 {
                     "payment_id": payment_id,
                     "amount": total_price,
-                }
+                },
             )
         # do not make flight database update here, assume it takes time to be updated
         return json.dumps(reservation)

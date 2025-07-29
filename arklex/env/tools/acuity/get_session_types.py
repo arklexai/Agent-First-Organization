@@ -21,14 +21,13 @@ outputs: list[dict[str, Any]] = [
         "name": "sessions",
         "type": "list[dict]",
         "description": "All available information sessions. In sessions it should like \"[{'apt_type_id': 76850002, 'name': 'Test N1'}]\".",
-    }
+    },
 ]
 
 
 @register_tool(description, slots, outputs)
 def get_session_types(**kwargs: dict[str, Any]) -> str:
-    """
-    Retrieve all available information session types from Acuity.
+    """Retrieve all available information session types from Acuity.
 
     Args:
         **kwargs (Dict[str, Any]): Additional keyword arguments
@@ -38,6 +37,7 @@ def get_session_types(**kwargs: dict[str, Any]) -> str:
 
     Raises:
         ToolExecutionError: If retrieving session types fails
+
     """
     func_name: str = inspect.currentframe().f_code.co_name
     user_id: str
@@ -47,7 +47,8 @@ def get_session_types(**kwargs: dict[str, Any]) -> str:
     base_url: str = "https://acuityscheduling.com/api/v1/appointment-types"
 
     response: requests.Response = requests.get(
-        base_url, auth=HTTPBasicAuth(user_id, api_key)
+        base_url,
+        auth=HTTPBasicAuth(user_id, api_key),
     )
 
     if response.status_code == 200:
@@ -72,7 +73,7 @@ def get_session_types(**kwargs: dict[str, Any]) -> str:
             )
 
         return response_text
-    else:
-        raise ToolExecutionError(
-            func_name, AcuityExceptionPrompt.AVAILABLE_TYPES_EXCEPTION_PROMPT
-        )
+    raise ToolExecutionError(
+        func_name,
+        AcuityExceptionPrompt.AVAILABLE_TYPES_EXCEPTION_PROMPT,
+    )

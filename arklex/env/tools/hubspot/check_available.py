@@ -1,5 +1,4 @@
-"""
-Tool for finding available meeting times for a representative via HubSpot in the Arklex framework.
+"""Tool for finding available meeting times for a representative via HubSpot in the Arklex framework.
 
 This module provides a tool for retrieving available meeting slots for a specific representative using the HubSpot API. It is designed for use within the Arklex tool system and supports slot extraction and time zone management.
 """
@@ -71,7 +70,7 @@ outputs: list[dict[str, Any]] = [
         "name": "meeting_info",
         "type": "dict",
         "description": "The available time slots of the representative and the corresponding slug. Typically, the format is '{'slug': 'veronica-chen', 'available_time_slots': {'start':  , 'end':  }}'",
-    }
+    },
 ]
 
 
@@ -83,8 +82,7 @@ def check_available(
     duration: int,
     **kwargs: dict[str, Any],
 ) -> str:
-    """
-    Check available meeting times for a specific representative.
+    """Check available meeting times for a specific representative.
 
     Args:
         owner_id (int): ID of the meeting organizer
@@ -98,6 +96,7 @@ def check_available(
 
     Raises:
         ToolExecutionError: If meeting link is not found or availability check fails
+
     """
     func_name: str = inspect.currentframe().f_code.co_name
     access_token: str = authenticate_hubspot(kwargs)
@@ -109,50 +108,51 @@ def check_available(
                 "path": "/scheduler/v3/meetings/meeting-links",
                 "method": "GET",
                 "headers": {"Content-Type": "application/json"},
-            }
+            },
         )
         meeting_link_response: dict[str, Any] = meeting_link_response.json()
         if meeting_link_response.get("status") == "error" or meeting_link_response.get(
-            "error"
+            "error",
         ):
             log_context.error(
-                f"The error for retrieving the meeting link happens:{meeting_link_response.get('message', 'Unknown error happens')}"
+                f"The error for retrieving the meeting link happens:{meeting_link_response.get('message', 'Unknown error happens')}",
             )
             raise ToolExecutionError(
-                func_name, HubspotExceptionPrompt.MEETING_LINK_UNFOUND_PROMPT
+                func_name,
+                HubspotExceptionPrompt.MEETING_LINK_UNFOUND_PROMPT,
             )
-        else:
-            # Emphasize on the results part of the response
-            if not meeting_link_response.get("results"):
-                log_context.error(
-                    f"The error for retrieving the meeting link happens:{meeting_link_response.get('message', 'Unknown error happens')}"
-                )
-                raise ToolExecutionError(
-                    func_name, HubspotExceptionPrompt.MEETING_LINK_UNFOUND_PROMPT
-                )
-            else:
-                # Extract the corresponsing link of the specific user
-                meeting_links_ls: list[dict[str, Any]] = [
-                    item
-                    for item in meeting_link_response.get("results")
-                    if item.get("organizerUserId") == str(owner_id)
-                ]
+        # Emphasize on the results part of the response
+        if not meeting_link_response.get("results"):
+            log_context.error(
+                f"The error for retrieving the meeting link happens:{meeting_link_response.get('message', 'Unknown error happens')}",
+            )
+            raise ToolExecutionError(
+                func_name,
+                HubspotExceptionPrompt.MEETING_LINK_UNFOUND_PROMPT,
+            )
+        # Extract the corresponsing link of the specific user
+        meeting_links_ls: list[dict[str, Any]] = [
+            item
+            for item in meeting_link_response.get("results")
+            if item.get("organizerUserId") == str(owner_id)
+        ]
 
-                # Get the first link of someone
-                if len(meeting_links_ls) != 0:
-                    meeting_links: dict[str, Any] = meeting_links_ls[0]
-                else:
-                    # The length is 0, then raise error
-                    log_context.error(
-                        "There is no meeting links corresponding to the owner's id."
-                    )
-                    raise ToolExecutionError(
-                        func_name, HubspotExceptionPrompt.MEETING_LINK_UNFOUND_PROMPT
-                    )
+        # Get the first link of someone
+        if len(meeting_links_ls) != 0:
+            meeting_links: dict[str, Any] = meeting_links_ls[0]
+        else:
+            # The length is 0, then raise error
+            log_context.error(
+                "There is no meeting links corresponding to the owner's id.",
+            )
+            raise ToolExecutionError(
+                func_name,
+                HubspotExceptionPrompt.MEETING_LINK_UNFOUND_PROMPT,
+            )
 
         meeting_slug: str = meeting_links["slug"]
         cal: parsedatetime.Calendar = parsedatetime.Calendar(
-            version=parsedatetime.VERSION_CONTEXT_STYLE
+            version=parsedatetime.VERSION_CONTEXT_STYLE,
         )
         # Use current date as base to ensure consistent parsing
         current_date = datetime.now()
@@ -171,7 +171,7 @@ def check_available(
                     "method": "GET",
                     "headers": {"Content-Type": "application/json"},
                     "qs": {"timezone": time_zone, "monthOffset": month_offset},
-                }
+                },
             )
             availability_response: dict[str, Any] = availability_response.json()
             duration_ms: str = str(duration * 60 * 1000)
@@ -197,42 +197,47 @@ def check_available(
             same_dt_info: dict[str, list[dict[str, str]]] = {"available_time_slots": []}
 
             other_dt_info: dict[str, list[dict[str, str]]] = {
-                "available_time_slots": []
+                "available_time_slots": [],
             }
 
             for ab_time in ab_times:
                 start_dt: datetime = datetime.fromtimestamp(
-                    ab_time["start"] / 1000, tz=pytz.utc
+                    ab_time["start"] / 1000,
+                    tz=pytz.utc,
                 ).astimezone(time_zone)
                 if meeting_date.date() == start_dt.date():
                     same_dt_info["available_time_slots"].append(
                         {
                             "start": datetime.fromtimestamp(
-                                ab_time["start"] / 1000, tz=timezone.utc
+                                ab_time["start"] / 1000,
+                                tz=timezone.utc,
                             )
                             .astimezone(time_zone)
                             .isoformat(),
                             "end": datetime.fromtimestamp(
-                                ab_time["end"] / 1000, tz=timezone.utc
+                                ab_time["end"] / 1000,
+                                tz=timezone.utc,
                             )
                             .astimezone(time_zone)
                             .isoformat(),
-                        }
+                        },
                     )
                 else:
                     other_dt_info["available_time_slots"].append(
                         {
                             "start": datetime.fromtimestamp(
-                                ab_time["start"] / 1000, tz=timezone.utc
+                                ab_time["start"] / 1000,
+                                tz=timezone.utc,
                             )
                             .astimezone(time_zone)
                             .isoformat(),
                             "end": datetime.fromtimestamp(
-                                ab_time["end"] / 1000, tz=timezone.utc
+                                ab_time["end"] / 1000,
+                                tz=timezone.utc,
                             )
                             .astimezone(time_zone)
                             .isoformat(),
-                        }
+                        },
                     )
 
             response: str = ""
@@ -252,15 +257,17 @@ def check_available(
             return response
         except ApiException as e:
             log_context.info(
-                f"Exception when extracting booking information of someone: {e}\n"
+                f"Exception when extracting booking information of someone: {e}\n",
             )
             raise ToolExecutionError(
-                func_name, HubspotExceptionPrompt.MEETING_LINK_UNFOUND_PROMPT
+                func_name,
+                HubspotExceptionPrompt.MEETING_LINK_UNFOUND_PROMPT,
             ) from e
     except ApiException as e:
         log_context.info(f"Exception when extracting meeting scheduler links: {e}\n")
         raise ToolExecutionError(
-            func_name, HubspotExceptionPrompt.MEETING_LINK_UNFOUND_PROMPT
+            func_name,
+            HubspotExceptionPrompt.MEETING_LINK_UNFOUND_PROMPT,
         ) from e
 
 
@@ -270,8 +277,7 @@ def parse_natural_date(
     timezone: str | None = None,
     date_input: bool = False,
 ) -> datetime:
-    """
-    Parse a natural language date string into a datetime object.
+    """Parse a natural language date string into a datetime object.
 
     Args:
         date_str (str): Date string to parse
@@ -281,9 +287,10 @@ def parse_natural_date(
 
     Returns:
         datetime: Parsed datetime object
+
     """
     cal: parsedatetime.Calendar = parsedatetime.Calendar(
-        version=parsedatetime.VERSION_CONTEXT_STYLE
+        version=parsedatetime.VERSION_CONTEXT_STYLE,
     )
     time_struct: tuple = cal.parse(date_str, base_date)[0]
     if date_input:

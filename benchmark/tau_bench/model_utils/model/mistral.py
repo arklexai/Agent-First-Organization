@@ -72,21 +72,26 @@ class MistralModel(ChatModel):
             response_format={"type": "json_object" if force_json else "text"},
         )
         return self.handle_generate_message_response(
-            prompt=msgs, content=res.choices[0].message.content, force_json=force_json
+            prompt=msgs,
+            content=res.choices[0].message.content,
+            force_json=force_json,
         )
 
     def get_approx_cost(self, dp: Datapoint) -> float:
         cost_per_token = PRICE_PER_INPUT_TOKEN_MAP.get(
-            self.model, INPUT_PRICE_PER_TOKEN_FALLBACK
+            self.model,
+            INPUT_PRICE_PER_TOKEN_FALLBACK,
         )
         return approx_cost_for_datapoint(dp=dp, price_per_input_token=cost_per_token)
 
     def get_latency(self, dp: Datapoint) -> float:
         latency_per_output_token = LATENCY_MS_PER_OUTPUT_TOKEN_MAP.get(
-            self.model, LATENCY_MS_PER_OUTPUT_TOKEN_FALLBACK
+            self.model,
+            LATENCY_MS_PER_OUTPUT_TOKEN_FALLBACK,
         )
         return approx_cost_for_datapoint(
-            dp=dp, price_per_input_token=latency_per_output_token
+            dp=dp,
+            price_per_input_token=latency_per_output_token,
         )
 
     def get_capability(self) -> float:
@@ -95,5 +100,6 @@ class MistralModel(ChatModel):
     def supports_dp(self, dp: Datapoint) -> bool:
         prompt = approx_prompt_str(dp)
         return approx_num_tokens(prompt) <= MAX_CONTEXT_LENGTH_MAP.get(
-            self.model, MAX_CONTEXT_LENGTH_FALLBACK
+            self.model,
+            MAX_CONTEXT_LENGTH_FALLBACK,
         )

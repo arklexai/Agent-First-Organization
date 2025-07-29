@@ -22,7 +22,9 @@ class TestRegisterWorkerDecorator:
         @register_worker
         class TestWorker(BaseWorker):
             def _execute(
-                self, msg_state: MessageState, **kwargs: WorkerKwargs
+                self,
+                msg_state: MessageState,
+                **kwargs: WorkerKwargs,
             ) -> dict[str, Any]:
                 return {"status": "complete"}
 
@@ -34,7 +36,9 @@ class TestRegisterWorkerDecorator:
         @register_worker
         class TestWorker(BaseWorker):
             def _execute(
-                self, msg_state: MessageState, **kwargs: WorkerKwargs
+                self,
+                msg_state: MessageState,
+                **kwargs: WorkerKwargs,
             ) -> dict[str, Any]:
                 return {"status": "complete"}
 
@@ -50,7 +54,9 @@ class TestBaseWorker:
 
         class TestWorker(BaseWorker):
             def _execute(
-                self, msg_state: MessageState, **kwargs: WorkerKwargs
+                self,
+                msg_state: MessageState,
+                **kwargs: WorkerKwargs,
             ) -> dict[str, Any]:
                 return {"status": "complete"}
 
@@ -62,7 +68,9 @@ class TestBaseWorker:
 
         class TestWorker(BaseWorker):
             def _execute(
-                self, msg_state: MessageState, **kwargs: WorkerKwargs
+                self,
+                msg_state: MessageState,
+                **kwargs: WorkerKwargs,
             ) -> dict[str, Any]:
                 return {"status": "complete"}
 
@@ -74,7 +82,9 @@ class TestBaseWorker:
 
         class TestWorker(BaseWorker):
             def _execute(
-                self, msg_state: MessageState, **kwargs: WorkerKwargs
+                self,
+                msg_state: MessageState,
+                **kwargs: WorkerKwargs,
             ) -> dict[str, Any]:
                 return {"status": "complete"}
 
@@ -88,7 +98,9 @@ class TestBaseWorker:
             description = "A test worker"
 
             def _execute(
-                self, msg_state: MessageState, **kwargs: WorkerKwargs
+                self,
+                msg_state: MessageState,
+                **kwargs: WorkerKwargs,
             ) -> dict[str, Any]:
                 return {"status": "complete"}
 
@@ -108,7 +120,9 @@ class TestConcreteWorker:
         """A simple concrete worker for testing."""
 
         def _execute(
-            self, msg_state: MessageState, **kwargs: WorkerKwargs
+            self,
+            msg_state: MessageState,
+            **kwargs: WorkerKwargs,
         ) -> dict[str, Any]:
             return {
                 "status": StatusEnum.COMPLETE,
@@ -126,7 +140,9 @@ class TestConcreteWorker:
         """A worker that returns incomplete status."""
 
         def _execute(
-            self, msg_state: MessageState, **kwargs: WorkerKwargs
+            self,
+            msg_state: MessageState,
+            **kwargs: WorkerKwargs,
         ) -> dict[str, Any]:
             return {
                 "status": StatusEnum.INCOMPLETE,
@@ -138,7 +154,9 @@ class TestConcreteWorker:
         """A worker that returns empty response."""
 
         def _execute(
-            self, msg_state: MessageState, **kwargs: WorkerKwargs
+            self,
+            msg_state: MessageState,
+            **kwargs: WorkerKwargs,
         ) -> dict[str, Any]:
             return {"status": StatusEnum.COMPLETE, "message_flow": "flow only"}
 
@@ -147,7 +165,8 @@ class TestConcreteWorker:
         worker = self.SimpleWorker()
         resource_record = ResourceRecord(info={}, intent="test")
         msg_state = MessageState(
-            status=StatusEnum.INCOMPLETE, trajectory=[[resource_record]]
+            status=StatusEnum.INCOMPLETE,
+            trajectory=[[resource_record]],
         )
 
         result = worker.execute(msg_state)
@@ -163,7 +182,8 @@ class TestConcreteWorker:
         worker = self.SimpleWorker()
         resource_record = ResourceRecord(info={}, intent="test")
         msg_state = MessageState(
-            status=StatusEnum.INCOMPLETE, trajectory=[[resource_record]]
+            status=StatusEnum.INCOMPLETE,
+            trajectory=[[resource_record]],
         )
 
         result = worker.execute(msg_state, test_param="value")
@@ -176,7 +196,8 @@ class TestConcreteWorker:
         worker = self.IncompleteWorker()
         resource_record = ResourceRecord(info={}, intent="test")
         msg_state = MessageState(
-            status=StatusEnum.INCOMPLETE, trajectory=[[resource_record]]
+            status=StatusEnum.INCOMPLETE,
+            trajectory=[[resource_record]],
         )
 
         result = worker.execute(msg_state)
@@ -190,7 +211,8 @@ class TestConcreteWorker:
         worker = self.EmptyResponseWorker()
         resource_record = ResourceRecord(info={}, intent="test")
         msg_state = MessageState(
-            status=StatusEnum.INCOMPLETE, trajectory=[[resource_record]]
+            status=StatusEnum.INCOMPLETE,
+            trajectory=[[resource_record]],
         )
 
         result = worker.execute(msg_state)
@@ -215,7 +237,9 @@ class TestConcreteWorker:
 
         class InvalidWorker(BaseWorker):
             def _execute(
-                self, msg_state: MessageState, **kwargs: WorkerKwargs
+                self,
+                msg_state: MessageState,
+                **kwargs: WorkerKwargs,
             ) -> dict[str, Any]:
                 return {"invalid": "response"}  # Missing required fields
 
@@ -233,7 +257,9 @@ class TestConcreteWorker:
 
         class NoneResponseWorker(BaseWorker):
             def _execute(
-                self, msg_state: MessageState, **kwargs: WorkerKwargs
+                self,
+                msg_state: MessageState,
+                **kwargs: WorkerKwargs,
             ) -> dict[str, Any]:
                 return {
                     "status": StatusEnum.COMPLETE,
@@ -244,7 +270,8 @@ class TestConcreteWorker:
         worker = NoneResponseWorker()
         resource_record = ResourceRecord(info={}, intent="test")
         msg_state = MessageState(
-            status=StatusEnum.INCOMPLETE, trajectory=[[resource_record]]
+            status=StatusEnum.INCOMPLETE,
+            trajectory=[[resource_record]],
         )
 
         result = worker.execute(msg_state)
@@ -258,14 +285,17 @@ class TestConcreteWorker:
 
         class EmptyFlowWorker(BaseWorker):
             def _execute(
-                self, msg_state: MessageState, **kwargs: WorkerKwargs
+                self,
+                msg_state: MessageState,
+                **kwargs: WorkerKwargs,
             ) -> dict[str, Any]:
                 return {"status": StatusEnum.COMPLETE, "response": "response only"}
 
         worker = EmptyFlowWorker()
         resource_record = ResourceRecord(info={}, intent="test")
         msg_state = MessageState(
-            status=StatusEnum.INCOMPLETE, trajectory=[[resource_record]]
+            status=StatusEnum.INCOMPLETE,
+            trajectory=[[resource_record]],
         )
 
         result = worker.execute(msg_state)
@@ -279,7 +309,8 @@ class TestConcreteWorker:
         worker = self.SimpleWorker()
         resource_record = ResourceRecord(info={"step": "previous"}, intent="test")
         msg_state = MessageState(
-            status=StatusEnum.INCOMPLETE, trajectory=[[resource_record]]
+            status=StatusEnum.INCOMPLETE,
+            trajectory=[[resource_record]],
         )
 
         result = worker.execute(msg_state)
@@ -292,7 +323,9 @@ class TestConcreteWorker:
 
         class ComplexWorker(BaseWorker):
             def _execute(
-                self, msg_state: MessageState, **kwargs: WorkerKwargs
+                self,
+                msg_state: MessageState,
+                **kwargs: WorkerKwargs,
             ) -> dict[str, Any]:
                 return {
                     "status": StatusEnum.COMPLETE,
@@ -303,7 +336,8 @@ class TestConcreteWorker:
         worker = ComplexWorker()
         resource_record = ResourceRecord(info={}, intent="test")
         msg_state = MessageState(
-            status=StatusEnum.INCOMPLETE, trajectory=[[resource_record]]
+            status=StatusEnum.INCOMPLETE,
+            trajectory=[[resource_record]],
         )
 
         result = worker.execute(msg_state)
@@ -323,7 +357,9 @@ class TestWorkerIntegration:
         @register_worker
         class DecoratedWorker(BaseWorker):
             def _execute(
-                self, msg_state: MessageState, **kwargs: WorkerKwargs
+                self,
+                msg_state: MessageState,
+                **kwargs: WorkerKwargs,
             ) -> dict[str, Any]:
                 return {"status": StatusEnum.COMPLETE, "response": "decorated"}
 
@@ -332,7 +368,8 @@ class TestWorkerIntegration:
 
         resource_record = ResourceRecord(info={}, intent="test")
         msg_state = MessageState(
-            status=StatusEnum.INCOMPLETE, trajectory=[[resource_record]]
+            status=StatusEnum.INCOMPLETE,
+            trajectory=[[resource_record]],
         )
         result = worker.execute(msg_state)
 
@@ -344,7 +381,9 @@ class TestWorkerIntegration:
 
         class MultiWorker(BaseWorker):
             def _execute(
-                self, msg_state: MessageState, **kwargs: WorkerKwargs
+                self,
+                msg_state: MessageState,
+                **kwargs: WorkerKwargs,
             ) -> dict[str, Any]:
                 return {"status": StatusEnum.COMPLETE, "response": "multi"}
 
@@ -353,10 +392,12 @@ class TestWorkerIntegration:
 
         resource_record = ResourceRecord(info={}, intent="test")
         msg_state1 = MessageState(
-            status=StatusEnum.INCOMPLETE, trajectory=[[resource_record]]
+            status=StatusEnum.INCOMPLETE,
+            trajectory=[[resource_record]],
         )
         msg_state2 = MessageState(
-            status=StatusEnum.INCOMPLETE, trajectory=[[resource_record]]
+            status=StatusEnum.INCOMPLETE,
+            trajectory=[[resource_record]],
         )
 
         result1 = worker1.execute(msg_state1)
@@ -372,13 +413,17 @@ class TestWorkerIntegration:
 
         class ParentWorker(BaseWorker):
             def _execute(
-                self, msg_state: MessageState, **kwargs: WorkerKwargs
+                self,
+                msg_state: MessageState,
+                **kwargs: WorkerKwargs,
             ) -> dict[str, Any]:
                 return {"status": StatusEnum.COMPLETE, "response": "parent"}
 
         class ChildWorker(ParentWorker):
             def _execute(
-                self, msg_state: MessageState, **kwargs: WorkerKwargs
+                self,
+                msg_state: MessageState,
+                **kwargs: WorkerKwargs,
             ) -> dict[str, Any]:
                 return {"status": StatusEnum.COMPLETE, "response": "child"}
 
@@ -387,7 +432,8 @@ class TestWorkerIntegration:
 
         resource_record = ResourceRecord(info={}, intent="test")
         msg_state = MessageState(
-            status=StatusEnum.INCOMPLETE, trajectory=[[resource_record]]
+            status=StatusEnum.INCOMPLETE,
+            trajectory=[[resource_record]],
         )
         parent_result = parent.execute(msg_state)
         child_result = child.execute(msg_state)

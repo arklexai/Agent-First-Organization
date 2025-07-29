@@ -172,7 +172,7 @@ def get_products(kwargs: dict[str, Any]) -> list[dict[str, Any]] | dict[str, str
                 for variant in product.get("variants", {}).get("nodes", []):
                     response_text += f"Variant name: {variant.get('displayName', 'None')}, Variant ID: {variant.get('id', 'None')}, Price: {variant.get('price', 'None')}, Inventory Quantity: {variant.get('inventoryQuantity', 'None')}\n"
                 response_list.append(
-                    {"id": product.get("id", "None"), "attribute": response_text}
+                    {"id": product.get("id", "None"), "attribute": response_text},
                 )
             return response_list
     except Exception:
@@ -186,7 +186,7 @@ def get_users_route() -> list[dict[str, Any]] | dict[str, str]:
         response: list[dict[str, Any]] | str = get_users(kwargs)
     except AuthenticationError:
         return {
-            "error": "Missing some or all required Shopify admin authentication parameters: shop_url, api_version, admin_token."
+            "error": "Missing some or all required Shopify admin authentication parameters: shop_url, api_version, admin_token.",
         }, 401
     except Exception as e:
         return {"error": str(e)}, 500

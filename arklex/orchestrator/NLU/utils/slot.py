@@ -47,6 +47,7 @@ class TypeMapping:
             Supported types include:
             - Basic types: str, int, float, bool
             - List types: list[str], list[int], list[float], list[bool]
+
     """
 
     STRING_TO_TYPE: dict[str, type] = {
@@ -73,6 +74,7 @@ class TypeMapping:
 
         Returns:
             Type: The corresponding Python type, or None if the type is not supported.
+
         """
         return cls.STRING_TO_TYPE.get(type_string)
 
@@ -108,6 +110,7 @@ def structured_input_output(slots: list[Slot]) -> tuple[SlotInputList, type]:
         input_format, output_type = structured_input_output(slots)
         # input_format contains SlotInputList with slot information
         # output_type is a dynamic Pydantic model with name and age fields
+
     """
     # Convert slots to SlotInput format
     input_slots = [
@@ -140,6 +143,7 @@ def format_slotfiller_output(slots: list[Slot], response: object) -> list[Slot]:
 
     Returns:
         List[Slot]: Formatted slots
+
     """
     log_context.info(f"filled_slots: {response}")
     filled_slots = response.model_dump()
@@ -157,6 +161,7 @@ def format_slot_output(slots: list[Slot], response: object) -> list[Slot]:
 
     Returns:
         List of formatted slots
+
     """
     updated_slots = []
     # If response has a 'slots' key, use that list
@@ -181,6 +186,7 @@ def validate_slot_values(slots: list[Slot]) -> list[str]:
 
     Returns:
         List of validation errors
+
     """
     errors = []
     for slot in slots:
@@ -212,6 +218,7 @@ def convert_slot_values(slots: list[Slot]) -> list[Slot]:
 
     Returns:
         List of converted slots
+
     """
     for slot in slots:
         if slot.value:

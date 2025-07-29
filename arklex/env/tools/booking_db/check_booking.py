@@ -23,7 +23,7 @@ log_context = LogContext(__name__)
             "name": "query_result",
             "type": "str",
             "description": "A list of booked shows. If no booking exists, returns 'No bookings found.'",
-        }
+        },
     ],
     lambda x: x and x not in (LOG_IN_FAILURE, "No bookings found."),
 )

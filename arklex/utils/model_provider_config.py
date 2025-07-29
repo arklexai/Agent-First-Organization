@@ -58,9 +58,12 @@ def get_huggingface_llm(model: str, **kwargs: object) -> ChatHuggingFace:
             temperature=0.7,
             max_length=100
         )
+
     """
     llm: HuggingFaceEndpoint = HuggingFaceEndpoint(
-        repo_id=model, task="text-generation", **kwargs
+        repo_id=model,
+        task="text-generation",
+        **kwargs,
     )
     return ChatHuggingFace(llm=llm)
 

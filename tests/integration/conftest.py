@@ -1,5 +1,4 @@
-"""
-Common fixtures and configuration for integration tests.
+"""Common fixtures and configuration for integration tests.
 
 This module provides shared fixtures and configuration for all integration tests,
 including proper environment setup and common test utilities. It handles mocking
@@ -41,22 +40,21 @@ os.environ.setdefault("LOG_LEVEL", "WARNING")
 
 @pytest.fixture(scope="session")
 def test_data_dir() -> Path:
-    """
-    Provide the test data directory path.
+    """Provide the test data directory path.
 
     Returns:
         Path: Path to the test data directory containing example configurations.
 
     This fixture provides a consistent path to test data files that are
     shared across multiple test sessions.
+
     """
     return project_root / "examples" / "hitl_server"
 
 
 @pytest.fixture(scope="session")
 def hitl_taskgraph_path(test_data_dir: Path) -> Path:
-    """
-    Provide the path to the HITL taskgraph configuration.
+    """Provide the path to the HITL taskgraph configuration.
 
     Args:
         test_data_dir: Path to the test data directory.
@@ -66,14 +64,14 @@ def hitl_taskgraph_path(test_data_dir: Path) -> Path:
 
     This fixture provides the path to the main taskgraph configuration
     used for HITL integration tests.
+
     """
     return test_data_dir / "taskgraph.json"
 
 
 @pytest.fixture(scope="session")
 def load_hitl_config(hitl_taskgraph_path: Path) -> dict[str, Any]:
-    """
-    Load the HITL taskgraph configuration.
+    """Load the HITL taskgraph configuration.
 
     Args:
         hitl_taskgraph_path: Path to the taskgraph configuration file.
@@ -83,6 +81,7 @@ def load_hitl_config(hitl_taskgraph_path: Path) -> dict[str, Any]:
 
     This fixture loads the taskgraph configuration and sets up test-specific
     model configuration to ensure tests run with predictable settings.
+
     """
     with open(hitl_taskgraph_path, encoding="utf-8") as f:
         config = json.load(f)
@@ -103,8 +102,7 @@ def load_hitl_config(hitl_taskgraph_path: Path) -> dict[str, Any]:
 
 @pytest.fixture(scope="session")
 def mock_environment_variables() -> None:
-    """
-    Set up mock environment variables for testing.
+    """Set up mock environment variables for testing.
 
     This fixture temporarily sets test environment variables and restores
     the original environment after the test session completes. This ensures
@@ -138,28 +136,27 @@ def mock_environment_variables() -> None:
 
 @pytest.fixture(scope="function")
 def clean_test_state() -> None:
-    """
-    Ensure clean state for each test function.
+    """Ensure clean state for each test function.
 
     This fixture can be used to reset any state between tests.
     Currently serves as a placeholder for future cleanup logic.
     """
     # This fixture can be used to reset any state between tests
-    yield
+    return
     # Cleanup can be added here if needed
 
 
 # Shopify-specific fixtures
 @pytest.fixture
 def mock_shopify_session() -> Mock:
-    """
-    Create a mock Shopify session for testing.
+    """Create a mock Shopify session for testing.
 
     Returns:
         Mock: A mock Shopify session with proper context manager behavior.
 
     This fixture provides a mock Shopify session that can be used as a
     context manager, simulating the behavior of real Shopify sessions.
+
     """
     mock_session = Mock()
     mock_session.__enter__ = Mock(return_value=mock_session)
@@ -169,14 +166,14 @@ def mock_shopify_session() -> Mock:
 
 @pytest.fixture
 def mock_shopify_graphql() -> Mock:
-    """
-    Create a mock Shopify GraphQL client for testing.
+    """Create a mock Shopify GraphQL client for testing.
 
     Returns:
         Mock: A mock GraphQL client that returns test data.
 
     This fixture provides a mock GraphQL client that simulates Shopify's
     GraphQL API responses with test data.
+
     """
     mock_graphql = Mock()
     mock_graphql_instance = Mock()
@@ -187,14 +184,14 @@ def mock_shopify_graphql() -> Mock:
 
 @pytest.fixture
 def sample_shopify_product_data() -> dict[str, Any]:
-    """
-    Provide sample Shopify product data for testing.
+    """Provide sample Shopify product data for testing.
 
     Returns:
         dict: Sample product data with all required fields for testing.
 
     This fixture provides realistic sample data that matches the structure
     of actual Shopify product responses, including images, variants, and metadata.
+
     """
     return {
         "data": {
@@ -212,9 +209,9 @@ def sample_shopify_product_data() -> dict[str, Any]:
                                     "node": {
                                         "src": "https://cdn.shopify.com/test-image.jpg",
                                         "altText": "Test Product Image",
-                                    }
-                                }
-                            ]
+                                    },
+                                },
+                            ],
                         },
                         "variants": {
                             "nodes": [
@@ -223,10 +220,10 @@ def sample_shopify_product_data() -> dict[str, Any]:
                                     "id": "gid://shopify/ProductVariant/67890",
                                     "price": "29.99",
                                     "inventoryQuantity": 10,
-                                }
-                            ]
+                                },
+                            ],
                         },
-                    }
+                    },
                 ],
                 "pageInfo": {
                     "endCursor": "cursor123",
@@ -234,16 +231,15 @@ def sample_shopify_product_data() -> dict[str, Any]:
                     "hasPreviousPage": False,
                     "startCursor": "cursor456",
                 },
-            }
-        }
+            },
+        },
     }
 
 
 # HubSpot-specific fixtures
 @pytest.fixture
 def mock_hubspot_client() -> MagicMock:
-    """
-    Create a mock HubSpot client with predefined responses.
+    """Create a mock HubSpot client with predefined responses.
 
     Returns:
         MagicMock: A mock HubSpot client with realistic API responses.
@@ -251,6 +247,7 @@ def mock_hubspot_client() -> MagicMock:
     This fixture provides a comprehensive mock of the HubSpot client that
     simulates successful contact searches, communication record creation,
     and contact-communication associations.
+
     """
     mock_client = MagicMock()
 
@@ -266,7 +263,7 @@ def mock_hubspot_client() -> MagicMock:
                     "lastname": "Doe",
                     "email": "john.doe@example.com",
                 },
-            }
+            },
         ],
     }
     mock_client.crm.contacts.search_api.do_search.return_value = mock_search_response
@@ -286,14 +283,14 @@ def mock_hubspot_client() -> MagicMock:
 
 @pytest.fixture
 def mock_hubspot_ticket_client() -> MagicMock:
-    """
-    Create a mock HubSpot client specifically for ticket operations.
+    """Create a mock HubSpot client specifically for ticket operations.
 
     Returns:
         MagicMock: A mock HubSpot client configured for ticket testing.
 
     This fixture provides a mock HubSpot client that simulates ticket
     creation and association operations with realistic responses.
+
     """
     mock_client = MagicMock()
 
@@ -310,14 +307,14 @@ def mock_hubspot_ticket_client() -> MagicMock:
 
 @pytest.fixture
 def mock_hubspot_meeting_client() -> MagicMock:
-    """
-    Create a mock HubSpot client specifically for meeting operations.
+    """Create a mock HubSpot client specifically for meeting operations.
 
     Returns:
         MagicMock: A mock HubSpot client configured for meeting testing.
 
     This fixture provides a mock HubSpot client that simulates meeting
     creation and availability checking with realistic responses.
+
     """
     mock_client = MagicMock()
 
@@ -336,14 +333,14 @@ def mock_hubspot_meeting_client() -> MagicMock:
 
 @pytest.fixture
 def mock_message_state() -> Mock:
-    """
-    Create a mock MessageState for testing.
+    """Create a mock MessageState for testing.
 
     Returns:
         Mock: A mock MessageState with realistic test data.
 
     This fixture provides a mock MessageState object that can be used
     in tests that need to simulate message processing states.
+
     """
     mock_state = Mock()
     mock_state.response = "Mock response"
@@ -359,14 +356,14 @@ def mock_message_state() -> Mock:
 
 @pytest.fixture
 def mock_llm_response() -> Mock:
-    """
-    Create a mock LLM response for testing.
+    """Create a mock LLM response for testing.
 
     Returns:
         Mock: A mock LLM response with test content.
 
     This fixture provides a mock LLM response that simulates the
     structure of responses from language model providers.
+
     """
     mock_response = Mock()
     mock_response.content = "Mock LLM response"
@@ -375,28 +372,28 @@ def mock_llm_response() -> Mock:
 
 @pytest.fixture
 def mock_embeddings_response() -> list[list[float]]:
-    """
-    Create mock embeddings response for testing.
+    """Create mock embeddings response for testing.
 
     Returns:
         list[list[float]]: Mock embedding vectors for testing.
 
     This fixture provides realistic embedding vectors that can be used
     to test RAG and similarity search functionality.
+
     """
     return [[0.1] * 1536] * 5  # 5 documents with 1536-dimensional embeddings
 
 
 @pytest.fixture
 def sample_conversation_history() -> list[dict[str, str]]:
-    """
-    Provide sample conversation history for testing.
+    """Provide sample conversation history for testing.
 
     Returns:
         list[dict[str, str]]: Sample conversation history with user and assistant messages.
 
     This fixture provides realistic conversation history that can be used
     to test conversation flow and context handling.
+
     """
     return [
         {"role": "user", "content": "Hello, I need help with my order"},
@@ -410,14 +407,14 @@ def sample_conversation_history() -> list[dict[str, str]]:
 
 @pytest.fixture
 def sample_user_parameters() -> dict[str, Any]:
-    """
-    Provide sample user parameters for testing.
+    """Provide sample user parameters for testing.
 
     Returns:
         dict[str, Any]: Sample user parameters with various data types.
 
     This fixture provides realistic user parameters that can be used
     to test parameter handling and user context management.
+
     """
     return {
         "order_id": "12345",
@@ -430,22 +427,21 @@ def sample_user_parameters() -> dict[str, Any]:
 # Milvus-specific fixtures
 @pytest.fixture(scope="session")
 def milvus_taskgraph_path() -> Path:
-    """
-    Provide the path to the Milvus taskgraph configuration.
+    """Provide the path to the Milvus taskgraph configuration.
 
     Returns:
         Path: Path to the Milvus taskgraph.json configuration file.
 
     This fixture provides the path to the taskgraph configuration
     used for Milvus integration tests.
+
     """
     return project_root / "examples" / "milvus_filter" / "taskgraph.json"
 
 
 @pytest.fixture(scope="session")
 def load_milvus_config(milvus_taskgraph_path: Path) -> dict[str, Any]:
-    """
-    Load the Milvus taskgraph configuration.
+    """Load the Milvus taskgraph configuration.
 
     Args:
         milvus_taskgraph_path: Path to the Milvus taskgraph configuration file.
@@ -455,6 +451,7 @@ def load_milvus_config(milvus_taskgraph_path: Path) -> dict[str, Any]:
 
     This fixture loads the Milvus taskgraph configuration and sets up
     test-specific model configuration for Milvus integration tests.
+
     """
     with open(milvus_taskgraph_path, encoding="utf-8") as f:
         config = json.load(f)
@@ -475,8 +472,7 @@ def load_milvus_config(milvus_taskgraph_path: Path) -> dict[str, Any]:
 
 @pytest.fixture(scope="session")
 def config_and_env(load_milvus_config: dict) -> tuple[dict, Any, str]:
-    """
-    Load config and environment for Milvus tests.
+    """Load config and environment for Milvus tests.
 
     Args:
         load_milvus_config: Loaded Milvus taskgraph configuration.
@@ -487,6 +483,7 @@ def config_and_env(load_milvus_config: dict) -> tuple[dict, Any, str]:
     This fixture sets up the complete test environment for Milvus integration
     tests, including configuration loading, environment initialization, and
     start message extraction.
+
     """
     from arklex.env.env import Environment
     from arklex.orchestrator.NLU.services.model_service import ModelService
@@ -520,18 +517,19 @@ def config_and_env(load_milvus_config: dict) -> tuple[dict, Any, str]:
 
 @pytest.fixture
 def mock_milvus_retrieval() -> Mock:
-    """
-    Create a mock Milvus retrieval function for testing.
+    """Create a mock Milvus retrieval function for testing.
 
     Returns:
         Mock: A mock function that simulates Milvus retrieval behavior.
 
     This fixture provides a mock that simulates successful Milvus retrieval
     operations with proper message state updates.
+
     """
 
     def mock_milvus_retrieve_side_effect(
-        message_state: MessageState, tags: dict[str, str] | None = None
+        message_state: MessageState,
+        tags: dict[str, str] | None = None,
     ) -> MessageState:
         # Verify that product tags are passed correctly
         assert tags is not None, "Tags should be passed to Milvus retrieval"
@@ -549,18 +547,19 @@ def mock_milvus_retrieval() -> Mock:
 
 @pytest.fixture
 def mock_milvus_error_retrieval() -> Mock:
-    """
-    Create a mock Milvus retrieval function that simulates errors.
+    """Create a mock Milvus retrieval function that simulates errors.
 
     Returns:
         Mock: A mock function that simulates Milvus retrieval errors.
 
     This fixture provides a mock that simulates failed Milvus retrieval
     operations for testing error handling scenarios.
+
     """
 
     def mock_milvus_retrieve_error_side_effect(
-        message_state: MessageState, tags: dict[str, str] | None = None
+        message_state: MessageState,
+        tags: dict[str, str] | None = None,
     ) -> MessageState:
         # Simulate retrieval error
         message_state.message_flow = "Error: Failed to retrieve information"
@@ -573,14 +572,14 @@ def mock_milvus_error_retrieval() -> Mock:
 
 @pytest.fixture
 def sample_milvus_product_queries() -> list[str]:
-    """
-    Provide sample product queries for Milvus testing.
+    """Provide sample product queries for Milvus testing.
 
     Returns:
         list[str]: Sample product queries for testing Milvus filtering.
 
     This fixture provides realistic product queries that can be used
     to test Milvus product filtering functionality.
+
     """
     return [
         "Tell me about your robot bartender",
@@ -592,14 +591,14 @@ def sample_milvus_product_queries() -> list[str]:
 
 @pytest.fixture
 def sample_milvus_conversation_history() -> list[dict[str, str]]:
-    """
-    Provide sample conversation history for Milvus testing.
+    """Provide sample conversation history for Milvus testing.
 
     Returns:
         list[dict[str, str]]: Sample conversation history for Milvus tests.
 
     This fixture provides realistic conversation history that can be used
     to test Milvus integration with conversation context.
+
     """
     return [
         {"role": "user", "content": "Hello, I'm looking for robotics products"},
@@ -613,28 +612,29 @@ def sample_milvus_conversation_history() -> list[dict[str, str]]:
 
 # Pytest configuration functions
 def pytest_configure(config: pytest.Config) -> None:
-    """
-    Configure pytest for integration tests.
+    """Configure pytest for integration tests.
 
     Args:
         config: Pytest configuration object.
 
     This function sets up pytest configuration specific to integration tests,
     including marker registration and test discovery settings.
+
     """
     # Register custom markers for integration tests
     config.addinivalue_line("markers", "integration: marks tests as integration tests")
     config.addinivalue_line(
-        "markers", "hitl: marks tests as HITL (Human-in-the-Loop) tests"
+        "markers",
+        "hitl: marks tests as HITL (Human-in-the-Loop) tests",
     )
     config.addinivalue_line("markers", "slow: marks tests as slow running tests")
 
 
 def pytest_collection_modifyitems(
-    config: pytest.Config, items: list[pytest.Item]
+    config: pytest.Config,
+    items: list[pytest.Item],
 ) -> None:
-    """
-    Modify test collection for integration tests.
+    """Modify test collection for integration tests.
 
     Args:
         config: Pytest configuration object.
@@ -642,6 +642,7 @@ def pytest_collection_modifyitems(
 
     This function applies default markers to tests based on their location
     and ensures proper categorization of integration tests.
+
     """
     # Add integration marker to all tests in this directory
     for item in items:

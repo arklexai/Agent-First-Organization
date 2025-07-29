@@ -25,6 +25,7 @@ def _format_slot_description(slot: Slot) -> str:
 
     Returns:
         Formatted slot description string
+
     """
     description = f"- {slot.name}: {slot.description}"
     if slot.required:
@@ -45,6 +46,7 @@ def _format_slot_prompt(context: str, slot_str: str) -> str:
 
     Returns:
         Formatted prompt string
+
     """
     return f"""Given the following context and slot requirements, extract the values for each slot.
 
@@ -66,7 +68,8 @@ Please provide the values in JSON format with the following structure:
 
 
 def format_intent_input(
-    intents: dict[str, list[dict[str, Any]]], chat_history_str: str
+    intents: dict[str, list[dict[str, Any]]],
+    chat_history_str: str,
 ) -> tuple[str, dict[str, str]]:
     """Format input for intent detection.
 
@@ -88,6 +91,7 @@ def format_intent_input(
     Note:
         The function handles both single and multiple intent definitions
         per intent name, creating appropriate mappings for each case.
+
     """
     intents_choice = ""
     definition_str = ""
@@ -118,7 +122,8 @@ def format_intent_input(
                 idx2intents_mapping[str(count)] = intent_name
                 definition = intent.get("attribute", {}).get("definition", "")
                 sample_utterances = intent.get("attribute", {}).get(
-                    "sample_utterances", []
+                    "sample_utterances",
+                    [],
                 )
 
                 if definition:
@@ -171,6 +176,7 @@ def format_slot_input(slots: SlotInputList, context: str, type: str = "chat") ->
     Note:
         The function generates different prompts based on the operation type,
         but currently uses the same format for all types.
+
     """
     slot_descriptions = [_format_slot_description(slot) for slot in slots]
     slot_str = "\n".join(slot_descriptions)
@@ -199,6 +205,7 @@ def format_verification_input(slot: dict[str, Any], chat_history_str: str) -> st
     Note:
         The function generates a prompt that requests a JSON response
         containing the verification decision and reasoning.
+
     """
     prompt = f"""Given the following slot and chat history, determine if the slot value needs verification.
 

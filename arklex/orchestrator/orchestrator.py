@@ -127,6 +127,7 @@ class AgentOrg:
         llm_config (LLMConfig): Language model configuration
         task_graph (TaskGraph): Task graph for conversation flow
         env (Environment): Environment with tools and workers
+
     """
 
     def __init__(
@@ -145,6 +146,7 @@ class AgentOrg:
                 product settings, model configuration, and other parameters.
             env (Environment): Environment object containing tools, workers, and other resources.
             **kwargs (Any): Additional keyword arguments for customization.
+
         """
         self.user_prefix: str = kwargs.get("user_prefix", "user")
         self.worker_prefix: str = kwargs.get("worker_prefix", "assistant")
@@ -156,7 +158,7 @@ class AgentOrg:
             with open(config) as f:
                 self.product_kwargs: dict[str, Any] = json.load(f)
         self.llm_config: LLMConfig = LLMConfig(
-            **self.product_kwargs.get("model", MODEL)
+            **self.product_kwargs.get("model", MODEL),
         )
         self.env: Environment = env or Environment(
             tools=self.product_kwargs.get("tools", []),
@@ -197,7 +199,8 @@ class AgentOrg:
         )
 
     def init_params(
-        self, inputs: dict[str, Any]
+        self,
+        inputs: dict[str, Any],
     ) -> tuple[str, str, OrchestratorParams, MessageState]:
         """Initialize parameters for a new conversation turn.
 
@@ -211,6 +214,7 @@ class AgentOrg:
         Returns:
             Tuple[str, str, OrchestratorParams, MessageState]: A tuple containing the processed text,
                 formatted chat history, updated parameters, and new message state.
+
         """
         text: str = inputs["text"]
         chat_history: list[dict[str, str]] = inputs["chat_history"]
@@ -272,6 +276,7 @@ class AgentOrg:
 
         Returns:
             bool: True if the node can be skipped, False otherwise.
+
         """
         if not node_info.can_skipped:
             return False
@@ -302,7 +307,7 @@ Answer with only 'yes' or 'no'"""
             )
             return response_text == "yes"
         except Exception as e:
-            log_context.error(f"Error in LLM task verification: {str(e)}")
+            log_context.error(f"Error in LLM task verification: {e!s}")
             return False
 
     def post_process_node(
@@ -325,6 +330,7 @@ Answer with only 'yes' or 'no'"""
 
         Returns:
             OrchestratorParams: Updated parameters after processing the node.
+
         """
         if update_info is None:
             update_info = {}
@@ -345,7 +351,9 @@ Answer with only 'yes' or 'no'"""
         return params
 
     def handl_direct_node(
-        self, node_info: NodeInfo, params: OrchestratorParams
+        self,
+        node_info: NodeInfo,
+        params: OrchestratorParams,
     ) -> tuple[bool, OrchestratorResp | None, OrchestratorParams]:
         """Handle a direct response node in the task graph.
 
@@ -361,12 +369,14 @@ Answer with only 'yes' or 'no'"""
             Tuple[bool, Optional[OrchestratorResp], OrchestratorParams]: A tuple containing a boolean
                 indicating if a direct response was handled, the response if applicable,
                 and updated parameters.
+
         """
         node_attribute: dict[str, Any] = node_info.attributes
         if node_attribute.get("direct") and node_attribute.get("value", "").strip():
             params = self.post_process_node(node_info, params)
             return_response: OrchestratorResp = OrchestratorResp(
-                answer=node_attribute["value"], parameters=params.model_dump()
+                answer=node_attribute["value"],
+                parameters=params.model_dump(),
             )
             # Multiple choice list
             if (
@@ -405,15 +415,18 @@ Answer with only 'yes' or 'no'"""
         Returns:
             Tuple[NodeInfo, MessageState, OrchestratorParams]: A tuple containing updated node information,
                 message state, and parameters.
+
         """
         # Tool/Worker
         node_info, params = self.handle_nested_graph_node(node_info, params)
 
         user_message: ConvoMessage = ConvoMessage(
-            history=chat_history_str, message=text
+            history=chat_history_str,
+            message=text,
         )
         orchestrator_message: OrchestratorMessage = OrchestratorMessage(
-            message=node_info.attributes["value"], attribute=node_info.attributes
+            message=node_info.attributes["value"],
+            attribute=node_info.attributes,
         )
 
         # Create initial resource record with common info and output from trajectory
@@ -445,13 +458,18 @@ Answer with only 'yes' or 'no'"""
 
         response_state: MessageState
         response_state, params = self.env.step(
-            node_info.resource_id, message_state, params, node_info
+            node_info.resource_id,
+            message_state,
+            params,
+            node_info,
         )
         params.memory.trajectory = response_state.trajectory
         return node_info, response_state, params
 
     def handle_nested_graph_node(
-        self, node_info: NodeInfo, params: OrchestratorParams
+        self,
+        node_info: NodeInfo,
+        params: OrchestratorParams,
     ) -> tuple[NodeInfo, OrchestratorParams]:
         """Handle a nested graph node in the task graph.
 
@@ -465,6 +483,7 @@ Answer with only 'yes' or 'no'"""
 
         Returns:
             Tuple[NodeInfo, OrchestratorParams]: A tuple containing updated node information and parameters.
+
         """
         if node_info.resource_id != NESTED_GRAPH_ID:
             return node_info, params
@@ -509,6 +528,7 @@ Answer with only 'yes' or 'no'"""
 
         Returns:
             OrchestratorResp: The orchestrator's response containing the answer and parameters.
+
         """
         text: str
         chat_history_str: str
@@ -556,7 +576,7 @@ Answer with only 'yes' or 'no'"""
         # if found_records:
         #     message_state.relevant_records = relevant_records
         taskgraph_chain = RunnableLambda(self.task_graph.get_node) | RunnableLambda(
-            self.task_graph.postprocess_node
+            self.task_graph.postprocess_node,
         )
 
         # TODO: Implement planner-based loop control based on bot configuration
@@ -595,7 +615,8 @@ Answer with only 'yes' or 'no'"""
 
             # handle direct node
             is_direct_node, direct_response, params = self.handl_direct_node(
-                node_info, params
+                node_info,
+                params,
             )
             if is_direct_node:
                 return direct_response
@@ -667,6 +688,7 @@ Answer with only 'yes' or 'no'"""
 
         Returns:
             Dict[str, Any]: A dictionary containing the response, parameters, and metadata.
+
         """
         orchestrator_response = self._get_response(inputs, stream_type, message_queue)
         return orchestrator_response.model_dump()

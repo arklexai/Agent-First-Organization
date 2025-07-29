@@ -39,7 +39,7 @@ errors = []
 def list_availability(timezone: str, duration: int, **kwargs: dict[str, object]) -> str:
     slug = kwargs.get("slug")
     log_context.info(
-        f"Getting availability for {slug} in {timezone} for {duration} meeting"
+        f"Getting availability for {slug} in {timezone} for {duration} meeting",
     )
     meeting_duration_ms = 3600000
     if duration == 15:
@@ -59,7 +59,7 @@ def list_availability(timezone: str, duration: int, **kwargs: dict[str, object])
                 "method": "GET",
                 "headers": {"Content-Type": "application/json"},
                 "qs": {"timezone": timezone},
-            }
+            },
         )
         res = res.json()
         log_context.info(f"Availability response: {res}")
@@ -75,7 +75,8 @@ def list_availability(timezone: str, duration: int, **kwargs: dict[str, object])
         ]["availabilities"]:
             # convert the timestamp to the user's timezone
             avail_time_utc = datetime.fromtimestamp(
-                avail_time["startMillisUtc"] / 1000, tz=pytz.utc
+                avail_time["startMillisUtc"] / 1000,
+                tz=pytz.utc,
             )
             avail_time_user = avail_time_utc.astimezone(pytz.timezone(timezone))
             avail_time_str = avail_time_user.strftime("%Y-%m-%d %H:%M:%S %Z")

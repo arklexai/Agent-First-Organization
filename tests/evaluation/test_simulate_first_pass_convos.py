@@ -173,7 +173,9 @@ class TestSimulateFirstPassConvos:
     @patch("arklex.evaluation.simulate_first_pass_convos.random.choice")
     @patch("arklex.evaluation.simulate_first_pass_convos.create_convo_profile")
     def test_retrieve_convo(
-        self, mock_create_profile: Mock, mock_random_choice: Mock
+        self,
+        mock_create_profile: Mock,
+        mock_random_choice: Mock,
     ) -> None:
         """Test retrieve_convo function."""
         # Setup
@@ -186,24 +188,28 @@ class TestSimulateFirstPassConvos:
             "analytical",
         ]
         all_profiles = [
-            "goal1,beginner,enterprise,decision_maker,self_service,analytical"
+            "goal1,beginner,enterprise,decision_maker,self_service,analytical",
         ]
         user_convos = {
             "goal1,beginner,enterprise,decision_maker,self_service,analytical": [
-                {"message": [{"role": "user", "content": "Hello"}]}
-            ]
+                {"message": [{"role": "user", "content": "Hello"}]},
+            ],
         }
         summary = "Test company"
         client = Mock()
 
         mock_random_choice.return_value = {
-            "message": [{"role": "user", "content": "Hello"}]
+            "message": [{"role": "user", "content": "Hello"}],
         }
         mock_create_profile.return_value = "Generated profile"
 
         # Execute
         convo_messages, convo_profile = retrieve_convo(
-            attr_vals, all_profiles, user_convos, summary, client
+            attr_vals,
+            all_profiles,
+            user_convos,
+            summary,
+            client,
         )
 
         # Assert
@@ -217,7 +223,9 @@ class TestSimulateFirstPassConvos:
     )
     @patch("arklex.evaluation.simulate_first_pass_convos.retrieve_convo")
     def test_get_example_convo(
-        self, mock_retrieve_convo: Mock, mock_file: Mock
+        self,
+        mock_retrieve_convo: Mock,
+        mock_file: Mock,
     ) -> None:
         """Test get_example_convo function."""
         # Setup
@@ -237,7 +245,10 @@ class TestSimulateFirstPassConvos:
 
         # Execute
         convo, matching_profile = get_example_convo(
-            attr, synthetic_data_params, summary, client
+            attr,
+            synthetic_data_params,
+            summary,
+            client,
         )
 
         # Assert
@@ -246,7 +257,8 @@ class TestSimulateFirstPassConvos:
 
     @patch("arklex.evaluation.simulate_first_pass_convos.get_example_convo")
     def test_retrieve_prompts_with_data_file(
-        self, mock_get_example_convo: Mock
+        self,
+        mock_get_example_convo: Mock,
     ) -> None:
         """Test retrieve_prompts function with data_file."""
         # Setup
@@ -261,7 +273,12 @@ class TestSimulateFirstPassConvos:
 
         # Execute
         instructional_prompt, start_text = retrieve_prompts(
-            profile, goal, attr, summary, synthetic_data_params, client
+            profile,
+            goal,
+            attr,
+            summary,
+            synthetic_data_params,
+            client,
         )
 
         # Assert
@@ -281,7 +298,12 @@ class TestSimulateFirstPassConvos:
 
         # Execute
         instructional_prompt, start_text = retrieve_prompts(
-            profile, goal, attr, summary, synthetic_data_params, client
+            profile,
+            goal,
+            attr,
+            summary,
+            synthetic_data_params,
+            client,
         )
 
         # Assert
@@ -297,7 +319,10 @@ class TestSimulateFirstPassConvos:
     @patch("arklex.evaluation.simulate_first_pass_convos.format_chat_history_str")
     @patch("arklex.evaluation.simulate_first_pass_convos.flip_hist_content_only")
     def test_check_goal_completion_true(
-        self, mock_flip: Mock, mock_format: Mock, mock_chatgpt: Mock
+        self,
+        mock_flip: Mock,
+        mock_format: Mock,
+        mock_chatgpt: Mock,
     ) -> None:
         """Test check_goal_completion function returning True."""
         # Setup
@@ -327,7 +352,10 @@ class TestSimulateFirstPassConvos:
     @patch("arklex.evaluation.simulate_first_pass_convos.format_chat_history_str")
     @patch("arklex.evaluation.simulate_first_pass_convos.flip_hist_content_only")
     def test_check_goal_completion_false(
-        self, mock_flip: Mock, mock_format: Mock, mock_chatgpt: Mock
+        self,
+        mock_flip: Mock,
+        mock_format: Mock,
+        mock_chatgpt: Mock,
     ) -> None:
         """Test check_goal_completion function returning False."""
         # Setup
@@ -357,7 +385,10 @@ class TestSimulateFirstPassConvos:
     @patch("arklex.evaluation.simulate_first_pass_convos.query_chatbot")
     @patch("arklex.evaluation.simulate_first_pass_convos.check_goal_completion")
     def test_conversation(
-        self, mock_check_goal: Mock, mock_query_chatbot: Mock, mock_chatgpt: Mock
+        self,
+        mock_check_goal: Mock,
+        mock_query_chatbot: Mock,
+        mock_chatgpt: Mock,
     ) -> None:
         """Test conversation function."""
         # Setup
@@ -442,7 +473,8 @@ class TestSimulateFirstPassConvos:
         assert all("id" in conv for conv in result)
 
     @patch(
-        "arklex.evaluation.build_user_profiles.chatgpt_chatbot", return_value="dummy"
+        "arklex.evaluation.build_user_profiles.chatgpt_chatbot",
+        return_value="dummy",
     )
     @patch(
         "arklex.evaluation.simulate_first_pass_convos.chatgpt_chatbot",
@@ -485,7 +517,10 @@ class TestSimulateFirstPassConvos:
 
         # Execute
         conversations, goals = simulate_conversations(
-            model_api, model_params, synthetic_data_params, config
+            model_api,
+            model_params,
+            synthetic_data_params,
+            config,
         )
 
         # Assert
@@ -496,7 +531,10 @@ class TestSimulateFirstPassConvos:
     @patch("arklex.evaluation.simulate_first_pass_convos.flip_hist")
     @patch("arklex.evaluation.simulate_first_pass_convos.filter_convo")
     def test_generate_conversations_with_thread_pool(
-        self, mock_filter_convo: Mock, mock_flip_hist: Mock, mock_conversation: Mock
+        self,
+        mock_filter_convo: Mock,
+        mock_flip_hist: Mock,
+        mock_conversation: Mock,
     ) -> None:
         """Test generate_conversations function with ThreadPoolExecutor logic."""
         # Setup
@@ -525,8 +563,8 @@ class TestSimulateFirstPassConvos:
         ) -> tuple[list[dict[str, str]], bool]:
             if profile == "profile1":
                 return ([{"role": "user", "content": "test1"}], True)
-            else:  # profile2
-                return ([{"role": "user", "content": "test2"}], False)
+            # profile2
+            return ([{"role": "user", "content": "test2"}], False)
 
         mock_conversation.side_effect = mock_conversation_side_effect
 
@@ -613,7 +651,10 @@ class TestSimulateFirstPassConvos:
 
         # Execute
         conversations, goals = simulate_conversations(
-            model_api, model_params, synthetic_data_params, config
+            model_api,
+            model_params,
+            synthetic_data_params,
+            config,
         )
 
         # Assert
@@ -625,13 +666,16 @@ class TestSimulateFirstPassConvos:
 
         # Verify directory creation and file saving
         mock_makedirs.assert_called_once_with(
-            "/test/output/simulate_data", exist_ok=True
+            "/test/output/simulate_data",
+            exist_ok=True,
         )
         assert mock_json_dump.call_count == 5  # 5 files saved
 
     @patch("arklex.evaluation.simulate_first_pass_convos.generate_conversations")
     @patch(
-        "builtins.open", new_callable=mock_open, read_data='["profile1", "profile2"]'
+        "builtins.open",
+        new_callable=mock_open,
+        read_data='["profile1", "profile2"]',
     )
     @patch("json.load")
     def test_simulate_conversations_simulate_conv_only_task(
@@ -665,7 +709,10 @@ class TestSimulateFirstPassConvos:
 
         # Execute
         result_convos, result_goals = simulate_conversations(
-            model_api, model_params, synthetic_data_params, config
+            model_api,
+            model_params,
+            synthetic_data_params,
+            config,
         )
 
         # Assert
@@ -677,7 +724,10 @@ class TestSimulateFirstPassConvos:
     @patch("builtins.open", new_callable=mock_open)
     @patch("json.dump")
     def test_main_with_default_parameters(
-        self, mock_json_dump: Mock, mock_file: Mock, mock_simulate_conversations: Mock
+        self,
+        mock_json_dump: Mock,
+        mock_file: Mock,
+        mock_simulate_conversations: Mock,
     ) -> None:
         """Test main function with default parameters."""
         # Import the main function
@@ -698,7 +748,10 @@ class TestSimulateFirstPassConvos:
     @patch("builtins.open", new_callable=mock_open)
     @patch("json.dump")
     def test_main_with_custom_parameters(
-        self, mock_json_dump: Mock, mock_file: Mock, mock_simulate_conversations: Mock
+        self,
+        mock_json_dump: Mock,
+        mock_file: Mock,
+        mock_simulate_conversations: Mock,
     ) -> None:
         """Test main function with custom parameters."""
         # Import the main function
@@ -732,7 +785,10 @@ class TestSimulateFirstPassConvos:
         # Assert
         assert result == [{"convo": "custom"}]
         mock_simulate_conversations.assert_called_once_with(
-            model_api, model_params, synthetic_data_params, config
+            model_api,
+            model_params,
+            synthetic_data_params,
+            config,
         )
         mock_json_dump.assert_called_once()
 
@@ -756,7 +812,10 @@ class TestSimulateFirstPassConvos:
     @patch("builtins.open", new_callable=mock_open)
     @patch("json.dump")
     def test_main_with_none_parameters(
-        self, mock_json_dump: Mock, mock_file: Mock, mock_simulate_conversations: Mock
+        self,
+        mock_json_dump: Mock,
+        mock_file: Mock,
+        mock_simulate_conversations: Mock,
     ) -> None:
         """Test main function with None parameters (should use defaults)."""
         # Import the main function

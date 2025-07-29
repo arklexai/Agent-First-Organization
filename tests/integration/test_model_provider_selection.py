@@ -34,7 +34,7 @@ class TestModelProviderSelectionIntegration:
 
         # Test model initialization
         with patch(
-            "arklex.orchestrator.NLU.services.model_config.PROVIDER_MAP"
+            "arklex.orchestrator.NLU.services.model_config.PROVIDER_MAP",
         ) as mock_provider_map:
             mock_openai_class = Mock()
             mock_instance = Mock()
@@ -75,7 +75,7 @@ class TestModelProviderSelectionIntegration:
 
         # Test model initialization
         with patch(
-            "arklex.orchestrator.NLU.services.model_config.PROVIDER_MAP"
+            "arklex.orchestrator.NLU.services.model_config.PROVIDER_MAP",
         ) as mock_provider_map:
             mock_anthropic_class = Mock()
             mock_instance = Mock()
@@ -116,7 +116,7 @@ class TestModelProviderSelectionIntegration:
 
         # Test model initialization
         with patch(
-            "arklex.orchestrator.NLU.services.model_config.PROVIDER_MAP"
+            "arklex.orchestrator.NLU.services.model_config.PROVIDER_MAP",
         ) as mock_provider_map:
             mock_gemini_class = Mock()
             mock_instance = Mock()
@@ -157,7 +157,7 @@ class TestModelProviderSelectionIntegration:
 
         # Test model initialization
         with patch(
-            "arklex.orchestrator.NLU.services.model_config.PROVIDER_MAP"
+            "arklex.orchestrator.NLU.services.model_config.PROVIDER_MAP",
         ) as mock_provider_map:
             mock_hf_function = Mock()
             mock_instance = Mock()
@@ -211,7 +211,7 @@ class TestModelProviderSelectionIntegration:
 
             # Test model instance creation (with mocking)
             with patch(
-                "arklex.orchestrator.NLU.services.model_config.PROVIDER_MAP"
+                "arklex.orchestrator.NLU.services.model_config.PROVIDER_MAP",
             ) as mock_provider_map:
                 mock_class = Mock()
                 mock_instance = Mock()
@@ -238,7 +238,7 @@ class TestModelProviderSelectionIntegration:
 
         # Test model initialization with custom endpoint
         with patch(
-            "arklex.orchestrator.NLU.services.model_config.PROVIDER_MAP"
+            "arklex.orchestrator.NLU.services.model_config.PROVIDER_MAP",
         ) as mock_provider_map:
             mock_openai_class = Mock()
             mock_instance = Mock()
@@ -263,7 +263,7 @@ class TestModelProviderSelectionIntegration:
 
         # Test with OpenAI provider and JSON format
         with patch(
-            "arklex.orchestrator.NLU.services.model_config.PROVIDER_MAP"
+            "arklex.orchestrator.NLU.services.model_config.PROVIDER_MAP",
         ) as mock_provider_map:
             mock_openai_class = Mock()
             mock_model_instance = Mock()
@@ -277,7 +277,7 @@ class TestModelProviderSelectionIntegration:
 
             # Verify response format was configured
             mock_model_instance.bind.assert_called_once_with(
-                response_format={"type": "json_object"}
+                response_format={"type": "json_object"},
             )
 
     def test_provider_selection_error_handling(self) -> None:
@@ -338,7 +338,7 @@ class TestModelProviderSelectionIntegration:
 
             # Test model instance creation (with mocking)
             with patch(
-                "arklex.orchestrator.NLU.services.model_config.PROVIDER_MAP"
+                "arklex.orchestrator.NLU.services.model_config.PROVIDER_MAP",
             ) as mock_provider_map:
                 mock_class = Mock()
                 mock_instance = Mock()
@@ -397,7 +397,7 @@ class TestModelProviderSelectionRealModels:
 
         # Mock the PROVIDER_MAP to return ChatOpenAI class
         with patch(
-            "arklex.orchestrator.NLU.services.model_config.PROVIDER_MAP"
+            "arklex.orchestrator.NLU.services.model_config.PROVIDER_MAP",
         ) as mock_provider_map:
             mock_provider_map.__getitem__.return_value = ChatOpenAI
             mock_provider_map.__contains__.return_value = True
@@ -426,7 +426,7 @@ class TestModelProviderSelectionRealModels:
 
         # Mock the PROVIDER_MAP to return ChatAnthropic class
         with patch(
-            "arklex.orchestrator.NLU.services.model_config.PROVIDER_MAP"
+            "arklex.orchestrator.NLU.services.model_config.PROVIDER_MAP",
         ) as mock_provider_map:
             mock_provider_map.__getitem__.return_value = ChatAnthropic
             mock_provider_map.__contains__.return_value = True
@@ -449,7 +449,7 @@ class TestModelProviderSelectionRealModels:
         }
 
         with patch(
-            "arklex.orchestrator.NLU.services.model_config.PROVIDER_MAP"
+            "arklex.orchestrator.NLU.services.model_config.PROVIDER_MAP",
         ) as mock_provider_map:
             mock_provider_map.__getitem__.return_value = DummyLLM
             mock_provider_map.__contains__.return_value = True
@@ -490,7 +490,7 @@ class TestModelProviderSelectionCommandLine:
 
         # Test model initialization
         with patch(
-            "arklex.orchestrator.NLU.services.model_config.PROVIDER_MAP"
+            "arklex.orchestrator.NLU.services.model_config.PROVIDER_MAP",
         ) as mock_provider_map:
             mock_class = Mock()
             mock_instance = Mock()
@@ -530,7 +530,7 @@ class TestModelProviderSelectionCommandLine:
 
             # Test that model can be initialized
             with patch(
-                "arklex.orchestrator.NLU.services.model_config.PROVIDER_MAP"
+                "arklex.orchestrator.NLU.services.model_config.PROVIDER_MAP",
             ) as mock_provider_map:
                 mock_class = Mock()
                 mock_instance = Mock()

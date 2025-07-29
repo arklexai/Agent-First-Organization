@@ -85,7 +85,8 @@ class VLLMCompletionModel(CompletionModel):
             latency_ms_per_output_token
             if latency_ms_per_output_token is not None
             else LATENCY_MS_PER_OUTPUT_TOKEN_MAP.get(
-                model, LATENCY_MS_PER_OUTPUT_TOKEN_FALLBACK
+                model,
+                LATENCY_MS_PER_OUTPUT_TOKEN_FALLBACK,
             )
         )
         self.max_context_length: int = (
@@ -106,7 +107,10 @@ class VLLMCompletionModel(CompletionModel):
         if temperature is None:
             temperature = self.temperature
         res: str = generate_request(
-            url=self.url, prompt=prompt, force_json=True, temperature=temperature
+            url=self.url,
+            prompt=prompt,
+            force_json=True,
+            temperature=temperature,
         )
         return self.handle_parse_force_response(prompt=prompt, content=res)
 
@@ -117,7 +121,8 @@ class VLLMCompletionModel(CompletionModel):
     def get_latency(self, dp: Datapoint) -> float:
         latency_per_output_token: float = self.latency_ms_per_output_token
         return approx_cost_for_datapoint(
-            dp=dp, price_per_input_token=latency_per_output_token
+            dp=dp,
+            price_per_input_token=latency_per_output_token,
         )
 
     def get_capability(self) -> float:

@@ -55,7 +55,7 @@ def mock_tools_map() -> dict[str, Any]:
             "output": [{"name": "result", "description": "Tool result"}],
             "fixed_args": {},
             "execute": Mock(return_value=Mock(func=Mock(return_value="tool_result"))),
-        }
+        },
     }
 
 
@@ -65,13 +65,13 @@ def mock_workers_map() -> dict[str, Any]:
         "test_worker": {
             "description": "A test worker for testing",
             "execute": Mock(
-                return_value=Mock(execute=Mock(return_value="worker_result"))
+                return_value=Mock(execute=Mock(return_value="worker_result")),
             ),
         },
         "MessageWorker": {
             "description": "Message worker that should be filtered out",
             "execute": Mock(
-                return_value=Mock(execute=Mock(return_value="message_result"))
+                return_value=Mock(execute=Mock(return_value="message_result")),
             ),
         },
     }
@@ -91,10 +91,12 @@ def mock_llm_config() -> LLMConfig:
 def mock_message_state() -> MessageState:
     return MessageState(
         user_message=ConvoMessage(
-            history="Previous conversation", message="Hello, how can you help me?"
+            history="Previous conversation",
+            message="Hello, how can you help me?",
         ),
         orchestrator_message=OrchestratorMessage(
-            message="User greeting", attribute={"task": "greeting"}
+            message="User greeting",
+            attribute={"task": "greeting"},
         ),
         response="",
         is_stream=False,
@@ -128,7 +130,7 @@ def mock_retriever() -> Mock:
     retriever = Mock()
     mock_vectorstore = Mock()
     mock_vectorstore.similarity_search_with_score.return_value = [
-        (Mock(metadata={"resource_name": "test_resource"}), 0.8)
+        (Mock(metadata={"resource_name": "test_resource"}), 0.8),
     ]
     retriever.vectorstore = mock_vectorstore
     return retriever
@@ -205,7 +207,8 @@ def patched_sample_config(
             return_value=mock_prompt_template,
         ),
         patch(
-            "arklex.env.planner.react_planner.aimessage_to_dict", mock_aimessage_to_dict
+            "arklex.env.planner.react_planner.aimessage_to_dict",
+            mock_aimessage_to_dict,
         ),
     ):
         yield {
@@ -233,7 +236,8 @@ def react_planner(
 
 @pytest.fixture
 def configured_react_planner(
-    react_planner: ReactPlanner, patched_sample_config: dict[str, Any]
+    react_planner: ReactPlanner,
+    patched_sample_config: dict[str, Any],
 ) -> ReactPlanner:
     config = patched_sample_config
     react_planner.llm = config["mock_llm"]
@@ -247,20 +251,23 @@ def configured_react_planner(
 def mock_planning_methods(configured_react_planner: ReactPlanner) -> dict[str, Mock]:
     with (
         patch.object(
-            configured_react_planner, "_get_planning_trajectory_summary"
+            configured_react_planner,
+            "_get_planning_trajectory_summary",
         ) as mock_summary,
         patch.object(
-            configured_react_planner, "_get_num_resource_retrievals"
+            configured_react_planner,
+            "_get_num_resource_retrievals",
         ) as mock_retrievals,
         patch.object(
-            configured_react_planner, "_retrieve_resource_signatures"
+            configured_react_planner,
+            "_retrieve_resource_signatures",
         ) as mock_retrieve,
         patch.object(configured_react_planner, "step") as mock_step,
     ):
         mock_summary.return_value = "Test trajectory"
         mock_retrievals.return_value = 3
         mock_retrieve.return_value = [
-            Mock(metadata={"resource_name": "test_tool", "json_signature": {}})
+            Mock(metadata={"resource_name": "test_tool", "json_signature": {}}),
         ]
         mock_step.return_value = EnvResponse(observation="tool_result")
         yield {
@@ -314,7 +321,9 @@ class TestReactPlanner:
         )
 
     def test_format_worker_info(
-        self, react_planner: ReactPlanner, mock_workers_map: dict[str, Any]
+        self,
+        react_planner: ReactPlanner,
+        mock_workers_map: dict[str, Any],
     ) -> None:
         formatted_info = react_planner._format_worker_info(mock_workers_map)
 
@@ -328,7 +337,9 @@ class TestReactPlanner:
         assert worker_info.description == "A test worker for testing"
 
     def test_format_tool_info(
-        self, react_planner: ReactPlanner, mock_tools_map: dict[str, Any]
+        self,
+        react_planner: ReactPlanner,
+        mock_tools_map: dict[str, Any],
     ) -> None:
         formatted_info = react_planner._format_tool_info(mock_tools_map)
 
@@ -374,7 +385,7 @@ class TestReactPlanner:
                 parameters=[],
                 required=[],
                 returns={},
-            )
+            ),
         }
 
         docs = react_planner._create_resource_rag_docs(resources)
@@ -386,7 +397,8 @@ class TestReactPlanner:
         assert "test_resource" in doc.page_content
 
     def test_parse_trajectory_summary_to_steps(
-        self, react_planner: ReactPlanner
+        self,
+        react_planner: ReactPlanner,
     ) -> None:
         summary = (
             "- Step 1: Do something\n- Step 2: Do something else\n- Step 3: Finish"
@@ -400,14 +412,16 @@ class TestReactPlanner:
         assert steps[2] == "Step 3: Finish"
 
     def test_parse_trajectory_summary_to_steps_empty(
-        self, react_planner: ReactPlanner
+        self,
+        react_planner: ReactPlanner,
     ) -> None:
         summary = ""
         steps = react_planner._parse_trajectory_summary_to_steps(summary)
         assert steps == []
 
     def test_get_num_resource_retrievals_valid_summary(
-        self, react_planner: ReactPlanner
+        self,
+        react_planner: ReactPlanner,
     ) -> None:
         summary = "- Step 1\n- Step 2\n- Step 3"
 
@@ -418,7 +432,8 @@ class TestReactPlanner:
         assert n_retrievals == expected
 
     def test_get_num_resource_retrievals_invalid_summary(
-        self, react_planner: ReactPlanner
+        self,
+        react_planner: ReactPlanner,
     ) -> None:
         summary = "Invalid summary without steps"
 
@@ -427,7 +442,8 @@ class TestReactPlanner:
         assert n_retrievals == 4
 
     def test_get_num_resource_retrievals_empty_summary(
-        self, react_planner: ReactPlanner
+        self,
+        react_planner: ReactPlanner,
     ) -> None:
         summary = ""
 
@@ -436,7 +452,8 @@ class TestReactPlanner:
         assert n_retrievals == MIN_NUM_RETRIEVALS
 
     def test_get_num_resource_retrievals_bounds(
-        self, react_planner: ReactPlanner
+        self,
+        react_planner: ReactPlanner,
     ) -> None:
         summary = "- " + "\n- ".join([f"Step {i}" for i in range(100)])
 
@@ -445,7 +462,8 @@ class TestReactPlanner:
         assert n_retrievals == MAX_NUM_RETRIEVALS
 
     def test_get_num_resource_retrievals_valid_summary_with_steps_else_branch(
-        self, react_planner: ReactPlanner
+        self,
+        react_planner: ReactPlanner,
     ) -> None:
         summary = "- Step 1\n- Step 2\n- Step 3"
 
@@ -456,7 +474,8 @@ class TestReactPlanner:
         assert n_retrievals == expected
 
     def test_parse_response_action_to_json_valid(
-        self, react_planner: ReactPlanner
+        self,
+        react_planner: ReactPlanner,
     ) -> None:
         content = '{"name": "test_action", "arguments": {"param": "value"}}'
         result = react_planner._parse_response_action_to_json(content)
@@ -465,7 +484,8 @@ class TestReactPlanner:
         assert result["arguments"]["param"] == "value"
 
     def test_parse_response_action_to_json_invalid(
-        self, react_planner: ReactPlanner
+        self,
+        react_planner: ReactPlanner,
     ) -> None:
         content = "Invalid JSON content"
         result = react_planner._parse_response_action_to_json(content)
@@ -491,7 +511,8 @@ class TestReactPlanner:
         assert actions[0].kwargs == {}
 
     def test_message_to_actions_invalid_resource(
-        self, react_planner: ReactPlanner
+        self,
+        react_planner: ReactPlanner,
     ) -> None:
         message = {"name": "invalid_resource", "arguments": {}}
         actions = react_planner.message_to_actions(message)
@@ -502,7 +523,8 @@ class TestReactPlanner:
         assert actions[0].kwargs == {"content": ""}
 
     def test_message_to_actions_missing_arguments(
-        self, react_planner: ReactPlanner
+        self,
+        react_planner: ReactPlanner,
     ) -> None:
         # The method expects a parsed JSON object, not a message with content field
         message = {"name": "test_tool"}
@@ -514,7 +536,9 @@ class TestReactPlanner:
         assert actions[0].kwargs == {}
 
     def test_step_respond_action(
-        self, react_planner: ReactPlanner, mock_message_state: MessageState
+        self,
+        react_planner: ReactPlanner,
+        mock_message_state: MessageState,
     ) -> None:
         action = Action(name=RESPOND_ACTION_NAME, kwargs={"content": "Hello!"})
         result = react_planner.step(action, mock_message_state)
@@ -522,7 +546,9 @@ class TestReactPlanner:
         assert result.observation == "Hello!"
 
     def test_step_tool_execution(
-        self, react_planner: ReactPlanner, mock_message_state: MessageState
+        self,
+        react_planner: ReactPlanner,
+        mock_message_state: MessageState,
     ) -> None:
         action = Action(name="test_tool", kwargs={"param1": "value"})
         result = react_planner.step(action, mock_message_state)
@@ -530,7 +556,9 @@ class TestReactPlanner:
         assert result.observation == "tool_result"
 
     def test_step_worker_execution(
-        self, react_planner: ReactPlanner, mock_message_state: MessageState
+        self,
+        react_planner: ReactPlanner,
+        mock_message_state: MessageState,
     ) -> None:
         action = Action(name="test_worker", kwargs={})
         result = react_planner.step(action, mock_message_state)
@@ -538,7 +566,9 @@ class TestReactPlanner:
         assert result.observation == "worker_result"
 
     def test_step_unknown_action(
-        self, react_planner: ReactPlanner, mock_message_state: MessageState
+        self,
+        react_planner: ReactPlanner,
+        mock_message_state: MessageState,
     ) -> None:
         action = Action(name="unknown_action", kwargs={})
         result = react_planner.step(action, mock_message_state)
@@ -546,7 +576,9 @@ class TestReactPlanner:
         assert "Unknown action" in result.observation
 
     def test_step_tool_execution_error(
-        self, react_planner: ReactPlanner, mock_message_state: MessageState
+        self,
+        react_planner: ReactPlanner,
+        mock_message_state: MessageState,
     ) -> None:
         action = Action(name="test_tool", kwargs={"param1": "value"})
         react_planner.tools_map[1]["execute"].side_effect = Exception("Tool error")
@@ -555,11 +587,13 @@ class TestReactPlanner:
         assert "Tool error" in result.observation
 
     def test_step_worker_execution_error(
-        self, react_planner: ReactPlanner, mock_message_state: MessageState
+        self,
+        react_planner: ReactPlanner,
+        mock_message_state: MessageState,
     ) -> None:
         action = Action(name="test_worker", kwargs={})
         react_planner.workers_map["test_worker"]["execute"].side_effect = Exception(
-            "Worker error"
+            "Worker error",
         )
         result = react_planner.step(action, mock_message_state)
 
@@ -599,7 +633,8 @@ class TestReactPlanner:
         react_planner.llm = mock_llm
 
         result = react_planner._get_planning_trajectory_summary(
-            mock_message_state, mock_msg_history
+            mock_message_state,
+            mock_msg_history,
         )
 
         assert result == "Test response"
@@ -610,7 +645,9 @@ class TestReactPlanner:
         assert call_args[0]["role"] == "system"
 
     def test_retrieve_resource_signatures(
-        self, react_planner: ReactPlanner, patched_sample_config: dict[str, Any]
+        self,
+        react_planner: ReactPlanner,
+        patched_sample_config: dict[str, Any],
     ) -> None:
         config = patched_sample_config
         mock_retriever = config["mock_retriever"]
@@ -630,11 +667,13 @@ class TestReactPlanner:
     ) -> None:
         config = patched_sample_config
         config["mock_aimessage_to_dict"].return_value = {
-            "content": 'Action:\n{"name": "test_tool", "arguments": {"param": "value"}}'
+            "content": 'Action:\n{"name": "test_tool", "arguments": {"param": "value"}}',
         }
 
         msg_history, action_name, response = configured_react_planner.plan(
-            mock_message_state, mock_msg_history, max_num_steps=1
+            mock_message_state,
+            mock_msg_history,
+            max_num_steps=1,
         )
 
         assert action_name == "test_tool"
@@ -650,7 +689,7 @@ class TestReactPlanner:
     ) -> None:
         config = patched_sample_config
         config["mock_aimessage_to_dict"].return_value = {
-            "content": 'Action:\n{"name": "respond", "arguments": {"content": "Hello!"}}'
+            "content": 'Action:\n{"name": "respond", "arguments": {"content": "Hello!"}}',
         }
 
         # Mock the step method to return the correct response for respond action
@@ -662,7 +701,9 @@ class TestReactPlanner:
         configured_react_planner.step = mock_step
 
         msg_history, action_name, response = configured_react_planner.plan(
-            mock_message_state, mock_msg_history, max_num_steps=1
+            mock_message_state,
+            mock_msg_history,
+            max_num_steps=1,
         )
 
         assert action_name == "respond"
@@ -682,7 +723,8 @@ class TestReactPlanner:
         )
 
         action, updated_state, updated_history = react_planner.execute(
-            mock_message_state, mock_msg_history
+            mock_message_state,
+            mock_msg_history,
         )
 
         assert action == "test_action"
@@ -759,7 +801,8 @@ class TestReactPlanner:
         react_planner.llm = mock_llm
 
         result = react_planner._get_planning_trajectory_summary(
-            mock_message_state, mock_msg_history
+            mock_message_state,
+            mock_msg_history,
         )
 
         assert result == "Test response"
@@ -783,24 +826,32 @@ class TestReactPlanner:
 
         with pytest.raises(Exception, match="LLM error"):
             react_planner._get_planning_trajectory_summary(
-                mock_message_state, mock_msg_history
+                mock_message_state,
+                mock_msg_history,
             )
 
     def test_retrieve_resource_signatures_with_user_message_and_task(
-        self, react_planner: ReactPlanner, patched_sample_config: dict[str, Any]
+        self,
+        react_planner: ReactPlanner,
+        patched_sample_config: dict[str, Any],
     ) -> None:
         config = patched_sample_config
         mock_retriever = config["mock_retriever"]
         react_planner.retriever = mock_retriever
         react_planner.guaranteed_retrieval_docs = []
         docs = react_planner._retrieve_resource_signatures(
-            1, "- Step 1\n- Step 2", "test user message", "test task"
+            1,
+            "- Step 1\n- Step 2",
+            "test user message",
+            "test task",
         )
         assert len(docs) == 1
         assert docs[0].metadata["resource_name"] == "test_resource"
 
     def test_retrieve_resource_signatures_with_guaranteed_retrieval_docs(
-        self, react_planner: ReactPlanner, patched_sample_config: dict[str, Any]
+        self,
+        react_planner: ReactPlanner,
+        patched_sample_config: dict[str, Any],
     ) -> None:
         config = patched_sample_config
         mock_retriever = config["mock_retriever"]
@@ -811,7 +862,9 @@ class TestReactPlanner:
         assert docs[0].metadata["resource_name"] == "test_resource"
 
     def test_retrieve_resource_signatures_with_duplicate_guaranteed_docs(
-        self, react_planner: ReactPlanner, patched_sample_config: dict[str, Any]
+        self,
+        react_planner: ReactPlanner,
+        patched_sample_config: dict[str, Any],
     ) -> None:
         config = patched_sample_config
         mock_retriever = config["mock_retriever"]
@@ -831,12 +884,14 @@ class TestReactPlanner:
     ) -> None:
         config = patched_sample_config
         config["mock_aimessage_to_dict"].return_value = {
-            "content": 'Action:\n{"name": "test_tool", "arguments": {"param": "value"}}'
+            "content": 'Action:\n{"name": "test_tool", "arguments": {"param": "value"}}',
         }
         mock_planning_methods["mock_retrieve"].return_value = []
 
         msg_history, action_name, response = configured_react_planner.plan(
-            mock_message_state, mock_msg_history, max_num_steps=1
+            mock_message_state,
+            mock_msg_history,
+            max_num_steps=1,
         )
 
         assert action_name == "test_tool"
@@ -853,11 +908,13 @@ class TestReactPlanner:
     ) -> None:
         config = patched_sample_config
         config["mock_aimessage_to_dict"].return_value = {
-            "content": 'Action:\n{"name": "test_tool", "arguments": {"param": "value"}}'
+            "content": 'Action:\n{"name": "test_tool", "arguments": {"param": "value"}}',
         }
 
         msg_history, action_name, response = configured_react_planner.plan(
-            mock_message_state, mock_msg_history, max_num_steps=1
+            mock_message_state,
+            mock_msg_history,
+            max_num_steps=1,
         )
 
         assert action_name == "test_tool"
@@ -873,13 +930,15 @@ class TestReactPlanner:
     ) -> None:
         config = patched_sample_config
         config["mock_aimessage_to_dict"].return_value = {
-            "content": 'Action:\n{"name": "test_tool", "arguments": {"param": "value"}}'
+            "content": 'Action:\n{"name": "test_tool", "arguments": {"param": "value"}}',
         }
         import pytest
 
         with pytest.raises(UnboundLocalError):
             configured_react_planner.plan(
-                mock_message_state, mock_msg_history, max_num_steps=0
+                mock_message_state,
+                mock_msg_history,
+                max_num_steps=0,
             )
 
     def test_plan_method_tool_call_simulation_branch(
@@ -892,11 +951,13 @@ class TestReactPlanner:
     ) -> None:
         config = patched_sample_config
         config["mock_aimessage_to_dict"].return_value = {
-            "content": 'Action:\n{"name": "test_tool", "arguments": {"param": "value"}}'
+            "content": 'Action:\n{"name": "test_tool", "arguments": {"param": "value"}}',
         }
 
         msg_history, action_name, response = configured_react_planner.plan(
-            mock_message_state, mock_msg_history, max_num_steps=1
+            mock_message_state,
+            mock_msg_history,
+            max_num_steps=1,
         )
 
         assert action_name == "test_tool"
@@ -918,7 +979,7 @@ class TestReactPlanner:
 
         # Mock aimessage_to_dict to return proper dictionary
         patched_sample_config["mock_aimessage_to_dict"].return_value = {
-            "content": 'Action:\n{"name": "test_tool", "arguments": {}}'
+            "content": 'Action:\n{"name": "test_tool", "arguments": {}}',
         }
 
         # Mock LLM to return non-RESPOND_ACTION responses
@@ -935,7 +996,9 @@ class TestReactPlanner:
         # Execute with max_num_steps=1 to ensure exhaustion
         result_msg_history, result_action, result_response = (
             configured_react_planner.plan(
-                mock_message_state, mock_msg_history, max_num_steps=1
+                mock_message_state,
+                mock_msg_history,
+                max_num_steps=1,
             )
         )
 
@@ -961,7 +1024,7 @@ class TestReactPlanner:
 
         # Mock aimessage_to_dict to return proper dictionary
         patched_sample_config["mock_aimessage_to_dict"].return_value = {
-            "content": 'Action:\n{"name": "test_worker", "arguments": {}}'
+            "content": 'Action:\n{"name": "test_worker", "arguments": {}}',
         }
 
         # Mock LLM to return non-RESPOND_ACTION responses
@@ -978,7 +1041,9 @@ class TestReactPlanner:
         # Execute with max_num_steps=1 to trigger the fallback return
         result_msg_history, result_action, result_response = (
             configured_react_planner.plan(
-                mock_message_state, mock_msg_history, max_num_steps=1
+                mock_message_state,
+                mock_msg_history,
+                max_num_steps=1,
             )
         )
 
@@ -1026,7 +1091,9 @@ class TestReactPlanner:
         # Mock the trajectory summary to return empty steps
         with (
             patch.object(
-                react_planner, "_parse_trajectory_summary_to_steps", return_value=[]
+                react_planner,
+                "_parse_trajectory_summary_to_steps",
+                return_value=[],
             ),
             patch.object(react_planner, "_get_num_resource_retrievals", return_value=0),
         ):
@@ -1060,7 +1127,10 @@ class TestReactPlanner:
             react_planner.guaranteed_retrieval_docs = []
 
             result = react_planner._retrieve_resource_signatures(
-                1, "test_summary", None, None
+                1,
+                "test_summary",
+                None,
+                None,
             )
 
             assert result == []
@@ -1087,7 +1157,10 @@ class TestReactPlanner:
             react_planner.guaranteed_retrieval_docs = []
 
             result = react_planner._retrieve_resource_signatures(
-                1, "test_summary", "", ""
+                1,
+                "test_summary",
+                "",
+                "",
             )
 
             assert result == []
@@ -1099,7 +1172,9 @@ class TestReactPlanner:
 
         with (
             patch.object(
-                react_planner, "_parse_trajectory_summary_to_steps", return_value=[]
+                react_planner,
+                "_parse_trajectory_summary_to_steps",
+                return_value=[],
             ),
             patch.object(react_planner, "_get_num_resource_retrievals", return_value=0),
         ):
@@ -1120,10 +1195,14 @@ class TestReactPlanner:
 
         with (
             patch.object(
-                react_planner, "_parse_trajectory_summary_to_steps", return_value=[]
+                react_planner,
+                "_parse_trajectory_summary_to_steps",
+                return_value=[],
             ),
             patch.object(
-                react_planner, "_get_num_resource_retrievals", return_value=-1
+                react_planner,
+                "_get_num_resource_retrievals",
+                return_value=-1,
             ),
         ):
             # Mock the retriever attribute
@@ -1162,12 +1241,14 @@ class TestReactPlanner:
         assert result["tool_calls"] is None
 
     def test_get_num_resource_retrievals_with_non_zero_steps_else_branch(
-        self, react_planner: ReactPlanner
+        self,
+        react_planner: ReactPlanner,
     ) -> None:
         """Test _get_num_resource_retrievals when n_steps is not 0 (else branch)."""
         # Mock _parse_trajectory_summary_to_steps to return a non-empty list
         with patch.object(
-            react_planner, "_parse_trajectory_summary_to_steps"
+            react_planner,
+            "_parse_trajectory_summary_to_steps",
         ) as mock_parse:
             mock_parse.return_value = ["step1", "step2", "step3"]
 
@@ -1178,7 +1259,8 @@ class TestReactPlanner:
             assert result == 6
 
     def test_message_to_actions_invalid_resource_else_branch(
-        self, react_planner: ReactPlanner
+        self,
+        react_planner: ReactPlanner,
     ) -> None:
         """Test message_to_actions when resource is invalid (else branch)."""
         # Test with invalid resource name that's not in name2id
@@ -1191,7 +1273,8 @@ class TestReactPlanner:
         assert actions[0].kwargs["content"] == ""
 
     def test_message_to_actions_invalid_resource_with_content(
-        self, react_planner: ReactPlanner
+        self,
+        react_planner: ReactPlanner,
     ) -> None:
         """Test message_to_actions when resource is invalid but has content."""
         # Test with invalid resource name and content in arguments
@@ -1208,7 +1291,8 @@ class TestReactPlanner:
         assert actions[0].kwargs["content"] == "Error message"
 
     def test_message_to_actions_invalid_resource_with_content_fallback(
-        self, react_planner: ReactPlanner
+        self,
+        react_planner: ReactPlanner,
     ) -> None:
         """Test message_to_actions when resource is invalid with content fallback."""
         # Test with invalid resource name, no content in arguments, but content in message
@@ -1253,7 +1337,7 @@ class TestReactPlanner:
 
             # Mock aimessage_to_dict function
             with patch(
-                "arklex.env.planner.react_planner.aimessage_to_dict"
+                "arklex.env.planner.react_planner.aimessage_to_dict",
             ) as mock_aimessage_to_dict:
                 mock_aimessage_to_dict.return_value = {
                     "content": 'Action:\n{"name": "respond", "arguments": {"content": "Test response"}}',
@@ -1265,14 +1349,17 @@ class TestReactPlanner:
                 configured_react_planner.step.return_value = mock_env_response
 
                 result = configured_react_planner.plan(
-                    mock_message_state, mock_msg_history
+                    mock_message_state,
+                    mock_msg_history,
                 )
 
                 assert len(result) == 3
                 assert result[1] == "respond"
 
     def test_step_unknown_action_else_branch(
-        self, react_planner: ReactPlanner, mock_message_state: MessageState
+        self,
+        react_planner: ReactPlanner,
+        mock_message_state: MessageState,
     ) -> None:
         """Test step method with unknown action (else branch)."""
         # Create an action that's not in tools_map, workers_map, or RESPOND_ACTION
@@ -1302,7 +1389,8 @@ class TestReactPlanner:
         react_planner.plan = mock_plan_method
 
         action, state, history = react_planner.execute(
-            mock_message_state, mock_msg_history
+            mock_message_state,
+            mock_msg_history,
         )
 
         # Verify the response is set on the message state
@@ -1312,7 +1400,8 @@ class TestReactPlanner:
         mock_plan_method.assert_called_once_with(mock_message_state, mock_msg_history)
 
     def test_get_num_resource_retrievals_with_exception_handling(
-        self, react_planner: ReactPlanner
+        self,
+        react_planner: ReactPlanner,
     ) -> None:
         """Test _get_num_resource_retrievals with exception handling (lines 421-422)."""
         # Mock _parse_trajectory_summary_to_steps to raise an exception
@@ -1326,7 +1415,9 @@ class TestReactPlanner:
             assert result == MIN_NUM_RETRIEVALS
 
     def test_retrieve_resource_signatures_with_guaranteed_docs_not_in_retrieved(
-        self, react_planner: ReactPlanner, patched_sample_config: dict[str, Any]
+        self,
+        react_planner: ReactPlanner,
+        patched_sample_config: dict[str, Any],
     ) -> None:
         """Test _retrieve_resource_signatures with guaranteed docs not in retrieved list (lines 482-487)."""
         # Setup guaranteed retrieval docs
@@ -1338,7 +1429,7 @@ class TestReactPlanner:
         mock_retriever = Mock()
         mock_vectorstore = Mock()
         mock_vectorstore.similarity_search_with_score.return_value = [
-            (Mock(metadata={"resource_name": "different_resource"}), 0.8)
+            (Mock(metadata={"resource_name": "different_resource"}), 0.8),
         ]
         mock_retriever.vectorstore = mock_vectorstore
         react_planner.retriever = mock_retriever
@@ -1372,7 +1463,7 @@ class TestReactPlanner:
 
         # Mock aimessage_to_dict to return proper dictionary
         patched_sample_config["mock_aimessage_to_dict"].return_value = {
-            "content": 'Action:\n{"name": "test_tool", "arguments": {}}'
+            "content": 'Action:\n{"name": "test_tool", "arguments": {}}',
         }
 
         # Mock step to return a non-respond action response
@@ -1383,7 +1474,9 @@ class TestReactPlanner:
 
         # Set max_num_steps to 1 to ensure we hit the fallback return
         result = configured_react_planner.plan(
-            mock_message_state, mock_msg_history, max_num_steps=1
+            mock_message_state,
+            mock_msg_history,
+            max_num_steps=1,
         )
 
         # Should return the last action and response
@@ -1412,7 +1505,7 @@ class TestReactPlanner:
 
         # Mock aimessage_to_dict to return proper dictionary
         patched_sample_config["mock_aimessage_to_dict"].return_value = {
-            "content": 'Action:\n{"name": "test_tool", "arguments": {}}'
+            "content": 'Action:\n{"name": "test_tool", "arguments": {}}',
         }
 
         # Mock step to return a non-respond action response
@@ -1423,7 +1516,9 @@ class TestReactPlanner:
 
         # Set max_num_steps to 2 to ensure we process multiple actions
         result = configured_react_planner.plan(
-            mock_message_state, mock_msg_history, max_num_steps=2
+            mock_message_state,
+            mock_msg_history,
+            max_num_steps=2,
         )
 
         # Should return the last action and response after exhausting max steps
@@ -1462,11 +1557,13 @@ class TestReactPlanner:
         }
         # Patch aimessage_to_dict to return a dummy message
         patched_sample_config["mock_aimessage_to_dict"].return_value = {
-            "content": "dummy"
+            "content": "dummy",
         }
         # Run plan with max_num_steps=2 to force fallback
         msg_history, action_name, response = configured_react_planner.plan(
-            mock_message_state, mock_msg_history, max_num_steps=2
+            mock_message_state,
+            mock_msg_history,
+            max_num_steps=2,
         )
         assert action_name == "not_respond_action"
         assert response == "fallback_observation"
@@ -1494,25 +1591,27 @@ class TestReactPlannerIntegration:
                 "output": [],
                 "fixed_args": {},
                 "execute": Mock(
-                    return_value=Mock(func=Mock(return_value="integration_result"))
+                    return_value=Mock(func=Mock(return_value="integration_result")),
                 ),
-            }
+            },
         }
         workers_map = {
             "integration_worker": {
                 "description": "Integration test worker",
                 "execute": Mock(
                     return_value=Mock(
-                        execute=Mock(return_value="integration_worker_result")
-                    )
+                        execute=Mock(return_value="integration_worker_result"),
+                    ),
                 ),
-            }
+            },
         }
         name2id = {"integration_tool": 1, "integration_worker": 2}
         return ReactPlanner(tools_map, workers_map, name2id)
 
     def test_full_planning_workflow(
-        self, integration_planner: ReactPlanner, patched_sample_config: dict[str, Any]
+        self,
+        integration_planner: ReactPlanner,
+        patched_sample_config: dict[str, Any],
     ) -> None:
         config = patched_sample_config
         mock_llm = config["mock_llm"]
@@ -1520,7 +1619,7 @@ class TestReactPlannerIntegration:
         mock_response.content = "Test trajectory"
         mock_llm.invoke.return_value = mock_response
         config["mock_aimessage_to_dict"].return_value = {
-            "content": 'Action:\n{"name": "integration_tool", "arguments": {"param": "value"}}'
+            "content": 'Action:\n{"name": "integration_tool", "arguments": {"param": "value"}}',
         }
         integration_planner.llm = mock_llm
         integration_planner.llm_provider = "openai"
@@ -1529,21 +1628,27 @@ class TestReactPlannerIntegration:
 
         with (
             patch.object(
-                integration_planner, "_get_planning_trajectory_summary"
+                integration_planner,
+                "_get_planning_trajectory_summary",
             ) as mock_summary,
             patch.object(
-                integration_planner, "_get_num_resource_retrievals"
+                integration_planner,
+                "_get_num_resource_retrievals",
             ) as mock_retrievals,
             patch.object(
-                integration_planner, "_retrieve_resource_signatures"
+                integration_planner,
+                "_retrieve_resource_signatures",
             ) as mock_retrieve,
         ):
             mock_summary.return_value = "Test trajectory"
             mock_retrievals.return_value = 3
             mock_retrieve.return_value = [
                 Mock(
-                    metadata={"resource_name": "integration_tool", "json_signature": {}}
-                )
+                    metadata={
+                        "resource_name": "integration_tool",
+                        "json_signature": {},
+                    },
+                ),
             ]
 
             msg_state = MessageState(
@@ -1556,7 +1661,9 @@ class TestReactPlannerIntegration:
             msg_history = [{"role": "user", "content": "Test message"}]
 
             msg_history, action_name, response = integration_planner.plan(
-                msg_state, msg_history, max_num_steps=1
+                msg_state,
+                msg_history,
+                max_num_steps=1,
             )
 
             assert action_name == "integration_tool"

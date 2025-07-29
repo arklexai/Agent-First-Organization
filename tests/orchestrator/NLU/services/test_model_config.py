@@ -62,7 +62,8 @@ class TestModelConfig:
         }
 
         with pytest.raises(
-            ValueError, match="API key for provider 'openai' is missing or empty"
+            ValueError,
+            match="API key for provider 'openai' is missing or empty",
         ):
             ModelConfig.get_model_kwargs(config)
 
@@ -76,7 +77,8 @@ class TestModelConfig:
         }
 
         with pytest.raises(
-            ValueError, match="API key for provider 'openai' is missing or empty"
+            ValueError,
+            match="API key for provider 'openai' is missing or empty",
         ):
             ModelConfig.get_model_kwargs(config)
 
@@ -89,7 +91,8 @@ class TestModelConfig:
         }
 
         with pytest.raises(
-            ValueError, match="API key for provider 'openai' is missing or empty"
+            ValueError,
+            match="API key for provider 'openai' is missing or empty",
         ):
             ModelConfig.get_model_kwargs(config)
 
@@ -291,7 +294,8 @@ class TestModelConfigIntegration:
 
     @patch("arklex.orchestrator.NLU.services.model_config.PROVIDER_MAP")
     def test_full_model_initialization_flow_openai(
-        self, mock_provider_map: Mock
+        self,
+        mock_provider_map: Mock,
     ) -> None:
         """Test complete model initialization flow for OpenAI."""
         from langchain_openai import ChatOpenAI
@@ -321,7 +325,8 @@ class TestModelConfigIntegration:
 
     @patch("arklex.orchestrator.NLU.services.model_config.PROVIDER_MAP")
     def test_full_model_initialization_flow_anthropic(
-        self, mock_provider_map: Mock
+        self,
+        mock_provider_map: Mock,
     ) -> None:
         """Test complete model initialization flow for Anthropic."""
         from langchain_anthropic import ChatAnthropic
@@ -348,7 +353,8 @@ class TestModelConfigIntegration:
 
     @patch("arklex.orchestrator.NLU.services.model_config.PROVIDER_MAP")
     def test_full_model_initialization_flow_gemini(
-        self, mock_provider_map: Mock
+        self,
+        mock_provider_map: Mock,
     ) -> None:
         """Test complete model initialization flow for Gemini."""
         from langchain_google_genai import ChatGoogleGenerativeAI
@@ -371,7 +377,6 @@ class TestModelConfigIntegration:
 
     def test_response_format_configuration_integration(self) -> None:
         """Test response format configuration with real model instance."""
-
         # Create a mock model that behaves like ChatOpenAI
         mock_model = Mock()
         mock_model.bind.return_value = mock_model  # Make bind return the same model
@@ -407,7 +412,8 @@ class TestModelConfigEdgeCases:
         config = {"model_type_or_path": "gpt-4"}
 
         with pytest.raises(
-            ValueError, match="API key for provider '' is missing or empty"
+            ValueError,
+            match="API key for provider '' is missing or empty",
         ):
             ModelConfig.get_model_kwargs(config)
 
@@ -420,12 +426,13 @@ class TestModelConfigEdgeCases:
 
     @patch("arklex.orchestrator.NLU.services.model_config.PROVIDER_MAP")
     def test_get_model_instance_provider_initialization_failure(
-        self, mock_provider_map: Mock
+        self,
+        mock_provider_map: Mock,
     ) -> None:
         """Test get_model_instance when provider initialization fails."""
         mock_provider_map.__contains__.return_value = True
         mock_provider_map.__getitem__.return_value = Mock(
-            side_effect=Exception("Initialization failed")
+            side_effect=Exception("Initialization failed"),
         )
 
         config = {

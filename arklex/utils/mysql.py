@@ -93,6 +93,7 @@ class MySQLPool:
         _database (str): The database name
         dbconfig (Dict[str, Any]): Complete database configuration dictionary
         pool (mysql.connector.pooling.MySQLConnectionPool): The connection pool instance
+
     """
 
     def __init__(self, pool_size: int, **kwargs: dict[str, Any]) -> None:
@@ -109,6 +110,7 @@ class MySQLPool:
                 - user: Database username (default: "root")
                 - password: Database password (default: "")
                 - database: Database name (default: "test")
+
         """
         self._host: str = kwargs.get("host", "localhost")
         self._port: int = kwargs.get("port", 3306)
@@ -146,13 +148,15 @@ class MySQLPool:
 
         Raises:
             Exception: If unable to obtain a connection within the timeout period
+
         """
         t0 = time.time()
         while time.time() - t0 < CONNECTION_TIMEOUT:
             try:
                 conn = self.pool.get_connection()
                 log_context.info(
-                    "mysql connection established", extra={"time": time.time() - t0}
+                    "mysql connection established",
+                    extra={"time": time.time() - t0},
                 )
                 return conn
             except mysql.connector.pooling.PoolError as e:
@@ -172,6 +176,7 @@ class MySQLPool:
 
         Args:
             sql_conns (mysql.connector.pooling.PooledMySQLConnection): The connection to close
+
         """
         sql_conns.close()
 
@@ -194,6 +199,7 @@ class MySQLPool:
 
         Raises:
             Exception: If an error occurs during query execution
+
         """
         conn = self.get_connection()
         try:
@@ -204,10 +210,11 @@ class MySQLPool:
             raise e
         finally:
             conn.close()
-        return
 
     def fetchall(
-        self, sql: str, params: tuple[Any, ...] | None = None
+        self,
+        sql: str,
+        params: tuple[Any, ...] | None = None,
     ) -> list[dict[str, Any]]:
         """Execute a SQL query and return all results.
 
@@ -231,6 +238,7 @@ class MySQLPool:
 
         Raises:
             Exception: If an error occurs during query execution
+
         """
         conn = self.get_connection()
         try:
@@ -243,7 +251,9 @@ class MySQLPool:
             conn.close()
 
     def fetchone(
-        self, sql: str, params: tuple[Any, ...] | None = None
+        self,
+        sql: str,
+        params: tuple[Any, ...] | None = None,
     ) -> dict[str, Any] | None:
         """Execute a SQL query and return a single result.
 
@@ -267,6 +277,7 @@ class MySQLPool:
 
         Raises:
             Exception: If an error occurs during query execution
+
         """
         conn = self.get_connection()
         try:

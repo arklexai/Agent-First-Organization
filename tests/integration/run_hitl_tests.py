@@ -1,6 +1,5 @@
 #!/usr/bin/env python3
-"""
-Test runner for HITL (Human-in-the-Loop) integration tests.
+"""Test runner for HITL (Human-in-the-Loop) integration tests.
 
 This script provides a convenient way to run the HITL integration tests
 with proper configuration and environment setup. It handles dependency
@@ -18,8 +17,7 @@ sys.path.insert(0, str(project_root))
 
 
 def setup_environment() -> None:
-    """
-    Set up the test environment with required environment variables.
+    """Set up the test environment with required environment variables.
 
     This function ensures that all necessary environment variables are set
     for the integration tests to run properly. The actual environment setup
@@ -29,12 +27,10 @@ def setup_environment() -> None:
     # Import conftest to use its environment setup
     # The environment variables are already set up in conftest.py
     # We just need to ensure we're in the right directory
-    pass
 
 
 def check_test_dependencies() -> bool:
-    """
-    Check if all required test dependencies are available.
+    """Check if all required test dependencies are available.
 
     Returns:
         bool: True if all dependencies are available, False otherwise.
@@ -42,6 +38,7 @@ def check_test_dependencies() -> bool:
     This function verifies that all necessary Python packages are installed
     before running the integration tests. Missing dependencies will cause
     test failures, so this check helps provide clear error messages.
+
     """
     # List of required packages for integration tests
     required_modules = [
@@ -60,7 +57,7 @@ def check_test_dependencies() -> bool:
     if missing_modules:
         print(f"❌ Missing required dependencies: {', '.join(missing_modules)}")
         print(
-            "Please install test dependencies with: pip install pytest openai langchain langchain-community langchain-openai"
+            "Please install test dependencies with: pip install pytest openai langchain langchain-community langchain-openai",
         )
         return False
 
@@ -68,8 +65,7 @@ def check_test_dependencies() -> bool:
 
 
 def check_test_files() -> bool:
-    """
-    Check if required test files exist.
+    """Check if required test files exist.
 
     Returns:
         bool: True if all required files exist, False otherwise.
@@ -77,6 +73,7 @@ def check_test_files() -> bool:
     This function verifies that all necessary test files and configuration
     files are present before running the integration tests. Missing files
     will cause test failures, so this check helps provide clear error messages.
+
     """
     # List of required files for integration tests
     required_files = [
@@ -100,10 +97,11 @@ def check_test_files() -> bool:
 
 
 def run_tests(
-    test_file: str | None = None, verbose: bool = False, markers: str | None = None
+    test_file: str | None = None,
+    verbose: bool = False,
+    markers: str | None = None,
 ) -> bool:
-    """
-    Run the HITL integration tests.
+    """Run the HITL integration tests.
 
     Args:
         test_file: Specific test file to run (optional)
@@ -115,6 +113,7 @@ def run_tests(
 
     This function sets up the environment, checks dependencies and files,
     then executes the pytest command with appropriate options.
+
     """
     setup_environment()
 
@@ -171,8 +170,7 @@ def run_tests(
 
 
 def main() -> None:
-    """
-    Main entry point for the test runner.
+    """Main entry point for the test runner.
 
     This function parses command line arguments and orchestrates the test
     execution process. It supports various options for running specific
@@ -188,7 +186,10 @@ def main() -> None:
         help="Specific test file to run (e.g., test_hitl_server.py)",
     )
     parser.add_argument(
-        "-v", "--verbose", action="store_true", help="Run tests in verbose mode"
+        "-v",
+        "--verbose",
+        action="store_true",
+        help="Run tests in verbose mode",
     )
     parser.add_argument(
         "-m",

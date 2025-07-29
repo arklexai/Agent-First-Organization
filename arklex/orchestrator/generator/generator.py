@@ -79,7 +79,7 @@ def main() -> None:
     """Main function to run the task graph generator."""
     try:
         parser = argparse.ArgumentParser(
-            description="Generate a task graph from a configuration file."
+            description="Generate a task graph from a configuration file.",
         )
         parser.add_argument(
             "--file_path",
@@ -96,7 +96,7 @@ def main() -> None:
         provider = MODEL.get("llm_provider")
         if not provider:
             raise ValueError(
-                "llm_provider must be explicitly specified in MODEL configuration"
+                "llm_provider must be explicitly specified in MODEL configuration",
             )
 
         model_class = PROVIDER_MAP.get(provider)
@@ -104,7 +104,8 @@ def main() -> None:
             raise ValueError(f"Unsupported provider: {provider}")
 
         model = model_class(
-            model=MODEL.get("model_type_or_path", "gpt-4"), timeout=30000
+            model=MODEL.get("model_type_or_path", "gpt-4"),
+            timeout=30000,
         )
 
         log_context.info("Initializing task graph generator...")

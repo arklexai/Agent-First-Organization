@@ -13,7 +13,8 @@ class TestGetPromptTemplate:
 
     @patch("arklex.env.tools.utils.load_prompts")
     def test_get_prompt_template_speech_non_chinese(
-        self, mock_load_prompts: Mock
+        self,
+        mock_load_prompts: Mock,
     ) -> None:
         """Test get_prompt_template for speech non-Chinese."""
         # Setup
@@ -158,7 +159,7 @@ class TestToolGenerator:
                 personalized_intent="test intent",
                 output="test output",
                 steps=[{"step1": "value1", "step2": "value2"}],
-            )
+            ),
         ]
         # Add mock trajectory to prevent AttributeError in trace
         mock_trajectory_item = Mock()
@@ -263,7 +264,7 @@ class TestToolGenerator:
                 personalized_intent="test intent",
                 output="test output",
                 steps=[{"step1": "value1", "step2": "value2"}],
-            )
+            ),
         ]
         state.message_queue = Mock()
         # Add mock trajectory to prevent AttributeError in trace

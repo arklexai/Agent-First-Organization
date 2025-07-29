@@ -33,8 +33,7 @@ def post_process_response(
     hitl_worker_available: bool,
     hitl_proposal_enabled: bool,
 ) -> MessageState:
-    """
-    Post-processes the chatbot's response to ensure content quality and determine whether human takeover is needed.
+    """Post-processes the chatbot's response to ensure content quality and determine whether human takeover is needed.
 
     This function performs the following steps:
     1. **Link Validation**: Compares links in the bot's response against links present in the context.
@@ -51,16 +50,18 @@ def post_process_response(
     Returns:
         MessageState: The updated message state with potentially cleaned or rephrased response,
                     and possibly a human handoff suggestion.
+
     """
     context_links = _build_context(message_state)
     response_links = _extract_links(message_state.response)
     missing_links = response_links - context_links
     if missing_links:
         log_context.info(
-            f"Some answer links are NOT present in the context. Missing: {missing_links}"
+            f"Some answer links are NOT present in the context. Missing: {missing_links}",
         )
         message_state.response = _remove_invalid_links(
-            message_state.response, missing_links
+            message_state.response,
+            missing_links,
         )
         message_state.response = _rephrase_answer(message_state)
 
@@ -86,12 +87,12 @@ def _build_context(message_state: MessageState) -> set:
                     try:
                         if rag_step_type in step:
                             step_links = _extract_links_from_nested_dict(
-                                step[rag_step_type]
+                                step[rag_step_type],
                             )
                             context_links.update(step_links)
                     except Exception as e:
                         log_context.warning(
-                            f"Error extracting links from step: {e} — step: {step}"
+                            f"Error extracting links from step: {e} — step: {step}",
                         )
     return context_links
 
@@ -143,14 +144,14 @@ def _rephrase_answer(state: MessageState) -> str:
 
     llm = model_class(model=llm_config.model_type_or_path, temperature=0.1)
     prompt: PromptTemplate = PromptTemplate.from_template(
-        load_prompts(state.bot_config)["regenerate_response"]
+        load_prompts(state.bot_config)["regenerate_response"],
     )
     input_prompt = prompt.invoke(
         {
             "sys_instruct": state.sys_instruct,
             "original_answer": state.response,
             "formatted_chat": state.user_message.history,
-        }
+        },
     )
     final_chain = llm | StrOutputParser()
     log_context.info(f"Prompt: {input_prompt.text}")
@@ -159,10 +160,10 @@ def _rephrase_answer(state: MessageState) -> str:
 
 
 def _live_chat_verifier(
-    message_state: MessageState, params: OrchestratorParams
+    message_state: MessageState,
+    params: OrchestratorParams,
 ) -> None:
-    """
-    Determines if a live chat takeover is needed.
+    """Determines if a live chat takeover is needed.
     Triggers handover if bot doesn't know the answer AND is NOT asking a clarifying question,
     and a HITL worker is available.
     """
@@ -174,7 +175,7 @@ def _live_chat_verifier(
     # check for relevance of the user's question
     if not _is_question_relevant(params):
         log_context.info(
-            "User's question is not relevant. Skipping live chat initiation."
+            "User's question is not relevant. Skipping live chat initiation.",
         )
         return
 
@@ -191,16 +192,16 @@ def _live_chat_verifier(
                     try:
                         if rag_step_type in step:
                             rag_confidence_threshold = RAG_CONFIDENCE_THRESHOLD.get(
-                                resource.info.get("id")
+                                resource.info.get("id"),
                             )
                             confidence, docs = _extract_confidence_from_nested_dict(
-                                step
+                                step,
                             )
                             rag_confidence += confidence
                             num_of_docs += docs
                     except Exception as e:
                         log_context.warning(
-                            f"Error extracting confidence from step: {e} — step: {step}"
+                            f"Error extracting confidence from step: {e} — step: {step}",
                         )
     try:
         rag_avg_confidence = rag_confidence / num_of_docs
@@ -240,7 +241,8 @@ def _is_question_relevant(params: OrchestratorParams) -> bool:
     To be improved in the future to be more robust
     """
     return params.taskgraph.nlu_records and not params.taskgraph.nlu_records[-1].get(
-        "no_intent", False
+        "no_intent",
+        False,
     )
 
 

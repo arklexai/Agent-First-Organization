@@ -48,6 +48,7 @@ class BaseResourceInitializer:
 
         Raises:
             NotImplementedError: Must be implemented by subclasses
+
         """
         raise NotImplementedError
 
@@ -63,6 +64,7 @@ class BaseResourceInitializer:
 
         Raises:
             NotImplementedError: Must be implemented by subclasses
+
         """
         raise NotImplementedError
 
@@ -76,7 +78,8 @@ class DefaultResourceInitializer(BaseResourceInitializer):
 
     @staticmethod
     def init_tools(
-        tools: list[dict[str, Any]], attributes_list: list[dict[str, Any]] | None = None
+        tools: list[dict[str, Any]],
+        attributes_list: list[dict[str, Any]] | None = None,
     ) -> dict[str, dict[str, Any]]:
         """Initialize tools from configuration.
 
@@ -86,6 +89,7 @@ class DefaultResourceInitializer(BaseResourceInitializer):
 
         Returns:
             dictionary mapping tool IDs to their configurations
+
         """
         tool_registry: dict[str, dict[str, Any]] = {}
         if attributes_list is None:
@@ -132,14 +136,15 @@ class DefaultResourceInitializer(BaseResourceInitializer):
                                 "repeatable": group.get("repeatable", True),
                                 "prompt": prompt,
                                 "description": description,
-                            }
+                            },
                         )
                     all_slots = slots + group_slots
                     tool_instance.load_slots(all_slots)
                     tool_instance.fixed_args.update(node_specific_data.get("http", {}))
                     tool_instance.description = attributes.get("task", "")
                     tool_instance.name = node_specific_data.get(
-                        "name", attributes.get("task", "").replace(" ", "_").lower()
+                        "name",
+                        attributes.get("task", "").replace(" ", "_").lower(),
                     )
                     tool_id = tool_instance.name
                 tool_registry[tool_id] = {
@@ -162,6 +167,7 @@ class DefaultResourceInitializer(BaseResourceInitializer):
 
         Returns:
             dictionary mapping worker IDs to their configurations
+
         """
         worker_registry: dict[str, dict[str, Any]] = {}
         for worker in workers:
@@ -191,6 +197,7 @@ class DefaultResourceInitializer(BaseResourceInitializer):
 
         Returns:
             dictionary mapping agent IDs to their configurations
+
         """
         agent_registry: dict[str, dict[str, Any]] = {}
         for agent in agents:
@@ -225,6 +232,7 @@ class ModelAwareResourceInitializer(DefaultResourceInitializer):
 
         Args:
             model_config: Model configuration to pass to workers
+
         """
         self.model_config = model_config
 
@@ -236,6 +244,7 @@ class ModelAwareResourceInitializer(DefaultResourceInitializer):
 
         Returns:
             dictionary mapping worker IDs to their configurations
+
         """
         worker_registry: dict[str, dict[str, Any]] = {}
         for worker in workers:
@@ -284,7 +293,7 @@ class Environment:
         resource_initializer: BaseResourceInitializer | None = None,
         planner_enabled: bool = False,
         model_service: ModelService | None = None,
-        **kwargs: str | int | float | bool | None,
+        **kwargs: str | float | bool | None,
     ) -> None:
         """Initialize the environment.
 
@@ -295,6 +304,7 @@ class Environment:
             resource_initializer: Resource initializer instance
             planner_enabled: Whether planning is enabled
             model_service: Model service for intent detection and slot filling
+
         """
         # Accept slot_fill_api as an alias for slotsfillapi for compatibility with tests
         if "slot_fill_api" in kwargs and not slotsfillapi:
@@ -304,20 +314,21 @@ class Environment:
         if resource_initializer is None:
             if model_service and hasattr(model_service, "model_config"):
                 resource_initializer = ModelAwareResourceInitializer(
-                    model_config=model_service.model_config
+                    model_config=model_service.model_config,
                 )
             else:
                 resource_initializer = DefaultResourceInitializer()
 
         attributes_list = kwargs.get("attributes", [])
         self.tools: dict[str, dict[str, Any]] = resource_initializer.init_tools(
-            tools, attributes_list=attributes_list
+            tools,
+            attributes_list=attributes_list,
         )
         self.workers: dict[str, dict[str, Any]] = resource_initializer.init_workers(
-            workers
+            workers,
         )
         self.agents: dict[str, dict[str, Any]] = resource_initializer.init_agents(
-            agents
+            agents,
         )
         self.name2id: dict[str, str] = {
             resource["name"]: id
@@ -334,16 +345,20 @@ class Environment:
                 "endpoint": "http://dummy",
                 "model_type_or_path": "dummy-path",
                 "llm_provider": "dummy",
-            }
+            },
         )
         self.slotfillapi: SlotFiller = self.initialize_slotfillapi(slotsfillapi)
         if planner_enabled:
             self.planner: ReactPlanner | DefaultPlanner = ReactPlanner(
-                tools_map=self.tools, workers_map=self.workers, name2id=self.name2id
+                tools_map=self.tools,
+                workers_map=self.workers,
+                name2id=self.name2id,
             )
         else:
             self.planner: ReactPlanner | DefaultPlanner = DefaultPlanner(
-                tools_map=self.tools, workers_map=self.workers, name2id=self.name2id
+                tools_map=self.tools,
+                workers_map=self.workers,
+                name2id=self.name2id,
             )
 
     def initialize_slotfillapi(self, slotsfillapi: str) -> SlotFiller:
@@ -355,12 +370,12 @@ class Environment:
 
         Returns:
             SlotFiller: Initialized slot filler instance, either API-based or local model-based.
+
         """
         if isinstance(slotsfillapi, str) and slotsfillapi:
             api_service = APIClientService(base_url=slotsfillapi)
             return SlotFiller(model_service=self.model_service, api_service=api_service)
-        else:
-            return SlotFiller(model_service=self.model_service)
+        return SlotFiller(model_service=self.model_service)
 
     def step(
         self,
@@ -379,6 +394,7 @@ class Environment:
 
         Returns:
             Tuple containing updated message state and parameters
+
         """
         response_state: MessageState
         if id in self.tools:
@@ -405,7 +421,8 @@ class Environment:
             if hasattr(worker, "init_slotfilling"):
                 worker.init_slotfilling(self.slotfillapi)
             response_state = worker.execute(
-                message_state, **(node_info.additional_args or {})
+                message_state,
+                **(node_info.additional_args or {}),
             )
             call_id: str = str(uuid.uuid4())
             params.memory.function_calling_trajectory.append(
@@ -417,10 +434,10 @@ class Environment:
                             "function": {"arguments": "{}", "name": self.id2name[id]},
                             "id": call_id,
                             "type": "function",
-                        }
+                        },
                     ],
                     "function_call": None,
-                }
+                },
             )
             params.memory.function_calling_trajectory.append(
                 {
@@ -430,7 +447,7 @@ class Environment:
                     "content": response_state.response
                     if response_state.response
                     else response_state.message_flow,
-                }
+                },
             )
             params.taskgraph.node_status[params.taskgraph.curr_node] = (
                 response_state.status
@@ -456,13 +473,14 @@ class Environment:
         else:
             # Resource not found in any registry, use planner as fallback
             log_context.info(
-                f"Resource {id} not found in registries, using planner as fallback"
+                f"Resource {id} not found in registries, using planner as fallback",
             )
             action: str
             response_state: MessageState
             msg_history: list[dict[str, Any]]
             action, response_state, msg_history = self.planner.execute(
-                message_state, params.memory.function_calling_trajectory
+                message_state,
+                params.memory.function_calling_trajectory,
             )
 
         log_context.info(f"Response state from {id}: {response_state}")
@@ -477,6 +495,7 @@ class Environment:
 
         Raises:
             EnvironmentError: If tool registration fails
+
         """
         try:
             self.tools[name] = tool

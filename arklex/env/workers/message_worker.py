@@ -30,7 +30,6 @@ class MessageWorkerKwargs(TypedDict, total=False):
     """Type definition for kwargs used in MessageWorker._execute method."""
 
     # Add specific worker parameters as needed
-    pass
 
 
 @register_worker
@@ -62,7 +61,7 @@ class MessageWorker(BaseWorker):
         prompts: dict[str, str] = load_prompts(state.bot_config)
         if message_flow and message_flow != "\n":
             prompt: PromptTemplate = PromptTemplate.from_template(
-                prompts["message_flow_generator_prompt"]
+                prompts["message_flow_generator_prompt"],
             )
             input_prompt = prompt.invoke(
                 {
@@ -70,18 +69,18 @@ class MessageWorker(BaseWorker):
                     "message": orch_msg_content,
                     "formatted_chat": user_message.history,
                     "context": message_flow,
-                }
+                },
             )
         else:
             prompt: PromptTemplate = PromptTemplate.from_template(
-                prompts["message_generator_prompt"]
+                prompts["message_generator_prompt"],
             )
             input_prompt = prompt.invoke(
                 {
                     "sys_instruct": state.sys_instruct,
                     "message": orch_msg_content,
                     "formatted_chat": user_message.history,
-                }
+                },
             )
         log_context.info(f"Prompt: {input_prompt.text}")
         final_chain = self.llm | StrOutputParser()
@@ -112,7 +111,7 @@ class MessageWorker(BaseWorker):
         prompts: dict[str, str] = load_prompts(state.bot_config)
         if message_flow and message_flow != "\n":
             prompt: PromptTemplate = PromptTemplate.from_template(
-                prompts["message_flow_generator_prompt"]
+                prompts["message_flow_generator_prompt"],
             )
             input_prompt = prompt.invoke(
                 {
@@ -120,18 +119,18 @@ class MessageWorker(BaseWorker):
                     "message": orch_msg_content,
                     "formatted_chat": user_message.history,
                     "context": message_flow,
-                }
+                },
             )
         else:
             prompt: PromptTemplate = PromptTemplate.from_template(
-                prompts["message_generator_prompt"]
+                prompts["message_generator_prompt"],
             )
             input_prompt = prompt.invoke(
                 {
                     "sys_instruct": state.sys_instruct,
                     "message": orch_msg_content,
                     "formatted_chat": user_message.history,
-                }
+                },
             )
         log_context.info(f"Prompt: {input_prompt.text}")
         final_chain = self.llm | StrOutputParser()
@@ -139,7 +138,7 @@ class MessageWorker(BaseWorker):
         for chunk in final_chain.stream(input_prompt.text):
             answer += chunk
             state.message_queue.put(
-                {"event": EventType.CHUNK.value, "message_chunk": chunk}
+                {"event": EventType.CHUNK.value, "message_chunk": chunk},
             )
 
         state.message_flow = ""
@@ -166,7 +165,7 @@ class MessageWorker(BaseWorker):
         prompts = load_prompts(state.bot_config)
         if message_flow and message_flow != "\n":
             prompt = PromptTemplate.from_template(
-                prompts["message_flow_generator_prompt_speech"]
+                prompts["message_flow_generator_prompt_speech"],
             )
             input_prompt = prompt.invoke(
                 {
@@ -174,18 +173,18 @@ class MessageWorker(BaseWorker):
                     "message": orch_msg_content,
                     "formatted_chat": user_message.history,
                     "context": message_flow,
-                }
+                },
             )
         else:
             prompt = PromptTemplate.from_template(
-                prompts["message_generator_prompt_speech"]
+                prompts["message_generator_prompt_speech"],
             )
             input_prompt = prompt.invoke(
                 {
                     "sys_instruct": state.sys_instruct,
                     "message": orch_msg_content,
                     "formatted_chat": user_message.history,
-                }
+                },
             )
         log_context.info(f"Prompt: {input_prompt.text}")
         final_chain = self.llm | StrOutputParser()
@@ -193,7 +192,7 @@ class MessageWorker(BaseWorker):
         for chunk in final_chain.stream(input_prompt.text):
             answer += chunk
             state.message_queue.put(
-                {"event": EventType.CHUNK.value, "message_chunk": chunk}
+                {"event": EventType.CHUNK.value, "message_chunk": chunk},
             )
 
         state.message_flow = ""
@@ -210,7 +209,7 @@ class MessageWorker(BaseWorker):
             or state.stream_type == StreamType.AUDIO
         ):
             return "text_stream_generator"
-        elif state.stream_type == StreamType.SPEECH:
+        if state.stream_type == StreamType.SPEECH:
             return "speech_stream_generator"
         return "generator"
 
@@ -227,10 +226,13 @@ class MessageWorker(BaseWorker):
         return workflow
 
     def _execute(
-        self, msg_state: MessageState, **kwargs: MessageWorkerKwargs
+        self,
+        msg_state: MessageState,
+        **kwargs: MessageWorkerKwargs,
     ) -> dict[str, Any]:
         self.llm = PROVIDER_MAP.get(
-            msg_state.bot_config.llm_config.llm_provider, ChatOpenAI
+            msg_state.bot_config.llm_config.llm_provider,
+            ChatOpenAI,
         )(model=msg_state.bot_config.llm_config.model_type_or_path)
         graph = self.action_graph.compile()
         result: dict[str, Any] = graph.invoke(msg_state)

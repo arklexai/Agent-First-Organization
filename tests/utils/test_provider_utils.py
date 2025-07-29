@@ -50,7 +50,8 @@ class TestGetApiKeyForProvider:
         with (
             patch.dict(os.environ, {}, clear=True),
             pytest.raises(
-                ValueError, match="API key for provider 'openai' is missing or empty"
+                ValueError,
+                match="API key for provider 'openai' is missing or empty",
             ),
         ):
             get_api_key_for_provider("openai")
@@ -60,7 +61,8 @@ class TestGetApiKeyForProvider:
         with (
             patch.dict(os.environ, {"OPENAI_API_KEY": ""}),
             pytest.raises(
-                ValueError, match="API key for provider 'openai' is missing or empty"
+                ValueError,
+                match="API key for provider 'openai' is missing or empty",
             ),
         ):
             get_api_key_for_provider("openai")
@@ -210,7 +212,8 @@ class TestGetProviderConfig:
         with (
             patch.dict(os.environ, {}, clear=True),
             pytest.raises(
-                ValueError, match="API key for provider 'openai' is missing or empty"
+                ValueError,
+                match="API key for provider 'openai' is missing or empty",
             ),
         ):
             get_provider_config("openai", "gpt-4")

@@ -1,5 +1,4 @@
-"""
-This module is currently inactive.
+"""This module is currently inactive.
 
 It is reserved for future use and may contain experimental or planned features.
 
@@ -23,8 +22,8 @@ load_dotenv()
 cart_url = "https://xu1e3z-yi.myshopify.com/api/2024-04/graphql.json"
 cart_headers = {
     "X-Shopify-Storefront-Access-Token": os.environ.get(
-        "SHOPIFY_STOREFRONT_ACCESS_TOKEN"
-    )
+        "SHOPIFY_STOREFRONT_ACCESS_TOKEN",
+    ),
 }
 
 
@@ -57,7 +56,7 @@ def create_cart() -> str:
             #     "value": "test"
             #   }
             # ]
-        }
+        },
     }
 
     cart_dict = make_query(cart_url, query, variable, cart_headers)

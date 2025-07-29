@@ -24,7 +24,7 @@ log_context = LogContext(__name__)
             "name": "query_result",
             "type": "str",
             "description": "A string listing the show that was cancelled",
-        }
+        },
     ],
     lambda x: x and x not in (LOG_IN_FAILURE, NO_BOOKING_MESSAGE),
 )

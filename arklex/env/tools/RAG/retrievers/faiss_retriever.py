@@ -45,7 +45,8 @@ class RetrieveEngine:
         retrieved_text: str
         retriever_returns: list[dict[str, Any]]
         retrieved_text, retriever_returns = docs.search(
-            user_message.history, prompts["retrieve_contextualize_q_prompt"]
+            user_message.history,
+            prompts["retrieve_contextualize_q_prompt"],
         )
 
         state.message_flow = retrieved_text
@@ -63,11 +64,12 @@ class FaissRetrieverExecutor:
         self.texts: list[Document] = texts
         self.index_path: str = index_path
         self.embedding_model = PROVIDER_EMBEDDINGS.get(
-            llm_config.llm_provider, OpenAIEmbeddings
+            llm_config.llm_provider,
+            OpenAIEmbeddings,
         )(
             **{"model": PROVIDER_EMBEDDING_MODELS[llm_config.llm_provider]}
             if llm_config.llm_provider != "anthropic"
-            else {"model_name": PROVIDER_EMBEDDING_MODELS[llm_config.llm_provider]}
+            else {"model_name": PROVIDER_EMBEDDING_MODELS[llm_config.llm_provider]},
         )
         model_class = validate_and_get_model_class(llm_config)
 
@@ -92,10 +94,12 @@ class FaissRetrieverExecutor:
         return docs_and_scores
 
     def search(
-        self, chat_history_str: str, contextualize_prompt: str
+        self,
+        chat_history_str: str,
+        contextualize_prompt: str,
     ) -> tuple[str, list[dict[str, Any]]]:
         contextualize_q_prompt: PromptTemplate = PromptTemplate.from_template(
-            contextualize_prompt
+            contextualize_prompt,
         )
         ret_input_chain = contextualize_q_prompt | self.llm | StrOutputParser()
         ret_input: str = ret_input_chain.invoke({"chat_history": chat_history_str})
@@ -116,7 +120,9 @@ class FaissRetrieverExecutor:
 
     @staticmethod
     def load_docs(
-        database_path: str, llm_config: LLMConfig, index_path: str = "./index"
+        database_path: str,
+        llm_config: LLMConfig,
+        index_path: str = "./index",
     ) -> "FaissRetrieverExecutor":
         document_path: str = os.path.join(database_path, "chunked_documents.pkl")
         index_path: str = os.path.join(database_path, "index")
@@ -126,5 +132,7 @@ class FaissRetrieverExecutor:
         log_context.info(f"Loaded {len(documents)} documents")
 
         return FaissRetrieverExecutor(
-            texts=documents, index_path=index_path, llm_config=llm_config
+            texts=documents,
+            index_path=index_path,
+            llm_config=llm_config,
         )

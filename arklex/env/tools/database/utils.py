@@ -76,7 +76,8 @@ class DatabaseActions:
     def __init__(self, user_id: str = USER_ID) -> None:
         self.db_path: str = os.path.join(os.environ.get("DATA_DIR"), DBNAME)
         self.llm: ChatOpenAI = ChatOpenAI(
-            model=MODEL["model_type_or_path"], timeout=30000
+            model=MODEL["model_type_or_path"],
+            timeout=30000,
         )
         self.user_id: str = user_id
         self.slots: list[SlotDetail] = []
@@ -94,7 +95,9 @@ class DatabaseActions:
         return result is not None
 
     def init_slots(
-        self, slots: list[Slot], bot_config: dict[str, Any]
+        self,
+        slots: list[Slot],
+        bot_config: dict[str, Any],
     ) -> list[dict[str, str]]:
         if not slots:
             slots = SLOTS
@@ -115,12 +118,15 @@ class DatabaseActions:
         return SLOTS
 
     def verify_slot(
-        self, slot: Slot, value_list: list[Any], bot_config: dict[str, Any]
+        self,
+        slot: Slot,
+        value_list: list[Any],
+        bot_config: dict[str, Any],
     ) -> SlotDetail:
         slot_detail: SlotDetail = SlotDetail(**slot, verified_value="", confirmed=False)
         prompts: dict[str, str] = load_prompts(bot_config)
         prompt: PromptTemplate = PromptTemplate.from_template(
-            prompts["database_slot_prompt"]
+            prompts["database_slot_prompt"],
         )
         input_prompt: Any = prompt.invoke(
             {
@@ -131,10 +137,12 @@ class DatabaseActions:
                 },
                 "value": slot["value"],
                 "value_list": value_list,
-            }
+            },
         )
         chunked_prompt: list[str] = chunk_string(
-            input_prompt.text, tokenizer=MODEL["tokenizer"], max_length=MODEL["context"]
+            input_prompt.text,
+            tokenizer=MODEL["tokenizer"],
+            max_length=MODEL["context"],
         )
         log_context.info(f"Chunked prompt for verifying slot: {chunked_prompt}")
         final_chain: Any = self.llm | StrOutputParser()
@@ -144,14 +152,14 @@ class DatabaseActions:
             for value in value_list:
                 if value in answer:
                     log_context.info(
-                        f"Chosen slot value in the database worker: {value}"
+                        f"Chosen slot value in the database worker: {value}",
                     )
                     slot_detail.verified_value = value
                     slot_detail.confirmed = True
                     return slot_detail
         except Exception as e:
             log_context.error(
-                f"Error occurred while verifying slot in the database worker: {e}"
+                f"Error occurred while verifying slot in the database worker: {e}",
             )
         return slot_detail
 
@@ -182,7 +190,7 @@ class DatabaseActions:
             results_df: pd.DataFrame = pd.DataFrame(results)
             msg_state.status = StatusEnum.COMPLETE
             msg_state.message_flow = "Available shows are:\n" + results_df.to_string(
-                index=False
+                index=False,
             )
         return msg_state
 
@@ -231,7 +239,7 @@ class DatabaseActions:
             results_df: pd.DataFrame = pd.DataFrame([results])
             msg_state.status = StatusEnum.COMPLETE
             msg_state.message_flow = "The booked show is:\n" + results_df.to_string(
-                index=False
+                index=False,
             )
         cursor.close()
         conn.close()
@@ -262,7 +270,7 @@ class DatabaseActions:
             ]
             results_df: pd.DataFrame = pd.DataFrame(results)
             msg_state.message_flow = "Booked shows are:\n" + results_df.to_string(
-                index=False
+                index=False,
             )
         msg_state.status = StatusEnum.COMPLETE
         return msg_state
@@ -307,7 +315,7 @@ class DatabaseActions:
             results_df: pd.DataFrame = pd.DataFrame(results)
             msg_state.status = StatusEnum.COMPLETE
             msg_state.message_flow = "The cancelled show is:\n" + results_df.to_string(
-                index=False
+                index=False,
             )
         cursor.close()
         conn.close()

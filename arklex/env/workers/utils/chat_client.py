@@ -1,5 +1,4 @@
-"""
-This module is currently inactive.
+"""This module is currently inactive.
 
 It is reserved for future use and may contain experimental or planned features.
 
@@ -61,7 +60,8 @@ class ChatClient:
 
     def sync_main(self, message: str | None = None) -> str:
         self.async_thread = threading.Thread(
-            target=self.async_thread_worker, args=(message,)
+            target=self.async_thread_worker,
+            args=(message,),
         )
         self.async_thread.start()
         return self.async_result.result()
@@ -132,7 +132,8 @@ class ChatClient:
             print(f"Connecting to {self.server_address}:{self.server_port}...")
         # open a connection to the server
         self.reader, self.writer = await asyncio.open_connection(
-            self.server_address, self.server_port
+            self.server_address,
+            self.server_port,
         )
         # report progress to the user
         if self.debug:

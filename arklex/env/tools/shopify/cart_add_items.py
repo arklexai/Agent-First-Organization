@@ -1,5 +1,4 @@
-"""
-This module provides functionality to add items to a shopping cart in the Shopify store.
+"""This module provides functionality to add items to a shopping cart in the Shopify store.
 It supports adding multiple product variants to a cart with specified quantities.
 
 Module Name: cart_add_items
@@ -41,10 +40,11 @@ outputs = [ShopifyOutputs.CART_ADD_ITEMS_DETAILS]
 
 @register_tool(description, slots, outputs)
 def cart_add_items(
-    cart_id: str, product_variant_ids: list[str], **kwargs: CartAddItemsParams
+    cart_id: str,
+    product_variant_ids: list[str],
+    **kwargs: CartAddItemsParams,
 ) -> str:
-    """
-    Add items to a shopping cart.
+    """Add items to a shopping cart.
 
     Args:
         cart_id (str): The ID of the shopping cart.
@@ -59,6 +59,7 @@ def cart_add_items(
             - The items cannot be added to the cart
             - There are errors in the cart data
             - There's an error in the request process
+
     """
     func_name = inspect.currentframe().f_code.co_name
     auth = authorify_storefront(kwargs)
@@ -70,7 +71,7 @@ def cart_add_items(
         ],
     }
     headers: dict[str, str] = {
-        "X-Shopify-Storefront-Access-Token": auth["storefront_token"]
+        "X-Shopify-Storefront-Access-Token": auth["storefront_token"],
     }
     query = """
     mutation cartLinesAdd($cartId: ID!, $lines: [CartLineInput!]!) {
@@ -94,36 +95,33 @@ def cart_add_items(
                     func_name,
                     extra_message=ShopifyExceptionPrompt.CART_ADD_ITEMS_ERROR_PROMPT,
                 )
-            else:
-                # Check for required keys in the response
-                if "data" not in cart_data:
-                    raise ToolExecutionError(
-                        func_name,
-                        extra_message=ShopifyExceptionPrompt.CART_ADD_ITEMS_ERROR_PROMPT,
-                    )
-
-                if "cartLinesAdd" not in cart_data["data"]:
-                    raise ToolExecutionError(
-                        func_name,
-                        extra_message=ShopifyExceptionPrompt.CART_ADD_ITEMS_ERROR_PROMPT,
-                    )
-
-                cart_lines_add = cart_data["data"]["cartLinesAdd"]
-                if "cart" not in cart_lines_add or cart_lines_add["cart"] is None:
-                    raise ToolExecutionError(
-                        func_name,
-                        extra_message=ShopifyExceptionPrompt.CART_ADD_ITEMS_ERROR_PROMPT,
-                    )
-
-                return (
-                    "Items are successfully added to the shopping cart. "
-                    + json.dumps(cart_lines_add["cart"])
+            # Check for required keys in the response
+            if "data" not in cart_data:
+                raise ToolExecutionError(
+                    func_name,
+                    extra_message=ShopifyExceptionPrompt.CART_ADD_ITEMS_ERROR_PROMPT,
                 )
-        else:
-            raise ToolExecutionError(
-                func_name,
-                extra_message=ShopifyExceptionPrompt.CART_ADD_ITEMS_ERROR_PROMPT,
+
+            if "cartLinesAdd" not in cart_data["data"]:
+                raise ToolExecutionError(
+                    func_name,
+                    extra_message=ShopifyExceptionPrompt.CART_ADD_ITEMS_ERROR_PROMPT,
+                )
+
+            cart_lines_add = cart_data["data"]["cartLinesAdd"]
+            if "cart" not in cart_lines_add or cart_lines_add["cart"] is None:
+                raise ToolExecutionError(
+                    func_name,
+                    extra_message=ShopifyExceptionPrompt.CART_ADD_ITEMS_ERROR_PROMPT,
+                )
+
+            return "Items are successfully added to the shopping cart. " + json.dumps(
+                cart_lines_add["cart"]
             )
+        raise ToolExecutionError(
+            func_name,
+            extra_message=ShopifyExceptionPrompt.CART_ADD_ITEMS_ERROR_PROMPT,
+        )
     except (requests.RequestException, Exception) as e:
         log_context.error(f"Cart add items failed: {e}")
         raise ToolExecutionError(

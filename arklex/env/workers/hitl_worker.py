@@ -58,6 +58,7 @@ class HITLWorkerKwargs(TypedDict, total=False):
         params: Configuration parameters for the worker
         verifier: List of verification criteria
         slot_fill_api: Slot filling API instance
+
     """
 
     name: str
@@ -77,7 +78,6 @@ class HITLWorkerExecuteKwargs(TypedDict, total=False):
     """
 
     # Add specific execution parameters as needed
-    pass
 
 
 # @register_worker
@@ -97,6 +97,7 @@ class HITLWorker(BaseWorker):
         verifier: List of verification criteria
         slot_fill_api: Slot filling API instance
         action_graph: StateGraph for managing worker workflow
+
     """
 
     description: str = "This is a template for a HITL worker."
@@ -111,6 +112,7 @@ class HITLWorker(BaseWorker):
 
         Args:
             **kwargs: Keyword arguments containing worker configuration
+
         """
         # Initialize attributes from kwargs
         self.name = kwargs.get("name")
@@ -135,6 +137,7 @@ class HITLWorker(BaseWorker):
         Returns:
             Tuple containing a boolean indicating whether verification is needed
             and a string message explaining the reason
+
         """
         return True, ""
 
@@ -151,6 +154,7 @@ class HITLWorker(BaseWorker):
         Returns:
             Tuple containing a boolean indicating whether verification is needed
             and a string message explaining the reason
+
         """
         return True, ""
 
@@ -166,6 +170,7 @@ class HITLWorker(BaseWorker):
         Returns:
             Tuple containing a boolean indicating whether verification is needed
             and a string message explaining the reason
+
         """
         need_hitl: bool
         message_literal: str
@@ -184,6 +189,7 @@ class HITLWorker(BaseWorker):
 
         Args:
             slot_fill_api: API endpoint for slot filling
+
         """
         self.slot_fill_api = SlotFiller(slot_fill_api)
 
@@ -192,6 +198,7 @@ class HITLWorker(BaseWorker):
 
         Returns:
             Formatted prompt string for multiple choice interactions
+
         """
         return (
             self.params["intro"]
@@ -212,9 +219,13 @@ class HITLWorker(BaseWorker):
 
         Returns:
             Updated message state after chat interaction
+
         """
         client: ChatClient = ChatClient(
-            self.server_ip, self.server_port, name=self.name, mode="c"
+            self.server_ip,
+            self.server_port,
+            name=self.name,
+            mode="c",
         )
         return client.sync_main()
 
@@ -235,9 +246,13 @@ class HITLWorker(BaseWorker):
 
         Returns:
             Updated message state after multiple choice interaction
+
         """
         client: ChatClient = ChatClient(
-            self.server_ip, self.server_port, name=self.name, mode="ro"
+            self.server_ip,
+            self.server_port,
+            name=self.name,
+            mode="ro",
         )
         return client.sync_main(message=self.create_prompt())
 
@@ -252,6 +267,7 @@ class HITLWorker(BaseWorker):
 
         Returns:
             Result string from the HITL interaction
+
         """
         result: str | None = None
         match self.mode:
@@ -290,6 +306,7 @@ class HITLWorker(BaseWorker):
 
         Returns:
             MessageState: The updated state with fallback message
+
         """
         state.message_flow = "The user don't need human help"
         state.status = StatusEnum.COMPLETE
@@ -300,6 +317,7 @@ class HITLWorker(BaseWorker):
 
         Returns:
             StateGraph representing the worker's execution flow
+
         """
         workflow: StateGraph = StateGraph(MessageState)
         # Add nodes for each worker
@@ -309,7 +327,9 @@ class HITLWorker(BaseWorker):
         return workflow
 
     def _execute(
-        self, state: MessageState, **kwargs: HITLWorkerExecuteKwargs
+        self,
+        state: MessageState,
+        **kwargs: HITLWorkerExecuteKwargs,
     ) -> MessageState:
         """Execute the HITL worker with the given state.
 
@@ -322,6 +342,7 @@ class HITLWorker(BaseWorker):
 
         Returns:
             Updated message state after execution
+
         """
         need_hitl, _ = self.verify(state)
         if not need_hitl:
@@ -339,6 +360,7 @@ class HITLWorker(BaseWorker):
 
         Returns:
             MessageState with error status
+
         """
         state.status = StatusEnum.INCOMPLETE
         return state
@@ -356,6 +378,7 @@ class HITLWorkerTestChat(HITLWorker):
     Attributes:
         description: Description of the worker functionality
         mode: Interaction mode set to "chat"
+
     """
 
     description: str = "This worker is designed to start live chat locally"
@@ -369,6 +392,7 @@ class HITLWorkerTestChat(HITLWorker):
 
         Raises:
             ValueError: If server IP or port are not provided
+
         """
         # Initialize attributes from kwargs
         self.name = kwargs.get("name")
@@ -390,6 +414,7 @@ class HITLWorkerTestChat(HITLWorker):
 
         Returns:
             True if message contains "chat", False otherwise
+
         """
         return "chat" in message
 
@@ -408,6 +433,7 @@ class HITLWorkerTestMC(HITLWorker):
         description: Description of the worker functionality
         mode: Interaction mode set to "mc"
         params: Configuration for multiple choice interaction
+
     """
 
     description: str = "Get confirmation from a real end user in purchasing"
@@ -430,6 +456,7 @@ class HITLWorkerTestMC(HITLWorker):
 
         Raises:
             ValueError: If server IP or port are not provided
+
         """
         # Initialize attributes from kwargs
         self.name = kwargs.get("name")
@@ -451,6 +478,7 @@ class HITLWorkerTestMC(HITLWorker):
 
         Returns:
             True if message contains "buy", False otherwise
+
         """
         return "buy" in message
 
@@ -466,6 +494,7 @@ class HITLWorkerChatFlag(HITLWorker):
     Attributes:
         description: Description of the worker functionality
         mode: Interaction mode set to "chat"
+
     """
 
     description: str = "Human in the loop worker"
@@ -483,12 +512,15 @@ class HITLWorkerChatFlag(HITLWorker):
 
         Returns:
             Tuple containing True and connection message
+
         """
         message: str = "I'll connect you to a representative!"
         return True, message
 
     def _execute(
-        self, state: MessageState, **kwargs: HITLWorkerExecuteKwargs
+        self,
+        state: MessageState,
+        **kwargs: HITLWorkerExecuteKwargs,
     ) -> MessageState:
         """Execute the chat worker with flag-based state management.
 
@@ -501,6 +533,7 @@ class HITLWorkerChatFlag(HITLWorker):
 
         Returns:
             Updated message state after execution
+
         """
         if not state.metadata.hitl:
             need_hitl: bool
@@ -536,6 +569,7 @@ class HITLWorkerMCFlag(HITLWorker):
         description: Description of the worker functionality
         mode: Interaction mode set to "mc"
         params: Configuration for multiple choice interaction
+
     """
 
     description: str = "Get confirmation from a real end user in purchasing"
@@ -558,11 +592,14 @@ class HITLWorkerMCFlag(HITLWorker):
 
         Returns:
             True if message contains "buy", False otherwise
+
         """
         return "buy" in message
 
     def _execute(
-        self, state: MessageState, **kwargs: HITLWorkerExecuteKwargs
+        self,
+        state: MessageState,
+        **kwargs: HITLWorkerExecuteKwargs,
     ) -> MessageState:
         """Execute the multiple choice worker with flag-based state management.
 
@@ -575,6 +612,7 @@ class HITLWorkerMCFlag(HITLWorker):
 
         Returns:
             Updated message state after execution
+
         """
         if not state.metadata.hitl:
             need_hitl: bool
@@ -592,7 +630,7 @@ class HITLWorkerMCFlag(HITLWorker):
 
         else:
             result: str | None = self.params["choices"].get(
-                state.user_message.message
+                state.user_message.message,
             )  # not actually user message but system confirmation
 
             if result:

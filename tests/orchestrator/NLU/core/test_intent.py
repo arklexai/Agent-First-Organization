@@ -16,7 +16,7 @@ def dummy_model_service() -> ModelService:
             "endpoint": "http://dummy",
             "model_type_or_path": "dummy-path",
             "llm_provider": "dummy",
-        }
+        },
     )
 
 
@@ -28,9 +28,9 @@ def test_intent_detector_local_detection(dummy_model_service: ModelService) -> N
                 "attribute": {
                     "definition": "A greeting",
                     "sample_utterances": ["hello", "hi"],
-                }
-            }
-        ]
+                },
+            },
+        ],
     }
     chat_history_str = "User: hello"
     model_config = {"temperature": 0.7}
@@ -51,9 +51,9 @@ def test_intent_detector_invalid_response_format(
                 "attribute": {
                     "definition": "A greeting",
                     "sample_utterances": ["hello", "hi"],
-                }
-            }
-        ]
+                },
+            },
+        ],
     }
     chat_history_str = "User: hello"
     model_config = {"temperature": 0.7}
@@ -61,7 +61,9 @@ def test_intent_detector_invalid_response_format(
     # Mock the model service's get_response method to return invalid format
     with (
         patch.object(
-            dummy_model_service, "get_response", return_value="invalid_response"
+            dummy_model_service,
+            "get_response",
+            return_value="invalid_response",
         ),
         pytest.raises(ValidationError, match="Invalid response format"),
     ):
@@ -76,9 +78,9 @@ def test_intent_detector_model_error(dummy_model_service: ModelService) -> None:
                 "attribute": {
                     "definition": "A greeting",
                     "sample_utterances": ["hello", "hi"],
-                }
-            }
-        ]
+                },
+            },
+        ],
     }
     chat_history_str = "User: hello"
     model_config = {"temperature": 0.7}
@@ -86,7 +88,9 @@ def test_intent_detector_model_error(dummy_model_service: ModelService) -> None:
     # Mock the model service's get_response method to raise ModelError
     with (
         patch.object(
-            dummy_model_service, "get_response", side_effect=ModelError("Model error")
+            dummy_model_service,
+            "get_response",
+            side_effect=ModelError("Model error"),
         ),
         pytest.raises(ModelError, match="Model error"),
     ):
@@ -95,7 +99,8 @@ def test_intent_detector_model_error(dummy_model_service: ModelService) -> None:
 
 def test_intent_detector_remote_detection(dummy_model_service: ModelService) -> None:
     detector = IntentDetector(
-        model_service=dummy_model_service, api_service=MagicMock()
+        model_service=dummy_model_service,
+        api_service=MagicMock(),
     )
     intents = {
         "greeting": [
@@ -103,9 +108,9 @@ def test_intent_detector_remote_detection(dummy_model_service: ModelService) -> 
                 "attribute": {
                     "definition": "A greeting",
                     "sample_utterances": ["hello", "hi"],
-                }
-            }
-        ]
+                },
+            },
+        ],
     }
     chat_history_str = "User: hello"
     model_config = {"temperature": 0.7}
@@ -113,7 +118,10 @@ def test_intent_detector_remote_detection(dummy_model_service: ModelService) -> 
     # Mock the api_service's predict_intent method for remote detection
     detector.api_service.predict_intent.return_value = "greeting"
     result = detector._detect_intent_remote(
-        text, intents, chat_history_str, model_config
+        text,
+        intents,
+        chat_history_str,
+        model_config,
     )
     assert result == "greeting"
 
@@ -126,9 +134,9 @@ def test_intent_detector_predict_intent(dummy_model_service: ModelService) -> No
                 "attribute": {
                     "definition": "A greeting",
                     "sample_utterances": ["hello", "hi"],
-                }
-            }
-        ]
+                },
+            },
+        ],
     }
     chat_history_str = "User: hello"
     model_config = {"temperature": 0.7}

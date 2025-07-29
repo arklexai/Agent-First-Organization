@@ -44,7 +44,7 @@ class TestModelProviderE2E:
 
                 # Test that model can be initialized
                 with patch(
-                    "arklex.orchestrator.NLU.services.model_config.PROVIDER_MAP"
+                    "arklex.orchestrator.NLU.services.model_config.PROVIDER_MAP",
                 ) as mock_provider_map:
                     mock_class = Mock()
                     mock_provider_map.__contains__.return_value = True
@@ -85,7 +85,7 @@ class TestModelProviderE2E:
 
                 # Test that model can be initialized
                 with patch(
-                    "arklex.orchestrator.NLU.services.model_config.PROVIDER_MAP"
+                    "arklex.orchestrator.NLU.services.model_config.PROVIDER_MAP",
                 ) as mock_provider_map:
                     mock_class = Mock()
                     mock_provider_map.__contains__.return_value = True
@@ -126,7 +126,7 @@ class TestModelProviderE2E:
 
                 # Test that model can be initialized
                 with patch(
-                    "arklex.orchestrator.NLU.services.model_config.PROVIDER_MAP"
+                    "arklex.orchestrator.NLU.services.model_config.PROVIDER_MAP",
                 ) as mock_provider_map:
                     mock_class = Mock()
                     mock_provider_map.__contains__.return_value = True
@@ -169,7 +169,7 @@ class TestModelProviderE2E:
 
                 # Test model instance creation
                 with patch(
-                    "arklex.orchestrator.NLU.services.model_config.PROVIDER_MAP"
+                    "arklex.orchestrator.NLU.services.model_config.PROVIDER_MAP",
                 ) as mock_provider_map:
                     mock_class = Mock()
                     mock_provider_map.__contains__.return_value = True
@@ -193,7 +193,8 @@ class TestModelProviderE2E:
 
             # This should fail because unknown provider is not in PROVIDER_MAP
             with pytest.raises(
-                ValueError, match="Unsupported provider: unknown-provider"
+                ValueError,
+                match="Unsupported provider: unknown-provider",
             ):
                 ModelConfig.get_model_instance(config)
 
@@ -230,7 +231,7 @@ class TestModelProviderE2E:
 
         # Test model initialization
         with patch(
-            "arklex.orchestrator.NLU.services.model_config.PROVIDER_MAP"
+            "arklex.orchestrator.NLU.services.model_config.PROVIDER_MAP",
         ) as mock_provider_map:
             mock_class = Mock()
             mock_provider_map.__contains__.return_value = True
@@ -266,7 +267,7 @@ class TestModelProviderE2E:
 
                 # Test model initialization
                 with patch(
-                    "arklex.orchestrator.NLU.services.model_config.PROVIDER_MAP"
+                    "arklex.orchestrator.NLU.services.model_config.PROVIDER_MAP",
                 ) as mock_provider_map:
                     mock_class = Mock()
                     mock_model_instance = Mock()
@@ -279,7 +280,9 @@ class TestModelProviderE2E:
 
                     model_instance = ModelConfig.get_model_instance(config)
                     configured_model = ModelConfig.configure_response_format(
-                        model_instance, config, response_format
+                        model_instance,
+                        config,
+                        response_format,
                     )
 
                     if provider == "openai":
@@ -290,7 +293,7 @@ class TestModelProviderE2E:
                             else {"type": "text"}
                         )
                         mock_model_instance.bind.assert_called_once_with(
-                            response_format=expected_format
+                            response_format=expected_format,
                         )
                     else:
                         # Non-OpenAI providers should not have bind called
@@ -325,7 +328,7 @@ class TestModelProviderE2E:
         valid_config = get_provider_config("openai", "gpt-4")
 
         with patch(
-            "arklex.orchestrator.NLU.services.model_config.PROVIDER_MAP"
+            "arklex.orchestrator.NLU.services.model_config.PROVIDER_MAP",
         ) as mock_provider_map:
             mock_class = Mock()
             mock_model_instance = Mock()
@@ -337,7 +340,9 @@ class TestModelProviderE2E:
 
             with pytest.raises(ValueError, match="Invalid response format: invalid"):
                 ModelConfig.configure_response_format(
-                    model_instance, valid_config, "invalid"
+                    model_instance,
+                    valid_config,
+                    "invalid",
                 )
 
     def test_provider_performance_under_load(self) -> None:
@@ -354,7 +359,7 @@ class TestModelProviderE2E:
                 ModelConfig.get_model_kwargs(config)
 
                 with patch(
-                    "arklex.orchestrator.NLU.services.model_config.PROVIDER_MAP"
+                    "arklex.orchestrator.NLU.services.model_config.PROVIDER_MAP",
                 ) as mock_provider_map:
                     mock_class = Mock()
                     mock_provider_map.__contains__.return_value = True
@@ -420,7 +425,7 @@ class TestModelProviderE2EWithRealTools:
 
             # Test model initialization
             with patch(
-                "arklex.orchestrator.NLU.services.model_config.PROVIDER_MAP"
+                "arklex.orchestrator.NLU.services.model_config.PROVIDER_MAP",
             ) as mock_provider_map:
                 mock_class = Mock()
                 mock_provider_map.__contains__.return_value = True
@@ -450,7 +455,7 @@ class TestModelProviderE2EWithRealTools:
 
             # Test model initialization
             with patch(
-                "arklex.orchestrator.NLU.services.model_config.PROVIDER_MAP"
+                "arklex.orchestrator.NLU.services.model_config.PROVIDER_MAP",
             ) as mock_provider_map:
                 mock_class = Mock()
                 mock_provider_map.__contains__.return_value = True
@@ -480,7 +485,7 @@ class TestModelProviderE2EWithRealTools:
 
             # Test model initialization
             with patch(
-                "arklex.orchestrator.NLU.services.model_config.PROVIDER_MAP"
+                "arklex.orchestrator.NLU.services.model_config.PROVIDER_MAP",
             ) as mock_provider_map:
                 mock_class = Mock()
                 mock_provider_map.__contains__.return_value = True
@@ -508,7 +513,7 @@ class TestModelProviderE2EWithRealTools:
 
                 # Should not raise an exception
                 with patch(
-                    "arklex.orchestrator.NLU.services.model_config.PROVIDER_MAP"
+                    "arklex.orchestrator.NLU.services.model_config.PROVIDER_MAP",
                 ) as mock_provider_map:
                     mock_class = Mock()
                     mock_provider_map.__contains__.return_value = True
@@ -542,7 +547,7 @@ class TestModelProviderE2EWithRealTools:
 
                 # Should not raise an exception
                 with patch(
-                    "arklex.orchestrator.NLU.services.model_config.PROVIDER_MAP"
+                    "arklex.orchestrator.NLU.services.model_config.PROVIDER_MAP",
                 ) as mock_provider_map:
                     mock_class = Mock()
                     mock_provider_map.__contains__.return_value = True

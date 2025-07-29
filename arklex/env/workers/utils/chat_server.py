@@ -1,5 +1,4 @@
-"""
-This module is currently inactive.
+"""This module is currently inactive.
 
 It is reserved for future use and may contain experimental or planned features.
 
@@ -31,7 +30,9 @@ class ChatServer:
 
     # write a message to a stream writer
     async def write_message(
-        self, writer: asyncio.StreamWriter, msg_bytes: bytes
+        self,
+        writer: asyncio.StreamWriter,
+        msg_bytes: bytes,
     ) -> None:
         # write message to this user
         writer.write(msg_bytes)
@@ -58,7 +59,9 @@ class ChatServer:
 
     # connect a user
     async def connect_user(
-        self, reader: asyncio.StreamReader, writer: asyncio.StreamWriter
+        self,
+        reader: asyncio.StreamReader,
+        writer: asyncio.StreamWriter,
     ) -> str:
         # ask the user for their name
         data: bytes = await reader.read(1024)  # Read raw bytes
@@ -76,7 +79,7 @@ class ChatServer:
                 {
                     "name": self.SERVER_USER,
                     "message": f"Welcome {name}. Send QUIT to disconnect.",
-                }
+                },
             ).encode(),
         )
         return name
@@ -93,7 +96,9 @@ class ChatServer:
 
     # handle a chat client
     async def handle_chat_client(
-        self, reader: asyncio.StreamReader, writer: asyncio.StreamWriter
+        self,
+        reader: asyncio.StreamReader,
+        writer: asyncio.StreamWriter,
     ) -> None:
         print("Client connecting...")
         # connect the user
@@ -130,7 +135,9 @@ class ChatServer:
         # define the local host
         # create the server
         server: asyncio.Server = await asyncio.start_server(
-            self.handle_chat_client, self.host_address, self.host_port
+            self.handle_chat_client,
+            self.host_address,
+            self.host_port,
         )
         # run the server
         async with server:

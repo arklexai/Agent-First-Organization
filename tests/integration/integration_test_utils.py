@@ -1,5 +1,4 @@
-"""
-Shared test utilities for integration tests.
+"""Shared test utilities for integration tests.
 
 This module provides common utilities, helper functions, and test data
 that can be used across all integration tests. It includes mock factories,
@@ -18,8 +17,7 @@ from arklex.orchestrator.entities.msg_state_entities import MessageState
 
 
 class MockResponse:
-    """
-    Mock response object for testing HTTP requests.
+    """Mock response object for testing HTTP requests.
 
     This class simulates the behavior of HTTP response objects,
     providing status_code, json(), and text attributes for testing
@@ -27,15 +25,18 @@ class MockResponse:
     """
 
     def __init__(
-        self, status_code: int = 200, json_data: dict[str, Any] = None, text: str = ""
+        self,
+        status_code: int = 200,
+        json_data: dict[str, Any] = None,
+        text: str = "",
     ) -> None:
-        """
-        Initialize a mock HTTP response.
+        """Initialize a mock HTTP response.
 
         Args:
             status_code: HTTP status code (default: 200)
             json_data: JSON data to return from json() method
             text: Text content of the response
+
         """
         self.status_code = status_code
         self._json_data = json_data or {}
@@ -47,8 +48,7 @@ class MockResponse:
 
 
 class TestDataProvider:
-    """
-    Provides common test data for integration tests.
+    """Provides common test data for integration tests.
 
     This class contains static methods that return realistic test data
     for various scenarios, reducing duplication across test files.
@@ -56,14 +56,14 @@ class TestDataProvider:
 
     @staticmethod
     def get_sample_shopify_product() -> dict[str, Any]:
-        """
-        Get sample Shopify product data.
+        """Get sample Shopify product data.
 
         Returns:
             dict: Sample product data with all required Shopify fields.
 
         This method provides realistic product data that matches the structure
         of actual Shopify API responses, including images, variants, and metadata.
+
         """
         return {
             "id": "gid://shopify/Product/12345",
@@ -77,9 +77,9 @@ class TestDataProvider:
                         "node": {
                             "src": "https://cdn.shopify.com/test-image.jpg",
                             "altText": "Test Product Image",
-                        }
-                    }
-                ]
+                        },
+                    },
+                ],
             },
             "variants": {
                 "nodes": [
@@ -88,21 +88,21 @@ class TestDataProvider:
                         "id": "gid://shopify/ProductVariant/67890",
                         "price": "29.99",
                         "inventoryQuantity": 10,
-                    }
-                ]
+                    },
+                ],
             },
         }
 
     @staticmethod
     def get_sample_hubspot_contact() -> dict[str, Any]:
-        """
-        Get sample HubSpot contact data.
+        """Get sample HubSpot contact data.
 
         Returns:
             dict: Sample contact data with HubSpot properties.
 
         This method provides realistic contact data that matches the structure
         of actual HubSpot API responses, including standard contact properties.
+
         """
         return {
             "id": "12345",
@@ -116,14 +116,14 @@ class TestDataProvider:
 
     @staticmethod
     def get_sample_conversation_history() -> list[dict[str, str]]:
-        """
-        Get sample conversation history.
+        """Get sample conversation history.
 
         Returns:
             list[dict[str, str]]: Sample conversation with user and assistant messages.
 
         This method provides realistic conversation history that can be used
         to test conversation flow and context handling across different scenarios.
+
         """
         return [
             {"role": "user", "content": "Hello, I need help with my order"},
@@ -136,14 +136,14 @@ class TestDataProvider:
 
     @staticmethod
     def get_sample_user_parameters() -> dict[str, Any]:
-        """
-        Get sample user parameters.
+        """Get sample user parameters.
 
         Returns:
             dict[str, Any]: Sample user parameters with various data types.
 
         This method provides realistic user parameters that can be used
         to test parameter handling and user context management.
+
         """
         return {
             "order_id": "12345",
@@ -154,8 +154,7 @@ class TestDataProvider:
 
 
 class MockFactory:
-    """
-    Factory for creating common mock objects.
+    """Factory for creating common mock objects.
 
     This class provides static methods to create consistent mock objects
     for various testing scenarios, ensuring that mocks have the same
@@ -164,8 +163,7 @@ class MockFactory:
 
     @staticmethod
     def create_mock_llm_response(content: str = "Mock LLM response") -> Mock:
-        """
-        Create a mock LLM response.
+        """Create a mock LLM response.
 
         Args:
             content: The content to include in the mock response.
@@ -175,6 +173,7 @@ class MockFactory:
 
         This method creates a mock that simulates the structure of
         responses from language model providers like OpenAI.
+
         """
         mock_response = Mock()
         mock_response.content = content
@@ -182,10 +181,10 @@ class MockFactory:
 
     @staticmethod
     def create_mock_embeddings_response(
-        dimensions: int = 1536, num_docs: int = 5
+        dimensions: int = 1536,
+        num_docs: int = 5,
     ) -> list[list[float]]:
-        """
-        Create mock embeddings response.
+        """Create mock embeddings response.
 
         Args:
             dimensions: Number of dimensions in each embedding vector.
@@ -196,15 +195,16 @@ class MockFactory:
 
         This method creates realistic embedding vectors that can be used
         to test RAG and similarity search functionality.
+
         """
         return [[0.1] * dimensions] * num_docs
 
     @staticmethod
     def create_mock_http_response(
-        status_code: int = 200, json_data: dict[str, Any] = None
+        status_code: int = 200,
+        json_data: dict[str, Any] = None,
     ) -> MockResponse:
-        """
-        Create a mock HTTP response.
+        """Create a mock HTTP response.
 
         Args:
             status_code: HTTP status code for the response.
@@ -215,19 +215,20 @@ class MockFactory:
 
         This method creates a mock HTTP response that can be used
         to test HTTP client interactions.
+
         """
         return MockResponse(status_code=status_code, json_data=json_data)
 
     @staticmethod
     def create_mock_shopify_session() -> Mock:
-        """
-        Create a mock Shopify session.
+        """Create a mock Shopify session.
 
         Returns:
             Mock: A mock Shopify session with proper context manager behavior.
 
         This method creates a mock that simulates the behavior of
         real Shopify sessions, including context manager functionality.
+
         """
         mock_session = Mock()
         mock_session.__enter__ = Mock(return_value=mock_session)
@@ -236,8 +237,7 @@ class MockFactory:
 
     @staticmethod
     def create_mock_hubspot_client() -> MagicMock:
-        """
-        Create a mock HubSpot client.
+        """Create a mock HubSpot client.
 
         Returns:
             MagicMock: A mock HubSpot client with realistic API responses.
@@ -245,6 +245,7 @@ class MockFactory:
         This method creates a comprehensive mock of the HubSpot client that
         simulates successful contact searches, communication record creation,
         and contact-communication associations.
+
         """
         mock_client = MagicMock()
 
@@ -272,8 +273,7 @@ class MockFactory:
 
 
 class AssertionHelper:
-    """
-    Helper class for common test assertions.
+    """Helper class for common test assertions.
 
     This class provides static methods for common assertion patterns
     used across integration tests, reducing code duplication and
@@ -282,8 +282,7 @@ class AssertionHelper:
 
     @staticmethod
     def assert_json_response_structure(response: str, expected_keys: list[str]) -> None:
-        """
-        Assert that a JSON response has the expected structure.
+        """Assert that a JSON response has the expected structure.
 
         Args:
             response: JSON string to validate.
@@ -294,6 +293,7 @@ class AssertionHelper:
 
         This method validates both JSON syntax and the presence of required
         keys in the response structure.
+
         """
         try:
             response_data = json.loads(response)
@@ -306,8 +306,7 @@ class AssertionHelper:
 
     @staticmethod
     def assert_error_message_contains(error: Exception, expected_text: str) -> None:
-        """
-        Assert that an error message contains expected text.
+        """Assert that an error message contains expected text.
 
         Args:
             error: The exception to check.
@@ -318,15 +317,15 @@ class AssertionHelper:
 
         This method provides a consistent way to validate error messages
         across different test scenarios.
+
         """
         assert expected_text in str(error), (
-            f"Expected '{expected_text}' in error message, got: {str(error)}"
+            f"Expected '{expected_text}' in error message, got: {error!s}"
         )
 
     @staticmethod
     def assert_api_calls_made(mock_client: Mock, expected_calls: list[str]) -> None:
-        """
-        Assert that specific API calls were made.
+        """Assert that specific API calls were made.
 
         Args:
             mock_client: The mock client to check.
@@ -337,6 +336,7 @@ class AssertionHelper:
 
         This method provides a simplified way to verify that specific
         API methods were called during test execution.
+
         """
         for call_name in expected_calls:
             # This is a simplified check - in practice you'd want more specific assertions
@@ -346,8 +346,7 @@ class AssertionHelper:
 
 
 class TestEnvironmentHelper:
-    """
-    Helper for managing test environment.
+    """Helper for managing test environment.
 
     This class provides static methods for setting up and cleaning up
     test environments, ensuring consistent test execution conditions.
@@ -355,8 +354,7 @@ class TestEnvironmentHelper:
 
     @staticmethod
     def setup_test_environment() -> None:
-        """
-        Set up common test environment variables.
+        """Set up common test environment variables.
 
         This method ensures that all necessary environment variables
         are set for integration tests to run properly.
@@ -370,8 +368,7 @@ class TestEnvironmentHelper:
 
     @staticmethod
     def cleanup_test_environment() -> None:
-        """
-        Clean up test environment variables.
+        """Clean up test environment variables.
 
         This method removes test-specific environment variables
         to prevent pollution of the system environment.
@@ -387,8 +384,7 @@ class TestEnvironmentHelper:
 
 # Global utility functions for common test operations
 def create_mock_message_state(response: str = "Mock response") -> "MessageState":
-    """
-    Create a mock MessageState for testing.
+    """Create a mock MessageState for testing.
 
     Args:
         response: The response text to include in the mock state.
@@ -398,6 +394,7 @@ def create_mock_message_state(response: str = "Mock response") -> "MessageState"
 
     This function creates a mock MessageState object that can be used
     in tests that need to simulate message processing states.
+
     """
     from arklex.orchestrator.entities.msg_state_entities import (
         BotConfig,
@@ -418,14 +415,17 @@ def create_mock_message_state(response: str = "Mock response") -> "MessageState"
             language="EN",
             bot_type="test",
             llm_config=LLMConfig(
-                model_type_or_path="gpt-3.5-turbo", llm_provider="openai"
+                model_type_or_path="gpt-3.5-turbo",
+                llm_provider="openai",
             ),
         ),
         user_message=ConvoMessage(
-            history="Mock conversation history", message="Mock user message"
+            history="Mock conversation history",
+            message="Mock user message",
         ),
         orchestrator_message=OrchestratorMessage(
-            message="Mock orchestrator message", attribute={}
+            message="Mock orchestrator message",
+            attribute={},
         ),
         function_calling_trajectory=[],
         trajectory=[],
@@ -448,8 +448,7 @@ def create_mock_message_state(response: str = "Mock response") -> "MessageState"
 
 
 def create_mock_shopify_graphql_response(data: dict[str, Any]) -> str:
-    """
-    Create a mock Shopify GraphQL response.
+    """Create a mock Shopify GraphQL response.
 
     Args:
         data: The data to include in the GraphQL response.
@@ -459,13 +458,13 @@ def create_mock_shopify_graphql_response(data: dict[str, Any]) -> str:
 
     This function creates a mock GraphQL response that matches
     the structure of actual Shopify GraphQL API responses.
+
     """
     return json.dumps({"data": data})
 
 
 def create_mock_hubspot_api_response(data: dict[str, Any]) -> MagicMock:
-    """
-    Create a mock HubSpot API response.
+    """Create a mock HubSpot API response.
 
     Args:
         data: The data to include in the API response.
@@ -475,6 +474,7 @@ def create_mock_hubspot_api_response(data: dict[str, Any]) -> MagicMock:
 
     This function creates a mock API response that matches
     the structure of actual HubSpot API responses.
+
     """
     mock_response = MagicMock()
     mock_response.to_dict.return_value = data
@@ -483,8 +483,7 @@ def create_mock_hubspot_api_response(data: dict[str, Any]) -> MagicMock:
 
 # Milvus-specific test utilities
 class MilvusTestHelper:
-    """
-    Helper class for Milvus integration tests.
+    """Helper class for Milvus integration tests.
 
     This class provides utilities specific to Milvus testing, including
     mock creation, response validation, and test data generation.
@@ -492,8 +491,7 @@ class MilvusTestHelper:
 
     @staticmethod
     def create_mock_message_state(response: str = "Mock response") -> "MessageState":
-        """
-        Create a mock MessageState for Milvus testing.
+        """Create a mock MessageState for Milvus testing.
 
         Args:
             response: The response text to include in the mock state.
@@ -503,6 +501,7 @@ class MilvusTestHelper:
 
         This method creates a mock MessageState specifically configured
         for Milvus integration testing scenarios.
+
         """
         from arklex.orchestrator.entities.msg_state_entities import (
             BotConfig,
@@ -523,7 +522,8 @@ class MilvusTestHelper:
                 language="EN",
                 bot_type="milvus",
                 llm_config=LLMConfig(
-                    model_type_or_path="gpt-3.5-turbo", llm_provider="openai"
+                    model_type_or_path="gpt-3.5-turbo",
+                    llm_provider="openai",
                 ),
             ),
             user_message=ConvoMessage(
@@ -531,7 +531,8 @@ class MilvusTestHelper:
                 message="Mock user message for Milvus testing",
             ),
             orchestrator_message=OrchestratorMessage(
-                message="Mock orchestrator message for Milvus testing", attribute={}
+                message="Mock orchestrator message for Milvus testing",
+                attribute={},
             ),
             function_calling_trajectory=[],
             trajectory=[],
@@ -560,8 +561,7 @@ class MilvusTestHelper:
         history: list[dict[str, str]],
         params: dict[str, Any],
     ) -> tuple[str, dict[str, Any], str | None]:
-        """
-        Get bot response from the API for testing.
+        """Get bot response from the API for testing.
 
         Args:
             config: Taskgraph configuration.
@@ -575,6 +575,7 @@ class MilvusTestHelper:
 
         This method simulates the API call to get bot responses
         for testing conversation flows and response generation.
+
         """
         from arklex.orchestrator.orchestrator import AgentOrg
 
@@ -590,8 +591,7 @@ class MilvusTestHelper:
 
     @staticmethod
     def validate_taskgraph_structure(config: dict) -> None:
-        """
-        Validate that the taskgraph has the correct structure.
+        """Validate that the taskgraph has the correct structure.
 
         Args:
             config: Taskgraph configuration to validate.
@@ -601,6 +601,7 @@ class MilvusTestHelper:
 
         This method validates that the taskgraph contains all required
         fields and has the expected structure for Milvus testing.
+
         """
         # Validate required top-level keys
         required_keys = ["nodes", "edges", "model", "slotfillapi"]
@@ -628,8 +629,7 @@ class MilvusTestHelper:
 
     @staticmethod
     def validate_worker_configuration(config: dict) -> None:
-        """
-        Validate that workers are properly configured.
+        """Validate that workers are properly configured.
 
         Args:
             config: Taskgraph configuration to validate.
@@ -639,6 +639,7 @@ class MilvusTestHelper:
 
         This method validates that the taskgraph contains properly
         configured workers for Milvus functionality.
+
         """
         # Check if workers are present
         assert "workers" in config, "Taskgraph must have workers configuration"
@@ -653,8 +654,7 @@ class MilvusTestHelper:
 
     @staticmethod
     def validate_domain_specific_configuration(config: dict) -> None:
-        """
-        Validate that the taskgraph is properly configured for robotics domain.
+        """Validate that the taskgraph is properly configured for robotics domain.
 
         Args:
             config: Taskgraph configuration to validate.
@@ -664,6 +664,7 @@ class MilvusTestHelper:
 
         This method validates that the taskgraph is configured
         specifically for robotics domain testing.
+
         """
         # Check for robotics-specific configurations
         # This could include specific node types, worker configurations, etc.
@@ -679,8 +680,7 @@ class MilvusTestHelper:
 
     @staticmethod
     def validate_taskgraph_metadata(config: dict) -> None:
-        """
-        Validate taskgraph metadata and version information.
+        """Validate taskgraph metadata and version information.
 
         Args:
             config: Taskgraph configuration to validate.
@@ -690,6 +690,7 @@ class MilvusTestHelper:
 
         This method validates that the taskgraph contains proper
         metadata and version information.
+
         """
         # Check for metadata fields (if they exist)
         if "metadata" in config:
@@ -704,8 +705,7 @@ class MilvusTestHelper:
 
     @staticmethod
     def validate_node_edge_consistency(config: dict) -> None:
-        """
-        Validate consistency between nodes and edges.
+        """Validate consistency between nodes and edges.
 
         Args:
             config: Taskgraph configuration to validate.
@@ -715,6 +715,7 @@ class MilvusTestHelper:
 
         This method validates that all edges reference valid nodes
         and that the graph structure is consistent.
+
         """
         nodes = config["nodes"]
         edges = config["edges"]
@@ -745,8 +746,7 @@ class MilvusTestHelper:
 
 
 class MilvusMockFactory:
-    """
-    Factory for creating Milvus-specific mock objects.
+    """Factory for creating Milvus-specific mock objects.
 
     This class provides static methods to create consistent mock objects
     specifically for Milvus testing scenarios.
@@ -754,18 +754,19 @@ class MilvusMockFactory:
 
     @staticmethod
     def create_mock_milvus_retrieval_success() -> Mock:
-        """
-        Create a mock Milvus retrieval function that simulates success.
+        """Create a mock Milvus retrieval function that simulates success.
 
         Returns:
             Mock: A mock function that simulates successful Milvus retrieval.
 
         This method creates a mock that simulates successful Milvus
         retrieval operations with proper message state updates.
+
         """
 
         def mock_milvus_retrieve_side_effect(
-            message_state: MessageState, tags: dict[str, str] | None = None
+            message_state: MessageState,
+            tags: dict[str, str] | None = None,
         ) -> MessageState:
             # Verify that product tags are passed correctly
             assert tags is not None, "Tags should be passed to Milvus retrieval"
@@ -784,18 +785,19 @@ class MilvusMockFactory:
 
     @staticmethod
     def create_mock_milvus_retrieval_error() -> Mock:
-        """
-        Create a mock Milvus retrieval function that simulates errors.
+        """Create a mock Milvus retrieval function that simulates errors.
 
         Returns:
             Mock: A mock function that simulates failed Milvus retrieval.
 
         This method creates a mock that simulates failed Milvus
         retrieval operations for testing error handling scenarios.
+
         """
 
         def mock_milvus_retrieve_error_side_effect(
-            message_state: MessageState, tags: dict[str, str] | None = None
+            message_state: MessageState,
+            tags: dict[str, str] | None = None,
         ) -> MessageState:
             # Simulate retrieval error
             message_state.message_flow = "Error: Failed to retrieve information"
@@ -807,8 +809,7 @@ class MilvusMockFactory:
 
     @staticmethod
     def create_mock_context_generator(response: str = "Mock response") -> Mock:
-        """
-        Create a mock context generator for testing.
+        """Create a mock context generator for testing.
 
         Args:
             response: The response text to generate.
@@ -818,6 +819,7 @@ class MilvusMockFactory:
 
         This method creates a mock that simulates the behavior of
         context generation functions used in RAG workflows.
+
         """
 
         def mock_context_generate_side_effect(
@@ -832,14 +834,14 @@ class MilvusMockFactory:
 
     @staticmethod
     def create_mock_post_process() -> Mock:
-        """
-        Create a mock post-processing function for testing.
+        """Create a mock post-processing function for testing.
 
         Returns:
             Mock: A mock post-processing function.
 
         This method creates a mock that simulates the behavior of
         post-processing functions used in conversation workflows.
+
         """
 
         def mock_post_process_side_effect(

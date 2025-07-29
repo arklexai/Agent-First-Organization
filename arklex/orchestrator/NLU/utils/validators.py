@@ -39,6 +39,7 @@ def validate_intent_response(response: str, idx2intents_mapping: dict[str, str])
         - Direct mapping match
         - Numeric response mapping
         - Invalid or malformed responses
+
     """
     try:
         # Clean and normalize response
@@ -54,13 +55,14 @@ def validate_intent_response(response: str, idx2intents_mapping: dict[str, str])
 
         log_context.warning(
             LOG_MESSAGES["WARNING"]["VALIDATION_ERROR"].format(
-                error=f"Invalid intent response: {response}"
-            )
+                error=f"Invalid intent response: {response}",
+            ),
         )
         return "others"
     except Exception as e:
         log_context.error(
-            LOG_MESSAGES["ERROR"]["VALIDATION_ERROR"].format(error=str(e)), exc_info=e
+            LOG_MESSAGES["ERROR"]["VALIDATION_ERROR"].format(error=str(e)),
+            exc_info=e,
         )
         return "others"
 
@@ -85,6 +87,7 @@ def validate_slot_response(response: str, slots: list[Slot]) -> list[Slot]:
         - Invalid JSON structure
         - Missing or malformed slot values
         - JSON parsing errors
+
     """
     try:
         # Parse JSON response
@@ -94,8 +97,8 @@ def validate_slot_response(response: str, slots: list[Slot]) -> list[Slot]:
         if not isinstance(data, dict) or "slots" not in data:
             log_context.warning(
                 LOG_MESSAGES["WARNING"]["VALIDATION_ERROR"].format(
-                    error="Invalid slot response structure"
-                )
+                    error="Invalid slot response structure",
+                ),
             )
             return slots
 
@@ -116,14 +119,15 @@ def validate_slot_response(response: str, slots: list[Slot]) -> list[Slot]:
     except json.JSONDecodeError as e:
         log_context.error(
             LOG_MESSAGES["ERROR"]["VALIDATION_ERROR"].format(
-                error=f"Error parsing slot response JSON: {str(e)}"
+                error=f"Error parsing slot response JSON: {e!s}",
             ),
             exc_info=e,
         )
         return slots
     except Exception as e:
         log_context.error(
-            LOG_MESSAGES["ERROR"]["VALIDATION_ERROR"].format(error=str(e)), exc_info=e
+            LOG_MESSAGES["ERROR"]["VALIDATION_ERROR"].format(error=str(e)),
+            exc_info=e,
         )
         return slots
 
@@ -149,6 +153,7 @@ def validate_verification_response(response: str) -> tuple[bool, str]:
         - Invalid JSON structure
         - Missing verification fields
         - JSON parsing errors
+
     """
     try:
         # Parse JSON response
@@ -158,8 +163,8 @@ def validate_verification_response(response: str) -> tuple[bool, str]:
         if not isinstance(data, dict):
             log_context.warning(
                 LOG_MESSAGES["WARNING"]["VALIDATION_ERROR"].format(
-                    error="Invalid verification response structure"
-                )
+                    error="Invalid verification response structure",
+                ),
             )
             return False, "No need to verify"
 
@@ -171,13 +176,14 @@ def validate_verification_response(response: str) -> tuple[bool, str]:
     except json.JSONDecodeError as e:
         log_context.error(
             LOG_MESSAGES["ERROR"]["VALIDATION_ERROR"].format(
-                error=f"Error parsing verification response JSON: {str(e)}"
+                error=f"Error parsing verification response JSON: {e!s}",
             ),
             exc_info=e,
         )
         return False, "No need to verify"
     except Exception as e:
         log_context.error(
-            LOG_MESSAGES["ERROR"]["VALIDATION_ERROR"].format(error=str(e)), exc_info=e
+            LOG_MESSAGES["ERROR"]["VALIDATION_ERROR"].format(error=str(e)),
+            exc_info=e,
         )
         return False, "No need to verify"

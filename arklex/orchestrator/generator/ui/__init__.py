@@ -14,11 +14,11 @@ from .protocols import (
 from .task_editor import TaskEditorApp
 
 __all__ = [
-    "TaskEditorApp",
     "InputModal",
-    "task_editor",
-    "TreeNodeProtocol",
-    "TreeProtocol",
     "InputModalProtocol",
     "TaskDataManager",
+    "TaskEditorApp",
+    "TreeNodeProtocol",
+    "TreeProtocol",
+    "task_editor",
 ]

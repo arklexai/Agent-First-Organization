@@ -58,7 +58,7 @@ class ExchangeDeliveredOrderItems(Tool):
             and payment_method["balance"] < diff_price
         ):
             raise Exception(
-                "Error: insufficient gift card balance to pay for the price difference"
+                "Error: insufficient gift card balance to pay for the price difference",
             )
 
         # modify the order

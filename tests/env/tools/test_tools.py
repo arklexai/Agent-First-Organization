@@ -34,7 +34,10 @@ class TestTools:
         is_response = True
 
         tool_factory = register_tool(
-            desc=desc, slots=slots, outputs=outputs, isResponse=is_response
+            desc=desc,
+            slots=slots,
+            outputs=outputs,
+            isResponse=is_response,
         )
 
         # The decorator returns a function that creates a Tool instance
@@ -128,7 +131,7 @@ class TestTools:
                             },
                         },
                     },
-                }
+                },
             )
 
             info = tool.get_info(tool.slots)
@@ -227,7 +230,7 @@ class TestTools:
                         },
                     },
                 },
-            }
+            },
         )
 
         tool_def = tool.to_openai_tool_def()
@@ -272,7 +275,9 @@ class TestTools:
         """
 
         def test_function(
-            param1: str, param2: list[str], param3: dict[str, Any]
+            param1: str,
+            param2: list[str],
+            param3: dict[str, Any],
         ) -> dict[str, Any]:
             return {
                 "result": f"Processed {param1}",
@@ -415,7 +420,7 @@ class TestTools:
         )
 
         default_slots = [
-            Slot(name="different_param", value="default_value", type="str")
+            Slot(name="different_param", value="default_value", type="str"),
         ]
 
         populated_slots = tool.init_default_slots(default_slots)
@@ -584,7 +589,7 @@ class TestTools:
 
         assert tool_def["parameters"]["properties"]["param2"]["type"] == "array"
         assert tool_def["parameters"]["properties"]["param2"]["items"] == {
-            "type": "string"
+            "type": "string",
         }
 
     def test_to_openai_tool_def_all_slots_verified(self) -> None:
@@ -656,7 +661,7 @@ class TestTools:
                 type="str",
                 verified=True,
                 required=True,
-            )
+            ),
         ]
         mock_slotfiller.fill_slots.return_value = filled_slots
         mock_slotfiller.verify_slot.return_value = (False, "Slot is valid")
@@ -698,7 +703,7 @@ class TestTools:
                     "type": "str",
                     "required": True,
                     "prompt": "Please provide param1",
-                }
+                },
             ],
             outputs=["result"],
             isResponse=False,
@@ -717,7 +722,7 @@ class TestTools:
                 verified=False,
                 required=True,
                 prompt="Please provide param1",
-            )
+            ),
         ]
         mock_slotfiller.fill_slots.return_value = empty_slots
         mock_slotfiller.verify_slot.return_value = (False, "Slot is valid")
@@ -756,7 +761,7 @@ class TestTools:
                     "type": "str",
                     "required": True,
                     "prompt": "Please confirm param1",
-                }
+                },
             ],
             outputs=["result"],
             isResponse=False,
@@ -775,7 +780,7 @@ class TestTools:
                 verified=False,
                 required=True,
                 prompt="Please confirm param1",
-            )
+            ),
         ]
         mock_slotfiller.fill_slots.return_value = unverified_slots
         mock_slotfiller.verify_slot.return_value = (True, "Please confirm this value")
@@ -803,7 +808,8 @@ class TestTools:
 
         def test_function(param1: str) -> str:
             raise ToolExecutionError(
-                "Tool execution failed", extra_message="Custom error message"
+                "Tool execution failed",
+                extra_message="Custom error message",
             )
 
         tool = Tool(
@@ -827,7 +833,7 @@ class TestTools:
                 type="str",
                 verified=True,
                 required=True,
-            )
+            ),
         ]
         mock_slotfiller.fill_slots.return_value = filled_slots
         mock_slotfiller.verify_slot.return_value = (False, "Slot is valid")
@@ -874,7 +880,7 @@ class TestTools:
                 type="str",
                 verified=True,
                 required=True,
-            )
+            ),
         ]
         mock_slotfiller.fill_slots.return_value = filled_slots
         mock_slotfiller.verify_slot.return_value = (False, "Slot is valid")
@@ -921,7 +927,7 @@ class TestTools:
                 type="str",
                 verified=True,
                 required=True,
-            )
+            ),
         ]
         mock_slotfiller.fill_slots.return_value = filled_slots
         mock_slotfiller.verify_slot.return_value = (False, "Slot is valid")
@@ -968,7 +974,7 @@ class TestTools:
                 type="str",
                 verified=True,
                 required=True,
-            )
+            ),
         ]
         mock_slotfiller.fill_slots.return_value = filled_slots
         mock_slotfiller.verify_slot.return_value = (False, "Slot is valid")
@@ -1015,7 +1021,7 @@ class TestTools:
                 type="str",
                 verified=True,
                 required=True,
-            )
+            ),
         ]
         mock_slotfiller.fill_slots.return_value = existing_slots
         mock_slotfiller.verify_slot.return_value = (False, "Slot is valid")
@@ -1065,7 +1071,7 @@ class TestTools:
                 type="str",
                 verified=True,
                 required=True,
-            )
+            ),
         ]
         mock_slotfiller.fill_slots.return_value = filled_slots
         mock_slotfiller.verify_slot.return_value = (False, "Slot is valid")
@@ -1105,7 +1111,7 @@ class TestTools:
                     "type": "str",
                     "required": True,
                     "prompt": "Please confirm param1",
-                }
+                },
             ],
             outputs=["result"],
             isResponse=False,
@@ -1124,7 +1130,7 @@ class TestTools:
                 verified=False,
                 required=True,
                 prompt="Please confirm param1",
-            )
+            ),
         ]
         mock_slotfiller.fill_slots.return_value = unverified_slots
         # This time verification is NOT needed (returns False)
@@ -1293,7 +1299,7 @@ class TestTools:
                 type="str",
                 verified=True,
                 required=True,
-            )
+            ),
         ]
         mock_slotfiller.fill_slots.return_value = filled_slots_1
         mock_slotfiller.verify_slot.return_value = (False, "Slot is valid")
@@ -1325,7 +1331,7 @@ class TestTools:
                     type="int",
                     verified=True,
                     required=True,
-                )
+                ),
             ]
             mock_slotfiller.fill_slots.return_value = filled_slots_2
             mock_slotfiller.verify_slot.return_value = (False, "Slot is valid")
@@ -1344,7 +1350,7 @@ class TestTools:
                     type="group",
                     required=True,
                     schema=[{"name": "field1", "type": "str"}],
-                )
+                ),
             ]
             filled_slots_3 = [
                 GroupSlot(
@@ -1353,7 +1359,7 @@ class TestTools:
                     type="group",
                     required=True,
                     schema=[{"name": "field1", "type": "str"}],
-                )
+                ),
             ]
             mock_slotfiller.fill_slots.return_value = filled_slots_3
             mock_slotfiller.verify_slot.return_value = (False, "Slot is valid")
@@ -1392,7 +1398,7 @@ class TestTools:
                 type="str",
                 verified=True,
                 required=True,
-            )
+            ),
         ]
         mock_slotfiller.fill_slots.return_value = filled_slots
         mock_slotfiller.verify_slot.return_value = (False, "Slot is valid")
@@ -1442,7 +1448,7 @@ class TestTools:
                 type="str",
                 verified=True,
                 required=True,
-            )
+            ),
         ]
 
         state = MessageState(
@@ -1462,7 +1468,7 @@ class TestTools:
                 type="str",
                 verified=True,
                 required=True,
-            )
+            ),
         ]
         mock_slotfiller.fill_slots.return_value = filled_slots
         mock_slotfiller.verify_slot.return_value = (False, "Slot is valid")
@@ -1598,7 +1604,7 @@ class TestToolMissingRequiredSlots:
                 required=True,
                 value=[],
                 schema=[{"name": "field1", "required": True, "type": "str"}],
-            )
+            ),
         ]
         assert tool._is_missing_required(slots) is True
 
@@ -1619,7 +1625,7 @@ class TestToolMissingRequiredSlots:
                 required=True,
                 value=None,
                 schema=[{"name": "field1", "required": True, "type": "str"}],
-            )
+            ),
         ]
         assert tool._is_missing_required(slots) is True
 
@@ -1640,7 +1646,7 @@ class TestToolMissingRequiredSlots:
                 required=True,
                 value=[{"field1": None}],  # Missing required field
                 schema=[{"name": "field1", "required": True, "type": "str"}],
-            )
+            ),
         ]
         assert tool._is_missing_required(slots) is True
 
@@ -1666,9 +1672,9 @@ class TestToolMissingRequiredSlots:
                         "required": True,
                         "repeatable": True,
                         "type": "str",
-                    }
+                    },
                 ],
-            )
+            ),
         ]
         assert tool._is_missing_required(slots) is True
 
@@ -1694,9 +1700,9 @@ class TestToolMissingRequiredSlots:
                         "required": True,
                         "repeatable": True,
                         "type": "str",
-                    }
+                    },
                 ],
-            )
+            ),
         ]
         assert tool._is_missing_required(slots) is True
 
@@ -1717,7 +1723,7 @@ class TestToolMissingRequiredSlots:
                 required=True,
                 repeatable=True,
                 value=[],
-            )
+            ),
         ]
         assert tool._is_missing_required(slots) is True
 
@@ -1738,7 +1744,7 @@ class TestToolMissingRequiredSlots:
                 required=True,
                 repeatable=True,
                 value=[None, ""],
-            )
+            ),
         ]
         assert tool._is_missing_required(slots) is True
 
@@ -1759,7 +1765,7 @@ class TestToolMissingRequiredSlots:
                 required=True,
                 value="test",
                 verified=False,
-            )
+            ),
         ]
         assert tool._is_missing_required(slots) is True
 
@@ -1813,7 +1819,7 @@ class TestToolMissingSlotsRecursive:
                 value=[],
                 prompt="Please provide test group",
                 schema=[{"name": "field1", "required": True, "type": "str"}],
-            )
+            ),
         ]
         missing = tool._missing_slots_recursive(slots)
         assert "Please provide test group" in missing
@@ -1840,9 +1846,9 @@ class TestToolMissingSlotsRecursive:
                         "required": True,
                         "prompt": "Field 1",
                         "type": "str",
-                    }
+                    },
                 ],
-            )
+            ),
         ]
         missing = tool._missing_slots_recursive(slots)
         assert "Field 1 (group 'test_group' item 1)" in missing
@@ -1865,7 +1871,7 @@ class TestToolMissingSlotsRecursive:
                 repeatable=True,
                 value=[],
                 prompt="Please provide repeatable values",
-            )
+            ),
         ]
         missing = tool._missing_slots_recursive(slots)
         assert "Please provide repeatable values" in missing
@@ -1888,7 +1894,7 @@ class TestToolMissingSlotsRecursive:
                 repeatable=True,
                 value=[None, ""],
                 prompt="Please provide repeatable values",
-            )
+            ),
         ]
         missing = tool._missing_slots_recursive(slots)
         assert "Please provide repeatable values (item 1)" in missing
@@ -1912,7 +1918,7 @@ class TestToolMissingSlotsRecursive:
                 value="test",
                 verified=False,
                 prompt="Please verify the value",
-            )
+            ),
         ]
         missing = tool._missing_slots_recursive(slots)
         assert "Please verify the value" in missing
@@ -1943,7 +1949,7 @@ class TestToolGroupSlotHandling:
                 "repeatable": True,
                 "prompt": "Please provide test group",
                 "description": "Test group description",
-            }
+            },
         ]
         tool.load_slots(group_slots)
         assert len(tool.slots) == 2
@@ -1969,8 +1975,8 @@ class TestToolGroupSlotHandling:
                     "type": "group",
                     "schema": [{"name": "field1", "type": "str"}],
                     "required": True,
-                }
-            ]
+                },
+            ],
         )
         # initial_slot = tool.slots[0]  # Removed unused variable
 
@@ -1985,8 +1991,8 @@ class TestToolGroupSlotHandling:
                         {"name": "field2", "type": "int"},
                     ],
                     "required": False,
-                }
-            ]
+                },
+            ],
         )
 
         assert len(tool.slots) == 2
@@ -2032,8 +2038,8 @@ class TestToolGroupSlotHandling:
                     ],
                     "required": True,
                     "description": "Test group",
-                }
-            ]
+                },
+            ],
         )
 
         tool_def = tool.to_openai_tool_def()
@@ -2079,8 +2085,8 @@ class TestToolGroupSlotHandling:
                         {"name": "field2", "type": "int", "required": False},
                     ],
                     "required": True,
-                }
-            ]
+                },
+            ],
         )
         tool_def = tool.to_openai_tool_def_v2()
         assert "param1" in tool_def["function"]["parameters"]["properties"]
@@ -2107,8 +2113,8 @@ class TestToolRepeatableSlots:
                     "required": True,
                     "repeatable": True,
                     "description": "Test repeatable slot",
-                }
-            ]
+                },
+            ],
         )
 
         tool_def = tool.to_openai_tool_def()
@@ -2137,8 +2143,8 @@ class TestToolRepeatableSlots:
                     "type": "str",
                     "required": True,
                     "repeatable": True,
-                }
-            ]
+                },
+            ],
         )
 
         tool_def = tool.to_openai_tool_def_v2()
@@ -2353,7 +2359,7 @@ class TestToolEdgeCases:
             [
                 {"name": "test", "type": "str", "required": True},
                 {"name": "test2", "type": "int", "required": False},
-            ]
+            ],
         )
         tool.execute(state)
 
@@ -2376,8 +2382,8 @@ class TestToolEdgeCases:
                     "type": "str",
                     "required": True,
                     "description": "Test slot",
-                }
-            ]
+                },
+            ],
         )
 
         # Mark slot as verified
@@ -2417,7 +2423,7 @@ class TestToolEdgeCases:
                     "name": "group",
                     "type": "group",
                     "schema": [{"name": "field1", "type": "str"}],
-                }
+                },
             ],
             outputs=["result"],
             isResponse=False,
@@ -2425,7 +2431,7 @@ class TestToolEdgeCases:
         tool.slotfiller = Mock()
         # Return a string that's not valid JSON
         tool.slotfiller.fill_slots.return_value = [
-            Slot(name="group", value="not a json", type="group")
+            Slot(name="group", value="not a json", type="group"),
         ]
         with pytest.raises(ValueError):
             tool._fill_slots_recursive(tool.slots, "")
@@ -2440,7 +2446,7 @@ class TestToolEdgeCases:
                     "name": "group",
                     "type": "group",
                     "schema": [{"name": "field1", "type": "str"}],
-                }
+                },
             ],
             outputs=["result"],
             isResponse=False,
@@ -2448,7 +2454,7 @@ class TestToolEdgeCases:
         tool.slotfiller = Mock()
         # Return a single dict
         tool.slotfiller.fill_slots.return_value = [
-            Slot(name="group", value={"field1": "val"}, type="group")
+            Slot(name="group", value={"field1": "val"}, type="group"),
         ]
         slots = tool._fill_slots_recursive(tool.slots, "")
         assert isinstance(slots[0].value, list)
@@ -2464,7 +2470,7 @@ class TestToolEdgeCases:
                     "name": "group",
                     "type": "group",
                     "schema": [{"name": "field1", "type": "str"}],
-                }
+                },
             ],
             outputs=["result"],
             isResponse=False,
@@ -2472,7 +2478,7 @@ class TestToolEdgeCases:
         tool.slotfiller = Mock()
         # Return an int
         tool.slotfiller.fill_slots.return_value = [
-            Slot(name="group", value=123, type="group")
+            Slot(name="group", value=123, type="group"),
         ]
         with pytest.raises(ValueError):
             tool._fill_slots_recursive(tool.slots, "")
@@ -2514,7 +2520,7 @@ class TestToolEdgeCases:
                             "repeatable": True,
                         },
                     ],
-                }
+                },
             ],
             outputs=["result"],
             isResponse=False,
@@ -2522,7 +2528,7 @@ class TestToolEdgeCases:
         tool.slotfiller = Mock()
         # Return a list of dicts with missing values
         tool.slotfiller.fill_slots.return_value = [
-            Slot(name="group", value=[{}], type="group")
+            Slot(name="group", value=[{}], type="group"),
         ]
         slots = tool._fill_slots_recursive(tool.slots, "")
         item = slots[0].value[0]
@@ -2543,7 +2549,7 @@ class TestToolEdgeCases:
         tool.slotfiller = Mock()
         # Return a string that's not valid JSON but looks like it should be JSON
         tool.slotfiller.fill_slots.return_value = [
-            Slot(name="repeat", value="[invalid json", type="str")
+            Slot(name="repeat", value="[invalid json", type="str"),
         ]
         with pytest.raises(ValueError):
             tool._fill_slots_recursive(tool.slots, "")
@@ -2560,7 +2566,7 @@ class TestToolEdgeCases:
         tool.slotfiller = Mock()
         # Return None
         tool.slotfiller.fill_slots.return_value = [
-            Slot(name="repeat", value=None, type="str")
+            Slot(name="repeat", value=None, type="str"),
         ]
         slots = tool._fill_slots_recursive(tool.slots, "")
         assert slots[0].value == []
@@ -2577,7 +2583,7 @@ class TestToolEdgeCases:
         tool.slotfiller = Mock()
         # Return a single value (not valid JSON array) - should be wrapped in list
         tool.slotfiller.fill_slots.return_value = [
-            Slot(name="repeat", value="single", type="str")
+            Slot(name="repeat", value="single", type="str"),
         ]
         slots = tool._fill_slots_recursive(tool.slots, "")
         assert slots[0].value == ["single"]
@@ -2593,7 +2599,7 @@ class TestToolEdgeCases:
                     "type": "str",
                     "items": {"type": "string"},
                     "required": True,
-                }
+                },
             ],
             outputs=["result"],
             isResponse=False,
@@ -2601,7 +2607,7 @@ class TestToolEdgeCases:
         tool_def = tool.to_openai_tool_def()
         assert tool_def["parameters"]["properties"]["param"]["type"] == "array"
         assert tool_def["parameters"]["properties"]["param"]["items"] == {
-            "type": "string"
+            "type": "string",
         }
         tool_def_v2 = tool.to_openai_tool_def_v2()
         assert (
@@ -2675,7 +2681,7 @@ class TestToolEdgeCases:
             name="test_tool",
             description="Test tool",
             slots=[
-                {"name": "param", "type": "str", "required": True, "prompt": "Prompt"}
+                {"name": "param", "type": "str", "required": True, "prompt": "Prompt"},
             ],
             outputs=["result"],
             isResponse=False,
@@ -2735,7 +2741,7 @@ class TestToolEdgeCases:
                             "description": "desc2",
                         },
                     ],
-                }
+                },
             ],
             outputs=["result"],
             isResponse=False,
@@ -2765,7 +2771,7 @@ class TestToolEdgeCases:
                         },
                         {"name": "field2", "type": "int", "required": False},
                     ],
-                }
+                },
             ],
             outputs=["result"],
             isResponse=False,
@@ -2785,7 +2791,7 @@ class TestToolEdgeCases:
                     "name": "group",
                     "type": "group",
                     "schema": [{"name": "field1", "type": "str", "required": True}],
-                }
+                },
             ],
             outputs=["result"],
             isResponse=False,
@@ -2793,7 +2799,7 @@ class TestToolEdgeCases:
         tool.slotfiller = Mock()
         # Simulate slotfiller returning a group slot with value=None
         tool.slotfiller.fill_slots.return_value = [
-            Slot(name="group", value=None, type="group")
+            Slot(name="group", value=None, type="group"),
         ]
         # This should not raise, and group_value should be None
         filled = tool.slotfiller.fill_slots([tool.slots[0]], "", None)
@@ -2825,7 +2831,7 @@ class TestToolEdgeCases:
                             "description": "desc2",
                         },
                     ],
-                }
+                },
             ],
             outputs=["result"],
             isResponse=False,
@@ -2849,7 +2855,7 @@ class TestToolEdgeCases:
                     "name": "group",
                     "type": "group",
                     "schema": [{"name": "field1", "type": "str", "required": True}],
-                }
+                },
             ],
             outputs=["result"],
             isResponse=False,
@@ -2857,7 +2863,7 @@ class TestToolEdgeCases:
         tool.slotfiller = Mock()
         # Simulate slotfiller returning a group slot with value=None
         tool.slotfiller.fill_slots.return_value = [
-            Slot(name="group", value=None, type="group")
+            Slot(name="group", value=None, type="group"),
         ]
         # This should hit the group_value assignment and None handling
         filled = tool._fill_slots_recursive(tool.slots, "")
@@ -2892,7 +2898,7 @@ class TestToolEdgeCases:
                             "description": "desc2",
                         },
                     ],
-                }
+                },
             ],
             outputs=["result"],
             isResponse=False,
@@ -2900,7 +2906,7 @@ class TestToolEdgeCases:
         tool.slotfiller = Mock()
         # Simulate slotfiller returning a group slot with value=None (so prompt is built)
         tool.slotfiller.fill_slots.return_value = [
-            Slot(name="group", value=None, type="group")
+            Slot(name="group", value=None, type="group"),
         ]
         # This should hit the inner build_group_prompt and its example_fields line
         filled = tool._fill_slots_recursive(tool.slots, "")
@@ -2935,7 +2941,7 @@ class TestToolEdgeCases:
                             "description": "desc2",
                         },
                     ],
-                }
+                },
             ],
             outputs=["result"],
             isResponse=False,
@@ -2947,7 +2953,7 @@ class TestToolEdgeCases:
                 name="group",
                 value=[{"field1": ["value1", "value2"], "field2": 123}],
                 type="group",
-            )
+            ),
         ]
         # This should hit the field_repeatable logic when processing the items
         filled = tool._fill_slots_recursive(tool.slots, "")
@@ -2988,7 +2994,7 @@ class TestToolEdgeCases:
                     "value": "value1",
                     "description": "desc3",
                 },
-            ]
+            ],
         )
 
         tool = Tool(
@@ -3016,10 +3022,10 @@ class TestToolEdgeCases:
 
         # Add debug prints to see what's happening
         print(
-            f"Before _fill_slots_recursive: slotfiller return value = {tool.slotfiller.fill_slots.return_value[0].value}"
+            f"Before _fill_slots_recursive: slotfiller return value = {tool.slotfiller.fill_slots.return_value[0].value}",
         )
         print(
-            f"Type of return value: {type(tool.slotfiller.fill_slots.return_value[0].value)}"
+            f"Type of return value: {type(tool.slotfiller.fill_slots.return_value[0].value)}",
         )
 
         # This should hit the field_repeatable logic when processing the parsed items
@@ -3051,7 +3057,7 @@ class TestToolEdgeCases:
                     "required": False,
                     "description": "desc2",
                 },
-            ]
+            ],
         )
 
         tool = Tool(
@@ -3103,7 +3109,7 @@ class TestToolEdgeCases:
         assert tool._ensure_repeatable_field_value("hello", "str") == ["hello"]
         assert tool._ensure_repeatable_field_value(123, "int") == [123]
         assert tool._ensure_repeatable_field_value({"key": "value"}, "str") == [
-            {"key": "value"}
+            {"key": "value"},
         ]
 
         # Test existing lists (should process each value)
@@ -3128,7 +3134,8 @@ class TestToolEdgeCases:
         )
         # slot_value is a single value (not a list, not None)
         result = tool._parse_and_validate_repeatable_value(
-            tool.slots[0], "single_value"
+            tool.slots[0],
+            "single_value",
         )
         print(f"result: {result}")
         assert result == ["single_value"]
@@ -3144,7 +3151,8 @@ class TestToolEdgeCases:
         )
         # slot_value is None (not str, not list)
         result = tool._parse_and_validate_repeatable_value(
-            tool.slots[0], {"key": "value"}
+            tool.slots[0],
+            {"key": "value"},
         )
         assert result == [{"key": "value"}]
 
@@ -3174,7 +3182,7 @@ class TestToolEdgeCases:
                             "repeatable": False,
                         },
                     ],
-                }
+                },
             ],
             outputs=["result"],
             isResponse=False,
@@ -3185,7 +3193,7 @@ class TestToolEdgeCases:
             {
                 "repeatable_field3": [{"key": "value"}],
                 "repeatable_field4": {"key": "value"},
-            }
+            },
         ]
 
         # Call the method directly
@@ -3218,7 +3226,7 @@ class TestToolEdgeCases:
                 type="str",
                 verified=True,
                 required=True,
-            )
+            ),
         ]
 
         result, is_verification = tool._handle_missing_required_slots(slots, "")
@@ -3241,7 +3249,7 @@ class TestToolEdgeCases:
                     "type": "str",
                     "required": True,
                     "prompt": "Please verify",
-                }
+                },
             ],
             outputs=["result"],
             isResponse=False,
@@ -3258,7 +3266,7 @@ class TestToolEdgeCases:
                 verified=False,
                 required=True,
                 prompt="Please verify",
-            )
+            ),
         ]
 
         result, is_verification = tool._handle_missing_required_slots(slots, "")
@@ -3281,7 +3289,7 @@ class TestToolEdgeCases:
                     "type": "str",
                     "required": True,
                     "prompt": "Please verify",
-                }
+                },
             ],
             outputs=["result"],
             isResponse=False,
@@ -3298,7 +3306,7 @@ class TestToolEdgeCases:
                 verified=False,
                 required=True,
                 prompt="Please verify",
-            )
+            ),
         ]
 
         result, is_verification = tool._handle_missing_required_slots(slots, "")
@@ -3321,7 +3329,7 @@ class TestToolEdgeCases:
                     "type": "str",
                     "required": True,
                     "prompt": "Please provide param",
-                }
+                },
             ],
             outputs=["result"],
             isResponse=False,
@@ -3337,7 +3345,7 @@ class TestToolEdgeCases:
                 verified=False,
                 required=True,
                 prompt="Please provide param",
-            )
+            ),
         ]
 
         result, is_verification = tool._handle_missing_required_slots(slots, "")
@@ -3360,7 +3368,7 @@ class TestToolEdgeCases:
                     "type": "str",
                     "required": False,
                     "prompt": "Please provide param",
-                }
+                },
             ],
             outputs=["result"],
             isResponse=False,
@@ -3376,7 +3384,7 @@ class TestToolEdgeCases:
                 verified=False,
                 required=False,
                 prompt="Please provide param",
-            )
+            ),
         ]
 
         result, is_verification = tool._handle_missing_required_slots(slots, "")
@@ -3400,10 +3408,18 @@ class TestToolEdgeCases:
         # Create slots that are all valid (have values and are verified)
         slots = [
             Slot(
-                name="param1", value="value1", type="str", verified=True, required=True
+                name="param1",
+                value="value1",
+                type="str",
+                verified=True,
+                required=True,
             ),
             Slot(
-                name="param2", value="value2", type="str", verified=True, required=False
+                name="param2",
+                value="value2",
+                type="str",
+                verified=True,
+                required=False,
             ),
         ]
 
@@ -3425,7 +3441,7 @@ class TestToolEdgeCases:
                     "type": "group",
                     "schema": [{"name": "field1", "type": "str", "required": True}],
                     "prompt": "Please provide group",
-                }
+                },
             ],
             outputs=["result"],
             isResponse=False,
@@ -3446,9 +3462,9 @@ class TestToolEdgeCases:
                         "type": "str",
                         "required": True,
                         "prompt": "Field 1",
-                    }
+                    },
                 ],
-            )
+            ),
         ]
 
         result, is_verification = tool._handle_missing_required_slots(slots, "")
@@ -3473,7 +3489,7 @@ class TestToolEdgeCases:
                     "required": True,
                     "prompt": "Please provide values",
                     "repeatable": True,
-                }
+                },
             ],
             outputs=["result"],
             isResponse=False,
@@ -3489,7 +3505,7 @@ class TestToolEdgeCases:
                 required=True,
                 prompt="Please provide values",
                 repeatable=True,
-            )
+            ),
         ]
 
         result, is_verification = tool._handle_missing_required_slots(slots, "")
@@ -3511,7 +3527,7 @@ class TestToolEdgeCases:
                     "required": True,
                     "prompt": "Please provide values",
                     "repeatable": True,
-                }
+                },
             ],
             outputs=["result"],
             isResponse=False,
@@ -3527,7 +3543,7 @@ class TestToolEdgeCases:
                 required=True,
                 prompt="Please provide values",
                 repeatable=True,
-            )
+            ),
         ]
 
         result, is_verification = tool._handle_missing_required_slots(slots, "")
@@ -3549,7 +3565,7 @@ class TestToolEdgeCases:
                     "required": True,
                     "prompt": "Please provide values",
                     "repeatable": True,
-                }
+                },
             ],
             outputs=["result"],
             isResponse=False,
@@ -3565,7 +3581,7 @@ class TestToolEdgeCases:
                 required=True,
                 prompt="Please provide values",
                 repeatable=True,
-            )
+            ),
         ]
 
         result, is_verification = tool._handle_missing_required_slots(slots, "")
@@ -3587,7 +3603,7 @@ class TestToolEdgeCases:
                     "required": True,
                     "prompt": "Please provide values",
                     "repeatable": True,
-                }
+                },
             ],
             outputs=["result"],
             isResponse=False,
@@ -3603,7 +3619,7 @@ class TestToolEdgeCases:
                 required=True,
                 prompt="Please provide values",
                 repeatable=True,
-            )
+            ),
         ]
 
         result, is_verification = tool._handle_missing_required_slots(slots, "")
@@ -3703,9 +3719,9 @@ class TestToolEdgeCases:
                             "type": "str",
                             "required": True,
                             "repeatable": True,
-                        }
+                        },
                     ],
-                }
+                },
             ],
             outputs=["result"],
             isResponse=False,
@@ -3723,7 +3739,7 @@ class TestToolEdgeCases:
                     "type": "str",
                     "required": True,
                     "repeatable": True,
-                }
+                },
             ],
         )
 
@@ -3748,9 +3764,9 @@ class TestToolEdgeCases:
                             "type": "str",
                             "required": True,
                             "repeatable": True,
-                        }
+                        },
                     ],
-                }
+                },
             ],
             outputs=["result"],
             isResponse=False,
@@ -3761,7 +3777,7 @@ class TestToolEdgeCases:
             name="group",
             type="group",
             value=[
-                {"repeatable_field": "not a list"}
+                {"repeatable_field": "not a list"},
             ],  # Field exists but is not a list
             prompt="Please provide group",
             schema=[
@@ -3770,7 +3786,7 @@ class TestToolEdgeCases:
                     "type": "str",
                     "required": True,
                     "repeatable": True,
-                }
+                },
             ],
         )
 
@@ -3795,9 +3811,9 @@ class TestToolEdgeCases:
                             "type": "str",
                             "required": True,
                             "repeatable": True,
-                        }
+                        },
                     ],
-                }
+                },
             ],
             outputs=["result"],
             isResponse=False,
@@ -3815,7 +3831,7 @@ class TestToolEdgeCases:
                     "type": "str",
                     "required": True,
                     "repeatable": True,
-                }
+                },
             ],
         )
 
@@ -3842,9 +3858,9 @@ class TestToolEdgeCases:
                             "type": "str",
                             "required": True,
                             "repeatable": True,
-                        }
+                        },
                     ],
-                }
+                },
             ],
             outputs=["result"],
             isResponse=False,
@@ -3855,7 +3871,7 @@ class TestToolEdgeCases:
             name="group",
             type="group",
             value=[
-                {"repeatable_field": [None, ""]}
+                {"repeatable_field": [None, ""]},
             ],  # Field exists but has empty values
             prompt="Please provide group",
             schema=[
@@ -3864,7 +3880,7 @@ class TestToolEdgeCases:
                     "type": "str",
                     "required": True,
                     "repeatable": True,
-                }
+                },
             ],
         )
 
@@ -3893,7 +3909,7 @@ class TestToolEdgeCases:
                             "repeatable": True,
                         },
                     ],
-                }
+                },
             ],
             outputs=["result"],
             isResponse=False,
@@ -3904,7 +3920,7 @@ class TestToolEdgeCases:
             name="group",
             type="group",
             value=[
-                {"field1": "value1", "field2": ["value2", "value3"]}
+                {"field1": "value1", "field2": ["value2", "value3"]},
             ],  # All fields have valid values
             prompt="Please provide group",
             schema=[

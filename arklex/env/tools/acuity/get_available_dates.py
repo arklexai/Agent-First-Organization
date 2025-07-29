@@ -38,19 +38,23 @@ outputs = [
         "name": "date_ls",
         "type": "dict",
         "description": "The available date of the specific info session in this specific month. The format is like \"{'date': 2025-05-13}\"",
-    }
+    },
 ]
 
 
 @register_tool(description, slots, outputs)
 def get_available_dates(
-    year: str, month: str, apt_type_id: str, **kwargs: str | int | float | bool | None
+    year: str,
+    month: str,
+    apt_type_id: str,
+    **kwargs: str | float | bool | None,
 ) -> str:
     func_name = inspect.currentframe().f_code.co_name
     user_id, api_key = authenticate_acuity(kwargs)
 
     base_url = "https://acuityscheduling.com/api/v1/availability/dates?appointmentTypeID={}&month={}".format(
-        apt_type_id, year + "-" + month
+        apt_type_id,
+        year + "-" + month,
     )
     response = requests.get(base_url, auth=HTTPBasicAuth(user_id, api_key))
     if response.status_code == 200:
@@ -61,7 +65,7 @@ def get_available_dates(
             response_text += f"Available dates are {date.get('date')}\n"
         return response_text
 
-    else:
-        raise ToolExecutionError(
-            func_name, AcuityExceptionPrompt.AVAILABLE_DATES_EXCEPTION_PROMPT
-        )
+    raise ToolExecutionError(
+        func_name,
+        AcuityExceptionPrompt.AVAILABLE_DATES_EXCEPTION_PROMPT,
+    )

@@ -138,7 +138,9 @@ def invalid_template() -> ReusableTask:
 def reusable_task_manager(mock_model: Mock) -> ReusableTaskManager:
     """Create a ReusableTaskManager instance for testing."""
     return ReusableTaskManager(
-        model=mock_model, role="test_role", user_objective="test objective"
+        model=mock_model,
+        role="test_role",
+        user_objective="test objective",
     )
 
 
@@ -170,7 +172,8 @@ class TestReusableTaskManager:
             assert "steps" in t
 
     def test_generate_reusable_tasks_empty(
-        self, reusable_task_manager: ReusableTaskManager
+        self,
+        reusable_task_manager: ReusableTaskManager,
     ) -> None:
         """Test reusable task generation with empty tasks."""
         templates = reusable_task_manager.generate_reusable_tasks([])
@@ -178,7 +181,8 @@ class TestReusableTaskManager:
         assert len(templates) == 0
 
     def test_generate_reusable_tasks_with_patterns_fallback(
-        self, reusable_task_manager: ReusableTaskManager
+        self,
+        reusable_task_manager: ReusableTaskManager,
     ) -> None:
         """Test the fallback case when no patterns are identified but tasks exist."""
         # Create a task that will result in no patterns but tasks exist
@@ -189,7 +193,9 @@ class TestReusableTaskManager:
         assert len(templates) == 0
 
     def test_instantiate_template_success(
-        self, reusable_task_manager: ReusableTaskManager, sample_template: ReusableTask
+        self,
+        reusable_task_manager: ReusableTaskManager,
+        sample_template: ReusableTask,
     ) -> None:
         """Test successful template instantiation."""
         reusable_task_manager._templates["tid1"] = sample_template
@@ -199,14 +205,17 @@ class TestReusableTaskManager:
         assert "steps" in instance
 
     def test_instantiate_template_not_found(
-        self, reusable_task_manager: ReusableTaskManager
+        self,
+        reusable_task_manager: ReusableTaskManager,
     ) -> None:
         """Test template instantiation with non-existent template."""
         with pytest.raises(ValueError, match="Template not found"):
             reusable_task_manager.instantiate_template("not_exist", {})
 
     def test_instantiate_template_invalid_params(
-        self, reusable_task_manager: ReusableTaskManager, sample_template: ReusableTask
+        self,
+        reusable_task_manager: ReusableTaskManager,
+        sample_template: ReusableTask,
     ) -> None:
         """Test template instantiation with invalid parameters."""
         reusable_task_manager._templates["tid1"] = sample_template
@@ -214,7 +223,9 @@ class TestReusableTaskManager:
             reusable_task_manager.instantiate_template("tid1", {"param1": 123})
 
     def test_instantiate_template_exception(
-        self, patched_validate_parameters: dict[str, Any], sample_template: ReusableTask
+        self,
+        patched_validate_parameters: dict[str, Any],
+        sample_template: ReusableTask,
     ) -> None:
         """Test template instantiation with validation exception."""
         manager = patched_validate_parameters["manager"]
@@ -256,7 +267,8 @@ class TestReusableTaskManager:
             assert "parameters" in c
 
     def test_extract_components_with_required_fields(
-        self, reusable_task_manager: ReusableTaskManager
+        self,
+        reusable_task_manager: ReusableTaskManager,
     ) -> None:
         """Test extracting components with required_fields in steps."""
         patterns = [
@@ -268,10 +280,10 @@ class TestReusableTaskManager:
                         "task": "Step 1",
                         "description": "Step 1 desc",
                         "required_fields": ["field1"],
-                    }
+                    },
                 ],
                 "parameters": {},
-            }
+            },
         ]
         components = reusable_task_manager._extract_components(patterns)
         assert len(components) == 1
@@ -280,7 +292,8 @@ class TestReusableTaskManager:
         assert components[0]["parameters"]["field1"] == "string"
 
     def test_extract_components_with_duplicate_fields(
-        self, reusable_task_manager: ReusableTaskManager
+        self,
+        reusable_task_manager: ReusableTaskManager,
     ) -> None:
         """Test that duplicate required fields are handled correctly."""
         patterns = [
@@ -292,7 +305,7 @@ class TestReusableTaskManager:
                         "task": "Step 1",
                         "description": "Step 1 desc",
                         "required_fields": ["field1", "field2"],
-                    }
+                    },
                 ],
                 "parameters": {},
             },
@@ -304,7 +317,7 @@ class TestReusableTaskManager:
                         "task": "Step 1",
                         "description": "Step 1 desc",
                         "required_fields": ["field1", "field3"],
-                    }
+                    },
                 ],
                 "parameters": {},
             },
@@ -364,7 +377,8 @@ class TestReusableTaskManager:
         assert not reusable_task_manager._validate_template(invalid_template)
 
     def test_validate_template_missing_template_id(
-        self, reusable_task_manager: ReusableTaskManager
+        self,
+        reusable_task_manager: ReusableTaskManager,
     ) -> None:
         """Test template validation with missing template_id."""
         template = ReusableTask(
@@ -380,7 +394,8 @@ class TestReusableTaskManager:
         assert not reusable_task_manager._validate_template(template)
 
     def test_validate_template_missing_name(
-        self, reusable_task_manager: ReusableTaskManager
+        self,
+        reusable_task_manager: ReusableTaskManager,
     ) -> None:
         """Test template validation with missing name."""
         template = ReusableTask(
@@ -396,7 +411,8 @@ class TestReusableTaskManager:
         assert not reusable_task_manager._validate_template(template)
 
     def test_validate_template_missing_description(
-        self, reusable_task_manager: ReusableTaskManager
+        self,
+        reusable_task_manager: ReusableTaskManager,
     ) -> None:
         """Test template validation with missing description."""
         template = ReusableTask(
@@ -412,7 +428,8 @@ class TestReusableTaskManager:
         assert not reusable_task_manager._validate_template(template)
 
     def test_validate_template_missing_steps(
-        self, reusable_task_manager: ReusableTaskManager
+        self,
+        reusable_task_manager: ReusableTaskManager,
     ) -> None:
         """Test template validation with missing steps."""
         template = ReusableTask(
@@ -428,7 +445,8 @@ class TestReusableTaskManager:
         assert not reusable_task_manager._validate_template(template)
 
     def test_validate_template_steps_not_list(
-        self, reusable_task_manager: ReusableTaskManager
+        self,
+        reusable_task_manager: ReusableTaskManager,
     ) -> None:
         """Test template validation with steps not being a list."""
         template = ReusableTask(
@@ -444,7 +462,8 @@ class TestReusableTaskManager:
         assert not reusable_task_manager._validate_template(template)
 
     def test_validate_template_parameters_not_dict(
-        self, reusable_task_manager: ReusableTaskManager
+        self,
+        reusable_task_manager: ReusableTaskManager,
     ) -> None:
         """Test template validation with parameters not being a dict."""
         template = ReusableTask(
@@ -460,7 +479,8 @@ class TestReusableTaskManager:
         assert not reusable_task_manager._validate_template(template)
 
     def test_validate_template_examples_not_list(
-        self, reusable_task_manager: ReusableTaskManager
+        self,
+        reusable_task_manager: ReusableTaskManager,
     ) -> None:
         """Test template validation with examples not being a list."""
         template = ReusableTask(
@@ -476,7 +496,8 @@ class TestReusableTaskManager:
         assert not reusable_task_manager._validate_template(template)
 
     def test_validate_template_missing_version(
-        self, reusable_task_manager: ReusableTaskManager
+        self,
+        reusable_task_manager: ReusableTaskManager,
     ) -> None:
         """Test template validation with missing version."""
         template = ReusableTask(
@@ -492,7 +513,8 @@ class TestReusableTaskManager:
         assert not reusable_task_manager._validate_template(template)
 
     def test_validate_template_missing_category(
-        self, reusable_task_manager: ReusableTaskManager
+        self,
+        reusable_task_manager: ReusableTaskManager,
     ) -> None:
         """Test template validation with missing category."""
         template = ReusableTask(
@@ -516,15 +538,18 @@ class TestReusableTaskManager:
         template = sample_template_with_multiple_params
         # Valid parameters
         assert reusable_task_manager._validate_parameters(
-            template, {"param1": "value", "param2": 42}
+            template,
+            {"param1": "value", "param2": 42},
         )
         # Missing required parameter
         assert not reusable_task_manager._validate_parameters(
-            template, {"param1": "value"}
+            template,
+            {"param1": "value"},
         )
         # Extra parameter (should be allowed)
         assert reusable_task_manager._validate_parameters(
-            template, {"param1": "value", "param2": 42, "extra": "value"}
+            template,
+            {"param1": "value", "param2": 42, "extra": "value"},
         )
 
     def test_validate_parameters_string_type(
@@ -536,7 +561,8 @@ class TestReusableTaskManager:
         template = sample_template_string_param
         # Valid string
         assert reusable_task_manager._validate_parameters(
-            template, {"param1": "valid string"}
+            template,
+            {"param1": "valid string"},
         )
         # Invalid type
         assert not reusable_task_manager._validate_parameters(template, {"param1": 123})
@@ -553,7 +579,8 @@ class TestReusableTaskManager:
         assert reusable_task_manager._validate_parameters(template, {"param1": 3.14})
         # Invalid type
         assert not reusable_task_manager._validate_parameters(
-            template, {"param1": "not a number"}
+            template,
+            {"param1": "not a number"},
         )
 
     def test_validate_parameters_boolean_type(
@@ -568,11 +595,14 @@ class TestReusableTaskManager:
         assert reusable_task_manager._validate_parameters(template, {"param1": False})
         # Invalid type
         assert not reusable_task_manager._validate_parameters(
-            template, {"param1": "not a boolean"}
+            template,
+            {"param1": "not a boolean"},
         )
 
     def test_create_instance(
-        self, reusable_task_manager: ReusableTaskManager, sample_template: ReusableTask
+        self,
+        reusable_task_manager: ReusableTaskManager,
+        sample_template: ReusableTask,
     ) -> None:
         """Test instance creation from template."""
         params = {"param1": "value"}
@@ -595,7 +625,8 @@ class TestReusableTaskManager:
         assert len(reusable_task_manager._template_categories["general"]) > 0
 
     def test_categorize_templates_with_different_categories(
-        self, reusable_task_manager: ReusableTaskManager
+        self,
+        reusable_task_manager: ReusableTaskManager,
     ) -> None:
         """Test categorization with different template categories."""
         # Create templates with different categories
@@ -649,7 +680,8 @@ class TestReusableTaskManager:
             assert "category" in d
 
     def test_generate_reusable_tasks_log_info_line(
-        self, reusable_task_manager: ReusableTaskManager
+        self,
+        reusable_task_manager: ReusableTaskManager,
     ) -> None:
         """Test reusable task generation with logging coverage."""
         tasks = [
@@ -659,7 +691,7 @@ class TestReusableTaskManager:
                 "steps": [
                     {"task": "Step 1", "description": "Step 1 desc"},
                 ],
-            }
+            },
         ]
         templates = reusable_task_manager.generate_reusable_tasks(tasks)
         assert isinstance(templates, dict)
@@ -673,7 +705,9 @@ class TestReusableTaskManager:
 
         # Create a manager
         manager = ReusableTaskManager(
-            model=Mock(), role="test_role", user_objective="test objective"
+            model=Mock(),
+            role="test_role",
+            user_objective="test objective",
         )
 
         # Create tasks that will result in no patterns but tasks exist
@@ -682,7 +716,7 @@ class TestReusableTaskManager:
                 "name": "Task 1",
                 "description": "Description 1",
                 "steps": [{"task": "Step 1", "description": "Step 1 desc"}],
-            }
+            },
         ]
 
         # Mock _identify_patterns to return empty list

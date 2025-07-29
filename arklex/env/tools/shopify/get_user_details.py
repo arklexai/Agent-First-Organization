@@ -1,5 +1,4 @@
-"""
-This module provides functionality to retrieve detailed user information from the Shopify store.
+"""This module provides functionality to retrieve detailed user information from the Shopify store.
 It supports retrieving user profile details, contact information, and order history.
 
 The module:
@@ -56,10 +55,10 @@ class GetUserDetailsParams(TypedDict, total=False):
 
 @register_tool(description, slots, outputs, lambda x: x not in errors)
 def get_user_details(
-    refresh_token: str, **kwargs: GetUserDetailsParams
+    refresh_token: str,
+    **kwargs: GetUserDetailsParams,
 ) -> tuple[dict[str, str], dict[str, str]] | str:
-    """
-    Retrieve detailed information about a user's profile and their orders.
+    """Retrieve detailed information about a user's profile and their orders.
 
     Args:
         refresh_token (str): The refresh token used for authentication.
@@ -91,6 +90,7 @@ def get_user_details(
         This function requires a valid refresh token for authentication.
         The response includes both user details and pagination information
         for order history.
+
     """
     nav = cursorify(kwargs)
     if not nav[1]:
@@ -133,7 +133,10 @@ def get_user_details(
 
         try:
             response: dict[str, str] = make_query(
-                customer_url, body, {}, customer_headers | auth
+                customer_url,
+                body,
+                {},
+                customer_headers | auth,
             )["data"]["customer"]
         except Exception as e:
             return f"error: {e}"

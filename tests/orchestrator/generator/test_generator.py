@@ -144,7 +144,7 @@ def sample_practices() -> list[BestPractice]:
             examples=["Product name validation", "Price format check"],
             priority=1,
             category="validation",
-        )
+        ),
     ]
 
 
@@ -270,7 +270,7 @@ def sample_practices_dict() -> list[dict]:
             "examples": ["Product name validation", "Price format check"],
             "priority": 1,
             "category": "validation",
-        }
+        },
     ]
 
 
@@ -380,7 +380,7 @@ class TestGeneratorAdditionalCoverage:
 
         try:
             with pytest.raises(
-                ValueError
+                ValueError,
             ):  # JSONDecodeError is a subclass of ValueError
                 load_config(temp_file)
         finally:
@@ -416,13 +416,13 @@ class TestGeneratorAdditionalCoverage:
             with (
                 patch("sys.argv", ["test_generator.py", "--file_path", temp_file]),
                 patch(
-                    "arklex.orchestrator.generator.generator.PROVIDER_MAP"
+                    "arklex.orchestrator.generator.generator.PROVIDER_MAP",
                 ) as mock_provider_map,
                 patch(
-                    "arklex.orchestrator.generator.generator.ChatOpenAI"
+                    "arklex.orchestrator.generator.generator.ChatOpenAI",
                 ) as mock_chat_openai,
                 patch(
-                    "arklex.orchestrator.generator.generator.CoreGenerator"
+                    "arklex.orchestrator.generator.generator.CoreGenerator",
                 ) as mock_core_generator,
                 patch("json.dump") as mock_json_dump,
             ):
@@ -461,7 +461,8 @@ class TestGeneratorAdditionalCoverage:
             mock_exit.assert_called_once_with(1)
 
     def test_main_function_generation_error(
-        self, always_valid_mock_model: Mock
+        self,
+        always_valid_mock_model: Mock,
     ) -> None:
         """Test main function when generation fails."""
         import json
@@ -490,13 +491,13 @@ class TestGeneratorAdditionalCoverage:
             with (
                 patch("sys.argv", ["test_generator.py", "--file_path", temp_file]),
                 patch(
-                    "arklex.orchestrator.generator.generator.PROVIDER_MAP"
+                    "arklex.orchestrator.generator.generator.PROVIDER_MAP",
                 ) as mock_provider_map,
                 patch(
-                    "arklex.orchestrator.generator.generator.ChatOpenAI"
+                    "arklex.orchestrator.generator.generator.ChatOpenAI",
                 ) as mock_chat_openai,
                 patch(
-                    "arklex.orchestrator.generator.generator.CoreGenerator"
+                    "arklex.orchestrator.generator.generator.CoreGenerator",
                 ) as mock_core_generator,
                 patch("sys.exit") as mock_exit,
                 patch("arklex.orchestrator.generator.generator.__name__", "__main__"),
@@ -506,7 +507,7 @@ class TestGeneratorAdditionalCoverage:
                 mock_chat_openai.return_value = mock_chat_instance
                 mock_generator_instance = Mock()
                 mock_generator_instance.generate.side_effect = Exception(
-                    "Generation failed"
+                    "Generation failed",
                 )
                 mock_core_generator.return_value = mock_generator_instance
 

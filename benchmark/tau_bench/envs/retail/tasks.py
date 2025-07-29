@@ -321,7 +321,7 @@ tasks = [
             {
                 "name": "transfer_to_human_agents",
                 "arguments": {
-                    "summary": "The user wants to refund each order to the opposite order's payment method, but the agent cannot help."
+                    "summary": "The user wants to refund each order to the opposite order's payment method, but the agent cannot help.",
                 },
             },
         ],
@@ -384,7 +384,7 @@ tasks = [
             {
                 "name": "transfer_to_human_agents",
                 "arguments": {
-                    "summary": "The user prefers PayPal for refund, but the agent cannot help."
+                    "summary": "The user prefers PayPal for refund, but the agent cannot help.",
                 },
             },
         ],
@@ -863,7 +863,7 @@ tasks = [
             {
                 "name": "transfer_to_human_agents",
                 "arguments": {
-                    "summary": "The user wants to refund to the amex credit card, but the agent cannot help."
+                    "summary": "The user wants to refund to the amex credit card, but the agent cannot help.",
                 },
             },
         ],
@@ -1322,7 +1322,7 @@ tasks = [
             {
                 "name": "calculate",
                 "arguments": {
-                    "expression": "466.75 + 288.82 + 135.24 + 193.38 + 46.66"
+                    "expression": "466.75 + 288.82 + 135.24 + 193.38 + 46.66",
                 },
             },
             {
@@ -1759,9 +1759,9 @@ tasks = [
             {
                 "name": "transfer_to_human_agents",
                 "arguments": {
-                    "summary": "The user urgently needs to undo a cancellation of an order and insists on receiving the items from the initial order as soon as possible. The user acknowledges the policy but requests exceptional measures due to the urgency of the situation."
+                    "summary": "The user urgently needs to undo a cancellation of an order and insists on receiving the items from the initial order as soon as possible. The user acknowledges the policy but requests exceptional measures due to the urgency of the situation.",
                 },
-            }
+            },
         ],
         "outputs": [],
     },
@@ -2303,7 +2303,7 @@ tasks = [
                     "new_item_ids": ["9013366374"],
                     "payment_method_id": "credit_card_7901829",
                 },
-            }
+            },
         ],
         "instruction": "You name is Sofia Hernandez and your zip code is 98193. You are impatient, confident, direct, messy. You recently received a helmet but you are not happy with it and want to exchange. The size is too small and you want medium, plus you want high ventilation. If multiple colors are available, you prefer blue. You do not want the  You prefer original payment to pay for the price difference, and you want to know how much you need to pay today.",
         "outputs": ["22.55"],
@@ -2383,7 +2383,7 @@ tasks = [
                     ],
                     "payment_method_id": "credit_card_6824399",
                 },
-            }
+            },
         ],
         "instruction": "You name is Fatima Wilson and your email is fatima.wilson5721@example.com. You are polite, flexible, creative. You want to return everything you just bought except the coffee machine.",
         "annotator": 4,
@@ -2421,7 +2421,7 @@ tasks = [
                     "new_item_ids": ["4063058357"],
                     "payment_method_id": "paypal_4518393",
                 },
-            }
+            },
         ],
         "instruction": "You name is Liam Moore and your email is liam.moore6985@example.com. You are direct, patient, organized, optimistic. For #W6908222, exchange Wireless Earbuds {'color': 'blue', 'battery life': '8 hours', 'water resistance': 'IPX4'} to {'color': 'black', 'battery life': '4 hours', 'water resistance': 'not resistant'}; ",
         "annotator": 4,
@@ -2455,7 +2455,7 @@ tasks = [
                     "new_item_ids": ["3399869890"],
                     "payment_method_id": "paypal_6918118",
                 },
-            }
+            },
         ],
         "instruction": "You name is Ivan Johnson and your zip code is 94183. You ordered a perfume and you just tried a little bit and you like it extremely. You want to get the maximum size available for it. If the agent cannot help with placing a new order, exchange your current one to the largest size available.",
         "annotator": 4,
@@ -2505,7 +2505,7 @@ tasks = [
                     "new_item_ids": ["2439754078"],
                     "payment_method_id": "credit_card_7239357",
                 },
-            }
+            },
         ],
         "instruction": "You name is Emma Kovacs and your zip code is 32190. You are insecure, rigid, sad, logical. You just bought a water bottle with 500ml but you regret it, and you want to change it to the other bottle you just placed with 1000ml capacity. If the exact item is not available any more, you can allow the material to be different.",
         "annotator": 4,
@@ -2522,7 +2522,7 @@ tasks = [
                     "new_item_ids": ["9354168549"],
                     "payment_method_id": "gift_card_2611937",
                 },
-            }
+            },
         ],
         "instruction": "You name is Amelia Gonzalez and your email is amelia.gonzalez4271@example.com. You are curious, patient, outgoing. For #W7209932, exchange T-Shirt {'color': 'blue', 'size': 'S', 'material': 'polyester', 'style': 'v-neck'} to {'color': 'red', 'size': 'XXL', 'material': 'cotton', 'style': 'crew neck'}; Use the gift card. Try to make the conversation as confusing for the agent as possible.",
         "annotator": 4,
@@ -2559,7 +2559,7 @@ tasks = [
                     ],
                     "payment_method_id": "gift_card_7250692",
                 },
-            }
+            },
         ],
         "instruction": "You name is Chen Silva and your zip code is 46281. You are messy, flexible, outgoing. You received two tablets and you only need one. You want to return the more expensive one and refund to credit card. If refund to credit card is not possible, you become angry and return everything on that order and refund to GC.",
         "annotator": 4,
@@ -2575,7 +2575,7 @@ tasks = [
                     "item_ids": ["6065192424"],
                     "payment_method_id": "gift_card_7250692",
                 },
-            }
+            },
         ],
         "instruction": "You name is Chen Silva and your zip code is 46281. You are messy, flexible, outgoing. You received two tablets and you only need one. You want to return the more expensive one and refund to credit card. If refund to credit card is not possible, you become angry and refund to GC.",
         "annotator": 4,
@@ -2591,7 +2591,7 @@ tasks = [
                     "item_ids": ["6065192424"],
                     "payment_method_id": "gift_card_7250692",
                 },
-            }
+            },
         ],
         "instruction": "You name is Chen Silva and your zip code is 46281. You are messy, flexible, outgoing. You received two tablets and you only need one. You want to return the less expensive one and refund to credit card. But if the agent asks for confirmation, you change your mind and return the more expensive one and refund to GC.",
         "annotator": 4,
@@ -2608,7 +2608,7 @@ tasks = [
                     "new_item_ids": ["8733974883"],
                     "payment_method_id": "paypal_7529813",
                 },
-            }
+            },
         ],
         "instruction": "You name is Yusuf Hernandez and your email is yusuf.hernandez8836@example.com. You are shy, rigid. You want to exchange your Fleece Jacket for a large red Fleece Jacket with a half zipper",
         "annotator": 4,
@@ -2703,7 +2703,7 @@ tasks = [
             {
                 "name": "cancel_pending_order",
                 "arguments": {"order_id": "#W8835847", "reason": "ordered by mistake"},
-            }
+            },
         ],
         "instruction": "You name is Daiki Silva and your email is daiki.silva6295@example.com. You are insecure, creative, direct, relaxing. You want to change the book shelf to 4 foot but with the same material and color. If it is not available, cancel the whole order and you will buy again. If the agent asks for the cancellation reason, you say you ordered by mistake.",
         "annotator": 4,
@@ -2719,7 +2719,7 @@ tasks = [
                     "item_ids": ["9690244451"],
                     "payment_method_id": "paypal_2417743",
                 },
-            }
+            },
         ],
         "instruction": "You name is Raj Santos and your zip code is 98157. You are dependent, flexible. You want to know what is the cheapest availabe mechanical keyboard right now and its options. If it is less than 200 bucks you want to exchange your current one to it. If not, return your current one.",
         "outputs": ["226.11", "tactile", "white", "full"],
@@ -2732,7 +2732,7 @@ tasks = [
             {
                 "name": "cancel_pending_order",
                 "arguments": {"order_id": "#W9284598", "reason": "ordered by mistake"},
-            }
+            },
         ],
         "instruction": "You name is Emma Kovacs and your email is emma.kovacs2974@example.com. You are polite, curious, flexible, relaxing, impatient. You want to know if the digital camera you just bought is 10x zoom. If not, modify the item to 10x zoom without changing the other options. If 10x zoom is not available, cancel the order with the reason of no longer needed. If it is available but the price is more than 3000, cancel the order with the reason of ordered by mistake.",
         "annotator": 4,
@@ -2798,7 +2798,7 @@ tasks = [
                     "new_item_ids": ["9844888101"],
                     "payment_method_id": "credit_card_3677959",
                 },
-            }
+            },
         ],
         "instruction": "You name is Lei Wilson and your zip code is 32255. You are confident, organized, creative, impatient. You received a laptop and you want to exchange it to i7 processor, 8GB, 1TB SSD. If the agent asks for which laptop, it is 15-inch, 32GB.",
         "annotator": 4,
@@ -2815,7 +2815,7 @@ tasks = [
                     "new_item_ids": ["9844888101"],
                     "payment_method_id": "credit_card_3677959",
                 },
-            }
+            },
         ],
         "instruction": "You name is Lei Wilson and your zip code is 32255. You are confident, organized, creative, impatient. You received a laptop and you want to exchange it to i7 processor, 8GB, 1TB SSD. If the agent asks for which laptop, it is 15-inch, 16GB.",
         "annotator": 4,
@@ -2831,7 +2831,7 @@ tasks = [
                     "new_item_ids": ["9844888101"],
                     "payment_method_id": "credit_card_3677959",
                 },
-            }
+            },
         ],
         "instruction": "You name is Lei Wilson and your zip code is 32255. You are confident, organized, creative, impatient. You received a laptop and you want to exchange it to i7 processor, 8GB, 1TB SSD. If the agent asks for which laptop, it is 15-inch, 32GB.",
         "annotator": 4,
@@ -3178,7 +3178,7 @@ tasks = [
                     "new_item_ids": ["3761330360", "9647374798"],
                     "payment_method_id": "gift_card_7245904",
                 },
-            }
+            },
         ],
         "instruction": "You name is Aarav Anderson and your zip code is 19031. You are cautious, messy, rigid. For #W4316152, exchange Tea Kettle {'material': 'glass', 'capacity': '2 liters', 'stovetop compatibility': 'induction'} to {'material': 'ceramic', 'stovetop compatibility': 'gas'}; Tea Kettle {'material': 'glass', 'capacity': '2 liters', 'stovetop compatibility': 'induction'} to {'capacity': '1.5 liters', 'stovetop compatibility': 'gas'}; ",
         "annotator": 4,
@@ -3195,7 +3195,7 @@ tasks = [
                     "new_item_ids": ["2060066974"],
                     "payment_method_id": "paypal_5334408",
                 },
-            }
+            },
         ],
         "instruction": "You name is Sofia Thomas and your email is sofia.thomas3019@example.com or sofia.thomas3069@example.com. You are dependent, pessimistic, direct. You want to exchange your T-Shirt because it is too big, one size smaller would be good. You like the cotten feeling. If multiple colors available, you prefer black.",
         "annotator": 4,
@@ -3237,7 +3237,7 @@ tasks = [
                     "item_ids": ["9612497925", "7127170374", "6268080249"],
                     "payment_method_id": "paypal_3022415",
                 },
-            }
+            },
         ],
         "instruction": "You name is Yusuf Gonzalez and your zip code is 91455. You want to return everything but a tablet in a recently delivered order. There is an E-Reader in the order that you want to return. You want to know how much you can get back.",
         "outputs": ["346.93"],

@@ -13,7 +13,7 @@ TASKS_TRAIN = [
                     "item_ids": ["9624127908", "8917609800"],
                     "payment_method_id": "credit_card_4190576",
                 },
-            )
+            ),
         ],
         outputs=[],
     ),
@@ -29,7 +29,7 @@ TASKS_TRAIN = [
                     "item_ids": ["3735133539", "6195938807"],
                     "payment_method_id": "paypal_3738584",
                 },
-            )
+            ),
         ],
         outputs=[],
     ),
@@ -45,7 +45,7 @@ TASKS_TRAIN = [
                     "item_ids": ["6777246137"],
                     "payment_method_id": "gift_card_1725971",
                 },
-            )
+            ),
         ],
         outputs=[],
     ),
@@ -78,7 +78,7 @@ TASKS_TRAIN = [
             Action(
                 name="cancel_pending_order",
                 kwargs={"order_id": "#W7602708", "reason": "no longer needed"},
-            )
+            ),
         ],
         outputs=[],
     ),
@@ -119,7 +119,7 @@ TASKS_TRAIN = [
                     "new_item_ids": ["9799386954"],
                     "payment_method_id": "paypal_6262583",
                 },
-            )
+            ),
         ],
         outputs=[],
     ),
@@ -185,7 +185,7 @@ TASKS_TRAIN = [
                     "new_item_ids": ["7533802601"],
                     "payment_method_id": "credit_card_3627996",
                 },
-            )
+            ),
         ],
         outputs=[],
     ),
@@ -202,7 +202,7 @@ TASKS_TRAIN = [
                     "new_item_ids": ["7445824652", "1793929609"],
                     "payment_method_id": "paypal_2299608",
                 },
-            )
+            ),
         ],
         outputs=[],
     ),
@@ -219,7 +219,7 @@ TASKS_TRAIN = [
                     "new_item_ids": ["7848293342"],
                     "payment_method_id": "paypal_1679017",
                 },
-            )
+            ),
         ],
         outputs=[],
     ),
@@ -289,7 +289,7 @@ TASKS_TRAIN = [
                     "new_item_ids": ["7602931732"],
                     "payment_method_id": "credit_card_1289579",
                 },
-            )
+            ),
         ],
         outputs=[],
     ),
@@ -306,7 +306,7 @@ TASKS_TRAIN = [
                     "new_item_ids": ["4068787148", "3234800602"],
                     "payment_method_id": "paypal_3022415",
                 },
-            )
+            ),
         ],
         outputs=[],
     ),
@@ -318,7 +318,7 @@ TASKS_TRAIN = [
             Action(
                 name="cancel_pending_order",
                 kwargs={"order_id": "#W7613749", "reason": "ordered by mistake"},
-            )
+            ),
         ],
         outputs=[],
     ),
@@ -335,7 +335,7 @@ TASKS_TRAIN = [
                     "new_item_ids": ["7160999700", "3333391894"],
                     "payment_method_id": "credit_card_6361025",
                 },
-            )
+            ),
         ],
         outputs=[],
     ),
@@ -352,7 +352,7 @@ TASKS_TRAIN = [
                     "new_item_ids": ["4894369688"],
                     "payment_method_id": "credit_card_9308469",
                 },
-            )
+            ),
         ],
         outputs=[],
     ),
@@ -369,7 +369,7 @@ TASKS_TRAIN = [
                     "new_item_ids": ["5745575001"],
                     "payment_method_id": "gift_card_5917510",
                 },
-            )
+            ),
         ],
         outputs=[],
     ),
@@ -421,7 +421,7 @@ TASKS_TRAIN = [
                     "new_item_ids": ["8555936349"],
                     "payment_method_id": "credit_card_3816099",
                 },
-            )
+            ),
         ],
         outputs=[],
     ),
@@ -438,7 +438,7 @@ TASKS_TRAIN = [
                     "new_item_ids": ["1345513440"],
                     "payment_method_id": "paypal_7664977",
                 },
-            )
+            ),
         ],
         outputs=[],
     ),
@@ -455,7 +455,7 @@ TASKS_TRAIN = [
                     "new_item_ids": ["5038485381"],
                     "payment_method_id": "gift_card_5354170",
                 },
-            )
+            ),
         ],
         outputs=[],
     ),
@@ -496,7 +496,7 @@ TASKS_TRAIN = [
                     "new_item_ids": ["5758737025"],
                     "payment_method_id": "credit_card_6748580",
                 },
-            )
+            ),
         ],
         outputs=[],
     ),
@@ -566,7 +566,7 @@ TASKS_TRAIN = [
                     "new_item_ids": ["1052700637"],
                     "payment_method_id": "credit_card_4314033",
                 },
-            )
+            ),
         ],
         outputs=[],
     ),
@@ -657,7 +657,7 @@ TASKS_TRAIN = [
                     "item_ids": ["2235648106"],
                     "payment_method_id": "credit_card_7952624",
                 },
-            )
+            ),
         ],
         outputs=[],
     ),
@@ -674,7 +674,7 @@ TASKS_TRAIN = [
                     "new_item_ids": ["3312883418"],
                     "payment_method_id": "paypal_5543657",
                 },
-            )
+            ),
         ],
         outputs=[],
     ),
@@ -691,7 +691,7 @@ TASKS_TRAIN = [
                     "new_item_ids": ["3330317167"],
                     "payment_method_id": "paypal_6619428",
                 },
-            )
+            ),
         ],
         outputs=[],
     ),
@@ -780,7 +780,7 @@ TASKS_TRAIN = [
                     "new_item_ids": ["2244749153"],
                     "payment_method_id": "gift_card_6892585",
                 },
-            )
+            ),
         ],
         outputs=[],
     ),
@@ -797,7 +797,7 @@ TASKS_TRAIN = [
                     "new_item_ids": ["6857426243", "7510236436"],
                     "payment_method_id": "paypal_4133936",
                 },
-            )
+            ),
         ],
         outputs=[],
     ),
@@ -814,7 +814,7 @@ TASKS_TRAIN = [
                     "new_item_ids": ["6906307980"],
                     "payment_method_id": "gift_card_4710915",
                 },
-            )
+            ),
         ],
         outputs=[],
     ),
@@ -826,7 +826,7 @@ TASKS_TRAIN = [
             Action(
                 name="cancel_pending_order",
                 kwargs={"order_id": "#W5101035", "reason": "no longer needed"},
-            )
+            ),
         ],
         outputs=[],
     ),
@@ -843,7 +843,7 @@ TASKS_TRAIN = [
                     "new_item_ids": ["1646531091", "7617930199"],
                     "payment_method_id": "credit_card_9557278",
                 },
-            )
+            ),
         ],
         outputs=[],
     ),
@@ -860,7 +860,7 @@ TASKS_TRAIN = [
                     "new_item_ids": ["7866854614", "3234800602"],
                     "payment_method_id": "gift_card_5501047",
                 },
-            )
+            ),
         ],
         outputs=[],
     ),
@@ -931,7 +931,7 @@ TASKS_TRAIN = [
                     "new_item_ids": ["8573379326"],
                     "payment_method_id": "credit_card_4582364",
                 },
-            )
+            ),
         ],
         outputs=[],
     ),
@@ -1045,7 +1045,7 @@ TASKS_TRAIN = [
             Action(
                 name="cancel_pending_order",
                 kwargs={"order_id": "#W4296426", "reason": "no longer needed"},
-            )
+            ),
         ],
         outputs=[],
     ),
@@ -1062,7 +1062,7 @@ TASKS_TRAIN = [
                     "new_item_ids": ["5546244844", "1994478369"],
                     "payment_method_id": "credit_card_9185943",
                 },
-            )
+            ),
         ],
         outputs=[],
     ),
@@ -1078,7 +1078,7 @@ TASKS_TRAIN = [
                     "item_ids": ["3339188619"],
                     "payment_method_id": "paypal_2076152",
                 },
-            )
+            ),
         ],
         outputs=[],
     ),
@@ -1119,7 +1119,7 @@ TASKS_TRAIN = [
                     "item_ids": ["5111440845", "9805150490", "2860956907"],
                     "payment_method_id": "gift_card_6009199",
                 },
-            )
+            ),
         ],
         outputs=[],
     ),
@@ -1157,7 +1157,7 @@ TASKS_TRAIN = [
                     "new_item_ids": ["4913411651"],
                     "payment_method_id": "credit_card_1640996",
                 },
-            )
+            ),
         ],
         outputs=[],
     ),
@@ -1194,7 +1194,7 @@ TASKS_TRAIN = [
                     "item_ids": ["9480266227", "9991484137"],
                     "payment_method_id": "gift_card_8640626",
                 },
-            )
+            ),
         ],
         outputs=[],
     ),
@@ -1231,7 +1231,7 @@ TASKS_TRAIN = [
             Action(
                 name="cancel_pending_order",
                 kwargs={"order_id": "#W8967935", "reason": "no longer needed"},
-            )
+            ),
         ],
         outputs=[],
     ),
@@ -1247,7 +1247,7 @@ TASKS_TRAIN = [
                     "item_ids": ["9030221155"],
                     "payment_method_id": "gift_card_9450778",
                 },
-            )
+            ),
         ],
         outputs=[],
     ),
@@ -1264,7 +1264,7 @@ TASKS_TRAIN = [
                     "new_item_ids": ["1507389580", "2681513500"],
                     "payment_method_id": "paypal_6982172",
                 },
-            )
+            ),
         ],
         outputs=[],
     ),
@@ -1281,7 +1281,7 @@ TASKS_TRAIN = [
                     "new_item_ids": ["2193628750"],
                     "payment_method_id": "paypal_7644869",
                 },
-            )
+            ),
         ],
         outputs=[],
     ),
@@ -1298,7 +1298,7 @@ TASKS_TRAIN = [
                     "new_item_ids": ["9385662952", "9644439410"],
                     "payment_method_id": "credit_card_4046723",
                 },
-            )
+            ),
         ],
         outputs=[],
     ),
@@ -1310,7 +1310,7 @@ TASKS_TRAIN = [
             Action(
                 name="cancel_pending_order",
                 kwargs={"order_id": "#W8732376", "reason": "ordered by mistake"},
-            )
+            ),
         ],
         outputs=[],
     ),
@@ -1327,7 +1327,7 @@ TASKS_TRAIN = [
                     "new_item_ids": ["8555936349"],
                     "payment_method_id": "gift_card_5115976",
                 },
-            )
+            ),
         ],
         outputs=[],
     ),
@@ -1343,7 +1343,7 @@ TASKS_TRAIN = [
                     "item_ids": ["9647292434"],
                     "payment_method_id": "paypal_6882355",
                 },
-            )
+            ),
         ],
         outputs=[],
     ),
@@ -1461,7 +1461,7 @@ TASKS_TRAIN = [
                     "item_ids": ["7583936705", "1775591963"],
                     "payment_method_id": "paypal_2299608",
                 },
-            )
+            ),
         ],
         outputs=[],
     ),
@@ -1478,7 +1478,7 @@ TASKS_TRAIN = [
                     "new_item_ids": ["1355937109"],
                     "payment_method_id": "paypal_2499655",
                 },
-            )
+            ),
         ],
         outputs=[],
     ),
@@ -1495,7 +1495,7 @@ TASKS_TRAIN = [
                     "new_item_ids": ["9459890810", "7199146548"],
                     "payment_method_id": "credit_card_7239357",
                 },
-            )
+            ),
         ],
         outputs=[],
     ),
@@ -1512,7 +1512,7 @@ TASKS_TRAIN = [
                     "new_item_ids": ["1096508426", "8470360507"],
                     "payment_method_id": "gift_card_1725971",
                 },
-            )
+            ),
         ],
         outputs=[],
     ),
@@ -1528,7 +1528,7 @@ TASKS_TRAIN = [
                     "item_ids": ["6508153405"],
                     "payment_method_id": "paypal_9734841",
                 },
-            )
+            ),
         ],
         outputs=[],
     ),
@@ -1578,7 +1578,7 @@ TASKS_TRAIN = [
             Action(
                 name="cancel_pending_order",
                 kwargs={"order_id": "#W8331214", "reason": "ordered by mistake"},
-            )
+            ),
         ],
         outputs=[],
     ),
@@ -1615,7 +1615,7 @@ TASKS_TRAIN = [
                     "new_item_ids": ["2052249669", "8895454203"],
                     "payment_method_id": "paypal_4060450",
                 },
-            )
+            ),
         ],
         outputs=[],
     ),
@@ -1694,7 +1694,7 @@ TASKS_TRAIN = [
                     "new_item_ids": ["2143041831"],
                     "payment_method_id": "paypal_2299608",
                 },
-            )
+            ),
         ],
         outputs=[],
     ),
@@ -1761,7 +1761,7 @@ TASKS_TRAIN = [
                     "new_item_ids": ["9647292434"],
                     "payment_method_id": "gift_card_6786837",
                 },
-            )
+            ),
         ],
         outputs=[],
     ),
@@ -1778,7 +1778,7 @@ TASKS_TRAIN = [
                     "new_item_ids": ["8481719475", "9480266227"],
                     "payment_method_id": "gift_card_6117300",
                 },
-            )
+            ),
         ],
         outputs=[],
     ),
@@ -1811,7 +1811,7 @@ TASKS_TRAIN = [
             Action(
                 name="cancel_pending_order",
                 kwargs={"order_id": "#W2087737", "reason": "ordered by mistake"},
-            )
+            ),
         ],
         outputs=[],
     ),
@@ -1823,7 +1823,7 @@ TASKS_TRAIN = [
             Action(
                 name="cancel_pending_order",
                 kwargs={"order_id": "#W4923227", "reason": "no longer needed"},
-            )
+            ),
         ],
         outputs=[],
     ),
@@ -1835,7 +1835,7 @@ TASKS_TRAIN = [
             Action(
                 name="cancel_pending_order",
                 kwargs={"order_id": "#W8193638", "reason": "no longer needed"},
-            )
+            ),
         ],
         outputs=[],
     ),
@@ -1852,7 +1852,7 @@ TASKS_TRAIN = [
                     "new_item_ids": ["8590708195", "1794273251", "7523669277"],
                     "payment_method_id": "credit_card_4420174",
                 },
-            )
+            ),
         ],
         outputs=[],
     ),
@@ -1894,7 +1894,7 @@ TASKS_TRAIN = [
                     "item_ids": ["4458619711"],
                     "payment_method_id": "gift_card_3689412",
                 },
-            )
+            ),
         ],
         outputs=[],
     ),
@@ -1910,7 +1910,7 @@ TASKS_TRAIN = [
                     "item_ids": ["7751905257"],
                     "payment_method_id": "paypal_3704667",
                 },
-            )
+            ),
         ],
         outputs=[],
     ),
@@ -1926,7 +1926,7 @@ TASKS_TRAIN = [
                     "item_ids": ["7441167885"],
                     "payment_method_id": "gift_card_6892585",
                 },
-            )
+            ),
         ],
         outputs=[],
     ),
@@ -1938,7 +1938,7 @@ TASKS_TRAIN = [
             Action(
                 name="cancel_pending_order",
                 kwargs={"order_id": "#W3579467", "reason": "ordered by mistake"},
-            )
+            ),
         ],
         outputs=[],
     ),
@@ -1955,7 +1955,7 @@ TASKS_TRAIN = [
                     "new_item_ids": ["8896479688"],
                     "payment_method_id": "credit_card_1061405",
                 },
-            )
+            ),
         ],
         outputs=[],
     ),
@@ -1972,7 +1972,7 @@ TASKS_TRAIN = [
                     "new_item_ids": ["4572024853"],
                     "payment_method_id": "paypal_3999493",
                 },
-            )
+            ),
         ],
         outputs=[],
     ),
@@ -2042,7 +2042,7 @@ TASKS_TRAIN = [
                     "new_item_ids": ["6901578702"],
                     "payment_method_id": "gift_card_4584785",
                 },
-            )
+            ),
         ],
         outputs=[],
     ),
@@ -2083,7 +2083,7 @@ TASKS_TRAIN = [
                     "item_ids": ["6697922351", "7758198585", "3187628796"],
                     "payment_method_id": "paypal_1191071",
                 },
-            )
+            ),
         ],
         outputs=[],
     ),
@@ -2099,7 +2099,7 @@ TASKS_TRAIN = [
                     "item_ids": ["9791469541"],
                     "payment_method_id": "gift_card_8070316",
                 },
-            )
+            ),
         ],
         outputs=[],
     ),
@@ -2111,7 +2111,7 @@ TASKS_TRAIN = [
             Action(
                 name="cancel_pending_order",
                 kwargs={"order_id": "#W6577842", "reason": "ordered by mistake"},
-            )
+            ),
         ],
         outputs=[],
     ),
@@ -2127,7 +2127,7 @@ TASKS_TRAIN = [
                     "item_ids": ["5917587651"],
                     "payment_method_id": "gift_card_2611937",
                 },
-            )
+            ),
         ],
         outputs=[],
     ),
@@ -2143,7 +2143,7 @@ TASKS_TRAIN = [
                     "item_ids": ["3334537816", "5067898160", "9665000388"],
                     "payment_method_id": "paypal_6982172",
                 },
-            )
+            ),
         ],
         outputs=[],
     ),
@@ -2159,7 +2159,7 @@ TASKS_TRAIN = [
                     "item_ids": ["8106223139", "5436236388"],
                     "payment_method_id": "paypal_1808675",
                 },
-            )
+            ),
         ],
         outputs=[],
     ),
@@ -2205,7 +2205,7 @@ TASKS_TRAIN = [
                     "new_item_ids": ["9375701158"],
                     "payment_method_id": "paypal_6121064",
                 },
-            )
+            ),
         ],
         outputs=[],
     ),
@@ -2248,7 +2248,7 @@ TASKS_TRAIN = [
                     "new_item_ids": ["9879255677"],
                     "payment_method_id": "credit_card_9185943",
                 },
-            )
+            ),
         ],
         outputs=[],
     ),
@@ -2260,7 +2260,7 @@ TASKS_TRAIN = [
             Action(
                 name="cancel_pending_order",
                 kwargs={"order_id": "#W9672333", "reason": "no longer needed"},
-            )
+            ),
         ],
         outputs=[],
     ),
@@ -2277,7 +2277,7 @@ TASKS_TRAIN = [
                     "new_item_ids": ["3358616356"],
                     "payment_method_id": "gift_card_5245016",
                 },
-            )
+            ),
         ],
         outputs=[],
     ),
@@ -2294,7 +2294,7 @@ TASKS_TRAIN = [
                     "new_item_ids": ["6777246137"],
                     "payment_method_id": "gift_card_4303603",
                 },
-            )
+            ),
         ],
         outputs=[],
     ),
@@ -2310,7 +2310,7 @@ TASKS_TRAIN = [
                     "item_ids": ["3015420423", "3799046073", "3230708338"],
                     "payment_method_id": "gift_card_9708163",
                 },
-            )
+            ),
         ],
         outputs=[],
     ),
@@ -2352,7 +2352,7 @@ TASKS_TRAIN = [
                     "new_item_ids": ["3735133539", "2645006275"],
                     "payment_method_id": "credit_card_6450011",
                 },
-            )
+            ),
         ],
         outputs=[],
     ),
@@ -2395,7 +2395,7 @@ TASKS_TRAIN = [
                     "new_item_ids": ["8610532516"],
                     "payment_method_id": "credit_card_7422485",
                 },
-            )
+            ),
         ],
         outputs=[],
     ),
@@ -2412,7 +2412,7 @@ TASKS_TRAIN = [
                     "new_item_ids": ["9534205511"],
                     "payment_method_id": "gift_card_5979071",
                 },
-            )
+            ),
         ],
         outputs=[],
     ),
@@ -2429,7 +2429,7 @@ TASKS_TRAIN = [
                     "new_item_ids": ["5645314103"],
                     "payment_method_id": "credit_card_8278346",
                 },
-            )
+            ),
         ],
         outputs=[],
     ),
@@ -2441,7 +2441,7 @@ TASKS_TRAIN = [
             Action(
                 name="cancel_pending_order",
                 kwargs={"order_id": "#W7594624", "reason": "no longer needed"},
-            )
+            ),
         ],
         outputs=[],
     ),
@@ -2458,7 +2458,7 @@ TASKS_TRAIN = [
                     "new_item_ids": ["4068787148"],
                     "payment_method_id": "gift_card_9450778",
                 },
-            )
+            ),
         ],
         outputs=[],
     ),
@@ -2470,7 +2470,7 @@ TASKS_TRAIN = [
             Action(
                 name="cancel_pending_order",
                 kwargs={"order_id": "#W6689278", "reason": "ordered by mistake"},
-            )
+            ),
         ],
         outputs=[],
     ),
@@ -2487,7 +2487,7 @@ TASKS_TRAIN = [
                     "new_item_ids": ["7292993796", "4064702754", "2872451762"],
                     "payment_method_id": "paypal_2233507",
                 },
-            )
+            ),
         ],
         outputs=[],
     ),
@@ -2560,7 +2560,7 @@ TASKS_TRAIN = [
             Action(
                 name="cancel_pending_order",
                 kwargs={"order_id": "#W9132840", "reason": "ordered by mistake"},
-            )
+            ),
         ],
         outputs=[],
     ),
@@ -2641,7 +2641,7 @@ TASKS_TRAIN = [
             Action(
                 name="cancel_pending_order",
                 kwargs={"order_id": "#W4498118", "reason": "no longer needed"},
-            )
+            ),
         ],
         outputs=[],
     ),
@@ -2658,7 +2658,7 @@ TASKS_TRAIN = [
                     "new_item_ids": ["1665571435"],
                     "payment_method_id": "credit_card_2327218",
                 },
-            )
+            ),
         ],
         outputs=[],
     ),
@@ -2695,7 +2695,7 @@ TASKS_TRAIN = [
                     "item_ids": ["6867855179"],
                     "payment_method_id": "paypal_3572679",
                 },
-            )
+            ),
         ],
         outputs=[],
     ),
@@ -2712,7 +2712,7 @@ TASKS_TRAIN = [
                     "new_item_ids": ["5586947715", "4983901480"],
                     "payment_method_id": "credit_card_1283450",
                 },
-            )
+            ),
         ],
         outputs=[],
     ),
@@ -2724,7 +2724,7 @@ TASKS_TRAIN = [
             Action(
                 name="cancel_pending_order",
                 kwargs={"order_id": "#W1138897", "reason": "no longer needed"},
-            )
+            ),
         ],
         outputs=[],
     ),
@@ -2741,7 +2741,7 @@ TASKS_TRAIN = [
                     "new_item_ids": ["8214883393"],
                     "payment_method_id": "paypal_6069934",
                 },
-            )
+            ),
         ],
         outputs=[],
     ),
@@ -2808,7 +2808,7 @@ TASKS_TRAIN = [
                     "new_item_ids": ["4615543240"],
                     "payment_method_id": "paypal_1808675",
                 },
-            )
+            ),
         ],
         outputs=[],
     ),
@@ -2864,7 +2864,7 @@ TASKS_TRAIN = [
                     "new_item_ids": ["5206946487"],
                     "payment_method_id": "credit_card_3677959",
                 },
-            )
+            ),
         ],
         outputs=[],
     ),
@@ -2876,7 +2876,7 @@ TASKS_TRAIN = [
             Action(
                 name="cancel_pending_order",
                 kwargs={"order_id": "#W9673784", "reason": "no longer needed"},
-            )
+            ),
         ],
         outputs=[],
     ),
@@ -2893,7 +2893,7 @@ TASKS_TRAIN = [
                     "new_item_ids": ["1178356107", "9228757377", "6164262152"],
                     "payment_method_id": "paypal_3296755",
                 },
-            )
+            ),
         ],
         outputs=[],
     ),
@@ -2910,7 +2910,7 @@ TASKS_TRAIN = [
                     "new_item_ids": ["3230708338"],
                     "payment_method_id": "credit_card_2583849",
                 },
-            )
+            ),
         ],
         outputs=[],
     ),
@@ -3072,7 +3072,7 @@ TASKS_TRAIN = [
                     "item_ids": ["9494281769"],
                     "payment_method_id": "credit_card_4046723",
                 },
-            )
+            ),
         ],
         outputs=[],
     ),
@@ -3089,7 +3089,7 @@ TASKS_TRAIN = [
                     "new_item_ids": ["2244749153", "5428723833"],
                     "payment_method_id": "gift_card_7252880",
                 },
-            )
+            ),
         ],
         outputs=[],
     ),
@@ -3105,7 +3105,7 @@ TASKS_TRAIN = [
                     "item_ids": ["2757705742", "1684786391"],
                     "payment_method_id": "credit_card_6419343",
                 },
-            )
+            ),
         ],
         outputs=[],
     ),
@@ -3147,7 +3147,7 @@ TASKS_TRAIN = [
                     "item_ids": ["7824298782", "2244749153"],
                     "payment_method_id": "gift_card_8168843",
                 },
-            )
+            ),
         ],
         outputs=[],
     ),
@@ -3205,7 +3205,7 @@ TASKS_TRAIN = [
                     "item_ids": ["4458619711"],
                     "payment_method_id": "paypal_2417743",
                 },
-            )
+            ),
         ],
         outputs=[],
     ),
@@ -3217,7 +3217,7 @@ TASKS_TRAIN = [
             Action(
                 name="cancel_pending_order",
                 kwargs={"order_id": "#W8808563", "reason": "ordered by mistake"},
-            )
+            ),
         ],
         outputs=[],
     ),
@@ -3229,7 +3229,7 @@ TASKS_TRAIN = [
             Action(
                 name="cancel_pending_order",
                 kwargs={"order_id": "#W5282037", "reason": "no longer needed"},
-            )
+            ),
         ],
         outputs=[],
     ),
@@ -3246,7 +3246,7 @@ TASKS_TRAIN = [
                     "new_item_ids": ["9665000388", "4064702754", "9635758562"],
                     "payment_method_id": "gift_card_5193172",
                 },
-            )
+            ),
         ],
         outputs=[],
     ),
@@ -3263,7 +3263,7 @@ TASKS_TRAIN = [
                     "new_item_ids": ["9480266227"],
                     "payment_method_id": "gift_card_6662365",
                 },
-            )
+            ),
         ],
         outputs=[],
     ),
@@ -3280,7 +3280,7 @@ TASKS_TRAIN = [
                     "new_item_ids": ["7528037711"],
                     "payment_method_id": "paypal_3728317",
                 },
-            )
+            ),
         ],
         outputs=[],
     ),
@@ -3297,7 +3297,7 @@ TASKS_TRAIN = [
                     "new_item_ids": ["2444431651"],
                     "payment_method_id": "gift_card_7108145",
                 },
-            )
+            ),
         ],
         outputs=[],
     ),
@@ -3309,7 +3309,7 @@ TASKS_TRAIN = [
             Action(
                 name="cancel_pending_order",
                 kwargs={"order_id": "#W5995614", "reason": "ordered by mistake"},
-            )
+            ),
         ],
         outputs=[],
     ),
@@ -3366,7 +3366,7 @@ TASKS_TRAIN = [
                     "new_item_ids": ["7896397433", "7758198585"],
                     "payment_method_id": "credit_card_5353742",
                 },
-            )
+            ),
         ],
         outputs=[],
     ),
@@ -3403,7 +3403,7 @@ TASKS_TRAIN = [
                     "new_item_ids": ["2235648106"],
                     "payment_method_id": "paypal_1053133",
                 },
-            )
+            ),
         ],
         outputs=[],
     ),
@@ -3415,7 +3415,7 @@ TASKS_TRAIN = [
             Action(
                 name="cancel_pending_order",
                 kwargs={"order_id": "#W8855135", "reason": "ordered by mistake"},
-            )
+            ),
         ],
         outputs=[],
     ),
@@ -3427,7 +3427,7 @@ TASKS_TRAIN = [
             Action(
                 name="cancel_pending_order",
                 kwargs={"order_id": "#W3358610", "reason": "no longer needed"},
-            )
+            ),
         ],
         outputs=[],
     ),
@@ -3460,7 +3460,7 @@ TASKS_TRAIN = [
                     "new_item_ids": ["6777246137"],
                     "payment_method_id": "credit_card_7239357",
                 },
-            )
+            ),
         ],
         outputs=[],
     ),
@@ -3477,7 +3477,7 @@ TASKS_TRAIN = [
                     "new_item_ids": ["3112842858"],
                     "payment_method_id": "paypal_2143483",
                 },
-            )
+            ),
         ],
         outputs=[],
     ),
@@ -3489,7 +3489,7 @@ TASKS_TRAIN = [
             Action(
                 name="cancel_pending_order",
                 kwargs={"order_id": "#W1416704", "reason": "no longer needed"},
-            )
+            ),
         ],
         outputs=[],
     ),
@@ -3545,7 +3545,7 @@ TASKS_TRAIN = [
                     "new_item_ids": ["6164262152"],
                     "payment_method_id": "paypal_5181300",
                 },
-            )
+            ),
         ],
         outputs=[],
     ),
@@ -3561,7 +3561,7 @@ TASKS_TRAIN = [
                     "item_ids": ["2216662955", "8214883393"],
                     "payment_method_id": "gift_card_1401311",
                 },
-            )
+            ),
         ],
         outputs=[],
     ),
@@ -3577,7 +3577,7 @@ TASKS_TRAIN = [
                     "item_ids": ["5436236388", "8106223139"],
                     "payment_method_id": "paypal_1808675",
                 },
-            )
+            ),
         ],
         outputs=[],
     ),
@@ -3594,7 +3594,7 @@ TASKS_TRAIN = [
                     "new_item_ids": ["7806008610"],
                     "payment_method_id": "credit_card_6824399",
                 },
-            )
+            ),
         ],
         outputs=[],
     ),
@@ -3606,7 +3606,7 @@ TASKS_TRAIN = [
             Action(
                 name="cancel_pending_order",
                 kwargs={"order_id": "#W9121070", "reason": "ordered by mistake"},
-            )
+            ),
         ],
         outputs=[],
     ),
@@ -3618,7 +3618,7 @@ TASKS_TRAIN = [
             Action(
                 name="cancel_pending_order",
                 kwargs={"order_id": "#W5158064", "reason": "ordered by mistake"},
-            )
+            ),
         ],
         outputs=[],
     ),
@@ -3634,7 +3634,7 @@ TASKS_TRAIN = [
                     "item_ids": ["9013366374"],
                     "payment_method_id": "paypal_5061070",
                 },
-            )
+            ),
         ],
         outputs=[],
     ),
@@ -3667,7 +3667,7 @@ TASKS_TRAIN = [
             Action(
                 name="cancel_pending_order",
                 kwargs={"order_id": "#W6711349", "reason": "no longer needed"},
-            )
+            ),
         ],
         outputs=[],
     ),
@@ -3683,7 +3683,7 @@ TASKS_TRAIN = [
                     "item_ids": ["7441167885"],
                     "payment_method_id": "gift_card_6892585",
                 },
-            )
+            ),
         ],
         outputs=[],
     ),
@@ -3700,7 +3700,7 @@ TASKS_TRAIN = [
                     "new_item_ids": ["6948061616"],
                     "payment_method_id": "credit_card_7161839",
                 },
-            )
+            ),
         ],
         outputs=[],
     ),
@@ -3717,7 +3717,7 @@ TASKS_TRAIN = [
                     "new_item_ids": ["5489028872"],
                     "payment_method_id": "paypal_7916550",
                 },
-            )
+            ),
         ],
         outputs=[],
     ),
@@ -3733,7 +3733,7 @@ TASKS_TRAIN = [
                     "item_ids": ["7533802601", "7144237253", "2216662955"],
                     "payment_method_id": "credit_card_6748580",
                 },
-            )
+            ),
         ],
         outputs=[],
     ),
@@ -3881,7 +3881,7 @@ TASKS_TRAIN = [
                     ],
                     "payment_method_id": "credit_card_3124723",
                 },
-            )
+            ),
         ],
         outputs=[],
     ),
@@ -3897,7 +3897,7 @@ TASKS_TRAIN = [
                     "item_ids": ["7661609223"],
                     "payment_method_id": "paypal_3839332",
                 },
-            )
+            ),
         ],
         outputs=[],
     ),
@@ -3914,7 +3914,7 @@ TASKS_TRAIN = [
                     "new_item_ids": ["5546244844"],
                     "payment_method_id": "paypal_8673863",
                 },
-            )
+            ),
         ],
         outputs=[],
     ),
@@ -4013,7 +4013,7 @@ TASKS_TRAIN = [
                     "new_item_ids": ["8470360507"],
                     "payment_method_id": "gift_card_1679693",
                 },
-            )
+            ),
         ],
         outputs=[],
     ),
@@ -4151,7 +4151,7 @@ TASKS_TRAIN = [
                     "new_item_ids": ["3714494375"],
                     "payment_method_id": "paypal_3226997",
                 },
-            )
+            ),
         ],
         outputs=[],
     ),
@@ -4208,7 +4208,7 @@ TASKS_TRAIN = [
             Action(
                 name="cancel_pending_order",
                 kwargs={"order_id": "#W3062096", "reason": "ordered by mistake"},
-            )
+            ),
         ],
         outputs=[],
     ),
@@ -4251,7 +4251,7 @@ TASKS_TRAIN = [
                     "new_item_ids": ["9013366374", "6342039236"],
                     "payment_method_id": "paypal_2319812",
                 },
-            )
+            ),
         ],
         outputs=[],
     ),
@@ -4263,7 +4263,7 @@ TASKS_TRAIN = [
             Action(
                 name="cancel_pending_order",
                 kwargs={"order_id": "#W3007862", "reason": "no longer needed"},
-            )
+            ),
         ],
         outputs=[],
     ),
@@ -4280,7 +4280,7 @@ TASKS_TRAIN = [
                     "new_item_ids": ["1573035764"],
                     "payment_method_id": "paypal_3180577",
                 },
-            )
+            ),
         ],
         outputs=[],
     ),
@@ -4312,7 +4312,7 @@ TASKS_TRAIN = [
             Action(
                 name="cancel_pending_order",
                 kwargs={"order_id": "#W7425646", "reason": "ordered by mistake"},
-            )
+            ),
         ],
         outputs=[],
     ),
@@ -4329,7 +4329,7 @@ TASKS_TRAIN = [
                     "new_item_ids": ["6056040996"],
                     "payment_method_id": "gift_card_1401311",
                 },
-            )
+            ),
         ],
         outputs=[],
     ),
@@ -4371,7 +4371,7 @@ TASKS_TRAIN = [
             Action(
                 name="cancel_pending_order",
                 kwargs={"order_id": "#W4514908", "reason": "ordered by mistake"},
-            )
+            ),
         ],
         outputs=[],
     ),
@@ -4404,7 +4404,7 @@ TASKS_TRAIN = [
                     "new_item_ids": ["5694328282"],
                     "payment_method_id": "credit_card_7801956",
                 },
-            )
+            ),
         ],
         outputs=[],
     ),
@@ -4421,7 +4421,7 @@ TASKS_TRAIN = [
                     "new_item_ids": ["2509076505"],
                     "payment_method_id": "gift_card_7711863",
                 },
-            )
+            ),
         ],
         outputs=[],
     ),
@@ -4438,7 +4438,7 @@ TASKS_TRAIN = [
                     "new_item_ids": ["3541421151"],
                     "payment_method_id": "gift_card_4529075",
                 },
-            )
+            ),
         ],
         outputs=[],
     ),
@@ -4507,7 +4507,7 @@ TASKS_TRAIN = [
                     "item_ids": ["9237024510"],
                     "payment_method_id": "gift_card_3406421",
                 },
-            )
+            ),
         ],
         outputs=[],
     ),
@@ -4524,7 +4524,7 @@ TASKS_TRAIN = [
                     "new_item_ids": ["2143041831"],
                     "payment_method_id": "paypal_2557789",
                 },
-            )
+            ),
         ],
         outputs=[],
     ),
@@ -4541,7 +4541,7 @@ TASKS_TRAIN = [
                     "new_item_ids": ["2681513500"],
                     "payment_method_id": "gift_card_5917510",
                 },
-            )
+            ),
         ],
         outputs=[],
     ),
@@ -4557,7 +4557,7 @@ TASKS_TRAIN = [
                     "item_ids": ["4953074738", "1804581713", "1719127154"],
                     "payment_method_id": "gift_card_8633125",
                 },
-            )
+            ),
         ],
         outputs=[],
     ),
@@ -4569,7 +4569,7 @@ TASKS_TRAIN = [
             Action(
                 name="cancel_pending_order",
                 kwargs={"order_id": "#W4806309", "reason": "ordered by mistake"},
-            )
+            ),
         ],
         outputs=[],
     ),
@@ -4581,7 +4581,7 @@ TASKS_TRAIN = [
             Action(
                 name="cancel_pending_order",
                 kwargs={"order_id": "#W1558044", "reason": "no longer needed"},
-            )
+            ),
         ],
         outputs=[],
     ),
@@ -4598,7 +4598,7 @@ TASKS_TRAIN = [
                     "new_item_ids": ["3815173328", "2820119811"],
                     "payment_method_id": "gift_card_3377580",
                 },
-            )
+            ),
         ],
         outputs=[],
     ),
@@ -4615,7 +4615,7 @@ TASKS_TRAIN = [
                     "new_item_ids": ["6906307980"],
                     "payment_method_id": "credit_card_6173085",
                 },
-            )
+            ),
         ],
         outputs=[],
     ),
@@ -4669,7 +4669,7 @@ TASKS_TRAIN = [
                     "item_ids": ["7195021808"],
                     "payment_method_id": "gift_card_6767859",
                 },
-            )
+            ),
         ],
         outputs=[],
     ),
@@ -4745,7 +4745,7 @@ TASKS_TRAIN = [
                     "new_item_ids": ["5996159312", "8555936349"],
                     "payment_method_id": "gift_card_9909795",
                 },
-            )
+            ),
         ],
         outputs=[],
     ),
@@ -4761,7 +4761,7 @@ TASKS_TRAIN = [
                     "item_ids": ["8118291112", "6056040996"],
                     "payment_method_id": "gift_card_5245016",
                 },
-            )
+            ),
         ],
         outputs=[],
     ),
@@ -4778,7 +4778,7 @@ TASKS_TRAIN = [
                     "new_item_ids": ["9647292434"],
                     "payment_method_id": "gift_card_1675628",
                 },
-            )
+            ),
         ],
         outputs=[],
     ),
@@ -4816,7 +4816,7 @@ TASKS_TRAIN = [
                     "new_item_ids": ["5606522780"],
                     "payment_method_id": "gift_card_8006222",
                 },
-            )
+            ),
         ],
         outputs=[],
     ),
@@ -4833,7 +4833,7 @@ TASKS_TRAIN = [
                     "new_item_ids": ["5081446110"],
                     "payment_method_id": "credit_card_6480285",
                 },
-            )
+            ),
         ],
         outputs=[],
     ),
@@ -4869,7 +4869,7 @@ TASKS_TRAIN = [
                     "item_ids": ["6501071631"],
                     "payment_method_id": "gift_card_8862145",
                 },
-            )
+            ),
         ],
         outputs=[],
     ),
@@ -4919,7 +4919,7 @@ TASKS_TRAIN = [
                     "new_item_ids": ["5992316252", "7510236436"],
                     "payment_method_id": "credit_card_7039111",
                 },
-            )
+            ),
         ],
         outputs=[],
     ),
@@ -4981,7 +4981,7 @@ TASKS_TRAIN = [
                     "new_item_ids": ["2243454707", "2645006275", "3379843752"],
                     "payment_method_id": "credit_card_6824399",
                 },
-            )
+            ),
         ],
         outputs=[],
     ),
@@ -4993,7 +4993,7 @@ TASKS_TRAIN = [
             Action(
                 name="cancel_pending_order",
                 kwargs={"order_id": "#W8882972", "reason": "ordered by mistake"},
-            )
+            ),
         ],
         outputs=[],
     ),
@@ -5060,7 +5060,7 @@ TASKS_TRAIN = [
                     ],
                     "payment_method_id": "paypal_4751854",
                 },
-            )
+            ),
         ],
         outputs=[],
     ),
@@ -5076,7 +5076,7 @@ TASKS_TRAIN = [
                     "item_ids": ["4035304400", "7843064651"],
                     "payment_method_id": "gift_card_5087631",
                 },
-            )
+            ),
         ],
         outputs=[],
     ),
@@ -5088,7 +5088,7 @@ TASKS_TRAIN = [
             Action(
                 name="cancel_pending_order",
                 kwargs={"order_id": "#W5502903", "reason": "no longer needed"},
-            )
+            ),
         ],
         outputs=[],
     ),
@@ -5154,7 +5154,7 @@ TASKS_TRAIN = [
                     "new_item_ids": ["7758198585", "3039787582"],
                     "payment_method_id": "paypal_2767694",
                 },
-            )
+            ),
         ],
         outputs=[],
     ),
@@ -5204,7 +5204,7 @@ TASKS_TRAIN = [
                     "new_item_ids": ["9440686670"],
                     "payment_method_id": "paypal_3742148",
                 },
-            )
+            ),
         ],
         outputs=[],
     ),
@@ -5221,7 +5221,7 @@ TASKS_TRAIN = [
                     "new_item_ids": ["8363011723", "2323972008"],
                     "payment_method_id": "gift_card_8049813",
                 },
-            )
+            ),
         ],
         outputs=[],
     ),
@@ -5233,7 +5233,7 @@ TASKS_TRAIN = [
             Action(
                 name="cancel_pending_order",
                 kwargs={"order_id": "#W4184032", "reason": "ordered by mistake"},
-            )
+            ),
         ],
         outputs=[],
     ),
@@ -5249,7 +5249,7 @@ TASKS_TRAIN = [
                     "item_ids": ["9665000388", "5067898160", "3909704820"],
                     "payment_method_id": "gift_card_2519457",
                 },
-            )
+            ),
         ],
         outputs=[],
     ),
@@ -5302,7 +5302,7 @@ TASKS_TRAIN = [
             Action(
                 name="cancel_pending_order",
                 kwargs={"order_id": "#W1298962", "reason": "no longer needed"},
-            )
+            ),
         ],
         outputs=[],
     ),
@@ -5319,7 +5319,7 @@ TASKS_TRAIN = [
                     "new_item_ids": ["1199058591"],
                     "payment_method_id": "paypal_1038468",
                 },
-            )
+            ),
         ],
         outputs=[],
     ),
@@ -5336,7 +5336,7 @@ TASKS_TRAIN = [
                     "new_item_ids": ["9862136885"],
                     "payment_method_id": "paypal_7525649",
                 },
-            )
+            ),
         ],
         outputs=[],
     ),
@@ -5373,7 +5373,7 @@ TASKS_TRAIN = [
             Action(
                 name="cancel_pending_order",
                 kwargs={"order_id": "#W6436609", "reason": "no longer needed"},
-            )
+            ),
         ],
         outputs=[],
     ),
@@ -5415,7 +5415,7 @@ TASKS_TRAIN = [
                     "new_item_ids": ["3254583681", "8426249116", "5012998807"],
                     "payment_method_id": "paypal_3742148",
                 },
-            )
+            ),
         ],
         outputs=[],
     ),
@@ -5432,7 +5432,7 @@ TASKS_TRAIN = [
                     "new_item_ids": ["2216662955"],
                     "payment_method_id": "credit_card_6428848",
                 },
-            )
+            ),
         ],
         outputs=[],
     ),
@@ -5474,7 +5474,7 @@ TASKS_TRAIN = [
                     "new_item_ids": ["6956751343"],
                     "payment_method_id": "paypal_7443913",
                 },
-            )
+            ),
         ],
         outputs=[],
     ),
@@ -5486,7 +5486,7 @@ TASKS_TRAIN = [
             Action(
                 name="cancel_pending_order",
                 kwargs={"order_id": "#W1890669", "reason": "ordered by mistake"},
-            )
+            ),
         ],
         outputs=[],
     ),
@@ -5498,7 +5498,7 @@ TASKS_TRAIN = [
             Action(
                 name="cancel_pending_order",
                 kwargs={"order_id": "#W5208989", "reason": "no longer needed"},
-            )
+            ),
         ],
         outputs=[],
     ),
@@ -5514,7 +5514,7 @@ TASKS_TRAIN = [
                     "item_ids": ["4579334072", "6439196450"],
                     "payment_method_id": "credit_card_9698900",
                 },
-            )
+            ),
         ],
         outputs=[],
     ),
@@ -5617,7 +5617,7 @@ TASKS_TRAIN = [
                     "item_ids": ["7184044281"],
                     "payment_method_id": "credit_card_7120747",
                 },
-            )
+            ),
         ],
         outputs=[],
     ),
@@ -5633,7 +5633,7 @@ TASKS_TRAIN = [
                     "item_ids": ["3333391894", "7902309762"],
                     "payment_method_id": "credit_card_1248375",
                 },
-            )
+            ),
         ],
         outputs=[],
     ),
@@ -5666,7 +5666,7 @@ TASKS_TRAIN = [
             Action(
                 name="cancel_pending_order",
                 kwargs={"order_id": "#W9653558", "reason": "no longer needed"},
-            )
+            ),
         ],
         outputs=[],
     ),
@@ -5683,7 +5683,7 @@ TASKS_TRAIN = [
                     "new_item_ids": ["6056040996"],
                     "payment_method_id": "credit_card_2167533",
                 },
-            )
+            ),
         ],
         outputs=[],
     ),
@@ -5700,7 +5700,7 @@ TASKS_TRAIN = [
                     "new_item_ids": ["4913411651", "4716977452"],
                     "payment_method_id": "paypal_4439305",
                 },
-            )
+            ),
         ],
         outputs=[],
     ),
@@ -5716,7 +5716,7 @@ TASKS_TRAIN = [
                     "item_ids": ["2444431651"],
                     "payment_method_id": "gift_card_4543462",
                 },
-            )
+            ),
         ],
         outputs=[],
     ),
@@ -5728,7 +5728,7 @@ TASKS_TRAIN = [
             Action(
                 name="cancel_pending_order",
                 kwargs={"order_id": "#W1814268", "reason": "no longer needed"},
-            )
+            ),
         ],
         outputs=[],
     ),
@@ -5745,7 +5745,7 @@ TASKS_TRAIN = [
                     "new_item_ids": ["1569765161"],
                     "payment_method_id": "credit_card_3081930",
                 },
-            )
+            ),
         ],
         outputs=[],
     ),
@@ -5761,7 +5761,7 @@ TASKS_TRAIN = [
                     "item_ids": ["4716977452", "7445824652"],
                     "payment_method_id": "paypal_2977884",
                 },
-            )
+            ),
         ],
         outputs=[],
     ),
@@ -5778,7 +5778,7 @@ TASKS_TRAIN = [
                     "new_item_ids": ["6477915553", "1157853815"],
                     "payment_method_id": "gift_card_7711863",
                 },
-            )
+            ),
         ],
         outputs=[],
     ),
@@ -5790,7 +5790,7 @@ TASKS_TRAIN = [
             Action(
                 name="cancel_pending_order",
                 kwargs={"order_id": "#W7425646", "reason": "no longer needed"},
-            )
+            ),
         ],
         outputs=[],
     ),
@@ -5831,7 +5831,7 @@ TASKS_TRAIN = [
             Action(
                 name="cancel_pending_order",
                 kwargs={"order_id": "#W6443279", "reason": "ordered by mistake"},
-            )
+            ),
         ],
         outputs=[],
     ),
@@ -5876,7 +5876,7 @@ TASKS_TRAIN = [
                     "item_ids": ["1719127154"],
                     "payment_method_id": "gift_card_5245016",
                 },
-            )
+            ),
         ],
         outputs=[],
     ),
@@ -5893,7 +5893,7 @@ TASKS_TRAIN = [
                     "new_item_ids": ["7579176349", "2386562819"],
                     "payment_method_id": "credit_card_4387170",
                 },
-            )
+            ),
         ],
         outputs=[],
     ),
@@ -5910,7 +5910,7 @@ TASKS_TRAIN = [
                     "new_item_ids": ["6117189161"],
                     "payment_method_id": "gift_card_2491643",
                 },
-            )
+            ),
         ],
         outputs=[],
     ),
@@ -5927,7 +5927,7 @@ TASKS_TRAIN = [
                     "new_item_ids": ["8484921793"],
                     "payment_method_id": "credit_card_8041020",
                 },
-            )
+            ),
         ],
         outputs=[],
     ),
@@ -6014,7 +6014,7 @@ TASKS_TRAIN = [
                     "new_item_ids": ["3613716226"],
                     "payment_method_id": "gift_card_2611937",
                 },
-            )
+            ),
         ],
         outputs=[],
     ),
@@ -6030,7 +6030,7 @@ TASKS_TRAIN = [
                     "item_ids": ["6805564527"],
                     "payment_method_id": "paypal_3846161",
                 },
-            )
+            ),
         ],
         outputs=[],
     ),
@@ -6046,7 +6046,7 @@ TASKS_TRAIN = [
                     "item_ids": ["6589665742"],
                     "payment_method_id": "gift_card_8006222",
                 },
-            )
+            ),
         ],
         outputs=[],
     ),
@@ -6063,7 +6063,7 @@ TASKS_TRAIN = [
                     "new_item_ids": ["5546244844"],
                     "payment_method_id": "paypal_7425862",
                 },
-            )
+            ),
         ],
         outputs=[],
     ),
@@ -6075,7 +6075,7 @@ TASKS_TRAIN = [
             Action(
                 name="cancel_pending_order",
                 kwargs={"order_id": "#W5762451", "reason": "ordered by mistake"},
-            )
+            ),
         ],
         outputs=[],
     ),
@@ -6139,7 +6139,7 @@ TASKS_TRAIN = [
                     "new_item_ids": ["6534134392", "1507389580"],
                     "payment_method_id": "paypal_9379149",
                 },
-            )
+            ),
         ],
         outputs=[],
     ),
@@ -6156,7 +6156,7 @@ TASKS_TRAIN = [
                     "new_item_ids": ["7917269097", "2872451762"],
                     "payment_method_id": "gift_card_7037673",
                 },
-            )
+            ),
         ],
         outputs=[],
     ),
@@ -6173,7 +6173,7 @@ TASKS_TRAIN = [
                     "new_item_ids": ["3704016729"],
                     "payment_method_id": "credit_card_6680679",
                 },
-            )
+            ),
         ],
         outputs=[],
     ),
@@ -6211,7 +6211,7 @@ TASKS_TRAIN = [
                     "new_item_ids": ["1151293680"],
                     "payment_method_id": "credit_card_9698900",
                 },
-            )
+            ),
         ],
         outputs=[],
     ),
@@ -6228,7 +6228,7 @@ TASKS_TRAIN = [
                     "new_item_ids": ["5676696062"],
                     "payment_method_id": "gift_card_1044904",
                 },
-            )
+            ),
         ],
         outputs=[],
     ),
@@ -6245,7 +6245,7 @@ TASKS_TRAIN = [
                     "new_item_ids": ["3714494375"],
                     "payment_method_id": "paypal_2192303",
                 },
-            )
+            ),
         ],
         outputs=[],
     ),
@@ -6257,7 +6257,7 @@ TASKS_TRAIN = [
             Action(
                 name="cancel_pending_order",
                 kwargs={"order_id": "#W1790752", "reason": "no longer needed"},
-            )
+            ),
         ],
         outputs=[],
     ),
@@ -6324,7 +6324,7 @@ TASKS_TRAIN = [
                     "new_item_ids": ["1327854740"],
                     "payment_method_id": "credit_card_2902980",
                 },
-            )
+            ),
         ],
         outputs=[],
     ),
@@ -6341,7 +6341,7 @@ TASKS_TRAIN = [
                     "new_item_ids": ["4068787148"],
                     "payment_method_id": "paypal_2684483",
                 },
-            )
+            ),
         ],
         outputs=[],
     ),
@@ -6435,7 +6435,7 @@ TASKS_TRAIN = [
             Action(
                 name="cancel_pending_order",
                 kwargs={"order_id": "#W4725115", "reason": "ordered by mistake"},
-            )
+            ),
         ],
         outputs=[],
     ),
@@ -6452,7 +6452,7 @@ TASKS_TRAIN = [
                     "new_item_ids": ["7866854614"],
                     "payment_method_id": "gift_card_5501047",
                 },
-            )
+            ),
         ],
         outputs=[],
     ),
@@ -6488,7 +6488,7 @@ TASKS_TRAIN = [
             Action(
                 name="cancel_pending_order",
                 kwargs={"order_id": "#W8955613", "reason": "ordered by mistake"},
-            )
+            ),
         ],
         outputs=[],
     ),
@@ -6500,7 +6500,7 @@ TASKS_TRAIN = [
             Action(
                 name="cancel_pending_order",
                 kwargs={"order_id": "#W9667707", "reason": "no longer needed"},
-            )
+            ),
         ],
         outputs=[],
     ),
@@ -6516,7 +6516,7 @@ TASKS_TRAIN = [
                     "item_ids": ["6301799585"],
                     "payment_method_id": "gift_card_4710915",
                 },
-            )
+            ),
         ],
         outputs=[],
     ),
@@ -6533,7 +6533,7 @@ TASKS_TRAIN = [
                     "new_item_ids": ["6906307980"],
                     "payment_method_id": "credit_card_4387170",
                 },
-            )
+            ),
         ],
         outputs=[],
     ),
@@ -6635,7 +6635,7 @@ TASKS_TRAIN = [
             Action(
                 name="cancel_pending_order",
                 kwargs={"order_id": "#W9667707", "reason": "no longer needed"},
-            )
+            ),
         ],
         outputs=[],
     ),
@@ -6708,7 +6708,7 @@ TASKS_TRAIN = [
             Action(
                 name="cancel_pending_order",
                 kwargs={"order_id": "#W7430166", "reason": "no longer needed"},
-            )
+            ),
         ],
         outputs=[],
     ),
@@ -6725,7 +6725,7 @@ TASKS_TRAIN = [
                     "new_item_ids": ["9408160950", "7523669277"],
                     "payment_method_id": "paypal_5589935",
                 },
-            )
+            ),
         ],
         outputs=[],
     ),
@@ -6787,7 +6787,7 @@ TASKS_TRAIN = [
                     "item_ids": ["3694871183", "6309044598"],
                     "payment_method_id": "paypal_5071744",
                 },
-            )
+            ),
         ],
         outputs=[],
     ),
@@ -6804,7 +6804,7 @@ TASKS_TRAIN = [
                     "new_item_ids": ["2698416822"],
                     "payment_method_id": "paypal_5796936",
                 },
-            )
+            ),
         ],
         outputs=[],
     ),
@@ -6821,7 +6821,7 @@ TASKS_TRAIN = [
                     "new_item_ids": ["8886009523"],
                     "payment_method_id": "credit_card_7971769",
                 },
-            )
+            ),
         ],
         outputs=[],
     ),
@@ -6833,7 +6833,7 @@ TASKS_TRAIN = [
             Action(
                 name="cancel_pending_order",
                 kwargs={"order_id": "#W6447372", "reason": "no longer needed"},
-            )
+            ),
         ],
         outputs=[],
     ),
@@ -6874,7 +6874,7 @@ TASKS_TRAIN = [
                     "item_ids": ["8590708195", "2386562819", "6048672633"],
                     "payment_method_id": "credit_card_4829249",
                 },
-            )
+            ),
         ],
         outputs=[],
     ),
@@ -6886,7 +6886,7 @@ TASKS_TRAIN = [
             Action(
                 name="cancel_pending_order",
                 kwargs={"order_id": "#W2466703", "reason": "no longer needed"},
-            )
+            ),
         ],
         outputs=[],
     ),
@@ -6903,7 +6903,7 @@ TASKS_TRAIN = [
                     "new_item_ids": ["7154215719"],
                     "payment_method_id": "credit_card_7871433",
                 },
-            )
+            ),
         ],
         outputs=[],
     ),
@@ -6919,7 +6919,7 @@ TASKS_TRAIN = [
                     "item_ids": ["4572024853"],
                     "payment_method_id": "gift_card_1725971",
                 },
-            )
+            ),
         ],
         outputs=[],
     ),
@@ -6935,7 +6935,7 @@ TASKS_TRAIN = [
                     "item_ids": ["7154215719", "7579176349", "2106335193"],
                     "payment_method_id": "credit_card_4147840",
                 },
-            )
+            ),
         ],
         outputs=[],
     ),
@@ -6979,7 +6979,7 @@ TASKS_TRAIN = [
                     "item_ids": ["7848293342", "9672174103"],
                     "payment_method_id": "gift_card_7803378",
                 },
-            )
+            ),
         ],
         outputs=[],
     ),
@@ -6996,7 +6996,7 @@ TASKS_TRAIN = [
                     "new_item_ids": ["5428723833"],
                     "payment_method_id": "paypal_7383471",
                 },
-            )
+            ),
         ],
         outputs=[],
     ),
@@ -7038,7 +7038,7 @@ TASKS_TRAIN = [
                     "new_item_ids": ["8920458606", "8349118980", "8214883393"],
                     "payment_method_id": "gift_card_2652153",
                 },
-            )
+            ),
         ],
         outputs=[],
     ),
@@ -7054,7 +7054,7 @@ TASKS_TRAIN = [
                     "item_ids": ["8142779083"],
                     "payment_method_id": "credit_card_6699629",
                 },
-            )
+            ),
         ],
         outputs=[],
     ),
@@ -7137,7 +7137,7 @@ TASKS_TRAIN = [
                     "new_item_ids": ["1804581713", "1583904702"],
                     "payment_method_id": "paypal_3296755",
                 },
-            )
+            ),
         ],
         outputs=[],
     ),
@@ -7154,7 +7154,7 @@ TASKS_TRAIN = [
                     "new_item_ids": ["5645314103", "7199146548", "1775591963"],
                     "payment_method_id": "gift_card_5701566",
                 },
-            )
+            ),
         ],
         outputs=[],
     ),
@@ -7171,7 +7171,7 @@ TASKS_TRAIN = [
                     "new_item_ids": ["6130713659"],
                     "payment_method_id": "credit_card_3816099",
                 },
-            )
+            ),
         ],
         outputs=[],
     ),
@@ -7207,7 +7207,7 @@ TASKS_TRAIN = [
             Action(
                 name="cancel_pending_order",
                 kwargs={"order_id": "#W7555783", "reason": "no longer needed"},
-            )
+            ),
         ],
         outputs=[],
     ),
@@ -7219,7 +7219,7 @@ TASKS_TRAIN = [
             Action(
                 name="cancel_pending_order",
                 kwargs={"order_id": "#W4155745", "reason": "ordered by mistake"},
-            )
+            ),
         ],
         outputs=[],
     ),
@@ -7236,7 +7236,7 @@ TASKS_TRAIN = [
                     "new_item_ids": ["5339029584"],
                     "payment_method_id": "gift_card_2415038",
                 },
-            )
+            ),
         ],
         outputs=[],
     ),
@@ -7248,7 +7248,7 @@ TASKS_TRAIN = [
             Action(
                 name="cancel_pending_order",
                 kwargs={"order_id": "#W4111999", "reason": "no longer needed"},
-            )
+            ),
         ],
         outputs=[],
     ),
@@ -7320,7 +7320,7 @@ TASKS_TRAIN = [
                     "new_item_ids": ["7661609223"],
                     "payment_method_id": "paypal_2785678",
                 },
-            )
+            ),
         ],
         outputs=[],
     ),
@@ -7336,7 +7336,7 @@ TASKS_TRAIN = [
                     "item_ids": ["2244749153", "1178356107"],
                     "payment_method_id": "gift_card_8922351",
                 },
-            )
+            ),
         ],
         outputs=[],
     ),
@@ -7353,7 +7353,7 @@ TASKS_TRAIN = [
                     "new_item_ids": ["9811090008", "2060066974"],
                     "payment_method_id": "paypal_5364164",
                 },
-            )
+            ),
         ],
         outputs=[],
     ),
@@ -7386,7 +7386,7 @@ TASKS_TRAIN = [
             Action(
                 name="cancel_pending_order",
                 kwargs={"order_id": "#W8098147", "reason": "ordered by mistake"},
-            )
+            ),
         ],
         outputs=[],
     ),
@@ -7489,7 +7489,7 @@ TASKS_TRAIN = [
                     "new_item_ids": ["6901578702", "4238115171"],
                     "payment_method_id": "gift_card_1139567",
                 },
-            )
+            ),
         ],
         outputs=[],
     ),
@@ -7506,7 +7506,7 @@ TASKS_TRAIN = [
                     "new_item_ids": ["8896479688"],
                     "payment_method_id": "credit_card_2167533",
                 },
-            )
+            ),
         ],
         outputs=[],
     ),
@@ -7518,7 +7518,7 @@ TASKS_TRAIN = [
             Action(
                 name="cancel_pending_order",
                 kwargs={"order_id": "#W8465042", "reason": "ordered by mistake"},
-            )
+            ),
         ],
         outputs=[],
     ),
@@ -7535,7 +7535,7 @@ TASKS_TRAIN = [
                     "new_item_ids": ["2698416822"],
                     "payment_method_id": "paypal_7729105",
                 },
-            )
+            ),
         ],
         outputs=[],
     ),
@@ -7578,7 +7578,7 @@ TASKS_TRAIN = [
                     "new_item_ids": ["6056040996", "5253880258"],
                     "payment_method_id": "gift_card_5591026",
                 },
-            )
+            ),
         ],
         outputs=[],
     ),
@@ -7641,7 +7641,7 @@ TASKS_TRAIN = [
                     "item_ids": ["5081446110"],
                     "payment_method_id": "paypal_6918118",
                 },
-            )
+            ),
         ],
         outputs=[],
     ),
@@ -7653,7 +7653,7 @@ TASKS_TRAIN = [
             Action(
                 name="cancel_pending_order",
                 kwargs={"order_id": "#W5107138", "reason": "no longer needed"},
-            )
+            ),
         ],
         outputs=[],
     ),
@@ -7704,7 +7704,7 @@ TASKS_TRAIN = [
                     "item_ids": ["2185126308"],
                     "payment_method_id": "gift_card_3372949",
                 },
-            )
+            ),
         ],
         outputs=[],
     ),
@@ -7720,7 +7720,7 @@ TASKS_TRAIN = [
                     "item_ids": ["5917587651"],
                     "payment_method_id": "gift_card_7219486",
                 },
-            )
+            ),
         ],
         outputs=[],
     ),
@@ -7737,7 +7737,7 @@ TASKS_TRAIN = [
                     "new_item_ids": ["6313971174", "6164262152"],
                     "payment_method_id": "credit_card_6450011",
                 },
-            )
+            ),
         ],
         outputs=[],
     ),
@@ -7754,7 +7754,7 @@ TASKS_TRAIN = [
                     "new_item_ids": ["9494281769", "2177997696"],
                     "payment_method_id": "gift_card_7032928",
                 },
-            )
+            ),
         ],
         outputs=[],
     ),
@@ -7771,7 +7771,7 @@ TASKS_TRAIN = [
                     "new_item_ids": ["7884173033"],
                     "payment_method_id": "paypal_6129397",
                 },
-            )
+            ),
         ],
         outputs=[],
     ),
@@ -7783,7 +7783,7 @@ TASKS_TRAIN = [
             Action(
                 name="cancel_pending_order",
                 kwargs={"order_id": "#W5911003", "reason": "ordered by mistake"},
-            )
+            ),
         ],
         outputs=[],
     ),
@@ -7795,7 +7795,7 @@ TASKS_TRAIN = [
             Action(
                 name="cancel_pending_order",
                 kwargs={"order_id": "#W5073920", "reason": "no longer needed"},
-            )
+            ),
         ],
         outputs=[],
     ),
@@ -7807,7 +7807,7 @@ TASKS_TRAIN = [
             Action(
                 name="cancel_pending_order",
                 kwargs={"order_id": "#W8747662", "reason": "no longer needed"},
-            )
+            ),
         ],
         outputs=[],
     ),
@@ -7824,7 +7824,7 @@ TASKS_TRAIN = [
                     "new_item_ids": ["9013366374"],
                     "payment_method_id": "paypal_3976765",
                 },
-            )
+            ),
         ],
         outputs=[],
     ),
@@ -7840,7 +7840,7 @@ TASKS_TRAIN = [
                     "item_ids": ["2284404181"],
                     "payment_method_id": "credit_card_8008637",
                 },
-            )
+            ),
         ],
         outputs=[],
     ),
@@ -7852,7 +7852,7 @@ TASKS_TRAIN = [
             Action(
                 name="cancel_pending_order",
                 kwargs={"order_id": "#W1654931", "reason": "no longer needed"},
-            )
+            ),
         ],
         outputs=[],
     ),
@@ -7869,7 +7869,7 @@ TASKS_TRAIN = [
                     "new_item_ids": ["4913411651"],
                     "payment_method_id": "gift_card_4710915",
                 },
-            )
+            ),
         ],
         outputs=[],
     ),
@@ -7920,7 +7920,7 @@ TASKS_TRAIN = [
                     "new_item_ids": ["2106335193"],
                     "payment_method_id": "gift_card_9450778",
                 },
-            )
+            ),
         ],
         outputs=[],
     ),
@@ -7937,7 +7937,7 @@ TASKS_TRAIN = [
                     "new_item_ids": ["4273929280"],
                     "payment_method_id": "paypal_4755504",
                 },
-            )
+            ),
         ],
         outputs=[],
     ),
@@ -7953,7 +7953,7 @@ TASKS_TRAIN = [
                     "item_ids": ["6130713659"],
                     "payment_method_id": "credit_card_6361025",
                 },
-            )
+            ),
         ],
         outputs=[],
     ),
@@ -7965,7 +7965,7 @@ TASKS_TRAIN = [
             Action(
                 name="cancel_pending_order",
                 kwargs={"order_id": "#W9653558", "reason": "ordered by mistake"},
-            )
+            ),
         ],
         outputs=[],
     ),
@@ -8003,7 +8003,7 @@ TASKS_TRAIN = [
             Action(
                 name="cancel_pending_order",
                 kwargs={"order_id": "#W4250290", "reason": "ordered by mistake"},
-            )
+            ),
         ],
         outputs=[],
     ),
@@ -8019,7 +8019,7 @@ TASKS_TRAIN = [
                     "item_ids": ["1775591963", "2366567022"],
                     "payment_method_id": "gift_card_5701566",
                 },
-            )
+            ),
         ],
         outputs=[],
     ),
@@ -8031,7 +8031,7 @@ TASKS_TRAIN = [
             Action(
                 name="cancel_pending_order",
                 kwargs={"order_id": "#W6805991", "reason": "ordered by mistake"},
-            )
+            ),
         ],
         outputs=[],
     ),
@@ -8072,7 +8072,7 @@ TASKS_TRAIN = [
                     "item_ids": ["4537595158"],
                     "payment_method_id": "credit_card_4467209",
                 },
-            )
+            ),
         ],
         outputs=[],
     ),
@@ -8089,7 +8089,7 @@ TASKS_TRAIN = [
                     "new_item_ids": ["7958300294", "7806008610"],
                     "payment_method_id": "credit_card_7287775",
                 },
-            )
+            ),
         ],
         outputs=[],
     ),
@@ -8106,7 +8106,7 @@ TASKS_TRAIN = [
                     "new_item_ids": ["4965355367"],
                     "payment_method_id": "paypal_5334408",
                 },
-            )
+            ),
         ],
         outputs=[],
     ),
@@ -8122,7 +8122,7 @@ TASKS_TRAIN = [
                     "item_ids": ["2284404181"],
                     "payment_method_id": "credit_card_8008637",
                 },
-            )
+            ),
         ],
         outputs=[],
     ),
@@ -8139,7 +8139,7 @@ TASKS_TRAIN = [
                     "new_item_ids": ["5669664287", "6777246137", "3399869890"],
                     "payment_method_id": "gift_card_5087631",
                 },
-            )
+            ),
         ],
         outputs=[],
     ),
@@ -8155,7 +8155,7 @@ TASKS_TRAIN = [
                     "item_ids": ["8277474082"],
                     "payment_method_id": "gift_card_3491931",
                 },
-            )
+            ),
         ],
         outputs=[],
     ),
@@ -8226,7 +8226,7 @@ TASKS_TRAIN = [
                     "new_item_ids": ["5339029584"],
                     "payment_method_id": "gift_card_1776915",
                 },
-            )
+            ),
         ],
         outputs=[],
     ),
@@ -8243,7 +8243,7 @@ TASKS_TRAIN = [
                     "new_item_ids": ["6159919747"],
                     "payment_method_id": "paypal_8305620",
                 },
-            )
+            ),
         ],
         outputs=[],
     ),
@@ -8264,7 +8264,7 @@ TASKS_TRAIN = [
                     ],
                     "payment_method_id": "paypal_3392566",
                 },
-            )
+            ),
         ],
         outputs=[],
     ),
@@ -8280,7 +8280,7 @@ TASKS_TRAIN = [
                     "item_ids": ["4772738468"],
                     "payment_method_id": "paypal_8673863",
                 },
-            )
+            ),
         ],
         outputs=[],
     ),
@@ -8381,7 +8381,7 @@ TASKS_TRAIN = [
                     "item_ids": ["9472539378", "1270145486"],
                     "payment_method_id": "credit_card_3081930",
                 },
-            )
+            ),
         ],
         outputs=[],
     ),
@@ -8393,7 +8393,7 @@ TASKS_TRAIN = [
             Action(
                 name="cancel_pending_order",
                 kwargs={"order_id": "#W2417020", "reason": "no longer needed"},
-            )
+            ),
         ],
         outputs=[],
     ),
@@ -8410,7 +8410,7 @@ TASKS_TRAIN = [
                     "new_item_ids": ["7082455361"],
                     "payment_method_id": "credit_card_8398849",
                 },
-            )
+            ),
         ],
         outputs=[],
     ),
@@ -8427,7 +8427,7 @@ TASKS_TRAIN = [
                     "new_item_ids": ["9612497925", "8733974883"],
                     "payment_method_id": "paypal_3704667",
                 },
-            )
+            ),
         ],
         outputs=[],
     ),
@@ -8444,7 +8444,7 @@ TASKS_TRAIN = [
                     "new_item_ids": ["2635605237"],
                     "payment_method_id": "gift_card_6767859",
                 },
-            )
+            ),
         ],
         outputs=[],
     ),
@@ -8477,7 +8477,7 @@ TASKS_TRAIN = [
             Action(
                 name="cancel_pending_order",
                 kwargs={"order_id": "#W3263208", "reason": "ordered by mistake"},
-            )
+            ),
         ],
         outputs=[],
     ),
@@ -8517,7 +8517,7 @@ TASKS_TRAIN = [
                     "item_ids": ["2193628750"],
                     "payment_method_id": "paypal_5727330",
                 },
-            )
+            ),
         ],
         outputs=[],
     ),
@@ -8534,7 +8534,7 @@ TASKS_TRAIN = [
                     "new_item_ids": ["8896479688"],
                     "payment_method_id": "paypal_5727330",
                 },
-            )
+            ),
         ],
         outputs=[],
     ),
@@ -8602,7 +8602,7 @@ TASKS_TRAIN = [
                     "item_ids": ["6697922351", "2244749153"],
                     "payment_method_id": "gift_card_8922351",
                 },
-            )
+            ),
         ],
         outputs=[],
     ),
@@ -8642,7 +8642,7 @@ TASKS_TRAIN = [
                     "item_ids": ["2106335193"],
                     "payment_method_id": "credit_card_4147840",
                 },
-            )
+            ),
         ],
         outputs=[],
     ),
@@ -8715,7 +8715,7 @@ TASKS_TRAIN = [
                     "item_ids": ["6117189161"],
                     "payment_method_id": "credit_card_3124723",
                 },
-            )
+            ),
         ],
         outputs=[],
     ),
@@ -8794,7 +8794,7 @@ TASKS_TRAIN = [
                     "item_ids": ["3909704820"],
                     "payment_method_id": "gift_card_2519457",
                 },
-            )
+            ),
         ],
         outputs=[],
     ),
@@ -8811,7 +8811,7 @@ TASKS_TRAIN = [
                     "new_item_ids": ["1804581713"],
                     "payment_method_id": "gift_card_5328393",
                 },
-            )
+            ),
         ],
         outputs=[],
     ),
@@ -8828,7 +8828,7 @@ TASKS_TRAIN = [
                     "new_item_ids": ["7811981098", "2106335193"],
                     "payment_method_id": "credit_card_9784468",
                 },
-            )
+            ),
         ],
         outputs=[],
     ),
@@ -8840,7 +8840,7 @@ TASKS_TRAIN = [
             Action(
                 name="cancel_pending_order",
                 kwargs={"order_id": "#W3529525", "reason": "no longer needed"},
-            )
+            ),
         ],
         outputs=[],
     ),
@@ -8857,7 +8857,7 @@ TASKS_TRAIN = [
                     "new_item_ids": ["3358616356", "5996159312"],
                     "payment_method_id": "paypal_2767694",
                 },
-            )
+            ),
         ],
         outputs=[],
     ),
@@ -8869,7 +8869,7 @@ TASKS_TRAIN = [
             Action(
                 name="cancel_pending_order",
                 kwargs={"order_id": "#W9653558", "reason": "no longer needed"},
-            )
+            ),
         ],
         outputs=[],
     ),
@@ -8906,7 +8906,7 @@ TASKS_TRAIN = [
             Action(
                 name="cancel_pending_order",
                 kwargs={"order_id": "#W3698202", "reason": "ordered by mistake"},
-            )
+            ),
         ],
         outputs=[],
     ),
@@ -8944,7 +8944,7 @@ TASKS_TRAIN = [
                     "new_item_ids": ["1507389580", "6704763132", "1325156478"],
                     "payment_method_id": "credit_card_7161839",
                 },
-            )
+            ),
         ],
         outputs=[],
     ),
@@ -8985,7 +8985,7 @@ TASKS_TRAIN = [
             Action(
                 name="cancel_pending_order",
                 kwargs={"order_id": "#W2912646", "reason": "no longer needed"},
-            )
+            ),
         ],
         outputs=[],
     ),
@@ -9001,7 +9001,7 @@ TASKS_TRAIN = [
                     "item_ids": ["6735339143", "4947717507", "7127170374"],
                     "payment_method_id": "paypal_9426036",
                 },
-            )
+            ),
         ],
         outputs=[],
     ),
@@ -9018,7 +9018,7 @@ TASKS_TRAIN = [
                     "new_item_ids": ["6243148452"],
                     "payment_method_id": "credit_card_5353742",
                 },
-            )
+            ),
         ],
         outputs=[],
     ),
@@ -9030,7 +9030,7 @@ TASKS_TRAIN = [
             Action(
                 name="cancel_pending_order",
                 kwargs={"order_id": "#W4160705", "reason": "ordered by mistake"},
-            )
+            ),
         ],
         outputs=[],
     ),
@@ -9047,7 +9047,7 @@ TASKS_TRAIN = [
                     "new_item_ids": ["3951031513"],
                     "payment_method_id": "paypal_8445813",
                 },
-            )
+            ),
         ],
         outputs=[],
     ),
@@ -9110,7 +9110,7 @@ TASKS_TRAIN = [
                     "item_ids": ["5996159312"],
                     "payment_method_id": "credit_card_9513926",
                 },
-            )
+            ),
         ],
         outputs=[],
     ),
@@ -9127,7 +9127,7 @@ TASKS_TRAIN = [
                     "new_item_ids": ["4806644905", "6704763132"],
                     "payment_method_id": "gift_card_7037673",
                 },
-            )
+            ),
         ],
         outputs=[],
     ),
@@ -9173,7 +9173,7 @@ TASKS_TRAIN = [
                     "new_item_ids": ["1596993217", "1507389580"],
                     "payment_method_id": "gift_card_1402922",
                 },
-            )
+            ),
         ],
         outputs=[],
     ),
@@ -9185,7 +9185,7 @@ TASKS_TRAIN = [
             Action(
                 name="cancel_pending_order",
                 kwargs={"order_id": "#W6958840", "reason": "no longer needed"},
-            )
+            ),
         ],
         outputs=[],
     ),
@@ -9197,7 +9197,7 @@ TASKS_TRAIN = [
             Action(
                 name="cancel_pending_order",
                 kwargs={"order_id": "#W6436609", "reason": "ordered by mistake"},
-            )
+            ),
         ],
         outputs=[],
     ),
@@ -9213,7 +9213,7 @@ TASKS_TRAIN = [
                     "item_ids": ["3334537816", "6735339143", "7195021808"],
                     "payment_method_id": "gift_card_6892585",
                 },
-            )
+            ),
         ],
         outputs=[],
     ),
@@ -9255,7 +9255,7 @@ TASKS_TRAIN = [
                     "new_item_ids": ["2880340443"],
                     "payment_method_id": "credit_card_3124723",
                 },
-            )
+            ),
         ],
         outputs=[],
     ),
@@ -9267,7 +9267,7 @@ TASKS_TRAIN = [
             Action(
                 name="cancel_pending_order",
                 kwargs={"order_id": "#W3414433", "reason": "ordered by mistake"},
-            )
+            ),
         ],
         outputs=[],
     ),
@@ -9378,7 +9378,7 @@ TASKS_TRAIN = [
             Action(
                 name="cancel_pending_order",
                 kwargs={"order_id": "#W3826449", "reason": "no longer needed"},
-            )
+            ),
         ],
         outputs=[],
     ),
@@ -9395,7 +9395,7 @@ TASKS_TRAIN = [
                     "new_item_ids": ["7774234341", "1719127154"],
                     "payment_method_id": "paypal_6729210",
                 },
-            )
+            ),
         ],
         outputs=[],
     ),
@@ -9435,7 +9435,7 @@ TASKS_TRAIN = [
                     "item_ids": ["2407258246", "7159180318", "2681513500"],
                     "payment_method_id": "gift_card_4817478",
                 },
-            )
+            ),
         ],
         outputs=[],
     ),
@@ -9496,7 +9496,7 @@ TASKS_TRAIN = [
                     "item_ids": ["5635439102", "8106223139"],
                     "payment_method_id": "gift_card_9919420",
                 },
-            )
+            ),
         ],
         outputs=[],
     ),
@@ -9542,7 +9542,7 @@ TASKS_TRAIN = [
                     "new_item_ids": ["8323284863"],
                     "payment_method_id": "paypal_3169710",
                 },
-            )
+            ),
         ],
         outputs=[],
     ),
@@ -9596,7 +9596,7 @@ TASKS_TRAIN = [
                     "item_ids": ["4035304400"],
                     "payment_method_id": "paypal_3839332",
                 },
-            )
+            ),
         ],
         outputs=[],
     ),
@@ -9652,7 +9652,7 @@ TASKS_TRAIN = [
                     "item_ids": ["2872451762", "7824298782"],
                     "payment_method_id": "credit_card_2112420",
                 },
-            )
+            ),
         ],
         outputs=[],
     ),
@@ -9668,7 +9668,7 @@ TASKS_TRAIN = [
                     "item_ids": ["4458619711"],
                     "payment_method_id": "paypal_2417743",
                 },
-            )
+            ),
         ],
         outputs=[],
     ),
@@ -9680,7 +9680,7 @@ TASKS_TRAIN = [
             Action(
                 name="cancel_pending_order",
                 kwargs={"order_id": "#W1579160", "reason": "no longer needed"},
-            )
+            ),
         ],
         outputs=[],
     ),
@@ -9697,7 +9697,7 @@ TASKS_TRAIN = [
                     "new_item_ids": ["8098621301"],
                     "payment_method_id": "paypal_3388537",
                 },
-            )
+            ),
         ],
         outputs=[],
     ),
@@ -9714,7 +9714,7 @@ TASKS_TRAIN = [
                     "new_item_ids": ["6585768447"],
                     "payment_method_id": "gift_card_2748512",
                 },
-            )
+            ),
         ],
         outputs=[],
     ),
@@ -9731,7 +9731,7 @@ TASKS_TRAIN = [
                     "new_item_ids": ["4273929280"],
                     "payment_method_id": "gift_card_3410768",
                 },
-            )
+            ),
         ],
         outputs=[],
     ),
@@ -9743,7 +9743,7 @@ TASKS_TRAIN = [
             Action(
                 name="cancel_pending_order",
                 kwargs={"order_id": "#W2230795", "reason": "no longer needed"},
-            )
+            ),
         ],
         outputs=[],
     ),
@@ -9789,7 +9789,7 @@ TASKS_TRAIN = [
                     "new_item_ids": ["8349903180"],
                     "payment_method_id": "paypal_6840891",
                 },
-            )
+            ),
         ],
         outputs=[],
     ),
@@ -9805,7 +9805,7 @@ TASKS_TRAIN = [
                     "item_ids": ["6956751343"],
                     "payment_method_id": "credit_card_4420174",
                 },
-            )
+            ),
         ],
         outputs=[],
     ),
@@ -9817,7 +9817,7 @@ TASKS_TRAIN = [
             Action(
                 name="cancel_pending_order",
                 kwargs={"order_id": "#W6779827", "reason": "no longer needed"},
-            )
+            ),
         ],
         outputs=[],
     ),
@@ -9833,7 +9833,7 @@ TASKS_TRAIN = [
                     "item_ids": ["6501071631"],
                     "payment_method_id": "gift_card_8862145",
                 },
-            )
+            ),
         ],
         outputs=[],
     ),
@@ -9849,7 +9849,7 @@ TASKS_TRAIN = [
                     "item_ids": ["3557711149", "2323972008"],
                     "payment_method_id": "paypal_5727330",
                 },
-            )
+            ),
         ],
         outputs=[],
     ),
@@ -9887,7 +9887,7 @@ TASKS_TRAIN = [
                     "new_item_ids": ["3360679910"],
                     "payment_method_id": "gift_card_9450778",
                 },
-            )
+            ),
         ],
         outputs=[],
     ),
@@ -9903,7 +9903,7 @@ TASKS_TRAIN = [
                     "item_ids": ["9354168549"],
                     "payment_method_id": "gift_card_6786837",
                 },
-            )
+            ),
         ],
         outputs=[],
     ),
@@ -9920,7 +9920,7 @@ TASKS_TRAIN = [
                     "new_item_ids": ["4716977452", "9570044148"],
                     "payment_method_id": "paypal_1768431",
                 },
-            )
+            ),
         ],
         outputs=[],
     ),
@@ -9936,7 +9936,7 @@ TASKS_TRAIN = [
                     "item_ids": ["5669664287"],
                     "payment_method_id": "credit_card_2902980",
                 },
-            )
+            ),
         ],
         outputs=[],
     ),
@@ -9953,7 +9953,7 @@ TASKS_TRAIN = [
                     "new_item_ids": ["7251508981"],
                     "payment_method_id": "credit_card_6173085",
                 },
-            )
+            ),
         ],
         outputs=[],
     ),
@@ -9995,7 +9995,7 @@ TASKS_TRAIN = [
                     "new_item_ids": ["9862136885"],
                     "payment_method_id": "credit_card_7933535",
                 },
-            )
+            ),
         ],
         outputs=[],
     ),
@@ -10011,7 +10011,7 @@ TASKS_TRAIN = [
                     "item_ids": ["5669664287"],
                     "payment_method_id": "gift_card_3767667",
                 },
-            )
+            ),
         ],
         outputs=[],
     ),

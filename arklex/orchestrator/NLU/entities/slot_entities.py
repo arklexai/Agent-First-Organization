@@ -37,6 +37,7 @@ class Slot(BaseModel):
         prompt (str): Prompt to use when filling the slot.
         required (bool): Whether the slot must be filled.
         verified (bool): Whether the slot's value has been verified.
+
     """
 
     name: str
@@ -107,6 +108,7 @@ class SlotInput(BaseModel):
         value (Union[str, int, float, bool, List[str], None]): The current value.
         enum (Optional[List[Union[str, int, float, bool, None]]]): Valid values.
         description (str): Description of the slot's purpose.
+
     """
 
     name: str
@@ -128,6 +130,7 @@ class SlotInputList(BaseModel):
 
     Attributes:
         slot_input_list (List[SlotInput]): List of slot inputs to process.
+
     """
 
     slot_input_list: list[SlotInput]
@@ -148,6 +151,7 @@ class Verification(BaseModel):
     Attributes:
         thought (str): Reasoning behind the verification decision.
         verification_needed (bool): Whether additional verification is required.
+
     """
 
     thought: str

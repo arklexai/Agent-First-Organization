@@ -38,6 +38,7 @@ class APIClientService:
         base_url: Base URL for the API
         timeout: Request timeout in seconds
         client: HTTP client instance
+
     """
 
     def __init__(self, base_url: str, timeout: int = DEFAULT_TIMEOUT) -> None:
@@ -53,6 +54,7 @@ class APIClientService:
         Raises:
             ValidationError: If base_url is empty
             APIError: If client initialization fails
+
         """
         if not base_url:
             log_context.error(
@@ -98,7 +100,10 @@ class APIClientService:
 
     @handle_exceptions()
     def _make_request(
-        self, endpoint: str, method: str, data: dict[str, Any] | None = None
+        self,
+        endpoint: str,
+        method: str,
+        data: dict[str, Any] | None = None,
     ) -> dict[str, Any]:
         """Make HTTP request to the API.
 
@@ -116,6 +121,7 @@ class APIClientService:
         Raises:
             APIError: If request fails or response is invalid
             ValidationError: If response validation fails
+
         """
         url = f"{self.base_url}/{endpoint.lstrip('/')}"
         log_context.info(
@@ -210,6 +216,7 @@ class APIClientService:
         Raises:
             APIError: If request fails
             ValidationError: If response validation fails
+
         """
         log_context.info(
             "Predicting intent",
@@ -228,7 +235,8 @@ class APIClientService:
         }
         response = self._make_request("/nlu/predict", HTTP_METHOD_POST, data)
         result = validate_intent_response(
-            response.get("intent", ""), response.get("idx2intents_mapping", {})
+            response.get("intent", ""),
+            response.get("idx2intents_mapping", {}),
         )
         log_context.info(
             "Intent prediction successful",
@@ -241,7 +249,10 @@ class APIClientService:
 
     @handle_exceptions()
     def predict_slots(
-        self, text: str, slots: list[Slot], model_config: dict[str, Any]
+        self,
+        text: str,
+        slots: list[Slot],
+        model_config: dict[str, Any],
     ) -> list[Slot]:
         """Predict slots from text.
 
@@ -259,6 +270,7 @@ class APIClientService:
         Raises:
             APIError: If request fails
             ValidationError: If response validation fails
+
         """
         log_context.info(
             "Predicting slots",
@@ -287,7 +299,10 @@ class APIClientService:
 
     @handle_exceptions()
     def verify_slots(
-        self, text: str, slots: list[Slot], model_config: dict[str, Any]
+        self,
+        text: str,
+        slots: list[Slot],
+        model_config: dict[str, Any],
     ) -> tuple[bool, str]:
         """Verify slots from text.
 
@@ -306,6 +321,7 @@ class APIClientService:
         Raises:
             APIError: If request fails
             ValidationError: If response validation fails
+
         """
         log_context.info(
             "Verifying slots",

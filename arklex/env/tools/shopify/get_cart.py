@@ -1,5 +1,4 @@
-"""
-This module provides functionality to retrieve cart information from the Shopify store.
+"""This module provides functionality to retrieve cart information from the Shopify store.
 It supports retrieving cart details including checkout URL and line items.
 
 Module Name: get_cart
@@ -41,8 +40,7 @@ outputs = [ShopifyOutputs.GET_CART_DETAILS, *PAGEINFO_OUTPUTS]
 
 @register_tool(description, slots, outputs)
 def get_cart(cart_id: str, **kwargs: GetCartParams) -> str:
-    """
-    Retrieve detailed information about a shopping cart.
+    """Retrieve detailed information about a shopping cart.
 
     Args:
         cart_id (str): The ID of the cart to retrieve.
@@ -57,6 +55,7 @@ def get_cart(cart_id: str, **kwargs: GetCartParams) -> str:
         ToolExecutionError: If:
             - The cart is not found
             - There's an error retrieving the cart information
+
     """
     func_name = inspect.currentframe().f_code.co_name
     nav = cursorify(kwargs)
@@ -68,7 +67,7 @@ def get_cart(cart_id: str, **kwargs: GetCartParams) -> str:
         "id": cart_id,
     }
     headers: dict[str, str] = {
-        "X-Shopify-Storefront-Access-Token": auth["storefront_token"]
+        "X-Shopify-Storefront-Access-Token": auth["storefront_token"],
     }
     query = f"""
         query ($id: ID!) {{ 
@@ -154,8 +153,7 @@ def get_cart(cart_id: str, **kwargs: GetCartParams) -> str:
             )
 
         return response_text
-    else:
-        raise ToolExecutionError(
-            func_name,
-            extra_message=ShopifyExceptionPrompt.CART_NOT_FOUND_ERROR_PROMPT,
-        )
+    raise ToolExecutionError(
+        func_name,
+        extra_message=ShopifyExceptionPrompt.CART_NOT_FOUND_ERROR_PROMPT,
+    )

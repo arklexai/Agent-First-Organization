@@ -67,15 +67,15 @@ class TavilySearchExecutor:
     def search(self, state: MessageState) -> str:
         prompts: dict[str, str] = load_prompts(state.bot_config)
         contextualize_q_prompt: PromptTemplate = PromptTemplate.from_template(
-            prompts["retrieve_contextualize_q_prompt"]
+            prompts["retrieve_contextualize_q_prompt"],
         )
         ret_input_chain: Any = contextualize_q_prompt | self.llm | StrOutputParser()
         ret_input: str = ret_input_chain.invoke(
-            {"chat_history": state.user_message.history}
+            {"chat_history": state.user_message.history},
         )
         log_context.info(f"Reformulated input for search engine: {ret_input}")
         search_results: list[dict[str, Any]] = self.search_tool.invoke(
-            {"query": ret_input}
+            {"query": ret_input},
         )
         text_results: str = self.process_search_result(search_results)
         return text_results
@@ -88,7 +88,9 @@ class TavilySearchExecutor:
         return TavilySearchExecutor(llm_config, **kwargs)
 
     def search_documents(
-        self, query: str, **kwargs: dict[str, Any]
+        self,
+        query: str,
+        **kwargs: dict[str, Any],
     ) -> list[dict[str, Any]]:
         """Search for documents matching the query.
 
@@ -101,6 +103,7 @@ class TavilySearchExecutor:
 
         Raises:
             SearchError: If search fails
+
         """
         try:
             log_context.info(f"Starting search for query: {query}")

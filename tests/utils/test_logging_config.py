@@ -31,10 +31,11 @@ def temp_log_dir(tmp_path: Path) -> Generator[str, None, None]:
 
     Yields:
         Path to the temporary directory.
+
     """
     log_dir = tmp_path / "logs"
     log_dir.mkdir()
-    yield str(log_dir)
+    return str(log_dir)
 
 
 def test_get_log_context() -> None:
@@ -66,6 +67,7 @@ def test_setup_logging(temp_log_dir: str) -> None:
 
     Args:
         temp_log_dir: Path to temporary directory for log files.
+
     """
     setup_logging(log_level="DEBUG", log_dir=temp_log_dir)
     root_log_context = logging.getLogger()
@@ -136,7 +138,13 @@ def test_request_id_filter() -> None:
     """Test request ID filter."""
     filter_obj = RequestIdFilter("test-123")
     record = logging.LogRecord(
-        "test", logging.INFO, "test.py", 1, "Test message", (), None
+        "test",
+        logging.INFO,
+        "test.py",
+        1,
+        "Test message",
+        (),
+        None,
     )
     assert filter_obj.filter(record)
     assert record.request_id == "test-123"
@@ -146,7 +154,13 @@ def test_request_id_filter_default() -> None:
     """Test request ID filter with default request_id."""
     filter_obj = RequestIdFilter()
     record = logging.LogRecord(
-        "test", logging.INFO, "test.py", 1, "Test message", (), None
+        "test",
+        logging.INFO,
+        "test.py",
+        1,
+        "Test message",
+        (),
+        None,
     )
     assert filter_obj.filter(record)
     assert record.request_id == "N/A"
@@ -157,7 +171,13 @@ def test_context_filter() -> None:
     context = {"user_id": "123", "action": "test"}
     filter_obj = ContextFilter(context)
     record = logging.LogRecord(
-        "test", logging.INFO, "test.py", 1, "Test message", (), None
+        "test",
+        logging.INFO,
+        "test.py",
+        1,
+        "Test message",
+        (),
+        None,
     )
     assert filter_obj.filter(record)
     assert record.context == context
@@ -167,7 +187,13 @@ def test_context_filter_no_context() -> None:
     """Test context filter with no context."""
     filter_obj = ContextFilter()
     record = logging.LogRecord(
-        "test", logging.INFO, "test.py", 1, "Test message", (), None
+        "test",
+        logging.INFO,
+        "test.py",
+        1,
+        "Test message",
+        (),
+        None,
     )
     assert filter_obj.filter(record)
     assert record.context == {}
@@ -177,7 +203,13 @@ def test_context_filter_none_context() -> None:
     """Test context filter with None context."""
     filter_obj = ContextFilter(None)
     record = logging.LogRecord(
-        "test", logging.INFO, "test.py", 1, "Test message", (), None
+        "test",
+        logging.INFO,
+        "test.py",
+        1,
+        "Test message",
+        (),
+        None,
     )
     assert filter_obj.filter(record)
     assert record.context == {}
@@ -187,7 +219,13 @@ def test_json_formatter_basic() -> None:
     """Test JSONFormatter basic functionality."""
     formatter = JSONFormatter()
     record = logging.LogRecord(
-        "test", logging.INFO, "test.py", 1, "Test message", (), None
+        "test",
+        logging.INFO,
+        "test.py",
+        1,
+        "Test message",
+        (),
+        None,
     )
     record.funcName = "test_json_formatter_basic"  # Set funcName explicitly
     result = formatter.format(record)
@@ -208,7 +246,13 @@ def test_json_formatter_without_hostname() -> None:
     """Test JSONFormatter without hostname."""
     formatter = JSONFormatter(include_hostname=False)
     record = logging.LogRecord(
-        "test", logging.INFO, "test.py", 1, "Test message", (), None
+        "test",
+        logging.INFO,
+        "test.py",
+        1,
+        "Test message",
+        (),
+        None,
     )
     result = formatter.format(record)
     log_data = json.loads(result)
@@ -222,7 +266,13 @@ def test_json_formatter_with_request_id() -> None:
     """Test JSONFormatter with request_id in record."""
     formatter = JSONFormatter()
     record = logging.LogRecord(
-        "test", logging.INFO, "test.py", 1, "Test message", (), None
+        "test",
+        logging.INFO,
+        "test.py",
+        1,
+        "Test message",
+        (),
+        None,
     )
     record.request_id = "req-123"
     result = formatter.format(record)
@@ -235,7 +285,13 @@ def test_json_formatter_with_context() -> None:
     """Test JSONFormatter with context in record."""
     formatter = JSONFormatter()
     record = logging.LogRecord(
-        "test", logging.INFO, "test.py", 1, "Test message", (), None
+        "test",
+        logging.INFO,
+        "test.py",
+        1,
+        "Test message",
+        (),
+        None,
     )
     record.context = {"user_id": "123", "action": "test"}
     result = formatter.format(record)
@@ -248,7 +304,13 @@ def test_json_formatter_with_exception() -> None:
     """Test JSONFormatter with exception information."""
     formatter = JSONFormatter()
     record = logging.LogRecord(
-        "test", logging.ERROR, "test.py", 1, "Test error", (), None
+        "test",
+        logging.ERROR,
+        "test.py",
+        1,
+        "Test error",
+        (),
+        None,
     )
 
     # Create an exception
@@ -270,7 +332,13 @@ def test_json_formatter_without_exception() -> None:
     """Test JSONFormatter without exception information."""
     formatter = JSONFormatter()
     record = logging.LogRecord(
-        "test", logging.INFO, "test.py", 1, "Test message", (), None
+        "test",
+        logging.INFO,
+        "test.py",
+        1,
+        "Test message",
+        (),
+        None,
     )
     record.exc_info = None
     result = formatter.format(record)
@@ -289,7 +357,13 @@ def test_json_formatter_socket_error() -> None:
         assert formatter.hostname is None
 
         record = logging.LogRecord(
-            "test", logging.INFO, "test.py", 1, "Test message", (), None
+            "test",
+            logging.INFO,
+            "test.py",
+            1,
+            "Test message",
+            (),
+            None,
         )
         result = formatter.format(record)
         log_data = json.loads(result)
@@ -376,6 +450,7 @@ def test_log_rotation(temp_log_dir: str) -> None:
 
     Args:
         temp_log_dir: Path to temporary directory for log files.
+
     """
     # Use a smaller max_bytes for testing to ensure rotation occurs
     test_max_bytes = 512
@@ -406,7 +481,7 @@ def test_log_rotation(temp_log_dir: str) -> None:
             break
     else:
         raise AssertionError(
-            f"Log rotation did not occur after {max_attempts} attempts"
+            f"Log rotation did not occur after {max_attempts} attempts",
         )
 
     # Verify that rotation occurred

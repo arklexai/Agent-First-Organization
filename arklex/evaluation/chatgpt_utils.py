@@ -37,6 +37,7 @@ def create_client() -> OpenAI | anthropic.Anthropic | GenerativeModel:
     Raises:
         KeyError: If required environment variables are not set.
         ValueError: If the configured provider is not supported.
+
     """
     try:
         org_key: str | None = os.environ["OPENAI_ORG_ID"]
@@ -47,7 +48,7 @@ def create_client() -> OpenAI | anthropic.Anthropic | GenerativeModel:
 
     if not provider:
         raise ValueError(
-            "llm_provider must be explicitly specified in MODEL configuration"
+            "llm_provider must be explicitly specified in MODEL configuration",
         )
 
     if provider == "openai":
@@ -57,7 +58,7 @@ def create_client() -> OpenAI | anthropic.Anthropic | GenerativeModel:
         )
         return client
 
-    elif provider == "google":
+    if provider == "google":
         # Set the API key for Google Generative AI
         import google.generativeai as genai
 
@@ -67,14 +68,13 @@ def create_client() -> OpenAI | anthropic.Anthropic | GenerativeModel:
         client = GenerativeModel(model_name)
         return client
 
-    elif provider == "anthropic":
+    if provider == "anthropic":
         client: anthropic.Anthropic = anthropic.Anthropic(
-            api_key=get_api_key_for_provider("anthropic")
+            api_key=get_api_key_for_provider("anthropic"),
         )
         return client
 
-    else:
-        raise ValueError(f"Unsupported LLM provider: {provider}")
+    raise ValueError(f"Unsupported LLM provider: {provider}")
 
 
 def chatgpt_chatbot(
@@ -95,6 +95,7 @@ def chatgpt_chatbot(
 
     Returns:
         str: The model's response text.
+
     """
     # Get model from MODEL config if not provided
     if model is None:
@@ -104,19 +105,21 @@ def chatgpt_chatbot(
 
     if not provider:
         raise ValueError(
-            "llm_provider must be explicitly specified in MODEL configuration"
+            "llm_provider must be explicitly specified in MODEL configuration",
         )
 
     # Ensure model is not empty
     if not model:
         raise ValueError(
-            "Model parameter cannot be empty. Please check MODEL configuration."
+            "Model parameter cannot be empty. Please check MODEL configuration.",
         )
 
     if provider == "openai":
         answer: str = (
             client.chat.completions.create(
-                model=model, messages=messages, temperature=0.1
+                model=model,
+                messages=messages,
+                temperature=0.1,
             )
             .choices[0]
             .message.content.strip()
@@ -163,6 +166,7 @@ def _convert_messages_to_gemini_format(
 
     Returns:
         List[Dict[str, Any]]: List of messages in Gemini format.
+
     """
     gemini_messages = []
     system_content = ""
@@ -176,11 +180,11 @@ def _convert_messages_to_gemini_format(
     for msg in messages:
         if msg["role"] == "user":
             gemini_messages.append(
-                {"role": "user", "parts": [{"text": msg["content"]}]}
+                {"role": "user", "parts": [{"text": msg["content"]}]},
             )
         elif msg["role"] == "assistant":
             gemini_messages.append(
-                {"role": "model", "parts": [{"text": msg["content"]}]}
+                {"role": "model", "parts": [{"text": msg["content"]}]},
             )
 
     # Prepend system content to first user message if it exists
@@ -205,12 +209,13 @@ def flip_hist_content_only(hist: list[dict[str, Any]]) -> list[dict[str, str]]:
 
     Returns:
         List[Dict[str, str]]: The processed conversation history with flipped roles.
+
     """
     new_hist: list[dict[str, str]] = []
     for turn in hist:
         if turn["role"] == "system":
             continue
-        elif turn["role"] == "user":
+        if turn["role"] == "user":
             new_hist.append({"role": "assistant", "content": turn["content"]})
         else:
             new_hist.append({"role": "user", "content": turn["content"]})
@@ -230,6 +235,7 @@ def flip_hist(hist: list[dict[str, Any]]) -> list[dict[str, Any]]:
 
     Returns:
         List[Dict[str, Any]]: The processed conversation history with flipped roles.
+
     """
     new_hist: list[dict[str, Any]] = []
     for turn in hist.copy():
@@ -266,6 +272,7 @@ def query_chatbot(
 
     Returns:
         Dict[str, Any]: The API response as a dictionary.
+
     """
     history = flip_hist_content_only(history)
     data: dict[str, Any] = {
@@ -276,7 +283,9 @@ def query_chatbot(
     }
     data_str: str = json.dumps(data)
     response = requests.post(
-        model_api, headers={"Content-Type": "application/json"}, data=data_str
+        model_api,
+        headers={"Content-Type": "application/json"},
+        data=data_str,
     )
     return response.json()
 
@@ -292,6 +301,7 @@ def format_chat_history_str(chat_history: list[dict[str, str]]) -> str:
 
     Returns:
         str: The formatted chat history string.
+
     """
     formatted_hist: str = ""
     for turn in chat_history:
@@ -301,7 +311,9 @@ def format_chat_history_str(chat_history: list[dict[str, str]]) -> str:
 
 # filter prompts out of bot utterances
 def filter_convo(
-    convo: list[dict[str, Any]], delim: str = "\n", filter_turns: bool = True
+    convo: list[dict[str, Any]],
+    delim: str = "\n",
+    filter_turns: bool = True,
 ) -> list[dict[str, Any]]:
     """Filter and process a conversation.
 
@@ -318,12 +330,13 @@ def filter_convo(
 
     Returns:
         List[Dict[str, Any]]: The processed conversation.
+
     """
     filtered_convo: list[dict[str, Any]] = []
     for i, turn in enumerate(convo):
-        if i <= 1 or "role" not in turn and filter_turns:
+        if i <= 1 or ("role" not in turn and filter_turns):
             continue
-        elif "role" not in turn or turn["role"] == "assistant":
+        if "role" not in turn or turn["role"] == "assistant":
             filtered_convo.append(turn)
         else:
             idx: int = turn["content"].find(delim)
@@ -353,6 +366,7 @@ def adjust_goal(doc_content: str, goal: str) -> str:
 
     Returns:
         str: The adjusted goal.
+
     """
     message: str = f"Pretend you have the following goal in the mind. If the goal including some specific product, such as floss, mug, iphone, etc., then please replace it with the product from the following document content. Otherwise, don't need to change it and just return the original goal. The document content is as follows:\n{doc_content}\n\nThe original goal is as follows:\n{goal}\n\nOnly give the answer to the question in your response."
 
@@ -365,7 +379,8 @@ def adjust_goal(doc_content: str, goal: str) -> str:
 
 
 def generate_goal(
-    doc_content: str, client: OpenAI | anthropic.Anthropic | GenerativeModel
+    doc_content: str,
+    client: OpenAI | anthropic.Anthropic | GenerativeModel,
 ) -> str:
     """Generate a goal based on document content.
 
@@ -380,6 +395,7 @@ def generate_goal(
 
     Returns:
         str: The generated goal.
+
     """
     message: str = f"Pretend you have just read the following website:\n{doc_content}\nThis website also has a chatbot. What is some information you want to get from this chatbot or a goal you might have when chatting with this chatbot based on the website content? Answer the question in the first person. Only give the answer to the question in your response."
 
@@ -407,6 +423,7 @@ def generate_goals(
 
     Returns:
         List[str]: List of generated goals.
+
     """
     goals: list[str] = []
     for _ in range(params["num_goals"]):

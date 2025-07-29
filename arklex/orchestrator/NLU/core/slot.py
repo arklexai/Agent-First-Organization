@@ -38,6 +38,7 @@ def create_slot_filler(
 
     Raises:
         ValidationError: If model_service is not provided
+
     """
     return SlotFiller(model_service=model_service, api_service=api_service)
 
@@ -59,6 +60,7 @@ class SlotFiller(BaseSlotFilling):
     Attributes:
         model_service: Service for local model-based slot filling
         api_service: Optional service for remote API-based slot filling
+
     """
 
     def __init__(
@@ -74,6 +76,7 @@ class SlotFiller(BaseSlotFilling):
 
         Raises:
             ValidationError: If model_service is not provided
+
         """
         if not model_service:
             log_context.error(
@@ -124,6 +127,7 @@ class SlotFiller(BaseSlotFilling):
         Raises:
             ModelError: If slot filling fails
             ValidationError: If input validation fails
+
         """
         log_context.info(
             "Using local model for slot filling",
@@ -137,7 +141,9 @@ class SlotFiller(BaseSlotFilling):
 
         # Format input
         prompt, system_prompt = self.model_service.format_slot_input(
-            slots, context, type
+            slots,
+            context,
+            type,
         )
         log_context.info(
             "Slot filling input prepared",
@@ -219,6 +225,7 @@ class SlotFiller(BaseSlotFilling):
             ModelError: If slot filling fails
             ValidationError: If input validation fails
             APIError: If API request fails
+
         """
         if not self.api_service:
             log_context.error(
@@ -292,6 +299,7 @@ class SlotFiller(BaseSlotFilling):
         Raises:
             ModelError: If slot verification fails
             ValidationError: If input validation fails
+
         """
         log_context.info(
             "Using local model for slot verification",
@@ -324,7 +332,7 @@ class SlotFiller(BaseSlotFilling):
         # Process response
         try:
             is_valid, reason = self.model_service.process_verification_response(
-                response
+                response,
             )
             log_context.info(
                 "Slot verification completed",
@@ -374,6 +382,7 @@ class SlotFiller(BaseSlotFilling):
             ModelError: If slot verification fails
             ValidationError: If input validation fails
             APIError: If API request fails
+
         """
         if not self.api_service:
             log_context.error(
@@ -447,6 +456,7 @@ class SlotFiller(BaseSlotFilling):
             ModelError: If slot verification fails
             ValidationError: If input validation fails
             APIError: If API request fails
+
         """
         log_context.info(
             "Starting slot verification",
@@ -460,11 +470,15 @@ class SlotFiller(BaseSlotFilling):
         try:
             if self.api_service:
                 is_valid, reason = self._verify_slot_remote(
-                    slot, chat_history_str, model_config
+                    slot,
+                    chat_history_str,
+                    model_config,
                 )
             else:
                 is_valid, reason = self._verify_slot_local(
-                    slot, chat_history_str, model_config
+                    slot,
+                    chat_history_str,
+                    model_config,
                 )
 
             log_context.info(
@@ -510,6 +524,7 @@ class SlotFiller(BaseSlotFilling):
             ModelError: If slot filling fails
             ValidationError: If input validation fails
             APIError: If API request fails
+
         """
         log_context.info(
             "Starting slot filling",
@@ -524,11 +539,17 @@ class SlotFiller(BaseSlotFilling):
         try:
             if self.api_service:
                 filled_slots = self._fill_slots_remote(
-                    slots, context, model_config, type
+                    slots,
+                    context,
+                    model_config,
+                    type,
                 )
             else:
                 filled_slots = self._fill_slots_local(
-                    slots, context, model_config, type
+                    slots,
+                    context,
+                    model_config,
+                    type,
                 )
 
             log_context.info(

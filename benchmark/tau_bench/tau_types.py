@@ -22,6 +22,7 @@ class Action(BaseModel):
     Attributes:
         name (str): The name of the action.
         kwargs (Dict[str, Any]): The keyword arguments for the action.
+
     """
 
     name: str
@@ -39,6 +40,7 @@ class Task(BaseModel):
         actions (List[Action]): The list of actions required to complete the task.
         instruction (str): The instruction describing the task.
         outputs (List[str]): The expected outputs from completing the task.
+
     """
 
     user_id: str
@@ -56,6 +58,7 @@ class RewardOutputInfo(BaseModel):
     Attributes:
         r_outputs (float): The reward value based on outputs.
         outputs (Dict[str, bool]): Dictionary mapping outputs to their match status.
+
     """
 
     r_outputs: float
@@ -71,6 +74,7 @@ class RewardActionInfo(BaseModel):
     Attributes:
         r_actions (float): The reward value based on actions.
         gt_data_hash (str): Hash of the ground truth data.
+
     """
 
     r_actions: float
@@ -87,6 +91,7 @@ class RewardResult(BaseModel):
         reward (float): The calculated reward value.
         info (Union[RewardOutputInfo, RewardActionInfo]): Information about the reward calculation.
         actions (List[Action]): The actions that led to this reward.
+
     """
 
     reward: float
@@ -105,6 +110,7 @@ class SolveResult(BaseModel):
         messages (List[Dict[str, Any]]): The messages exchanged during the solution.
         info (Dict[str, Any]): Additional information about the solution.
         total_cost (Optional[float]): The total cost of the solution attempt.
+
     """
 
     reward: float
@@ -124,6 +130,7 @@ class EnvInfo(BaseModel):
         source (Optional[str]): The source of the task.
         user_cost (Optional[float]): The cost incurred by the user.
         reward_info (Optional[RewardResult]): Information about the reward.
+
     """
 
     task: Task
@@ -143,6 +150,7 @@ class EnvResponse(BaseModel):
         reward (float): The reward received.
         done (bool): Whether the task is complete.
         info (EnvInfo): Information about the environment state.
+
     """
 
     observation: str
@@ -160,6 +168,7 @@ class EnvResetResponse(BaseModel):
     Attributes:
         observation (str): The initial observation.
         info (EnvInfo): Information about the environment state.
+
     """
 
     observation: str
@@ -178,6 +187,7 @@ class EnvRunResult(BaseModel):
         info (Dict[str, Any]): Additional information about the run.
         traj (List[Dict[str, Any]]): The trajectory of the run.
         trial (int): The trial number.
+
     """
 
     task_id: int
@@ -209,6 +219,7 @@ class RunConfig(BaseModel):
         user_strategy (str): The user strategy to use.
         output_dir (str): Directory for output.
         taskgraph_dir (str): Directory containing task graphs.
+
     """
 
     user_model_provider: str

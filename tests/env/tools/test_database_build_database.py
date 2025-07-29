@@ -1,5 +1,4 @@
-"""
-Tests for Database Build Database module.
+"""Tests for Database Build Database module.
 
 This module contains comprehensive tests for the build_database.py module including
 database creation, table schema, data insertion, and error handling scenarios.
@@ -204,7 +203,7 @@ class TestBuildDatabaseDataInsertion:
 
             # Check specific shows exist
             cursor.execute(
-                "SELECT show_name FROM show WHERE show_name = 'The Dead, 1904'"
+                "SELECT show_name FROM show WHERE show_name = 'The Dead, 1904'",
             )
             dead_1904_shows = cursor.fetchall()
             assert len(dead_1904_shows) == 2  # Two shows with this name
@@ -214,7 +213,7 @@ class TestBuildDatabaseDataInsertion:
             assert len(carmen_shows) == 1
 
             cursor.execute(
-                "SELECT show_name FROM show WHERE show_name = 'A Child''s Christmas in Wales'"
+                "SELECT show_name FROM show WHERE show_name = 'A Child''s Christmas in Wales'",
             )
             christmas_shows = cursor.fetchall()
             assert len(christmas_shows) == 2
@@ -237,7 +236,7 @@ class TestBuildDatabaseDataInsertion:
 
             # Check specific users exist
             cursor.execute(
-                "SELECT first_name, last_name FROM user WHERE email = 'alice.smith@gmail.com'"
+                "SELECT first_name, last_name FROM user WHERE email = 'alice.smith@gmail.com'",
             )
             alice = cursor.fetchone()
             assert alice is not None
@@ -245,7 +244,7 @@ class TestBuildDatabaseDataInsertion:
             assert alice[1] == "Smith"
 
             cursor.execute(
-                "SELECT first_name, last_name FROM user WHERE email = 'bob.johnson@gmail.com'"
+                "SELECT first_name, last_name FROM user WHERE email = 'bob.johnson@gmail.com'",
             )
             bob = cursor.fetchone()
             assert bob is not None
@@ -296,7 +295,7 @@ class TestBuildDatabaseDataInsertion:
 
             # Check that all shows have required fields
             cursor.execute(
-                "SELECT COUNT(*) FROM show WHERE id IS NULL OR show_name IS NULL"
+                "SELECT COUNT(*) FROM show WHERE id IS NULL OR show_name IS NULL",
             )
             null_shows = cursor.fetchone()[0]
             assert null_shows == 0
@@ -324,7 +323,7 @@ class TestBuildDatabaseDataInsertion:
 
             # Check that all users have required fields
             cursor.execute(
-                "SELECT COUNT(*) FROM user WHERE id IS NULL OR first_name IS NULL OR last_name IS NULL OR email IS NULL"
+                "SELECT COUNT(*) FROM user WHERE id IS NULL OR first_name IS NULL OR last_name IS NULL OR email IS NULL",
             )
             null_users = cursor.fetchone()[0]
             assert null_users == 0
@@ -493,7 +492,7 @@ class TestBuildDatabaseEdgeCases:
             try:
                 # This should raise an error due to permissions
                 with pytest.raises(
-                    (PermissionError, OSError, sqlite3.OperationalError)
+                    (PermissionError, OSError, sqlite3.OperationalError),
                 ):
                     build_database(str(readonly_dir))
             finally:
@@ -607,7 +606,7 @@ class TestBuildDatabaseDataValidation:
 
             # Check that available_seats values are integers
             cursor.execute(
-                "SELECT available_seats FROM show WHERE available_seats IS NOT NULL"
+                "SELECT available_seats FROM show WHERE available_seats IS NOT NULL",
             )
             seats = cursor.fetchall()
             for seat in seats:
@@ -928,7 +927,7 @@ class TestBuildDatabaseErrorHandling:
 
             try:
                 with pytest.raises(
-                    (PermissionError, OSError, sqlite3.OperationalError)
+                    (PermissionError, OSError, sqlite3.OperationalError),
                 ):
                     build_database(str(readonly_dir))
             finally:
@@ -1041,7 +1040,7 @@ class TestBuildDatabaseDataConsistency:
             assert len(carmen_shows) == 1
 
             cursor.execute(
-                "SELECT first_name FROM user WHERE email = 'alice.smith@gmail.com'"
+                "SELECT first_name FROM user WHERE email = 'alice.smith@gmail.com'",
             )
             alice = cursor.fetchone()
             assert alice is not None
@@ -1070,7 +1069,7 @@ class TestBuildDatabaseAdvancedFeatures:
 
             # Test integer values
             cursor.execute(
-                "SELECT available_seats FROM show WHERE show_name = 'Carmen'"
+                "SELECT available_seats FROM show WHERE show_name = 'Carmen'",
             )
             seats = cursor.fetchone()[0]
             assert isinstance(seats, int)
@@ -1095,7 +1094,7 @@ class TestBuildDatabaseAdvancedFeatures:
 
             # Test user registration timestamp
             cursor.execute(
-                "SELECT register_at FROM user WHERE email = 'alice.smith@gmail.com'"
+                "SELECT register_at FROM user WHERE email = 'alice.smith@gmail.com'",
             )
             register_time = cursor.fetchone()[0]
             assert isinstance(register_time, str)
@@ -1127,7 +1126,8 @@ class TestBuildDatabaseAdvancedFeatures:
 
             # Try to query with malicious input (should be safe due to parameterized queries)
             cursor.execute(
-                "SELECT COUNT(*) FROM show WHERE show_name = ?", (malicious_input,)
+                "SELECT COUNT(*) FROM show WHERE show_name = ?",
+                (malicious_input,),
             )
             # Verify table still exists and count is the same
             cursor.execute("SELECT COUNT(*) FROM show")
@@ -1148,7 +1148,7 @@ class TestBuildDatabaseAdvancedFeatures:
 
             # Test unicode in show descriptions
             cursor.execute(
-                "SELECT description FROM show WHERE show_name = 'A Child''s Christmas in Wales'"
+                "SELECT description FROM show WHERE show_name = 'A Child''s Christmas in Wales'",
             )
             description = cursor.fetchone()[0]
             assert isinstance(description, str)
@@ -1199,7 +1199,7 @@ class TestBuildDatabaseAdvancedFeatures:
 
             # Delete a show that has a booking
             cursor.execute(
-                "DELETE FROM show WHERE id = 'show_8406f0c6-6644-4a19-9448-670c9941b8d8'"
+                "DELETE FROM show WHERE id = 'show_8406f0c6-6644-4a19-9448-670c9941b8d8'",
             )
 
             # Count bookings after deletion
@@ -1332,12 +1332,12 @@ class TestBuildDatabaseAdvancedFeatures:
 
             # Make a change
             cursor.execute(
-                "UPDATE show SET available_seats = 999 WHERE show_name = 'Carmen'"
+                "UPDATE show SET available_seats = 999 WHERE show_name = 'Carmen'",
             )
 
             # Verify change is visible within transaction
             cursor.execute(
-                "SELECT available_seats FROM show WHERE show_name = 'Carmen'"
+                "SELECT available_seats FROM show WHERE show_name = 'Carmen'",
             )
             seats = cursor.fetchone()[0]
             assert seats == 999
@@ -1347,7 +1347,7 @@ class TestBuildDatabaseAdvancedFeatures:
 
             # Verify change was rolled back
             cursor.execute(
-                "SELECT available_seats FROM show WHERE show_name = 'Carmen'"
+                "SELECT available_seats FROM show WHERE show_name = 'Carmen'",
             )
             seats = cursor.fetchone()[0]
             assert seats == 150  # Original value
@@ -1373,7 +1373,7 @@ class TestBuildDatabaseAdvancedFeatures:
 
             with suppress(sqlite3.IntegrityError):
                 cursor.execute(
-                    "INSERT INTO show (id) VALUES (NULL)"
+                    "INSERT INTO show (id) VALUES (NULL)",
                 )  # This should fail
 
             # Verify database is still consistent (the error should have been rolled back)
@@ -1441,7 +1441,7 @@ class TestBuildDatabaseAdvancedFeatures:
 
             # Check specific show data
             cursor.execute(
-                "SELECT show_name, genre, date, time, price FROM show WHERE show_name = 'The Dead, 1904'"
+                "SELECT show_name, genre, date, time, price FROM show WHERE show_name = 'The Dead, 1904'",
             )
             shows = cursor.fetchall()
 
@@ -1468,7 +1468,7 @@ class TestBuildDatabaseAdvancedFeatures:
 
             # Check specific user data
             cursor.execute(
-                "SELECT first_name, last_name, email FROM user WHERE first_name = 'Alice'"
+                "SELECT first_name, last_name, email FROM user WHERE first_name = 'Alice'",
             )
             users = cursor.fetchall()
 
@@ -1492,7 +1492,7 @@ class TestBuildDatabaseAdvancedFeatures:
 
             # Check booking data
             cursor.execute(
-                "SELECT show_id, user_id, created_at FROM booking WHERE id = '1'"
+                "SELECT show_id, user_id, created_at FROM booking WHERE id = '1'",
             )
             bookings = cursor.fetchall()
 
@@ -1527,7 +1527,8 @@ class TestBuildDatabaseAdvancedFeatures:
 
             for show_name in expected_shows:
                 cursor.execute(
-                    "SELECT COUNT(*) FROM show WHERE show_name = ?", (show_name,)
+                    "SELECT COUNT(*) FROM show WHERE show_name = ?",
+                    (show_name,),
                 )
                 count = cursor.fetchone()[0]
                 assert count > 0, f"Show '{show_name}' not found in database"

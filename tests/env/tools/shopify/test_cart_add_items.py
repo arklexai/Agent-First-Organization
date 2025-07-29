@@ -30,9 +30,9 @@ class TestCartAddItems:
         mock_response.json.return_value = {
             "data": {
                 "cartLinesAdd": {
-                    "cart": {"checkoutUrl": "https://test-shop.myshopify.com/checkout"}
-                }
-            }
+                    "cart": {"checkoutUrl": "https://test-shop.myshopify.com/checkout"},
+                },
+            },
         }
         mock_post.return_value = mock_response
 
@@ -92,8 +92,8 @@ class TestCartAddItems:
                 {
                     "message": "Product variant not found",
                     "locations": [{"line": 1, "column": 10}],
-                }
-            ]
+                },
+            ],
         }
         mock_post.return_value = mock_response
 
@@ -157,9 +157,9 @@ class TestCartAddItems:
         mock_response.json.return_value = {
             "data": {
                 "cartLinesAdd": {
-                    "cart": {"checkoutUrl": "https://test-shop.myshopify.com/checkout"}
-                }
-            }
+                    "cart": {"checkoutUrl": "https://test-shop.myshopify.com/checkout"},
+                },
+            },
         }
         mock_post.return_value = mock_response
 
@@ -189,9 +189,9 @@ class TestCartAddItems:
         mock_response.json.return_value = {
             "data": {
                 "cartLinesAdd": {
-                    "cart": {"checkoutUrl": "https://test-shop.myshopify.com/checkout"}
-                }
-            }
+                    "cart": {"checkoutUrl": "https://test-shop.myshopify.com/checkout"},
+                },
+            },
         }
         mock_post.return_value = mock_response
 
@@ -226,9 +226,9 @@ class TestCartAddItems:
         mock_response.json.return_value = {
             "data": {
                 "cartLinesAdd": {
-                    "cart": None  # Malformed response
-                }
-            }
+                    "cart": None,  # Malformed response
+                },
+            },
         }
         mock_post.return_value = mock_response
 
@@ -273,8 +273,8 @@ class TestCartAddItems:
         mock_response.status_code = 200
         mock_response.json.return_value = {
             "cartLinesAdd": {
-                "cart": {"checkoutUrl": "https://test-shop.myshopify.com/checkout"}
-            }
+                "cart": {"checkoutUrl": "https://test-shop.myshopify.com/checkout"},
+            },
         }
         mock_post.return_value = mock_response
 
@@ -292,7 +292,8 @@ class TestCartAddItems:
 
     @patch("arklex.env.tools.shopify.cart_add_items.requests.post")
     def test_cart_add_items_with_missing_cart_lines_add_key(
-        self, mock_post: Mock
+        self,
+        mock_post: Mock,
     ) -> None:
         """Test cart add items when response is missing 'cartLinesAdd' key."""
         # Setup mock response with missing cartLinesAdd key
@@ -301,9 +302,9 @@ class TestCartAddItems:
         mock_response.json.return_value = {
             "data": {
                 "someOtherKey": {
-                    "cart": {"checkoutUrl": "https://test-shop.myshopify.com/checkout"}
-                }
-            }
+                    "cart": {"checkoutUrl": "https://test-shop.myshopify.com/checkout"},
+                },
+            },
         }
         mock_post.return_value = mock_response
 
@@ -350,9 +351,9 @@ class TestCartAddItems:
         mock_response.json.return_value = {
             "data": {
                 "cartLinesAdd": {
-                    "cart": {"checkoutUrl": "https://test-shop.myshopify.com/checkout"}
-                }
-            }
+                    "cart": {"checkoutUrl": "https://test-shop.myshopify.com/checkout"},
+                },
+            },
         }
         mock_post.return_value = mock_response
 

@@ -35,6 +35,7 @@ def validate_model_api(model_api: str) -> None:
 
     Raises:
         ValueError: If the model_api is not a valid URL or contains placeholder values.
+
     """
     if not model_api:
         raise ValueError("model_api parameter is required")
@@ -58,7 +59,7 @@ def validate_model_api(model_api: str) -> None:
                 "2. Then run the evaluation with the correct API URL:\n"
                 "   python eval.py --model_api http://127.0.0.1:8000/eval/chat ...\n\n"
                 "If you're running the model API locally, use:\n"
-                "'http://127.0.0.1:8000/eval/chat' or 'http://localhost:8000/eval/chat'"
+                "'http://127.0.0.1:8000/eval/chat' or 'http://localhost:8000/eval/chat'",
             )
 
     # Basic URL validation
@@ -67,7 +68,7 @@ def validate_model_api(model_api: str) -> None:
         if not parsed.scheme or not parsed.netloc:
             raise ValueError("URL must have a valid scheme and host")
     except Exception as e:
-        raise ValueError(f"Invalid URL format: {model_api}. Error: {str(e)}") from e
+        raise ValueError(f"Invalid URL format: {model_api}. Error: {e!s}") from e
 
     # Try to connect to the API endpoint to verify it's reachable
     # Since this is a POST-only endpoint, we'll test with a minimal POST request
@@ -89,21 +90,24 @@ def validate_model_api(model_api: str) -> None:
         raise ValueError(
             f"Cannot connect to API endpoint: {model_api}\n"
             "Please make sure the model API server is running.\n"
-            "Start it with: python model_api.py --input-dir ./examples/customer_service"
+            "Start it with: python model_api.py --input-dir ./examples/customer_service",
         ) from e
     except requests.exceptions.Timeout as e:
         raise ValueError(
             f"Timeout connecting to API endpoint: {model_api}\n"
-            "Please check if the server is running and accessible."
+            "Please check if the server is running and accessible.",
         ) from e
     except Exception as e:
-        print(f"Warning: Could not verify API endpoint connectivity: {str(e)}")
+        print(f"Warning: Could not verify API endpoint connectivity: {e!s}")
 
 
 def evaluate(
     config: dict[str, Any],
 ) -> tuple[
-    list[dict[str, Any]], list[dict[str, Any]], dict[str, Any], list[dict[str, Any]]
+    list[dict[str, Any]],
+    list[dict[str, Any]],
+    dict[str, Any],
+    list[dict[str, Any]],
 ]:
     """Evaluate the performance of the Arklex framework based on the provided configuration.
 
@@ -117,6 +121,7 @@ def evaluate(
     Returns:
         Tuple[List[Dict[str, Any]], List[Dict[str, Any]], Dict[str, Any], List[Dict[str, Any]]]:
             A tuple containing the first-pass data, labeled conversations, goal metrics, and goals.
+
     """
     task: str = config["task"]
     model_api: str = config["model_api"]
@@ -132,15 +137,20 @@ def evaluate(
     # Always perform first pass simulation
     print("Starting first pass simulation...")
     first_pass_data, goals = simulate_conversations(
-        model_api, model_params, synthetic_data_params, config
+        model_api,
+        model_params,
+        synthetic_data_params,
+        config,
     )
     print(
-        f"First pass simulation completed. Generated {len(first_pass_data)} conversations."
+        f"First pass simulation completed. Generated {len(first_pass_data)} conversations.",
     )
 
     print("Extracting goal completion metrics...")
     goal_metrics = extract_task_completion_metrics(
-        first_pass_data, config["client"], bot_goal
+        first_pass_data,
+        config["client"],
+        bot_goal,
     )
     print("Goal metrics extraction completed.")
 
@@ -148,10 +158,14 @@ def evaluate(
     if task == "all":
         print("Starting second pass simulation...")
         labeled_convos = get_labeled_convos(
-            first_pass_data, model_api, synthetic_data_params, model_params, config
+            first_pass_data,
+            model_api,
+            synthetic_data_params,
+            model_params,
+            config,
         )
         print(
-            f"Second pass simulation completed. Generated {len(labeled_convos)} labeled conversations."
+            f"Second pass simulation completed. Generated {len(labeled_convos)} labeled conversations.",
         )
     else:
         labeled_convos = []
@@ -195,7 +209,10 @@ Example usage:
     parser.add_argument("--config", type=str)
     parser.add_argument("--output_dir", type=str)
     parser.add_argument(
-        "--model", type=str, default="gpt-4o-mini", help="Model to use for evaluation"
+        "--model",
+        type=str,
+        default="gpt-4o-mini",
+        help="Model to use for evaluation",
     )
     parser.add_argument(
         "--llm_provider",
@@ -205,7 +222,10 @@ Example usage:
         help="LLM provider to use",
     )
     parser.add_argument(
-        "--customer_type", type=str, default=None, choices=["b2b", "b2c"]
+        "--customer_type",
+        type=str,
+        default=None,
+        choices=["b2b", "b2c"],
     )
     parser.add_argument(
         "--task",
@@ -214,7 +234,9 @@ Example usage:
         choices=["first_pass", "simulate_conv_only", "all"],
     )
     parser.add_argument(
-        "--user_attributes", type=str, default="arklex/evaluation/user_attributes.json"
+        "--user_attributes",
+        type=str,
+        default="arklex/evaluation/user_attributes.json",
     )
     parser.add_argument("--custom_profile", action="store_true")
     parser.add_argument("--system_inputs", action="store_true")
@@ -239,7 +261,7 @@ Example usage:
         raise FileNotFoundError(f"Config file not found: {args.config}")
     if not os.path.exists(args.user_attributes):
         raise FileNotFoundError(
-            f"User attributes file not found: {args.user_attributes}"
+            f"User attributes file not found: {args.user_attributes}",
         )
     if not os.path.exists(args.documents_dir):
         raise FileNotFoundError(f"Documents directory not found: {args.documents_dir}")

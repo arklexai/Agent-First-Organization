@@ -46,7 +46,8 @@ def mock_textual_unavailable() -> Generator[None, None, None]:
 def mock_ui_import_error() -> Generator[None, None, None]:
     """Mock that importing ui module raises ImportError."""
     with patch(
-        "arklex.orchestrator.generator.ui", side_effect=ImportError("textual not found")
+        "arklex.orchestrator.generator.ui",
+        side_effect=ImportError("textual not found"),
     ):
         yield
 
@@ -55,7 +56,8 @@ def mock_ui_import_error() -> Generator[None, None, None]:
 def mock_ui_other_exception() -> Generator[None, None, None]:
     """Mock that importing ui module raises other exceptions."""
     with patch(
-        "arklex.orchestrator.generator.ui", side_effect=Exception("Other error")
+        "arklex.orchestrator.generator.ui",
+        side_effect=Exception("Other error"),
     ):
         yield
 
@@ -141,7 +143,8 @@ class TestFallbackUtilities:
             TaskEditorApp()
 
         with pytest.raises(
-            ImportError, match="InputModal requires 'textual' package to be installed"
+            ImportError,
+            match="InputModal requires 'textual' package to be installed",
         ):
             InputModal()
 

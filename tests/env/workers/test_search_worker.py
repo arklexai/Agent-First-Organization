@@ -1,5 +1,4 @@
-"""
-Tests for search worker functionality.
+"""Tests for search worker functionality.
 
 This module contains comprehensive tests for the SearchWorker class including
 initialization, search functionality, and error handling.

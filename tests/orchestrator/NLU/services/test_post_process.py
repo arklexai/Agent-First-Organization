@@ -56,7 +56,9 @@ class TestPostProcessResponse:
     """Test the post_process_response function."""
 
     def test_post_process_response_no_missing_links(
-        self, mock_message_state: Mock, mock_params: Mock
+        self,
+        mock_message_state: Mock,
+        mock_params: Mock,
     ) -> None:
         """Test post_process_response when no links are missing."""
         mock_message_state.trajectory = []
@@ -77,7 +79,9 @@ class TestPostProcessResponse:
             assert result.response == mock_message_state.response  # No changes
 
     def test_post_process_response_with_missing_links(
-        self, mock_message_state: Mock, mock_params: Mock
+        self,
+        mock_message_state: Mock,
+        mock_params: Mock,
     ) -> None:
         """Test post_process_response when links are missing."""
         mock_message_state.trajectory = []
@@ -106,7 +110,9 @@ class TestPostProcessResponse:
             assert result.response == "Rephrased response"
 
     def test_post_process_response_with_missing_links_no_hitl(
-        self, mock_message_state: Mock, mock_params: Mock
+        self,
+        mock_message_state: Mock,
+        mock_params: Mock,
     ) -> None:
         """Test post_process_response when links are missing and HITL is not available."""
         mock_message_state.trajectory = []
@@ -133,7 +139,10 @@ class TestPostProcessResponse:
             ),
         ):
             result = post_process_response(
-                mock_message_state, mock_params, False, False
+                mock_message_state,
+                mock_params,
+                False,
+                False,
             )
 
             assert result == mock_message_state
@@ -158,7 +167,8 @@ class TestBuildContext:
                 return_value={"https://resource.com"},
             ),
             patch(
-                "arklex.orchestrator.post_process._include_resource", return_value=True
+                "arklex.orchestrator.post_process._include_resource",
+                return_value=True,
             ),
         ):
             result = _build_context(mock_message_state)
@@ -171,7 +181,7 @@ class TestBuildContext:
         resource.output = "Output with https://resource.com"
         resource.info = {"id": "FaissRAGWorker"}
         resource.steps = [
-            {"faiss_retrieve": {"content": "RAG content with https://rag.com"}}
+            {"faiss_retrieve": {"content": "RAG content with https://rag.com"}},
         ]
 
         mock_message_state.trajectory = [[resource]]
@@ -182,7 +192,8 @@ class TestBuildContext:
                 return_value={"https://resource.com"},
             ),
             patch(
-                "arklex.orchestrator.post_process._include_resource", return_value=True
+                "arklex.orchestrator.post_process._include_resource",
+                return_value=True,
             ),
             patch(
                 "arklex.orchestrator.post_process._extract_links_from_nested_dict",
@@ -195,7 +206,8 @@ class TestBuildContext:
             assert "https://rag.com" in result
 
     def test_build_context_with_rag_node_exception(
-        self, mock_message_state: Mock
+        self,
+        mock_message_state: Mock,
     ) -> None:
         """Test _build_context with RAG node that raises exception."""
         resource = Mock(spec=ResourceRecord)
@@ -211,7 +223,8 @@ class TestBuildContext:
                 return_value={"https://resource.com"},
             ),
             patch(
-                "arklex.orchestrator.post_process._include_resource", return_value=True
+                "arklex.orchestrator.post_process._include_resource",
+                return_value=True,
             ),
             patch(
                 "arklex.orchestrator.post_process._extract_links_from_nested_dict",
@@ -223,7 +236,8 @@ class TestBuildContext:
             assert "https://resource.com" in result
 
     def test_build_context_with_context_generate_flag(
-        self, mock_message_state: Mock
+        self,
+        mock_message_state: Mock,
     ) -> None:
         """Test _build_context with resource that has context_generate flag."""
         resource = Mock(spec=ResourceRecord)
@@ -243,7 +257,8 @@ class TestBuildContext:
                 else set(),
             ),
             patch(
-                "arklex.orchestrator.post_process._include_resource", return_value=False
+                "arklex.orchestrator.post_process._include_resource",
+                return_value=False,
             ),
         ):
             result = _build_context(mock_message_state)
@@ -430,11 +445,11 @@ class TestRephraseAnswer:
 
         with (
             patch(
-                "arklex.orchestrator.post_process.validate_and_get_model_class"
+                "arklex.orchestrator.post_process.validate_and_get_model_class",
             ) as mock_validate_and_get_model_class,
             patch("arklex.orchestrator.post_process.load_prompts") as mock_load_prompts,
             patch(
-                "arklex.orchestrator.post_process.PromptTemplate"
+                "arklex.orchestrator.post_process.PromptTemplate",
             ) as mock_prompt_template,
             patch("arklex.orchestrator.post_process.StrOutputParser"),
         ):
@@ -468,7 +483,8 @@ class TestIncludeResource:
     """Test the _include_resource function."""
 
     def test_include_resource_no_context_generate(
-        self, mock_resource_record: Mock
+        self,
+        mock_resource_record: Mock,
     ) -> None:
         """Test _include_resource when no context_generate flag is present."""
         mock_resource_record.steps = [{"step": "data"}]
@@ -478,7 +494,8 @@ class TestIncludeResource:
         assert result is True
 
     def test_include_resource_with_context_generate(
-        self, mock_resource_record: Mock
+        self,
+        mock_resource_record: Mock,
     ) -> None:
         """Test _include_resource when context_generate flag is present."""
         mock_resource_record.steps = [{"context_generate": True}]
@@ -528,7 +545,9 @@ class TestLiveChatVerifier:
     """Test the _live_chat_verifier function."""
 
     def test_live_chat_verifier_with_valid_links(
-        self, mock_message_state: Mock, mock_params: Mock
+        self,
+        mock_message_state: Mock,
+        mock_params: Mock,
     ) -> None:
         """Test _live_chat_verifier when response has valid links."""
         mock_message_state.response = "Check this link: https://example.com"
@@ -543,7 +562,9 @@ class TestLiveChatVerifier:
         assert mock_message_state.response == "Check this link: https://example.com"
 
     def test_live_chat_verifier_question_not_relevant(
-        self, mock_message_state: Mock, mock_params: Mock
+        self,
+        mock_message_state: Mock,
+        mock_params: Mock,
     ) -> None:
         """Test _live_chat_verifier when question is not relevant."""
         mock_message_state.response = "I don't know the answer"
@@ -551,7 +572,8 @@ class TestLiveChatVerifier:
 
         with (
             patch(
-                "arklex.orchestrator.post_process._extract_links", return_value=set()
+                "arklex.orchestrator.post_process._extract_links",
+                return_value=set(),
             ),
             patch(
                 "arklex.orchestrator.post_process._is_question_relevant",
@@ -564,7 +586,9 @@ class TestLiveChatVerifier:
         assert mock_message_state.response == "I don't know the answer"
 
     def test_live_chat_verifier_high_confidence(
-        self, mock_message_state: Mock, mock_params: Mock
+        self,
+        mock_message_state: Mock,
+        mock_params: Mock,
     ) -> None:
         """Test _live_chat_verifier when RAG confidence is high."""
         mock_message_state.response = "I don't know the answer"
@@ -578,7 +602,8 @@ class TestLiveChatVerifier:
 
         with (
             patch(
-                "arklex.orchestrator.post_process._extract_links", return_value=set()
+                "arklex.orchestrator.post_process._extract_links",
+                return_value=set(),
             ),
             patch(
                 "arklex.orchestrator.post_process._is_question_relevant",
@@ -599,7 +624,9 @@ class TestLiveChatVerifier:
         assert mock_message_state.response == "I don't know the answer"
 
     def test_live_chat_verifier_low_confidence_trigger_handoff(
-        self, mock_message_state: Mock, mock_params: Mock
+        self,
+        mock_message_state: Mock,
+        mock_params: Mock,
     ) -> None:
         """Test _live_chat_verifier when confidence is low and should trigger handoff."""
         mock_message_state.response = "I don't know the answer"
@@ -613,7 +640,8 @@ class TestLiveChatVerifier:
 
         with (
             patch(
-                "arklex.orchestrator.post_process._extract_links", return_value=set()
+                "arklex.orchestrator.post_process._extract_links",
+                return_value=set(),
             ),
             patch(
                 "arklex.orchestrator.post_process._is_question_relevant",
@@ -634,7 +662,9 @@ class TestLiveChatVerifier:
         assert mock_message_state.response == TRIGGER_LIVE_CHAT_PROMPT
 
     def test_live_chat_verifier_low_confidence_no_handoff(
-        self, mock_message_state: Mock, mock_params: Mock
+        self,
+        mock_message_state: Mock,
+        mock_params: Mock,
     ) -> None:
         """Test _live_chat_verifier when confidence is low but should not trigger handoff."""
         mock_message_state.response = "I don't know the answer"
@@ -648,7 +678,8 @@ class TestLiveChatVerifier:
 
         with (
             patch(
-                "arklex.orchestrator.post_process._extract_links", return_value=set()
+                "arklex.orchestrator.post_process._extract_links",
+                return_value=set(),
             ),
             patch(
                 "arklex.orchestrator.post_process._is_question_relevant",
@@ -669,7 +700,9 @@ class TestLiveChatVerifier:
         assert mock_message_state.response == "I don't know the answer"
 
     def test_live_chat_verifier_zero_division_error(
-        self, mock_message_state: Mock, mock_params: Mock
+        self,
+        mock_message_state: Mock,
+        mock_params: Mock,
     ) -> None:
         """Test _live_chat_verifier when num_of_docs is 0 (zero division error)."""
         mock_message_state.response = "I don't know the answer"
@@ -683,7 +716,8 @@ class TestLiveChatVerifier:
 
         with (
             patch(
-                "arklex.orchestrator.post_process._extract_links", return_value=set()
+                "arklex.orchestrator.post_process._extract_links",
+                return_value=set(),
             ),
             patch(
                 "arklex.orchestrator.post_process._is_question_relevant",
@@ -704,7 +738,9 @@ class TestLiveChatVerifier:
         assert mock_message_state.response == TRIGGER_LIVE_CHAT_PROMPT
 
     def test_live_chat_verifier_insufficient_trajectory(
-        self, mock_message_state: Mock, mock_params: Mock
+        self,
+        mock_message_state: Mock,
+        mock_params: Mock,
     ) -> None:
         """Test _live_chat_verifier when trajectory has less than 2 groups."""
         mock_message_state.response = "I don't know the answer"
@@ -712,7 +748,8 @@ class TestLiveChatVerifier:
 
         with (
             patch(
-                "arklex.orchestrator.post_process._extract_links", return_value=set()
+                "arklex.orchestrator.post_process._extract_links",
+                return_value=set(),
             ),
             patch(
                 "arklex.orchestrator.post_process._is_question_relevant",
@@ -725,7 +762,9 @@ class TestLiveChatVerifier:
         assert mock_message_state.response == "I don't know the answer"
 
     def test_live_chat_verifier_rag_step_exception(
-        self, mock_message_state: Mock, mock_params: Mock
+        self,
+        mock_message_state: Mock,
+        mock_params: Mock,
     ) -> None:
         """Test _live_chat_verifier when RAG step processing raises exception."""
         mock_message_state.response = "I don't know the answer"
@@ -739,7 +778,8 @@ class TestLiveChatVerifier:
 
         with (
             patch(
-                "arklex.orchestrator.post_process._extract_links", return_value=set()
+                "arklex.orchestrator.post_process._extract_links",
+                return_value=set(),
             ),
             patch(
                 "arklex.orchestrator.post_process._is_question_relevant",
@@ -760,7 +800,9 @@ class TestLiveChatVerifier:
         assert mock_message_state.response == "I don't know the answer"
 
     def test_live_chat_verifier_milvus_worker(
-        self, mock_message_state: Mock, mock_params: Mock
+        self,
+        mock_message_state: Mock,
+        mock_params: Mock,
     ) -> None:
         """Test _live_chat_verifier with milvus_rag_worker."""
         mock_message_state.response = "I don't know the answer"
@@ -774,7 +816,8 @@ class TestLiveChatVerifier:
 
         with (
             patch(
-                "arklex.orchestrator.post_process._extract_links", return_value=set()
+                "arklex.orchestrator.post_process._extract_links",
+                return_value=set(),
             ),
             patch(
                 "arklex.orchestrator.post_process._is_question_relevant",
@@ -818,7 +861,7 @@ class TestExtractConfidenceFromNestedDict:
             "level1": {
                 "confidence": 0.6,
                 "level2": {"confidence": 0.4, "other": "value"},
-            }
+            },
         }
         confidence, docs = _extract_confidence_from_nested_dict(step)
         assert confidence == 1.0  # 0.6 + 0.4
@@ -871,7 +914,8 @@ class TestIsQuestionRelevant:
     """Test the _is_question_relevant function."""
 
     def test_is_question_relevant_with_nlu_records_no_intent_false(
-        self, mock_params: Mock
+        self,
+        mock_params: Mock,
     ) -> None:
         mock_params.taskgraph = Mock()
         mock_params.taskgraph.nlu_records = [{"no_intent": False}]
@@ -879,7 +923,8 @@ class TestIsQuestionRelevant:
         assert result is True
 
     def test_is_question_relevant_with_nlu_records_no_intent_true(
-        self, mock_params: Mock
+        self,
+        mock_params: Mock,
     ) -> None:
         mock_params.taskgraph = Mock()
         mock_params.taskgraph.nlu_records = [{"no_intent": True}]
@@ -887,7 +932,8 @@ class TestIsQuestionRelevant:
         assert result is False
 
     def test_is_question_relevant_with_nlu_records_no_intent_missing(
-        self, mock_params: Mock
+        self,
+        mock_params: Mock,
     ) -> None:
         mock_params.taskgraph = Mock()
         mock_params.taskgraph.nlu_records = [{"other": "value"}]
@@ -901,7 +947,8 @@ class TestIsQuestionRelevant:
         assert not result
 
     def test_is_question_relevant_with_none_nlu_records(
-        self, mock_params: Mock
+        self,
+        mock_params: Mock,
     ) -> None:
         mock_params.taskgraph = Mock()
         mock_params.taskgraph.nlu_records = None
@@ -913,7 +960,8 @@ class TestShouldTriggerHandoff:
     """Test the should_trigger_handoff function."""
 
     def test_should_trigger_handoff_yes_response(
-        self, mock_message_state: Mock
+        self,
+        mock_message_state: Mock,
     ) -> None:
         """Test should_trigger_handoff when LLM responds with 'YES'."""
         mock_message_state.response = "I don't know the answer"
@@ -921,7 +969,7 @@ class TestShouldTriggerHandoff:
         mock_message_state.bot_config.llm_config.model_type_or_path = "gpt-3.5-turbo"
 
         with patch(
-            "arklex.orchestrator.post_process.validate_and_get_model_class"
+            "arklex.orchestrator.post_process.validate_and_get_model_class",
         ) as mock_validate_and_get_model_class:
             mock_llm = Mock()
             mock_chain = Mock()
@@ -939,7 +987,7 @@ class TestShouldTriggerHandoff:
         mock_message_state.bot_config.llm_config.model_type_or_path = "gpt-3.5-turbo"
 
         with patch(
-            "arklex.orchestrator.post_process.validate_and_get_model_class"
+            "arklex.orchestrator.post_process.validate_and_get_model_class",
         ) as mock_validate_and_get_model_class:
             mock_llm = Mock()
             mock_chain = Mock()
@@ -951,7 +999,8 @@ class TestShouldTriggerHandoff:
             assert result is False
 
     def test_should_trigger_handoff_yes_lowercase(
-        self, mock_message_state: Mock
+        self,
+        mock_message_state: Mock,
     ) -> None:
         """Test should_trigger_handoff when LLM responds with 'yes' (lowercase)."""
         mock_message_state.response = "I don't know the answer"
@@ -959,7 +1008,7 @@ class TestShouldTriggerHandoff:
         mock_message_state.bot_config.llm_config.model_type_or_path = "gpt-3.5-turbo"
 
         with patch(
-            "arklex.orchestrator.post_process.validate_and_get_model_class"
+            "arklex.orchestrator.post_process.validate_and_get_model_class",
         ) as mock_validate_and_get_model_class:
             mock_llm = Mock()
             mock_chain = Mock()
@@ -971,7 +1020,8 @@ class TestShouldTriggerHandoff:
             assert result is True
 
     def test_should_trigger_handoff_yes_with_whitespace(
-        self, mock_message_state: Mock
+        self,
+        mock_message_state: Mock,
     ) -> None:
         """Test should_trigger_handoff when LLM responds with ' YES ' (with whitespace)."""
         mock_message_state.response = "I don't know the answer"
@@ -979,7 +1029,7 @@ class TestShouldTriggerHandoff:
         mock_message_state.bot_config.llm_config.model_type_or_path = "gpt-3.5-turbo"
 
         with patch(
-            "arklex.orchestrator.post_process.validate_and_get_model_class"
+            "arklex.orchestrator.post_process.validate_and_get_model_class",
         ) as mock_validate_and_get_model_class:
             mock_llm = Mock()
             mock_chain = Mock()
@@ -991,7 +1041,8 @@ class TestShouldTriggerHandoff:
             assert result is True
 
     def test_should_trigger_handoff_other_response(
-        self, mock_message_state: Mock
+        self,
+        mock_message_state: Mock,
     ) -> None:
         """Test should_trigger_handoff when LLM responds with something other than YES/NO."""
         mock_message_state.response = "I don't know the answer"
@@ -999,7 +1050,7 @@ class TestShouldTriggerHandoff:
         mock_message_state.bot_config.llm_config.model_type_or_path = "gpt-3.5-turbo"
 
         with patch(
-            "arklex.orchestrator.post_process.validate_and_get_model_class"
+            "arklex.orchestrator.post_process.validate_and_get_model_class",
         ) as mock_validate_and_get_model_class:
             mock_llm = Mock()
             mock_chain = Mock()
@@ -1011,7 +1062,8 @@ class TestShouldTriggerHandoff:
             assert result is False
 
     def test_should_trigger_handoff_uses_default_provider(
-        self, mock_message_state: Mock
+        self,
+        mock_message_state: Mock,
     ) -> None:
         """Test should_trigger_handoff when using default provider (ChatOpenAI)."""
         mock_message_state.response = "I don't know the answer"
@@ -1019,7 +1071,7 @@ class TestShouldTriggerHandoff:
         mock_message_state.bot_config.llm_config.model_type_or_path = "gpt-3.5-turbo"
 
         with patch(
-            "arklex.orchestrator.post_process.validate_and_get_model_class"
+            "arklex.orchestrator.post_process.validate_and_get_model_class",
         ) as mock_validate_and_get_model_class:
             # Patch validate_and_get_model_class to return a mock ChatOpenAI class
             mock_chat_openai_class = Mock()

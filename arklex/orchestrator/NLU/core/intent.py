@@ -39,6 +39,7 @@ class IntentDetector(BaseNLU):
     Attributes:
         model_service: Service for local model-based intent detection
         api_service: Optional service for remote API-based intent detection
+
     """
 
     def __init__(
@@ -54,6 +55,7 @@ class IntentDetector(BaseNLU):
 
         Raises:
             ValidationError: If model_service is not provided
+
         """
         if not model_service:
             log_context.error(
@@ -113,7 +115,8 @@ class IntentDetector(BaseNLU):
 
         # Format input and get mapping
         prompt, idx2intents_mapping = self.model_service.format_intent_input(
-            intents, chat_history_str
+            intents,
+            chat_history_str,
         )
         log_context.info(
             f"Intent detection input prepared:\nPrompt: {prompt}\n\nMapping: {idx2intents_mapping}",
@@ -208,6 +211,7 @@ class IntentDetector(BaseNLU):
             ModelError: If intent detection fails
             ValidationError: If input validation fails
             APIError: If API request fails
+
         """
         if not self.api_service:
             log_context.error(
@@ -286,6 +290,7 @@ class IntentDetector(BaseNLU):
             ModelError: If intent detection fails
             ValidationError: If input validation fails
             APIError: If API request fails
+
         """
         log_context.info(
             "Starting intent prediction",
@@ -303,11 +308,16 @@ class IntentDetector(BaseNLU):
             )
             if self.api_service:
                 intent = self._detect_intent_remote(
-                    text, intents, chat_history_str, model_config
+                    text,
+                    intents,
+                    chat_history_str,
+                    model_config,
                 )
             else:
                 intent = self._detect_intent_local(
-                    intents, chat_history_str, model_config
+                    intents,
+                    chat_history_str,
+                    model_config,
                 )
             log_context.info(
                 "Intent detection method returned",
@@ -332,7 +342,7 @@ class IntentDetector(BaseNLU):
                 },
             )
             raise ArklexError(
-                f"Intent prediction failed: {str(e)}",
+                f"Intent prediction failed: {e!s}",
                 details={
                     "original_error": str(e),
                     "error_type": type(e).__name__,
@@ -366,5 +376,6 @@ class IntentDetector(BaseNLU):
             ModelError: If intent detection fails
             ValidationError: If input validation fails
             APIError: If API request fails
+
         """
         return self.predict_intent(text, intents, chat_history_str, model_config)

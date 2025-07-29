@@ -9,7 +9,7 @@ TASKS_DEV = [
             Action(
                 name="cancel_pending_order",
                 kwargs={"order_id": "#W5442520", "reason": "no longer needed"},
-            )
+            ),
         ],
         outputs=[],
     ),
@@ -26,7 +26,7 @@ TASKS_DEV = [
                     "new_item_ids": ["2880340443", "4894369688"],
                     "payment_method_id": "paypal_1530316",
                 },
-            )
+            ),
         ],
         outputs=[],
     ),
@@ -38,7 +38,7 @@ TASKS_DEV = [
             Action(
                 name="cancel_pending_order",
                 kwargs={"order_id": "#W3942868", "reason": "no longer needed"},
-            )
+            ),
         ],
         outputs=[],
     ),
@@ -54,7 +54,7 @@ TASKS_DEV = [
                     "item_ids": ["4068787148"],
                     "payment_method_id": "paypal_2143483",
                 },
-            )
+            ),
         ],
         outputs=[],
     ),
@@ -70,7 +70,7 @@ TASKS_DEV = [
                     "item_ids": ["3694871183"],
                     "payment_method_id": "paypal_1575973",
                 },
-            )
+            ),
         ],
         outputs=[],
     ),
@@ -86,7 +86,7 @@ TASKS_DEV = [
                     "item_ids": ["4447749792", "2343503231"],
                     "payment_method_id": "paypal_1249653",
                 },
-            )
+            ),
         ],
         outputs=[],
     ),
@@ -98,7 +98,7 @@ TASKS_DEV = [
             Action(
                 name="cancel_pending_order",
                 kwargs={"order_id": "#W9933266", "reason": "no longer needed"},
-            )
+            ),
         ],
         outputs=[],
     ),
@@ -114,7 +114,7 @@ TASKS_DEV = [
                     "item_ids": ["5120532699"],
                     "payment_method_id": "credit_card_7933535",
                 },
-            )
+            ),
         ],
         outputs=[],
     ),
@@ -130,7 +130,7 @@ TASKS_DEV = [
                     "item_ids": ["9727387530", "6242772310"],
                     "payment_method_id": "gift_card_7794233",
                 },
-            )
+            ),
         ],
         outputs=[],
     ),
@@ -147,7 +147,7 @@ TASKS_DEV = [
                     "new_item_ids": ["7806008610"],
                     "payment_method_id": "paypal_2192303",
                 },
-            )
+            ),
         ],
         outputs=[],
     ),
@@ -163,7 +163,7 @@ TASKS_DEV = [
                     "item_ids": ["5206946487", "1646531091"],
                     "payment_method_id": "paypal_6151711",
                 },
-            )
+            ),
         ],
         outputs=[],
     ),
@@ -175,7 +175,7 @@ TASKS_DEV = [
             Action(
                 name="cancel_pending_order",
                 kwargs={"order_id": "#W7430166", "reason": "ordered by mistake"},
-            )
+            ),
         ],
         outputs=[],
     ),
@@ -247,7 +247,7 @@ TASKS_DEV = [
                     "item_ids": ["1178356107", "2244749153", "6697922351"],
                     "payment_method_id": "gift_card_8922351",
                 },
-            )
+            ),
         ],
         outputs=[],
     ),
@@ -288,7 +288,7 @@ TASKS_DEV = [
             Action(
                 name="cancel_pending_order",
                 kwargs={"order_id": "#W2307204", "reason": "no longer needed"},
-            )
+            ),
         ],
         outputs=[],
     ),
@@ -305,7 +305,7 @@ TASKS_DEV = [
                     "new_item_ids": ["6342039236"],
                     "payment_method_id": "paypal_1009053",
                 },
-            )
+            ),
         ],
         outputs=[],
     ),
@@ -329,7 +329,7 @@ TASKS_DEV = [
                     "new_item_ids": ["9472539378"],
                     "payment_method_id": "paypal_2417743",
                 },
-            )
+            ),
         ],
         outputs=[],
     ),
@@ -346,7 +346,7 @@ TASKS_DEV = [
                     "new_item_ids": ["4293355847"],
                     "payment_method_id": "paypal_7916550",
                 },
-            )
+            ),
         ],
         outputs=[],
     ),

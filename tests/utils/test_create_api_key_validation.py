@@ -1,6 +1,5 @@
 #!/usr/bin/env python3
-"""
-Test script to verify that create.py properly validates API keys and doesn't create fake ones.
+"""Test script to verify that create.py properly validates API keys and doesn't create fake ones.
 
 This script tests the API key validation in create.py to ensure:
 1. No fake API keys are created during execution
@@ -18,7 +17,6 @@ import tempfile
 
 def test_api_key_validation_direct() -> None:
     """Test API key validation logic directly from create.py without running the full script."""
-
     print("🧪 Testing API key validation logic directly...")
 
     # Temporarily unset API key for testing
@@ -35,7 +33,7 @@ def test_api_key_validation_direct() -> None:
             get_provider_config("openai", "gpt-4o-mini")
             print("❌ get_provider_config should have failed without API key")
             raise AssertionError(
-                "get_provider_config should have failed without API key"
+                "get_provider_config should have failed without API key",
             )
         except ValueError as e:
             if "API key for provider 'openai' is missing or empty" in str(e):
@@ -54,7 +52,6 @@ def test_api_key_validation_direct() -> None:
 
 def test_api_key_validation() -> None:
     """Test that create.py properly validates API keys and doesn't create fake ones."""
-
     print("🧪 Testing API key validation in create.py...")
 
     # Create a minimal test config to avoid long processing times
@@ -90,6 +87,7 @@ def test_api_key_validation() -> None:
                     "--log-level",
                     "ERROR",
                 ],
+                check=False,
                 capture_output=True,
                 text=True,
                 timeout=5,  # Reduced timeout since we expect early failure
@@ -111,13 +109,13 @@ def test_api_key_validation() -> None:
             else:
                 print("⚠️  create.py succeeded without API key (current behavior)")
                 print(
-                    "   This may indicate that API key validation happens later in the process"
+                    "   This may indicate that API key validation happens later in the process",
                 )
                 # Don't fail the test since this might be the current expected behavior
                 # The important thing is that the direct validation tests pass
         except subprocess.TimeoutExpired:
             print(
-                "⚠️  create.py timed out - this may indicate it's not failing early enough"
+                "⚠️  create.py timed out - this may indicate it's not failing early enough",
             )
             print("   The API key validation should happen before any heavy processing")
             # Don't fail the test since the timeout suggests the process is running
@@ -147,6 +145,7 @@ def test_api_key_validation() -> None:
                     "--log-level",
                     "ERROR",
                 ],
+                check=False,
                 capture_output=True,
                 text=True,
                 timeout=5,  # Reduced timeout since we expect early failure
@@ -176,13 +175,13 @@ def test_api_key_validation() -> None:
             else:
                 print("⚠️  create.py succeeded with fake API key (current behavior)")
                 print(
-                    "   Note: Current validation only checks for presence, not authenticity"
+                    "   Note: Current validation only checks for presence, not authenticity",
                 )
                 # Don't fail the test since this is the current expected behavior
         except subprocess.TimeoutExpired:
             print("⚠️  create.py timed out with fake API key")
             print(
-                "   This suggests the process is running, which means API key validation may not be strict enough"
+                "   This suggests the process is running, which means API key validation may not be strict enough",
             )
             # Don't fail the test since timeout suggests the process is running
             return
@@ -204,7 +203,6 @@ def test_api_key_validation() -> None:
 
 def test_provider_utils() -> None:
     """Test that provider utilities don't create fake API keys."""
-
     print("🧪 Testing provider utilities...")
 
     # Temporarily unset API key for testing
@@ -223,7 +221,7 @@ def test_provider_utils() -> None:
             get_api_key_for_provider("openai")
             print("❌ get_api_key_for_provider should have failed without API key")
             raise AssertionError(
-                "get_api_key_for_provider should have failed without API key"
+                "get_api_key_for_provider should have failed without API key",
             )
         except ValueError as e:
             if "API key for provider 'openai' is missing or empty" in str(e):
@@ -237,7 +235,7 @@ def test_provider_utils() -> None:
             validate_api_key_presence("openai", "")
             print("❌ validate_api_key_presence should have failed with empty API key")
             raise AssertionError(
-                "validate_api_key_presence should have failed with empty API key"
+                "validate_api_key_presence should have failed with empty API key",
             )
         except ValueError as e:
             if "API key for provider 'openai' is missing or empty" in str(e):
@@ -251,7 +249,7 @@ def test_provider_utils() -> None:
             validate_api_key_presence("openai", None)
             print("❌ validate_api_key_presence should have failed with None API key")
             raise AssertionError(
-                "validate_api_key_presence should have failed with None API key"
+                "validate_api_key_presence should have failed with None API key",
             )
         except ValueError as e:
             if "API key for provider 'openai' is missing or empty" in str(e):
@@ -284,7 +282,7 @@ if __name__ == "__main__":
     # Test create.py API key validation (optional - may timeout)
     print("\n⚠️  Skipping create.py subprocess test due to potential timeout...")
     print(
-        "   The direct validation tests above are sufficient to verify API key validation."
+        "   The direct validation tests above are sufficient to verify API key validation.",
     )
 
     if success:

@@ -23,6 +23,7 @@ class ShopifyToolOrchestrator(MockOrchestrator):
 
         Args:
             config_file_path (str): Path to the configuration file.
+
         """
         fixed_args: str = os.environ.get("SHOPIFY_FIXED_ARGS", "{}")
         # Handle case where environment variable might be empty or None
@@ -60,6 +61,7 @@ class ShopifyToolOrchestrator(MockOrchestrator):
 
         Returns:
             Initialized SlotFiller instance
+
         """
         dummy_config = {
             "model_name": "dummy",
@@ -73,7 +75,7 @@ class ShopifyToolOrchestrator(MockOrchestrator):
             return None
         if not slotsfillapi:
             log_context.warning(
-                "slotsfillapi is empty, using local model-based slot filling"
+                "slotsfillapi is empty, using local model-based slot filling",
             )
             return SlotFiller(DummyModelService(dummy_config))
         log_context.info(f"Initializing SlotFiller with API URL: {slotsfillapi}")

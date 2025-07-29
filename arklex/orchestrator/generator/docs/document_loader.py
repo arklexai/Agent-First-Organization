@@ -35,6 +35,7 @@ class DocumentLoader:
         Args:
             cache_dir (Path): Directory for caching documents
             validate_documents (bool): Whether to validate documents
+
         """
         self._cache_dir = cache_dir
         self._validate_documents = validate_documents
@@ -53,6 +54,7 @@ class DocumentLoader:
         Raises:
             FileNotFoundError: If the document file doesn't exist
             json.JSONDecodeError: If the document is not valid JSON
+
         """
         if str(doc_path) in self._cache:
             return self._cache[str(doc_path)]
@@ -67,7 +69,9 @@ class DocumentLoader:
             document = json.loads(content)
         except json.JSONDecodeError as e:
             raise json.JSONDecodeError(
-                f"Invalid JSON in document: {doc_path}", e.doc, e.pos
+                f"Invalid JSON in document: {doc_path}",
+                e.doc,
+                e.pos,
             ) from e
         if self._validate_documents and not self.validate_document(document):
             raise ValueError(f"Invalid document structure: {doc_path}")
@@ -85,6 +89,7 @@ class DocumentLoader:
         Raises:
             FileNotFoundError: If the document file doesn't exist
             ValueError: If the document structure is invalid
+
         """
         cache_key = str(doc_path)
         if cache_key in self._cache:
@@ -129,7 +134,7 @@ class DocumentLoader:
                     }
                 except Exception as e:
                     raise ValueError(
-                        f"Content at {doc_path} is neither valid JSON nor parseable HTML. Error: {e}"
+                        f"Content at {doc_path} is neither valid JSON nor parseable HTML. Error: {e}",
                     ) from e
             self._cache[cache_key] = document
         if not self._validate_task_document(document):
@@ -148,6 +153,7 @@ class DocumentLoader:
         Raises:
             FileNotFoundError: If the document file doesn't exist
             ValueError: If the document structure is invalid
+
         """
         if str(doc_path) in self._cache:
             document = self._cache[str(doc_path)]
@@ -171,6 +177,7 @@ class DocumentLoader:
         Args:
             doc_path (Path): Path to the document
             document (Dict[str, Any]): Document to cache
+
         """
         self._cache[str(doc_path)] = document
 
@@ -182,6 +189,7 @@ class DocumentLoader:
 
         Returns:
             bool: True if document is valid
+
         """
         if not isinstance(document, dict):
             return False
@@ -196,7 +204,8 @@ class DocumentLoader:
             if "name" not in section or "content" not in section:
                 return False
             if "requirements" in section and not isinstance(
-                section["requirements"], list
+                section["requirements"],
+                list,
             ):
                 return False
         return True
@@ -209,6 +218,7 @@ class DocumentLoader:
 
         Returns:
             bool: True if document is valid
+
         """
         if not isinstance(document, dict):
             return False
@@ -223,7 +233,8 @@ class DocumentLoader:
             if "step_id" not in step or "description" not in step:
                 return False
             if "required_fields" in step and not isinstance(
-                step["required_fields"], list
+                step["required_fields"],
+                list,
             ):
                 return False
         return True
@@ -236,6 +247,7 @@ class DocumentLoader:
 
         Returns:
             bool: True if document is valid
+
         """
         if not isinstance(document, dict):
             return False

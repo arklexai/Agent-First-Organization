@@ -94,11 +94,11 @@ def test_handle_exceptions_reraises(caplog: pytest.LogCaptureFixture) -> None:
     # The ArklexError message is "Operation failed in function_that_raises_and_reraises"
     # and the original error is in the details
     assert "Operation failed in function_that_raises_and_reraises" in str(
-        exc_info.value
+        exc_info.value,
     )
     # Check that the original error is in the details
     assert hasattr(exc_info.value, "details") and "Test error" in str(
-        exc_info.value.details
+        exc_info.value.details,
     )
     assert any("Test error" in r.getMessage() for r in caplog.records)
 
@@ -136,7 +136,7 @@ def test_log_context_with_standard_messages(caplog: pytest.LogCaptureFixture) ->
     context.info(LOG_MESSAGES["INFO"]["OPERATION_END"].format(operation="test_op"))
     assert any("Completed operation: test_op" in r.getMessage() for r in caplog.records)
     context.warning(
-        LOG_MESSAGES["WARNING"]["PERFORMANCE_WARNING"].format(message="slow operation")
+        LOG_MESSAGES["WARNING"]["PERFORMANCE_WARNING"].format(message="slow operation"),
     )
     assert any(
         "Performance warning: slow operation" in r.getMessage() for r in caplog.records
@@ -163,7 +163,7 @@ def test_log_context_with_resource_messages(caplog: pytest.LogCaptureFixture) ->
     context.info(LOG_MESSAGES["INFO"]["RESOURCE_ACCESS"].format(resource="database"))
     assert any("Accessing resource: database" in r.getMessage() for r in caplog.records)
     context.warning(
-        LOG_MESSAGES["WARNING"]["RESOURCE_WARNING"].format(message="high memory usage")
+        LOG_MESSAGES["WARNING"]["RESOURCE_WARNING"].format(message="high memory usage"),
     )
     assert any(
         "Resource warning: high memory usage" in r.getMessage() for r in caplog.records
@@ -191,15 +191,15 @@ def test_log_context_with_configuration_messages(
 ) -> None:
     context = get_test_context()
     context.info(
-        LOG_MESSAGES["INFO"]["CONFIGURATION_LOAD"].format(config="app_settings")
+        LOG_MESSAGES["INFO"]["CONFIGURATION_LOAD"].format(config="app_settings"),
     )
     assert any(
         "Loading configuration: app_settings" in r.getMessage() for r in caplog.records
     )
     context.warning(
         LOG_MESSAGES["WARNING"]["CONFIGURATION_WARNING"].format(
-            message="missing optional setting"
-        )
+            message="missing optional setting",
+        ),
     )
     assert any(
         "Configuration warning: missing optional setting" in r.getMessage()
@@ -488,7 +488,8 @@ class TestHandleExceptionsDecorator:
         raise ValueError("Warning level error")
 
     def test_handle_exceptions_warning_level(
-        self, caplog: pytest.LogCaptureFixture
+        self,
+        caplog: pytest.LogCaptureFixture,
     ) -> None:
         """Test handle_exceptions with WARNING log level."""
         result = self.function_with_warning_level()
@@ -503,7 +504,8 @@ class TestHandleExceptionsDecorator:
         raise ValueError("No stack trace error")
 
     def test_handle_exceptions_without_stack_trace(
-        self, caplog: pytest.LogCaptureFixture
+        self,
+        caplog: pytest.LogCaptureFixture,
     ) -> None:
         """Test handle_exceptions without stack trace."""
         result = self.function_without_stack_trace()
@@ -518,7 +520,8 @@ class TestHandleExceptionsDecorator:
         raise RuntimeError("Custom error type")
 
     def test_handle_exceptions_custom_error_type(
-        self, caplog: pytest.LogCaptureFixture
+        self,
+        caplog: pytest.LogCaptureFixture,
     ) -> None:
         """Test handle_exceptions with custom error type."""
         with pytest.raises(ArklexError) as exc_info:
@@ -531,7 +534,8 @@ class TestHandleExceptionsDecorator:
 
     @pytest.mark.asyncio
     async def test_handle_exceptions_async_function(
-        self, caplog: pytest.LogCaptureFixture
+        self,
+        caplog: pytest.LogCaptureFixture,
     ) -> None:
         """Test handle_exceptions with async function."""
         with pytest.raises(ArklexError) as exc_info:
@@ -544,7 +548,8 @@ class TestHandleExceptionsDecorator:
 
     @pytest.mark.asyncio
     async def test_handle_exceptions_async_no_reraise(
-        self, caplog: pytest.LogCaptureFixture
+        self,
+        caplog: pytest.LogCaptureFixture,
     ) -> None:
         """Test handle_exceptions with async function no reraise."""
         result = await self.async_function_no_reraise()
@@ -555,7 +560,8 @@ class TestHandleExceptionsDecorator:
         raise ArklexError("Original ArklexError")
 
     def test_handle_exceptions_preserves_arklex_error(
-        self, caplog: pytest.LogCaptureFixture
+        self,
+        caplog: pytest.LogCaptureFixture,
     ) -> None:
         """Test handle_exceptions preserves ArklexError."""
         with pytest.raises(ArklexError) as exc_info:
@@ -571,7 +577,8 @@ class TestWithRetryDecorator:
         raise ValueError("ValueError for retry")
 
     def test_with_retry_custom_exception_type(
-        self, caplog: pytest.LogCaptureFixture
+        self,
+        caplog: pytest.LogCaptureFixture,
     ) -> None:
         """Test with_retry with custom exception type."""
         with pytest.raises(tenacity.RetryError):
@@ -583,7 +590,8 @@ class TestWithRetryDecorator:
         raise RetryableError("No stack trace retry", "RETRY_ERROR")
 
     def test_with_retry_without_stack_trace(
-        self, caplog: pytest.LogCaptureFixture
+        self,
+        caplog: pytest.LogCaptureFixture,
     ) -> None:
         """Test with_retry without stack trace."""
         with pytest.raises(tenacity.RetryError):
@@ -596,7 +604,8 @@ class TestWithRetryDecorator:
 
     @pytest.mark.asyncio
     async def test_with_retry_async_function(
-        self, caplog: pytest.LogCaptureFixture
+        self,
+        caplog: pytest.LogCaptureFixture,
     ) -> None:
         """Test with_retry with async function."""
         with pytest.raises(tenacity.RetryError):
@@ -609,7 +618,8 @@ class TestWithRetryDecorator:
 
     @pytest.mark.asyncio
     async def test_with_retry_async_custom_exception(
-        self, caplog: pytest.LogCaptureFixture
+        self,
+        caplog: pytest.LogCaptureFixture,
     ) -> None:
         """Test with_retry with async function and custom exception."""
         with pytest.raises(tenacity.RetryError):
@@ -621,7 +631,8 @@ class TestWithRetryDecorator:
         raise RuntimeError("Non-retryable error")
 
     def test_with_retry_non_retryable_exception(
-        self, caplog: pytest.LogCaptureFixture
+        self,
+        caplog: pytest.LogCaptureFixture,
     ) -> None:
         """Test with_retry with non-retryable exception."""
         with pytest.raises(RuntimeError):
@@ -635,7 +646,8 @@ class TestWithRetryDecorator:
 
     @pytest.mark.asyncio
     async def test_with_retry_async_non_retryable(
-        self, caplog: pytest.LogCaptureFixture
+        self,
+        caplog: pytest.LogCaptureFixture,
     ) -> None:
         """Test with_retry with async function and non-retryable exception."""
         with pytest.raises(RuntimeError):
@@ -671,7 +683,8 @@ class TestLogContextLoggingMethods:
     """Test LogContext logging methods with various parameters."""
 
     def test_log_context_info_with_context_and_kwargs(
-        self, caplog: pytest.LogCaptureFixture
+        self,
+        caplog: pytest.LogCaptureFixture,
     ) -> None:
         """Test LogContext info method with context and kwargs."""
         context = get_test_context()
@@ -679,7 +692,8 @@ class TestLogContextLoggingMethods:
         assert any("Test message" in r.getMessage() for r in caplog.records)
 
     def test_log_context_debug_with_context_and_kwargs(
-        self, caplog: pytest.LogCaptureFixture
+        self,
+        caplog: pytest.LogCaptureFixture,
     ) -> None:
         """Test LogContext debug method with context and kwargs."""
         context = get_test_context()
@@ -687,7 +701,8 @@ class TestLogContextLoggingMethods:
         assert any("Debug message" in r.getMessage() for r in caplog.records)
 
     def test_log_context_warning_with_context_and_kwargs(
-        self, caplog: pytest.LogCaptureFixture
+        self,
+        caplog: pytest.LogCaptureFixture,
     ) -> None:
         """Test LogContext warning method with context and kwargs."""
         context = get_test_context()
@@ -695,7 +710,8 @@ class TestLogContextLoggingMethods:
         assert any("Warning message" in r.getMessage() for r in caplog.records)
 
     def test_log_context_error_with_context_and_kwargs(
-        self, caplog: pytest.LogCaptureFixture
+        self,
+        caplog: pytest.LogCaptureFixture,
     ) -> None:
         """Test LogContext error method with context and kwargs."""
         context = get_test_context()
@@ -703,7 +719,8 @@ class TestLogContextLoggingMethods:
         assert any("Error message" in r.getMessage() for r in caplog.records)
 
     def test_log_context_critical_with_context_and_kwargs(
-        self, caplog: pytest.LogCaptureFixture
+        self,
+        caplog: pytest.LogCaptureFixture,
     ) -> None:
         """Test LogContext critical method with context and kwargs."""
         context = get_test_context()

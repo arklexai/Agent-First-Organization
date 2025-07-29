@@ -55,6 +55,7 @@ class Loader(ABC):
         save: Static method for saving data to a file
         load: Abstract method for loading documents
         chunk: Abstract method for splitting documents
+
     """
 
     @abstractmethod
@@ -75,6 +76,7 @@ class Loader(ABC):
         Raises:
             IOError: If the file cannot be written.
             pickle.PickleError: If the data cannot be serialized.
+
         """
         with open(filepath, "wb") as f:
             pickle.dump(data, f)
@@ -97,6 +99,7 @@ class Loader(ABC):
             NotImplementedError: If the method is not implemented by a subclass.
             FileNotFoundError: If the specified file does not exist.
             ValueError: If the file format is invalid or unsupported.
+
         """
         raise NotImplementedError
 
@@ -126,9 +129,12 @@ class Loader(ABC):
             - cl100k_base encoding
             - 200 token chunk size
             - 40 token chunk overlap
+
         """
         text_splitter = RecursiveCharacterTextSplitter.from_tiktoken_encoder(
-            encoding_name="cl100k_base", chunk_size=200, chunk_overlap=40
+            encoding_name="cl100k_base",
+            chunk_size=200,
+            chunk_overlap=40,
         )
         docs = []
         langchain_docs = []
@@ -137,6 +143,6 @@ class Loader(ABC):
             for _i, txt in enumerate(splitted_text):
                 docs.append(doc)
                 langchain_docs.append(
-                    Document(page_content=txt, metadata={"source": doc.title})
+                    Document(page_content=txt, metadata={"source": doc.title}),
                 )
         return langchain_docs

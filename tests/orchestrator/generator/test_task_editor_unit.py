@@ -206,7 +206,7 @@ class TestTaskEditorAppWithDependencyInjection:
             await app.update_tasks()
 
             TaskDataManager.build_tasks_from_tree.assert_called_once_with(
-                app.task_tree.root
+                app.task_tree.root,
             )
             assert app.tasks == [{"name": "test"}]
         finally:
@@ -262,7 +262,8 @@ class TestIntegration:
             TaskDataManager.populate_tree_from_tasks(mock_tree, tasks)
 
             TaskDataManager.populate_tree_from_tasks.assert_called_once_with(
-                mock_tree, tasks
+                mock_tree,
+                tasks,
             )
         finally:
             # Restore original method

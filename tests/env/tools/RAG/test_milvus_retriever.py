@@ -30,7 +30,7 @@ from arklex.orchestrator.entities.msg_state_entities import MessageState
 def mock_milvus_client() -> Mock:
     """Mock MilvusClient for testing."""
     with patch(
-        "arklex.env.tools.RAG.retrievers.milvus_retriever.MilvusClient"
+        "arklex.env.tools.RAG.retrievers.milvus_retriever.MilvusClient",
     ) as mock_client:
         mock_instance = Mock()
 
@@ -114,7 +114,8 @@ def sample_retriever_result() -> RetrieverResult:
 def milvus_retriever(mock_milvus_client: Mock) -> MilvusRetriever:
     """MilvusRetriever instance for testing."""
     with patch.dict(
-        os.environ, {"MILVUS_URI": "test_uri", "MILVUS_TOKEN": "test_token"}
+        os.environ,
+        {"MILVUS_URI": "test_uri", "MILVUS_TOKEN": "test_token"},
     ):
         retriever = MilvusRetriever()
         retriever.client = mock_milvus_client
@@ -127,7 +128,7 @@ def milvus_retriever(mock_milvus_client: Mock) -> MilvusRetriever:
 def milvus_retriever_executor(mock_bot_config: Mock) -> MilvusRetrieverExecutor:
     """MilvusRetrieverExecutor instance for testing."""
     with patch(
-        "arklex.env.tools.RAG.retrievers.milvus_retriever.MilvusRetriever"
+        "arklex.env.tools.RAG.retrievers.milvus_retriever.MilvusRetriever",
     ) as mock_retriever_class:
         mock_retriever = Mock()
         mock_retriever_class.return_value.__enter__.return_value = mock_retriever
@@ -142,14 +143,14 @@ class TestRetrieveEngine:
     def test_milvus_retrieve_success(self, mock_message_state: Mock) -> None:
         """Test successful milvus_retrieve operation."""
         with patch(
-            "arklex.env.tools.RAG.retrievers.milvus_retriever.MilvusRetrieverExecutor"
+            "arklex.env.tools.RAG.retrievers.milvus_retriever.MilvusRetrieverExecutor",
         ) as mock_executor_class:
             mock_executor = Mock()
             mock_executor_class.return_value = mock_executor
             mock_executor.retrieve.return_value = ("retrieved text", {"params": "test"})
 
             with patch(
-                "arklex.env.tools.RAG.retrievers.milvus_retriever.trace"
+                "arklex.env.tools.RAG.retrievers.milvus_retriever.trace",
             ) as mock_trace:
                 mock_trace.return_value = mock_message_state
 
@@ -163,14 +164,14 @@ class TestRetrieveEngine:
         """Test milvus_retrieve with custom tags."""
         tags = {"category": "test"}
         with patch(
-            "arklex.env.tools.RAG.retrievers.milvus_retriever.MilvusRetrieverExecutor"
+            "arklex.env.tools.RAG.retrievers.milvus_retriever.MilvusRetrieverExecutor",
         ) as mock_executor_class:
             mock_executor = Mock()
             mock_executor_class.return_value = mock_executor
             mock_executor.retrieve.return_value = ("retrieved text", {"params": "test"})
 
             with patch(
-                "arklex.env.tools.RAG.retrievers.milvus_retriever.trace"
+                "arklex.env.tools.RAG.retrievers.milvus_retriever.trace",
             ) as mock_trace:
                 mock_trace.return_value = mock_message_state
 
@@ -186,10 +187,11 @@ class TestMilvusRetriever:
         """Test MilvusRetriever context manager enter."""
         with (
             patch.dict(
-                os.environ, {"MILVUS_URI": "test_uri", "MILVUS_TOKEN": "test_token"}
+                os.environ,
+                {"MILVUS_URI": "test_uri", "MILVUS_TOKEN": "test_token"},
             ),
             patch(
-                "arklex.env.tools.RAG.retrievers.milvus_retriever.MilvusClient"
+                "arklex.env.tools.RAG.retrievers.milvus_retriever.MilvusClient",
             ) as mock_client_class,
         ):
             mock_client = Mock()
@@ -204,10 +206,11 @@ class TestMilvusRetriever:
         """Test MilvusRetriever context manager exit."""
         with (
             patch.dict(
-                os.environ, {"MILVUS_URI": "test_uri", "MILVUS_TOKEN": "test_token"}
+                os.environ,
+                {"MILVUS_URI": "test_uri", "MILVUS_TOKEN": "test_token"},
             ),
             patch(
-                "arklex.env.tools.RAG.retrievers.milvus_retriever.MilvusClient"
+                "arklex.env.tools.RAG.retrievers.milvus_retriever.MilvusClient",
             ) as mock_client_class,
         ):
             mock_client = Mock()
@@ -224,11 +227,12 @@ class TestMilvusRetriever:
         assert result == "test_bot__1.0"
 
     def test_create_collection_with_partition_key(
-        self, milvus_retriever: MilvusRetriever
+        self,
+        milvus_retriever: MilvusRetriever,
     ) -> None:
         """Test create_collection_with_partition_key method."""
         with patch(
-            "arklex.env.tools.RAG.retrievers.milvus_retriever.MilvusClient"
+            "arklex.env.tools.RAG.retrievers.milvus_retriever.MilvusClient",
         ) as mock_client_class:
             mock_schema = Mock()
             mock_client_class.create_schema.return_value = mock_schema
@@ -249,18 +253,21 @@ class TestMilvusRetriever:
             milvus_retriever.client.create_collection.assert_called_once()
 
     def test_delete_documents_by_qa_doc_id(
-        self, milvus_retriever: MilvusRetriever
+        self,
+        milvus_retriever: MilvusRetriever,
     ) -> None:
         """Test delete_documents_by_qa_doc_id method."""
         mock_result = {"deleted_count": 5}
         milvus_retriever.client.delete.return_value = mock_result
 
         result = milvus_retriever.delete_documents_by_qa_doc_id(
-            "test_collection", "qa_123"
+            "test_collection",
+            "qa_123",
         )
 
         milvus_retriever.client.delete.assert_called_once_with(
-            collection_name="test_collection", filter="qa_doc_id=='qa_123'"
+            collection_name="test_collection",
+            filter="qa_doc_id=='qa_123'",
         )
         assert result == mock_result
 
@@ -274,7 +281,7 @@ class TestMilvusRetriever:
         milvus_retriever.client.get.return_value = []  # No existing documents
 
         with patch(
-            "arklex.env.tools.RAG.retrievers.milvus_retriever.embed"
+            "arklex.env.tools.RAG.retrievers.milvus_retriever.embed",
         ) as mock_embed:
             mock_embed.return_value = [0.1] * EMBED_DIMENSION
             mock_upsert_result = {"insert_count": 1}
@@ -294,7 +301,7 @@ class TestMilvusRetriever:
         documents = [sample_retriever_document.to_dict()]
         mock_existing_doc = {"id": "test_doc_1", "text": "existing"}
         milvus_retriever.client.get.return_value = [
-            mock_existing_doc
+            mock_existing_doc,
         ]  # Document exists
 
         result = milvus_retriever.add_documents_dicts(documents, "test_collection")
@@ -311,14 +318,16 @@ class TestMilvusRetriever:
         documents = [sample_retriever_document.to_dict()]
 
         with patch(
-            "arklex.env.tools.RAG.retrievers.milvus_retriever.embed"
+            "arklex.env.tools.RAG.retrievers.milvus_retriever.embed",
         ) as mock_embed:
             mock_embed.return_value = [0.1] * EMBED_DIMENSION
             mock_upsert_result = {"insert_count": 1}
             milvus_retriever.client.upsert.return_value = mock_upsert_result
 
             result = milvus_retriever.add_documents_dicts(
-                documents, "test_collection", upsert=True
+                documents,
+                "test_collection",
+                upsert=True,
             )
 
             assert len(result) == 1
@@ -334,7 +343,7 @@ class TestMilvusRetriever:
         milvus_retriever.client.get.return_value = []
 
         with patch(
-            "arklex.env.tools.RAG.retrievers.milvus_retriever.embed"
+            "arklex.env.tools.RAG.retrievers.milvus_retriever.embed",
         ) as mock_embed:
             mock_embed.return_value = [0.1] * EMBED_DIMENSION
             milvus_retriever.client.upsert.side_effect = Exception("Test error")
@@ -351,7 +360,7 @@ class TestMilvusRetriever:
                 "metadata": {"old_tag": "value"},
                 "text": "test text",
                 "embedding": [0.1] * EMBED_DIMENSION,
-            }
+            },
         ]
         milvus_retriever.client.query.return_value = mock_query_result
         mock_upsert_result = {"insert_count": 1}
@@ -364,25 +373,31 @@ class TestMilvusRetriever:
         milvus_retriever.client.upsert.assert_called_once()
 
     def test_update_tag_by_qa_doc_id_no_vectors(
-        self, milvus_retriever: MilvusRetriever
+        self,
+        milvus_retriever: MilvusRetriever,
     ) -> None:
         """Test update_tag_by_qa_doc_id when no vectors are found (should raise ValueError)."""
         milvus_retriever.client.query.return_value = []
         with pytest.raises(ValueError) as excinfo:
             milvus_retriever.update_tag_by_qa_doc_id(
-                "test_collection", "qa_123", {"new": "tag"}
+                "test_collection",
+                "qa_123",
+                {"new": "tag"},
             )
         assert "No vectors found for qa_doc_id" in str(excinfo.value)
 
     def test_update_tag_by_qa_doc_id_upsert_exception(
-        self, milvus_retriever: MilvusRetriever
+        self,
+        milvus_retriever: MilvusRetriever,
     ) -> None:
         """Test update_tag_by_qa_doc_id when upsert fails (should raise ValueError)."""
         milvus_retriever.client.query.return_value = [{"metadata": {}}]
         milvus_retriever.client.upsert.side_effect = Exception("upsert failed")
         with pytest.raises(ValueError) as excinfo:
             milvus_retriever.update_tag_by_qa_doc_id(
-                "test_collection", "qa_123", {"new": "tag"}
+                "test_collection",
+                "qa_123",
+                {"new": "tag"},
             )
         assert "Failed to upsert updated vectors" in str(excinfo.value)
 
@@ -397,12 +412,16 @@ class TestMilvusRetriever:
         mock_pool.map.return_value = [{"insert_count": 1}]
 
         with patch(
-            "arklex.env.tools.RAG.retrievers.milvus_retriever.embed"
+            "arklex.env.tools.RAG.retrievers.milvus_retriever.embed",
         ) as mock_embed:
             mock_embed.return_value = [0.1] * EMBED_DIMENSION
 
             result = milvus_retriever.add_documents_parallel(
-                "test_collection", "test_bot", "1.0", documents, mock_pool
+                "test_collection",
+                "test_bot",
+                "1.0",
+                documents,
+                mock_pool,
             )
 
             assert len(result) == 1
@@ -417,12 +436,13 @@ class TestMilvusRetriever:
         milvus_retriever.client.has_collection.return_value = False
         process_pool = Mock()
         process_pool.map.return_value = [
-            sample_retriever_document.to_milvus_schema_dict_and_embed()
+            sample_retriever_document.to_milvus_schema_dict_and_embed(),
         ]
         milvus_retriever.client.upsert.return_value = ["ok"]
         # Patch create_collection_with_partition_key to allow call assertion
         with patch.object(
-            milvus_retriever, "create_collection_with_partition_key"
+            milvus_retriever,
+            "create_collection_with_partition_key",
         ) as mock_create:
             result = milvus_retriever.add_documents_parallel(
                 "test_collection",
@@ -444,7 +464,7 @@ class TestMilvusRetriever:
         milvus_retriever.client.has_collection.return_value = True
         process_pool = Mock()
         process_pool.map.return_value = [
-            sample_retriever_document.to_milvus_schema_dict_and_embed()
+            sample_retriever_document.to_milvus_schema_dict_and_embed(),
         ]
         milvus_retriever.client.upsert.return_value = ["ok"]
         result = milvus_retriever.add_documents_parallel(
@@ -468,11 +488,16 @@ class TestMilvusRetriever:
         # Simulate 150 docs
         docs = [sample_retriever_document] * 150
         process_pool.map.return_value = [
-            sample_retriever_document.to_milvus_schema_dict_and_embed()
+            sample_retriever_document.to_milvus_schema_dict_and_embed(),
         ] * 100
         milvus_retriever.client.upsert.return_value = ["ok"] * 100
         result = milvus_retriever.add_documents_parallel(
-            "test_collection", "test_bot", "1.0", docs, process_pool, upsert=True
+            "test_collection",
+            "test_bot",
+            "1.0",
+            docs,
+            process_pool,
+            upsert=True,
         )
         assert len(result) == 200  # 2 batches of 100
 
@@ -485,14 +510,17 @@ class TestMilvusRetriever:
         documents = [sample_retriever_document]
 
         with patch(
-            "arklex.env.tools.RAG.retrievers.milvus_retriever.embed"
+            "arklex.env.tools.RAG.retrievers.milvus_retriever.embed",
         ) as mock_embed:
             mock_embed.return_value = [0.1] * EMBED_DIMENSION
             mock_upsert_result = {"insert_count": 1}
             milvus_retriever.client.upsert.return_value = mock_upsert_result
 
             result = milvus_retriever.add_documents(
-                "test_collection", "test_bot", "1.0", documents
+                "test_collection",
+                "test_bot",
+                "1.0",
+                documents,
             )
 
             assert len(result) == 1
@@ -509,7 +537,10 @@ class TestMilvusRetriever:
         milvus_retriever.client.upsert.side_effect = Exception("upsert error")
         with pytest.raises(Exception) as excinfo:
             milvus_retriever.add_documents(
-                "test_collection", "test_bot", "1.0", [sample_retriever_document]
+                "test_collection",
+                "test_bot",
+                "1.0",
+                [sample_retriever_document],
             )
         assert "upsert error" in str(excinfo.value)
 
@@ -526,18 +557,21 @@ class TestMilvusRetriever:
                         "text": "test document",
                     },
                     "distance": 0.5,
-                }
-            ]
+                },
+            ],
         ]
         milvus_retriever.client.search.return_value = mock_search_result
 
         with patch(
-            "arklex.env.tools.RAG.retrievers.milvus_retriever.embed"
+            "arklex.env.tools.RAG.retrievers.milvus_retriever.embed",
         ) as mock_embed:
             mock_embed.return_value = [0.1] * EMBED_DIMENSION
 
             results = milvus_retriever.search(
-                "test_collection", "test_bot", "1.0", "test query"
+                "test_collection",
+                "test_bot",
+                "1.0",
+                "test query",
             )
 
             assert len(results) == 1
@@ -550,13 +584,17 @@ class TestMilvusRetriever:
         milvus_retriever.client.search.return_value = mock_search_result
 
         with patch(
-            "arklex.env.tools.RAG.retrievers.milvus_retriever.embed"
+            "arklex.env.tools.RAG.retrievers.milvus_retriever.embed",
         ) as mock_embed:
             mock_embed.return_value = [0.1] * EMBED_DIMENSION
 
             tags = {"category": "test"}
             milvus_retriever.search(
-                "test_collection", "test_bot", "1.0", "test query", tags
+                "test_collection",
+                "test_bot",
+                "1.0",
+                "test query",
+                tags,
             )
 
             # Verify that the search was called with tag filter
@@ -582,11 +620,15 @@ class TestMilvusRetriever:
                         "text": "text",
                     },
                     "distance": 0.1,
-                }
-            ]
+                },
+            ],
         ]
         result = milvus_retriever.search(
-            "test_collection", "test_bot", "1.0", "query", tags={"a": 1, "b": 2}
+            "test_collection",
+            "test_bot",
+            "1.0",
+            "query",
+            tags={"a": 1, "b": 2},
         )
         assert len(result) == 1
         assert result[0].qa_doc_id == "qa_123"
@@ -605,14 +647,14 @@ class TestMilvusRetriever:
                 "embedding": [0.1] * EMBED_DIMENSION,
                 "timestamp": int(time.time()),
                 "bot_uid": "test_bot__1.0",
-            }
+            },
         ]
         with (
             patch(
-                "arklex.env.tools.RAG.retrievers.milvus_retriever.connections.connect"
+                "arklex.env.tools.RAG.retrievers.milvus_retriever.connections.connect",
             ),
             patch(
-                "arklex.env.tools.RAG.retrievers.milvus_retriever.Collection"
+                "arklex.env.tools.RAG.retrievers.milvus_retriever.Collection",
             ) as mock_collection_class,
         ):
             mock_collection = mock_collection_class.return_value
@@ -624,7 +666,10 @@ class TestMilvusRetriever:
             mock_iterator.close = Mock()
 
             results = milvus_retriever.get_qa_docs(
-                "test_collection", "test_bot", "1.0", RetrieverDocumentType.FAQ
+                "test_collection",
+                "test_bot",
+                "1.0",
+                RetrieverDocumentType.FAQ,
             )
         assert len(results) == 1
         assert isinstance(results[0], RetrieverDocument)
@@ -643,7 +688,7 @@ class TestMilvusRetriever:
                 "embedding": [0.1] * EMBED_DIMENSION,
                 "timestamp": int(time.time()),
                 "bot_uid": "test_bot__1.0",
-            }
+            },
         ]
         milvus_retriever.client.query.return_value = mock_query_result
         result = milvus_retriever.get_qa_doc("test_collection", "qa_123")
@@ -664,10 +709,10 @@ class TestMilvusRetriever:
         ]
         with (
             patch(
-                "arklex.env.tools.RAG.retrievers.milvus_retriever.connections.connect"
+                "arklex.env.tools.RAG.retrievers.milvus_retriever.connections.connect",
             ),
             patch(
-                "arklex.env.tools.RAG.retrievers.milvus_retriever.Collection"
+                "arklex.env.tools.RAG.retrievers.milvus_retriever.Collection",
             ) as mock_collection_class,
         ):
             mock_collection = mock_collection_class.return_value
@@ -679,7 +724,10 @@ class TestMilvusRetriever:
             mock_iterator.close = Mock()
 
             results = milvus_retriever.get_qa_doc_ids(
-                "test_collection", "test_bot", "1.0", RetrieverDocumentType.FAQ
+                "test_collection",
+                "test_bot",
+                "1.0",
+                RetrieverDocumentType.FAQ,
             )
         assert len(results) == 2
         assert "qa_123" in results
@@ -701,7 +749,7 @@ class TestMilvusRetriever:
         milvus_retriever.client.has_collection.return_value = True
         milvus_retriever.load_collection("test_collection")
         milvus_retriever.client.load_collection.assert_called_once_with(
-            "test_collection"
+            "test_collection",
         )
 
     def test_release_collection(self, milvus_retriever: MilvusRetriever) -> None:
@@ -712,7 +760,7 @@ class TestMilvusRetriever:
         result = milvus_retriever.release_collection("test_collection")
 
         milvus_retriever.client.release_collection.assert_called_once_with(
-            "test_collection"
+            "test_collection",
         )
         assert result == mock_result
 
@@ -724,7 +772,7 @@ class TestMilvusRetriever:
         result = milvus_retriever.drop_collection("test_collection")
 
         milvus_retriever.client.drop_collection.assert_called_once_with(
-            "test_collection"
+            "test_collection",
         )
         assert result == mock_result
 
@@ -736,14 +784,14 @@ class TestMilvusRetriever:
                 "qa_doc_id": "qa_123",
                 "text": "test document",
                 "embedding": [0.1] * EMBED_DIMENSION,
-            }
+            },
         ]
         with (
             patch(
-                "arklex.env.tools.RAG.retrievers.milvus_retriever.connections.connect"
+                "arklex.env.tools.RAG.retrievers.milvus_retriever.connections.connect",
             ),
             patch(
-                "arklex.env.tools.RAG.retrievers.milvus_retriever.Collection"
+                "arklex.env.tools.RAG.retrievers.milvus_retriever.Collection",
             ) as mock_collection_class,
         ):
             mock_collection = mock_collection_class.return_value
@@ -766,7 +814,7 @@ class TestMilvusRetriever:
                 "qa_doc_id": "qa_123",
                 "text": "test document",
                 "embedding": [0.1] * EMBED_DIMENSION,
-            }
+            },
         ]
         mock_pool = Mock()
         mock_pool.map.return_value = [{"insert_count": 1}]
@@ -776,7 +824,11 @@ class TestMilvusRetriever:
             mock_method.return_value = [{"insert_count": 1}]
 
             result = milvus_retriever.add_vectors_parallel(
-                "test_collection", "test_bot", "1.0", vectors, mock_pool
+                "test_collection",
+                "test_bot",
+                "1.0",
+                vectors,
+                mock_pool,
             )
 
             assert len(result) == 1
@@ -790,7 +842,8 @@ class TestMilvusRetriever:
         assert result is True
 
     def test_delete_vectors_by_partition_key(
-        self, milvus_retriever: MilvusRetriever
+        self,
+        milvus_retriever: MilvusRetriever,
     ) -> None:
         """Test delete_vectors_by_partition_key method."""
         mock_result = {"deleted_count": 5}
@@ -799,11 +852,14 @@ class TestMilvusRetriever:
         milvus_retriever.client.query.return_value = mock_query_result
 
         result = milvus_retriever.delete_vectors_by_partition_key(
-            "test_collection", "test_bot", "1.0"
+            "test_collection",
+            "test_bot",
+            "1.0",
         )
 
         milvus_retriever.client.delete.assert_called_once_with(
-            collection_name="test_collection", filter="bot_uid=='test_bot__1.0'"
+            collection_name="test_collection",
+            filter="bot_uid=='test_bot__1.0'",
         )
         assert result == mock_query_result
 
@@ -813,7 +869,9 @@ class TestMilvusRetriever:
         milvus_retriever.client.query.return_value = mock_query_result
 
         result = milvus_retriever.get_vector_count_for_bot(
-            "test_collection", "test_bot", "1.0"
+            "test_collection",
+            "test_bot",
+            "1.0",
         )
 
         assert result == 1
@@ -835,17 +893,17 @@ class TestMilvusRetriever:
                 "qa_doc_id": "qa_123",
                 "text": "test document",
                 "embedding": [0.1] * EMBED_DIMENSION,
-            }
+            },
         ]
         milvus_retriever.client.query.return_value = [{"count(*)": 0}]
         mock_upsert_result = {"insert_count": 1}
         milvus_retriever.client.upsert.return_value = mock_upsert_result
         with (
             patch(
-                "arklex.env.tools.RAG.retrievers.milvus_retriever.connections.connect"
+                "arklex.env.tools.RAG.retrievers.milvus_retriever.connections.connect",
             ),
             patch(
-                "arklex.env.tools.RAG.retrievers.milvus_retriever.Collection"
+                "arklex.env.tools.RAG.retrievers.milvus_retriever.Collection",
             ) as mock_collection_class,
         ):
             mock_collection = mock_collection_class.return_value
@@ -858,11 +916,15 @@ class TestMilvusRetriever:
 
             # Patch add_vectors_parallel to call upsert
             with patch.object(
-                milvus_retriever, "add_vectors_parallel"
+                milvus_retriever,
+                "add_vectors_parallel",
             ) as mock_add_vectors_parallel:
                 mock_add_vectors_parallel.return_value = [mock_upsert_result]
                 result = milvus_retriever.migrate_vectors(
-                    "old_collection", "test_bot", "1.0", "new_collection"
+                    "old_collection",
+                    "test_bot",
+                    "1.0",
+                    "new_collection",
                 )
                 assert result == 1
                 mock_add_vectors_parallel.assert_called_once()
@@ -883,7 +945,7 @@ class TestMilvusRetrieverExecutor:
     def test_initialization(self, mock_bot_config: Mock) -> None:
         """Test MilvusRetrieverExecutor initialization."""
         with patch(
-            "arklex.env.tools.RAG.retrievers.milvus_retriever.MilvusRetriever"
+            "arklex.env.tools.RAG.retrievers.milvus_retriever.MilvusRetriever",
         ) as mock_retriever_class:
             mock_retriever = Mock()
             mock_retriever_class.return_value.__enter__.return_value = mock_retriever
@@ -907,7 +969,8 @@ class TestMilvusRetrieverExecutor:
         assert "This is a test document" in result
 
     def test_gaussian_similarity(
-        self, milvus_retriever_executor: MilvusRetrieverExecutor
+        self,
+        milvus_retriever_executor: MilvusRetrieverExecutor,
     ) -> None:
         """Test _gaussian_similarity method."""
         result = milvus_retriever_executor._gaussian_similarity(0.5)
@@ -939,18 +1002,18 @@ class TestMilvusRetrieverExecutor:
                 text="test document",
                 start_chunk_idx=0,
                 end_chunk_idx=0,
-            )
+            ),
         ]
         milvus_retriever_executor.retriever.search.return_value = mock_search_results
 
         with patch(
-            "arklex.env.tools.RAG.retrievers.milvus_retriever.mysql_pool"
+            "arklex.env.tools.RAG.retrievers.milvus_retriever.mysql_pool",
         ) as mock_mysql:
             mock_mysql.fetchone.return_value = {"collection_name": "test_collection"}
 
             # Mock the MilvusRetriever context manager
             with patch(
-                "arklex.env.tools.RAG.retrievers.milvus_retriever.MilvusRetriever"
+                "arklex.env.tools.RAG.retrievers.milvus_retriever.MilvusRetriever",
             ) as mock_retriever_class:
                 mock_retriever = Mock()
                 mock_retriever_class.return_value.__enter__.return_value = (
@@ -959,7 +1022,7 @@ class TestMilvusRetrieverExecutor:
                 mock_retriever.search.return_value = mock_search_results
 
                 result_text, result_params = milvus_retriever_executor.retrieve(
-                    "test query"
+                    "test query",
                 )
 
                 assert isinstance(result_text, str)
@@ -967,19 +1030,20 @@ class TestMilvusRetrieverExecutor:
                 assert "test document" in result_text
 
     def test_retrieve_with_tags(
-        self, milvus_retriever_executor: MilvusRetrieverExecutor
+        self,
+        milvus_retriever_executor: MilvusRetrieverExecutor,
     ) -> None:
         """Test retrieve method with tags."""
         mock_search_results = []
         milvus_retriever_executor.retriever.search.return_value = mock_search_results
         tags = {"category": "test"}
         with patch(
-            "arklex.env.tools.RAG.retrievers.milvus_retriever.mysql_pool"
+            "arklex.env.tools.RAG.retrievers.milvus_retriever.mysql_pool",
         ) as mock_mysql:
             mock_mysql.fetchone.return_value = {"collection_name": "test_collection"}
             # Mock the MilvusRetriever context manager
             with patch(
-                "arklex.env.tools.RAG.retrievers.milvus_retriever.MilvusRetriever"
+                "arklex.env.tools.RAG.retrievers.milvus_retriever.MilvusRetriever",
             ) as mock_retriever_class:
                 mock_retriever = Mock()
                 mock_retriever_class.return_value.__enter__.return_value = (
@@ -987,26 +1051,28 @@ class TestMilvusRetrieverExecutor:
                 )
                 mock_retriever.search.return_value = mock_search_results
                 result_text, result_params = milvus_retriever_executor.retrieve(
-                    "test query", tags
+                    "test query",
+                    tags,
                 )
                 assert isinstance(result_text, str)
                 assert isinstance(result_params, dict)
                 mock_retriever.search.assert_called_once()
 
     def test_retrieve_empty_results(
-        self, milvus_retriever_executor: MilvusRetrieverExecutor
+        self,
+        milvus_retriever_executor: MilvusRetrieverExecutor,
     ) -> None:
         """Test retrieve method with empty results."""
         milvus_retriever_executor.retriever.search.return_value = []
 
         with patch(
-            "arklex.env.tools.RAG.retrievers.milvus_retriever.mysql_pool"
+            "arklex.env.tools.RAG.retrievers.milvus_retriever.mysql_pool",
         ) as mock_mysql:
             mock_mysql.fetchone.return_value = {"collection_name": "test_collection"}
 
             # Mock the MilvusRetriever context manager
             with patch(
-                "arklex.env.tools.RAG.retrievers.milvus_retriever.MilvusRetriever"
+                "arklex.env.tools.RAG.retrievers.milvus_retriever.MilvusRetriever",
             ) as mock_retriever_class:
                 mock_retriever = Mock()
                 mock_retriever_class.return_value.__enter__.return_value = (
@@ -1015,7 +1081,7 @@ class TestMilvusRetrieverExecutor:
                 mock_retriever.search.return_value = []
 
                 result_text, result_params = milvus_retriever_executor.retrieve(
-                    "test query"
+                    "test query",
                 )
 
                 assert result_text == ""
@@ -1044,14 +1110,14 @@ class TestIntegration:
     def test_full_retrieval_flow(self, mock_bot_config: Mock) -> None:
         """Test complete retrieval flow from RetrieveEngine to MilvusRetrieverExecutor."""
         with patch(
-            "arklex.env.tools.RAG.retrievers.milvus_retriever.MilvusRetrieverExecutor"
+            "arklex.env.tools.RAG.retrievers.milvus_retriever.MilvusRetrieverExecutor",
         ) as mock_executor_class:
             mock_executor = Mock()
             mock_executor_class.return_value = mock_executor
             mock_executor.retrieve.return_value = ("retrieved text", {"params": "test"})
 
             with patch(
-                "arklex.env.tools.RAG.retrievers.milvus_retriever.trace"
+                "arklex.env.tools.RAG.retrievers.milvus_retriever.trace",
             ) as mock_trace:
                 mock_result_state = Mock()
                 mock_result_state.message_flow = "retrieved text"
@@ -1076,7 +1142,7 @@ class TestIntegration:
         """Test complete document lifecycle: add, search, delete."""
         # Mock embedding
         with patch(
-            "arklex.env.tools.RAG.retrievers.milvus_retriever.embed"
+            "arklex.env.tools.RAG.retrievers.milvus_retriever.embed",
         ) as mock_embed:
             mock_embed.return_value = [0.1] * EMBED_DIMENSION
 
@@ -1085,7 +1151,10 @@ class TestIntegration:
             milvus_retriever.client.upsert.return_value = mock_upsert_result
 
             add_result = milvus_retriever.add_documents(
-                "test_collection", "test_bot", "1.0", [sample_retriever_document]
+                "test_collection",
+                "test_bot",
+                "1.0",
+                [sample_retriever_document],
             )
             assert len(add_result) == 1
 
@@ -1102,13 +1171,16 @@ class TestIntegration:
                             "text": "This is a test document",
                         },
                         "distance": 0.5,
-                    }
-                ]
+                    },
+                ],
             ]
             milvus_retriever.client.search.return_value = mock_search_result
 
             search_results = milvus_retriever.search(
-                "test_collection", "test_bot", "1.0", "test query"
+                "test_collection",
+                "test_bot",
+                "1.0",
+                "test query",
             )
             assert len(search_results) == 1
 
@@ -1117,7 +1189,8 @@ class TestIntegration:
             milvus_retriever.client.delete.return_value = mock_delete_result
 
             delete_result = milvus_retriever.delete_documents_by_qa_doc_id(
-                "test_collection", "qa_123"
+                "test_collection",
+                "qa_123",
             )
             assert delete_result == mock_delete_result
 
@@ -1143,10 +1216,10 @@ class TestIntegration:
         # Mock Collection and iterator
         with (
             patch(
-                "arklex.env.tools.RAG.retrievers.milvus_retriever.Collection"
+                "arklex.env.tools.RAG.retrievers.milvus_retriever.Collection",
             ) as mock_collection,
             patch(
-                "arklex.env.tools.RAG.retrievers.milvus_retriever.connections.connect"
+                "arklex.env.tools.RAG.retrievers.milvus_retriever.connections.connect",
             ),
         ):
             mock_iter = Mock()
@@ -1180,7 +1253,10 @@ class TestIntegration:
             milvus_retriever.uri = "uri"
             milvus_retriever.token = "token"
             docs = milvus_retriever.get_qa_docs(
-                "test_collection", "test_bot", "1.0", RetrieverDocumentType.OTHER
+                "test_collection",
+                "test_bot",
+                "1.0",
+                RetrieverDocumentType.OTHER,
             )
             assert len(docs) == 1
             assert docs[0].qa_doc_id == "qa1"
@@ -1220,19 +1296,25 @@ class TestIntegration:
         assert "Milvus Collection test_collection does not exist" in str(excinfo.value)
 
     def test_add_vectors_parallel_upsert(
-        self, milvus_retriever: MilvusRetriever
+        self,
+        milvus_retriever: MilvusRetriever,
     ) -> None:
         """Test add_vectors_parallel with upsert=True covers else branch."""
         milvus_retriever.client.has_collection.return_value = True
         milvus_retriever.client.upsert.return_value = ["ok"]
         vectors = [{"id": "id1"}]
         result = milvus_retriever.add_vectors_parallel(
-            "test_collection", "test_bot", "1.0", vectors, upsert=True
+            "test_collection",
+            "test_bot",
+            "1.0",
+            vectors,
+            upsert=True,
         )
         assert result == ["ok"]
 
     def test_add_vectors_parallel_batching(
-        self, milvus_retriever: MilvusRetriever
+        self,
+        milvus_retriever: MilvusRetriever,
     ) -> None:
         """Test add_vectors_parallel processes batches of 100."""
         milvus_retriever.client.has_collection.return_value = True
@@ -1240,23 +1322,31 @@ class TestIntegration:
         milvus_retriever.client.upsert.return_value = ["ok"] * 100
         vectors = [{"id": f"id{i}"} for i in range(150)]
         result = milvus_retriever.add_vectors_parallel(
-            "test_collection", "test_bot", "1.0", vectors
+            "test_collection",
+            "test_bot",
+            "1.0",
+            vectors,
         )
         assert len(result) == 200  # 2 batches of 100
 
     def test_add_vectors_parallel_creates_collection(
-        self, milvus_retriever: MilvusRetriever
+        self,
+        milvus_retriever: MilvusRetriever,
     ) -> None:
         """Test add_vectors_parallel creates collection if not exists."""
         milvus_retriever.client.has_collection.return_value = False
         milvus_retriever.client.query.return_value = []
         milvus_retriever.client.upsert.return_value = ["ok"]
         with patch.object(
-            milvus_retriever, "create_collection_with_partition_key"
+            milvus_retriever,
+            "create_collection_with_partition_key",
         ) as mock_create:
             vectors = [{"id": "id1"}]
             milvus_retriever.add_vectors_parallel(
-                "test_collection", "test_bot", "1.0", vectors
+                "test_collection",
+                "test_bot",
+                "1.0",
+                vectors,
             )
             mock_create.assert_called_once_with("test_collection")
 
@@ -1266,7 +1356,8 @@ class TestIntegration:
         assert milvus_retriever.is_collection_loaded("test_collection") is True
 
     def test_is_collection_loaded_with_print(
-        self, milvus_retriever: MilvusRetriever
+        self,
+        milvus_retriever: MilvusRetriever,
     ) -> None:
         """Test is_collection_loaded covers the print statement for 100% coverage."""
         milvus_retriever.client.get_load_state.return_value = {"state": "NotLoaded"}

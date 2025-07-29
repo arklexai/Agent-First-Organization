@@ -51,6 +51,7 @@ def encode_image(image_path: str) -> str | None:
 
     Returns:
         str | None: Base64-encoded string if successful, None otherwise.
+
     """
     try:
         with open(image_path, "rb") as image_file:
@@ -136,6 +137,7 @@ class Loader:
 
         Returns:
             List[CrawledObject]: List of CrawledObject instances containing crawled content.
+
         """
         url_objs = [DocObject(str(uuid.uuid4()), url) for url in url_list]
         crawled_url_objs = self.crawl_urls(url_objs)
@@ -153,6 +155,7 @@ class Loader:
 
         Returns:
             List[CrawledObject]: List of CrawledObject instances containing crawled content.
+
         """
         log_context.info(f"🌐 Starting web crawling for {len(url_objects)} URLs...")
 
@@ -163,7 +166,7 @@ class Loader:
         # If Selenium failed completely, try requests-based crawling
         if len(successful_docs) == 0:
             log_context.info(
-                "🔄 Selenium crawling failed, trying requests-based crawling..."
+                "🔄 Selenium crawling failed, trying requests-based crawling...",
             )
             docs = self._crawl_with_requests(url_objects)
             successful_docs = [doc for doc in docs if not doc.is_error]
@@ -171,13 +174,13 @@ class Loader:
         # If all crawling failed, create mock content based on URLs
         if len(successful_docs) == 0:
             log_context.warning(
-                "⚠️ All web crawling failed, creating mock content based on URLs..."
+                "⚠️ All web crawling failed, creating mock content based on URLs...",
             )
             docs = self._create_mock_content_from_urls(url_objects)
             successful_docs = [doc for doc in docs if not doc.is_error]
 
         log_context.info(
-            f"✅ Web crawling complete: {len(successful_docs)}/{len(url_objects)} URLs"
+            f"✅ Web crawling complete: {len(successful_docs)}/{len(url_objects)} URLs",
         )
         return docs
 
@@ -226,7 +229,7 @@ class Loader:
 
         try:
             chrome_driver_path = ChromeDriverManager(
-                driver_version=CHROME_DRIVER_VERSION
+                driver_version=CHROME_DRIVER_VERSION,
             ).install()
             service = Service(executable_path=chrome_driver_path)
             log_context.info(f"🔧 Using ChromeDriver: {chrome_driver_path}")
@@ -234,7 +237,8 @@ class Loader:
             log_context.error(f"❌ Failed to install ChromeDriver: {e}")
             return [
                 self._create_error_doc(
-                    url_obj, f"ChromeDriver installation failed: {e}"
+                    url_obj,
+                    f"ChromeDriver installation failed: {e}",
                 )
                 for url_obj in url_objects
             ]
@@ -265,7 +269,7 @@ class Loader:
                     # Check if we're taking too long
                     if time.time() - url_start_time > max_time_per_url:
                         log_context.warning(
-                            f"URL {url_obj.source} taking too long, skipping"
+                            f"URL {url_obj.source} taking too long, skipping",
                         )
                         raise Exception("URL load timeout")
 
@@ -278,7 +282,8 @@ class Loader:
                     for string in soup.strings:
                         if string.find_parent("a"):
                             href = urljoin(
-                                url_obj.source, string.find_parent("a").get("href")
+                                url_obj.source,
+                                string.find_parent("a").get("href"),
                             )
                             if href.startswith(url_obj.source):
                                 text = f"{string} {href}"
@@ -301,12 +306,12 @@ class Loader:
                             content=text_output,
                             metadata={"title": title, "source": url_obj.source},
                             source_type=SourceType.WEB,
-                        )
+                        ),
                     )
 
                     successful_crawls += 1
                     log_context.info(
-                        f"✅ Successfully crawled URL {i}/{len(url_objects)}: {url_obj.source}"
+                        f"✅ Successfully crawled URL {i}/{len(url_objects)}: {url_obj.source}",
                     )
                     break  # Success, exit retry loop
 
@@ -333,12 +338,12 @@ class Loader:
                         ):
                             # These are expected errors in web crawling, log as debug
                             log_context.debug(
-                                f"  ⚠️ Expected error crawling {url_obj.source}: {error_msg}"
+                                f"  ⚠️ Expected error crawling {url_obj.source}: {error_msg}",
                             )
                         else:
                             # Log unexpected errors
                             log_context.error(
-                                f"  ❌ Error crawling {url_obj.source}: {error_msg}"
+                                f"  ❌ Error crawling {url_obj.source}: {error_msg}",
                             )
 
                         # Create failed crawl object
@@ -347,13 +352,13 @@ class Loader:
                     else:
                         # Log retry attempt
                         log_context.info(
-                            f"  🔄 Retry {retry_attempt + 1}/{max_retries} for {url_obj.source}"
+                            f"  🔄 Retry {retry_attempt + 1}/{max_retries} for {url_obj.source}",
                         )
                         time.sleep(2)  # Wait before retry
 
         elapsed_time = time.time() - start_time
         log_context.info(
-            f"🌐 Selenium crawling: {successful_crawls}/{len(url_objects)} URLs in {elapsed_time:.1f}s"
+            f"🌐 Selenium crawling: {successful_crawls}/{len(url_objects)} URLs in {elapsed_time:.1f}s",
         )
         return docs
 
@@ -374,7 +379,7 @@ class Loader:
         for i, url_obj in enumerate(url_objects, 1):
             try:
                 log_context.info(
-                    f"  📡 Requesting URL {i}/{len(url_objects)}: {url_obj.source}"
+                    f"  📡 Requesting URL {i}/{len(url_objects)}: {url_obj.source}",
                 )
 
                 response = requests.get(url_obj.source, headers=headers, timeout=10)
@@ -388,7 +393,8 @@ class Loader:
                 for string in soup.strings:
                     if string.find_parent("a"):
                         href = urljoin(
-                            url_obj.source, string.find_parent("a").get("href")
+                            url_obj.source,
+                            string.find_parent("a").get("href"),
                         )
                         if href.startswith(url_obj.source):
                             text = f"{string} {href}"
@@ -411,12 +417,12 @@ class Loader:
                         content=text_output,
                         metadata={"title": title, "source": url_obj.source},
                         source_type=SourceType.WEB,
-                    )
+                    ),
                 )
 
                 successful_crawls += 1
                 log_context.info(
-                    f"✅ Successfully crawled URL {i}/{len(url_objects)}: {url_obj.source}"
+                    f"✅ Successfully crawled URL {i}/{len(url_objects)}: {url_obj.source}",
                 )
 
             except Exception as err:
@@ -424,12 +430,13 @@ class Loader:
                 docs.append(self._create_error_doc(url_obj, str(err)))
 
         log_context.info(
-            f"📡 Requests crawling: {successful_crawls}/{len(url_objects)} URLs"
+            f"📡 Requests crawling: {successful_crawls}/{len(url_objects)} URLs",
         )
         return docs
 
     def _create_mock_content_from_urls(
-        self, url_objects: list[DocObject]
+        self,
+        url_objects: list[DocObject],
     ) -> list[CrawledObject]:
         """Create mock content from URLs when web crawling fails completely.
 
@@ -441,6 +448,7 @@ class Loader:
 
         Returns:
             List[CrawledObject]: List of CrawledObject instances with mock content.
+
         """
         docs: list[CrawledObject] = []
 
@@ -497,7 +505,7 @@ class Loader:
                         "mock_content": True,
                     },
                     source_type=SourceType.WEB,
-                )
+                ),
             )
 
         log_context.info(f"📝 Created mock content for {len(docs)} URLs")
@@ -530,6 +538,7 @@ class Loader:
 
         Returns:
             List[str]: List of collected URLs, sorted alphabetically.
+
         """
         log_context.info(f"🔍 Discovering URLs from {base_url} (max: {max_num})")
         urls_visited = []
@@ -546,7 +555,7 @@ class Loader:
             # Check time limit
             if time.time() - start_time > max_time_seconds:
                 log_context.warning(
-                    f"⏰ URL discovery timed out after {max_time_seconds}s"
+                    f"⏰ URL discovery timed out after {max_time_seconds}s",
                 )
                 break
 
@@ -565,17 +574,17 @@ class Loader:
 
                     if new_urls:
                         log_context.info(
-                            f"  📎 Found {len(new_urls)} new URLs from {current_url}"
+                            f"  📎 Found {len(new_urls)} new URLs from {current_url}",
                         )
                 except Exception as e:
                     log_context.error(
-                        f"  ❌ Error discovering URLs from {current_url}: {e}"
+                        f"  ❌ Error discovering URLs from {current_url}: {e}",
                     )
                     continue
 
         elapsed_time = time.time() - start_time
         log_context.info(
-            f"✅ URL discovery complete: {len(urls_visited)} URLs found in {elapsed_time:.1f}s"
+            f"✅ URL discovery complete: {len(urls_visited)} URLs found in {elapsed_time:.1f}s",
         )
         return sorted(urls_visited[:max_num])
 
@@ -591,9 +600,10 @@ class Loader:
 
         Returns:
             list[str]: List of valid outsource URLs.
+
         """
         headers = {
-            "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/14.0.3 Safari/605.1.15"
+            "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/14.0.3 Safari/605.1.15",
         }
         new_urls = []
         try:
@@ -609,11 +619,11 @@ class Loader:
                             new_urls.append(full_url)
                     except Exception as err:
                         log_context.error(
-                            f"Fail to process sub-url {link.get('href')}: {err}"
+                            f"Fail to process sub-url {link.get('href')}: {err}",
                         )
             else:
                 log_context.error(
-                    f"Failed to retrieve page {curr_url}, status code: {response.status_code}"
+                    f"Failed to retrieve page {curr_url}, status code: {response.status_code}",
                 )
         except Exception as err:
             log_context.error(f"Fail to get the page from {curr_url}: {err}")
@@ -631,6 +641,7 @@ class Loader:
 
         Returns:
             bool: True if the URL is valid and belongs to the base URL, False otherwise.
+
         """
         kw_list = [".pdf", ".jpg", ".png", ".docx", ".xlsx", ".pptx", ".zip", ".jpeg"]
         return (
@@ -641,7 +652,9 @@ class Loader:
         )
 
     def get_candidates_websites(
-        self, urls: list[CrawledObject], top_k: int
+        self,
+        urls: list[CrawledObject],
+        top_k: int,
     ) -> list[CrawledObject]:
         """Get candidate websites based on content relevance.
 
@@ -654,8 +667,8 @@ class Loader:
 
         Returns:
             List[CrawledObject]: List of selected candidate websites.
-        """
 
+        """
         nodes = []
         edges = []
         url_to_id_mapping = {}
@@ -697,6 +710,7 @@ class Loader:
 
         Returns:
             List[CrawledObject]: List of CrawledObject instances.
+
         """
         crawled_local_objs = []
         for text in text_list:
@@ -721,6 +735,7 @@ class Loader:
 
         Returns:
             List[CrawledObject]: List of CrawledObject instances.
+
         """
         local_objs = [DocObject(str(uuid.uuid4()), file) for file in file_list]
         crawled_local_objs = [self.crawl_file(local_obj) for local_obj in local_objs]
@@ -738,6 +753,7 @@ class Loader:
 
         Returns:
             CrawledObject: A CrawledObject instance containing the file's content and metadata.
+
         """
         file_path = Path(local_obj.source)
         file_type = file_path.suffix.lstrip(".")
@@ -745,7 +761,7 @@ class Loader:
 
         try:
             if not file_type:
-                err_msg = f"No file type detected for file: {str(file_path)}"
+                err_msg = f"No file type detected for file: {file_path!s}"
                 raise FileNotFoundError(err_msg)
 
             if file_type in ["pdf", "png", "jpg", "jpeg", "pptx", "ppt"] and (
@@ -793,7 +809,7 @@ class Loader:
                     metadata={"title": file_name, "source": local_obj.source},
                     source_type=SourceType.FILE,
                 )
-            elif file_type == "html":
+            if file_type == "html":
                 # TODO : Consider replacing this logic with the Unstructured HTML Loader.
                 # Would need to be done in crawl_urls too.
                 with open(file_path, encoding="utf-8") as f:
@@ -822,10 +838,10 @@ class Loader:
                     metadata={"title": title, "source": local_obj.source},
                     source_type=SourceType.FILE,
                 )
-            elif file_type == "pdf":
+            if file_type == "pdf":
                 # Since Mistral API key is absent, we default to basic pdf parser
                 log_context.info(
-                    "MISTRAL_API_KEY env variable not set, hence defaulting to static parsing."
+                    "MISTRAL_API_KEY env variable not set, hence defaulting to static parsing.",
                 )
                 loader = PyPDFLoader(file_path)
             elif file_type == "doc" or file_type == "docx":
@@ -846,7 +862,7 @@ class Loader:
                 [
                     document.to_json()["kwargs"]["page_content"]
                     for document in loader.load()
-                ]
+                ],
             )
             return CrawledObject(
                 id=local_obj.id,
@@ -878,6 +894,7 @@ class Loader:
         Args:
             file_path (str): Path where to save the objects.
             docs (List[CrawledObject]): List of CrawledObject instances to save.
+
         """
         with open(file_path, "wb") as f:
             pickle.dump(docs, f)
@@ -894,21 +911,24 @@ class Loader:
 
         Returns:
             List[CrawledObject]: List of chunked CrawledObject instances.
+
         """
         text_splitter = RecursiveCharacterTextSplitter.from_tiktoken_encoder(
-            encoding_name="cl100k_base", chunk_size=200, chunk_overlap=40
+            encoding_name="cl100k_base",
+            chunk_size=200,
+            chunk_overlap=40,
         )
         docs = []
         langchain_docs = []
         for doc_obj in doc_objs:
             if doc_obj.is_error or doc_obj.content is None:
                 log_context.debug(
-                    f"Skip source: {doc_obj.source} because of error or no content"
+                    f"Skip source: {doc_obj.source} because of error or no content",
                 )
                 continue
-            elif doc_obj.is_chunk:
+            if doc_obj.is_chunk:
                 log_context.debug(
-                    f"Skip source: {doc_obj.source} because it has been chunked"
+                    f"Skip source: {doc_obj.source} because it has been chunked",
                 )
                 docs.append(doc_obj)
                 continue
@@ -924,6 +944,6 @@ class Loader:
                 )
                 docs.append(doc)
                 langchain_docs.append(
-                    Document(page_content=txt, metadata={"source": doc_obj.source})
+                    Document(page_content=txt, metadata={"source": doc_obj.source}),
                 )
         return langchain_docs

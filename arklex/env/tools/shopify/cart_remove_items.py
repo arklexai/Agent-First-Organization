@@ -1,5 +1,4 @@
-"""
-This module provides functionality to remove items from a shopping cart in the Shopify store.
+"""This module provides functionality to remove items from a shopping cart in the Shopify store.
 It supports removing multiple items at once using their line IDs.
 
 Note: This module is currently inactive and reserved for future use.
@@ -33,8 +32,7 @@ errors = [CART_REMOVE_ITEM_ERROR]
 
 @register_tool(description, slots, outputs, lambda x: x not in errors)
 def cart_remove_items(cart_id: str, line_ids: list[str]) -> None | str:
-    """
-    Remove items from a shopping cart using their line IDs.
+    """Remove items from a shopping cart using their line IDs.
 
     Args:
         cart_id (str): The ID of the shopping cart.
@@ -47,6 +45,7 @@ def cart_remove_items(cart_id: str, line_ids: list[str]) -> None | str:
 
     Raises:
         None: Errors are caught and returned as strings.
+
     """
     try:
         query = """

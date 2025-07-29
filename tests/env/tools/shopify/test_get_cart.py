@@ -66,8 +66,8 @@ class TestGetCart:
                             "startCursor": "cursor1",
                         },
                     },
-                }
-            }
+                },
+            },
         }
         mock_post.return_value = mock_response
 
@@ -181,8 +181,8 @@ class TestGetCart:
                             "startCursor": None,
                         },
                     },
-                }
-            }
+                },
+            },
         }
         mock_post.return_value = mock_response
 
@@ -220,7 +220,7 @@ class TestGetCart:
                                     "title": "Test Product - Small",
                                     # Missing product field
                                 },
-                            }
+                            },
                         ],
                         "pageInfo": {
                             "endCursor": "cursor1",
@@ -229,8 +229,8 @@ class TestGetCart:
                             "startCursor": "cursor1",
                         },
                     },
-                }
-            }
+                },
+            },
         }
         mock_post.return_value = mock_response
 
@@ -257,7 +257,7 @@ class TestGetCart:
             "cart": {
                 "id": "gid://shopify/Cart/12345",
                 "checkoutUrl": "https://test-shop.myshopify.com/checkout",
-            }
+            },
         }
         mock_post.return_value = mock_response
 
@@ -279,7 +279,7 @@ class TestGetCart:
         mock_response = MagicMock()
         mock_response.status_code = 200
         mock_response.json.return_value = {
-            "data": {"someOtherKey": {"id": "gid://shopify/Cart/12345"}}
+            "data": {"someOtherKey": {"id": "gid://shopify/Cart/12345"}},
         }
         mock_post.return_value = mock_response
 
@@ -318,7 +318,7 @@ class TestGetCart:
                                         "title": "Test Product",
                                     },
                                 },
-                            }
+                            },
                         ],
                         "pageInfo": {
                             "endCursor": "cursor1",
@@ -327,8 +327,8 @@ class TestGetCart:
                             "startCursor": "cursor1",
                         },
                     },
-                }
-            }
+                },
+            },
         }
         mock_post.return_value = mock_response
 
@@ -411,8 +411,8 @@ class TestGetCart:
                     "id": "gid://shopify/Cart/12345",
                     "checkoutUrl": "https://test-shop.myshopify.com/checkout",
                     "lines": None,  # Malformed lines data
-                }
-            }
+                },
+            },
         }
         mock_post.return_value = mock_response
 
@@ -439,8 +439,8 @@ class TestGetCart:
                     "id": "gid://shopify/Cart/12345",
                     "checkoutUrl": "https://test-shop.myshopify.com/checkout",
                     # Missing lines key
-                }
-            }
+                },
+            },
         }
         mock_post.return_value = mock_response
 
@@ -487,8 +487,8 @@ class TestGetCart:
                     "id": "gid://shopify/Cart/12345",
                     "checkoutUrl": "https://test-shop.myshopify.com/checkout",
                     "lines": "invalid_lines_data",  # Not a dict
-                }
-            }
+                },
+            },
         }
         mock_post.return_value = mock_response
 
@@ -520,11 +520,11 @@ class TestGetCart:
                             "hasNextPage": False,
                             "hasPreviousPage": False,
                             "startCursor": "cursor1",
-                        }
+                        },
                         # Missing nodes key
                     },
-                }
-            }
+                },
+            },
         }
         mock_post.return_value = mock_response
 
@@ -584,8 +584,8 @@ class TestGetCart:
                             "startCursor": "cursor1",
                         },
                     },
-                }
-            }
+                },
+            },
         }
         mock_post.return_value = mock_response
 
@@ -624,7 +624,7 @@ class TestGetCart:
                                         "title": "Test Product",
                                     },
                                 },
-                            }
+                            },
                         ],
                         "pageInfo": {
                             "endCursor": "cursor1",
@@ -633,8 +633,8 @@ class TestGetCart:
                             "startCursor": "cursor1",
                         },
                     },
-                }
-            }
+                },
+            },
         }
         mock_post.return_value = mock_response
 
@@ -685,7 +685,7 @@ class TestGetCart:
                                         "title": "Test Product",
                                     },
                                 },
-                            }
+                            },
                         ],
                         "pageInfo": {
                             "endCursor": "cursor1",
@@ -694,8 +694,8 @@ class TestGetCart:
                             "startCursor": "cursor1",
                         },
                     },
-                }
-            }
+                },
+            },
         }
         mock_post.return_value = mock_response
 

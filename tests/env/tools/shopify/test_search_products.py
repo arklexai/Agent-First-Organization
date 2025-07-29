@@ -26,7 +26,10 @@ class TestSearchProducts:
     @patch("arklex.env.tools.shopify.search_products.shopify.Session.temp")
     @patch("arklex.env.tools.shopify.search_products.shopify.GraphQL")
     def test_search_products_success(
-        self, mock_graphql: Mock, mock_session_temp: Mock, mock_provider_map: Mock
+        self,
+        mock_graphql: Mock,
+        mock_session_temp: Mock,
+        mock_provider_map: Mock,
     ) -> None:
         """Test successful product search."""
         # Setup mocks
@@ -50,9 +53,9 @@ class TestSearchProducts:
                                         "node": {
                                             "src": "https://cdn.shopify.com/test-image.jpg",
                                             "altText": "Test Product Image",
-                                        }
-                                    }
-                                ]
+                                        },
+                                    },
+                                ],
                             },
                             "variants": {
                                 "nodes": [
@@ -68,9 +71,9 @@ class TestSearchProducts:
                                         "price": "29.99",
                                         "inventoryQuantity": 40,
                                     },
-                                ]
+                                ],
                             },
-                        }
+                        },
                     ],
                     "pageInfo": {
                         "endCursor": "cursor1",
@@ -78,8 +81,8 @@ class TestSearchProducts:
                         "hasPreviousPage": False,
                         "startCursor": "cursor1",
                     },
-                }
-            }
+                },
+            },
         }
         mock_graphql_instance.execute.return_value = json.dumps(mock_response)
         mock_graphql.return_value = mock_graphql_instance
@@ -132,7 +135,10 @@ class TestSearchProducts:
     @patch("arklex.env.tools.shopify.search_products.shopify.Session.temp")
     @patch("arklex.env.tools.shopify.search_products.shopify.GraphQL")
     def test_search_products_no_results(
-        self, mock_graphql: Mock, mock_session_temp: Mock, mock_provider_map: Mock
+        self,
+        mock_graphql: Mock,
+        mock_session_temp: Mock,
+        mock_provider_map: Mock,
     ) -> None:
         """Test product search when no products are found."""
         # Setup mocks
@@ -150,8 +156,8 @@ class TestSearchProducts:
                         "hasPreviousPage": False,
                         "startCursor": None,
                     },
-                }
-            }
+                },
+            },
         }
         mock_graphql_instance.execute.return_value = json.dumps(mock_response)
         mock_graphql.return_value = mock_graphql_instance
@@ -173,7 +179,10 @@ class TestSearchProducts:
     @patch("arklex.env.tools.shopify.search_products.shopify.Session.temp")
     @patch("arklex.env.tools.shopify.search_products.shopify.GraphQL")
     def test_search_products_graphql_exception(
-        self, mock_graphql: Mock, mock_session_temp: Mock, mock_provider_map: Mock
+        self,
+        mock_graphql: Mock,
+        mock_session_temp: Mock,
+        mock_provider_map: Mock,
     ) -> None:
         """Test product search when GraphQL execution fails."""
         # Setup mocks
@@ -201,7 +210,10 @@ class TestSearchProducts:
     @patch("arklex.env.tools.shopify.search_products.shopify.Session.temp")
     @patch("arklex.env.tools.shopify.search_products.shopify.GraphQL")
     def test_search_products_session_exception(
-        self, mock_graphql: Mock, mock_session_temp: Mock, mock_provider_map: Mock
+        self,
+        mock_graphql: Mock,
+        mock_session_temp: Mock,
+        mock_provider_map: Mock,
     ) -> None:
         """Test product search when session creation fails."""
         # Setup mocks to raise exception during session creation
@@ -224,7 +236,10 @@ class TestSearchProducts:
     @patch("arklex.env.tools.shopify.search_products.shopify.Session.temp")
     @patch("arklex.env.tools.shopify.search_products.shopify.GraphQL")
     def test_search_products_with_pagination_parameters(
-        self, mock_graphql: Mock, mock_session_temp: Mock, mock_provider_map: Mock
+        self,
+        mock_graphql: Mock,
+        mock_session_temp: Mock,
+        mock_provider_map: Mock,
     ) -> None:
         """Test product search with pagination parameters."""
         # Setup mocks
@@ -248,9 +263,9 @@ class TestSearchProducts:
                                         "node": {
                                             "src": "https://cdn.shopify.com/test-image.jpg",
                                             "altText": "Test Product Image",
-                                        }
-                                    }
-                                ]
+                                        },
+                                    },
+                                ],
                             },
                             "variants": {
                                 "nodes": [
@@ -259,10 +274,10 @@ class TestSearchProducts:
                                         "id": "gid://shopify/ProductVariant/67890",
                                         "price": "29.99",
                                         "inventoryQuantity": 100,
-                                    }
-                                ]
+                                    },
+                                ],
                             },
-                        }
+                        },
                     ],
                     "pageInfo": {
                         "endCursor": "cursor1",
@@ -270,8 +285,8 @@ class TestSearchProducts:
                         "hasPreviousPage": False,
                         "startCursor": "cursor1",
                     },
-                }
-            }
+                },
+            },
         }
         mock_graphql_instance.execute.return_value = json.dumps(mock_response)
         mock_graphql.return_value = mock_graphql_instance
@@ -285,7 +300,7 @@ class TestSearchProducts:
 
         # Mock cursorify to return expected navigation parameters
         with patch(
-            "arklex.env.tools.shopify.search_products.cursorify"
+            "arklex.env.tools.shopify.search_products.cursorify",
         ) as mock_cursorify:
             mock_cursorify.return_value = ('first: 10, after: "cursor1"', True)
 
@@ -317,12 +332,15 @@ class TestSearchProducts:
     @patch("arklex.env.tools.shopify.search_products.shopify.Session.temp")
     @patch("arklex.env.tools.shopify.search_products.shopify.GraphQL")
     def test_search_products_with_navigation_return_early(
-        self, mock_graphql: Mock, mock_session_temp: Mock, mock_provider_map: Mock
+        self,
+        mock_graphql: Mock,
+        mock_session_temp: Mock,
+        mock_provider_map: Mock,
     ) -> None:
         """Test product search when navigation returns early."""
         # This test simulates the case where cursorify returns early
         with patch(
-            "arklex.env.tools.shopify.search_products.cursorify"
+            "arklex.env.tools.shopify.search_products.cursorify",
         ) as mock_cursorify:
             mock_cursorify.return_value = ("first: 10", False)
 
@@ -349,7 +367,10 @@ class TestSearchProducts:
     @patch("arklex.env.tools.shopify.search_products.shopify.Session.temp")
     @patch("arklex.env.tools.shopify.search_products.shopify.GraphQL")
     def test_search_products_with_missing_fields(
-        self, mock_graphql: Mock, mock_session_temp: Mock, mock_provider_map: Mock
+        self,
+        mock_graphql: Mock,
+        mock_session_temp: Mock,
+        mock_provider_map: Mock,
     ) -> None:
         """Test product search when products have missing fields."""
         # Setup mocks
@@ -365,7 +386,7 @@ class TestSearchProducts:
                             "id": "gid://shopify/Product/12345",
                             "title": "Test Product",
                             # Missing description, handle, onlineStoreUrl, images, variants
-                        }
+                        },
                     ],
                     "pageInfo": {
                         "endCursor": "cursor1",
@@ -373,8 +394,8 @@ class TestSearchProducts:
                         "hasPreviousPage": False,
                         "startCursor": "cursor1",
                     },
-                }
-            }
+                },
+            },
         }
         mock_graphql_instance.execute.return_value = json.dumps(mock_response)
         mock_graphql.return_value = mock_graphql_instance
@@ -408,7 +429,10 @@ class TestSearchProducts:
     @patch("arklex.env.tools.shopify.search_products.shopify.Session.temp")
     @patch("arklex.env.tools.shopify.search_products.shopify.GraphQL")
     def test_search_products_with_empty_images(
-        self, mock_graphql: Mock, mock_session_temp: Mock, mock_provider_map: Mock
+        self,
+        mock_graphql: Mock,
+        mock_session_temp: Mock,
+        mock_provider_map: Mock,
     ) -> None:
         """Test product search when products have no images."""
         # Setup mocks
@@ -434,10 +458,10 @@ class TestSearchProducts:
                                         "id": "gid://shopify/ProductVariant/67890",
                                         "price": "29.99",
                                         "inventoryQuantity": 100,
-                                    }
-                                ]
+                                    },
+                                ],
                             },
-                        }
+                        },
                     ],
                     "pageInfo": {
                         "endCursor": "cursor1",
@@ -445,8 +469,8 @@ class TestSearchProducts:
                         "hasPreviousPage": False,
                         "startCursor": "cursor1",
                     },
-                }
-            }
+                },
+            },
         }
         mock_graphql_instance.execute.return_value = json.dumps(mock_response)
         mock_graphql.return_value = mock_graphql_instance
@@ -475,7 +499,10 @@ class TestSearchProducts:
     @patch("arklex.env.tools.shopify.search_products.shopify.Session.temp")
     @patch("arklex.env.tools.shopify.search_products.shopify.GraphQL")
     def test_search_products_with_missing_images_key(
-        self, mock_graphql: Mock, mock_session_temp: Mock, mock_provider_map: Mock
+        self,
+        mock_graphql: Mock,
+        mock_session_temp: Mock,
+        mock_provider_map: Mock,
     ) -> None:
         """Test product search when products are missing images key."""
         # Setup mocks
@@ -501,10 +528,10 @@ class TestSearchProducts:
                                         "id": "gid://shopify/ProductVariant/67890",
                                         "price": "29.99",
                                         "inventoryQuantity": 100,
-                                    }
-                                ]
+                                    },
+                                ],
                             },
-                        }
+                        },
                     ],
                     "pageInfo": {
                         "endCursor": "cursor1",
@@ -512,8 +539,8 @@ class TestSearchProducts:
                         "hasPreviousPage": False,
                         "startCursor": "cursor1",
                     },
-                }
-            }
+                },
+            },
         }
         mock_graphql_instance.execute.return_value = json.dumps(mock_response)
         mock_graphql.return_value = mock_graphql_instance
@@ -542,7 +569,10 @@ class TestSearchProducts:
     @patch("arklex.env.tools.shopify.search_products.shopify.Session.temp")
     @patch("arklex.env.tools.shopify.search_products.shopify.GraphQL")
     def test_search_products_with_missing_variants_key(
-        self, mock_graphql: Mock, mock_session_temp: Mock, mock_provider_map: Mock
+        self,
+        mock_graphql: Mock,
+        mock_session_temp: Mock,
+        mock_provider_map: Mock,
     ) -> None:
         """Test product search when products are missing variants key."""
         # Setup mocks
@@ -566,12 +596,12 @@ class TestSearchProducts:
                                         "node": {
                                             "src": "https://cdn.shopify.com/test-image.jpg",
                                             "altText": "Test Product Image",
-                                        }
-                                    }
-                                ]
+                                        },
+                                    },
+                                ],
                             },
                             # Missing variants key
-                        }
+                        },
                     ],
                     "pageInfo": {
                         "endCursor": "cursor1",
@@ -579,8 +609,8 @@ class TestSearchProducts:
                         "hasPreviousPage": False,
                         "startCursor": "cursor1",
                     },
-                }
-            }
+                },
+            },
         }
         mock_graphql_instance.execute.return_value = json.dumps(mock_response)
         mock_graphql.return_value = mock_graphql_instance
@@ -609,7 +639,10 @@ class TestSearchProducts:
     @patch("arklex.env.tools.shopify.search_products.shopify.Session.temp")
     @patch("arklex.env.tools.shopify.search_products.shopify.GraphQL")
     def test_search_products_with_llm_exception(
-        self, mock_graphql: Mock, mock_session_temp: Mock, mock_provider_map: Mock
+        self,
+        mock_graphql: Mock,
+        mock_session_temp: Mock,
+        mock_provider_map: Mock,
     ) -> None:
         """Test product search when LLM invocation fails."""
         # Setup mocks
@@ -633,9 +666,9 @@ class TestSearchProducts:
                                         "node": {
                                             "src": "https://cdn.shopify.com/test-image.jpg",
                                             "altText": "Test Product Image",
-                                        }
-                                    }
-                                ]
+                                        },
+                                    },
+                                ],
                             },
                             "variants": {
                                 "nodes": [
@@ -644,10 +677,10 @@ class TestSearchProducts:
                                         "id": "gid://shopify/ProductVariant/67890",
                                         "price": "29.99",
                                         "inventoryQuantity": 100,
-                                    }
-                                ]
+                                    },
+                                ],
                             },
-                        }
+                        },
                     ],
                     "pageInfo": {
                         "endCursor": "cursor1",
@@ -655,8 +688,8 @@ class TestSearchProducts:
                         "hasPreviousPage": False,
                         "startCursor": "cursor1",
                     },
-                }
-            }
+                },
+            },
         }
         mock_graphql_instance.execute.return_value = json.dumps(mock_response)
         mock_graphql.return_value = mock_graphql_instance
@@ -704,7 +737,10 @@ class TestSearchProducts:
     @patch("arklex.env.tools.shopify.search_products.shopify.Session.temp")
     @patch("arklex.env.tools.shopify.search_products.shopify.GraphQL")
     def test_search_products_with_json_decode_error(
-        self, mock_graphql: Mock, mock_session_temp: Mock, mock_provider_map: Mock
+        self,
+        mock_graphql: Mock,
+        mock_session_temp: Mock,
+        mock_provider_map: Mock,
     ) -> None:
         """Test product search when JSON response is malformed."""
         # Setup mocks
@@ -732,7 +768,10 @@ class TestSearchProducts:
     @patch("arklex.env.tools.shopify.search_products.shopify.Session.temp")
     @patch("arklex.env.tools.shopify.search_products.shopify.GraphQL")
     def test_search_products_with_missing_data_key(
-        self, mock_graphql: Mock, mock_session_temp: Mock, mock_provider_map: Mock
+        self,
+        mock_graphql: Mock,
+        mock_session_temp: Mock,
+        mock_provider_map: Mock,
     ) -> None:
         """Test product search when response is missing 'data' key."""
         # Setup mocks
@@ -761,7 +800,10 @@ class TestSearchProducts:
     @patch("arklex.env.tools.shopify.search_products.shopify.Session.temp")
     @patch("arklex.env.tools.shopify.search_products.shopify.GraphQL")
     def test_search_products_with_missing_products_key(
-        self, mock_graphql: Mock, mock_session_temp: Mock, mock_provider_map: Mock
+        self,
+        mock_graphql: Mock,
+        mock_session_temp: Mock,
+        mock_provider_map: Mock,
     ) -> None:
         """Test product search when response is missing 'products' key."""
         # Setup mocks
@@ -790,7 +832,10 @@ class TestSearchProducts:
     @patch("arklex.env.tools.shopify.search_products.shopify.Session.temp")
     @patch("arklex.env.tools.shopify.search_products.shopify.GraphQL")
     def test_search_products_with_missing_nodes_key(
-        self, mock_graphql: Mock, mock_session_temp: Mock, mock_provider_map: Mock
+        self,
+        mock_graphql: Mock,
+        mock_session_temp: Mock,
+        mock_provider_map: Mock,
     ) -> None:
         """Test product search when response is missing 'nodes' key."""
         # Setup mocks

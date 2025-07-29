@@ -32,7 +32,10 @@ class Logic_Test(unittest.TestCase):
         """Method to tear down the test fixture. Run AFTER the test methods."""
 
     def _get_api_bot_response(
-        self, user_text: str, history: list[dict[str, str]], params: dict[str, Any]
+        self,
+        user_text: str,
+        history: list[dict[str, str]],
+        params: dict[str, Any],
     ) -> tuple[str, dict[str, Any]]:
         data: dict[str, Any] = {
             "text": user_text,

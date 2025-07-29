@@ -10,29 +10,29 @@ NESTED_GRAPH_ID: str = "nested_graph"
 
 class NestedGraph:
     def __init__(self, node_info: NodeInfo) -> None:
-        """
-        Initialize a NestedGraph instance with nested graph resource node information.
+        """Initialize a NestedGraph instance with nested graph resource node information.
 
         Args:
             node_info (NodeInfo): The node information containing attributes relevant to the graph.
+
         """
         self.node_info: NodeInfo = node_info
 
     def get_nested_graph_start_node_id(self) -> str:
-        """
-        Retrieve the starting node identifier for the nested graph.
+        """Retrieve the starting node identifier for the nested graph.
 
         Returns:
             str: The start node ID derived from the 'value' attribute of node_info.
+
         """
         return str(self.node_info.attributes["value"])
 
     @staticmethod
     def get_nested_graph_component_node(
-        params: OrchestratorParams, is_leaf_func: Callable[[Any], bool]
+        params: OrchestratorParams,
+        is_leaf_func: Callable[[Any], bool],
     ) -> tuple[PathNode | None, OrchestratorParams]:
-        """
-        If in nested subgraph, locate and return the nested graph resource node
+        """If in nested subgraph, locate and return the nested graph resource node
         If leaf in main graph, return current node
         1) call _get_nested_graph_component_node to get nested graph resource node given node
         2) if in nested graph component not found (i.e. _get_nested_graph_component_node returns -1)
@@ -50,13 +50,14 @@ class NestedGraph:
                 - The first element is a PathNode instance representing the nested graph component node,
                   or None if no such node is identified.
                 - The second element is the updated params object, which may include modified task graph state.
+
         """
 
         def _get_nested_graph_component_node(
-            node_i: int, params: OrchestratorParams
+            node_i: int,
+            params: OrchestratorParams,
         ) -> tuple[int, OrchestratorParams]:
-            """
-            if node is in nested graph, return path index of nested graph resource node, params and update path
+            """If node is in nested graph, return path index of nested graph resource node, params and update path
             if node in main graph, return -1, params
             """
             path: list[PathNode] = params.taskgraph.path
@@ -83,7 +84,8 @@ class NestedGraph:
         while cur_node_i >= 0:
             nested_graph_next_node_path_i: int
             nested_graph_next_node_path_i, params = _get_nested_graph_component_node(
-                cur_node_i, params
+                cur_node_i,
+                params,
             )
             if nested_graph_next_node_path_i == -1:
                 path_node: PathNode = path[cur_node_i]

@@ -38,6 +38,7 @@ class RequestLoggingMiddleware(BaseHTTPMiddleware):
 
         Args:
             app: The ASGI application.
+
         """
         super().__init__(app)
 
@@ -54,6 +55,7 @@ class RequestLoggingMiddleware(BaseHTTPMiddleware):
         Raises:
             RetryableError: If the request fails with a retryable error.
             Exception: For other types of errors.
+
         """
         # Generate unique request ID
         request_id = str(uuid.uuid4())
@@ -93,7 +95,9 @@ class RequestLoggingMiddleware(BaseHTTPMiddleware):
         try:
             # Process the request with retry mechanism for retryable errors
             response, process_time = await self._process_request_with_retry(
-                request, call_next, start_time
+                request,
+                call_next,
+                start_time,
             )
 
             # Log request completion with standardized message
@@ -113,7 +117,7 @@ class RequestLoggingMiddleware(BaseHTTPMiddleware):
         except RetryableError as e:
             # Log retryable error with standardized message
             log_context.error(
-                f"Request failed: {str(e)} | error_type={type(e).__name__} | process_time={time.time() - start_time:.4f}s",
+                f"Request failed: {e!s} | error_type={type(e).__name__} | process_time={time.time() - start_time:.4f}s",
                 error_type=type(e).__name__,
                 error_details=getattr(e, "details", None),
                 max_retries=e.max_retries,
@@ -126,7 +130,7 @@ class RequestLoggingMiddleware(BaseHTTPMiddleware):
         except Exception as e:
             # Log unexpected error with standardized message
             log_context.error(
-                f"Request failed: {str(e)} | error_type={type(e).__name__} | process_time={time.time() - start_time:.4f}s",
+                f"Request failed: {e!s} | error_type={type(e).__name__} | process_time={time.time() - start_time:.4f}s",
                 error_type=type(e).__name__,
                 error_details=getattr(e, "details", None),
                 stack_trace=traceback.format_exc(),
@@ -140,12 +144,16 @@ class RequestLoggingMiddleware(BaseHTTPMiddleware):
         wait=wait_exponential(multiplier=1, min=4, max=10),
         retry=(
             lambda e: isinstance(
-                e, NetworkError | TimeoutError | ServiceUnavailableError
+                e,
+                NetworkError | TimeoutError | ServiceUnavailableError,
             )
         ),
     )
     async def _process_request_with_retry(
-        self, request: Request, call_next: Callable, start_time: float
+        self,
+        request: Request,
+        call_next: Callable,
+        start_time: float,
     ) -> tuple[Response, float]:
         """Process the request with retry mechanism for retryable errors.
 
@@ -160,6 +168,7 @@ class RequestLoggingMiddleware(BaseHTTPMiddleware):
         Raises:
             RetryableError: If the request fails with a retryable error.
             Exception: For other types of errors.
+
         """
         try:
             response = await call_next(request)
@@ -180,7 +189,7 @@ class RequestLoggingMiddleware(BaseHTTPMiddleware):
                         },
                     },
                 ) from e
-            elif isinstance(e, TimeoutError):
+            if isinstance(e, TimeoutError):
                 raise TimeoutError(
                     str(e),
                     details={
@@ -193,7 +202,7 @@ class RequestLoggingMiddleware(BaseHTTPMiddleware):
                         },
                     },
                 ) from e
-            elif isinstance(e, ServiceUnavailableError):
+            if isinstance(e, ServiceUnavailableError):
                 raise ServiceUnavailableError(
                     str(e),
                     details={

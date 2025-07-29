@@ -20,7 +20,7 @@ def get_env(
             user_provider=user_provider,
             task_index=task_index,
         )
-    elif env_name == "airline":
+    if env_name == "airline":
         from benchmark.tau_bench.envs.airline import MockAirlineDomainEnv
 
         return MockAirlineDomainEnv(
@@ -30,5 +30,4 @@ def get_env(
             user_provider=user_provider,
             task_index=task_index,
         )
-    else:
-        raise ValueError(f"Unknown environment: {env_name}")
+    raise ValueError(f"Unknown environment: {env_name}")

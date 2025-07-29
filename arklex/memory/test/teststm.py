@@ -33,8 +33,8 @@ record_case1 = ResourceRecord(
         {
             "context_generate": (
                 "We have several products in our store. Are you looking for something particular? Let us know so we can find you the best match!"
-            )
-        }
+            ),
+        },
     ],
 )
 
@@ -50,8 +50,8 @@ record_case1_followup = ResourceRecord(
         {
             "context_generate": (
                 "We have a versatile apron that could match your needs for various activities like BBQ, gardening, or painting. Are you interested in a particular color, like navy blue or black? Would you prefer an apron with specific features or price range?"
-            )
-        }
+            ),
+        },
     ],
 )
 
@@ -69,8 +69,8 @@ record_case2_initial = ResourceRecord(
         {
             "context_generate": (
                 "We found some aprons that might interest you. Are you looking for a specific color or need a certain number of pockets for your activities? Let us know how you'll be using the apron to better assist you in finding the perfect match!"
-            )
-        }
+            ),
+        },
     ],
 )
 
@@ -84,8 +84,8 @@ record_case2_followup = ResourceRecord(
     ),
     steps=[
         {
-            "context_generate": "Yes—we have aprons with pockets for tools and accessories."
-        }
+            "context_generate": "Yes—we have aprons with pockets for tools and accessories.",
+        },
     ],
 )
 
@@ -103,8 +103,8 @@ record_case3_aprons = ResourceRecord(
         {
             "context_generate": (
                 "We have some aprons that might interest you! Do you have a color preference between navy blue, black, or blue? Also, are you looking for an apron with more pockets for functionality or fewer pockets for simplicity?"
-            )
-        }
+            ),
+        },
     ],
 )
 
@@ -120,8 +120,8 @@ record_case3_hats = ResourceRecord(
         {
             "context_generate": (
                 "We have some colorful and fun hats available. Are you looking for a particular color or style? Would you prefer an adjustable buckle for a better fit?"
-            )
-        }
+            ),
+        },
     ],
 )
 
@@ -140,8 +140,8 @@ record_case4_hats = ResourceRecord(
         {
             "context_generate": (
                 "We have a variety of baseball hats: unicorn, green no‑logo, and metallic navy blue. Interested in a specific color?"
-            )
-        }
+            ),
+        },
     ],
 )
 
@@ -156,8 +156,8 @@ record_case4_navy = ResourceRecord(
         {
             "context_generate": (
                 "Sure—here's the navy blue baseball hat we have in stock."
-            )
-        }
+            ),
+        },
     ],
 )
 
@@ -177,9 +177,7 @@ sample_records = [
 
 # Shopify-style grouped records function
 def get_shopify_records() -> list[list[ResourceRecord]]:
-    """
-    Returns sample ResourceRecord groups simulating Shopify ecommerce assistant turns.
-    """
+    """Returns sample ResourceRecord groups simulating Shopify ecommerce assistant turns."""
     return [
         record_case1,
         record_case1_followup,
@@ -256,6 +254,7 @@ def run_test_case(
 
     Returns:
         Tuple of (found_intent, found_record) results
+
     """
     print(f"\n=== Case {case_name}: {description} ===")
 
@@ -409,7 +408,7 @@ assistant: Here are our hat collections."""
 
         print(f"\n{case} ({labels['description']}):")
         print(
-            f"  Intent: {intent_status} (Expected: {labels['found_intent_label']}, Got: {actual['found_intent']})"
+            f"  Intent: {intent_status} (Expected: {labels['found_intent_label']}, Got: {actual['found_intent']})",
         )
 
 

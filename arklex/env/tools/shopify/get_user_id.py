@@ -1,5 +1,4 @@
-"""
-This module provides functionality to retrieve a user's ID from the Shopify store using their refresh token.
+"""This module provides functionality to retrieve a user's ID from the Shopify store using their refresh token.
 It supports authentication and user identification through the Shopify Customer API.
 
 The module:
@@ -52,8 +51,7 @@ errors = [AUTH_ERROR, USER_NOT_FOUND_ERROR]
     lambda x: x not in errors or not x.startswith("error: "),
 )
 def get_user_id(refresh_token: str) -> str | Literal["error: user not found"]:
-    """
-    Retrieve a user's ID using their refresh token.
+    """Retrieve a user's ID using their refresh token.
 
     Args:
         refresh_token (str): The refresh token used for authentication.
@@ -71,6 +69,7 @@ def get_user_id(refresh_token: str) -> str | Literal["error: user not found"]:
     Note:
         This function requires a valid refresh token for authentication.
         The user ID is returned in Shopify's Global ID format.
+
     """
     try:
         return get_id(refresh_token)

@@ -46,7 +46,9 @@ def build_intent_graph(data: list[dict[str, Any]]) -> nx.DiGraph:
 
 
 def check_bot_goal(
-    convo: list[dict[str, Any]], bot_goal: str, client: OpenAI | anthropic.Anthropic
+    convo: list[dict[str, Any]],
+    bot_goal: str,
+    client: OpenAI | anthropic.Anthropic,
 ) -> bool:
     convo_str: str = format_chat_history_str(flip_hist_content_only(convo))
     prompt: str = f"Here is a conversation between a user and a customer service chatbot assistant:\n{convo_str}\n\nThe chatbot's goal is the following: {bot_goal}\nOutput True if the bot was able to achieve its goal. Output False otherwise. Only output True or False and nothing else."

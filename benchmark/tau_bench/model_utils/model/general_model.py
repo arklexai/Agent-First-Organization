@@ -149,20 +149,20 @@ def model_factory(
         from benchmark.tau_bench.model_utils.model.openai import OpenAIModel
 
         return OpenAIModel(model=model_id, api_key=api_key, temperature=temperature)
-    elif platform == Platform.MISTRAL:
+    if platform == Platform.MISTRAL:
         from benchmark.tau_bench.model_utils.model.mistral import MistralModel
 
         return MistralModel(model=model_id, api_key=api_key, temperature=temperature)
-    elif platform == Platform.ANTHROPIC:
+    if platform == Platform.ANTHROPIC:
         from benchmark.tau_bench.model_utils.model.claude import ClaudeModel
 
         return ClaudeModel(model=model_id, api_key=api_key, temperature=temperature)
 
-    elif platform == Platform.ANYSCALE:
+    if platform == Platform.ANYSCALE:
         from benchmark.tau_bench.model_utils.model.anyscale import AnyscaleModel
 
         return AnyscaleModel(model=model_id, api_key=api_key, temperature=temperature)
-    elif platform == Platform.OUTLINES:
+    if platform == Platform.OUTLINES:
         if base_url is None:
             raise ValueError("base_url must be provided for custom models")
         from benchmark.tau_bench.model_utils.model.outlines_completion import (
@@ -170,9 +170,11 @@ def model_factory(
         )
 
         return OutlinesCompletionModel(
-            model=model_id, base_url=base_url, temperature=temperature
+            model=model_id,
+            base_url=base_url,
+            temperature=temperature,
         )
-    elif platform == Platform.VLLM_CHAT:
+    if platform == Platform.VLLM_CHAT:
         if base_url is None:
             raise ValueError("base_url must be provided for custom models")
         from benchmark.tau_bench.model_utils.model.vllm_chat import VLLMChatModel
@@ -183,13 +185,14 @@ def model_factory(
             api_key="sk-no-api-key-required" if api_key is None else api_key,
             temperature=temperature,
         )
-    else:
-        if base_url is None:
-            raise ValueError("base_url must be provided for custom models")
-        from benchmark.tau_bench.model_utils.model.vllm_completion import (
-            VLLMCompletionModel,
-        )
+    if base_url is None:
+        raise ValueError("base_url must be provided for custom models")
+    from benchmark.tau_bench.model_utils.model.vllm_completion import (
+        VLLMCompletionModel,
+    )
 
-        return VLLMCompletionModel(
-            model=model_id, base_url=base_url, temperature=temperature
-        )
+    return VLLMCompletionModel(
+        model=model_id,
+        base_url=base_url,
+        temperature=temperature,
+    )

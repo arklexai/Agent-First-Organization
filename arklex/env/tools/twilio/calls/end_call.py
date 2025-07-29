@@ -30,23 +30,25 @@ class EndCallKwargs(TypedDict, total=False):
 
 
 def _end_call_thread(
-    twilio_client: TwilioClient, call_sid: str, response_played_event: threading.Event
+    twilio_client: TwilioClient,
+    call_sid: str,
+    response_played_event: threading.Event,
 ) -> None:
     """Helper function to end the call in a separate thread."""
     try:
         log_context.info(
-            f"Ending call with call_sid: {call_sid}. Sleeping for 10 seconds to allow for final answer"
+            f"Ending call with call_sid: {call_sid}. Sleeping for 10 seconds to allow for final answer",
         )
         time.sleep(10)
         log_context.info(
-            f"Ending call with call_sid: {call_sid}. Waiting for response to be played"
+            f"Ending call with call_sid: {call_sid}. Waiting for response to be played",
         )
         response_played_event.wait(timeout=100)
         log_context.info("Response played. Ending call")
         call = twilio_client.calls(call_sid).update(status="completed")
         log_context.info(f"Call end response: {call}")
     except Exception as e:
-        log_context.error(f"Error ending call: {str(e)}")
+        log_context.error(f"Error ending call: {e!s}")
         log_context.error(f"Exception: {e}")
 
 
@@ -56,7 +58,8 @@ def end_call(**kwargs: EndCallKwargs) -> str:
     call_sid = kwargs.get("call_sid")
     response_played_event = kwargs.get("response_played_event")
     threading.Thread(
-        target=_end_call_thread, args=(twilio_client, call_sid, response_played_event)
+        target=_end_call_thread,
+        args=(twilio_client, call_sid, response_played_event),
     ).start()
     log_context.info("Started thread to end call")
     return "call end initiated"

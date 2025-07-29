@@ -44,16 +44,16 @@ def sample_intents() -> dict[str, list[dict[str, Any]]]:
                 "attribute": {
                     "definition": "A greeting",
                     "sample_utterances": ["hello", "hi"],
-                }
-            }
+                },
+            },
         ],
         "farewell": [
             {
                 "attribute": {
                     "definition": "A farewell",
                     "sample_utterances": ["goodbye", "bye"],
-                }
-            }
+                },
+            },
         ],
     }
 
@@ -68,7 +68,7 @@ def test_predict_intent_error_handling(
 
     # Test when local detection raises ValidationError
     mock_model_service.format_intent_input.side_effect = ValidationError(
-        "Invalid input"
+        "Invalid input",
     )
     with pytest.raises(ArklexError, match="Intent prediction failed"):
         detector.predict_intent(
@@ -114,7 +114,8 @@ def test_predict_intent_remote_error_handling(
 ) -> None:
     """Test error handling in predict_intent method for remote mode."""
     detector = IntentDetector(
-        model_service=mock_model_service, api_service=mock_api_service
+        model_service=mock_model_service,
+        api_service=mock_api_service,
     )
 
     # Test when remote detection raises APIError

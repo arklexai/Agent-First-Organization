@@ -40,6 +40,7 @@ def get_api_key_for_provider(provider: str) -> str:
 
     Raises:
         ValueError: If the API key is missing or empty
+
     """
     if provider is None:
         raise TypeError("Provider cannot be None")
@@ -57,7 +58,7 @@ def get_api_key_for_provider(provider: str) -> str:
     if not api_key or not api_key.strip():
         raise ValueError(
             f"API key for provider '{provider}' is missing or empty. "
-            f"Please set the {env_key} environment variable with a valid API key."
+            f"Please set the {env_key} environment variable with a valid API key.",
         )
 
     return api_key
@@ -71,6 +72,7 @@ def get_endpoint_for_provider(provider: str) -> str:
 
     Returns:
         str: The endpoint URL for the provider
+
     """
     if provider is None:
         raise TypeError("Provider cannot be None")
@@ -94,6 +96,7 @@ def validate_api_key_presence(provider: str, api_key: str) -> None:
 
     Raises:
         ValueError: If the API key is missing or empty
+
     """
     if not api_key or not api_key.strip():
         provider_api_keys = {
@@ -105,7 +108,7 @@ def validate_api_key_presence(provider: str, api_key: str) -> None:
         env_key = provider_api_keys.get(provider, "OPENAI_API_KEY")
         raise ValueError(
             f"API key for provider '{provider}' is missing or empty. "
-            f"Please set the {env_key} environment variable with a valid API key."
+            f"Please set the {env_key} environment variable with a valid API key.",
         )
 
 
@@ -121,6 +124,7 @@ def get_provider_config(provider: str, model: str) -> dict[str, Any]:
 
     Raises:
         ValueError: If the API key is missing or empty
+
     """
     if provider is None:
         raise TypeError("Provider cannot be None")
@@ -155,6 +159,7 @@ def validate_and_get_model_class(llm_config: object) -> type:
 
     Raises:
         ValueError: If llm_provider is not specified or if the provider is not supported.
+
     """
     if not llm_config.llm_provider:
         raise ValueError("llm_provider must be explicitly specified in llm_config")

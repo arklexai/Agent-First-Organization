@@ -29,7 +29,8 @@ log_context = LogContext(__name__)
 
 
 def pprint_with_color(
-    data: object, color_code: str = "\033[34m"
+    data: object,
+    color_code: str = "\033[34m",
 ) -> None:  # Default to blue
     """Print data with a specified color.
 
@@ -38,6 +39,7 @@ def pprint_with_color(
     Args:
         data (object): The data to be printed.
         color_code (str, optional): The color code to use for printing. Defaults to blue.
+
     """
     print(color_code, end="")  # Set the color
     pprint(data)
@@ -65,6 +67,7 @@ def get_api_bot_response(
 
     Returns:
         Tuple[str, Dict[str, Any], bool]: A tuple containing the bot's response, updated parameters, and a boolean indicating if human intervention is required.
+
     """
     data: dict[str, Any] = {
         "text": user_text,
@@ -143,7 +146,11 @@ if __name__ == "__main__":
             break
         start_time: float = time.time()
         output, params, hitl = get_api_bot_response(
-            config, history, user_text, params, env
+            config,
+            history,
+            user_text,
+            params,
+            env,
         )
         history.append({"role": user_prefix, "content": user_text})
         history.append({"role": worker_prefix, "content": output})

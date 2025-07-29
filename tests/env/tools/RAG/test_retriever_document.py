@@ -28,7 +28,9 @@ class TestEmbedFunction:
     @patch("arklex.env.tools.RAG.retrievers.retriever_document.OpenAI")
     @patch("arklex.env.tools.RAG.retrievers.retriever_document.redis_pool")
     def test_embed_success(
-        self, mock_redis_pool: Mock, mock_openai_class: Mock
+        self,
+        mock_redis_pool: Mock,
+        mock_openai_class: Mock,
     ) -> None:
         """Test successful embedding generation."""
         # Mock Redis cache miss
@@ -46,7 +48,8 @@ class TestEmbedFunction:
 
         assert result == [0.1, 0.2, 0.3]
         mock_client.embeddings.create.assert_called_once_with(
-            input="test text", model="text-embedding-ada-002"
+            input="test text",
+            model="text-embedding-ada-002",
         )
         # Verify Redis cache was called
         mock_redis_pool.get.assert_called_once()
@@ -55,7 +58,9 @@ class TestEmbedFunction:
     @patch("arklex.env.tools.RAG.retrievers.retriever_document.redis_pool")
     @patch("arklex.env.tools.RAG.retrievers.retriever_document.log_context")
     def test_embed_cache_hit(
-        self, mock_log_context: Mock, mock_redis_pool: Mock
+        self,
+        mock_log_context: Mock,
+        mock_redis_pool: Mock,
     ) -> None:
         """Test embedding cache hit."""
         # Mock Redis cache hit
@@ -72,7 +77,10 @@ class TestEmbedFunction:
     @patch("arklex.env.tools.RAG.retrievers.retriever_document.redis_pool")
     @patch("arklex.env.tools.RAG.retrievers.retriever_document.log_context")
     def test_embed_exception_handling(
-        self, mock_log_context: Mock, mock_redis_pool: Mock, mock_openai_class: Mock
+        self,
+        mock_log_context: Mock,
+        mock_redis_pool: Mock,
+        mock_openai_class: Mock,
     ) -> None:
         """Test embedding exception handling."""
         # Mock Redis cache miss
@@ -244,12 +252,15 @@ class TestRetrieverDocument:
             )
 
     @patch(
-        "arklex.env.tools.RAG.retrievers.retriever_document.RecursiveCharacterTextSplitter"
+        "arklex.env.tools.RAG.retrievers.retriever_document.RecursiveCharacterTextSplitter",
     )
     @patch("arklex.env.tools.RAG.retrievers.retriever_document.tiktoken.get_encoding")
     @patch("arklex.env.tools.RAG.retrievers.retriever_document.log_context")
     def test_chunk_success(
-        self, mock_log_context: Mock, mock_get_encoding: Mock, mock_splitter_class: Mock
+        self,
+        mock_log_context: Mock,
+        mock_get_encoding: Mock,
+        mock_splitter_class: Mock,
     ) -> None:
         """Test successful document chunking."""
         # Mock tiktoken encoding
@@ -525,11 +536,13 @@ class TestRetrieverDocument:
             )
 
     @patch(
-        "arklex.env.tools.RAG.retrievers.retriever_document.RecursiveCharacterTextSplitter"
+        "arklex.env.tools.RAG.retrievers.retriever_document.RecursiveCharacterTextSplitter",
     )
     @patch("arklex.env.tools.RAG.retrievers.retriever_document.tiktoken.get_encoding")
     def test_chunked_retriever_docs_from_db_docs(
-        self, mock_get_encoding: Mock, mock_splitter_class: Mock
+        self,
+        mock_get_encoding: Mock,
+        mock_splitter_class: Mock,
     ) -> None:
         """Test chunked_retriever_docs_from_db_docs class method."""
         # Mock tiktoken encoding
@@ -569,7 +582,9 @@ class TestRetrieverDocument:
         ]
 
         chunked_docs = RetrieverDocument.chunked_retriever_docs_from_db_docs(
-            db_docs, RetrieverDocumentType.WEBSITE, "test_bot__1.0"
+            db_docs,
+            RetrieverDocumentType.WEBSITE,
+            "test_bot__1.0",
         )
 
         assert len(chunked_docs) == 4  # 2 docs * 2 chunks each
@@ -602,7 +617,9 @@ class TestRetrieverDocument:
         ]
 
         chunked_docs = RetrieverDocument.chunked_retriever_docs_from_db_docs(
-            db_docs, RetrieverDocumentType.WEBSITE, "test_bot__1.0"
+            db_docs,
+            RetrieverDocumentType.WEBSITE,
+            "test_bot__1.0",
         )
 
         # Should only process the second document
@@ -613,7 +630,10 @@ class TestRetrieverDocument:
     @patch("arklex.env.tools.RAG.retrievers.retriever_document.get_bot_uid")
     @patch("arklex.env.tools.RAG.retrievers.retriever_document.log_context")
     def test_load_all_chunked_docs_from_mysql(
-        self, mock_log_context: Mock, mock_get_bot_uid: Mock, mock_mysql_pool: Mock
+        self,
+        mock_log_context: Mock,
+        mock_get_bot_uid: Mock,
+        mock_mysql_pool: Mock,
     ) -> None:
         """Test load_all_chunked_docs_from_mysql class method."""
         mock_get_bot_uid.return_value = "test_bot__1.0"
@@ -626,7 +646,7 @@ class TestRetrieverDocument:
                     "content": "What is FAQ?",
                     "metadata": {"category": "general"},
                     "timestamp": 1234567890,
-                }
+                },
             ],
             [  # Other docs
                 {
@@ -634,7 +654,7 @@ class TestRetrieverDocument:
                     "content": "Other document content",
                     "metadata": {"source": "other.txt"},
                     "timestamp": 1234567891,
-                }
+                },
             ],
             [  # Website docs
                 {
@@ -642,13 +662,14 @@ class TestRetrieverDocument:
                     "content": "Website content",
                     "metadata": {"url": "https://example.com"},
                     "timestamp": 1234567892,
-                }
+                },
             ],
         ]
 
         # Mock chunking for other and website docs
         with patch.object(
-            RetrieverDocument, "chunked_retriever_docs_from_db_docs"
+            RetrieverDocument,
+            "chunked_retriever_docs_from_db_docs",
         ) as mock_chunk:
             mock_chunk.side_effect = [
                 [Mock()],  # Other docs chunked
@@ -751,14 +772,14 @@ class TestIntegration:
 
         # Test chunking (with mocked text splitter)
         with patch(
-            "arklex.env.tools.RAG.retrievers.retriever_document.RecursiveCharacterTextSplitter"
+            "arklex.env.tools.RAG.retrievers.retriever_document.RecursiveCharacterTextSplitter",
         ) as mock_splitter_class:
             mock_splitter = Mock()
             mock_splitter.split_text.return_value = ["chunk 1", "chunk 2"]
             mock_splitter_class.from_tiktoken_encoder.return_value = mock_splitter
 
             with patch(
-                "arklex.env.tools.RAG.retrievers.retriever_document.tiktoken.get_encoding"
+                "arklex.env.tools.RAG.retrievers.retriever_document.tiktoken.get_encoding",
             ) as mock_get_encoding:
                 mock_encoding = Mock()
                 mock_encoding.encode.return_value = [

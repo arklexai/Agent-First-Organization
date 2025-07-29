@@ -153,7 +153,9 @@ class TestNodeFormatterFormatting:
     """Test node formatting functionality."""
 
     def test_format_node_basic(
-        self, node_formatter: NodeFormatter, sample_task: dict[str, Any]
+        self,
+        node_formatter: NodeFormatter,
+        sample_task: dict[str, Any],
     ) -> None:
         """Should format a basic task node correctly."""
         result = node_formatter.format_node(sample_task, "node_id")
@@ -163,7 +165,9 @@ class TestNodeFormatterFormatting:
         assert "attribute" in result[1]
 
     def test_format_node_with_complex_steps(
-        self, node_formatter: NodeFormatter, complex_task: dict[str, Any]
+        self,
+        node_formatter: NodeFormatter,
+        complex_task: dict[str, Any],
     ) -> None:
         """Should format node with complex step structures."""
         node_id = "node_001"
@@ -177,7 +181,9 @@ class TestNodeFormatterFormatting:
         assert result[1]["resource"]["name"] == complex_task["name"]
 
     def test_format_node_with_missing_fields(
-        self, node_formatter: NodeFormatter, minimal_task: dict[str, Any]
+        self,
+        node_formatter: NodeFormatter,
+        minimal_task: dict[str, Any],
     ) -> None:
         """Should format node with missing optional fields."""
         node_id = "minimal_node"
@@ -191,7 +197,9 @@ class TestNodeFormatterFormatting:
         assert "type" not in result[1]
 
     def test_format_node_with_extra_fields(
-        self, node_formatter: NodeFormatter, extended_task: dict[str, Any]
+        self,
+        node_formatter: NodeFormatter,
+        extended_task: dict[str, Any],
     ) -> None:
         """Should format node with extra fields beyond standard ones."""
         node_id = "extended_node"
@@ -216,7 +224,9 @@ class TestNodeFormatterFormatting:
         assert "attribute" in result[1]
 
     def test_format_node_data_with_complex_task(
-        self, node_formatter: NodeFormatter, complex_task: dict[str, Any]
+        self,
+        node_formatter: NodeFormatter,
+        complex_task: dict[str, Any],
     ) -> None:
         """Should format node data with complex task structure."""
         result = node_formatter.format_node_data(complex_task)
@@ -230,7 +240,9 @@ class TestNodeFormatterFormatting:
         assert result["attribute"]["directed"] is True
 
     def test_format_node_data_with_minimal_task(
-        self, node_formatter: NodeFormatter, minimal_task: dict[str, Any]
+        self,
+        node_formatter: NodeFormatter,
+        minimal_task: dict[str, Any],
     ) -> None:
         """Should format node data with minimal task data."""
         result = node_formatter.format_node_data(minimal_task)
@@ -241,7 +253,8 @@ class TestNodeFormatterFormatting:
         assert result["attribute"]["task"] == "Minimal Task"
 
     def test_format_node_style_with_different_priorities(
-        self, node_formatter: NodeFormatter
+        self,
+        node_formatter: NodeFormatter,
     ) -> None:
         """Should format node style with different priority levels."""
         # Test high priority
@@ -270,7 +283,9 @@ class TestNodeFormatterFormatting:
         assert default_style["color"] == "#ffa500"  # Defaults to medium priority
 
     def test_format_node_style_structure(
-        self, node_formatter: NodeFormatter, sample_task: dict[str, Any]
+        self,
+        node_formatter: NodeFormatter,
+        sample_task: dict[str, Any],
     ) -> None:
         """Should have complete structure in format_node_style output."""
         style = node_formatter.format_node_style(sample_task)
@@ -305,7 +320,9 @@ class TestNodeFormatterValidation:
     """Test node validation functionality."""
 
     def test_validate_node_with_complete_data(
-        self, node_formatter: NodeFormatter, valid_node: dict[str, Any]
+        self,
+        node_formatter: NodeFormatter,
+        valid_node: dict[str, Any],
     ) -> None:
         """Should validate node with complete and valid node data."""
         assert node_formatter.validate_node(valid_node) is True
@@ -319,7 +336,8 @@ class TestNodeFormatterValidation:
         assert node_formatter.validate_node(invalid_node) is False
 
     def test_validate_node_with_invalid_id_type(
-        self, node_formatter: NodeFormatter
+        self,
+        node_formatter: NodeFormatter,
     ) -> None:
         """Should reject node with invalid ID type."""
         invalid_node = {
@@ -330,7 +348,8 @@ class TestNodeFormatterValidation:
         assert node_formatter.validate_node(invalid_node) is False
 
     def test_validate_node_with_missing_type(
-        self, node_formatter: NodeFormatter
+        self,
+        node_formatter: NodeFormatter,
     ) -> None:
         """Should reject node with missing type."""
         invalid_node = {
@@ -340,7 +359,8 @@ class TestNodeFormatterValidation:
         assert node_formatter.validate_node(invalid_node) is False
 
     def test_validate_node_with_invalid_type(
-        self, node_formatter: NodeFormatter
+        self,
+        node_formatter: NodeFormatter,
     ) -> None:
         """Should reject node with invalid type."""
         invalid_node = {
@@ -351,7 +371,8 @@ class TestNodeFormatterValidation:
         assert node_formatter.validate_node(invalid_node) is False
 
     def test_validate_node_with_invalid_data_type(
-        self, node_formatter: NodeFormatter
+        self,
+        node_formatter: NodeFormatter,
     ) -> None:
         """Should reject node with invalid data type."""
         invalid_node = {
@@ -362,7 +383,8 @@ class TestNodeFormatterValidation:
         assert node_formatter.validate_node(invalid_node) is False
 
     def test_validate_node_with_invalid_name_type(
-        self, node_formatter: NodeFormatter
+        self,
+        node_formatter: NodeFormatter,
     ) -> None:
         """Should reject node with invalid name type in data."""
         invalid_node = {
@@ -373,7 +395,8 @@ class TestNodeFormatterValidation:
         assert node_formatter.validate_node(invalid_node) is False
 
     def test_validate_node_with_invalid_description_type(
-        self, node_formatter: NodeFormatter
+        self,
+        node_formatter: NodeFormatter,
     ) -> None:
         """Should reject node with invalid description type in data."""
         invalid_node = {
@@ -387,7 +410,8 @@ class TestNodeFormatterValidation:
         assert node_formatter.validate_node(invalid_node) is False
 
     def test_validate_node_with_invalid_priority_type(
-        self, node_formatter: NodeFormatter
+        self,
+        node_formatter: NodeFormatter,
     ) -> None:
         """Should reject node with invalid priority type in data."""
         invalid_node = {
@@ -567,7 +591,8 @@ class TestNodeFormatterEdgeCases:
     """Test edge cases and error handling."""
 
     def test_format_node_with_empty_strings(
-        self, node_formatter: NodeFormatter
+        self,
+        node_formatter: NodeFormatter,
     ) -> None:
         """Should handle empty strings gracefully."""
         task_with_empty_strings = {
@@ -597,7 +622,8 @@ class TestNodeFormatterEdgeCases:
         assert "attribute" in result[1]
 
     def test_format_node_style_with_none_priority(
-        self, node_formatter: NodeFormatter
+        self,
+        node_formatter: NodeFormatter,
     ) -> None:
         """Should handle None priority in style formatting."""
         task_with_none_priority = {"priority": None}
@@ -606,7 +632,8 @@ class TestNodeFormatterEdgeCases:
         assert style["color"] == "#808080"  # Should default to gray for None priority
 
     def test_validate_node_with_none_values(
-        self, node_formatter: NodeFormatter
+        self,
+        node_formatter: NodeFormatter,
     ) -> None:
         """Should handle None values in validation."""
         node_with_none_values = {
@@ -617,7 +644,8 @@ class TestNodeFormatterEdgeCases:
         assert node_formatter.validate_node(node_with_none_values) is False
 
     def test_validate_node_with_empty_strings(
-        self, node_formatter: NodeFormatter
+        self,
+        node_formatter: NodeFormatter,
     ) -> None:
         """Should handle empty strings in validation."""
         node_with_empty_strings = {
@@ -630,7 +658,8 @@ class TestNodeFormatterEdgeCases:
         )  # Empty strings are valid
 
     def test_format_node_data_with_none_values(
-        self, node_formatter: NodeFormatter
+        self,
+        node_formatter: NodeFormatter,
     ) -> None:
         """Should handle None values in node data formatting."""
         task_with_none_values = {

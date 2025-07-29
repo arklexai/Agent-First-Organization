@@ -1,5 +1,4 @@
-"""
-This module is currently inactive.
+"""This module is currently inactive.
 
 It is reserved for future use and may contain experimental or planned features (dependence on refresh token).
 

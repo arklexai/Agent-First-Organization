@@ -1,5 +1,4 @@
-"""
-This module provides functionality to retrieve detailed information about a specific product
+"""This module provides functionality to retrieve detailed information about a specific product
 from the Shopify store using the Admin API. It supports retrieving comprehensive product details
 including inventory, descriptions, variants, and category information.
 
@@ -54,8 +53,7 @@ outputs = [ShopifyOutputs.PRODUCTS_DETAILS, *PAGEINFO_OUTPUTS]
 
 @register_tool(description, slots, outputs)
 def get_web_product(web_product_id: str, **kwargs: GetWebProductParams) -> str:
-    """
-    Retrieve detailed information about a specific product using the Shopify Admin API.
+    """Retrieve detailed information about a specific product using the Shopify Admin API.
 
     Args:
         web_product_id (str): The ID of the product to retrieve information for.
@@ -80,6 +78,7 @@ def get_web_product(web_product_id: str, **kwargs: GetWebProductParams) -> str:
     Note:
         The function automatically extracts the numeric portion of the product ID
         if a full ID is provided (e.g., "gid://shopify/Product/123456" -> "123456").
+
     """
     func_name = inspect.currentframe().f_code.co_name
     nav = cursorify(kwargs)

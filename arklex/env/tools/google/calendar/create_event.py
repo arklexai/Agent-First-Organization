@@ -87,7 +87,7 @@ def create_event(
     start_time: str,
     timezone: str,
     duration: int = 30,
-    **kwargs: str | int | float | bool | None,
+    **kwargs: str | float | bool | None,
 ) -> str:
     func_name: str = inspect.currentframe().f_code.co_name
     # Authenticate using the service account
@@ -96,7 +96,8 @@ def create_event(
         delegated_user: str = kwargs.get("delegated_user", "")
         credentials: service_account.Credentials = (
             service_account.Credentials.from_service_account_info(
-                service_account_info, scopes=SCOPES
+                service_account_info,
+                scopes=SCOPES,
             ).with_subject(delegated_user)
         )
 
@@ -123,7 +124,8 @@ def create_event(
 
     except Exception as e:
         raise ToolExecutionError(
-            func_name, GoogleCalendarExceptionPrompt.DATETIME_ERROR_PROMPT
+            func_name,
+            GoogleCalendarExceptionPrompt.DATETIME_ERROR_PROMPT,
         ) from e
 
     try:
@@ -163,7 +165,7 @@ def create_event(
     log_context.info(f"tool_caller: {kwargs.get('tool_caller')}")
     if kwargs.get("tool_caller") == StreamType.OPENAI_REALTIME_AUDIO:
         log_context.info(
-            f"checking for twilio client: {kwargs.get('twilio_client')}, phone_no_to: {kwargs.get('phone_no_to')}, phone_no_from: {kwargs.get('phone_no_from')}"
+            f"checking for twilio client: {kwargs.get('twilio_client')}, phone_no_to: {kwargs.get('phone_no_to')}, phone_no_from: {kwargs.get('phone_no_from')}",
         )
         if (
             kwargs.get("twilio_client")

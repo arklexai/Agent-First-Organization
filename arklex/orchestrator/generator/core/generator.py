@@ -118,6 +118,7 @@ class Generator:
         _initialize_task_graph_formatter(): Initializes the task graph formatter
         _load_multiple_task_documents(): Helper to load multiple task documents and aggregate them as a list
         _load_multiple_instruction_documents(): Helper to load multiple instruction documents and aggregate them as a list
+
     """
 
     def __init__(
@@ -140,6 +141,7 @@ class Generator:
                 for setting up workers and tools
             interactable_with_user (bool): Whether to allow user interaction
             allow_nested_graph (bool): Whether to allow nested graph generation
+
         """
         # Extract configuration values
         self.product_kwargs = config
@@ -172,11 +174,11 @@ class Generator:
                 worker_path = worker.get("path", "")
                 if worker_id and worker_name and worker_path:
                     self.workers.append(
-                        {"id": worker_id, "name": worker_name, "path": worker_path}
+                        {"id": worker_id, "name": worker_name, "path": worker_path},
                     )
         # Initialize tools
         self.tools = resource_initializer.init_tools(
-            self.product_kwargs.get("tools", [])
+            self.product_kwargs.get("tools", []),
         )
 
         # Set configuration flags
@@ -204,6 +206,7 @@ class Generator:
 
         Returns:
             DocumentLoader: Initialized document loader instance
+
         """
         if self._doc_loader is None:
             # Convert output_dir to Path and handle None case
@@ -223,6 +226,7 @@ class Generator:
 
         Returns:
             TaskGenerator: Initialized task generator instance
+
         """
         if self._task_generator is None:
             self._task_generator = TaskGenerator(
@@ -239,6 +243,7 @@ class Generator:
 
         Returns:
             BestPracticeManager: Initialized best practice manager instance
+
         """
         if self._best_practice_manager is None:
             # Create a list of all available resources including nested_graph
@@ -251,10 +256,11 @@ class Generator:
                         {
                             "name": worker["name"],
                             "description": worker.get(
-                                "description", f"{worker['name']} worker"
+                                "description",
+                                f"{worker['name']} worker",
                             ),
                             "type": "worker",
-                        }
+                        },
                     )
 
             # Add tools - handle both list and dictionary formats
@@ -269,10 +275,11 @@ class Generator:
                         {
                             "name": tool["name"],
                             "description": tool.get(
-                                "description", f"{tool['name']} tool"
+                                "description",
+                                f"{tool['name']} tool",
                             ),
                             "type": "tool",
-                        }
+                        },
                     )
 
             # Add nested_graph if enabled
@@ -282,7 +289,7 @@ class Generator:
                         "name": "NestedGraph",
                         "description": "A reusable task graph component that can be instantiated with different parameters",
                         "type": "nested_graph",
-                    }
+                    },
                 )
 
             self._best_practice_manager = BestPracticeManager(
@@ -300,6 +307,7 @@ class Generator:
 
         Returns:
             ReusableTaskManager: Initialized reusable task manager instance
+
         """
         if self._reusable_task_manager is None:
             self._reusable_task_manager = ReusableTaskManager(
@@ -314,6 +322,7 @@ class Generator:
 
         Returns:
             TaskGraphFormatter: Initialized task graph formatter instance
+
         """
         if self._task_graph_formatter is None:
             self._task_graph_formatter = TaskGraphFormatter(
@@ -347,6 +356,7 @@ class Generator:
 
         Returns:
             List[Any]: List of loaded task documents.
+
         """
         if isinstance(doc_paths, list):
             sources = [
@@ -354,13 +364,12 @@ class Generator:
                 for doc in doc_paths
             ]
             return [doc_loader.load_task_document(src) for src in sources]
-        else:
-            src = (
-                doc_paths["source"]
-                if isinstance(doc_paths, dict) and "source" in doc_paths
-                else doc_paths
-            )
-            return [doc_loader.load_task_document(src)]
+        src = (
+            doc_paths["source"]
+            if isinstance(doc_paths, dict) and "source" in doc_paths
+            else doc_paths
+        )
+        return [doc_loader.load_task_document(src)]
 
     def _load_multiple_instruction_documents(
         self,
@@ -375,6 +384,7 @@ class Generator:
 
         Returns:
             List[Any]: List of loaded instruction documents.
+
         """
         if isinstance(doc_paths, list):
             sources = [
@@ -382,13 +392,12 @@ class Generator:
                 for doc in doc_paths
             ]
             return [doc_loader.load_instruction_document(src) for src in sources]
-        else:
-            src = (
-                doc_paths["source"]
-                if isinstance(doc_paths, dict) and "source" in doc_paths
-                else doc_paths
-            )
-            return [doc_loader.load_instruction_document(src)]
+        src = (
+            doc_paths["source"]
+            if isinstance(doc_paths, dict) and "source" in doc_paths
+            else doc_paths
+        )
+        return [doc_loader.load_instruction_document(src)]
 
     def generate(self) -> dict[str, Any]:
         """Generate a complete task graph.
@@ -402,6 +411,7 @@ class Generator:
 
         Returns:
             Dict[str, Any]: The generated task graph
+
         """
         # Step 1: Load documentation and instructions
         log_context.info("📚 Loading documentation and instructions...")
@@ -413,7 +423,8 @@ class Generator:
 
         log_context.info("  📋 Loading instruction documents...")
         self.instructions = self._load_multiple_instruction_documents(
-            doc_loader, self.instruction_docs
+            doc_loader,
+            self.instruction_docs,
         )
 
         # Convert lists to strings for TaskGenerator compatibility
@@ -422,11 +433,11 @@ class Generator:
             self.documents = "\n\n".join([str(doc) for doc in self.documents])
         if isinstance(self.instructions, list):
             self.instructions = "\n\n".join(
-                [str(instruction) for instruction in self.instructions]
+                [str(instruction) for instruction in self.instructions],
             )
 
         log_context.info(
-            f"✅ Loaded {len(self.task_docs)} documents and {len(self.instruction_docs)} instructions"
+            f"✅ Loaded {len(self.task_docs)} documents and {len(self.instruction_docs)} instructions",
         )
 
         # Step 2: Generate tasks
@@ -437,14 +448,15 @@ class Generator:
         # Add tasks provided by users
         if self.user_tasks:
             log_context.info(
-                f"📋 Processing {len(self.user_tasks)} original tasks to add steps..."
+                f"📋 Processing {len(self.user_tasks)} original tasks to add steps...",
             )
             processed_tasks = task_generator.add_provided_tasks(
-                self.user_tasks, self.intro
+                self.user_tasks,
+                self.intro,
             )
             self.tasks.extend(processed_tasks)
             log_context.info(
-                f"✅ Processed {len(processed_tasks)} original tasks with steps"
+                f"✅ Processed {len(processed_tasks)} original tasks with steps",
             )
 
         # Generate additional tasks
@@ -462,7 +474,7 @@ class Generator:
             reusable_task_manager = self._initialize_reusable_task_manager()
             log_context.info("  🧠 Analyzing task patterns for reusability...")
             self.reusable_tasks = reusable_task_manager.generate_reusable_tasks(
-                self.tasks
+                self.tasks,
             )
             log_context.info(f"✅ Generated {len(self.reusable_tasks)} reusable tasks")
 
@@ -489,19 +501,19 @@ class Generator:
                         tasks_changed = True
                     else:
                         for _i, (original_task, edited_task) in enumerate(
-                            zip(self.tasks, hitl_result, strict=False)
+                            zip(self.tasks, hitl_result, strict=False),
                         ):
                             if original_task.get("name") != edited_task.get(
-                                "name"
+                                "name",
                             ) or len(original_task.get("steps", [])) != len(
-                                edited_task.get("steps", [])
+                                edited_task.get("steps", []),
                             ):
                                 tasks_changed = True
                                 break
 
                 if tasks_changed:
                     log_context.info(
-                        "  🔄 User made changes - applying finetune_best_practice..."
+                        "  🔄 User made changes - applying finetune_best_practice...",
                     )
                     # Apply resource pairing only after user modifications
                     processed_tasks = []
@@ -513,7 +525,7 @@ class Generator:
 
                         if best_practices and best_practice_idx < len(best_practices):
                             log_context.info(
-                                f"  🔗 Pairing task {idx_t + 1}/{len(hitl_result)}: {task.get('name', 'Unknown')}"
+                                f"  🔗 Pairing task {idx_t + 1}/{len(hitl_result)}: {task.get('name', 'Unknown')}",
                             )
                             # Convert task format for finetune_best_practice
                             task_for_finetune = {
@@ -524,22 +536,24 @@ class Generator:
                                 ],
                             }
                             refined_task = best_practice_manager.finetune_best_practice(
-                                best_practices[best_practice_idx], task_for_finetune
+                                best_practices[best_practice_idx],
+                                task_for_finetune,
                             )
                             # Update the task with the refined steps that include resource mappings
                             task["steps"] = refined_task.get(
-                                "steps", task.get("steps", [])
+                                "steps",
+                                task.get("steps", []),
                             )
 
                         processed_tasks.append(task)
 
                     finetuned_tasks = processed_tasks
                     log_context.info(
-                        f"✅ Applied resource pairing to {len(processed_tasks)} modified tasks"
+                        f"✅ Applied resource pairing to {len(processed_tasks)} modified tasks",
                     )
                 else:
                     log_context.info(
-                        "  ⏭️ No user changes detected - applying resource pairing to original tasks"
+                        "  ⏭️ No user changes detected - applying resource pairing to original tasks",
                     )
                     # Apply resource pairing to original tasks even when no changes detected
                     processed_tasks = []
@@ -551,7 +565,7 @@ class Generator:
 
                         if best_practices and best_practice_idx < len(best_practices):
                             log_context.info(
-                                f"  🔗 Pairing task {idx_t + 1}/{len(self.tasks)}: {task.get('name', 'Unknown')}"
+                                f"  🔗 Pairing task {idx_t + 1}/{len(self.tasks)}: {task.get('name', 'Unknown')}",
                             )
                             # Convert task format for finetune_best_practice
                             task_for_finetune = {
@@ -562,23 +576,25 @@ class Generator:
                                 ],
                             }
                             refined_task = best_practice_manager.finetune_best_practice(
-                                best_practices[best_practice_idx], task_for_finetune
+                                best_practices[best_practice_idx],
+                                task_for_finetune,
                             )
                             # Update the task with the refined steps that include resource mappings
                             task["steps"] = refined_task.get(
-                                "steps", task.get("steps", [])
+                                "steps",
+                                task.get("steps", []),
                             )
 
                         processed_tasks.append(task)
 
                     finetuned_tasks = processed_tasks
                     log_context.info(
-                        f"✅ Applied resource pairing to {len(processed_tasks)} original tasks"
+                        f"✅ Applied resource pairing to {len(processed_tasks)} original tasks",
                     )
 
                 log_context.info("✅ Task editor completed")
             except Exception as e:
-                log_context.error(f"❌ Error in human-in-the-loop refinement: {str(e)}")
+                log_context.error(f"❌ Error in human-in-the-loop refinement: {e!s}")
                 # Fallback to original tasks if UI fails
                 finetuned_tasks = self.tasks.copy()
         else:
@@ -588,10 +604,11 @@ class Generator:
             for i, task in enumerate(self.tasks):
                 if i < len(best_practices):
                     log_context.info(
-                        f"  🔗 Pairing task {i + 1}/{len(self.tasks)}: {task.get('name', 'Unknown')}"
+                        f"  🔗 Pairing task {i + 1}/{len(self.tasks)}: {task.get('name', 'Unknown')}",
                     )
                     finetuned_task = best_practice_manager.finetune_best_practice(
-                        best_practices[i], task
+                        best_practices[i],
+                        task,
                     )
                     # Update the task with the finetuned steps that include resource mappings
                     task["steps"] = finetuned_task.get("steps", task.get("steps", []))
@@ -605,7 +622,8 @@ class Generator:
         for task in finetuned_tasks:
             task_name = task.get("name")
             task_description = task.get(
-                "description", ""
+                "description",
+                "",
             )  # Some tasks might not have a description
             if task_name:
                 try:
@@ -640,14 +658,14 @@ class Generator:
                     if predicted_intent:
                         task["intent"] = predicted_intent
                         log_context.info(
-                            f"  Predicted intent for '{task_name}': '{predicted_intent}'"
+                            f"  Predicted intent for '{task_name}': '{predicted_intent}'",
                         )
                     else:
                         task["intent"] = f"User inquires about {task_name.lower()}"
 
                 except Exception as e:
                     log_context.error(
-                        f"Error predicting intent for task '{task_name}': {str(e)}"
+                        f"Error predicting intent for task '{task_name}': {e!s}",
                     )
                     # Fallback intent generation
                     task["intent"] = f"User inquires about {task_name.lower()}"
@@ -666,7 +684,7 @@ class Generator:
         if self.allow_nested_graph:
             log_context.info("🔗 Ensuring nested graph connectivity...")
             task_graph = task_graph_formatter.ensure_nested_graph_connectivity(
-                task_graph
+                task_graph,
             )
             log_context.info("✅ Nested graph connectivity ensured")
 
@@ -684,7 +702,7 @@ class Generator:
             log_context.info("  📦 Adding reusable tasks to graph...")
             task_graph["reusable_tasks"] = self.reusable_tasks
             log_context.info(
-                f"📦 Added {len(self.reusable_tasks)} reusable tasks to graph"
+                f"📦 Added {len(self.reusable_tasks)} reusable tasks to graph",
             )
 
         log_context.info("✅ Task graph generated successfully!")
@@ -698,6 +716,7 @@ class Generator:
 
         Returns:
             str: Path to the saved task graph file
+
         """
         import collections.abc
         import functools
@@ -705,27 +724,26 @@ class Generator:
         def sanitize(obj: object) -> object:
             if isinstance(obj, str | int | float | bool) or obj is None:
                 return obj
-            elif isinstance(obj, dict):
+            if isinstance(obj, dict):
                 return {k: sanitize(v) for k, v in obj.items()}
-            elif isinstance(obj, list):
+            if isinstance(obj, list):
                 return [sanitize(v) for v in obj]
-            elif isinstance(obj, tuple):
+            if isinstance(obj, tuple):
                 return tuple(sanitize(v) for v in obj)
-            elif isinstance(obj, functools.partial):
+            if isinstance(obj, functools.partial):
                 log_context.debug(f"Found partial: {obj}")
                 return str(obj)
-            elif isinstance(obj, collections.abc.Callable):
+            if isinstance(obj, collections.abc.Callable):
                 log_context.debug(f"Found callable: {obj}")
                 return str(obj)
-            else:
-                log_context.debug(f"Found non-serializable: {obj} (type: {type(obj)})")
-                return str(obj)
+            log_context.debug(f"Found non-serializable: {obj} (type: {type(obj)})")
+            return str(obj)
 
         # Debug logging for non-serializable fields
         for k, v in task_graph.items():
             if not isinstance(v, str | int | float | bool | list | dict | type(None)):
                 log_context.debug(
-                    f"Field {k} is non-serializable: {v} (type: {type(v)})"
+                    f"Field {k} is non-serializable: {v} (type: {type(v)})",
                 )
 
         sanitized_task_graph = sanitize(task_graph)

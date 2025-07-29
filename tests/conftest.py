@@ -66,7 +66,7 @@ def mock_openai_llm_and_embeddings(
     """Mock LangChain OpenAI LLM and Embeddings for testing."""
     # Only mock if we're in test mode and not marked to skip LLM mocking
     if os.getenv("ARKLEX_TEST_ENV") == "local" and not request.node.get_closest_marker(
-        "no_llm_mock"
+        "no_llm_mock",
     ):
         with (
             patch("langchain_openai.ChatOpenAI") as mock_llm,
@@ -94,7 +94,7 @@ def mock_openai_client(request: pytest.FixtureRequest) -> Generator[None, None, 
     """Mock openai.OpenAI and openai.resources.embeddings.Embeddings.create for all tests."""
     # Only mock if we're in test mode and not marked to skip LLM mocking
     if os.getenv("ARKLEX_TEST_ENV") == "local" and not request.node.get_closest_marker(
-        "no_llm_mock"
+        "no_llm_mock",
     ):
         from unittest.mock import MagicMock, patch
 
@@ -103,16 +103,20 @@ def mock_openai_client(request: pytest.FixtureRequest) -> Generator[None, None, 
         dummy_embedding = [0.0] * 1536
         dummy_response = MagicMock()
         dummy_response.model_dump.return_value = {
-            "data": [{"embedding": dummy_embedding}]
+            "data": [{"embedding": dummy_embedding}],
         }
 
         def fake_embed_documents(
-            texts: list[str], *args: tuple[Any, ...], **kwargs: dict[str, Any]
+            texts: list[str],
+            *args: tuple[Any, ...],
+            **kwargs: dict[str, Any],
         ) -> list[list[float]]:
             return [dummy_embedding for _ in texts]
 
         def fake_embed_query(
-            text: str, *args: tuple[Any, ...], **kwargs: dict[str, Any]
+            text: str,
+            *args: tuple[Any, ...],
+            **kwargs: dict[str, Any],
         ) -> list[float]:
             return dummy_embedding
 
@@ -121,9 +125,10 @@ def mock_openai_client(request: pytest.FixtureRequest) -> Generator[None, None, 
         mock_chat_completion.choices = [
             MagicMock(
                 message=MagicMock(
-                    content='{"result": "dummy response"}', role="assistant"
-                )
-            )
+                    content='{"result": "dummy response"}',
+                    role="assistant",
+                ),
+            ),
         ]
         mock_chat_completion.model_dump.return_value = {
             "choices": [
@@ -131,9 +136,9 @@ def mock_openai_client(request: pytest.FixtureRequest) -> Generator[None, None, 
                     "message": {
                         "content": '{"result": "dummy response"}',
                         "role": "assistant",
-                    }
-                }
-            ]
+                    },
+                },
+            ],
         }
 
         # Patch all OpenAI client methods
@@ -164,7 +169,7 @@ def mock_intent_detector_execute(
     """Mock IntentDetector.predict_intent to return context-aware intents for tests."""
     # Only mock if we're in test mode and not testing error handling
     if os.getenv("ARKLEX_TEST_ENV") == "local" and not request.node.get_closest_marker(
-        "no_intent_mock"
+        "no_intent_mock",
     ):
         from unittest.mock import patch
 

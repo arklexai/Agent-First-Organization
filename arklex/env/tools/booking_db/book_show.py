@@ -32,7 +32,7 @@ log_context = LogContext(__name__)
             "name": "query_result",
             "type": "str",
             "description": "A list of available shows that satisfies the given criteria (displays the first 10 results). If no show satisfies the criteria, returns 'No shows exist'",
-        }
+        },
     ],
     lambda x: x and x not in (LOG_IN_FAILURE, NO_SHOW_MESSAGE, MULTIPLE_SHOWS_MESSAGE),
 )

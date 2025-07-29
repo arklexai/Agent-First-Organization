@@ -35,6 +35,7 @@ class TaskDefinition:
         required_resources (List[str]): List of resources required for the task
         estimated_duration (Optional[str]): Estimated duration as a string (e.g., "1 hour")
         priority (int): Task priority (1-5, where 5 is highest)
+
     """
 
     task_id: str
@@ -75,6 +76,7 @@ class TaskGenerator:
         _validate_tasks(): Validate generated tasks
         _establish_relationships(): Establish task relationships
         _build_hierarchy(): Build task hierarchy
+
     """
 
     def __init__(
@@ -93,6 +95,7 @@ class TaskGenerator:
             user_objective (str): User's objective for the task graph
             instructions (str): Processed instruction documents
             documents (str): Processed task documents
+
         """
         self.model = model
         self.role = role
@@ -104,7 +107,9 @@ class TaskGenerator:
         self.prompt_manager = PromptManager()  # Initialize prompt manager
 
     def generate_tasks(
-        self, intro: str, existing_tasks: list[dict[str, Any]] | None = None
+        self,
+        intro: str,
+        existing_tasks: list[dict[str, Any]] | None = None,
     ) -> list[dict[str, Any]]:
         """Generate tasks from the introduction and existing tasks.
 
@@ -119,12 +124,13 @@ class TaskGenerator:
 
         Returns:
             List[Dict[str, Any]]: List of validated and structured tasks.
+
         """
         if existing_tasks is None:
             existing_tasks = []
 
         log_context.info(
-            "    📝 Step 1: Generating high-level tasks using generate_tasks_sys_prompt..."
+            "    📝 Step 1: Generating high-level tasks using generate_tasks_sys_prompt...",
         )
 
         # Step 1: Generate high-level tasks using the original generate_tasks_sys_prompt
@@ -139,12 +145,13 @@ class TaskGenerator:
             task_intent = task.get("intent", "")
 
             log_context.info(
-                f"      🔍 Analyzing task {i}/{len(high_level_tasks)}: {task_name}"
+                f"      🔍 Analyzing task {i}/{len(high_level_tasks)}: {task_name}",
             )
 
             # Step 2: Check if this task needs further breakdown using check_best_practice_sys_prompt
             needs_breakdown = self._check_task_breakdown_original(
-                task_name, task_intent
+                task_name,
+                task_intent,
             )
 
             if needs_breakdown:
@@ -153,7 +160,7 @@ class TaskGenerator:
                 steps = self._generate_task_steps_original(task_name, task_intent)
                 task["steps"] = steps
                 log_context.info(
-                    f"      ✅ Generated {len(steps)} steps for: {task_name}"
+                    f"      ✅ Generated {len(steps)} steps for: {task_name}",
                 )
             else:
                 log_context.info(f"      ✅ Task is actionable: {task_name}")
@@ -163,7 +170,7 @@ class TaskGenerator:
             tasks_with_steps.append(task)
 
         log_context.info(
-            "    🏗️ Step 3: Converting to task definitions and validating..."
+            "    🏗️ Step 3: Converting to task definitions and validating...",
         )
         # Convert to task definitions and validate
         task_definitions = self._convert_to_task_definitions(tasks_with_steps)
@@ -181,12 +188,14 @@ class TaskGenerator:
         validated_tasks = self._validate_tasks(tasks)
         self._build_hierarchy(validated_tasks)
         log_context.info(
-            f"    🎉 Successfully generated {len(validated_tasks)} validated tasks"
+            f"    🎉 Successfully generated {len(validated_tasks)} validated tasks",
         )
         return validated_tasks
 
     def add_provided_tasks(
-        self, user_tasks: list[dict[str, Any]], intro: str
+        self,
+        user_tasks: list[dict[str, Any]],
+        intro: str,
     ) -> list[dict[str, Any]]:
         """Add user-provided tasks to the task set.
 
@@ -200,6 +209,7 @@ class TaskGenerator:
 
         Returns:
             List[Dict[str, Any]]: List of processed and validated tasks
+
         """
         processed_tasks: list[dict[str, Any]] = []
         for task in user_tasks:
@@ -212,17 +222,19 @@ class TaskGenerator:
 
                     # Check if task needs breakdown
                     needs_breakdown = self._check_task_breakdown_original(
-                        task_name, task_intent
+                        task_name,
+                        task_intent,
                     )
 
                     if needs_breakdown:
                         # Generate detailed steps
                         steps = self._generate_task_steps_original(
-                            task_name, task_intent
+                            task_name,
+                            task_intent,
                         )
                         task["steps"] = steps
                         log_context.info(
-                            f"Generated {len(steps)} steps for task: {task_name}"
+                            f"Generated {len(steps)} steps for task: {task_name}",
                         )
                     else:
                         # Task is actionable, create a simple step
@@ -250,7 +262,7 @@ class TaskGenerator:
                 else:
                     log_context.warning(f"Invalid user-provided task: {task_def.name}")
             except Exception as e:
-                log_context.error(f"Error processing user task: {str(e)}")
+                log_context.error(f"Error processing user task: {e!s}")
                 continue
         return processed_tasks
 
@@ -271,6 +283,7 @@ class TaskGenerator:
 
         Returns:
             Dict[str, Any]: Dictionary containing processed objective and tasks.
+
         """
         existing_tasks_json = ""
         if existing_tasks:
@@ -301,7 +314,8 @@ class TaskGenerator:
             if hasattr(response.generations[0][0], "text"):
                 response_text = response.generations[0][0].text
             elif hasattr(response.generations[0][0], "message") and hasattr(
-                response.generations[0][0].message, "content"
+                response.generations[0][0].message,
+                "content",
             ):
                 response_text = response.generations[0][0].message.content
         elif isinstance(response, dict) and "text" in response:
@@ -317,7 +331,7 @@ class TaskGenerator:
                 json_str = response_text[json_start:json_end]
                 tasks_data = json.loads(json_str)
                 log_context.info(
-                    f"Generated {len(tasks_data)} tasks from documentation"
+                    f"Generated {len(tasks_data)} tasks from documentation",
                 )
             else:
                 log_context.error("No valid JSON array found in response")
@@ -328,7 +342,9 @@ class TaskGenerator:
         return {"tasks": tasks_data}
 
     def _generate_high_level_tasks(
-        self, intro: str, existing_tasks: list[dict[str, Any]] | None = None
+        self,
+        intro: str,
+        existing_tasks: list[dict[str, Any]] | None = None,
     ) -> list[dict[str, Any]]:
         """Generate high-level tasks using the original generate_tasks_sys_prompt.
 
@@ -340,6 +356,7 @@ class TaskGenerator:
 
         Returns:
             List[Dict[str, Any]]: List of high-level tasks.
+
         """
         if existing_tasks is None:
             existing_tasks = []
@@ -351,7 +368,7 @@ class TaskGenerator:
                 [
                     f"- {task.get('task', '')}: {task.get('intent', '')}"
                     for task in existing_tasks
-                ]
+                ],
             )
 
         # Use the original generate_tasks_sys_prompt
@@ -377,9 +394,8 @@ class TaskGenerator:
                 json_str = response_text[json_start:json_end]
                 tasks_data = json.loads(json_str)
                 return tasks_data
-            else:
-                log_context.warning("Could not parse high-level tasks response")
-                return []
+            log_context.warning("Could not parse high-level tasks response")
+            return []
         except Exception as e:
             log_context.error(f"Error generating high-level tasks: {e}")
             return []
@@ -395,6 +411,7 @@ class TaskGenerator:
 
         Returns:
             bool: True if task needs breakdown, False if it's already actionable
+
         """
         # Create a proper resource list for the check
         prompt = self.prompt_manager.check_best_practice_sys_prompt.format(
@@ -417,18 +434,19 @@ class TaskGenerator:
                 result = json.loads(json_str)
                 answer = result.get("answer", "No").lower()
                 return answer == "yes"
-            else:
-                log_context.warning(
-                    f"Could not parse breakdown check response for task: {task_name}"
-                )
-                return True  # Default to breakdown if we can't parse
+            log_context.warning(
+                f"Could not parse breakdown check response for task: {task_name}",
+            )
+            return True  # Default to breakdown if we can't parse
 
         except Exception as e:
             log_context.error(f"Error checking task breakdown for {task_name}: {e}")
             return True  # Default to breakdown on error
 
     def _generate_task_steps_original(
-        self, task_name: str, task_intent: str
+        self,
+        task_name: str,
+        task_intent: str,
     ) -> list[dict[str, Any]]:
         """Generate steps for a task using the original generate_best_practice_sys_prompt.
 
@@ -440,6 +458,7 @@ class TaskGenerator:
 
         Returns:
             List[Dict[str, Any]]: List of steps for the task
+
         """
         prompt = self.prompt_manager.generate_best_practice_sys_prompt.format(
             role=self.role,
@@ -468,34 +487,34 @@ class TaskGenerator:
                     if isinstance(step, dict) and "task" in step:
                         # Ensure description exists, use task as fallback
                         description = step.get(
-                            "description", step.get("task", "Execute step")
+                            "description",
+                            step.get("task", "Execute step"),
                         )
                         converted_steps.append(
-                            {"task": step["task"], "description": description}
+                            {"task": step["task"], "description": description},
                         )
                     elif isinstance(step, dict) and "step" in step:
                         # Handle alternative step format
                         task = step.get("task", step.get("step", "Execute step"))
                         description = step.get("description", task)
                         converted_steps.append(
-                            {"task": task, "description": description}
+                            {"task": task, "description": description},
                         )
                     elif isinstance(step, str):
                         # Handle string steps
                         converted_steps.append(
-                            {"task": step, "description": f"Execute: {step}"}
+                            {"task": step, "description": f"Execute: {step}"},
                         )
                 return converted_steps
-            else:
-                log_context.warning(
-                    f"Could not parse steps response for task: {task_name}"
-                )
-                return [
-                    {
-                        "task": f"Execute {task_name}",
-                        "description": f"Execute the task: {task_name}",
-                    }
-                ]
+            log_context.warning(
+                f"Could not parse steps response for task: {task_name}",
+            )
+            return [
+                {
+                    "task": f"Execute {task_name}",
+                    "description": f"Execute the task: {task_name}",
+                },
+            ]
 
         except Exception as e:
             log_context.error(f"Error generating steps for {task_name}: {e}")
@@ -503,11 +522,12 @@ class TaskGenerator:
                 {
                     "task": f"Execute {task_name}",
                     "description": f"Execute the task: {task_name}",
-                }
+                },
             ]
 
     def _convert_to_task_definitions(
-        self, tasks_with_steps: list[dict[str, Any]]
+        self,
+        tasks_with_steps: list[dict[str, Any]],
     ) -> list[TaskDefinition]:
         """Convert tasks with steps to TaskDefinition objects.
 
@@ -516,6 +536,7 @@ class TaskGenerator:
 
         Returns:
             List[TaskDefinition]: List of TaskDefinition objects
+
         """
         task_definitions: list[TaskDefinition] = []
         for i, task_data in enumerate(tasks_with_steps):
@@ -525,7 +546,7 @@ class TaskGenerator:
                     {
                         "task": f"Execute {task_data.get('task', '')}",
                         "description": f"Execute the task: {task_data.get('task', '')}",
-                    }
+                    },
                 ]
             elif isinstance(steps, list) and steps and isinstance(steps[0], str):
                 steps = [
@@ -554,6 +575,7 @@ class TaskGenerator:
 
         Returns:
             List[Dict[str, Any]]: List of validated tasks.
+
         """
         validated_tasks: list[dict[str, Any]] = []
         for task in tasks:
@@ -574,7 +596,7 @@ class TaskGenerator:
                 isinstance(step, dict) and "task" in step for step in task["steps"]
             ):
                 log_context.warning(
-                    f"Task steps must be dictionaries with 'task' key: {task}"
+                    f"Task steps must be dictionaries with 'task' key: {task}",
                 )
                 continue
             # Ensure all steps have descriptions
@@ -584,11 +606,13 @@ class TaskGenerator:
             if "dependencies" not in task or not isinstance(task["dependencies"], list):
                 task["dependencies"] = []
             if "required_resources" not in task or not isinstance(
-                task["required_resources"], list
+                task["required_resources"],
+                list,
             ):
                 task["required_resources"] = []
             if "estimated_duration" not in task or not isinstance(
-                task["estimated_duration"], str
+                task["estimated_duration"],
+                str,
             ):
                 task["estimated_duration"] = "1 hour"
             if (
@@ -610,6 +634,7 @@ class TaskGenerator:
 
         Returns:
             bool: True if task definition is valid, False otherwise
+
         """
         if not all([task_def.name, task_def.description, task_def.steps]):
             return False
@@ -626,6 +651,7 @@ class TaskGenerator:
 
         Args:
             tasks (List[Dict[str, Any]]): List of tasks to process
+
         """
         # Implementation details...
 
@@ -634,6 +660,7 @@ class TaskGenerator:
 
         Args:
             tasks (List[Dict[str, Any]]): List of tasks to organize.
+
         """
         graph: dict[str, Any] = {}
         for task in tasks:
@@ -676,6 +703,7 @@ class TaskGenerator:
 
         Returns:
             Dict[str, Any]: Dictionary representation of the task.
+
         """
         result = {
             "id": task_def.task_id,
@@ -695,7 +723,8 @@ class TaskGenerator:
         return result
 
     def _convert_to_task_dict(
-        self, task_definitions: list[dict[str, Any]]
+        self,
+        task_definitions: list[dict[str, Any]],
     ) -> dict[str, Any]:
         """Convert task definitions to task dictionary format."""
         tasks: dict[str, Any] = {}

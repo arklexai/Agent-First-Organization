@@ -1,5 +1,4 @@
-"""
-Integration tests for Milvus filter taskgraph.
+"""Integration tests for Milvus filter taskgraph.
 
 This module contains comprehensive integration tests for the Milvus filter taskgraph,
 including proper mocking of external services, RAG functionality with product filtering,
@@ -15,8 +14,7 @@ from tests.integration.integration_test_utils import MilvusTestHelper
 
 
 class TestMilvusFilterIntegration:
-    """
-    Integration tests for Milvus filter taskgraph.
+    """Integration tests for Milvus filter taskgraph.
 
     This test class validates the complete Milvus integration workflow,
     including taskgraph structure, worker configuration, RAG functionality,
@@ -24,10 +22,10 @@ class TestMilvusFilterIntegration:
     """
 
     def test_taskgraph_structure_validation(
-        self, load_milvus_config: dict[str, Any]
+        self,
+        load_milvus_config: dict[str, Any],
     ) -> None:
-        """
-        Test that the taskgraph has the correct structure and required fields.
+        """Test that the taskgraph has the correct structure and required fields.
 
         This test validates that the Milvus taskgraph configuration contains
         all necessary components for proper functionality, including nodes,
@@ -36,8 +34,7 @@ class TestMilvusFilterIntegration:
         MilvusTestHelper.validate_taskgraph_structure(load_milvus_config)
 
     def test_worker_configuration(self, load_milvus_config: dict[str, Any]) -> None:
-        """
-        Test that workers are properly configured in the taskgraph.
+        """Test that workers are properly configured in the taskgraph.
 
         This test ensures that the MilvusRAGWorker and other required workers
         are properly configured with the correct parameters and settings.
@@ -45,10 +42,10 @@ class TestMilvusFilterIntegration:
         MilvusTestHelper.validate_worker_configuration(load_milvus_config)
 
     def test_domain_specific_configuration(
-        self, load_milvus_config: dict[str, Any]
+        self,
+        load_milvus_config: dict[str, Any],
     ) -> None:
-        """
-        Test that the taskgraph is properly configured for robotics domain.
+        """Test that the taskgraph is properly configured for robotics domain.
 
         This test validates that the taskgraph is specifically configured
         for robotics domain queries and contains appropriate filtering logic.
@@ -60,7 +57,7 @@ class TestMilvusFilterIntegration:
     @patch("langchain_openai.embeddings.base.OpenAIEmbeddings.embed_documents")
     @patch("arklex.utils.model_provider_config.PROVIDER_MAP")
     @patch(
-        "arklex.env.tools.RAG.retrievers.milvus_retriever.RetrieveEngine.milvus_retrieve"
+        "arklex.env.tools.RAG.retrievers.milvus_retriever.RetrieveEngine.milvus_retrieve",
     )
     @patch("arklex.env.tools.utils.ToolGenerator.context_generate")
     @patch("arklex.orchestrator.NLU.core.intent.IntentDetector.execute")
@@ -79,8 +76,7 @@ class TestMilvusFilterIntegration:
         mock_env_step: Mock,
         config_and_env: tuple[dict[str, Any], Any, str],
     ) -> None:
-        """
-        Test that the start message is delivered correctly.
+        """Test that the start message is delivered correctly.
 
         This test validates that the system properly handles the initial
         start message and delivers the appropriate welcome response to users.
@@ -107,7 +103,7 @@ class TestMilvusFilterIntegration:
         # This simulates the vector database operations
         mock_vectorstore = Mock()
         mock_vectorstore.similarity_search_with_score.return_value = [
-            (Mock(metadata={"resource_name": "test_resource"}), 0.8)
+            (Mock(metadata={"resource_name": "test_resource"}), 0.8),
         ]
         mock_faiss_planner.return_value = mock_vectorstore
         mock_faiss_retriever.return_value = mock_vectorstore
@@ -132,7 +128,7 @@ class TestMilvusFilterIntegration:
         ) -> MessageState:
             if message_state is None:
                 message_state = MilvusTestHelper.create_mock_message_state(
-                    start_message
+                    start_message,
                 )
             return message_state
 
@@ -158,7 +154,11 @@ class TestMilvusFilterIntegration:
         user_text = "<start>"
 
         output, params, hitl = MilvusTestHelper.get_api_bot_response(
-            config, env, user_text, history, params
+            config,
+            env,
+            user_text,
+            history,
+            params,
         )
 
         # Verify start message is delivered correctly
@@ -169,7 +169,7 @@ class TestMilvusFilterIntegration:
     @patch("langchain_openai.embeddings.base.OpenAIEmbeddings.embed_documents")
     @patch("arklex.utils.model_provider_config.PROVIDER_MAP")
     @patch(
-        "arklex.env.tools.RAG.retrievers.milvus_retriever.RetrieveEngine.milvus_retrieve"
+        "arklex.env.tools.RAG.retrievers.milvus_retriever.RetrieveEngine.milvus_retrieve",
     )
     @patch("arklex.env.tools.utils.ToolGenerator.context_generate")
     @patch("arklex.orchestrator.NLU.core.intent.IntentDetector.execute")
@@ -187,8 +187,7 @@ class TestMilvusFilterIntegration:
         mock_post_process: Mock,
         config_and_env: tuple[dict[str, Any], Any, str],
     ) -> None:
-        """
-        Test MilvusRAGWorker responding to product questions with filtering.
+        """Test MilvusRAGWorker responding to product questions with filtering.
 
         This test validates that the MilvusRAGWorker properly handles
         product queries, applies filtering tags, and generates appropriate
@@ -203,7 +202,8 @@ class TestMilvusFilterIntegration:
         # Mock Milvus retrieval with product filtering
         # This simulates the filtered retrieval process with proper tag validation
         def mock_milvus_retrieve_side_effect(
-            message_state: MessageState, tags: dict[str, str] | None = None
+            message_state: MessageState,
+            tags: dict[str, str] | None = None,
         ) -> MessageState:
             # Verify that product tags are passed correctly for filtering
             assert tags is not None, "Tags should be passed to Milvus retrieval"
@@ -249,7 +249,7 @@ class TestMilvusFilterIntegration:
         # This simulates the vector similarity search
         mock_vectorstore = Mock()
         mock_vectorstore.similarity_search_with_score.return_value = [
-            (Mock(metadata={"resource_name": "test_resource"}), 0.8)
+            (Mock(metadata={"resource_name": "test_resource"}), 0.8),
         ]
         mock_faiss_planner.return_value = mock_vectorstore
         mock_faiss_retriever.return_value = mock_vectorstore
@@ -264,7 +264,7 @@ class TestMilvusFilterIntegration:
         ) -> MessageState:
             if message_state is None:
                 message_state = MilvusTestHelper.create_mock_message_state(
-                    "Product information response"
+                    "Product information response",
                 )
             return message_state
 
@@ -279,7 +279,11 @@ class TestMilvusFilterIntegration:
         user_text = "Tell me about your robots"
 
         output, params, hitl = MilvusTestHelper.get_api_bot_response(
-            config, env, user_text, history, params
+            config,
+            env,
+            user_text,
+            history,
+            params,
         )
 
         # Verify that the response contains product information
@@ -293,7 +297,7 @@ class TestMilvusFilterIntegration:
     @patch("langchain_openai.embeddings.base.OpenAIEmbeddings.embed_documents")
     @patch("langchain_openai.chat_models.base.ChatOpenAI")
     @patch(
-        "arklex.env.tools.RAG.retrievers.milvus_retriever.RetrieveEngine.milvus_retrieve"
+        "arklex.env.tools.RAG.retrievers.milvus_retriever.RetrieveEngine.milvus_retrieve",
     )
     @patch("arklex.env.tools.utils.ToolGenerator.context_generate")
     @patch("arklex.orchestrator.NLU.core.intent.IntentDetector.execute")
@@ -311,8 +315,7 @@ class TestMilvusFilterIntegration:
         mock_post_process: Mock,
         config_and_env: tuple[dict[str, Any], Any, str],
     ) -> None:
-        """
-        Test conversation flow with multiple turns and context persistence.
+        """Test conversation flow with multiple turns and context persistence.
 
         This test validates that the system maintains conversation context
         across multiple turns and properly handles follow-up questions
@@ -326,7 +329,8 @@ class TestMilvusFilterIntegration:
         # Mock Milvus retrieval for first turn
         # This simulates the initial product information retrieval
         def mock_milvus_retrieve_side_effect(
-            message_state: MessageState, tags: dict[str, str] | None = None
+            message_state: MessageState,
+            tags: dict[str, str] | None = None,
         ) -> MessageState:
             # Verify filtering tags are applied correctly
             assert tags is not None, "Tags should be passed to Milvus retrieval"
@@ -357,7 +361,7 @@ class TestMilvusFilterIntegration:
         mock_embeddings.return_value = [[0.1] * 1536] * 3
         mock_vectorstore = Mock()
         mock_vectorstore.similarity_search_with_score.return_value = [
-            (Mock(metadata={"resource_name": "test_resource"}), 0.8)
+            (Mock(metadata={"resource_name": "test_resource"}), 0.8),
         ]
         mock_faiss_planner.return_value = mock_vectorstore
         mock_faiss_retriever.return_value = mock_vectorstore
@@ -371,7 +375,7 @@ class TestMilvusFilterIntegration:
         ) -> MessageState:
             if message_state is None:
                 message_state = MilvusTestHelper.create_mock_message_state(
-                    "The ADAM robot is a bartender that can make various beverages."
+                    "The ADAM robot is a bartender that can make various beverages.",
                 )
             return message_state
 
@@ -383,7 +387,11 @@ class TestMilvusFilterIntegration:
         user_text = "Tell me about your robots"
 
         output1, params, hitl = MilvusTestHelper.get_api_bot_response(
-            config, env, user_text, history, params
+            config,
+            env,
+            user_text,
+            history,
+            params,
         )
 
         # Verify first response
@@ -398,7 +406,8 @@ class TestMilvusFilterIntegration:
         # Mock Milvus retrieval for second turn with different context
         # This simulates follow-up information retrieval
         def mock_milvus_retrieve_side_effect_second(
-            message_state: MessageState, tags: dict[str, str] | None = None
+            message_state: MessageState,
+            tags: dict[str, str] | None = None,
         ) -> MessageState:
             # Verify filtering tags are still applied correctly
             assert tags is not None, "Tags should be passed to Milvus retrieval"
@@ -435,7 +444,7 @@ class TestMilvusFilterIntegration:
         ) -> MessageState:
             if message_state is None:
                 message_state = MilvusTestHelper.create_mock_message_state(
-                    "The ADAM robot can make tea, coffee, and cocktails."
+                    "The ADAM robot can make tea, coffee, and cocktails.",
                 )
             return message_state
 
@@ -449,7 +458,11 @@ class TestMilvusFilterIntegration:
         user_text = "What can it make and how much does it cost?"
 
         output2, params, hitl = MilvusTestHelper.get_api_bot_response(
-            config, env, user_text, history, params
+            config,
+            env,
+            user_text,
+            history,
+            params,
         )
 
         # Verify second response contains detailed information
@@ -465,7 +478,7 @@ class TestMilvusFilterIntegration:
     @patch("langchain_openai.embeddings.base.OpenAIEmbeddings.embed_documents")
     @patch("langchain_openai.chat_models.base.ChatOpenAI")
     @patch(
-        "arklex.env.tools.RAG.retrievers.milvus_retriever.RetrieveEngine.milvus_retrieve"
+        "arklex.env.tools.RAG.retrievers.milvus_retriever.RetrieveEngine.milvus_retrieve",
     )
     @patch("arklex.env.tools.utils.ToolGenerator.context_generate")
     @patch("arklex.orchestrator.NLU.core.intent.IntentDetector.execute")
@@ -483,8 +496,7 @@ class TestMilvusFilterIntegration:
         mock_post_process: Mock,
         config_and_env: tuple[dict[str, Any], Any, str],
     ) -> None:
-        """
-        Test edge case handling for empty or invalid input.
+        """Test edge case handling for empty or invalid input.
 
         This test validates that the system properly handles edge cases
         such as empty input, whitespace-only input, and other invalid
@@ -512,7 +524,7 @@ class TestMilvusFilterIntegration:
         mock_embeddings.return_value = [[0.1] * 1536] * 3
         mock_vectorstore = Mock()
         mock_vectorstore.similarity_search_with_score.return_value = [
-            (Mock(metadata={"resource_name": "test_resource"}), 0.8)
+            (Mock(metadata={"resource_name": "test_resource"}), 0.8),
         ]
         mock_faiss_planner.return_value = mock_vectorstore
         mock_faiss_retriever.return_value = mock_vectorstore
@@ -526,7 +538,7 @@ class TestMilvusFilterIntegration:
         ) -> MessageState:
             if message_state is None:
                 message_state = MilvusTestHelper.create_mock_message_state(
-                    "I didn't quite catch that. Could you please rephrase your question?"
+                    "I didn't quite catch that. Could you please rephrase your question?",
                 )
             return message_state
 
@@ -540,7 +552,11 @@ class TestMilvusFilterIntegration:
             params: dict[str, Any] = {}
 
             output, params, hitl = MilvusTestHelper.get_api_bot_response(
-                config, env, empty_input, history, params
+                config,
+                env,
+                empty_input,
+                history,
+                params,
             )
 
             # Verify that the system handles empty input gracefully
@@ -555,7 +571,7 @@ class TestMilvusFilterIntegration:
     @patch("langchain_openai.embeddings.base.OpenAIEmbeddings.embed_documents")
     @patch("langchain_openai.chat_models.base.ChatOpenAI")
     @patch(
-        "arklex.env.tools.RAG.retrievers.milvus_retriever.RetrieveEngine.milvus_retrieve"
+        "arklex.env.tools.RAG.retrievers.milvus_retriever.RetrieveEngine.milvus_retrieve",
     )
     @patch("arklex.env.tools.utils.ToolGenerator.context_generate")
     @patch("arklex.orchestrator.NLU.core.intent.IntentDetector.execute")
@@ -573,8 +589,7 @@ class TestMilvusFilterIntegration:
         mock_post_process: Mock,
         config_and_env: tuple[dict[str, Any], Any, str],
     ) -> None:
-        """
-        Test error handling when Milvus retrieval fails.
+        """Test error handling when Milvus retrieval fails.
 
         This test validates that the system properly handles Milvus
         connection errors, retrieval failures, and other exceptions
@@ -588,7 +603,8 @@ class TestMilvusFilterIntegration:
         # Mock Milvus retrieval to simulate an error
         # This simulates a connection failure or retrieval error
         def mock_milvus_retrieve_error_side_effect(
-            message_state: MessageState, tags: dict[str, str] | None = None
+            message_state: MessageState,
+            tags: dict[str, str] | None = None,
         ) -> MessageState:
             # Simulate retrieval error
             message_state.message_flow = (
@@ -619,7 +635,7 @@ class TestMilvusFilterIntegration:
         mock_embeddings.return_value = [[0.1] * 1536] * 3
         mock_vectorstore = Mock()
         mock_vectorstore.similarity_search_with_score.return_value = [
-            (Mock(metadata={"resource_name": "test_resource"}), 0.8)
+            (Mock(metadata={"resource_name": "test_resource"}), 0.8),
         ]
         mock_faiss_planner.return_value = mock_vectorstore
         mock_faiss_retriever.return_value = mock_vectorstore
@@ -633,7 +649,7 @@ class TestMilvusFilterIntegration:
         ) -> MessageState:
             if message_state is None:
                 message_state = MilvusTestHelper.create_mock_message_state(
-                    "I'm sorry, I'm having trouble accessing the product database right now."
+                    "I'm sorry, I'm having trouble accessing the product database right now.",
                 )
             return message_state
 
@@ -645,7 +661,11 @@ class TestMilvusFilterIntegration:
         user_text = "Tell me about your robots"
 
         output, params, hitl = MilvusTestHelper.get_api_bot_response(
-            config, env, user_text, history, params
+            config,
+            env,
+            user_text,
+            history,
+            params,
         )
 
         # Verify that the system handles errors gracefully
@@ -660,7 +680,7 @@ class TestMilvusFilterIntegration:
     @patch("langchain_openai.embeddings.base.OpenAIEmbeddings.embed_documents")
     @patch("langchain_openai.chat_models.base.ChatOpenAI")
     @patch(
-        "arklex.env.tools.RAG.retrievers.milvus_retriever.RetrieveEngine.milvus_retrieve"
+        "arklex.env.tools.RAG.retrievers.milvus_retriever.RetrieveEngine.milvus_retrieve",
     )
     @patch("arklex.env.tools.utils.ToolGenerator.context_generate")
     @patch("arklex.orchestrator.NLU.core.intent.IntentDetector.execute")
@@ -678,8 +698,7 @@ class TestMilvusFilterIntegration:
         mock_post_process: Mock,
         config_and_env: tuple[dict[str, Any], Any, str],
     ) -> None:
-        """
-        Test the accuracy of product filtering functionality.
+        """Test the accuracy of product filtering functionality.
 
         This test validates that the system correctly applies product
         filtering tags and retrieves relevant information based on
@@ -696,7 +715,8 @@ class TestMilvusFilterIntegration:
         # Mock Milvus retrieval with tag capture
         # This simulates the filtering process and captures the tags used
         def mock_milvus_retrieve_side_effect(
-            message_state: MessageState, tags: dict[str, str] | None = None
+            message_state: MessageState,
+            tags: dict[str, str] | None = None,
         ) -> MessageState:
             # Record the tags used for filtering
             captured_tags.append(tags)
@@ -732,7 +752,7 @@ class TestMilvusFilterIntegration:
         mock_embeddings.return_value = [[0.1] * 1536] * 3
         mock_vectorstore = Mock()
         mock_vectorstore.similarity_search_with_score.return_value = [
-            (Mock(metadata={"resource_name": "test_resource"}), 0.8)
+            (Mock(metadata={"resource_name": "test_resource"}), 0.8),
         ]
         mock_faiss_planner.return_value = mock_vectorstore
         mock_faiss_retriever.return_value = mock_vectorstore
@@ -746,7 +766,7 @@ class TestMilvusFilterIntegration:
         ) -> MessageState:
             if message_state is None:
                 message_state = MilvusTestHelper.create_mock_message_state(
-                    "Based on the filtered search results, I found information about robotics products."
+                    "Based on the filtered search results, I found information about robotics products.",
                 )
             return message_state
 
@@ -758,7 +778,11 @@ class TestMilvusFilterIntegration:
         user_text = "What robotics products do you have?"
 
         output, params, hitl = MilvusTestHelper.get_api_bot_response(
-            config, env, user_text, history, params
+            config,
+            env,
+            user_text,
+            history,
+            params,
         )
 
         # Verify that filtering was applied correctly
@@ -778,10 +802,10 @@ class TestMilvusFilterIntegration:
         )
 
     def test_environment_initialization(
-        self, load_milvus_config: dict[str, Any]
+        self,
+        load_milvus_config: dict[str, Any],
     ) -> None:
-        """
-        Test that the environment initializes correctly with Milvus configuration.
+        """Test that the environment initializes correctly with Milvus configuration.
 
         This test validates that the environment can be properly initialized
         with the Milvus taskgraph configuration and all required components
@@ -811,10 +835,10 @@ class TestMilvusFilterIntegration:
         assert hasattr(env, "tools"), "Environment should have tools"
 
     def test_taskgraph_metadata_validation(
-        self, load_milvus_config: dict[str, Any]
+        self,
+        load_milvus_config: dict[str, Any],
     ) -> None:
-        """
-        Test validation of taskgraph metadata and version information.
+        """Test validation of taskgraph metadata and version information.
 
         This test validates that the taskgraph contains proper metadata
         and version information for the Milvus integration.
@@ -822,8 +846,7 @@ class TestMilvusFilterIntegration:
         MilvusTestHelper.validate_taskgraph_metadata(load_milvus_config)
 
     def test_node_edge_consistency(self, load_milvus_config: dict[str, Any]) -> None:
-        """
-        Test that nodes and edges are consistent and properly connected.
+        """Test that nodes and edges are consistent and properly connected.
 
         This test validates that all edges in the taskgraph reference
         valid nodes and that the graph structure is consistent.

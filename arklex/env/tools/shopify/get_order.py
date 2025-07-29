@@ -1,5 +1,4 @@
-"""
-This module provides functionality to retrieve detailed information about a specific order
+"""This module provides functionality to retrieve detailed information about a specific order
 from the Shopify store, including its status, total price, and line items.
 
 Note: This module is currently inactive and reserved for future use.
@@ -50,10 +49,11 @@ class GetOrderParams(TypedDict, total=False):
 
 @register_tool(description, slots, outputs, lambda x: x not in errors)
 def get_order(
-    refresh_token: str, order_id: str, **kwargs: GetOrderParams
+    refresh_token: str,
+    order_id: str,
+    **kwargs: GetOrderParams,
 ) -> tuple[dict[str, str], dict[str, str]] | str:
-    """
-    Retrieve the status and details of a specific order.
+    """Retrieve the status and details of a specific order.
 
     Args:
         refresh_token (str): The refresh token for authentication.
@@ -69,13 +69,14 @@ def get_order(
 
     Raises:
         None: Errors are caught and returned as strings.
+
     """
     nav = cursorify(kwargs)
     if not nav[1]:
         return nav[0]
 
     try:
-        body = f'''
+        body = f"""
             query {{ 
                 order (id: "{order_id}") {{ 
                     id
@@ -98,7 +99,7 @@ def get_order(
                     }}
                 }} 
             }}
-        '''
+        """
         try:
             auth: dict[str, str] = {"Authorization": get_access_token(refresh_token)}
         except Exception:
@@ -106,7 +107,10 @@ def get_order(
 
         try:
             response: dict[str, str] = make_query(
-                customer_url, body, {}, customer_headers | auth
+                customer_url,
+                body,
+                {},
+                customer_headers | auth,
             )["data"]["order"]
         except Exception as e:
             return f"error: {e}"

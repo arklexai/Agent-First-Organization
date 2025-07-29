@@ -192,7 +192,8 @@ class TestVerification:
     def test_verification_initialization(self) -> None:
         """Test verification initialization."""
         verification = Verification(
-            thought="This value looks correct", verification_needed=False
+            thought="This value looks correct",
+            verification_needed=False,
         )
         assert verification.thought == "This value looks correct"
         assert verification.verification_needed is False
@@ -200,7 +201,8 @@ class TestVerification:
     def test_verification_with_verification_needed(self) -> None:
         """Test verification with verification needed."""
         verification = Verification(
-            thought="This value needs verification", verification_needed=True
+            thought="This value needs verification",
+            verification_needed=True,
         )
         assert verification.thought == "This value needs verification"
         assert verification.verification_needed is True
@@ -316,7 +318,7 @@ class TestFormatSlotOutput:
         """Test formatting slot output with valid response."""
         slots = [Slot(name="name", type="str"), Slot(name="age", type="int")]
         response = {
-            "slots": [{"name": "name", "value": "John"}, {"name": "age", "value": 25}]
+            "slots": [{"name": "name", "value": "John"}, {"name": "age", "value": 25}],
         }
         result = format_slot_output(slots, response)
 
@@ -372,7 +374,7 @@ class TestValidateSlotValues:
     def test_validate_slot_values_invalid_enum(self) -> None:
         """Test validation of slot value not in enum."""
         slots = [
-            Slot(name="category", type="str", value="invalid", enum=["A", "B", "C"])
+            Slot(name="category", type="str", value="invalid", enum=["A", "B", "C"]),
         ]
         errors = validate_slot_values(slots)
         assert len(errors) == 1
@@ -460,7 +462,10 @@ class TestValidateSlotValues:
         """Test validation with edge cases."""
         slots = [
             Slot(
-                name="empty_str", type="str", value="", required=True
+                name="empty_str",
+                type="str",
+                value="",
+                required=True,
             ),  # Empty string is falsy
             Slot(name="zero_int", type="integer", value="0"),  # Zero is valid
             Slot(name="zero_float", type="float", value="0.0"),  # Zero float is valid
@@ -545,13 +550,17 @@ class TestConvertSlotValues:
         """Test conversion of mixed type slots."""
         slots = [
             Slot(
-                name="name", type="str", value="John"
+                name="name",
+                type="str",
+                value="John",
             ),  # String should not be converted
             Slot(name="age", type="integer", value="30"),
             Slot(name="score", type="float", value="85.5"),
             Slot(name="active", type="boolean", value="true"),
             Slot(
-                name="tags", type="list[str]", value=["tag1", "tag2"]
+                name="tags",
+                type="list[str]",
+                value=["tag1", "tag2"],
             ),  # List should not be converted
         ]
         result = convert_slot_values(slots)

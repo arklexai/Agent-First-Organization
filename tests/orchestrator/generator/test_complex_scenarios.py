@@ -131,7 +131,7 @@ def ai_powered_mock_model() -> MockLanguageModelWithCustomResponses:
         "Mock",
         (),
         {
-            "content": '[{"id": "ai_task_1", "name": "AI Customer Analytics", "description": "Analyze customer behavior using AI algorithms", "steps": [{"description": "Step 1"}]}]'
+            "content": '[{"id": "ai_task_1", "name": "AI Customer Analytics", "description": "Analyze customer behavior using AI algorithms", "steps": [{"description": "Step 1"}]}]',
         },
     )()
     return ai_model
@@ -334,7 +334,7 @@ class TestAdvancedOptimization:
                     {"description": "Load data", "resource": "DataWorker"},
                     {"description": "Process data", "resource": "AnalyticsWorker"},
                 ],
-            }
+            },
         ]
         practices = practice_manager.generate_best_practices(task_with_resources)
         assert isinstance(practices, list)
@@ -358,7 +358,7 @@ class TestAdvancedOptimization:
                 "name": "Performance Task",
                 "description": "Optimize task performance",
                 "steps": [{"description": "Optimize step"}],
-            }
+            },
         ]
         practices = practice_manager.generate_best_practices(performance_tasks)
         assert isinstance(practices, list)
@@ -382,7 +382,7 @@ class TestAdvancedOptimization:
                 "name": "Multi-objective Task",
                 "description": "Balance multiple objectives",
                 "steps": [{"description": "Balance objectives"}],
-            }
+            },
         ]
         practices = practice_manager.generate_best_practices(multi_objective_tasks)
         assert isinstance(practices, list)
@@ -408,7 +408,7 @@ class TestNestedWorkflowScenarios:
                     {"description": "Step 2", "step_id": "step_2"},
                 ],
                 "resource": {"name": "NestedGraph"},
-            }
+            },
         ]
         result = formatter.format_task_graph(nested_tasks)
         assert "nodes" in result
@@ -478,7 +478,7 @@ class TestAdvancedIntegrationScenarios:
             [
                 {"name": "ScalableWorker1", "id": "scalable_worker_1"},
                 {"name": "ScalableWorker2", "id": "scalable_worker_2"},
-            ]
+            ],
         )
         generator = Generator(
             config=scalable_config,
@@ -503,7 +503,7 @@ class TestAdvancedIntegrationScenarios:
         realtime_config["workers"].extend(
             [
                 {"name": "RealTimeWorker", "id": "realtime_worker_1"},
-            ]
+            ],
         )
         generator = Generator(
             config=realtime_config,

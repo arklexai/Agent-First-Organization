@@ -29,7 +29,7 @@ def generate_request(
     json_res: dict[str, Any] = res.json()
     if "text" not in json_res:
         raise ValueError(f"Unexpected response: {json_res}")
-    elif len(json_res["text"]) == 0:
+    if len(json_res["text"]) == 0:
         raise ValueError(f"Empty response: {json_res}")
     text: str = json_res["text"][0]
     assert isinstance(text, str)

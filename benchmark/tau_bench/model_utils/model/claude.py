@@ -64,16 +64,19 @@ class ClaudeModel(ChatModel):
 
     def get_approx_cost(self, dp: Datapoint) -> float:
         cost_per_token = PRICE_PER_INPUT_TOKEN_MAP.get(
-            self.model, INPUT_PRICE_PER_TOKEN_FALLBACK
+            self.model,
+            INPUT_PRICE_PER_TOKEN_FALLBACK,
         )
         return approx_cost_for_datapoint(dp=dp, price_per_input_token=cost_per_token)
 
     def get_latency(self, dp: Datapoint) -> float:
         latency_per_output_token = LATENCY_MS_PER_OUTPUT_TOKEN_MAP.get(
-            self.model, LATENCY_MS_PER_OUTPUT_TOKEN_FALLBACK
+            self.model,
+            LATENCY_MS_PER_OUTPUT_TOKEN_FALLBACK,
         )
         return approx_cost_for_datapoint(
-            dp=dp, price_per_input_token=latency_per_output_token
+            dp=dp,
+            price_per_input_token=latency_per_output_token,
         )
 
     def get_capability(self) -> float:
@@ -82,7 +85,8 @@ class ClaudeModel(ChatModel):
     def supports_dp(self, dp: Datapoint) -> bool:
         prompt = approx_prompt_str(dp)
         return approx_num_tokens(prompt) <= MAX_CONTEXT_LENGTH_MAP.get(
-            self.model, MAX_CONTEXT_LENGTH_FALLBACK
+            self.model,
+            MAX_CONTEXT_LENGTH_FALLBACK,
         )
 
     def _remap_messages(self, messages: list[dict[str, str]]) -> list[dict[str, str]]:
@@ -93,24 +97,23 @@ class ClaudeModel(ChatModel):
             if role == "assistant":
                 if i == 0:
                     raise ValueError(
-                        f"First message must be a system or user message, got {[m['role'] for m in messages]}"
+                        f"First message must be a system or user message, got {[m['role'] for m in messages]}",
                     )
-                elif is_user:
+                if is_user:
                     raise ValueError(
-                        f"Must alternate between user and assistant, got {[m['role'] for m in messages]}"
+                        f"Must alternate between user and assistant, got {[m['role'] for m in messages]}",
                     )
                 remapped.append(message)
                 is_user = True
+            elif is_user:
+                remapped.append({"role": "user", "content": message["content"]})
+                is_user = False
             else:
-                if is_user:
-                    remapped.append({"role": "user", "content": message["content"]})
-                    is_user = False
-                else:
-                    if remapped[-1]["role"] != "user":
-                        raise ValueError(
-                            f"Invalid sequence, expected user message but got {[m['role'] for m in messages]}"
-                        )
-                    remapped[-1]["content"] += "\n\n" + message["content"]
+                if remapped[-1]["role"] != "user":
+                    raise ValueError(
+                        f"Invalid sequence, expected user message but got {[m['role'] for m in messages]}",
+                    )
+                remapped[-1]["content"] += "\n\n" + message["content"]
         return remapped
 
     def build_generate_message_state(
@@ -139,5 +142,7 @@ class ClaudeModel(ChatModel):
             max_tokens=DEFAULT_MAX_TOKENS,
         )
         return self.handle_generate_message_response(
-            prompt=msgs, content=res.content[0].text, force_json=force_json
+            prompt=msgs,
+            content=res.content[0].text,
+            force_json=force_json,
         )

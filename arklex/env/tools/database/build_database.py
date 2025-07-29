@@ -236,7 +236,10 @@ def build_database(folder_path: str) -> None:
 if __name__ == "__main__":
     parser: argparse.ArgumentParser = argparse.ArgumentParser()
     parser.add_argument(
-        "--folder_path", required=True, type=str, help="location to save the documents"
+        "--folder_path",
+        required=True,
+        type=str,
+        help="location to save the documents",
     )
     args: argparse.Namespace = parser.parse_args()
 

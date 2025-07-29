@@ -21,7 +21,7 @@ slots: list[dict[str, Any]] = [
         "description": "The email of the student. e.g. sarah@gmail.com",
         "prompt": "Could you please give me your email to check your appointment?",
         "required": True,
-    }
+    },
 ]
 
 # List of output parameters for the tool
@@ -30,14 +30,13 @@ outputs: list[dict[str, Any]] = [
         "name": "apt_ls",
         "type": "list[dict]",
         "description": 'All appointment information about the specific user. The format should be"{"apt_id": 1470211171, "date": "May 21, 2025", "time": "1:10pm", "endtime": "2:00pm", "apt_type": "Consultation ", "apt_type_id": null}"',
-    }
+    },
 ]
 
 
 @register_tool(description, slots, outputs)
 def get_apt_by_email(email: str, **kwargs: dict[str, Any]) -> str:
-    """
-    Get all future appointments for a given email address.
+    """Get all future appointments for a given email address.
 
     Args:
         email (str): Email address to search appointments for
@@ -48,6 +47,7 @@ def get_apt_by_email(email: str, **kwargs: dict[str, Any]) -> str:
 
     Raises:
         ToolExecutionError: If no appointments are found or API call fails
+
     """
     func_name: str = inspect.currentframe().f_code.co_name
     user_id: str
@@ -57,7 +57,8 @@ def get_apt_by_email(email: str, **kwargs: dict[str, Any]) -> str:
     base_url: str = "https://acuityscheduling.com/api/v1/appointments"
 
     response: requests.Response = requests.get(
-        base_url, auth=HTTPBasicAuth(user_id, api_key)
+        base_url,
+        auth=HTTPBasicAuth(user_id, api_key),
     )
     response_str: str = "Please include all appointments (At least the types and time info) in the response to users. There might be multiple appointments.\n"
     if response.status_code == 200:
@@ -68,7 +69,8 @@ def get_apt_by_email(email: str, **kwargs: dict[str, Any]) -> str:
         for item in data:
             if item.get("email") == email:
                 apt_date: datetime.date = datetime.strptime(
-                    item["date"], "%B %d, %Y"
+                    item["date"],
+                    "%B %d, %Y",
                 ).date()
                 if apt_date > today:
                     found_appointments = True
@@ -87,11 +89,11 @@ def get_apt_by_email(email: str, **kwargs: dict[str, Any]) -> str:
 
         if not found_appointments:
             raise ToolExecutionError(
-                func_name, AcuityExceptionPrompt.GET_APT_BY_EMAIL_EXCEPTION_PROMPT_1
+                func_name,
+                AcuityExceptionPrompt.GET_APT_BY_EMAIL_EXCEPTION_PROMPT_1,
             )
-        else:
-            return response_str
-    else:
-        raise ToolExecutionError(
-            func_name, AcuityExceptionPrompt.GET_APT_BY_EMAIL_EXCEPTION_PROMPT_2
-        )
+        return response_str
+    raise ToolExecutionError(
+        func_name,
+        AcuityExceptionPrompt.GET_APT_BY_EMAIL_EXCEPTION_PROMPT_2,
+    )

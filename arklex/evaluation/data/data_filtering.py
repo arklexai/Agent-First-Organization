@@ -41,7 +41,8 @@ GET_CUSTOMER_PROFILE = "Your job is to take conversations between a user and a c
 
 
 client = OpenAI(
-    api_key=os.environ["OPENAI_API_KEY"], organization=os.environ["OPENAI_ORG_ID"]
+    api_key=os.environ["OPENAI_API_KEY"],
+    organization=os.environ["OPENAI_ORG_ID"],
 )
 
 
@@ -87,7 +88,8 @@ def rule_based_filtering(convos: list[dict[str, Any]]) -> list[dict[str, Any]]:
 
 
 def first_pass_model_filtering(
-    convos: list[dict[str, Any]], model: str
+    convos: list[dict[str, Any]],
+    model: str,
 ) -> list[dict[str, Any]]:
     final_convos: list[dict[str, Any]] = []
     for convo in tqdm(convos):
@@ -104,9 +106,10 @@ def first_pass_model_filtering(
                 {
                     "role": "user",
                     "content": CHECK_GOAL.format(
-                        conversation=convo_str, goals=RELEVANT_GOALS
+                        conversation=convo_str,
+                        goals=RELEVANT_GOALS,
                     ),
-                }
+                },
             ],
             model=model,
         )
@@ -118,7 +121,8 @@ def first_pass_model_filtering(
 
 
 def second_pass_model_filtering(
-    convos: list[dict[str, Any]], model: str
+    convos: list[dict[str, Any]],
+    model: str,
 ) -> list[dict[str, Any]]:
     final_convos: list[dict[str, Any]] = []
     for convo in tqdm(convos):
@@ -148,7 +152,8 @@ def extract_customer_profile(customer_profile_output: str) -> dict[str, str]:
 
 
 def get_all_customer_profiles(
-    final_convos: list[dict[str, Any]], model: str
+    final_convos: list[dict[str, Any]],
+    model: str,
 ) -> dict[str, list[dict[str, Any]]]:
     failed_extractions: int = 0
     profiles: dict[str, list[dict[str, Any]]] = {}
@@ -159,9 +164,10 @@ def get_all_customer_profiles(
                 {
                     "role": "user",
                     "content": GET_CUSTOMER_PROFILE.format(
-                        full_profile=FULL_PROFILE, convo=convo_str
+                        full_profile=FULL_PROFILE,
+                        convo=convo_str,
                     ),
-                }
+                },
             ],
             model=model,
         )

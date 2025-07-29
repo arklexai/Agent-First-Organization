@@ -2,9 +2,7 @@ from arklex.utils.exceptions import ExceptionPrompt
 
 
 class ShopifyExceptionPrompt(ExceptionPrompt):
-    """
-    Shopify-specific exception prompts.
-    """
+    """Shopify-specific exception prompts."""
 
     # cancel_order exception prompt
     ORDER_CANCEL_ERROR_PROMPT = (

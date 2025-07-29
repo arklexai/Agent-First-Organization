@@ -7,7 +7,10 @@ from benchmark.tau_bench.envs.tool import Tool
 class ReturnDeliveredOrderItems(Tool):
     @staticmethod
     def invoke(
-        data: dict[str, Any], order_id: str, item_ids: list[str], payment_method_id: str
+        data: dict[str, Any],
+        order_id: str,
+        item_ids: list[str],
+        payment_method_id: str,
     ) -> str:
         orders = data["orders"]
 
@@ -26,7 +29,7 @@ class ReturnDeliveredOrderItems(Tool):
             and payment_method_id != order["payment_history"][0]["payment_method_id"]
         ):
             raise Exception(
-                "Error: payment method should be either the original payment method or a gift card"
+                "Error: payment method should be either the original payment method or a gift card",
             )
 
         # Check if the items to be returned exist (there could be duplicate items in either list)

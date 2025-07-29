@@ -70,6 +70,7 @@ async def arklex_exception_handler(request: Request, exc: ArklexError) -> JSONRe
 
     Returns:
         JSONResponse with error details and appropriate status code.
+
     """
     error_context = {
         "error_code": exc.error_code,
@@ -81,7 +82,9 @@ async def arklex_exception_handler(request: Request, exc: ArklexError) -> JSONRe
 
     # Log the error with context
     log_context.error(
-        f"Arklex error occurred: {str(exc)}", context=error_context, exc_info=exc
+        f"Arklex error occurred: {exc!s}",
+        context=error_context,
+        exc_info=exc,
     )
 
     # Prepare error response
@@ -90,7 +93,7 @@ async def arklex_exception_handler(request: Request, exc: ArklexError) -> JSONRe
             "code": exc.error_code,
             "message": str(exc),
             "details": exc.details,
-        }
+        },
     }
 
     # Add extra message for user-facing errors
@@ -121,6 +124,7 @@ async def global_exception_handler(request: Request, exc: Exception) -> JSONResp
 
     Returns:
         JSONResponse with generic error details and 500 status code.
+
     """
     error_context = {
         "error_type": type(exc).__name__,
@@ -131,7 +135,9 @@ async def global_exception_handler(request: Request, exc: Exception) -> JSONResp
 
     # Log the unexpected error with context
     log_context.error(
-        f"Unexpected error occurred: {str(exc)}", context=error_context, exc_info=exc
+        f"Unexpected error occurred: {exc!s}",
+        context=error_context,
+        exc_info=exc,
     )
 
     return JSONResponse(
@@ -141,7 +147,7 @@ async def global_exception_handler(request: Request, exc: Exception) -> JSONResp
                 "code": "INTERNAL_ERROR",
                 "message": "An unexpected error occurred",
                 "details": {"type": type(exc).__name__},
-            }
+            },
         },
     )
 
@@ -153,6 +159,7 @@ async def health_check() -> dict[str, str]:
 
     Returns:
         dict: A dictionary with the health status
+
     """
     log_context.info("Health check requested")
     return {"status": "healthy"}

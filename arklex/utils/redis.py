@@ -93,10 +93,13 @@ class RedisPool:
         redis_config (Dict[str, Any]): Complete Redis configuration dictionary
         connection_pool (ConnectionPool): The Redis connection pool instance
         client (redis.Redis): The Redis client instance
+
     """
 
     def __init__(
-        self, max_connections: int = POOL_SIZE, **kwargs: dict[str, Any]
+        self,
+        max_connections: int = POOL_SIZE,
+        **kwargs: dict[str, Any],
     ) -> None:
         """Initialize the Redis connection pool.
 
@@ -111,6 +114,7 @@ class RedisPool:
                 - db: Redis database number (default: 0)
                 - password: Redis password (default: None)
                 - username: Redis username (default: None)
+
         """
         self._host: str = kwargs.get("host", "localhost")
         self._port: int = kwargs.get("port", 6379)
@@ -136,14 +140,15 @@ class RedisPool:
 
         # Create connection pool
         self.connection_pool = ConnectionPool(
-            max_connections=max_connections, **self.redis_config
+            max_connections=max_connections,
+            **self.redis_config,
         )
 
         # Create Redis client
         self.client = redis.Redis(connection_pool=self.connection_pool)
 
         log_context.info(
-            f"Redis pool initialized with {max_connections} max connections"
+            f"Redis pool initialized with {max_connections} max connections",
         )
 
     def get_connection(self) -> redis.Redis:
@@ -154,6 +159,7 @@ class RedisPool:
 
         Returns:
             redis.Redis: A Redis client instance
+
         """
         return self.client
 
@@ -164,6 +170,7 @@ class RedisPool:
 
         Returns:
             bool: True if the connection is successful, False otherwise
+
         """
         try:
             response = self.client.ping()
@@ -176,7 +183,7 @@ class RedisPool:
     def set(
         self,
         key: str,
-        value: str | bytes | dict | list | int | float | bool,
+        value: str | bytes | dict | list | float | bool,
         ttl: int | None = None,
     ) -> bool:
         """Set a key-value pair in Redis with optional TTL.
@@ -191,6 +198,7 @@ class RedisPool:
 
         Returns:
             bool: True if the operation was successful, False otherwise
+
         """
         try:
             # Serialize non-string/bytes values as JSON
@@ -222,6 +230,7 @@ class RedisPool:
 
         Returns:
             str | None: The retrieved value as a string, or None if the key doesn't exist
+
         """
         try:
             value = self.client.get(key)
@@ -254,6 +263,7 @@ class RedisPool:
 
         Returns:
             int: Number of keys that were deleted
+
         """
         try:
             result = self.client.delete(*keys)
@@ -271,6 +281,7 @@ class RedisPool:
 
         Returns:
             int: Number of keys that exist
+
         """
         try:
             result = self.client.exists(*keys)
@@ -289,6 +300,7 @@ class RedisPool:
 
         Returns:
             bool: True if the operation was successful, False otherwise
+
         """
         try:
             result = self.client.expire(key, ttl)
@@ -306,6 +318,7 @@ class RedisPool:
 
         Returns:
             int: TTL in seconds, -1 if no TTL, -2 if key doesn't exist
+
         """
         try:
             result = self.client.ttl(key)
@@ -320,6 +333,7 @@ class RedisPool:
 
         Returns:
             bool: True if the operation was successful, False otherwise
+
         """
         try:
             result = self.client.flushdb()
@@ -337,6 +351,7 @@ class RedisPool:
 
         Returns:
             List[str]: List of matching keys
+
         """
         try:
             keys = self.client.keys(pattern)
@@ -345,7 +360,7 @@ class RedisPool:
                 key.decode("utf-8") if isinstance(key, bytes) else key for key in keys
             ]
             log_context.debug(
-                f"Redis KEYS found {len(result)} keys matching pattern: {pattern}"
+                f"Redis KEYS found {len(result)} keys matching pattern: {pattern}",
             )
             return result
         except Exception as e:

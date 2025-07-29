@@ -26,6 +26,7 @@ class TaskGraphFormatter:
         _task_docs (List[Dict[str, Any]]): Task documentation
         _rag_docs (List[Dict[str, Any]]): RAG documentation
         _workers (List[Dict[str, Any]]): List of workers
+
     """
 
     # Default worker names - can be overridden in config
@@ -82,6 +83,7 @@ class TaskGraphFormatter:
             allow_nested_graph (bool): Whether to allow nested graph generation
             model (Optional[Any]): Language model for intent generation
             settings (Optional[Dict[str, Any]]): Additional configuration settings
+
         """
         self._role = role
         self._user_objective = user_objective
@@ -113,6 +115,7 @@ class TaskGraphFormatter:
 
         Returns:
             Dict[str, str]: Worker info with 'id' and 'name' keys
+
         """
         if self._workers:
             for worker in self._workers:
@@ -135,7 +138,8 @@ class TaskGraphFormatter:
             },
         }
         return fallback_workers.get(
-            worker_name, {"id": worker_name.lower(), "name": worker_name}
+            worker_name,
+            {"id": worker_name.lower(), "name": worker_name},
         )
 
     def format_task_graph(self, tasks: list[dict[str, Any]]) -> dict[str, Any]:
@@ -146,6 +150,7 @@ class TaskGraphFormatter:
 
         Returns:
             Dict[str, Any]: Complete task graph with nodes, edges, and metadata
+
         """
         if self._nodes is not None and self._edges is not None:
             return {"nodes": self._nodes, "edges": self._edges}
@@ -154,7 +159,10 @@ class TaskGraphFormatter:
         nodes, node_lookup, all_task_node_ids = self._format_nodes(tasks)
         start_node_id = "0"  # Start node is always "0" in our current implementation
         edges, nested_graph_nodes = self._format_edges(
-            tasks, node_lookup, all_task_node_ids, start_node_id
+            tasks,
+            node_lookup,
+            all_task_node_ids,
+            start_node_id,
         )
 
         # Update NestedGraph node values with their target node IDs
@@ -239,6 +247,7 @@ class TaskGraphFormatter:
                 - nodes: List of formatted node data
                 - node_lookup: Mapping of task identifiers to node IDs
                 - all_task_node_ids: List of all task node IDs
+
         """
         nodes = []
         node_id_counter = 0
@@ -264,7 +273,7 @@ class TaskGraphFormatter:
                     "limit": 1,
                     "type": "start",
                 },
-            ]
+            ],
         )
         node_id_counter += 1
 
@@ -281,7 +290,8 @@ class TaskGraphFormatter:
             resource_name = self.DEFAULT_MESSAGE_WORKER
             if task.get("resource") and isinstance(task["resource"], dict):
                 resource_name = task["resource"].get(
-                    "name", self.DEFAULT_MESSAGE_WORKER
+                    "name",
+                    self.DEFAULT_MESSAGE_WORKER,
                 )
             elif task.get("resource"):
                 resource_name = str(task["resource"])
@@ -324,7 +334,7 @@ class TaskGraphFormatter:
             if not steps and task.get("description"):
                 # If no steps defined, create a single step from the task description
                 steps = [
-                    {"description": task.get("description", ""), "step_id": "step_1"}
+                    {"description": task.get("description", ""), "step_id": "step_1"},
                 ]
                 task["steps"] = steps
 
@@ -340,7 +350,8 @@ class TaskGraphFormatter:
                     and isinstance(step["resource"], dict)
                 ):
                     step_worker_name = step["resource"].get(
-                        "name", self.DEFAULT_MESSAGE_WORKER
+                        "name",
+                        self.DEFAULT_MESSAGE_WORKER,
                     )
                 elif isinstance(step, dict) and step.get("resource"):
                     step_worker_name = str(step["resource"])
@@ -387,7 +398,7 @@ class TaskGraphFormatter:
                                 "directed": False,
                             },
                         },
-                    ]
+                    ],
                 )
                 node_lookup[step_id] = step_node_id
                 node_id_counter += 1
@@ -413,6 +424,7 @@ class TaskGraphFormatter:
 
         Returns:
             Dict[str, Any]: Edge attributes dictionary with intent and metadata
+
         """
         return {
             "intent": intent,
@@ -443,6 +455,7 @@ class TaskGraphFormatter:
             Tuple[List[Any], List[Any]]: (edges, nested_graph_nodes)
                 - edges: List of formatted edge data
                 - nested_graph_nodes: List of nested graph nodes
+
         """
         edges = []
         nested_graph_nodes = []
@@ -489,7 +502,7 @@ class TaskGraphFormatter:
                                 from langchain_core.messages import HumanMessage
 
                                 response = self._model.invoke(
-                                    [HumanMessage(content=intent_prompt)]
+                                    [HumanMessage(content=intent_prompt)],
                                 )
                                 intent = response.content.strip().strip('"').strip("'")
                                 # Clean up the response to ensure it's a valid intent
@@ -503,7 +516,7 @@ class TaskGraphFormatter:
                                 intent = "User inquires about purchasing options"  # default fallback
                         except Exception as e:
                             log_context.warning(
-                                f"Failed to generate intent for task {task_name}: {e}"
+                                f"Failed to generate intent for task {task_name}: {e}",
                             )
                             intent = (
                                 "User inquires about purchasing options"  # fallback
@@ -514,7 +527,7 @@ class TaskGraphFormatter:
                             start_node_id,
                             task_node_id,
                             self._create_edge_attributes(intent=intent, pred=True),
-                        ]
+                        ],
                     )
                 else:
                     # This handles dependencies between tasks.
@@ -523,24 +536,25 @@ class TaskGraphFormatter:
                         if dep is None:
                             log_context.warning("Skipping None dependency")
                             continue
-                        elif isinstance(dep, str):
+                        if isinstance(dep, str):
                             dep_id = dep
                         elif isinstance(dep, dict):
                             dep_id = dep.get("id")
                             if dep_id is None:
                                 log_context.warning(
-                                    "Skipping dependency dict without 'id' field"
+                                    "Skipping dependency dict without 'id' field",
                                 )
                                 continue
                         else:
                             log_context.warning(
-                                f"Skipping invalid dependency type: {type(dep)}"
+                                f"Skipping invalid dependency type: {type(dep)}",
                             )
                             continue
 
                         # Find the source task from the list of tasks
                         source_task = next(
-                            (t for t in tasks if t.get("id") == dep_id), None
+                            (t for t in tasks if t.get("id") == dep_id),
+                            None,
                         )
 
                         if source_task:
@@ -564,11 +578,11 @@ class TaskGraphFormatter:
                                     source_node_id,
                                     task_node_id,
                                     self._create_edge_attributes(),
-                                ]
+                                ],
                             )
                         else:
                             log_context.warning(
-                                f"Could not find source node for dependency '{dep_id}'"
+                                f"Could not find source node for dependency '{dep_id}'",
                             )
 
         # Steps
@@ -586,7 +600,7 @@ class TaskGraphFormatter:
                                 task_node_id,
                                 node_lookup[first_step_id],
                                 self._create_edge_attributes(intent=None),
-                            ]
+                            ],
                         )
                         for i in range(len(steps) - 1):
                             current_step_id = f"{task_identifier}_step{i}"
@@ -600,7 +614,7 @@ class TaskGraphFormatter:
                                         node_lookup[current_step_id],
                                         node_lookup[next_step_id],
                                         self._create_edge_attributes(intent=None),
-                                    ]
+                                    ],
                                 )
 
         return edges, nested_graph_nodes
@@ -617,6 +631,7 @@ class TaskGraphFormatter:
 
         Returns:
             Dict[str, Any]: The graph with corrected nested graph connectivity.
+
         """
         nodes = graph.get("nodes", [])
         edges = graph.get("edges", [])
@@ -668,9 +683,9 @@ class TaskGraphFormatter:
                         ng_node_id,
                         next_step_node_id,
                         self._create_edge_attributes(
-                            definition="Continue to next step from nested graph"
+                            definition="Continue to next step from nested graph",
                         ),
-                    ]
+                    ],
                 )
 
         graph["edges"] = edges

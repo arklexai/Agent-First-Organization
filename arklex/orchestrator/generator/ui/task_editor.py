@@ -55,10 +55,13 @@ class TaskEditorApp(App):
         - 'd': Delete selected node (if not root)
         - 's': Save changes and exit
         - Enter: Edit selected node
+
     """
 
     def __init__(
-        self, tasks: list[dict[str, Any]], input_modal_class: type = InputModal
+        self,
+        tasks: list[dict[str, Any]],
+        input_modal_class: type = InputModal,
     ) -> None:
         """Initialize the TaskEditorApp instance.
 
@@ -75,6 +78,7 @@ class TaskEditorApp(App):
                 {"name": "Task 1", "steps": ["Step 1", "Step 2"]},
                 {"name": "Task 2", "steps": [{"description": "Complex step"}]}
             ]
+
         """
         super().__init__()
         self.tasks = tasks
@@ -96,13 +100,14 @@ class TaskEditorApp(App):
         Yields:
             ComposeResult: The composed UI elements including the tree widget
                           and instruction label
+
         """
         self.task_tree = Tree("🎯 TASK EDITOR - Edit Your Tasks Below")
         TaskDataManager.populate_tree_from_tasks(self.task_tree, self.tasks)
 
         yield self.task_tree
         yield Label(
-            "🎯 TASK EDITOR ACTIVE - Use 'a' to add nodes, 'd' to delete, 's' to save and exit, arrow keys to navigate"
+            "🎯 TASK EDITOR ACTIVE - Use 'a' to add nodes, 'd' to delete, 's' to save and exit, arrow keys to navigate",
         )
 
     def on_mount(self) -> None:
@@ -122,6 +127,7 @@ class TaskEditorApp(App):
 
         Args:
             event (Tree.NodeSelected): The node selection event containing the selected node
+
         """
         selected_node = event.node
 
@@ -131,6 +137,7 @@ class TaskEditorApp(App):
             Args:
                 result (str): The result from the modal input
                 node (TreeNode): The tree node being edited
+
             """
             if result and result.strip():
                 node.set_label(result.strip())
@@ -138,7 +145,10 @@ class TaskEditorApp(App):
         current_label = TaskDataManager.extract_label_text(selected_node.label)
 
         self.show_input_modal(
-            "Edit node", current_label, selected_node, handle_modal_result
+            "Edit node",
+            current_label,
+            selected_node,
+            handle_modal_result,
         )
 
     async def on_key(self, event: Key) -> None:
@@ -154,6 +164,7 @@ class TaskEditorApp(App):
 
         Args:
             event (Key): The keyboard event containing the pressed key
+
         """
         if not self.task_tree:
             return
@@ -174,6 +185,7 @@ class TaskEditorApp(App):
 
         Args:
             node (TreeNode): The parent node to add the new node to. If None, no action is taken.
+
         """
         if not node:
             return
@@ -184,6 +196,7 @@ class TaskEditorApp(App):
             Args:
                 result (str): The result from the modal input
                 parent_node (TreeNode): The parent node for the new node
+
             """
             if result and result.strip():
                 parent_node.add(result.strip())
@@ -195,6 +208,7 @@ class TaskEditorApp(App):
 
         Args:
             node (TreeNode | None): The node to delete
+
         """
         if node and node.parent:
             node.remove()
@@ -212,14 +226,14 @@ class TaskEditorApp(App):
 
         Args:
             screen (InputModal): The modal screen to push onto the screen stack
+
         """
         # Check if parent class has push_screen method before calling it
         if hasattr(super(), "push_screen"):
             return super().push_screen(screen)
-        else:
-            # If parent doesn't have push_screen, just store the screen for testing
-            self._current_screen = screen
-            return [1, 2, 3]  # Return a value for testing
+        # If parent doesn't have push_screen, just store the screen for testing
+        self._current_screen = screen
+        return [1, 2, 3]  # Return a value for testing
 
     def show_input_modal(
         self,
@@ -242,6 +256,7 @@ class TaskEditorApp(App):
 
         Returns:
             str: The default value (the actual result is handled by the callback)
+
         """
         modal = self._input_modal_class(title, default, node, callback)
         self.push_screen(modal)
@@ -276,6 +291,7 @@ class TaskEditorApp(App):
         Returns:
             List[Dict[str, Any]]: The updated tasks list with any modifications
                                  made by the user during the editing session
+
         """
         # Run the actual Textual app
         super().run()

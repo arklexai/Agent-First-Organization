@@ -17,7 +17,7 @@ def authorify_admin(kwargs: dict[str, Any]) -> dict[str, str]:
 
     if not all(auth.values()):
         raise AuthenticationError(
-            f"Shopify admin authentication failed: {SHOPIFY_ADMIN_AUTH_ERROR_MSG}"
+            f"Shopify admin authentication failed: {SHOPIFY_ADMIN_AUTH_ERROR_MSG}",
         )
     return auth
 
@@ -31,7 +31,7 @@ def authorify_storefront(kwargs: dict[str, Any]) -> dict[str, str]:
 
     if not all(auth_dict.values()):
         raise AuthenticationError(
-            f"Shopify storefront authentication failed: {SHOPIFY_STOREFRONT_AUTH_ERROR_MSG}"
+            f"Shopify storefront authentication failed: {SHOPIFY_STOREFRONT_AUTH_ERROR_MSG}",
         )
     auth = {
         "storefront_token": auth_dict["token"],
@@ -41,17 +41,19 @@ def authorify_storefront(kwargs: dict[str, Any]) -> dict[str, str]:
 
 
 def make_query(
-    url: str, query: str, variables: dict[str, Any], headers: dict[str, str]
+    url: str,
+    query: str,
+    variables: dict[str, Any],
+    headers: dict[str, str],
 ) -> dict[str, Any]:
-    """
-    Make query response
-    """
+    """Make query response"""
     request = requests.post(
-        url, json={"query": query, "variables": variables}, headers=headers
+        url,
+        json={"query": query, "variables": variables},
+        headers=headers,
     )
     if request.status_code == 200:
         return request.json()
-    else:
-        raise Exception(
-            f"Query failed to run by returning code of {request.status_code}. {query}"
-        )
+    raise Exception(
+        f"Query failed to run by returning code of {request.status_code}. {query}",
+    )

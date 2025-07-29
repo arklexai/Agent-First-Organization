@@ -1,5 +1,4 @@
-"""
-This module provides a Flask server implementation for handling Shopify OAuth 2.0 callbacks.
+"""This module provides a Flask server implementation for handling Shopify OAuth 2.0 callbacks.
 It creates a temporary server that listens for authentication tokens and manages the OAuth flow.
 
 The server:
@@ -34,8 +33,7 @@ auth_token: str | None = None
 
 
 def start_auth_server() -> None:
-    """
-    Start a temporary Flask server to listen for authentication tokens.
+    """Start a temporary Flask server to listen for authentication tokens.
 
     The server:
     1. Creates a Flask application
@@ -77,8 +75,7 @@ def start_auth_server() -> None:
 
 
 def authenticate_server() -> str:
-    """
-    Set up and run the authentication server to receive OAuth tokens.
+    """Set up and run the authentication server to receive OAuth tokens.
 
     This function:
     1. Creates an ngrok tunnel to expose the local server
@@ -91,12 +88,15 @@ def authenticate_server() -> str:
 
     Note:
         This function blocks until a token is received or the server is shut down.
+
     """
     global auth_token
 
     # Start Ngrok tunnel to localhost:8000
     ngrok_tunnel = ngrok.forward(
-        8000, authtoken_from_env=True, domain="causal-bluejay-humble.ngrok-free.app"
+        8000,
+        authtoken_from_env=True,
+        domain="causal-bluejay-humble.ngrok-free.app",
     )
     print("Waiting to authenticate...")
 

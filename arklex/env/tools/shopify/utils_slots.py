@@ -84,7 +84,7 @@ class ShopifyCartAddItemsSlots(ShopifySlots):
             "prompt": "Please confirm the items to add to the cart.",
             "required": True,
             "verified": True,
-        }
+        },
     )
 
 
@@ -113,7 +113,7 @@ class ShopifyGetOrderDetailsSlots(ShopifySlots):
             "prompt": "Please provide the order id to get the details of the order.",
             "required": False,
             "verified": True,
-        }
+        },
     )
     ORDER_NAMES = ShopifySlots.to_list(
         {
@@ -123,7 +123,7 @@ class ShopifyGetOrderDetailsSlots(ShopifySlots):
             "prompt": "Please provide the order name to get the details of the order.",
             "required": False,
             "verified": True,
-        }
+        },
     )
 
 

@@ -18,13 +18,13 @@ class TestModelProviderConfig:
     def test_get_huggingface_llm(self) -> None:
         """Test get_huggingface_llm function."""
         with patch(
-            "arklex.utils.model_provider_config.HuggingFaceEndpoint"
+            "arklex.utils.model_provider_config.HuggingFaceEndpoint",
         ) as mock_endpoint:
             mock_endpoint_instance = Mock()
             mock_endpoint.return_value = mock_endpoint_instance
 
             with patch(
-                "arklex.utils.model_provider_config.ChatHuggingFace"
+                "arklex.utils.model_provider_config.ChatHuggingFace",
             ) as mock_chat:
                 mock_chat_instance = Mock()
                 mock_chat.return_value = mock_chat_instance
@@ -33,7 +33,9 @@ class TestModelProviderConfig:
 
                 # Verify HuggingFaceEndpoint was called correctly
                 mock_endpoint.assert_called_once_with(
-                    repo_id="test-model", task="text-generation", temperature=0.7
+                    repo_id="test-model",
+                    task="text-generation",
+                    temperature=0.7,
                 )
 
                 # Verify ChatHuggingFace was called with the endpoint

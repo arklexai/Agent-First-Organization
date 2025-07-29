@@ -310,7 +310,7 @@ class TestTaskEditorAppInitialization:
                     "Step as string",
                     {"other_field": "Not description"},
                 ],
-            }
+            },
         ]
         app = TaskEditorApp(complex_tasks)
         assert app.tasks == complex_tasks
@@ -368,7 +368,10 @@ class TestTaskEditorAppCompose:
     """Test TaskEditorApp compose method."""
 
     def test_compose_method(
-        self, sample_tasks: list[dict[str, Any]], mock_tree: Mock, mock_label: Mock
+        self,
+        sample_tasks: list[dict[str, Any]],
+        mock_tree: Mock,
+        mock_label: Mock,
     ) -> None:
         """Test compose method with valid tasks."""
         skip_if_ui_not_available()
@@ -412,7 +415,10 @@ class TestTaskEditorAppCompose:
         assert len(result) >= 1
 
     def test_compose_with_complex_tasks(
-        self, complex_tasks: list[dict[str, Any]], mock_tree: Mock, mock_label: Mock
+        self,
+        complex_tasks: list[dict[str, Any]],
+        mock_tree: Mock,
+        mock_label: Mock,
     ) -> None:
         """Test compose method with complex tasks."""
         skip_if_ui_not_available()
@@ -504,7 +510,9 @@ class TestTaskEditorAppEventHandling:
         task_editor_app.task_tree.focus.assert_called_once()
 
     async def test_on_tree_node_selected(
-        self, task_editor_app: TaskEditorApp, mock_input_modal: Mock
+        self,
+        task_editor_app: TaskEditorApp,
+        mock_input_modal: Mock,
     ) -> None:
         """Test on_tree_node_selected method."""
         skip_if_ui_not_available()
@@ -535,7 +543,9 @@ class TestTaskEditorAppEventHandling:
             task_editor_app.push_screen.assert_called_once()
 
     async def test_on_tree_node_selected_with_none_label(
-        self, task_editor_app: TaskEditorApp, mock_input_modal: Mock
+        self,
+        task_editor_app: TaskEditorApp,
+        mock_input_modal: Mock,
     ) -> None:
         """Test on_tree_node_selected method with None label."""
         skip_if_ui_not_available()
@@ -707,7 +717,9 @@ class TestTaskEditorAppNodeManagement:
     """Test TaskEditorApp node management methods."""
 
     async def test_action_add_node_step_node(
-        self, task_editor_app: TaskEditorApp, mock_input_modal: Mock
+        self,
+        task_editor_app: TaskEditorApp,
+        mock_input_modal: Mock,
     ) -> None:
         """Test action_add_node method with step node."""
         skip_if_ui_not_available()
@@ -735,7 +747,9 @@ class TestTaskEditorAppNodeManagement:
             task_editor_app.push_screen.assert_called_once()
 
     async def test_action_add_node_task_node_expanded(
-        self, task_editor_app: TaskEditorApp, mock_input_modal: Mock
+        self,
+        task_editor_app: TaskEditorApp,
+        mock_input_modal: Mock,
     ) -> None:
         """Test action_add_node method with expanded task node."""
         skip_if_ui_not_available()
@@ -766,7 +780,9 @@ class TestTaskEditorAppNodeManagement:
             task_editor_app.push_screen.assert_called_once()
 
     async def test_action_add_node_task_node_not_expanded(
-        self, task_editor_app: TaskEditorApp, mock_input_modal: Mock
+        self,
+        task_editor_app: TaskEditorApp,
+        mock_input_modal: Mock,
     ) -> None:
         """Test action_add_node method with not expanded task node."""
         skip_if_ui_not_available()
@@ -797,7 +813,9 @@ class TestTaskEditorAppNodeManagement:
             task_editor_app.push_screen.assert_called_once()
 
     def test_show_input_modal(
-        self, task_editor_app: TaskEditorApp, mock_input_modal: Mock
+        self,
+        task_editor_app: TaskEditorApp,
+        mock_input_modal: Mock,
     ) -> None:
         """Test show_input_modal method."""
         skip_if_ui_not_available()
@@ -827,7 +845,9 @@ class TestTaskEditorAppNodeManagement:
             assert result == "default value"
 
     def test_show_input_modal_with_empty_default(
-        self, task_editor_app: TaskEditorApp, mock_input_modal: Mock
+        self,
+        task_editor_app: TaskEditorApp,
+        mock_input_modal: Mock,
     ) -> None:
         """Test show_input_modal method with empty default value."""
         skip_if_ui_not_available()
@@ -881,7 +901,8 @@ class TestTaskEditorAppNodeManagement:
             assert result == "default value"
 
     def test_show_input_modal_returns_result(
-        self, task_editor_app: TaskEditorApp
+        self,
+        task_editor_app: TaskEditorApp,
     ) -> None:
         """Test show_input_modal method returns correct result."""
         skip_if_ui_not_available()
@@ -932,7 +953,10 @@ class TestTaskEditorAppNodeManagement:
         with patch.object(app, "push_screen") as mock_push_screen:
             # Test that the method returns the default value
             result = app.show_input_modal(
-                "Test Title", "default", mock_node, test_callback
+                "Test Title",
+                "default",
+                mock_node,
+                test_callback,
             )
             assert result == "default"
             # Verify push_screen was called
@@ -1013,7 +1037,8 @@ class TestTaskEditorAppDataManagement:
         await app.update_tasks()
 
     async def test_update_tasks_with_invalid_node_structure(
-        self, mock_log_context: Mock
+        self,
+        mock_log_context: Mock,
     ) -> None:
         """Test update_tasks method with invalid node structure."""
         skip_if_ui_not_available()
@@ -1043,7 +1068,8 @@ class TestTaskEditorAppDataManagement:
             await app.update_tasks()
 
     async def test_update_tasks_with_missing_step_data(
-        self, mock_log_context: Mock
+        self,
+        mock_log_context: Mock,
     ) -> None:
         """Test update_tasks method with missing step data."""
         skip_if_ui_not_available()
@@ -1313,7 +1339,9 @@ def test_push_screen_calls_super() -> None:
         import unittest.mock
 
         with unittest.mock.patch.object(
-            base_class, "push_screen", return_value=[1, 2, 3]
+            base_class,
+            "push_screen",
+            return_value=[1, 2, 3],
         ):
             result = app.push_screen(True)
             assert called["super"] is True
@@ -1461,7 +1489,10 @@ class TestTaskEditorMissingCoverage:
         mock_callback = Mock()
         with patch.object(app, "push_screen") as mock_push_screen:
             result = app.show_input_modal(
-                "Test Title", "Default Value", mock_node, mock_callback
+                "Test Title",
+                "Default Value",
+                mock_node,
+                mock_callback,
             )
             assert result == "Default Value"
             mock_push_screen.assert_called_once()
@@ -1485,7 +1516,7 @@ class TestTaskEditorSpecificMissingLines:
                     "String step",  # Mix with string steps
                     {"other_field": "value"},  # Dict without description
                 ],
-            }
+            },
         ]
 
         app = TaskEditorApp(tasks)

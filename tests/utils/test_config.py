@@ -16,6 +16,7 @@ class CaseConfig:
         orchestrator_cls: The orchestrator class to test
         config_file: Path to the taskgraph configuration file
         test_cases_file: Path to the test cases file
+
     """
 
     def __init__(
@@ -30,6 +31,7 @@ class CaseConfig:
             orchestrator_cls: The orchestrator class to use for testing.
             config_file: Path to the configuration file.
             test_cases_file: Path to the test cases file.
+
         """
         self.orchestrator_cls = orchestrator_cls
         self.config_file = config_file

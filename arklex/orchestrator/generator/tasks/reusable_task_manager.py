@@ -32,6 +32,7 @@ class ReusableTask:
         examples (List[Dict[str, Any]]): Example instantiations.
         version (str): Template version.
         category (str): Template category (e.g., 'utility', 'workflow').
+
     """
 
     template_id: str
@@ -69,6 +70,7 @@ class ReusableTaskManager:
         _create_templates(): Create reusable templates
         _validate_templates(): Validate generated templates
         _categorize_templates(): Categorize templates by type
+
     """
 
     def __init__(
@@ -83,6 +85,7 @@ class ReusableTaskManager:
             model (Any): The language model to use for template generation.
             role (str): The role or context for template generation.
             user_objective (str): User's objective for the task graph.
+
         """
         self.model = model
         self.role = role
@@ -91,7 +94,8 @@ class ReusableTaskManager:
         self._template_categories: dict[str, list[str]] = {}
 
     def generate_reusable_tasks(
-        self, tasks: list[dict[str, Any]]
+        self,
+        tasks: list[dict[str, Any]],
     ) -> dict[str, dict[str, Any]]:
         """Generate reusable task templates from the given tasks.
 
@@ -107,6 +111,7 @@ class ReusableTaskManager:
 
         Returns:
             Dict[str, Dict[str, Any]]: Dictionary of generated templates.
+
         """
         patterns = self._identify_patterns(tasks)
         if not patterns and tasks:
@@ -116,7 +121,7 @@ class ReusableTaskManager:
                     "description": tasks[0]["description"],
                     "steps": tasks[0].get("steps", []),
                     "parameters": {},
-                }
+                },
             ]
         log_context.info(f"Identified {len(patterns)} reusable patterns")
         components = self._extract_components(patterns)
@@ -130,7 +135,9 @@ class ReusableTaskManager:
         return validated_templates
 
     def instantiate_template(
-        self, template_id: str, parameters: dict[str, Any]
+        self,
+        template_id: str,
+        parameters: dict[str, Any],
     ) -> dict[str, Any]:
         """Create a task instance from a template.
 
@@ -146,6 +153,7 @@ class ReusableTaskManager:
 
         Raises:
             ValueError: If template_id is not found or parameters are invalid.
+
         """
         try:
             template = self._templates.get(template_id)
@@ -157,7 +165,7 @@ class ReusableTaskManager:
             log_context.info(f"Created instance from template: {template_id}")
             return instance
         except Exception as e:
-            log_context.error(f"Error instantiating template: {str(e)}")
+            log_context.error(f"Error instantiating template: {e!s}")
             raise
 
     def _identify_patterns(self, tasks: list[dict[str, Any]]) -> list[dict[str, Any]]:
@@ -171,6 +179,7 @@ class ReusableTaskManager:
 
         Returns:
             List[Dict[str, Any]]: List of identified patterns.
+
         """
         patterns: list[dict[str, Any]] = []
         for task in tasks:
@@ -185,7 +194,8 @@ class ReusableTaskManager:
         return patterns
 
     def _extract_components(
-        self, patterns: list[dict[str, Any]]
+        self,
+        patterns: list[dict[str, Any]],
     ) -> list[dict[str, Any]]:
         """Extract common components from patterns.
 
@@ -197,6 +207,7 @@ class ReusableTaskManager:
 
         Returns:
             List[Dict[str, Any]]: List of extracted components.
+
         """
         components: list[dict[str, Any]] = []
         for pattern in patterns:
@@ -215,7 +226,8 @@ class ReusableTaskManager:
         return components
 
     def _create_templates(
-        self, components: list[dict[str, Any]]
+        self,
+        components: list[dict[str, Any]],
     ) -> dict[str, ReusableTask]:
         """Create reusable templates from components.
 
@@ -227,6 +239,7 @@ class ReusableTaskManager:
 
         Returns:
             Dict[str, ReusableTask]: Dictionary mapping template IDs to ReusableTask objects.
+
         """
         templates: dict[str, ReusableTask] = {}
         for i, component in enumerate(components):
@@ -244,7 +257,8 @@ class ReusableTaskManager:
         return templates
 
     def _validate_templates(
-        self, templates: dict[str, ReusableTask]
+        self,
+        templates: dict[str, ReusableTask],
     ) -> dict[str, dict[str, Any]]:
         """Validate generated templates.
 
@@ -267,6 +281,7 @@ class ReusableTaskManager:
                     "version": str,
                     "category": str
                 }
+
         """
         validated_templates: dict[str, dict[str, Any]] = {}
         for template_id, template in templates.items():
@@ -282,55 +297,58 @@ class ReusableTaskManager:
 
         Returns:
             bool: True if template is valid
+
         """
         if not template.template_id:
             log_context.debug("Template validation failed: missing template_id")
             return False
         if not template.name:
             log_context.debug(
-                f"Template validation failed: missing name for {template.template_id}"
+                f"Template validation failed: missing name for {template.template_id}",
             )
             return False
         if not template.description:
             log_context.debug(
-                f"Template validation failed: missing description for {template.template_id}"
+                f"Template validation failed: missing description for {template.template_id}",
             )
             return False
         if not template.steps:
             log_context.debug(
-                f"Template validation failed: missing steps for {template.template_id}"
+                f"Template validation failed: missing steps for {template.template_id}",
             )
             return False
         if not isinstance(template.steps, list):
             log_context.debug(
-                f"Template validation failed: steps not a list for {template.template_id}"
+                f"Template validation failed: steps not a list for {template.template_id}",
             )
             return False
         if not isinstance(template.parameters, dict):
             log_context.debug(
-                f"Template validation failed: parameters not a dict for {template.template_id}"
+                f"Template validation failed: parameters not a dict for {template.template_id}",
             )
             return False
         if not isinstance(template.examples, list):
             log_context.debug(
-                f"Template validation failed: examples not a list for {template.template_id}"
+                f"Template validation failed: examples not a list for {template.template_id}",
             )
             return False
         if not template.version:
             log_context.debug(
-                f"Template validation failed: missing version for {template.template_id}"
+                f"Template validation failed: missing version for {template.template_id}",
             )
             return False
         if not template.category:
             log_context.debug(
-                f"Template validation failed: missing category for {template.template_id}"
+                f"Template validation failed: missing category for {template.template_id}",
             )
             return False
         log_context.debug(f"Template validation passed for {template.template_id}")
         return True
 
     def _validate_parameters(
-        self, template: ReusableTask, parameters: dict[str, Any]
+        self,
+        template: ReusableTask,
+        parameters: dict[str, Any],
     ) -> bool:
         """Validate template parameters.
 
@@ -340,6 +358,7 @@ class ReusableTaskManager:
 
         Returns:
             bool: True if parameters are valid
+
         """
         for param_name, param_type in template.parameters.items():
             if param_name not in parameters:
@@ -347,7 +366,8 @@ class ReusableTaskManager:
             if param_type == "string" and not isinstance(parameters[param_name], str):
                 return False
             if param_type == "number" and not isinstance(
-                parameters[param_name], int | float
+                parameters[param_name],
+                int | float,
             ):
                 return False
             if param_type == "boolean" and not isinstance(parameters[param_name], bool):
@@ -355,7 +375,9 @@ class ReusableTaskManager:
         return True
 
     def _create_instance(
-        self, template: ReusableTask, parameters: dict[str, Any]
+        self,
+        template: ReusableTask,
+        parameters: dict[str, Any],
     ) -> dict[str, Any]:
         """Create a task instance from a template.
 
@@ -377,6 +399,7 @@ class ReusableTaskManager:
                     "template_id": str,
                     "version": str
                 }
+
         """
         instance: dict[str, Any] = {
             "task_id": f"task_{template.template_id}",
@@ -394,6 +417,7 @@ class ReusableTaskManager:
 
         Args:
             templates (Dict[str, Dict[str, Any]]): Dictionary of templates to categorize
+
         """
         self._template_categories = {}
         for template_id, template in templates.items():
@@ -410,6 +434,7 @@ class ReusableTaskManager:
 
         Returns:
             Dict[str, Any]: Dictionary representation of the template
+
         """
         return {
             "template_id": template.template_id,

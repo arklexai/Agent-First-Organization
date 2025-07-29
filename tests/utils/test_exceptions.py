@@ -156,7 +156,9 @@ def test_tool_execution_error() -> None:
 def test_tool_execution_error_with_extra_message() -> None:
     """Test ToolExecutionError with extra message."""
     error = ToolExecutionError(
-        "test_tool", "Tool execution failed", extra_message="Try again"
+        "test_tool",
+        "Tool execution failed",
+        extra_message="Try again",
     )
     assert (
         str(error)

@@ -219,7 +219,9 @@ class TestDocumentLoader:
     """Test suite for the DocumentLoader class."""
 
     def test_load_document(
-        self, document_loader: DocumentLoader, mock_file_system: dict
+        self,
+        document_loader: DocumentLoader,
+        mock_file_system: dict,
     ) -> None:
         """Test loading a document from file."""
         doc_path = Path("/path/to/document.json")
@@ -269,14 +271,18 @@ class TestDocumentLoader:
         assert cached_doc == sample_document
 
     def test_validate_document(
-        self, document_loader: DocumentLoader, sample_document: dict
+        self,
+        document_loader: DocumentLoader,
+        sample_document: dict,
     ) -> None:
         """Test document validation."""
         is_valid = document_loader.validate_document(sample_document)
         assert is_valid
 
     def test_load_document_file_not_found(
-        self, document_loader: DocumentLoader, mock_file_not_found: None
+        self,
+        document_loader: DocumentLoader,
+        mock_file_not_found: None,
     ) -> None:
         """Test loading document when file is not found."""
         doc_path = Path("/not/found.json")
@@ -284,7 +290,9 @@ class TestDocumentLoader:
             document_loader.load_document(doc_path)
 
     def test_load_document_invalid_json(
-        self, document_loader: DocumentLoader, mock_invalid_json: None
+        self,
+        document_loader: DocumentLoader,
+        mock_invalid_json: None,
     ) -> None:
         """Test loading document with invalid JSON."""
         doc_path = Path("/invalid.json")
@@ -292,7 +300,9 @@ class TestDocumentLoader:
             document_loader.load_document(doc_path)
 
     def test_load_task_document_invalid_structure(
-        self, document_loader: DocumentLoader, mock_file_system: dict
+        self,
+        document_loader: DocumentLoader,
+        mock_file_system: dict,
     ) -> None:
         """Test loading task document with invalid structure."""
         doc_path = Path("/invalid_task.json")
@@ -301,7 +311,9 @@ class TestDocumentLoader:
             document_loader.load_task_document(doc_path)
 
     def test_load_instruction_document_invalid_structure(
-        self, document_loader: DocumentLoader, mock_file_system: dict
+        self,
+        document_loader: DocumentLoader,
+        mock_file_system: dict,
     ) -> None:
         """Test loading instruction document with invalid structure."""
         doc_path = Path("/invalid_instruction.json")
@@ -310,7 +322,9 @@ class TestDocumentLoader:
             document_loader.load_instruction_document(doc_path)
 
     def test_load_task_document_html_fallback(
-        self, document_loader: DocumentLoader, mock_html_content: str
+        self,
+        document_loader: DocumentLoader,
+        mock_html_content: str,
     ) -> None:
         """Test HTML fallback for task document loading."""
         doc_path = Path("/html_doc.html")
@@ -327,7 +341,9 @@ class TestDocumentLoader:
         """Test loading task document from URL."""
         url = "http://example.com/task.json"
         with patch.object(
-            document_loader, "_validate_task_document", return_value=True
+            document_loader,
+            "_validate_task_document",
+            return_value=True,
         ):
             document_loader._cache[url] = sample_task_doc
             doc = document_loader.load_task_document(url)
@@ -335,7 +351,9 @@ class TestDocumentLoader:
             assert len(doc["steps"]) == 2
 
     def test_load_task_document_html_fallback_without_title(
-        self, document_loader: DocumentLoader, mock_html_content_no_title: str
+        self,
+        document_loader: DocumentLoader,
+        mock_html_content_no_title: str,
     ) -> None:
         """Test HTML fallback when document has no title."""
         doc_path = Path("/html_doc.html")
@@ -344,7 +362,9 @@ class TestDocumentLoader:
         assert len(doc["steps"]) == 2
 
     def test_load_task_document_html_fallback_parsing_error(
-        self, document_loader: DocumentLoader, mock_beautiful_soup_error: None
+        self,
+        document_loader: DocumentLoader,
+        mock_beautiful_soup_error: None,
     ) -> None:
         """Test HTML fallback when parsing fails."""
         with tempfile.NamedTemporaryFile("w", delete=False, suffix=".html") as tmpfile:
@@ -360,7 +380,8 @@ class TestDocumentLoader:
         Path(tmpfile.name).unlink()
 
     def test_load_task_document_without_read_text_method(
-        self, sample_task_doc: dict
+        self,
+        sample_task_doc: dict,
     ) -> None:
         """Test loading task document when Path doesn't have read_text method."""
         with tempfile.NamedTemporaryFile("w", delete=False, suffix=".json") as tmpfile:
@@ -375,7 +396,8 @@ class TestDocumentLoader:
         Path(tmpfile.name).unlink()
 
     def test_load_instruction_document_without_read_text_method(
-        self, sample_instruction_doc: dict
+        self,
+        sample_instruction_doc: dict,
     ) -> None:
         """Test loading instruction document when Path doesn't have read_text method."""
         with tempfile.NamedTemporaryFile("w", delete=False, suffix=".json") as tmpfile:
@@ -415,7 +437,7 @@ class TestDocumentLoader:
                             "name": "Test",
                             "content": "Test",
                             "requirements": "not a list",
-                        }
+                        },
                     ],
                 },
                 False,
@@ -423,7 +445,10 @@ class TestDocumentLoader:
         ],
     )
     def test_validate_document_invalid_cases(
-        self, document_loader: DocumentLoader, invalid_doc: object, expected: object
+        self,
+        document_loader: DocumentLoader,
+        invalid_doc: object,
+        expected: object,
     ) -> None:
         """Test document validation with various invalid cases."""
         is_valid = document_loader.validate_document(invalid_doc)
@@ -471,7 +496,7 @@ class TestDocumentLoader:
                             "step_id": "test",
                             "description": "test",
                             "required_fields": "not a list",
-                        }
+                        },
                     ],
                 },
                 False,
@@ -479,7 +504,10 @@ class TestDocumentLoader:
         ],
     )
     def test_validate_task_document_invalid_cases(
-        self, document_loader: DocumentLoader, invalid_doc: object, expected: object
+        self,
+        document_loader: DocumentLoader,
+        invalid_doc: object,
+        expected: object,
     ) -> None:
         """Test task document validation with various invalid cases."""
         is_valid = document_loader._validate_task_document(invalid_doc)
@@ -523,7 +551,7 @@ class TestDocumentLoader:
                     "title": "test",
                     "content": "test",
                     "sections": [
-                        {"section_id": "test", "title": "test", "steps": "not a list"}
+                        {"section_id": "test", "title": "test", "steps": "not a list"},
                     ],
                 },
                 False,
@@ -531,14 +559,18 @@ class TestDocumentLoader:
         ],
     )
     def test_validate_instruction_document_invalid_cases(
-        self, document_loader: DocumentLoader, invalid_doc: object, expected: object
+        self,
+        document_loader: DocumentLoader,
+        invalid_doc: object,
+        expected: object,
     ) -> None:
         """Test instruction document validation with various invalid cases."""
         is_valid = document_loader._validate_instruction_document(invalid_doc)
         assert is_valid == expected
 
     def test_load_document_without_read_text_method_fallback(
-        self, sample_document: dict
+        self,
+        sample_document: dict,
     ) -> None:
         """Test load_document when Path doesn't have read_text method."""
         with tempfile.NamedTemporaryFile(mode="w", suffix=".json", delete=False) as f:
@@ -562,7 +594,8 @@ class TestDocumentLoader:
 
             doc_path = NoReadTextPath(temp_path)
             loader = DocumentLoader(
-                cache_dir=Path("/tmp/cache"), validate_documents=False
+                cache_dir=Path("/tmp/cache"),
+                validate_documents=False,
             )
 
             # This should use the fallback open() method
@@ -586,7 +619,8 @@ class TestDocumentLoader:
 
         try:
             loader = DocumentLoader(
-                cache_dir=Path("/tmp/cache"), validate_documents=True
+                cache_dir=Path("/tmp/cache"),
+                validate_documents=True,
             )
             # The loader has validation enabled by default, so this should fail
             with pytest.raises(ValueError, match="Invalid document structure"):
@@ -620,7 +654,8 @@ class TestDocumentLoader:
             mock_open.assert_called()
 
     def test_load_task_document_url_without_extension(
-        self, sample_task_doc: dict
+        self,
+        sample_task_doc: dict,
     ) -> None:
         """Test load_task_document with URL that doesn't have an extension."""
         mock_response = MagicMock()
@@ -645,7 +680,8 @@ class TestDocumentLoader:
             mock_open.assert_called()
 
     def test_load_task_document_string_path_conversion(
-        self, sample_task_doc: dict
+        self,
+        sample_task_doc: dict,
     ) -> None:
         """Test load_task_document with string path that gets converted to Path."""
         with (
@@ -658,7 +694,8 @@ class TestDocumentLoader:
             assert result == sample_task_doc
 
     def test_load_task_document_without_read_text_method_fallback(
-        self, sample_task_doc: dict
+        self,
+        sample_task_doc: dict,
     ) -> None:
         """Test load_task_document when Path doesn't have read_text method."""
         with tempfile.NamedTemporaryFile(mode="w", suffix=".json", delete=False) as f:
@@ -692,7 +729,9 @@ class TestDocumentLoader:
             os.unlink(temp_path)
 
     def test_load_instruction_document_cached(
-        self, document_loader: DocumentLoader, sample_instruction_doc: dict
+        self,
+        document_loader: DocumentLoader,
+        sample_instruction_doc: dict,
     ) -> None:
         """Test load_instruction_document when document is already cached."""
         # First, cache the document
@@ -708,7 +747,8 @@ class TestDocumentLoader:
             mock_exists.assert_not_called()
 
     def test_load_instruction_document_file_not_found(
-        self, document_loader: DocumentLoader
+        self,
+        document_loader: DocumentLoader,
     ) -> None:
         """Test load_instruction_document when file doesn't exist."""
         doc_path = Path("/nonexistent/instruction.json")
@@ -722,7 +762,8 @@ class TestDocumentLoader:
             document_loader.load_instruction_document(doc_path)
 
     def test_load_instruction_document_without_read_text_method_fallback(
-        self, sample_instruction_doc: dict
+        self,
+        sample_instruction_doc: dict,
     ) -> None:
         """Test load_instruction_document when Path doesn't have read_text method."""
         with tempfile.NamedTemporaryFile(mode="w", suffix=".json", delete=False) as f:
@@ -799,10 +840,11 @@ class TestDocumentLoader:
             patch("pathlib.Path.exists", return_value=True),
             patch("pathlib.Path.read_text", return_value=html_content),
             patch(
-                "json.loads", side_effect=json.JSONDecodeError("Invalid JSON", "", 0)
+                "json.loads",
+                side_effect=json.JSONDecodeError("Invalid JSON", "", 0),
             ),
             patch(
-                "arklex.orchestrator.generator.docs.document_loader.BeautifulSoup"
+                "arklex.orchestrator.generator.docs.document_loader.BeautifulSoup",
             ) as mock_soup,
         ):
             # Make BeautifulSoup raise an exception
@@ -842,7 +884,8 @@ class TestDocumentLoader:
             patch("pathlib.Path.exists", return_value=True),
             patch("pathlib.Path.read_text", return_value=html_content),
             patch(
-                "json.loads", side_effect=json.JSONDecodeError("Invalid JSON", "", 0)
+                "json.loads",
+                side_effect=json.JSONDecodeError("Invalid JSON", "", 0),
             ),
         ):
             # Test that the method successfully parses HTML and extracts paragraphs
@@ -865,7 +908,9 @@ class TestDocumentProcessor:
     """Test suite for the DocumentProcessor class."""
 
     def test_process_document(
-        self, document_processor: DocumentProcessor, sample_document: dict
+        self,
+        document_processor: DocumentProcessor,
+        sample_document: dict,
     ) -> None:
         """Test document processing."""
         processed_doc = document_processor.process_document(sample_document)
@@ -874,7 +919,9 @@ class TestDocumentProcessor:
         assert len(processed_doc["processed_sections"]) == 2
 
     def test_extract_requirements(
-        self, document_processor: DocumentProcessor, sample_document: dict
+        self,
+        document_processor: DocumentProcessor,
+        sample_document: dict,
     ) -> None:
         """Test requirement extraction."""
         requirements = document_processor.extract_requirements(sample_document)
@@ -883,7 +930,9 @@ class TestDocumentProcessor:
         assert all(isinstance(req, str) for req in requirements)
 
     def test_format_for_tasks(
-        self, document_processor: DocumentProcessor, sample_document: dict
+        self,
+        document_processor: DocumentProcessor,
+        sample_document: dict,
     ) -> None:
         """Test document formatting for tasks."""
         formatted_doc = document_processor.format_for_tasks(sample_document)
@@ -892,7 +941,8 @@ class TestDocumentProcessor:
         assert len(formatted_doc["formatted_sections"]) == 2
 
     def test_handle_specific_requirements(
-        self, document_processor: DocumentProcessor
+        self,
+        document_processor: DocumentProcessor,
     ) -> None:
         """Test handling specific requirements."""
         requirements = ["Name", "Price", "Description"]
@@ -952,7 +1002,7 @@ class TestDocumentProcessor:
             "steps": [
                 {"task": "Step 1", "description": "First step"},
                 {"task": "Step 2", "description": "Second step"},
-            ]
+            ],
         }
 
         result = processor._extract_steps(section)
@@ -987,7 +1037,7 @@ class TestDocumentProcessor:
                 {"task": "Step 1", "description": "First step"},
                 "Step 2",
                 {"task": "Step 3", "description": "Third step"},
-            ]
+            ],
         }
 
         result = processor._extract_steps(section)
@@ -1028,28 +1078,36 @@ class TestDocumentValidator:
     """Test suite for the DocumentValidator class."""
 
     def test_validate_structure(
-        self, document_validator: DocumentValidator, sample_document: dict
+        self,
+        document_validator: DocumentValidator,
+        sample_document: dict,
     ) -> None:
         """Test document structure validation."""
         is_valid = document_validator.validate_structure(sample_document)
         assert is_valid
 
     def test_validate_required_fields(
-        self, document_validator: DocumentValidator, sample_document: dict
+        self,
+        document_validator: DocumentValidator,
+        sample_document: dict,
     ) -> None:
         """Test required fields validation."""
         is_valid = document_validator.validate_required_fields(sample_document)
         assert is_valid
 
     def test_validate_consistency(
-        self, document_validator: DocumentValidator, sample_document: dict
+        self,
+        document_validator: DocumentValidator,
+        sample_document: dict,
     ) -> None:
         """Test document consistency validation."""
         is_valid = document_validator.validate_consistency(sample_document)
         assert is_valid
 
     def test_get_error_messages(
-        self, document_validator: DocumentValidator, sample_document: dict
+        self,
+        document_validator: DocumentValidator,
+        sample_document: dict,
     ) -> None:
         """Test error message generation."""
         errors = document_validator.get_error_messages(sample_document)
@@ -1062,12 +1120,14 @@ class TestDocumentValidator:
 
 @pytest.mark.integration
 def test_integration_document_pipeline(
-    mock_file_system: dict, sample_document: dict
+    mock_file_system: dict,
+    sample_document: dict,
 ) -> None:
     """Test the complete document handling pipeline integration."""
     # Initialize components
     document_loader = DocumentLoader(
-        cache_dir=Path("/tmp/cache"), validate_documents=True
+        cache_dir=Path("/tmp/cache"),
+        validate_documents=True,
     )
     document_processor = DocumentProcessor()
     document_validator = DocumentValidator()

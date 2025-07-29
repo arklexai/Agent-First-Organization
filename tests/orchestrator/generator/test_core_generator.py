@@ -77,7 +77,7 @@ def patched_sample_config() -> dict[str, Any]:
                     {"description": "Step 1"},
                     {"description": "Step 2"},
                 ],
-            }
+            },
         ],
         "example_conversations": [{"user": "Hello", "assistant": "Hi"}],
         "workers": [
@@ -138,7 +138,7 @@ def mock_task_generator() -> Mock:
                 {"description": "Processed Step 1"},
                 {"description": "Processed Step 2"},
             ],
-        }
+        },
     ]
     mock_generator.generate_tasks.return_value = [
         {
@@ -148,7 +148,7 @@ def mock_task_generator() -> Mock:
                 {"description": "Generated Step 1"},
                 {"description": "Generated Step 2"},
             ],
-        }
+        },
     ]
     return mock_generator
 
@@ -162,7 +162,7 @@ def mock_best_practice_manager() -> Mock:
             "name": "Best Practice 1",
             "description": "Best practice description",
             "steps": [{"description": "Best practice step"}],
-        }
+        },
     ]
     mock_manager.finetune_best_practice.return_value = {
         "name": "Finetuned Task",
@@ -180,7 +180,7 @@ def mock_reusable_task_manager() -> Mock:
             "name": "Reusable Task 1",
             "description": "Reusable task description",
             "parameters": {"param1": "string"},
-        }
+        },
     }
     return mock_manager
 
@@ -195,7 +195,7 @@ def mock_task_graph_formatter() -> Mock:
                 "name": "Formatted Task",
                 "description": "Formatted task description",
                 "steps": [{"description": "Formatted step"}],
-            }
+            },
         ],
         "metadata": {"version": "1.0"},
     }
@@ -320,7 +320,7 @@ class TestGeneratorInitialization:
                     {"description": "Step 1"},
                     {"description": "Step 2"},
                 ],
-            }
+            },
         ]
         assert generator.example_conversations == [{"user": "Hello", "assistant": "Hi"}]
         assert generator.nluapi == "test_nlu_api"
@@ -331,7 +331,9 @@ class TestGeneratorInitialization:
         assert generator.output_dir == "/test/output"
 
     def test_init_with_custom_resource_initializer(
-        self, always_valid_mock_model: Mock, mock_resource_initializer: Mock
+        self,
+        always_valid_mock_model: Mock,
+        mock_resource_initializer: Mock,
     ) -> None:
         """Test Generator initialization with custom resource initializer."""
         config = {
@@ -348,11 +350,12 @@ class TestGeneratorInitialization:
 
         assert generator.resource_initializer == mock_resource_initializer
         mock_resource_initializer.init_tools.assert_called_once_with(
-            [{"name": "TestTool", "path": "mock_path"}]
+            [{"name": "TestTool", "path": "mock_path"}],
         )
 
     def test_init_with_default_resource_initializer(
-        self, always_valid_mock_model: Mock
+        self,
+        always_valid_mock_model: Mock,
     ) -> None:
         """Test Generator initialization with default resource initializer."""
         config = {"role": "test_role", "user_objective": "test objective"}
@@ -406,7 +409,8 @@ class TestGeneratorInitialization:
         datetime.strptime(generator.timestamp, "%Y%m%d%H%M%S")
 
     def test_init_component_references_initialization(
-        self, always_valid_mock_model: Mock
+        self,
+        always_valid_mock_model: Mock,
     ) -> None:
         """Test that component references are initialized to None."""
         config = {"role": "test_role", "user_objective": "test objective"}
@@ -427,7 +431,9 @@ class TestComponentInitialization:
     """Test component initialization methods."""
 
     def test_initialize_document_loader_with_output_dir(
-        self, always_valid_mock_model: Mock, patched_sample_config: dict[str, Any]
+        self,
+        always_valid_mock_model: Mock,
+        patched_sample_config: dict[str, Any],
     ) -> None:
         """Test document loader initialization with output directory."""
         generator = Generator(
@@ -438,7 +444,7 @@ class TestComponentInitialization:
 
         with (
             patch(
-                "arklex.orchestrator.generator.core.generator.DocumentLoader"
+                "arklex.orchestrator.generator.core.generator.DocumentLoader",
             ) as mock_loader_class,
             patch("pathlib.Path.mkdir") as mock_mkdir,
         ):
@@ -454,7 +460,9 @@ class TestComponentInitialization:
             assert generator._doc_loader == mock_loader_instance
 
     def test_initialize_document_loader_without_output_dir(
-        self, always_valid_mock_model: Mock, patched_sample_config: dict[str, Any]
+        self,
+        always_valid_mock_model: Mock,
+        patched_sample_config: dict[str, Any],
     ) -> None:
         """Test document loader initialization without output directory."""
         generator = Generator(
@@ -464,10 +472,10 @@ class TestComponentInitialization:
 
         with (
             patch(
-                "arklex.orchestrator.generator.core.generator.DocumentLoader"
+                "arklex.orchestrator.generator.core.generator.DocumentLoader",
             ) as mock_loader_class,
             patch(
-                "arklex.orchestrator.generator.core.generator.Path"
+                "arklex.orchestrator.generator.core.generator.Path",
             ) as mock_path_class,
         ):
             mock_cache_dir = Mock()
@@ -485,7 +493,9 @@ class TestComponentInitialization:
             assert doc_loader == mock_loader_instance
 
     def test_initialize_document_loader_caching(
-        self, always_valid_mock_model: Mock, patched_sample_config: dict[str, Any]
+        self,
+        always_valid_mock_model: Mock,
+        patched_sample_config: dict[str, Any],
     ) -> None:
         """Test that document loader is cached after first initialization."""
         generator = Generator(
@@ -494,7 +504,7 @@ class TestComponentInitialization:
         )
 
         with patch(
-            "arklex.orchestrator.generator.core.generator.DocumentLoader"
+            "arklex.orchestrator.generator.core.generator.DocumentLoader",
         ) as mock_loader_class:
             mock_loader_instance = Mock()
             mock_loader_class.return_value = mock_loader_instance
@@ -509,7 +519,9 @@ class TestComponentInitialization:
             assert doc_loader1 == doc_loader2 == mock_loader_instance
 
     def test_initialize_task_generator(
-        self, always_valid_mock_model: Mock, patched_sample_config: dict[str, Any]
+        self,
+        always_valid_mock_model: Mock,
+        patched_sample_config: dict[str, Any],
     ) -> None:
         """Test task generator initialization."""
         generator = Generator(
@@ -520,7 +532,7 @@ class TestComponentInitialization:
         generator.instructions = "test instructions"
 
         with patch(
-            "arklex.orchestrator.generator.core.generator.TaskGenerator"
+            "arklex.orchestrator.generator.core.generator.TaskGenerator",
         ) as mock_generator_class:
             mock_generator_instance = Mock()
             mock_generator_class.return_value = mock_generator_instance
@@ -538,7 +550,9 @@ class TestComponentInitialization:
             assert generator._task_generator == mock_generator_instance
 
     def test_initialize_task_generator_caching(
-        self, always_valid_mock_model: Mock, patched_sample_config: dict[str, Any]
+        self,
+        always_valid_mock_model: Mock,
+        patched_sample_config: dict[str, Any],
     ) -> None:
         """Test that task generator is cached after first initialization."""
         generator = Generator(
@@ -547,7 +561,7 @@ class TestComponentInitialization:
         )
 
         with patch(
-            "arklex.orchestrator.generator.core.generator.TaskGenerator"
+            "arklex.orchestrator.generator.core.generator.TaskGenerator",
         ) as mock_generator_class:
             mock_generator_instance = Mock()
             mock_generator_class.return_value = mock_generator_instance
@@ -562,7 +576,9 @@ class TestComponentInitialization:
             assert task_generator1 == task_generator2 == mock_generator_instance
 
     def test_initialize_best_practice_manager_with_nested_graph(
-        self, always_valid_mock_model: Mock, patched_sample_config: dict[str, Any]
+        self,
+        always_valid_mock_model: Mock,
+        patched_sample_config: dict[str, Any],
     ) -> None:
         """Test best practice manager initialization with nested graph enabled."""
         generator = Generator(
@@ -572,7 +588,7 @@ class TestComponentInitialization:
         )
 
         with patch(
-            "arklex.orchestrator.generator.core.generator.BestPracticeManager"
+            "arklex.orchestrator.generator.core.generator.BestPracticeManager",
         ) as mock_manager_class:
             mock_manager_instance = Mock()
             mock_manager_class.return_value = mock_manager_instance
@@ -590,7 +606,8 @@ class TestComponentInitialization:
             # Verify all_resources includes nested_graph
             all_resources = call_args[1]["all_resources"]
             nested_graph_resource = next(
-                (r for r in all_resources if r["name"] == "NestedGraph"), None
+                (r for r in all_resources if r["name"] == "NestedGraph"),
+                None,
             )
             assert nested_graph_resource is not None
             assert nested_graph_resource["type"] == "nested_graph"
@@ -599,7 +616,9 @@ class TestComponentInitialization:
             assert generator._best_practice_manager == mock_manager_instance
 
     def test_initialize_best_practice_manager_without_nested_graph(
-        self, always_valid_mock_model: Mock, patched_sample_config: dict[str, Any]
+        self,
+        always_valid_mock_model: Mock,
+        patched_sample_config: dict[str, Any],
     ) -> None:
         """Test best practice manager initialization with nested graph disabled."""
         generator = Generator(
@@ -609,7 +628,7 @@ class TestComponentInitialization:
         )
 
         with patch(
-            "arklex.orchestrator.generator.core.generator.BestPracticeManager"
+            "arklex.orchestrator.generator.core.generator.BestPracticeManager",
         ) as mock_manager_class:
             mock_manager_instance = Mock()
             mock_manager_class.return_value = mock_manager_instance
@@ -620,14 +639,17 @@ class TestComponentInitialization:
             call_args = mock_manager_class.call_args
             all_resources = call_args[1]["all_resources"]
             nested_graph_resource = next(
-                (r for r in all_resources if r["name"] == "NestedGraph"), None
+                (r for r in all_resources if r["name"] == "NestedGraph"),
+                None,
             )
             assert nested_graph_resource is None
 
             assert best_practice_manager == mock_manager_instance
 
     def test_initialize_best_practice_manager_resource_processing(
-        self, always_valid_mock_model: Mock, mock_resource_initializer: Mock
+        self,
+        always_valid_mock_model: Mock,
+        mock_resource_initializer: Mock,
     ) -> None:
         """Test best practice manager resource processing."""
         # Configure the mock resource initializer to return tools as a list
@@ -668,7 +690,7 @@ class TestComponentInitialization:
         )
 
         with patch(
-            "arklex.orchestrator.generator.core.generator.BestPracticeManager"
+            "arklex.orchestrator.generator.core.generator.BestPracticeManager",
         ) as mock_manager_class:
             generator._initialize_best_practice_manager()
 
@@ -698,7 +720,9 @@ class TestComponentInitialization:
             assert tool2["type"] == "tool"
 
     def test_initialize_reusable_task_manager(
-        self, always_valid_mock_model: Mock, patched_sample_config: dict[str, Any]
+        self,
+        always_valid_mock_model: Mock,
+        patched_sample_config: dict[str, Any],
     ) -> None:
         """Test reusable task manager initialization."""
         generator = Generator(
@@ -707,7 +731,7 @@ class TestComponentInitialization:
         )
 
         with patch(
-            "arklex.orchestrator.generator.core.generator.ReusableTaskManager"
+            "arklex.orchestrator.generator.core.generator.ReusableTaskManager",
         ) as mock_manager_class:
             mock_manager_instance = Mock()
             mock_manager_class.return_value = mock_manager_instance
@@ -723,7 +747,9 @@ class TestComponentInitialization:
             assert generator._reusable_task_manager == mock_manager_instance
 
     def test_initialize_task_graph_formatter(
-        self, always_valid_mock_model: Mock, patched_sample_config: dict[str, Any]
+        self,
+        always_valid_mock_model: Mock,
+        patched_sample_config: dict[str, Any],
     ) -> None:
         """Test task graph formatter initialization."""
         generator = Generator(
@@ -733,7 +759,7 @@ class TestComponentInitialization:
         )
 
         with patch(
-            "arklex.orchestrator.generator.core.generator.TaskGraphFormatter"
+            "arklex.orchestrator.generator.core.generator.TaskGraphFormatter",
         ) as mock_formatter_class:
             mock_formatter_instance = Mock()
             mock_formatter_class.return_value = mock_formatter_instance
@@ -760,7 +786,9 @@ class TestComponentInitialization:
             assert generator._task_graph_formatter == mock_formatter_instance
 
     def test_initialize_best_practice_manager_with_dict_tools(
-        self, always_valid_mock_model: Mock, mock_resource_initializer: Mock
+        self,
+        always_valid_mock_model: Mock,
+        mock_resource_initializer: Mock,
     ) -> None:
         """Test best practice manager initialization with tools as dictionary format."""
         # Configure the mock resource initializer to return tools as a dictionary
@@ -800,7 +828,7 @@ class TestComponentInitialization:
         )
 
         with patch(
-            "arklex.orchestrator.generator.core.generator.BestPracticeManager"
+            "arklex.orchestrator.generator.core.generator.BestPracticeManager",
         ) as mock_manager_class:
             generator._initialize_best_practice_manager()
 
@@ -831,13 +859,16 @@ class TestComponentInitialization:
 
             # Verify nested_graph is added when enabled
             nested_graph = next(
-                (r for r in all_resources if r["name"] == "NestedGraph"), None
+                (r for r in all_resources if r["name"] == "NestedGraph"),
+                None,
             )
             assert nested_graph is not None
             assert nested_graph["type"] == "nested_graph"
 
     def test_initialize_best_practice_manager_with_tools_not_dict_or_list(
-        self, always_valid_mock_model: Mock, mock_resource_initializer: Mock
+        self,
+        always_valid_mock_model: Mock,
+        mock_resource_initializer: Mock,
     ) -> None:
         """Test best practice manager initialization with tools that are neither dict nor list."""
         # Configure the mock resource initializer to return tools as a string (invalid format)
@@ -870,7 +901,7 @@ class TestComponentInitialization:
         )
 
         with patch(
-            "arklex.orchestrator.generator.core.generator.BestPracticeManager"
+            "arklex.orchestrator.generator.core.generator.BestPracticeManager",
         ) as mock_manager_class:
             generator._initialize_best_practice_manager()
 
@@ -889,7 +920,9 @@ class TestComponentInitialization:
             assert len(tools) == 0
 
     def test_initialize_best_practice_manager_with_empty_tools(
-        self, always_valid_mock_model: Mock, mock_resource_initializer: Mock
+        self,
+        always_valid_mock_model: Mock,
+        mock_resource_initializer: Mock,
     ) -> None:
         """Test best practice manager initialization with empty tools."""
         # Configure the mock resource initializer to return empty tools
@@ -916,7 +949,7 @@ class TestComponentInitialization:
         )
 
         with patch(
-            "arklex.orchestrator.generator.core.generator.BestPracticeManager"
+            "arklex.orchestrator.generator.core.generator.BestPracticeManager",
         ) as mock_manager_class:
             generator._initialize_best_practice_manager()
 
@@ -931,7 +964,8 @@ class TestComponentInitialization:
             assert worker1["type"] == "worker"
 
             nested_graph = next(
-                (r for r in all_resources if r["name"] == "NestedGraph"), None
+                (r for r in all_resources if r["name"] == "NestedGraph"),
+                None,
             )
             assert nested_graph is not None
             assert nested_graph["type"] == "nested_graph"
@@ -963,7 +997,8 @@ class TestDocumentLoading:
         ]
 
         result = generator._load_multiple_task_documents(
-            mock_document_loader, doc_paths
+            mock_document_loader,
+            doc_paths,
         )
 
         assert len(result) == 3
@@ -972,7 +1007,7 @@ class TestDocumentLoading:
                 call("doc1.md"),
                 call("doc2.md"),
                 call("doc3.md"),
-            ]
+            ],
         )
 
     def test_load_multiple_task_documents_single_dict(
@@ -990,7 +1025,8 @@ class TestDocumentLoading:
         doc_paths = {"source": "doc1.md"}
 
         result = generator._load_multiple_task_documents(
-            mock_document_loader, doc_paths
+            mock_document_loader,
+            doc_paths,
         )
 
         assert len(result) == 1
@@ -1011,7 +1047,8 @@ class TestDocumentLoading:
         doc_paths = "doc1.md"
 
         result = generator._load_multiple_task_documents(
-            mock_document_loader, doc_paths
+            mock_document_loader,
+            doc_paths,
         )
 
         assert len(result) == 1
@@ -1036,7 +1073,8 @@ class TestDocumentLoading:
         ]
 
         result = generator._load_multiple_instruction_documents(
-            mock_document_loader, doc_paths
+            mock_document_loader,
+            doc_paths,
         )
 
         assert len(result) == 3
@@ -1045,7 +1083,7 @@ class TestDocumentLoading:
                 call("instr1.md"),
                 call("instr2.md"),
                 call("instr3.md"),
-            ]
+            ],
         )
 
     def test_load_multiple_instruction_documents_single_dict(
@@ -1063,12 +1101,13 @@ class TestDocumentLoading:
         doc_paths = {"source": "instr1.md"}
 
         result = generator._load_multiple_instruction_documents(
-            mock_document_loader, doc_paths
+            mock_document_loader,
+            doc_paths,
         )
 
         assert len(result) == 1
         mock_document_loader.load_instruction_document.assert_called_once_with(
-            "instr1.md"
+            "instr1.md",
         )
 
     def test_load_multiple_instruction_documents_single_string(
@@ -1086,12 +1125,13 @@ class TestDocumentLoading:
         doc_paths = "instr1.md"
 
         result = generator._load_multiple_instruction_documents(
-            mock_document_loader, doc_paths
+            mock_document_loader,
+            doc_paths,
         )
 
         assert len(result) == 1
         mock_document_loader.load_instruction_document.assert_called_once_with(
-            "instr1.md"
+            "instr1.md",
         )
 
 
@@ -1308,7 +1348,7 @@ class TestGenerateMethod:
                     {"description": "Step 1"},
                     {"description": "Step 2"},
                 ],
-            }
+            },
         ]
 
         generator = Generator(
@@ -1347,7 +1387,8 @@ class TestGenerateMethod:
 
             # Verify user tasks are processed
             mock_task_generator.add_provided_tasks.assert_called_once_with(
-                config["user_tasks"], config["intro"]
+                config["user_tasks"],
+                config["intro"],
             )
 
     def test_generate_without_user_tasks(
@@ -1587,7 +1628,7 @@ class TestGenerateMethod:
             "reusable_task_1": {
                 "name": "Reusable Task 1",
                 "description": "Reusable task description",
-            }
+            },
         }
 
         with (
@@ -1705,7 +1746,7 @@ class TestGenerateMethod:
                 "name": "Best Practice 1",
                 "description": "Best practice description",
                 "steps": [{"description": "Best practice step"}],
-            }
+            },
         ]
 
         with (
@@ -1861,12 +1902,12 @@ class TestUIInteraction:
                     "name": "Modified Task",
                     "description": "Modified description",
                     "steps": ["Modified Step 1", "Modified Step 2"],
-                }
+                },
             ]
 
             # Mock TaskEditorApp to return modified tasks
             with patch(
-                "arklex.orchestrator.generator.core.generator.TaskEditorApp"
+                "arklex.orchestrator.generator.core.generator.TaskEditorApp",
             ) as mock_editor_class:
                 mock_editor_instance = Mock()
                 mock_editor_instance.run.return_value = modified_tasks
@@ -1924,7 +1965,7 @@ class TestUIInteraction:
                 return_value=mock_prompt_manager,
             ),
             patch(
-                "arklex.orchestrator.generator.core.generator.TaskEditorApp"
+                "arklex.orchestrator.generator.core.generator.TaskEditorApp",
             ) as mock_editor_class,
         ):
             # Mock TaskEditorApp to return same tasks (no changes)
@@ -2034,7 +2075,7 @@ class TestUIInteraction:
                 return_value=mock_prompt_manager,
             ),
             patch(
-                "arklex.orchestrator.generator.core.generator.TaskEditorApp"
+                "arklex.orchestrator.generator.core.generator.TaskEditorApp",
             ) as mock_editor_class,
         ):
             # Mock TaskEditorApp to raise exception
@@ -2102,7 +2143,9 @@ class TestSaveTaskGraph:
     """Test the save_task_graph method."""
 
     def test_save_task_graph_success(
-        self, always_valid_mock_model: Mock, patched_sample_config: dict[str, Any]
+        self,
+        always_valid_mock_model: Mock,
+        patched_sample_config: dict[str, Any],
     ) -> None:
         """Test successful task graph saving."""
         generator = Generator(
@@ -2127,7 +2170,9 @@ class TestSaveTaskGraph:
             assert mock_file().write.call_count > 0
 
     def test_save_task_graph_with_non_serializable_objects(
-        self, always_valid_mock_model: Mock, patched_sample_config: dict[str, Any]
+        self,
+        always_valid_mock_model: Mock,
+        patched_sample_config: dict[str, Any],
     ) -> None:
         """Test task graph saving with non-serializable objects."""
         generator = Generator(
@@ -2156,7 +2201,9 @@ class TestSaveTaskGraph:
             assert mock_file().write.call_count > 0
 
     def test_save_task_graph_with_complex_nested_objects(
-        self, always_valid_mock_model: Mock, patched_sample_config: dict[str, Any]
+        self,
+        always_valid_mock_model: Mock,
+        patched_sample_config: dict[str, Any],
     ) -> None:
         """Test task graph saving with complex nested objects."""
         generator = Generator(
@@ -2170,7 +2217,7 @@ class TestSaveTaskGraph:
                 {
                     "name": "Task 1",
                     "steps": [{"description": "Step 1"}, {"description": "Step 2"}],
-                }
+                },
             ],
             "metadata": {
                 "nested": {
@@ -2179,9 +2226,9 @@ class TestSaveTaskGraph:
                             "with": "values",
                             "numbers": [1, 2, 3],
                             "booleans": [True, False],
-                        }
-                    }
-                }
+                        },
+                    },
+                },
             },
         }
 
@@ -2212,7 +2259,9 @@ class TestSaveTaskGraph:
             )
 
     def test_save_task_graph_with_partial_objects(
-        self, always_valid_mock_model: Mock, patched_sample_config: dict[str, Any]
+        self,
+        always_valid_mock_model: Mock,
+        patched_sample_config: dict[str, Any],
     ) -> None:
         """Test task graph saving with functools.partial objects."""
         import functools
@@ -2251,7 +2300,9 @@ class TestSaveTaskGraph:
             assert isinstance(parsed_content["partial_function"], str)
 
     def test_save_task_graph_with_callable_objects(
-        self, always_valid_mock_model: Mock, patched_sample_config: dict[str, Any]
+        self,
+        always_valid_mock_model: Mock,
+        patched_sample_config: dict[str, Any],
     ) -> None:
         """Test task graph saving with callable objects."""
         generator = Generator(
@@ -2286,7 +2337,9 @@ class TestSaveTaskGraph:
             assert isinstance(parsed_content["callable_object"], str)
 
     def test_save_task_graph_without_output_dir(
-        self, always_valid_mock_model: Mock, patched_sample_config: dict[str, Any]
+        self,
+        always_valid_mock_model: Mock,
+        patched_sample_config: dict[str, Any],
     ) -> None:
         """Test task graph saving without output directory."""
         generator = Generator(
@@ -2447,7 +2500,8 @@ class TestIntegrationScenarios:
             patch.object(generator, "_initialize_task_generator"),
             patch.object(generator, "_initialize_best_practice_manager"),
             patch.object(
-                generator, "_initialize_task_graph_formatter"
+                generator,
+                "_initialize_task_graph_formatter",
             ) as mock_formatter,
             patch("arklex.orchestrator.generator.core.generator.PromptManager"),
         ):
@@ -2626,7 +2680,7 @@ class TestUIUnavailability:
                         {"description": "Processed Step 1"},
                         {"description": "Processed Step 2"},
                     ],
-                }
+                },
             ]
             mock_task_generator.return_value.generate_tasks.return_value = [
                 {
@@ -2636,7 +2690,7 @@ class TestUIUnavailability:
                         {"description": "Generated Step 1"},
                         {"description": "Generated Step 2"},
                     ],
-                }
+                },
             ]
 
             # Create generator with UI interaction enabled but UI unavailable
@@ -2655,7 +2709,7 @@ class TestUIUnavailability:
                         {"description": "Generated Step 1"},
                         {"description": "Generated Step 2"},
                     ],
-                }
+                },
             ]
 
             # Mock best practices
@@ -2664,7 +2718,7 @@ class TestUIUnavailability:
                     "name": "Best Practice 1",
                     "description": "Best practice description",
                     "steps": [{"description": "Best practice step"}],
-                }
+                },
             ]
 
             # Mock task graph formatter to return a proper dictionary
@@ -2725,7 +2779,7 @@ class TestGenerateMethodElseBranches:
                         {"description": "Processed Step 1"},
                         {"description": "Processed Step 2"},
                     ],
-                }
+                },
             ]
             mock_task_generator.return_value.generate_tasks.return_value = [
                 {
@@ -2735,7 +2789,7 @@ class TestGenerateMethodElseBranches:
                         {"description": "Generated Step 1"},
                         {"description": "Generated Step 2"},
                     ],
-                }
+                },
             ]
 
             # Mock UI interaction to return tasks identical to original
@@ -2747,11 +2801,11 @@ class TestGenerateMethodElseBranches:
                         {"description": "Generated Step 1"},
                         {"description": "Generated Step 2"},
                     ],
-                }
+                },
             ]
 
             with patch(
-                "arklex.orchestrator.generator.core.generator.TaskEditorApp"
+                "arklex.orchestrator.generator.core.generator.TaskEditorApp",
             ) as mock_ui_class:
                 mock_ui_instance = Mock()
                 mock_ui_instance.run.return_value = mock_ui_tasks
@@ -2773,7 +2827,7 @@ class TestGenerateMethodElseBranches:
                         "name": "Best Practice 1",
                         "description": "Best practice description",
                         "steps": [{"description": "Best practice step"}],
-                    }
+                    },
                 ]
 
                 # Mock task graph formatter to return a proper dictionary
@@ -2829,7 +2883,7 @@ class TestGenerateMethodElseBranches:
                         {"description": "Processed Step 1"},
                         {"description": "Processed Step 2"},
                     ],
-                }
+                },
             ]
             mock_task_generator.return_value.generate_tasks.return_value = [
                 {
@@ -2839,7 +2893,7 @@ class TestGenerateMethodElseBranches:
                         {"description": "Generated Step 1"},
                         {"description": "Generated Step 2"},
                     ],
-                }
+                },
             ]
 
             # Create generator with UI interaction disabled
@@ -2858,7 +2912,7 @@ class TestGenerateMethodElseBranches:
                         {"description": "Generated Step 1"},
                         {"description": "Generated Step 2"},
                     ],
-                }
+                },
             ]
 
             # Mock best practices
@@ -2867,7 +2921,7 @@ class TestGenerateMethodElseBranches:
                     "name": "Best Practice 1",
                     "description": "Best practice description",
                     "steps": [{"description": "Best practice step"}],
-                }
+                },
             ]
 
             # Mock task graph formatter to return a proper dictionary
@@ -2936,7 +2990,7 @@ class TestGenerateMethodElseBranches:
                 return_value=mock_prompt_manager,
             ),
             patch(
-                "arklex.orchestrator.generator.core.generator.TaskEditorApp"
+                "arklex.orchestrator.generator.core.generator.TaskEditorApp",
             ) as mock_editor_class,
         ):
             # Mock TaskEditorApp to raise exception
@@ -3004,7 +3058,9 @@ class TestSaveTaskGraphSanitizeFunction:
     """Test the sanitize function in save_task_graph method."""
 
     def test_save_task_graph_with_functools_partial(
-        self, always_valid_mock_model: Mock, patched_sample_config: dict[str, Any]
+        self,
+        always_valid_mock_model: Mock,
+        patched_sample_config: dict[str, Any],
     ) -> None:
         """Test sanitize function handling of functools.partial objects."""
         import functools
@@ -3044,7 +3100,9 @@ class TestSaveTaskGraphSanitizeFunction:
             assert "functools.partial" in sanitized_data["partial_func"]
 
     def test_save_task_graph_with_collections_abc_callable(
-        self, always_valid_mock_model: Mock, patched_sample_config: dict[str, Any]
+        self,
+        always_valid_mock_model: Mock,
+        patched_sample_config: dict[str, Any],
     ) -> None:
         """Test sanitize function handling of collections.abc.Callable objects."""
         import collections.abc
@@ -3087,7 +3145,9 @@ class TestSaveTaskGraphSanitizeFunction:
             assert "collections.abc.Callable" in sanitized_data["callable_type"]
 
     def test_save_task_graph_with_other_non_serializable_objects(
-        self, always_valid_mock_model: Mock, patched_sample_config: dict[str, Any]
+        self,
+        always_valid_mock_model: Mock,
+        patched_sample_config: dict[str, Any],
     ) -> None:
         """Test sanitize function handling of other non-serializable objects."""
 
@@ -3128,7 +3188,8 @@ class TestSaveTaskGraphSanitizeFunction:
             assert "CustomObject(foo)" in sanitized_data["custom_obj"]
 
     def test_save_task_graph_sanitize_handles_non_serializable(
-        self, tmp_path: Path
+        self,
+        tmp_path: Path,
     ) -> None:
         from arklex.orchestrator.generator.core.generator import Generator
 
@@ -3219,7 +3280,7 @@ class TestCompleteLineCoverage:
                         {"description": "Processed Step 1"},
                         {"description": "Processed Step 2"},
                     ],
-                }
+                },
             ]
             mock_task_generator.return_value.generate_tasks.return_value = [
                 {
@@ -3229,7 +3290,7 @@ class TestCompleteLineCoverage:
                         {"description": "Generated Step 1"},
                         {"description": "Generated Step 2"},
                     ],
-                }
+                },
             ]
 
             # Mock UI interaction to return tasks identical to original
@@ -3241,11 +3302,11 @@ class TestCompleteLineCoverage:
                         {"description": "Generated Step 1"},
                         {"description": "Generated Step 2"},
                     ],
-                }
+                },
             ]
 
             with patch(
-                "arklex.orchestrator.generator.core.generator.TaskEditorApp"
+                "arklex.orchestrator.generator.core.generator.TaskEditorApp",
             ) as mock_ui_class:
                 mock_ui_instance = Mock()
                 mock_ui_instance.run.return_value = mock_ui_tasks
@@ -3273,7 +3334,7 @@ class TestCompleteLineCoverage:
                             "name": "Best Practice 1",
                             "description": "Best practice description",
                             "steps": [{"description": "Best practice step"}],
-                        }
+                        },
                     ]
 
                     # Mock task graph formatter to return a proper dictionary
@@ -3329,7 +3390,7 @@ class TestCompleteLineCoverage:
                         {"description": "Processed Step 1"},
                         {"description": "Processed Step 2"},
                     ],
-                }
+                },
             ]
             mock_task_generator.return_value.generate_tasks.return_value = [
                 {
@@ -3339,7 +3400,7 @@ class TestCompleteLineCoverage:
                         {"description": "Generated Step 1"},
                         {"description": "Generated Step 2"},
                     ],
-                }
+                },
             ]
 
             # Create generator with UI interaction disabled
@@ -3358,7 +3419,7 @@ class TestCompleteLineCoverage:
                         {"description": "Generated Step 1"},
                         {"description": "Generated Step 2"},
                     ],
-                }
+                },
             ]
 
             # Mock best practices
@@ -3367,7 +3428,7 @@ class TestCompleteLineCoverage:
                     "name": "Best Practice 1",
                     "description": "Best practice description",
                     "steps": [{"description": "Best practice step"}],
-                }
+                },
             ]
 
             # Mock task graph formatter to return a proper dictionary
@@ -3391,7 +3452,9 @@ class TestCompleteLineCoverage:
             mock_best_practice_manager.return_value.finetune_best_practice.assert_called()
 
     def test_save_task_graph_sanitize_functools_partial(
-        self, always_valid_mock_model: Mock, patched_sample_config: dict[str, Any]
+        self,
+        always_valid_mock_model: Mock,
+        patched_sample_config: dict[str, Any],
     ) -> None:
         """Test sanitize function handling of functools.partial objects."""
         import functools
@@ -3431,7 +3494,9 @@ class TestCompleteLineCoverage:
             assert "functools.partial" in sanitized_data["partial_func"]
 
     def test_save_task_graph_sanitize_collections_abc_callable(
-        self, always_valid_mock_model: Mock, patched_sample_config: dict[str, Any]
+        self,
+        always_valid_mock_model: Mock,
+        patched_sample_config: dict[str, Any],
     ) -> None:
         """Test sanitize function handling of collections.abc.Callable objects."""
         import collections.abc
@@ -3470,7 +3535,9 @@ class TestCompleteLineCoverage:
             assert "test_callable" in sanitized_data["custom_callable"]
 
     def test_save_task_graph_sanitize_other_non_serializable_objects(
-        self, always_valid_mock_model: Mock, patched_sample_config: dict[str, Any]
+        self,
+        always_valid_mock_model: Mock,
+        patched_sample_config: dict[str, Any],
     ) -> None:
         """Test sanitize function handling of other non-serializable objects."""
 
@@ -3543,7 +3610,7 @@ class TestCompleteLineCoverage:
                         {"description": "Processed Step 1"},
                         {"description": "Processed Step 2"},
                     ],
-                }
+                },
             ]
             mock_task_generator.return_value.generate_tasks.return_value = [
                 {
@@ -3553,12 +3620,12 @@ class TestCompleteLineCoverage:
                         {"description": "Generated Step 1"},
                         {"description": "Generated Step 2"},
                     ],
-                }
+                },
             ]
 
             # Mock UI interaction to raise an exception
             with patch(
-                "arklex.orchestrator.generator.core.generator.TaskEditorApp"
+                "arklex.orchestrator.generator.core.generator.TaskEditorApp",
             ) as mock_ui_class:
                 mock_ui_instance = Mock()
                 mock_ui_instance.run.side_effect = Exception("UI Error")
@@ -3580,7 +3647,7 @@ class TestCompleteLineCoverage:
                             {"description": "Generated Step 1"},
                             {"description": "Generated Step 2"},
                         ],
-                    }
+                    },
                 ]
 
                 # Mock best practices
@@ -3589,7 +3656,7 @@ class TestCompleteLineCoverage:
                         "name": "Best Practice 1",
                         "description": "Best practice description",
                         "steps": [{"description": "Best practice step"}],
-                    }
+                    },
                 ]
 
                 # Mock task graph formatter to return a proper dictionary
@@ -3645,7 +3712,7 @@ class TestCompleteLineCoverage:
                         {"description": "Processed Step 1"},
                         {"description": "Processed Step 2"},
                     ],
-                }
+                },
             ]
             mock_task_generator.return_value.generate_tasks.return_value = [
                 {
@@ -3655,7 +3722,7 @@ class TestCompleteLineCoverage:
                         {"description": "Generated Step 1"},
                         {"description": "Generated Step 2"},
                     ],
-                }
+                },
             ]
 
             # Create generator with UI interaction disabled
@@ -3680,7 +3747,7 @@ class TestCompleteLineCoverage:
                             {"description": "Generated Step 1"},
                             {"description": "Generated Step 2"},
                         ],
-                    }
+                    },
                 ]
 
                 # Mock empty best practices
@@ -3739,7 +3806,7 @@ class TestCompleteLineCoverage:
                         {"description": "Processed Step 1"},
                         {"description": "Processed Step 2"},
                     ],
-                }
+                },
             ]
             mock_task_generator.return_value.generate_tasks.return_value = [
                 {
@@ -3815,7 +3882,7 @@ class TestCompleteLineCoverage:
                         "name": "Best Practice 1",
                         "description": "Best practice description",
                         "steps": [{"description": "Best practice step"}],
-                    }
+                    },
                 ]
 
                 # Mock task graph formatter to return a proper dictionary
@@ -3874,7 +3941,7 @@ class TestCompleteLineCoverage:
                         {"description": "Processed Step 1"},
                         {"description": "Processed Step 2"},
                     ],
-                }
+                },
             ]
             mock_task_generator.return_value.generate_tasks.return_value = [
                 {
@@ -3884,7 +3951,7 @@ class TestCompleteLineCoverage:
                         {"description": "Generated Step 1"},
                         {"description": "Generated Step 2"},
                     ],
-                }
+                },
             ]
 
             # Create generator with nested graph disabled
@@ -3910,7 +3977,7 @@ class TestCompleteLineCoverage:
                             {"description": "Generated Step 1"},
                             {"description": "Generated Step 2"},
                         ],
-                    }
+                    },
                 ]
 
                 # Mock best practices
@@ -3919,7 +3986,7 @@ class TestCompleteLineCoverage:
                         "name": "Best Practice 1",
                         "description": "Best practice description",
                         "steps": [{"description": "Best practice step"}],
-                    }
+                    },
                 ]
 
                 # Mock task graph formatter to return a proper dictionary
@@ -3970,7 +4037,7 @@ class TestCompleteLineCoverage:
                         {"description": "Processed Step 1"},
                         {"description": "Processed Step 2"},
                     ],
-                }
+                },
             ]
             mock_task_generator.return_value.generate_tasks.return_value = [
                 {
@@ -3980,7 +4047,7 @@ class TestCompleteLineCoverage:
                         {"description": "Generated Step 1"},
                         {"description": "Generated Step 2"},
                     ],
-                }
+                },
             ]
 
             # Create generator
@@ -4006,7 +4073,7 @@ class TestCompleteLineCoverage:
                             {"description": "Generated Step 1"},
                             {"description": "Generated Step 2"},
                         ],
-                    }
+                    },
                 ]
 
                 # Ensure reusable_tasks is empty
@@ -4018,7 +4085,7 @@ class TestCompleteLineCoverage:
                         "name": "Best Practice 1",
                         "description": "Best practice description",
                         "steps": [{"description": "Best practice step"}],
-                    }
+                    },
                 ]
 
                 # Mock task graph formatter to return a proper dictionary
@@ -4069,7 +4136,7 @@ class TestCompleteLineCoverage:
                         {"description": "Processed Step 1"},
                         {"description": "Processed Step 2"},
                     ],
-                }
+                },
             ]
             mock_task_generator.return_value.generate_tasks.return_value = [
                 {
@@ -4079,7 +4146,7 @@ class TestCompleteLineCoverage:
                         {"description": "Generated Step 1"},
                         {"description": "Generated Step 2"},
                     ],
-                }
+                },
             ]
 
             # Create generator
@@ -4105,7 +4172,7 @@ class TestCompleteLineCoverage:
                             {"description": "Generated Step 1"},
                             {"description": "Generated Step 2"},
                         ],
-                    }
+                    },
                 ]
 
                 # Set reusable_tasks to None
@@ -4117,7 +4184,7 @@ class TestCompleteLineCoverage:
                         "name": "Best Practice 1",
                         "description": "Best practice description",
                         "steps": [{"description": "Best practice step"}],
-                    }
+                    },
                 ]
 
                 # Mock task graph formatter to return a proper dictionary
@@ -4161,7 +4228,8 @@ class TestCompleteLineCoverage:
         from arklex.orchestrator.generator.core.generator import TaskEditorApp
 
         with pytest.raises(
-            ImportError, match="UI components require 'textual' package to be installed"
+            ImportError,
+            match="UI components require 'textual' package to be installed",
         ):
             TaskEditorApp(tasks=[])
 
@@ -4199,7 +4267,7 @@ class TestGeneratorFinalCoverage:
                     "name": "Original Task",
                     "description": "Original description",
                     "steps": [{"description": "Step 1"}, {"description": "Step 2"}],
-                }
+                },
             ]
             mock_task_generator.return_value.generate_tasks.return_value = []
 
@@ -4217,7 +4285,7 @@ class TestGeneratorFinalCoverage:
                     "name": "Original Task",
                     "description": "Original description",
                     "steps": [{"description": "Step 1"}, {"description": "Step 2"}],
-                }
+                },
             ]
 
             # Mock UI to return tasks with different step count (3 steps)
@@ -4230,11 +4298,11 @@ class TestGeneratorFinalCoverage:
                         {"description": "Step 2"},
                         {"description": "Step 3"},  # Different step count
                     ],
-                }
+                },
             ]
 
             with patch(
-                "arklex.orchestrator.generator.core.generator.TaskEditorApp"
+                "arklex.orchestrator.generator.core.generator.TaskEditorApp",
             ) as mock_ui:
                 mock_ui_instance = Mock()
                 mock_ui_instance.run.return_value = mock_ui_result
@@ -4246,7 +4314,7 @@ class TestGeneratorFinalCoverage:
                         "name": "Best Practice 1",
                         "description": "Best practice description",
                         "steps": [{"description": "Best practice step"}],
-                    }
+                    },
                 ]
 
                 # Mock task graph formatter
@@ -4292,7 +4360,7 @@ class TestGeneratorFinalCoverage:
                     "name": "Original Task",
                     "description": "Original description",
                     "steps": [{"description": "Step 1"}],
-                }
+                },
             ]
             mock_task_generator.return_value.generate_tasks.return_value = []
 
@@ -4310,7 +4378,7 @@ class TestGeneratorFinalCoverage:
                     "name": "Original Task",
                     "description": "Original description",
                     "steps": [{"description": "Step 1"}],
-                }
+                },
             ]
 
             # Mock UI to return tasks with different name
@@ -4319,11 +4387,11 @@ class TestGeneratorFinalCoverage:
                     "name": "Modified Task",  # Different name
                     "description": "Original description",
                     "steps": [{"description": "Step 1"}],
-                }
+                },
             ]
 
             with patch(
-                "arklex.orchestrator.generator.core.generator.TaskEditorApp"
+                "arklex.orchestrator.generator.core.generator.TaskEditorApp",
             ) as mock_ui:
                 mock_ui_instance = Mock()
                 mock_ui_instance.run.return_value = mock_ui_result
@@ -4335,7 +4403,7 @@ class TestGeneratorFinalCoverage:
                         "name": "Best Practice 1",
                         "description": "Best practice description",
                         "steps": [{"description": "Best practice step"}],
-                    }
+                    },
                 ]
 
                 # Mock task graph formatter
@@ -4381,7 +4449,7 @@ class TestGeneratorFinalCoverage:
                     "name": "Task 1",
                     "description": "Task 1 description",
                     "steps": [{"description": "Step 1"}],
-                }
+                },
             ]
             mock_task_generator.return_value.generate_tasks.return_value = []
 
@@ -4399,7 +4467,7 @@ class TestGeneratorFinalCoverage:
                     "name": "Task 1",
                     "description": "Task 1 description",
                     "steps": [{"description": "Step 1"}],
-                }
+                },
             ]
 
             # Mock best practices
@@ -4408,7 +4476,7 @@ class TestGeneratorFinalCoverage:
                     "name": "Best Practice 1",
                     "description": "Best practice description",
                     "steps": [{"description": "Best practice step"}],
-                }
+                },
             ]
 
             # Mock task graph formatter
@@ -4425,7 +4493,9 @@ class TestGeneratorFinalCoverage:
             assert result is not None
 
     def test_save_task_graph_with_debug_logging(
-        self, always_valid_mock_model: Mock, patched_sample_config: dict[str, Any]
+        self,
+        always_valid_mock_model: Mock,
+        patched_sample_config: dict[str, Any],
     ) -> None:
         """Test save_task_graph method with debug logging for non-serializable fields."""
         # Create generator
@@ -4448,7 +4518,7 @@ class TestGeneratorFinalCoverage:
             patch("builtins.open", mock_open()) as mock_file,
             patch("json.dump") as mock_json_dump,
             patch(
-                "arklex.orchestrator.generator.core.generator.log_context"
+                "arklex.orchestrator.generator.core.generator.log_context",
             ) as mock_log,
         ):
             # Run save_task_graph method
@@ -4463,7 +4533,9 @@ class TestGeneratorFinalCoverage:
             mock_log.debug.assert_called()
 
     def test_save_task_graph_sanitize_with_tuple(
-        self, always_valid_mock_model: Mock, patched_sample_config: dict[str, Any]
+        self,
+        always_valid_mock_model: Mock,
+        patched_sample_config: dict[str, Any],
     ) -> None:
         """Test save_task_graph sanitize function with tuple objects."""
         # Create generator
@@ -4543,13 +4615,13 @@ class TestGeneratorFinalCoverage:
                     "name": "Original Task",
                     "description": "Original description",
                     "steps": [{"description": "Step 1"}],
-                }
+                },
             ]
             generator.tasks = original_tasks.copy()
 
             # Mock UI to raise an exception
             with patch(
-                "arklex.orchestrator.generator.core.generator.TaskEditorApp"
+                "arklex.orchestrator.generator.core.generator.TaskEditorApp",
             ) as mock_ui:
                 mock_ui_instance = Mock()
                 mock_ui_instance.run.side_effect = Exception("UI Error")
@@ -4561,7 +4633,7 @@ class TestGeneratorFinalCoverage:
                         "name": "Best Practice 1",
                         "description": "Best practice description",
                         "steps": [{"description": "Best practice step"}],
-                    }
+                    },
                 ]
 
                 # Mock task graph formatter
@@ -4640,7 +4712,7 @@ class TestGeneratorFinalCoverage:
                     "name": "Best Practice 1",
                     "description": "Best practice description",
                     "steps": [{"description": "Best practice step"}],
-                }
+                },
             ]
 
             # Mock task graph formatter
@@ -4707,13 +4779,13 @@ class TestGeneratorSpecificLineCoverage:
                     "name": "Original Task",
                     "description": "Original description",
                     "steps": [{"description": "Step 1"}],
-                }
+                },
             ]
             generator.tasks = original_tasks.copy()
 
             # Mock UI to return the same tasks (no changes detected)
             with patch(
-                "arklex.orchestrator.generator.core.generator.TaskEditorApp"
+                "arklex.orchestrator.generator.core.generator.TaskEditorApp",
             ) as mock_ui:
                 mock_ui_instance = Mock()
                 # Return the same tasks to trigger the "no changes detected" branch
@@ -4726,7 +4798,7 @@ class TestGeneratorSpecificLineCoverage:
                         "name": "Best Practice 1",
                         "description": "Best practice description",
                         "steps": [{"description": "Best practice step"}],
-                    }
+                    },
                 ]
 
                 # Mock task graph formatter
@@ -4786,7 +4858,7 @@ class TestGeneratorSpecificLineCoverage:
                     "name": "Task 1",
                     "description": "Task 1 description",
                     "steps": [{"description": "Step 1"}],
-                }
+                },
             ]
 
             # Mock best practices
@@ -4795,7 +4867,7 @@ class TestGeneratorSpecificLineCoverage:
                     "name": "Best Practice 1",
                     "description": "Best practice description",
                     "steps": [{"description": "Best practice step"}],
-                }
+                },
             ]
 
             # Mock task graph formatter
@@ -4860,15 +4932,19 @@ def test_generate_with_user_changes_triggers_resource_pairing(
                     "nodes": [],
                     "edges": [],
                     "tasks": t,
-                }
+                },
             },
         )(),
     )
     monkeypatch.setattr(
-        gen, "_initialize_best_practice_manager", lambda: DummyBestPracticeManager()
+        gen,
+        "_initialize_best_practice_manager",
+        lambda: DummyBestPracticeManager(),
     )
     monkeypatch.setattr(
-        gen, "_initialize_reusable_task_manager", lambda: type("R", (), {})()
+        gen,
+        "_initialize_reusable_task_manager",
+        lambda: type("R", (), {})(),
     )
     monkeypatch.setattr(gen, "_initialize_document_loader", lambda: type("D", (), {})())
     monkeypatch.setattr(
@@ -4884,7 +4960,9 @@ def test_generate_with_user_changes_triggers_resource_pairing(
     monkeypatch.setattr(
         "arklex.orchestrator.generator.core.generator.TaskEditorApp",
         lambda *a, **k: type(
-            "TaskEditorApp", (), {"run": lambda self: [{"name": "T", "steps": ["s"]}]}
+            "TaskEditorApp",
+            (),
+            {"run": lambda self: [{"name": "T", "steps": ["s"]}]},
         )(),
     )
     result = gen.generate()
@@ -4935,15 +5013,19 @@ def test_generate_intent_prediction_fallback(monkeypatch: object) -> None:
                     "nodes": [],
                     "edges": [],
                     "tasks": t,
-                }
+                },
             },
         )(),
     )
     monkeypatch.setattr(
-        gen, "_initialize_best_practice_manager", lambda: DummyBestPracticeManager()
+        gen,
+        "_initialize_best_practice_manager",
+        lambda: DummyBestPracticeManager(),
     )
     monkeypatch.setattr(
-        gen, "_initialize_reusable_task_manager", lambda: type("R", (), {})()
+        gen,
+        "_initialize_reusable_task_manager",
+        lambda: type("R", (), {})(),
     )
     monkeypatch.setattr(gen, "_initialize_document_loader", lambda: type("D", (), {})())
     monkeypatch.setattr(
@@ -4971,7 +5053,7 @@ class TestGeneratorMissingLinesCoverage:
 
             def __init__(self, *args: object, **kwargs: object) -> None:
                 raise ImportError(
-                    "UI components require 'textual' package to be installed"
+                    "UI components require 'textual' package to be installed",
                 )
 
         # Test that the placeholder class raises the expected ImportError
@@ -4982,7 +5064,8 @@ class TestGeneratorMissingLinesCoverage:
             PlaceholderTaskEditorApp(tasks=[])
 
     def test_worker_processing_with_invalid_workers(
-        self, always_valid_mock_model: Mock
+        self,
+        always_valid_mock_model: Mock,
     ) -> None:
         """Test worker processing with invalid worker configurations (lines 169-174)."""
         config = {
@@ -5007,7 +5090,8 @@ class TestGeneratorMissingLinesCoverage:
         assert generator.workers[0]["path"] == "/path1"
 
     def test_document_loader_initialization_with_none_output_dir(
-        self, always_valid_mock_model: Mock
+        self,
+        always_valid_mock_model: Mock,
     ) -> None:
         """Test document loader initialization when output_dir is None (lines 208-219)."""
         config = {"role": "test_role", "user_objective": "test objective"}
@@ -5025,13 +5109,14 @@ class TestGeneratorMissingLinesCoverage:
             mock_cache_dir.mkdir.assert_called_once_with(exist_ok=True)
 
     def test_task_generator_initialization_with_documents_and_instructions(
-        self, always_valid_mock_model: Mock
+        self,
+        always_valid_mock_model: Mock,
     ) -> None:
         """Test task generator initialization with documents and instructions (lines 227-235)."""
         config = {"role": "test_role", "user_objective": "test objective"}
 
         with patch(
-            "arklex.orchestrator.generator.core.generator.TaskGenerator"
+            "arklex.orchestrator.generator.core.generator.TaskGenerator",
         ) as mock_generator_class:
             mock_generator_instance = Mock()
             mock_generator_class.return_value = mock_generator_instance
@@ -5052,7 +5137,9 @@ class TestGeneratorMissingLinesCoverage:
             assert task_generator == mock_generator_instance
 
     def test_best_practice_manager_initialization_with_dict_tools(
-        self, always_valid_mock_model: Mock, mock_resource_initializer: Mock
+        self,
+        always_valid_mock_model: Mock,
+        mock_resource_initializer: Mock,
     ) -> None:
         """Test best practice manager initialization with tools as dictionary (lines 243-296)."""
         mock_resource_initializer.init_tools.return_value = {
@@ -5073,7 +5160,7 @@ class TestGeneratorMissingLinesCoverage:
         }
 
         with patch(
-            "arklex.orchestrator.generator.core.generator.BestPracticeManager"
+            "arklex.orchestrator.generator.core.generator.BestPracticeManager",
         ) as mock_manager_class:
             mock_manager_instance = Mock()
             mock_manager_class.return_value = mock_manager_instance
@@ -5099,13 +5186,16 @@ class TestGeneratorMissingLinesCoverage:
 
             # Verify nested_graph is added when enabled
             nested_graph = next(
-                (r for r in all_resources if r["name"] == "NestedGraph"), None
+                (r for r in all_resources if r["name"] == "NestedGraph"),
+                None,
             )
             assert nested_graph is not None
             assert nested_graph["type"] == "nested_graph"
 
     def test_best_practice_manager_initialization_with_list_tools(
-        self, always_valid_mock_model: Mock, mock_resource_initializer: Mock
+        self,
+        always_valid_mock_model: Mock,
+        mock_resource_initializer: Mock,
     ) -> None:
         """Test best practice manager initialization with tools as list (lines 243-296)."""
         mock_resource_initializer.init_tools.return_value = [
@@ -5126,7 +5216,7 @@ class TestGeneratorMissingLinesCoverage:
         }
 
         with patch(
-            "arklex.orchestrator.generator.core.generator.BestPracticeManager"
+            "arklex.orchestrator.generator.core.generator.BestPracticeManager",
         ) as mock_manager_class:
             mock_manager_instance = Mock()
             mock_manager_class.return_value = mock_manager_instance
@@ -5152,12 +5242,15 @@ class TestGeneratorMissingLinesCoverage:
 
             # Verify nested_graph is not added when disabled
             nested_graph = next(
-                (r for r in all_resources if r["name"] == "NestedGraph"), None
+                (r for r in all_resources if r["name"] == "NestedGraph"),
+                None,
             )
             assert nested_graph is None
 
     def test_best_practice_manager_initialization_with_invalid_tools(
-        self, always_valid_mock_model: Mock, mock_resource_initializer: Mock
+        self,
+        always_valid_mock_model: Mock,
+        mock_resource_initializer: Mock,
     ) -> None:
         """Test best practice manager initialization with invalid tools format (lines 243-296)."""
         mock_resource_initializer.init_tools.return_value = "invalid_tools_format"
@@ -5174,7 +5267,7 @@ class TestGeneratorMissingLinesCoverage:
         }
 
         with patch(
-            "arklex.orchestrator.generator.core.generator.BestPracticeManager"
+            "arklex.orchestrator.generator.core.generator.BestPracticeManager",
         ) as mock_manager_class:
             mock_manager_instance = Mock()
             mock_manager_class.return_value = mock_manager_instance
@@ -5199,13 +5292,14 @@ class TestGeneratorMissingLinesCoverage:
             assert worker1["type"] == "worker"
 
     def test_reusable_task_manager_initialization(
-        self, always_valid_mock_model: Mock
+        self,
+        always_valid_mock_model: Mock,
     ) -> None:
         """Test reusable task manager initialization (lines 304-310)."""
         config = {"role": "test_role", "user_objective": "test objective"}
 
         with patch(
-            "arklex.orchestrator.generator.core.generator.ReusableTaskManager"
+            "arklex.orchestrator.generator.core.generator.ReusableTaskManager",
         ) as mock_manager_class:
             mock_manager_instance = Mock()
             mock_manager_class.return_value = mock_manager_instance
@@ -5221,7 +5315,8 @@ class TestGeneratorMissingLinesCoverage:
             assert reusable_task_manager == mock_manager_instance
 
     def test_task_graph_formatter_initialization(
-        self, always_valid_mock_model: Mock
+        self,
+        always_valid_mock_model: Mock,
     ) -> None:
         """Test task graph formatter initialization (lines 318-335)."""
         config = {
@@ -5238,7 +5333,7 @@ class TestGeneratorMissingLinesCoverage:
         }
 
         with patch(
-            "arklex.orchestrator.generator.core.generator.TaskGraphFormatter"
+            "arklex.orchestrator.generator.core.generator.TaskGraphFormatter",
         ) as mock_formatter_class:
             mock_formatter_instance = Mock()
             mock_formatter_class.return_value = mock_formatter_instance
@@ -5270,7 +5365,9 @@ class TestGeneratorMissingLinesCoverage:
             assert task_graph_formatter == mock_formatter_instance
 
     def test_load_multiple_task_documents_with_list(
-        self, always_valid_mock_model: Mock, mock_document_loader: Mock
+        self,
+        always_valid_mock_model: Mock,
+        mock_document_loader: Mock,
     ) -> None:
         """Test loading multiple task documents from a list (lines 351-363)."""
         config = {"role": "test_role", "user_objective": "test objective"}
@@ -5283,7 +5380,8 @@ class TestGeneratorMissingLinesCoverage:
         ]
 
         result = generator._load_multiple_task_documents(
-            mock_document_loader, doc_paths
+            mock_document_loader,
+            doc_paths,
         )
 
         assert len(result) == 3
@@ -5292,11 +5390,13 @@ class TestGeneratorMissingLinesCoverage:
                 call("doc1.md"),
                 call("doc2.md"),
                 call("doc3.md"),
-            ]
+            ],
         )
 
     def test_load_multiple_task_documents_with_single_dict(
-        self, always_valid_mock_model: Mock, mock_document_loader: Mock
+        self,
+        always_valid_mock_model: Mock,
+        mock_document_loader: Mock,
     ) -> None:
         """Test loading task documents from a single dictionary (lines 351-363)."""
         config = {"role": "test_role", "user_objective": "test objective"}
@@ -5305,14 +5405,17 @@ class TestGeneratorMissingLinesCoverage:
         doc_paths = {"source": "doc1.md"}
 
         result = generator._load_multiple_task_documents(
-            mock_document_loader, doc_paths
+            mock_document_loader,
+            doc_paths,
         )
 
         assert len(result) == 1
         mock_document_loader.load_task_document.assert_called_once_with("doc1.md")
 
     def test_load_multiple_task_documents_with_single_string(
-        self, always_valid_mock_model: Mock, mock_document_loader: Mock
+        self,
+        always_valid_mock_model: Mock,
+        mock_document_loader: Mock,
     ) -> None:
         """Test loading task documents from a single string (lines 351-363)."""
         config = {"role": "test_role", "user_objective": "test objective"}
@@ -5321,14 +5424,17 @@ class TestGeneratorMissingLinesCoverage:
         doc_paths = "doc1.md"
 
         result = generator._load_multiple_task_documents(
-            mock_document_loader, doc_paths
+            mock_document_loader,
+            doc_paths,
         )
 
         assert len(result) == 1
         mock_document_loader.load_task_document.assert_called_once_with("doc1.md")
 
     def test_load_multiple_instruction_documents_with_list(
-        self, always_valid_mock_model: Mock, mock_document_loader: Mock
+        self,
+        always_valid_mock_model: Mock,
+        mock_document_loader: Mock,
     ) -> None:
         """Test loading multiple instruction documents from a list (lines 379-391)."""
         config = {"role": "test_role", "user_objective": "test objective"}
@@ -5341,7 +5447,8 @@ class TestGeneratorMissingLinesCoverage:
         ]
 
         result = generator._load_multiple_instruction_documents(
-            mock_document_loader, doc_paths
+            mock_document_loader,
+            doc_paths,
         )
 
         assert len(result) == 3
@@ -5350,11 +5457,13 @@ class TestGeneratorMissingLinesCoverage:
                 call("instr1.md"),
                 call("instr2.md"),
                 call("instr3.md"),
-            ]
+            ],
         )
 
     def test_load_multiple_instruction_documents_with_single_dict(
-        self, always_valid_mock_model: Mock, mock_document_loader: Mock
+        self,
+        always_valid_mock_model: Mock,
+        mock_document_loader: Mock,
     ) -> None:
         """Test loading instruction documents from a single dictionary (lines 379-391)."""
         config = {"role": "test_role", "user_objective": "test objective"}
@@ -5363,16 +5472,19 @@ class TestGeneratorMissingLinesCoverage:
         doc_paths = {"source": "instr1.md"}
 
         result = generator._load_multiple_instruction_documents(
-            mock_document_loader, doc_paths
+            mock_document_loader,
+            doc_paths,
         )
 
         assert len(result) == 1
         mock_document_loader.load_instruction_document.assert_called_once_with(
-            "instr1.md"
+            "instr1.md",
         )
 
     def test_load_multiple_instruction_documents_with_single_string(
-        self, always_valid_mock_model: Mock, mock_document_loader: Mock
+        self,
+        always_valid_mock_model: Mock,
+        mock_document_loader: Mock,
     ) -> None:
         """Test loading instruction documents from a single string (lines 379-391)."""
         config = {"role": "test_role", "user_objective": "test objective"}
@@ -5381,16 +5493,19 @@ class TestGeneratorMissingLinesCoverage:
         doc_paths = "instr1.md"
 
         result = generator._load_multiple_instruction_documents(
-            mock_document_loader, doc_paths
+            mock_document_loader,
+            doc_paths,
         )
 
         assert len(result) == 1
         mock_document_loader.load_instruction_document.assert_called_once_with(
-            "instr1.md"
+            "instr1.md",
         )
 
     def test_generate_with_ui_available_and_user_changes(
-        self, always_valid_mock_model: Mock, patched_sample_config: dict[str, Any]
+        self,
+        always_valid_mock_model: Mock,
+        patched_sample_config: dict[str, Any],
     ) -> None:
         """Test generate method with UI available and user making changes (lines 407-691)."""
         generator = Generator(
@@ -5403,7 +5518,7 @@ class TestGeneratorMissingLinesCoverage:
         with (
             patch("arklex.orchestrator.generator.core.generator.UI_AVAILABLE", True),
             patch(
-                "arklex.orchestrator.generator.core.generator.TaskEditorApp"
+                "arklex.orchestrator.generator.core.generator.TaskEditorApp",
             ) as mock_editor_class,
         ):
             mock_editor_instance = Mock()
@@ -5412,7 +5527,7 @@ class TestGeneratorMissingLinesCoverage:
                     "name": "Modified Task",
                     "description": "Modified description",
                     "steps": ["Modified Step 1", "Modified Step 2"],
-                }
+                },
             ]
             mock_editor_class.return_value = mock_editor_instance
 
@@ -5431,7 +5546,9 @@ class TestGeneratorMissingLinesCoverage:
                 mock_editor_instance.run.assert_called_once()
 
     def test_generate_with_ui_available_no_user_changes(
-        self, always_valid_mock_model: Mock, patched_sample_config: dict[str, Any]
+        self,
+        always_valid_mock_model: Mock,
+        patched_sample_config: dict[str, Any],
     ) -> None:
         """Test generate method with UI available but no user changes (lines 407-691)."""
         generator = Generator(
@@ -5444,7 +5561,7 @@ class TestGeneratorMissingLinesCoverage:
         with (
             patch("arklex.orchestrator.generator.core.generator.UI_AVAILABLE", True),
             patch(
-                "arklex.orchestrator.generator.core.generator.TaskEditorApp"
+                "arklex.orchestrator.generator.core.generator.TaskEditorApp",
             ) as mock_editor_class,
         ):
             mock_editor_instance = Mock()
@@ -5467,7 +5584,9 @@ class TestGeneratorMissingLinesCoverage:
                 mock_editor_instance.run.assert_called_once()
 
     def test_generate_with_ui_exception(
-        self, always_valid_mock_model: Mock, patched_sample_config: dict[str, Any]
+        self,
+        always_valid_mock_model: Mock,
+        patched_sample_config: dict[str, Any],
     ) -> None:
         """Test generate method with UI exception handling (lines 407-691)."""
         generator = Generator(
@@ -5480,7 +5599,7 @@ class TestGeneratorMissingLinesCoverage:
         with (
             patch("arklex.orchestrator.generator.core.generator.UI_AVAILABLE", True),
             patch(
-                "arklex.orchestrator.generator.core.generator.TaskEditorApp"
+                "arklex.orchestrator.generator.core.generator.TaskEditorApp",
             ) as mock_editor_class,
         ):
             mock_editor_instance = Mock()
@@ -5503,7 +5622,9 @@ class TestGeneratorMissingLinesCoverage:
                 mock_editor_instance.run.assert_called_once()
 
     def test_generate_with_intent_prediction_success(
-        self, always_valid_mock_model: Mock, patched_sample_config: dict[str, Any]
+        self,
+        always_valid_mock_model: Mock,
+        patched_sample_config: dict[str, Any],
     ) -> None:
         """Test generate method with successful intent prediction (lines 407-691)."""
         generator = Generator(
@@ -5524,7 +5645,7 @@ class TestGeneratorMissingLinesCoverage:
             patch.object(generator, "_initialize_best_practice_manager"),
             patch.object(generator, "_initialize_task_graph_formatter"),
             patch(
-                "arklex.orchestrator.generator.core.generator.PromptManager"
+                "arklex.orchestrator.generator.core.generator.PromptManager",
             ) as mock_prompt_manager,
         ):
             mock_prompt_manager.return_value.get_prompt.return_value = "Mock prompt"
@@ -5535,7 +5656,7 @@ class TestGeneratorMissingLinesCoverage:
                     "name": "Test Task",
                     "description": "Test task description",
                     "steps": [{"description": "Test step"}],
-                }
+                },
             ]
 
             generator.generate()
@@ -5544,7 +5665,9 @@ class TestGeneratorMissingLinesCoverage:
             assert always_valid_mock_model.invoke.call_count > 0
 
     def test_generate_with_intent_prediction_fallback(
-        self, always_valid_mock_model: Mock, patched_sample_config: dict[str, Any]
+        self,
+        always_valid_mock_model: Mock,
+        patched_sample_config: dict[str, Any],
     ) -> None:
         """Test generate method with intent prediction fallback (lines 407-691)."""
         generator = Generator(
@@ -5565,7 +5688,7 @@ class TestGeneratorMissingLinesCoverage:
             patch.object(generator, "_initialize_best_practice_manager"),
             patch.object(generator, "_initialize_task_graph_formatter"),
             patch(
-                "arklex.orchestrator.generator.core.generator.PromptManager"
+                "arklex.orchestrator.generator.core.generator.PromptManager",
             ) as mock_prompt_manager,
         ):
             mock_prompt_manager.return_value.get_prompt.return_value = "Mock prompt"
@@ -5576,7 +5699,7 @@ class TestGeneratorMissingLinesCoverage:
                     "name": "Test Task",
                     "description": "Test task description",
                     "steps": [{"description": "Test step"}],
-                }
+                },
             ]
 
             generator.generate()
@@ -5585,7 +5708,9 @@ class TestGeneratorMissingLinesCoverage:
             assert always_valid_mock_model.invoke.call_count > 0
 
     def test_generate_with_intent_prediction_exception(
-        self, always_valid_mock_model: Mock, patched_sample_config: dict[str, Any]
+        self,
+        always_valid_mock_model: Mock,
+        patched_sample_config: dict[str, Any],
     ) -> None:
         """Test generate method with intent prediction exception (lines 407-691)."""
         generator = Generator(
@@ -5603,10 +5728,11 @@ class TestGeneratorMissingLinesCoverage:
             patch.object(generator, "_initialize_task_generator"),
             patch.object(generator, "_initialize_best_practice_manager"),
             patch.object(
-                generator, "_initialize_task_graph_formatter"
+                generator,
+                "_initialize_task_graph_formatter",
             ) as mock_formatter,
             patch(
-                "arklex.orchestrator.generator.core.generator.PromptManager"
+                "arklex.orchestrator.generator.core.generator.PromptManager",
             ) as mock_prompt_manager,
         ):
             mock_prompt_manager.return_value.get_prompt.return_value = "Mock prompt"
@@ -5631,7 +5757,7 @@ class TestGeneratorMissingLinesCoverage:
                     "name": "Test Task",
                     "description": "Test task description",
                     "steps": [{"description": "Test step"}],
-                }
+                },
             ]
 
             result = generator.generate()
@@ -5640,7 +5766,9 @@ class TestGeneratorMissingLinesCoverage:
             assert "tasks" in result
 
     def test_generate_with_nested_graph_disabled(
-        self, always_valid_mock_model: Mock, patched_sample_config: dict[str, Any]
+        self,
+        always_valid_mock_model: Mock,
+        patched_sample_config: dict[str, Any],
     ) -> None:
         """Test generate method with nested graph disabled (lines 407-691)."""
         generator = Generator(
@@ -5665,7 +5793,9 @@ class TestGeneratorMissingLinesCoverage:
             mock_formatter.ensure_nested_graph_connectivity.assert_not_called()
 
     def test_generate_with_empty_reusable_tasks(
-        self, always_valid_mock_model: Mock, patched_sample_config: dict[str, Any]
+        self,
+        always_valid_mock_model: Mock,
+        patched_sample_config: dict[str, Any],
     ) -> None:
         """Test generate method when reusable tasks is empty (lines 407-691)."""
         generator = Generator(
@@ -5692,7 +5822,9 @@ class TestGeneratorMissingLinesCoverage:
             assert "reusable_tasks" not in result
 
     def test_generate_with_none_reusable_tasks(
-        self, always_valid_mock_model: Mock, patched_sample_config: dict[str, Any]
+        self,
+        always_valid_mock_model: Mock,
+        patched_sample_config: dict[str, Any],
     ) -> None:
         """Test generate method when reusable tasks is None (lines 407-691)."""
         generator = Generator(
@@ -5719,7 +5851,9 @@ class TestGeneratorMissingLinesCoverage:
             assert "reusable_tasks" not in result
 
     def test_save_task_graph_with_functools_partial(
-        self, always_valid_mock_model: Mock, patched_sample_config: dict[str, Any]
+        self,
+        always_valid_mock_model: Mock,
+        patched_sample_config: dict[str, Any],
     ) -> None:
         """Test save_task_graph method with functools.partial objects (lines 702-735)."""
         import functools
@@ -5759,7 +5893,9 @@ class TestGeneratorMissingLinesCoverage:
             assert "functools.partial" in sanitized_data["partial_func"]
 
     def test_save_task_graph_with_collections_abc_callable(
-        self, always_valid_mock_model: Mock, patched_sample_config: dict[str, Any]
+        self,
+        always_valid_mock_model: Mock,
+        patched_sample_config: dict[str, Any],
     ) -> None:
         """Test save_task_graph method with collections.abc.Callable objects (lines 702-735)."""
         import collections.abc
@@ -5802,7 +5938,9 @@ class TestGeneratorMissingLinesCoverage:
             assert "collections.abc.Callable" in sanitized_data["callable_type"]
 
     def test_save_task_graph_with_other_non_serializable_objects(
-        self, always_valid_mock_model: Mock, patched_sample_config: dict[str, Any]
+        self,
+        always_valid_mock_model: Mock,
+        patched_sample_config: dict[str, Any],
     ) -> None:
         """Test save_task_graph method with other non-serializable objects (lines 702-735)."""
 
@@ -5843,7 +5981,9 @@ class TestGeneratorMissingLinesCoverage:
             assert "CustomObject" in sanitized_data["custom_obj"]
 
     def test_save_task_graph_with_debug_logging(
-        self, always_valid_mock_model: Mock, patched_sample_config: dict[str, Any]
+        self,
+        always_valid_mock_model: Mock,
+        patched_sample_config: dict[str, Any],
     ) -> None:
         """Test save_task_graph method with debug logging for non-serializable fields (lines 702-735)."""
         generator = Generator(
@@ -5865,7 +6005,7 @@ class TestGeneratorMissingLinesCoverage:
             patch("builtins.open", mock_open()) as mock_file,
             patch("json.dump") as mock_json_dump,
             patch(
-                "arklex.orchestrator.generator.core.generator.log_context"
+                "arklex.orchestrator.generator.core.generator.log_context",
             ) as mock_log,
         ):
             # Run save_task_graph method
@@ -5880,7 +6020,9 @@ class TestGeneratorMissingLinesCoverage:
             mock_log.debug.assert_called()
 
     def test_save_task_graph_with_tuple(
-        self, always_valid_mock_model: Mock, patched_sample_config: dict[str, Any]
+        self,
+        always_valid_mock_model: Mock,
+        patched_sample_config: dict[str, Any],
     ) -> None:
         """Test save_task_graph method with tuple objects (lines 702-735)."""
         generator = Generator(

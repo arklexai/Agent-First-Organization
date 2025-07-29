@@ -183,7 +183,6 @@ class TestValidateVerificationResponse:
 
     def test_validate_verification_response_general_exception(self) -> None:
         """Test general exception handling."""
-
         # Test with a malformed response that will cause a general exception
         # when trying to access data.get() after JSON parsing
         malformed_response = "null"  # data is null, not a dict

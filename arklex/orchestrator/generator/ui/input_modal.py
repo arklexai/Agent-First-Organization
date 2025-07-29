@@ -42,6 +42,7 @@ class InputModal(Screen):
     Methods:
         compose(): Creates the modal UI components with title, input, and buttons
         on_button_pressed(): Handles button press events and processes user input
+
     """
 
     def __init__(
@@ -61,6 +62,7 @@ class InputModal(Screen):
             callback (Union[Callable[[str, Union[TreeNode, None]], None], None]): Function to call after
                 user interaction. Receives the result string and node as parameters.
                 Defaults to None.
+
         """
         super().__init__()
         self.title = title
@@ -100,6 +102,7 @@ class InputModal(Screen):
 
         Yields:
             ComposeResult: The composed UI elements in a vertical layout
+
         """
         yield Vertical(
             Static(self.title, classes="title"),
@@ -131,6 +134,7 @@ class InputModal(Screen):
 
         Args:
             event (Button.Pressed): The button press event
+
         """
         if getattr(event.button, "id", None) == "submit":
             # Update result with current input field value on submit

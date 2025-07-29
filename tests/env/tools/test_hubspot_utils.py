@@ -1,5 +1,4 @@
-"""
-Tests for the HubSpot utils module.
+"""Tests for the HubSpot utils module.
 
 This module contains comprehensive test cases for HubSpot utility functions,
 including authentication, token refresh, and error handling.
@@ -187,7 +186,10 @@ class TestRefreshTokenIfNeeded:
     @patch("arklex.env.tools.hubspot.utils.requests.post")
     @patch("arklex.env.tools.hubspot.utils.log_context")
     def test_refresh_token_if_needed_token_not_expired(
-        self, mock_log_context: Mock, mock_requests_post: Mock, mock_mysql_pool: Mock
+        self,
+        mock_log_context: Mock,
+        mock_requests_post: Mock,
+        mock_mysql_pool: Mock,
     ) -> None:
         """Test refresh_token_if_needed when token is not expired."""
         # Setup
@@ -213,7 +215,7 @@ class TestRefreshTokenIfNeeded:
         mock_mysql_pool.execute.assert_not_called()
 
         mock_log_context.info.assert_called_once_with(
-            f"Refreshing HubSpot auth tokens for bot {bot_id} version {bot_version}"
+            f"Refreshing HubSpot auth tokens for bot {bot_id} version {bot_version}",
         )
 
     @patch.dict(
@@ -227,7 +229,10 @@ class TestRefreshTokenIfNeeded:
     @patch("arklex.env.tools.hubspot.utils.requests.post")
     @patch("arklex.env.tools.hubspot.utils.log_context")
     def test_refresh_token_if_needed_token_expired_successful_refresh(
-        self, mock_log_context: Mock, mock_requests_post: Mock, mock_mysql_pool: Mock
+        self,
+        mock_log_context: Mock,
+        mock_requests_post: Mock,
+        mock_mysql_pool: Mock,
     ) -> None:
         """Test refresh_token_if_needed when token is expired and refresh succeeds."""
         # Setup
@@ -270,7 +275,10 @@ class TestRefreshTokenIfNeeded:
     @patch("arklex.env.tools.hubspot.utils.requests.post")
     @patch("arklex.env.tools.hubspot.utils.log_context")
     def test_refresh_token_if_needed_token_expired_refresh_fails(
-        self, mock_log_context: Mock, mock_requests_post: Mock, mock_mysql_pool: Mock
+        self,
+        mock_log_context: Mock,
+        mock_requests_post: Mock,
+        mock_mysql_pool: Mock,
     ) -> None:
         """Test refresh_token_if_needed when token is expired but refresh fails."""
         # Setup
@@ -307,7 +315,10 @@ class TestRefreshTokenIfNeeded:
     @patch("arklex.env.tools.hubspot.utils.requests.post")
     @patch("arklex.env.tools.hubspot.utils.log_context")
     def test_refresh_token_if_needed_invalid_expiry_time(
-        self, mock_log_context: Mock, mock_requests_post: Mock, mock_mysql_pool: Mock
+        self,
+        mock_log_context: Mock,
+        mock_requests_post: Mock,
+        mock_mysql_pool: Mock,
     ) -> None:
         """Test refresh_token_if_needed with invalid expiry time format."""
         # Setup
@@ -354,7 +365,7 @@ class TestRefreshTokenIfNeeded:
             refresh_token_if_needed(bot_id, bot_version, hubspot_auth_tokens)
 
         assert "HubSpot client ID and secret not found in environment variables" in str(
-            exc_info.value
+            exc_info.value,
         )
 
     @patch.dict(os.environ, {"HUBSPOT_CLIENT_ID": "test_client_id"})
@@ -374,7 +385,7 @@ class TestRefreshTokenIfNeeded:
             refresh_token_if_needed(bot_id, bot_version, hubspot_auth_tokens)
 
         assert "HubSpot client ID and secret not found in environment variables" in str(
-            exc_info.value
+            exc_info.value,
         )
 
     @patch.dict(os.environ, {"HUBSPOT_CLIENT_SECRET": "test_client_secret"})
@@ -394,7 +405,7 @@ class TestRefreshTokenIfNeeded:
             refresh_token_if_needed(bot_id, bot_version, hubspot_auth_tokens)
 
         assert "HubSpot client ID and secret not found in environment variables" in str(
-            exc_info.value
+            exc_info.value,
         )
 
     @patch.dict(
@@ -408,7 +419,10 @@ class TestRefreshTokenIfNeeded:
     @patch("arklex.env.tools.hubspot.utils.requests.post")
     @patch("arklex.env.tools.hubspot.utils.log_context")
     def test_refresh_token_if_needed_database_update(
-        self, mock_log_context: Mock, mock_requests_post: Mock, mock_mysql_pool: Mock
+        self,
+        mock_log_context: Mock,
+        mock_requests_post: Mock,
+        mock_mysql_pool: Mock,
     ) -> None:
         """Test refresh_token_if_needed database update with correct parameters."""
         # Setup
@@ -461,7 +475,10 @@ class TestRefreshTokenIfNeeded:
     @patch("arklex.env.tools.hubspot.utils.requests.post")
     @patch("arklex.env.tools.hubspot.utils.log_context")
     def test_refresh_token_if_needed_general_exception(
-        self, mock_log_context: Mock, mock_requests_post: Mock, mock_mysql_pool: Mock
+        self,
+        mock_log_context: Mock,
+        mock_requests_post: Mock,
+        mock_mysql_pool: Mock,
     ) -> None:
         """Test refresh_token_if_needed when a general exception occurs."""
         # Setup
@@ -490,7 +507,7 @@ class TestRefreshTokenIfNeeded:
             refresh_token_if_needed(bot_id, bot_version, hubspot_auth_tokens)
 
         assert "Failed to get HubSpot access token: Database error" in str(
-            exc_info.value
+            exc_info.value,
         )
 
     @patch.dict(
@@ -504,7 +521,10 @@ class TestRefreshTokenIfNeeded:
     @patch("arklex.env.tools.hubspot.utils.requests.post")
     @patch("arklex.env.tools.hubspot.utils.log_context")
     def test_refresh_token_if_needed_hubspot_not_integrated_error(
-        self, mock_log_context: Mock, mock_requests_post: Mock, mock_mysql_pool: Mock
+        self,
+        mock_log_context: Mock,
+        mock_requests_post: Mock,
+        mock_mysql_pool: Mock,
     ) -> None:
         """Test refresh_token_if_needed when HubspotNotIntegratedError is raised."""
         # Setup
@@ -527,7 +547,9 @@ class TestRefreshTokenIfNeeded:
 
         # Mock mysql_pool to raise HubspotNotIntegratedError
         mock_mysql_pool.execute.side_effect = HubspotNotIntegratedError(
-            "account", bot_id, bot_version
+            "account",
+            bot_id,
+            bot_version,
         )
 
         # Execute & Assert

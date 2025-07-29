@@ -1,5 +1,4 @@
-"""
-Integration tests for Shopify tools.
+"""Integration tests for Shopify tools.
 
 This module contains comprehensive integration tests for all Shopify tools,
 including proper mocking of external services and edge case testing.
@@ -37,8 +36,7 @@ get_web_product_func = get_web_product().func
 
 
 class TestShopifySearchProducts:
-    """
-    Integration tests for search_products tool.
+    """Integration tests for search_products tool.
 
     This test class validates the product search functionality, including
     successful searches, empty results, API errors, and edge cases.
@@ -54,8 +52,7 @@ class TestShopifySearchProducts:
         mock_session_temp: Mock,
         sample_shopify_product_data: dict,
     ) -> None:
-        """
-        Test successful product search with LLM response generation.
+        """Test successful product search with LLM response generation.
 
         This test validates that the search_products tool can successfully
         query the Shopify GraphQL API, process the results, and generate
@@ -118,8 +115,7 @@ class TestShopifySearchProducts:
         mock_graphql: Mock,
         mock_session_temp: Mock,
     ) -> None:
-        """
-        Test product search when no products are found.
+        """Test product search when no products are found.
 
         This test validates that the search_products tool properly handles
         cases where the search query returns no matching products and
@@ -142,8 +138,8 @@ class TestShopifySearchProducts:
                         "hasPreviousPage": False,
                         "startCursor": None,
                     },
-                }
-            }
+                },
+            },
         }
 
         # Set up GraphQL client mock to return empty results
@@ -175,8 +171,7 @@ class TestShopifySearchProducts:
         mock_graphql: Mock,
         mock_session_temp: Mock,
     ) -> None:
-        """
-        Test product search when Shopify API throws an exception.
+        """Test product search when Shopify API throws an exception.
 
         This test validates that the search_products tool properly handles
         API errors and exceptions, ensuring that failures are caught and
@@ -211,8 +206,7 @@ class TestShopifySearchProducts:
 
 
 class TestShopifyGetUserDetailsAdmin:
-    """
-    Integration tests for get_user_details_admin tool.
+    """Integration tests for get_user_details_admin tool.
 
     This test class validates the user details retrieval functionality,
     including successful retrievals, user not found scenarios, and API errors.
@@ -225,8 +219,7 @@ class TestShopifyGetUserDetailsAdmin:
         mock_graphql: Mock,
         mock_session_temp: Mock,
     ) -> None:
-        """
-        Test successful user details retrieval with comprehensive customer data.
+        """Test successful user details retrieval with comprehensive customer data.
 
         This test validates that the get_user_details_admin tool can successfully
         retrieve comprehensive customer information from Shopify, including
@@ -260,10 +253,10 @@ class TestShopifyGetUserDetailsAdmin:
                         "nodes": [
                             {"id": "gid://shopify/Order/12345"},
                             {"id": "gid://shopify/Order/12346"},
-                        ]
+                        ],
                     },
-                }
-            }
+                },
+            },
         }
 
         # Set up GraphQL client mock to return the customer data
@@ -375,9 +368,9 @@ class TestShopifyGetProducts:
                                         "node": {
                                             "src": "https://cdn.shopify.com/test-image.jpg",
                                             "altText": "Test Product Image",
-                                        }
-                                    }
-                                ]
+                                        },
+                                    },
+                                ],
                             },
                             "variants": {
                                 "nodes": [
@@ -386,13 +379,13 @@ class TestShopifyGetProducts:
                                         "id": "gid://shopify/ProductVariant/67890",
                                         "price": "29.99",
                                         "inventoryQuantity": 10,
-                                    }
-                                ]
+                                    },
+                                ],
                             },
-                        }
-                    ]
-                }
-            }
+                        },
+                    ],
+                },
+            },
         }
 
         mock_graphql_instance = MagicMock()
@@ -473,9 +466,9 @@ class TestShopifyGetOrderDetails:
                                         {
                                             "number": "TRACK123",
                                             "url": "https://tracking.example.com/TRACK123",
-                                        }
+                                        },
                                     ],
-                                }
+                                },
                             ],
                             "lineItems": {
                                 "edges": [
@@ -487,17 +480,17 @@ class TestShopifyGetOrderDetails:
                                             "variant": {
                                                 "id": "gid://shopify/ProductVariant/11111",
                                                 "product": {
-                                                    "id": "gid://shopify/Product/22222"
+                                                    "id": "gid://shopify/Product/22222",
                                                 },
                                             },
-                                        }
-                                    }
-                                ]
+                                        },
+                                    },
+                                ],
                             },
-                        }
-                    ]
-                }
-            }
+                        },
+                    ],
+                },
+            },
         }
 
         mock_graphql_instance = MagicMock()
@@ -578,10 +571,10 @@ class TestShopifyGetOrderDetails:
                             "totalPriceSet": {"presentmentMoney": {"amount": "99.99"}},
                             "fulfillments": [],
                             "lineItems": {"edges": []},
-                        }
-                    ]
-                }
-            }
+                        },
+                    ],
+                },
+            },
         }
 
         mock_graphql_instance = MagicMock()
@@ -629,10 +622,10 @@ class TestShopifyGetOrderDetails:
                             "totalPriceSet": {"presentmentMoney": {"amount": "99.99"}},
                             "fulfillments": [],
                             "lineItems": {"edges": []},
-                        }
-                    ]
-                }
-            }
+                        },
+                    ],
+                },
+            },
         }
 
         mock_graphql_instance = MagicMock()
@@ -680,10 +673,10 @@ class TestShopifyGetOrderDetails:
                             "totalPriceSet": {"presentmentMoney": {"amount": "99.99"}},
                             "fulfillments": [],
                             "lineItems": {"edges": []},
-                        }
-                    ]
-                }
-            }
+                        },
+                    ],
+                },
+            },
         }
 
         mock_graphql_instance = MagicMock()
@@ -737,10 +730,10 @@ class TestShopifyGetOrderDetails:
                                             "variant": {
                                                 "id": "gid://shopify/ProductVariant/11111",
                                                 "product": {
-                                                    "id": "gid://shopify/Product/22222"
+                                                    "id": "gid://shopify/Product/22222",
                                                 },
                                             },
-                                        }
+                                        },
                                     },
                                     {
                                         "node": {
@@ -750,17 +743,17 @@ class TestShopifyGetOrderDetails:
                                             "variant": {
                                                 "id": "gid://shopify/ProductVariant/11112",
                                                 "product": {
-                                                    "id": "gid://shopify/Product/22223"
+                                                    "id": "gid://shopify/Product/22223",
                                                 },
                                             },
-                                        }
+                                        },
                                     },
-                                ]
+                                ],
                             },
-                        }
-                    ]
-                }
-            }
+                        },
+                    ],
+                },
+            },
         }
 
         mock_graphql_instance = MagicMock()
@@ -838,10 +831,10 @@ class TestShopifyGetOrderDetails:
                             "totalPriceSet": {"presentmentMoney": {"amount": "99.99"}},
                             "fulfillments": [],
                             "lineItems": {"edges": []},
-                        }
-                    ]
-                }
-            }
+                        },
+                    ],
+                },
+            },
         }
 
         mock_graphql_instance = MagicMock()
@@ -889,10 +882,10 @@ class TestShopifyGetOrderDetails:
                             "totalPriceSet": {"presentmentMoney": {"amount": "99.99"}},
                             "fulfillments": [],
                             "lineItems": {"edges": []},
-                        }
-                    ]
-                }
-            }
+                        },
+                    ],
+                },
+            },
         }
 
         mock_graphql_instance = MagicMock()
@@ -940,10 +933,10 @@ class TestShopifyGetOrderDetails:
                             "totalPriceSet": {"presentmentMoney": {"amount": "99.99"}},
                             "fulfillments": [],
                             "lineItems": {"edges": []},
-                        }
-                    ]
-                }
-            }
+                        },
+                    ],
+                },
+            },
         }
 
         mock_graphql_instance = MagicMock()
@@ -993,11 +986,11 @@ class TestShopifyGetCart:
                                         "title": "Test Product",
                                     },
                                 },
-                            }
-                        ]
+                            },
+                        ],
                     },
-                }
-            }
+                },
+            },
         }
         mock_post.return_value = mock_response
 
@@ -1078,12 +1071,12 @@ class TestShopifyCartAddItems:
                                             "title": "Test Product",
                                         },
                                     },
-                                }
-                            ]
+                                },
+                            ],
                         },
-                    }
-                }
-            }
+                    },
+                },
+            },
         }
         mock_post.return_value = mock_response
 
@@ -1143,25 +1136,25 @@ class TestShopifyReturnProducts:
                             "node": {
                                 "id": "gid://shopify/ReturnableFulfillment/12345",
                                 "fulfillment": {
-                                    "id": "gid://shopify/Fulfillment/67890"
+                                    "id": "gid://shopify/Fulfillment/67890",
                                 },
                                 "returnableFulfillmentLineItems": {
                                     "edges": [
                                         {
                                             "node": {
                                                 "fulfillmentLineItem": {
-                                                    "id": "gid://shopify/FulfillmentLineItem/11111"
+                                                    "id": "gid://shopify/FulfillmentLineItem/11111",
                                                 },
                                                 "quantity": 2,
-                                            }
-                                        }
-                                    ]
+                                            },
+                                        },
+                                    ],
                                 },
-                            }
-                        }
-                    ]
-                }
-            }
+                            },
+                        },
+                    ],
+                },
+            },
         }
 
         # Mock successful return request response
@@ -1173,8 +1166,8 @@ class TestShopifyReturnProducts:
                         "status": "SUBMITTED",
                     },
                     "userErrors": [],
-                }
-            }
+                },
+            },
         }
 
         mock_graphql_instance = MagicMock()
@@ -1265,25 +1258,25 @@ class TestShopifyReturnProducts:
                             "node": {
                                 "id": "gid://shopify/ReturnableFulfillment/12345",
                                 "fulfillment": {
-                                    "id": "gid://shopify/Fulfillment/67890"
+                                    "id": "gid://shopify/Fulfillment/67890",
                                 },
                                 "returnableFulfillmentLineItems": {
                                     "edges": [
                                         {
                                             "node": {
                                                 "fulfillmentLineItem": {
-                                                    "id": "gid://shopify/FulfillmentLineItem/11111"
+                                                    "id": "gid://shopify/FulfillmentLineItem/11111",
                                                 },
                                                 "quantity": 2,
-                                            }
-                                        }
-                                    ]
+                                            },
+                                        },
+                                    ],
                                 },
-                            }
-                        }
-                    ]
-                }
-            }
+                            },
+                        },
+                    ],
+                },
+            },
         }
         mock_graphql_instance = MagicMock()
         mock_graphql_instance.execute.side_effect = [
@@ -1319,33 +1312,33 @@ class TestShopifyReturnProducts:
                             "node": {
                                 "id": "gid://shopify/ReturnableFulfillment/12345",
                                 "fulfillment": {
-                                    "id": "gid://shopify/Fulfillment/67890"
+                                    "id": "gid://shopify/Fulfillment/67890",
                                 },
                                 "returnableFulfillmentLineItems": {
                                     "edges": [
                                         {
                                             "node": {
                                                 "fulfillmentLineItem": {
-                                                    "id": "gid://shopify/FulfillmentLineItem/11111"
+                                                    "id": "gid://shopify/FulfillmentLineItem/11111",
                                                 },
                                                 "quantity": 2,
-                                            }
-                                        }
-                                    ]
+                                            },
+                                        },
+                                    ],
                                 },
-                            }
-                        }
-                    ]
-                }
-            }
+                            },
+                        },
+                    ],
+                },
+            },
         }
         mock_return_response = {
             "data": {
                 "returnRequest": None,
                 "userErrors": [
-                    {"field": ["returnLineItems"], "message": "Invalid return item."}
+                    {"field": ["returnLineItems"], "message": "Invalid return item."},
                 ],
-            }
+            },
         }
         mock_graphql_instance = MagicMock()
         mock_graphql_instance.execute.side_effect = [
@@ -1409,8 +1402,8 @@ class TestShopifyCancelOrder:
                         "cancelledAt": "2024-01-15T10:00:00Z",
                     },
                     "userErrors": [],
-                }
-            }
+                },
+            },
         }
 
         mock_graphql_instance = MagicMock()
@@ -1486,9 +1479,9 @@ class TestShopifyGetWebProduct:
                                         "node": {
                                             "src": "https://cdn.shopify.com/test-image.jpg",
                                             "altText": "Test Product Image",
-                                        }
-                                    }
-                                ]
+                                        },
+                                    },
+                                ],
                             },
                             "variants": {
                                 "nodes": [
@@ -1497,13 +1490,13 @@ class TestShopifyGetWebProduct:
                                         "id": "gid://shopify/ProductVariant/67890",
                                         "price": "29.99",
                                         "inventoryQuantity": 10,
-                                    }
-                                ]
+                                    },
+                                ],
                             },
-                        }
-                    ]
-                }
-            }
+                        },
+                    ],
+                },
+            },
         }
 
         mock_graphql_instance = MagicMock()
@@ -1575,8 +1568,8 @@ class TestShopifyToolsEdgeCases:
                         "hasPreviousPage": False,
                         "startCursor": None,
                     },
-                }
-            }
+                },
+            },
         }
 
         mock_graphql_instance = MagicMock()
@@ -1605,8 +1598,8 @@ class TestShopifyToolsEdgeCases:
                     "id": "gid://shopify/Cart/12345",
                     "checkoutUrl": "https://test-shop.myshopify.com/checkout/12345",
                     "lines": {"nodes": []},
-                }
-            }
+                },
+            },
         }
         mock_post.return_value = mock_response
 
@@ -1657,8 +1650,8 @@ class TestShopifyToolsEdgeCases:
                     "firstName": "John",
                     "lastName": "Doe",
                     "email": "john.doe@example.com",
-                }
-            }
+                },
+            },
         }
 
         mock_graphql_instance = MagicMock()
@@ -1695,9 +1688,9 @@ class TestShopifyToolsEdgeCases:
                     "nodes": [
                         {"id": "gid://shopify/Product/12345", "title": "Product 1"},
                         {"id": "gid://shopify/Product/12346", "title": "Product 2"},
-                    ]
-                }
-            }
+                    ],
+                },
+            },
         }
 
         mock_graphql_instance = MagicMock()

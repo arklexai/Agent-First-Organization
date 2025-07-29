@@ -51,18 +51,18 @@ def optionalize_type(typ: type[T]) -> type[T]:
 
 
 def json_response_to_obj_or_partial_obj(
-    response: dict[str, Any], typ: type[T] | dict[str, Any]
+    response: dict[str, Any],
+    typ: type[T] | dict[str, Any],
 ) -> T | PartialObj | dict[str, Any]:
     if isinstance(typ, dict):
         return response
-    else:
-        required_field_names: list[str] = [
-            name for name, field in typ.model_fields.items() if field.is_required()
-        ]
-        for name in required_field_names:
-            if name not in response or response[name] is None:
-                return response
-        return typ.model_validate(response)
+    required_field_names: list[str] = [
+        name for name, field in typ.model_fields.items() if field.is_required()
+    ]
+    for name in required_field_names:
+        if name not in response or response[name] is None:
+            return response
+    return typ.model_validate(response)
 
 
 def clean_top_level_keys(d: dict[str, Any]) -> dict[str, Any]:
