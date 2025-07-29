@@ -50,7 +50,7 @@ def get_api_bot_response(
     user_text: str,
     parameters: dict[str, Any],
     env: Environment,
-) -> tuple[str, dict[str, Any], bool]:
+) -> dict[str, Any]:
     """Get a response from the bot based on the provided input.
 
     This function processes the user input and chat history through the orchestrator
@@ -74,7 +74,7 @@ def get_api_bot_response(
     orchestrator = AgentOrg(config=config, env=env)
     result: dict[str, Any] = orchestrator.get_response(data)
 
-    return result["answer"], result["parameters"], result["human_in_the_loop"]
+    return result
 
 
 if __name__ == "__main__":
@@ -130,8 +130,8 @@ if __name__ == "__main__":
 
     # Find and display the initial message from the start node
     for node in config["nodes"]:
-        if node[1].get("type", "") == "start":
-            start_message: str = node[1]["attribute"]["value"]
+        if node[1].get("attribute", {}).get("start", False):
+            start_message: str = node[1]["data"]["message"]
             break
     history.append({"role": worker_prefix, "content": start_message})
     pprint_with_color(f"Bot: {start_message}")
@@ -142,10 +142,10 @@ if __name__ == "__main__":
         if user_text.lower() == "quit":
             break
         start_time: float = time.time()
-        output, params, hitl = get_api_bot_response(
-            config, history, user_text, params, env
-        )
+        output = get_api_bot_response(config, history, user_text, params, env)
         history.append({"role": user_prefix, "content": user_text})
-        history.append({"role": worker_prefix, "content": output})
+        history.append({"role": worker_prefix, "content": output["answer"]})
         print(f"getAPIBotResponse Time: {time.time() - start_time}")
-        pprint_with_color(f"Bot: {output}")
+        pprint_with_color(
+            f"Bot: {output['answer']}\\n{output['choice_list']}\\n{output['human_in_the_loop']}"
+        )

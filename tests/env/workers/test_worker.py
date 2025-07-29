@@ -403,7 +403,7 @@ class TestWorkerIntegration:
         assert child_result.response == "child"
 
     def test_hitlworker_execute_final_return(self) -> None:
-        from arklex.env.workers.hitl_worker import HITLWorker, MessageState
+        from arklex.env.workers.hitl.hitl_worker import HITLWorker, MessageState
 
         class DummyHITLWorker(HITLWorker):
             def verify(self, state: MessageState) -> tuple[bool, str]:

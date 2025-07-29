@@ -3,6 +3,7 @@ import re
 from langchain.prompts import PromptTemplate
 from langchain_core.output_parsers import StrOutputParser
 
+from arklex.env.entities import NodeResponse
 from arklex.env.prompts import load_prompts
 from arklex.memory.entities.memory_entities import ResourceRecord
 from arklex.orchestrator.entities.orchestrator_param_entities import OrchestratorParams
@@ -29,6 +30,7 @@ TRIGGER_LIVE_CHAT_PROMPT = "Sorry, I'm not certain about the answer, would you l
 
 def post_process_response(
     orch_state: OrchestratorState,
+    node_response: NodeResponse,
     params: OrchestratorParams,
     hitl_worker_available: bool,
     hitl_proposal_enabled: bool,
@@ -43,34 +45,37 @@ def post_process_response(
     whether to suggest a handoff to a human assistant based on confidence and relevance heuristics.
 
     Args:
-        message_state (MessageState): Current state of the conversation including response, context, and metadata.
+        orch_state (OrchestratorState): Current state of the conversation including response, context, and metadata.
+        node_response (NodeResponse): Response from the current node.
         params (OrchestratorParams): Additional configuration and NLU metadata.
         hitl_worker_available (bool): Flag indicating whether HITL worker is available
         hitl_proposal_enabled (bool): Flag indicating whether proactive HITL (human-in-the-loop) routing is allowed.
 
     Returns:
-        MessageState: The updated message state with potentially cleaned or rephrased response,
+        NodeResponse: The updated node response with potentially cleaned or rephrased response,
                     and possibly a human handoff suggestion.
     """
-    context_links = _build_context(orch_state)
-    response_links = _extract_links(orch_state.response)
+    context_links = _build_context(orch_state.sys_instruct, orch_state.trajectory)
+    response_links = _extract_links(node_response.response)
     missing_links = response_links - context_links
     if missing_links:
         log_context.info(
             f"Some answer links are NOT present in the context. Missing: {missing_links}"
         )
-        orch_state.response = _remove_invalid_links(orch_state.response, missing_links)
-        orch_state.response = _rephrase_answer(orch_state)
+        node_response.response = _remove_invalid_links(
+            node_response.response, missing_links
+        )
+        node_response.response = _rephrase_answer(orch_state, node_response.response)
 
     if hitl_worker_available and hitl_proposal_enabled and not orch_state.metadata.hitl:
-        _live_chat_verifier(orch_state, params)
+        _live_chat_verifier(orch_state, node_response, params)
 
-    return orch_state
+    return node_response
 
 
-def _build_context(orch_state: OrchestratorState) -> set:
-    context_links = _extract_links(orch_state.sys_instruct)
-    for resource_group in orch_state.trajectory:
+def _build_context(sys_instruct: str, trajectory: list[list[ResourceRecord]]) -> set:
+    context_links = _extract_links(sys_instruct)
+    for resource_group in trajectory:
         for resource in resource_group:
             if _include_resource(resource):
                 context_links.update(_extract_links(resource.output))
@@ -130,7 +135,7 @@ def _remove_invalid_links(response: str, links: set) -> str:
     return re.sub(r"\s+", " ", cleaned_response).strip()
 
 
-def _rephrase_answer(orch_state: OrchestratorState) -> str:
+def _rephrase_answer(orch_state: OrchestratorState, response: str) -> str:
     """Rephrases the answer using an LLM after link removal."""
     llm_config = orch_state.bot_config.llm_config
     model_class = validate_and_get_model_class(llm_config)
@@ -142,7 +147,7 @@ def _rephrase_answer(orch_state: OrchestratorState) -> str:
     input_prompt = prompt.invoke(
         {
             "sys_instruct": orch_state.sys_instruct,
-            "original_answer": orch_state.response,
+            "original_answer": response,
             "formatted_chat": orch_state.user_message.history,
         }
     )
@@ -153,7 +158,9 @@ def _rephrase_answer(orch_state: OrchestratorState) -> str:
 
 
 def _live_chat_verifier(
-    orch_state: OrchestratorState, params: OrchestratorParams
+    orch_state: OrchestratorState,
+    node_response: NodeResponse,
+    params: OrchestratorParams,
 ) -> None:
     """
     Determines if a live chat takeover is needed.
@@ -162,7 +169,7 @@ def _live_chat_verifier(
     """
     # early detection of confident bot response
     # if response has valid, verified link
-    if _extract_links(orch_state.response):
+    if _extract_links(node_response.response):
         return
 
     # check for relevance of the user's question
@@ -206,7 +213,7 @@ def _live_chat_verifier(
         return
 
     if should_trigger_handoff(orch_state):
-        orch_state.response = TRIGGER_LIVE_CHAT_PROMPT
+        node_response.response = TRIGGER_LIVE_CHAT_PROMPT
 
 
 def _extract_confidence_from_nested_dict(step: dict | list | str) -> tuple[float, int]:

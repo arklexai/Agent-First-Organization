@@ -52,17 +52,19 @@ Usage:
 # while adhering to the common interface defined in the base worker class.
 
 from .faiss_rag.faiss_rag_worker import FaissRAGWorker
-from .hitl_worker import HITLWorkerChatFlag
+from .hitl.hitl_worker import HITLWorker
 from .message.message_worker import MessageWorker
 from .milvus_rag.milvus_rag_worker import MilvusRAGWorker
+from .multiple_choice.multiple_choice_worker import MultipleChoiceWorker
 from .rag_message.rag_message_worker import RagMsgWorker
 from .search.search_worker import SearchWorker
 
 __all__ = [
     "FaissRAGWorker",
-    "HITLWorkerChatFlag",
+    "HITLWorker",
     "MessageWorker",
     "MilvusRAGWorker",
     "RagMsgWorker",
     "SearchWorker",
+    "MultipleChoiceWorker",
 ]

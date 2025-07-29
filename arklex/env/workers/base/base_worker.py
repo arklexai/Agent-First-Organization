@@ -11,7 +11,6 @@ from abc import ABC, abstractmethod
 from typing import Any
 
 from arklex.env.workers.base.entities import WorkerOutput
-from arklex.memory.entities.memory_entities import ResourceRecord
 from arklex.orchestrator.entities.orchestrator_state_entities import (
     OrchestratorState,
     StatusEnum,
@@ -50,11 +49,6 @@ class BaseWorker(ABC):
         """
         return f"{self.__class__.__name__}"
 
-    @property
-    @abstractmethod
-    def worker_data(self) -> object:
-        """Get the worker data."""
-
     @abstractmethod
     def init_worker_data(
         self, orch_state: OrchestratorState, node_specific_data: dict[str, Any]
@@ -81,7 +75,7 @@ class BaseWorker(ABC):
         self,
         orch_state: OrchestratorState,
         node_specific_data: dict[str, Any],
-    ) -> WorkerOutput:
+    ) -> tuple[OrchestratorState, WorkerOutput]:
         """Execute the worker with error handling and state management.
 
         This method wraps the worker's execution with error handling and state
@@ -98,22 +92,11 @@ class BaseWorker(ABC):
             self.init_worker_data(orch_state, node_specific_data)
             worker_output: WorkerOutput = self._execute()
 
-            # Create a new ResourceRecord for this execution
-            new_record = ResourceRecord(
-                info={"worker": self.__class__.__name__},
-                intent="worker_execution",
-                output=worker_output.response,
-            )
-
-            # Preserve the original trajectory and add the new record
-            if not self.worker_data.orch_state.trajectory:
-                self.worker_data.orch_state.trajectory = []
-            self.worker_data.orch_state.trajectory.append([new_record])
-            return worker_output
         except Exception:
             log_context.error(traceback.format_exc())
             worker_output = WorkerOutput(
                 response="",
                 status=StatusEnum.INCOMPLETE,
             )
-            return worker_output
+
+        return self.orch_state, worker_output

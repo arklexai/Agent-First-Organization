@@ -4,7 +4,7 @@ from unittest.mock import Mock, patch
 
 import pytest
 
-from arklex.env.workers.hitl_worker import (
+from arklex.env.workers.hitl.hitl_worker import (
     HITLWorker,
     HITLWorkerChatFlag,
     HITLWorkerMCFlag,

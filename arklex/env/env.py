@@ -11,11 +11,10 @@ from collections.abc import Callable
 from functools import partial
 from typing import Any
 
-from arklex.env.planner.react_planner import DefaultPlanner, ReactPlanner
+from arklex.env.entities import NodeResponse
 from arklex.env.resource_map import RESOURCE_MAP
 from arklex.env.tools.tools import Tool
 from arklex.env.workers.base.base_worker import BaseWorker
-from arklex.orchestrator.entities.orchestrator_param_entities import OrchestratorParams
 from arklex.orchestrator.entities.orchestrator_state_entities import OrchestratorState
 from arklex.orchestrator.entities.taskgraph_entities import NodeInfo
 from arklex.orchestrator.NLU.core.slot import SlotFiller
@@ -24,6 +23,7 @@ from arklex.orchestrator.NLU.services.model_service import (
     DummyModelService,
     ModelService,
 )
+from arklex.types.resource_types import WorkerItem
 from arklex.utils.logging_utils import LogContext
 
 log_context = LogContext(__name__)
@@ -321,14 +321,14 @@ class Environment:
             }
         )
         self.slotfillapi: SlotFiller = self.initialize_slotfillapi(slotsfillapi)
-        if planner_enabled:
-            self.planner: ReactPlanner | DefaultPlanner = ReactPlanner(
-                tools_map=self.tools, workers_map=self.workers
-            )
-        else:
-            self.planner: ReactPlanner | DefaultPlanner = DefaultPlanner(
-                tools_map=self.tools, workers_map=self.workers
-            )
+        # if planner_enabled:
+        #     self.planner: ReactPlanner | DefaultPlanner = ReactPlanner(
+        #         tools_map=self.tools, workers_map=self.workers
+        #     )
+        # else:
+        #     self.planner: ReactPlanner | DefaultPlanner = DefaultPlanner(
+        #         tools_map=self.tools, workers_map=self.workers
+        #     )
 
     def initialize_slotfillapi(self, slotsfillapi: str) -> SlotFiller:
         """Initialize the slot filling API.
@@ -350,9 +350,8 @@ class Environment:
         self,
         id: str,
         orch_state: OrchestratorState,
-        params: OrchestratorParams,
         node_info: NodeInfo,
-    ) -> tuple[OrchestratorState, OrchestratorParams]:
+    ) -> tuple[OrchestratorState, NodeResponse]:
         """Execute a step in the environment.
 
         Args:
@@ -364,7 +363,7 @@ class Environment:
         Returns:
             Tuple containing updated message state and parameters
         """
-        response_state: OrchestratorState
+        node_response: NodeResponse
         if id in self.tools:
             log_context.info(f"{self.tools[id]['name']} tool selected")
             tool: Tool = self.tools[id]["tool_instance"]
@@ -375,34 +374,38 @@ class Environment:
                 **(node_info.additional_args or {}),
             }
             response_state = tool.execute(orch_state, **combined_args)
-            params.memory.function_calling_trajectory = (
-                response_state.function_calling_trajectory
-            )
-            params.taskgraph.dialog_states = response_state.slots
-            params.taskgraph.node_status[params.taskgraph.curr_node] = (
-                response_state.status
-            )
+            return response_state
 
         elif id in self.workers:
             log_context.info(f"{id} worker selected")
+            print(orch_state.stream_type)
             worker: BaseWorker = self.workers[id]["item_cls"]()
-            worker_output = worker.execute(
+            orch_state, worker_output = worker.execute(
                 orch_state, node_specific_data=node_info.data
             )
-            params.taskgraph.node_status[params.taskgraph.curr_node] = (
-                worker_output.status
-            )
-            # if id == WorkerItem.MULTIPLE_CHOICE_WORKER:
-            #     node_response = NodeResponse(
-            #         response=worker_output.response,
-            #         choice_list=worker_output.choice_list,
-            #     )
-            # else:
-            #     node_response = NodeResponse(
-            #         response=worker_output.response,
-            #     )
+            content = ""
+            if id == WorkerItem.MULTIPLE_CHOICE_WORKER:
+                node_response = NodeResponse(
+                    status=worker_output.status,
+                    response=worker_output.response,
+                    choice_list=worker_output.choice_list,
+                )
+                content = (
+                    worker_output.response + "\n" + "\n".join(worker_output.choice_list)
+                )
+            elif id == WorkerItem.HUMAN_IN_THE_LOOP_WORKER:
+                node_response = NodeResponse(
+                    status=worker_output.status,
+                )
+                content = orch_state.message_flow
+            else:
+                node_response = NodeResponse(
+                    status=worker_output.status,
+                    response=worker_output.response,
+                )
+                content = worker_output.response
             call_id: str = str(uuid.uuid4())
-            params.memory.function_calling_trajectory.append(
+            orch_state.function_calling_trajectory.append(
                 {
                     "content": None,
                     "role": "assistant",
@@ -416,14 +419,12 @@ class Environment:
                     "function_call": None,
                 }
             )
-            params.memory.function_calling_trajectory.append(
+            orch_state.function_calling_trajectory.append(
                 {
                     "role": "tool",
                     "tool_call_id": call_id,
                     "id": id,
-                    "content": orch_state.response
-                    if orch_state.response
-                    else orch_state.message_flow,
+                    "content": content,
                 }
             )
 
@@ -457,7 +458,7 @@ class Environment:
         #     )
 
         log_context.info(f"Response state from {id}: {orch_state}")
-        return orch_state, params
+        return orch_state, node_response
 
     def register_tool(self, name: str, tool: Tool) -> None:
         """Register a tool in the environment.

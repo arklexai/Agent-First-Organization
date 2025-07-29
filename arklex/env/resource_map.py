@@ -22,9 +22,10 @@ from arklex.env.tools.shopify.tool_collection import (
 )
 from arklex.env.workers.worker_collection import (
     FaissRAGWorker,
-    HITLWorkerChatFlag,
+    HITLWorker,
     MessageWorker,
     MilvusRAGWorker,
+    MultipleChoiceWorker,
     RagMsgWorker,
     SearchWorker,
 )
@@ -146,6 +147,11 @@ RESOURCE_MAP: Mapping[type[Item], Mapping[str, ResourceType | ToolCategory | typ
     WorkerItem.HUMAN_IN_THE_LOOP_WORKER: {
         "type": ResourceType.WORKER,
         "category": WorkerCategory.WORKER,
-        "item_cls": HITLWorkerChatFlag,
+        "item_cls": HITLWorker,
+    },
+    WorkerItem.MULTIPLE_CHOICE_WORKER: {
+        "type": ResourceType.WORKER,
+        "category": WorkerCategory.WORKER,
+        "item_cls": MultipleChoiceWorker,
     },
 }

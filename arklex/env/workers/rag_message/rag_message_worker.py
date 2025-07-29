@@ -36,22 +36,16 @@ class RagMsgWorker(BaseWorker):
     def __init__(self) -> None:
         super().__init__()
 
-    @property
-    def worker_data(self) -> RAGMessageWorkerData:
-        return self.rag_message_worker_data
-
     def init_worker_data(
         self, orch_state: OrchestratorState, node_specific_data: dict[str, Any]
     ) -> None:
-        self.rag_message_worker_data: RAGMessageWorkerData = RAGMessageWorkerData(
-            orch_state=orch_state,
-            **node_specific_data,
-        )
+        self.orch_state = orch_state
+        self.rag_message_worker_data = RAGMessageWorkerData(**node_specific_data)
         model_class = validate_and_get_model_class(
-            self.rag_message_worker_data.orch_state.bot_config.llm_config
+            self.orch_state.bot_config.llm_config
         )
         self.llm: Any = model_class(
-            model=self.rag_message_worker_data.orch_state.bot_config.llm_config.model_type_or_path,
+            model=self.orch_state.bot_config.llm_config.model_type_or_path,
             temperature=0.1,
         )
 
@@ -60,9 +54,7 @@ class RagMsgWorker(BaseWorker):
             self.prompts["retrieval_needed_prompt"]
         )
         input_prompt = prompt.invoke(
-            {
-                "formatted_chat": self.rag_message_worker_data.orch_state.user_message.history
-            }
+            {"formatted_chat": self.orch_state.user_message.history}
         )
         log_context.info(
             f"Prompt for choosing the retriever in RagMsgWorker: {input_prompt.text}"
@@ -73,10 +65,10 @@ class RagMsgWorker(BaseWorker):
         return "yes" in answer.lower()
 
     def _format_prompt(self, context: str) -> str:
-        user_message = self.rag_message_worker_data.orch_state.user_message
+        user_message = self.orch_state.user_message
         orch_message = self.rag_message_worker_data.node_message
         if context:
-            if self.rag_message_worker_data.orch_state.stream_type == StreamType.SPEECH:
+            if self.orch_state.stream_type == StreamType.SPEECH:
                 prompt: PromptTemplate = PromptTemplate.from_template(
                     self.prompts["message_flow_generator_prompt_speech"]
                 )
@@ -86,14 +78,14 @@ class RagMsgWorker(BaseWorker):
                 )
             input_prompt = prompt.invoke(
                 {
-                    "sys_instruct": self.rag_message_worker_data.orch_state.sys_instruct,
+                    "sys_instruct": self.orch_state.sys_instruct,
                     "message": orch_message,
                     "formatted_chat": user_message.history,
                     "context": context,
                 }
             )
         else:
-            if self.rag_message_worker_data.orch_state.stream_type == StreamType.SPEECH:
+            if self.orch_state.stream_type == StreamType.SPEECH:
                 prompt: PromptTemplate = PromptTemplate.from_template(
                     self.prompts["message_generator_prompt_speech"]
                 )
@@ -103,13 +95,13 @@ class RagMsgWorker(BaseWorker):
                 )
             input_prompt = prompt.invoke(
                 {
-                    "sys_instruct": self.rag_message_worker_data.orch_state.sys_instruct,
+                    "sys_instruct": self.orch_state.sys_instruct,
                     "message": orch_message,
                     "formatted_chat": user_message.history,
                 }
             )
         log_context.info(
-            f"Prompt for stream type {self.rag_message_worker_data.orch_state.stream_type}: {input_prompt.text}"
+            f"Prompt for stream type {self.orch_state.stream_type}: {input_prompt.text}"
         )
         return input_prompt.text
 
@@ -123,28 +115,26 @@ class RagMsgWorker(BaseWorker):
         answer: str = ""
         for chunk in invoke_chain.stream(prompt):
             answer += chunk
-            self.rag_message_worker_data.orch_state.message_queue.put(
+            self.orch_state.message_queue.put(
                 {"event": EventType.CHUNK.value, "message_chunk": chunk}
             )
         return answer
 
     def _execute(self) -> RAGMessageWorkerOutput:
-        self.prompts: dict[str, str] = load_prompts(
-            self.rag_message_worker_data.orch_state.bot_config
-        )
+        self.prompts: dict[str, str] = load_prompts(self.orch_state.bot_config)
         retrieve_text = ""
         if self._need_retriever():
             retrieve_text, retriever_params = RetrieveEngine.milvus_retrieve(
-                self.rag_message_worker_data.orch_state.user_message.history,
-                self.rag_message_worker_data.orch_state.bot_config,
+                self.orch_state.user_message.history,
+                self.orch_state.bot_config,
                 self.rag_message_worker_data.tags,
             )
             # state = trace(input=retriever_params, state=state)
 
         input_prompt = self._format_prompt(retrieve_text)
         if (
-            self.rag_message_worker_data.orch_state.stream_type == StreamType.TEXT
-            or self.rag_message_worker_data.orch_state.stream_type == StreamType.SPEECH
+            self.orch_state.stream_type == StreamType.TEXT
+            or self.orch_state.stream_type == StreamType.SPEECH
         ):
             answer = self.stream_generator(input_prompt)
         else:

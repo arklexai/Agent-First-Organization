@@ -29,26 +29,20 @@ class SearchWorker(BaseWorker):
     def __init__(self) -> None:
         super().__init__()
 
-    @property
-    def worker_data(self) -> SearchWorkerData:
-        return self.search_worker_data
-
     def init_worker_data(
         self, orch_state: OrchestratorState, node_specific_data: dict[str, Any]
     ) -> None:
-        self.search_worker_data: SearchWorkerData = SearchWorkerData(
-            orch_state=orch_state,
-            **node_specific_data,
-        )
+        self.orch_state = orch_state
+        self.search_worker_data = SearchWorkerData(**node_specific_data)
 
     def _execute(self) -> SearchWorkerOutput:
         search_engine: SearchEngine = SearchEngine()
         retrieved_text = search_engine.search(
-            chat_history=self.search_worker_data.orch_state.user_message.history,
-            bot_config=self.search_worker_data.orch_state.bot_config,
+            chat_history=self.orch_state.user_message.history,
+            bot_config=self.orch_state.bot_config,
         )
-        self.search_worker_data.orch_state.message_flow = retrieved_text
-        response = ToolGenerator.context_generate(self.search_worker_data.orch_state)
+        self.orch_state.message_flow = retrieved_text
+        response = ToolGenerator.context_generate(self.orch_state)
         return SearchWorkerOutput(
             response=response,
             status=StatusEnum.COMPLETE,
