@@ -444,8 +444,17 @@ Answer with only 'yes' or 'no'"""
         message_state.message_queue = message_queue
 
         response_state: MessageState
+        resource_id = node_info.resource_id
+        if resource_id == "http_tool":
+            resource_id = node_info.attributes.get("node_specific_data", {}).get(
+                "name", ""
+            )
+            if resource_id == "":
+                resource_id = (
+                    node_info.attributes.get("task", "").replace(" ", "_").lower()
+                )
         response_state, params = self.env.step(
-            node_info.resource_id, message_state, params, node_info
+            resource_id, message_state, params, node_info
         )
         params.memory.trajectory = response_state.trajectory
         return node_info, response_state, params
