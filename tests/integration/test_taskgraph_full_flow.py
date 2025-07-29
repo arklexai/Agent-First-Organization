@@ -146,7 +146,7 @@ class TestTaskGraphFullFlow:
             @staticmethod
             def init_tools(
                 tools: list[dict[str, Any]],
-                attributes_list: list[dict[str, Any]] | None = None
+                attributes_list: list[dict[str, Any]] | None = None,
             ) -> dict[str, dict[str, Any]]:
                 """Initialize mock tools."""
                 tool_registry: dict[str, dict[str, Any]] = {}

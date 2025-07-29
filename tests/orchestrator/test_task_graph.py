@@ -6,6 +6,7 @@ patterns with fixtures at the top and clear, modular test organization.
 """
 
 import collections
+import os
 from typing import Any
 from unittest.mock import Mock, patch
 
@@ -23,8 +24,15 @@ from arklex.orchestrator.NLU.services.model_service import (
     DummyModelService,
     ModelService,
 )
-from arklex.orchestrator.task_graph.task_graph import TaskGraph, TaskGraphBase
+from arklex.orchestrator.task_graph.task_graph import (
+    AgentGraph,
+    TaskGraph,
+    TaskGraphBase,
+)
 from arklex.utils.exceptions import TaskGraphError
+
+# Set test environment
+os.environ["ARKLEX_TEST_ENV"] = "local"
 
 
 @pytest.fixture
@@ -5206,3 +5214,771 @@ class TestTaskGraphFinalCoverageGaps:
         # Should raise TaskGraphError
         with pytest.raises(TaskGraphError, match="Node must have a type"):
             task_graph._validate_node(invalid_node)
+
+    def test_agent_graph_get_agent_nodes(self) -> None:
+        """Test getting agent nodes from AgentGraph."""
+        config = {
+            "nodes": [
+                [
+                    "agent_node",
+                    {
+                        "type": "agent",
+                        "resource": {"name": "test_agent", "id": "test_id"},
+                        "attribute": {
+                            "node_specific_data": {
+                                "name": "test_agent",
+                                "prompt": "test prompt",
+                                "voice": "alloy",
+                                "model": "gpt-4",
+                                "temperature": 0.7,
+                            }
+                        },
+                    },
+                ]
+            ],
+            "edges": [],
+        }
+        agent_graph = AgentGraph("test_agent_graph", config)
+        agent_nodes = agent_graph.get_agent_nodes()
+        assert len(agent_nodes) == 1
+        assert agent_nodes[0]["name"] == "test_agent"
+
+    def test_agent_graph_get_agent_nodes_empty(self) -> None:
+        """Test getting agent nodes when none exist."""
+        config = {"nodes": [], "edges": []}
+        agent_graph = AgentGraph("test_agent_graph", config)
+        agent_nodes = agent_graph.get_agent_nodes()
+        assert agent_nodes == []
+
+    def test_agent_graph_get_agent_nodes_no_agent_type(self) -> None:
+        """Test getting agent nodes when no agent type nodes exist."""
+        config = {
+            "nodes": [
+                [
+                    "tool_node",
+                    {
+                        "type": "tool",
+                        "resource": {"name": "test_tool", "id": "test_id"},
+                    },
+                ]
+            ],
+            "edges": [],
+        }
+        agent_graph = AgentGraph("test_agent_graph", config)
+        agent_nodes = agent_graph.get_agent_nodes()
+        assert agent_nodes == []
+
+    def test_agent_graph_get_agent_nodes_multiple(self) -> None:
+        """Test getting multiple agent nodes."""
+        config = {
+            "nodes": [
+                [
+                    "agent_node_1",
+                    {
+                        "type": "agent",
+                        "resource": {"name": "agent_1", "id": "id_1"},
+                        "attribute": {
+                            "node_specific_data": {
+                                "name": "agent_1",
+                                "prompt": "prompt 1",
+                            }
+                        },
+                    },
+                ],
+                [
+                    "agent_node_2",
+                    {
+                        "type": "agent",
+                        "resource": {"name": "agent_2", "id": "id_2"},
+                        "attribute": {
+                            "node_specific_data": {
+                                "name": "agent_2",
+                                "prompt": "prompt 2",
+                            }
+                        },
+                    },
+                ],
+            ],
+            "edges": [],
+        }
+        agent_graph = AgentGraph("test_agent_graph", config)
+        agent_nodes = agent_graph.get_agent_nodes()
+        assert len(agent_nodes) == 2
+        names = [node["name"] for node in agent_nodes]
+        assert "agent_1" in names
+        assert "agent_2" in names
+
+
+class TestAgentGraph:
+    """Test the AgentGraph class functionality."""
+
+    def test_agent_graph_init(self) -> None:
+        """Test AgentGraph initialization."""
+        config = {
+            "nodes": [
+                [
+                    "agent_node",
+                    {
+                        "type": "agent",
+                        "resource": {"name": "test_agent", "id": "test_id"},
+                        "attribute": {
+                            "node_specific_data": {
+                                "name": "test_agent",
+                                "prompt": "test prompt",
+                                "voice": "alloy",
+                                "transcription_language": "en",
+                                "speed": 1.0,
+                                "turn_detection": {},
+                                "prompt_variables_test_values": [],
+                            }
+                        },
+                    },
+                ],
+                [
+                    "tool_node",
+                    {
+                        "type": "tool",
+                        "resource": {
+                            "name": "test_tool",
+                            "id": "test_tool_id",
+                            "path": "test_tool_path",
+                        },
+                        "attribute": {},
+                    },
+                ],
+            ],
+            "edges": [
+                (
+                    "agent_node",
+                    "tool_node",
+                    {
+                        "intent": "use_tool",
+                        "attribute": {"weight": 1.0, "pred": True},
+                    },
+                ),
+            ],
+        }
+        agent_graph = AgentGraph("test_agent_graph", config)
+        assert agent_graph.graph.name == "test_agent_graph"
+        assert "agent_node" in agent_graph.graph.nodes
+        assert "tool_node" in agent_graph.graph.nodes
+
+    def test_agent_graph_with_openai_realtime_voice_agent(self) -> None:
+        """Test AgentGraph with OpenAI realtime voice agent."""
+        config = {
+            "nodes": [
+                [
+                    "agent_node",
+                    {
+                        "type": "agent",
+                        "resource": {
+                            "name": "voice_agent",
+                            "id": "openai_realtime_voice_agent",
+                        },
+                        "attribute": {
+                            "node_specific_data": {
+                                "name": "voice_agent",
+                                "prompt": "You are a helpful assistant",
+                                "voice": "alloy",
+                                "transcription_language": "en",
+                                "speed": 1.0,
+                                "turn_detection": {},
+                                "prompt_variables_test_values": [],
+                            }
+                        },
+                    },
+                ],
+                [
+                    "tool_node",
+                    {
+                        "type": "tool",
+                        "resource": {
+                            "name": "test_tool",
+                            "id": "test_tool_id",
+                            "path": "sample_tools.py",
+                        },
+                        "attribute": {},
+                    },
+                ],
+            ],
+            "edges": [
+                (
+                    "agent_node",
+                    "tool_node",
+                    {
+                        "intent": "use_tool",
+                        "attribute": {"weight": 1.0, "pred": True},
+                    },
+                ),
+            ],
+        }
+        with patch(
+            "arklex.orchestrator.task_graph.task_graph.DefaultResourceInitializer"
+        ) as mock_initializer:
+            mock_initializer.return_value.init_tools.return_value = {}
+            agent_graph = AgentGraph("test_agent_graph", config)
+            assert "voice_agent" in agent_graph.agents
+
+    def test_agent_graph_with_prompt_variables(self) -> None:
+        """Test AgentGraph with prompt variables from product_kwargs."""
+        config = {
+            "nodes": [
+                [
+                    "agent_node",
+                    {
+                        "type": "agent",
+                        "resource": {
+                            "name": "voice_agent",
+                            "id": "openai_realtime_voice_agent",
+                        },
+                        "attribute": {
+                            "node_specific_data": {
+                                "name": "voice_agent",
+                                "prompt": "You are a helpful assistant",
+                                "voice": "alloy",
+                                "transcription_language": "en",
+                                "speed": 1.0,
+                                "turn_detection": {},
+                            }
+                        },
+                    },
+                ],
+            ],
+            "edges": [],
+            "prompt_variables": [{"name": "var1", "value": "test"}],
+        }
+        with patch(
+            "arklex.orchestrator.task_graph.task_graph.DefaultResourceInitializer"
+        ) as mock_initializer:
+            mock_initializer.return_value.init_tools.return_value = {}
+            agent_graph = AgentGraph("test_agent_graph", config)
+            assert "voice_agent" in agent_graph.agents
+
+    def test_agent_graph_with_unsupported_agent(self) -> None:
+        """Test AgentGraph with unsupported agent type."""
+        config = {
+            "nodes": [
+                [
+                    "agent_node",
+                    {
+                        "type": "agent",
+                        "resource": {
+                            "name": "unsupported_agent",
+                            "id": "unsupported_id",
+                        },
+                        "attribute": {
+                            "node_specific_data": {
+                                "name": "unsupported_agent",
+                            }
+                        },
+                    },
+                ],
+            ],
+            "edges": [],
+        }
+        with patch(
+            "arklex.orchestrator.task_graph.task_graph.DefaultResourceInitializer"
+        ) as mock_initializer:
+            mock_initializer.return_value.init_tools.return_value = {}
+            with patch(
+                "arklex.orchestrator.task_graph.task_graph.log_context"
+            ) as mock_log:
+                AgentGraph("test_agent_graph", config)
+                mock_log.warning.assert_called_once()
+
+    def test_agent_graph_with_tool_predecessors(self) -> None:
+        """Test AgentGraph with tool predecessors."""
+        config = {
+            "nodes": [
+                [
+                    "tool_node",
+                    {
+                        "type": "tool",
+                        "resource": {"name": "test_tool", "id": "test_tool_id"},
+                        "attribute": {},
+                    },
+                ],
+                [
+                    "agent_node",
+                    {
+                        "type": "agent",
+                        "resource": {
+                            "name": "voice_agent",
+                            "id": "openai_realtime_voice_agent",
+                        },
+                        "attribute": {
+                            "node_specific_data": {
+                                "name": "voice_agent",
+                                "prompt": "You are a helpful assistant",
+                                "voice": "alloy",
+                                "transcription_language": "en",
+                                "speed": 1.0,
+                                "turn_detection": {},
+                                "prompt_variables_test_values": [],
+                            }
+                        },
+                    },
+                ],
+            ],
+            "edges": [
+                (
+                    "tool_node",
+                    "agent_node",
+                    {
+                        "intent": "use_tool",
+                        "attribute": {"weight": 1.0, "pred": True},
+                    },
+                ),
+            ],
+        }
+        with patch(
+            "arklex.orchestrator.task_graph.task_graph.DefaultResourceInitializer"
+        ) as mock_initializer:
+            mock_initializer.return_value.init_tools.return_value = {}
+            agent_graph = AgentGraph("test_agent_graph", config)
+            assert "voice_agent" in agent_graph.agents
+
+    def test_agent_graph_with_planner_tool_exclusion(self) -> None:
+        """Test AgentGraph excludes planner tools from resources."""
+        config = {
+            "nodes": [
+                [
+                    "planner_tool",
+                    {
+                        "type": "tool",
+                        "resource": {"name": "planner", "id": "planner"},
+                        "attribute": {},
+                    },
+                ],
+                [
+                    "agent_node",
+                    {
+                        "type": "agent",
+                        "resource": {
+                            "name": "voice_agent",
+                            "id": "openai_realtime_voice_agent",
+                        },
+                        "attribute": {
+                            "node_specific_data": {
+                                "name": "voice_agent",
+                                "prompt": "You are a helpful assistant",
+                                "voice": "alloy",
+                                "transcription_language": "en",
+                                "speed": 1.0,
+                                "turn_detection": {},
+                                "prompt_variables_test_values": [],
+                            }
+                        },
+                    },
+                ],
+            ],
+            "edges": [
+                (
+                    "planner_tool",
+                    "agent_node",
+                    {
+                        "intent": "use_tool",
+                        "attribute": {"weight": 1.0, "pred": True},
+                    },
+                ),
+            ],
+        }
+        with patch(
+            "arklex.orchestrator.task_graph.task_graph.DefaultResourceInitializer"
+        ) as mock_initializer:
+            mock_initializer.return_value.init_tools.return_value = {}
+            AgentGraph("test_agent_graph", config)
+            # Should not include planner tool in resources
+            mock_initializer.return_value.init_tools.assert_called_with([], [])
+
+
+class TestTaskGraphMissingLinesCoverage:
+    """Test cases to cover the remaining missing lines in task_graph.py."""
+
+    def test_postprocess_intent_with_exception_handling(
+        self,
+        patched_sample_config: dict[str, Any],
+        sample_llm_config: LLMConfig,
+        always_valid_mock_model: Mock,
+    ) -> None:
+        """Test _postprocess_intent with exception handling (lines 455-460)."""
+        task_graph = TaskGraph(
+            "test_graph",
+            patched_sample_config,
+            sample_llm_config,
+            model_service=always_valid_mock_model,
+        )
+        # Test with malformed intent that will cause exception
+        found, real_intent, idx = task_graph._postprocess_intent(
+            "malformed_intent", ["test_intent"]
+        )
+        assert found is False
+        assert real_intent == "malformed_intent"
+        assert idx == 0
+
+    def test_postprocess_intent_with_others_fallback(
+        self,
+        patched_sample_config: dict[str, Any],
+        sample_llm_config: LLMConfig,
+        always_valid_mock_model: Mock,
+    ) -> None:
+        """Test _postprocess_intent with others fallback (lines 475-480)."""
+        task_graph = TaskGraph(
+            "test_graph",
+            patched_sample_config,
+            sample_llm_config,
+            model_service=always_valid_mock_model,
+        )
+        # Test with "others" intent that should be found
+        found, real_intent, idx = task_graph._postprocess_intent(
+            "others", ["others", "test_intent"]
+        )
+        assert found is True
+        assert real_intent == "others"
+        assert idx == 0
+
+    def test_global_intent_prediction_same_intent_continue_branch(
+        self,
+        patched_sample_config: dict[str, Any],
+        sample_llm_config: LLMConfig,
+        always_valid_mock_model: Mock,
+        sample_params: Params,
+    ) -> None:
+        """Test global_intent_prediction same intent continue branch (lines 709-733)."""
+        task_graph = TaskGraph(
+            "test_graph",
+            patched_sample_config,
+            sample_llm_config,
+            model_service=always_valid_mock_model,
+        )
+        task_graph.text = "test message"
+        task_graph.chat_history_str = ""
+
+        sample_params.taskgraph.curr_global_intent = "test_intent"
+        sample_params.taskgraph.node_status = {"task_node": StatusEnum.INCOMPLETE}
+        available_intents = {
+            "test_intent": [{"target_node": "task_node", "attribute": {"weight": 1.0}}],
+            "others": [task_graph.unsure_intent],
+        }
+        excluded_intents = {}
+
+        # Mock the intent detector to return the same intent
+        with patch.object(
+            task_graph.intent_detector, "execute", return_value="test_intent"
+        ):
+            found, pred_intent, node_output, updated_params = (
+                task_graph.global_intent_prediction(
+                    "task_node", sample_params, available_intents, excluded_intents
+                )
+            )
+
+        assert found is False
+        assert pred_intent == "test_intent"
+
+    def test_handle_random_next_node_with_nlu_records(
+        self,
+        patched_sample_config: dict[str, Any],
+        sample_llm_config: LLMConfig,
+        always_valid_mock_model: Mock,
+        sample_params: Params,
+    ) -> None:
+        """Test handle_random_next_node with NLU records (lines 755-765)."""
+        task_graph = TaskGraph(
+            "test_graph",
+            patched_sample_config,
+            sample_llm_config,
+            model_service=always_valid_mock_model,
+        )
+        sample_params.taskgraph.nlu_records = [{"test": "record"}]
+
+        # The graph already has a "none" intent edge from task_node to task_node
+        # from the patched_sample_config fixture
+
+        found, node_output, updated_params = task_graph.handle_random_next_node(
+            "task_node", sample_params
+        )
+        # For self-loops, the method should return False as per the implementation
+        assert found is False
+        # NLU records should not be updated for self-loops
+        assert len(updated_params.taskgraph.nlu_records) == 1
+        assert updated_params.taskgraph.nlu_records[0] == {"test": "record"}
+
+    def test_handle_random_next_node_without_nlu_records(
+        self,
+        patched_sample_config: dict[str, Any],
+        sample_llm_config: LLMConfig,
+        always_valid_mock_model: Mock,
+        sample_params: Params,
+    ) -> None:
+        """Test handle_random_next_node without NLU records (lines 766-775)."""
+        task_graph = TaskGraph(
+            "test_graph",
+            patched_sample_config,
+            sample_llm_config,
+            model_service=always_valid_mock_model,
+        )
+        sample_params.taskgraph.nlu_records = []
+
+        # The graph already has a "none" intent edge from task_node to task_node
+        # from the patched_sample_config fixture
+
+        found, node_output, updated_params = task_graph.handle_random_next_node(
+            "task_node", sample_params
+        )
+        # For self-loops, the method should return False as per the implementation
+        assert found is False
+        # NLU records should not be updated for self-loops
+        assert len(updated_params.taskgraph.nlu_records) == 0
+
+    def test_local_intent_prediction_with_edge_found(
+        self,
+        patched_sample_config: dict[str, Any],
+        sample_llm_config: LLMConfig,
+        always_valid_mock_model: Mock,
+        sample_params: Params,
+    ) -> None:
+        """Test local_intent_prediction with edge found (lines 815-825)."""
+        task_graph = TaskGraph(
+            "test_graph",
+            patched_sample_config,
+            sample_llm_config,
+            model_service=always_valid_mock_model,
+        )
+        task_graph.text = "test message"
+        task_graph.chat_history_str = ""
+
+        # Add nodes and edge to the graph
+        task_graph.graph.add_node("start_node")
+        task_graph.graph.add_node("task_node")
+        task_graph.graph.add_edge(
+            "start_node",
+            "task_node",
+            intent="test_intent",
+            attribute={"weight": 1.0},
+        )
+
+        # Mock the intent detector to return the expected intent
+        with patch.object(
+            task_graph.intent_detector, "execute", return_value="test_intent"
+        ):
+            local_intents = {
+                "test_intent": [
+                    {"target_node": "task_node", "attribute": {"weight": 1.0}}
+                ]
+            }
+            found, node_info, updated_params = task_graph.local_intent_prediction(
+                "start_node", sample_params, local_intents
+            )
+            assert found is True
+            assert node_info.node_id == "task_node"
+
+    def test_handle_unknown_intent_with_nlu_records(
+        self,
+        patched_sample_config: dict[str, Any],
+        sample_llm_config: LLMConfig,
+        always_valid_mock_model: Mock,
+        sample_params: Params,
+    ) -> None:
+        """Test handle_unknown_intent with NLU records (lines 840-845)."""
+        task_graph = TaskGraph(
+            "test_graph",
+            patched_sample_config,
+            sample_llm_config,
+            model_service=always_valid_mock_model,
+        )
+        sample_params.taskgraph.nlu_records = [{"test": "record"}]
+
+        node_info, updated_params = task_graph.handle_unknown_intent(
+            "task_node", sample_params
+        )
+        assert node_info.resource_id == "planner"
+        assert updated_params.taskgraph.nlu_records[-1]["no_intent"] is True
+
+    def test_handle_unknown_intent_without_nlu_records(
+        self,
+        patched_sample_config: dict[str, Any],
+        sample_llm_config: LLMConfig,
+        always_valid_mock_model: Mock,
+        sample_params: Params,
+    ) -> None:
+        """Test handle_unknown_intent without NLU records (lines 846-855)."""
+        task_graph = TaskGraph(
+            "test_graph",
+            patched_sample_config,
+            sample_llm_config,
+            model_service=always_valid_mock_model,
+        )
+        sample_params.taskgraph.nlu_records = []
+
+        node_info, updated_params = task_graph.handle_unknown_intent(
+            "task_node", sample_params
+        )
+        assert node_info.resource_id == "planner"
+        assert len(updated_params.taskgraph.nlu_records) == 1
+        assert updated_params.taskgraph.nlu_records[0]["no_intent"] is True
+
+    def test_handle_leaf_node_with_nested_graph_not_leaf(
+        self,
+        patched_sample_config: dict[str, Any],
+        sample_llm_config: LLMConfig,
+        always_valid_mock_model: Mock,
+        sample_params: Params,
+    ) -> None:
+        """Test handle_leaf_node with nested graph not leaf (lines 890-895)."""
+        task_graph = TaskGraph(
+            "test_graph",
+            patched_sample_config,
+            sample_llm_config,
+            model_service=always_valid_mock_model,
+        )
+
+        with patch(
+            "arklex.orchestrator.task_graph.task_graph.NestedGraph"
+        ) as mock_nested_graph:
+            mock_node_info = Mock()
+            mock_node_info.node_id = "nested_node"
+            mock_nested_graph.get_nested_graph_component_node.return_value = (
+                mock_node_info,
+                sample_params,
+            )
+
+            # Mock successors to return a non-empty list for the nested node
+            def successors_side_effect(node: str) -> list[str]:
+                if node == "nested_node":
+                    return ["some_successor"]
+                return []
+
+            with patch.object(
+                task_graph.graph, "successors", side_effect=successors_side_effect
+            ):
+                curr_node, params = task_graph.handle_leaf_node(
+                    "leaf_node", sample_params
+                )
+                assert curr_node == "nested_node"
+                assert params.taskgraph.curr_node == "nested_node"
+
+    def test_handle_leaf_node_with_flow_stack_and_global_intent(
+        self,
+        patched_sample_config: dict[str, Any],
+        sample_llm_config: LLMConfig,
+        always_valid_mock_model: Mock,
+        sample_params: Params,
+    ) -> None:
+        """Test handle_leaf_node with flow stack and global intent (lines 900-905)."""
+        task_graph = TaskGraph(
+            "test_graph",
+            patched_sample_config,
+            sample_llm_config,
+            model_service=always_valid_mock_model,
+        )
+
+        # Add a flow stack node
+        path_node = PathNode(
+            node_id="stack_node", in_flow_stack=True, global_intent="test_intent"
+        )
+        sample_params.taskgraph.path = [path_node]
+
+        curr_node, params = task_graph.handle_leaf_node("leaf_node", sample_params)
+        assert curr_node == "stack_node"
+        assert params.taskgraph.curr_global_intent == "test_intent"
+
+    def test_handle_leaf_node_with_initial_node(
+        self,
+        patched_sample_config: dict[str, Any],
+        sample_llm_config: LLMConfig,
+        always_valid_mock_model: Mock,
+        sample_params: Params,
+    ) -> None:
+        """Test handle_leaf_node with initial node (lines 906-908)."""
+        task_graph = TaskGraph(
+            "test_graph",
+            patched_sample_config,
+            sample_llm_config,
+            model_service=always_valid_mock_model,
+        )
+        task_graph.initial_node = "initial_node"
+
+        curr_node, params = task_graph.handle_leaf_node("leaf_node", sample_params)
+        assert curr_node == "initial_node"
+
+    def test_get_node_with_pred_intent_not_unsure_and_random_next(
+        self,
+        patched_sample_config: dict[str, Any],
+        sample_llm_config: LLMConfig,
+        always_valid_mock_model: Mock,
+        sample_params: Params,
+    ) -> None:
+        """Test get_node with pred_intent not unsure and random next (lines 1020-1030)."""
+        task_graph = TaskGraph(
+            "test_graph",
+            patched_sample_config,
+            sample_llm_config,
+            model_service=always_valid_mock_model,
+        )
+        sample_params.taskgraph.curr_node = "task_node"
+
+        with (
+            patch.object(task_graph, "get_local_intent", return_value={}),
+            patch.object(task_graph, "global_intent_prediction") as mock_global,
+            patch.object(task_graph, "handle_random_next_node") as mock_random,
+        ):
+            mock_global.return_value = (False, "test_intent", {}, sample_params)
+            mock_random.return_value = (True, {}, sample_params)
+
+            inputs = {
+                "text": "test message",
+                "chat_history_str": "",
+                "parameters": sample_params,
+                "allow_global_intent_switch": True,
+            }
+            result = task_graph.get_node(inputs)
+            assert result is not None
+            mock_random.assert_called_once()
+
+    def test_get_node_final_fallback(
+        self,
+        patched_sample_config: dict[str, Any],
+        sample_llm_config: LLMConfig,
+        always_valid_mock_model: Mock,
+        sample_params: Params,
+    ) -> None:
+        """Test get_node final fallback to handle_unknown_intent (lines 1032-1035)."""
+        task_graph = TaskGraph(
+            "test_graph",
+            patched_sample_config,
+            sample_llm_config,
+            model_service=always_valid_mock_model,
+        )
+        sample_params.taskgraph.curr_node = "task_node"
+
+        with (
+            patch.object(task_graph, "get_local_intent", return_value={}),
+            patch.object(task_graph, "global_intent_prediction") as mock_global,
+            patch.object(task_graph, "handle_random_next_node") as mock_random,
+            patch.object(
+                task_graph,
+                "handle_multi_step_node",
+                return_value=(False, None, sample_params),
+            ),
+            patch.object(
+                task_graph,
+                "handle_incomplete_node",
+                return_value=(False, {}, sample_params),
+            ),
+            patch.object(task_graph, "local_intent_prediction") as mock_local,
+        ):
+            mock_global.return_value = (False, "others", {}, sample_params)
+            mock_random.return_value = (False, {}, sample_params)
+            mock_local.return_value = (False, {}, sample_params)
+
+            inputs = {
+                "text": "test message",
+                "chat_history_str": "",
+                "parameters": sample_params,
+                "allow_global_intent_switch": True,
+            }
+            result = task_graph.get_node(inputs)
+            assert result is not None
+            # Should call handle_unknown_intent as final fallback
+            assert isinstance(result[0], NodeInfo)
+            assert result[0].resource_id == "planner"

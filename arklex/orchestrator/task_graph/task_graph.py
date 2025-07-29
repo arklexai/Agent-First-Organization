@@ -200,7 +200,10 @@ class AgentGraph(TaskGraphBase):
                     # prompt_variables_test_values = node_specific_data.get("prompt_variables_test_values", None)
                     prompt_variables = []
                     if self.product_kwargs.get("prompt_variables", None):
-                        prompt_variables = self.product_kwargs.get("prompt_variables")
+                        prompt_variables = [
+                            PromptVariable(**v)
+                            for v in self.product_kwargs.get("prompt_variables", [])
+                        ]
                     else:
                         prompt_variables = [
                             PromptVariable(**v)
@@ -225,7 +228,20 @@ class AgentGraph(TaskGraphBase):
                     log_context.warning(
                         f"Agent {resource.get('id', '')} not implemented yet in agent graph"
                     )
-                    continue
+
+    def get_agent_nodes(self) -> list[dict[str, Any]]:
+        """Get all agent node data from the graph.
+
+        Returns:
+            list[dict[str, Any]]: List of agent node data dictionaries
+        """
+        agent_nodes: list[dict[str, Any]] = []
+        for _node_id, node_data in self.graph.nodes.data():
+            if node_data.get("type") == "agent":
+                # Extract the resource data which contains the name
+                resource = node_data.get("resource", {})
+                agent_nodes.append(resource)
+        return agent_nodes
 
 
 class TaskGraph(TaskGraphBase):

@@ -48,7 +48,7 @@ class Slot(BaseModel):
     required: bool = Field(default=False)
     verified: bool = Field(default=False)
     repeatable: bool = Field(default=False)
-    schema: list[dict] | None = None
+    schema: list[dict] | None = Field(default=None, alias="schema")
     items: dict | None = None
     target: str | None = None
 

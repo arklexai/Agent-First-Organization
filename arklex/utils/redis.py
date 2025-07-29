@@ -197,7 +197,7 @@ class RedisPool:
             if isinstance(value, str | bytes):
                 stored_value = value
             else:
-                stored_value = json.dumps(value)
+                stored_value = json.dumps(value, cls=BytesEncoder)
 
             if ttl:
                 result = self.client.setex(key, ttl, stored_value)
@@ -362,6 +362,15 @@ class RedisPool:
             log_context.info("Redis connection pool closed")
         except Exception as e:
             log_context.error(f"Error closing Redis connection pool: {e}")
+
+
+class BytesEncoder(json.JSONEncoder):
+    """Custom JSON encoder that handles bytes objects."""
+
+    def default(self, obj: object) -> object:
+        if isinstance(obj, bytes):
+            return obj.decode("utf-8")
+        return super().default(obj)
 
 
 # Filter out None values from Redis config

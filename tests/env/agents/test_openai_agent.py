@@ -7,11 +7,14 @@ from arklex.orchestrator.entities.msg_state_entities import MessageState, Status
 
 pytestmark = pytest.mark.usefixtures("patch_openai")
 
+
 @pytest.fixture(autouse=True)
 def patch_openai(monkeypatch: pytest.MonkeyPatch) -> None:
     # Patch openai.ChatCompletion.create to always return a mock response
     with patch("openai.ChatCompletion.create") as mock_create:
-        mock_create.return_value = {"choices": [{"message": {"content": "mocked response"}}]}
+        mock_create.return_value = {
+            "choices": [{"message": {"content": "mocked response"}}]
+        }
         yield
 
 
@@ -52,7 +55,7 @@ def mock_tools() -> dict:
 
     return {
         "mock_tool_id": {
-            "tool_instance": tool_object, 
+            "tool_instance": tool_object,
             "execute": lambda: tool_object,
             "fixed_args": {"fixed_param": "value"},
         }
@@ -552,6 +555,7 @@ class TestEndConversation:
     ) -> None:
         """Test end_conversation function error case."""
         from unittest.mock import patch
+
         mock_llm = Mock()
         mock_llm.invoke.side_effect = Exception("Test error")
         mock_provider_map.get.return_value = mock_llm
@@ -565,7 +569,7 @@ class TestEndConversation:
                 for phrase in [
                     "Thank you",
                     "Goodbye",
-                    "I hope I was able to help you today. Goodbye!"
+                    "I hope I was able to help you today. Goodbye!",
                 ]
             )
 
@@ -575,6 +579,7 @@ class TestEndConversation:
     ) -> None:
         """Test end_conversation function when LLM returns invalid response."""
         from unittest.mock import patch
+
         mock_llm = Mock()
         mock_llm.invoke.return_value = None
         mock_provider_map.get.return_value = mock_llm
@@ -585,7 +590,7 @@ class TestEndConversation:
                 for phrase in [
                     "Thank you",
                     "Goodbye",
-                    "I hope I was able to help you today. Goodbye!"
+                    "I hope I was able to help you today. Goodbye!",
                 ]
             )
 
@@ -595,6 +600,7 @@ class TestEndConversation:
     ) -> None:
         """Test end_conversation function when LLM returns empty response."""
         from unittest.mock import patch
+
         mock_llm = Mock()
         mock_llm.invoke.return_value = ""
         mock_provider_map.get.return_value = mock_llm
@@ -605,7 +611,7 @@ class TestEndConversation:
                 for phrase in [
                     "Thank you",
                     "Goodbye",
-                    "I hope I was able to help you today. Goodbye!"
+                    "I hope I was able to help you today. Goodbye!",
                 ]
             )
 
@@ -615,19 +621,23 @@ class TestEndConversation:
     ) -> None:
         """Test end_conversation function with different model configuration."""
         from unittest.mock import patch
+
         mock_llm = Mock()
         mock_response = Mock()
         mock_response.content = "Thank you for taking the time to interact with me today. I appreciate your input and questions. If you have any further inquiries, don't hesitate to reach out. Goodbye and take care!"
         mock_provider_map.get.return_value = mock_llm
         mock_state.bot_config.llm_config.model_type_or_path = "gpt-4"
-        with patch("openai.ChatCompletion.create", return_value={"choices": [{"message": {"content": mock_response.content}}]}):
+        with patch(
+            "openai.ChatCompletion.create",
+            return_value={"choices": [{"message": {"content": mock_response.content}}]},
+        ):
             result = end_conversation().func(mock_state)
             assert any(
                 phrase in result
                 for phrase in [
                     "Thank you",
                     "Goodbye",
-                    "I hope I was able to help you today. Goodbye!"
+                    "I hope I was able to help you today. Goodbye!",
                 ]
             )
 
@@ -728,7 +738,7 @@ class TestEndConversation:
 
             mock_tools = {
                 "complex_tool": {
-                    "tool_instance": mock_tool_object, 
+                    "tool_instance": mock_tool_object,
                     "execute": lambda: mock_tool_object,
                     "fixed_args": {"fixed_param": "fixed_value"},
                 }
@@ -751,7 +761,12 @@ class TestEndConversation:
 
     def test_execute_tool_slot_value_source_fixed(self, mock_state: Mock) -> None:
         agent = OpenAIAgent(successors=[], predecessors=[], tools={}, state=mock_state)
-        slot = {"name": "fixed_param", "type": "str", "valueSource": "fixed", "value": "fixed_value"}
+        slot = {
+            "name": "fixed_param",
+            "type": "str",
+            "valueSource": "fixed",
+            "value": "fixed_value",
+        }
         agent.tool_slots["http_tool_example"] = [slot]
         agent.tool_map["http_tool_example"] = Mock(return_value="fixed result")
         tool_args = {}
@@ -761,9 +776,16 @@ class TestEndConversation:
         slots = call_args.kwargs["slots"]
         assert slots[0]["value"] == "fixed_value"
 
-    def test_execute_tool_slot_value_source_default_missing(self, mock_state: Mock) -> None:
+    def test_execute_tool_slot_value_source_default_missing(
+        self, mock_state: Mock
+    ) -> None:
         agent = OpenAIAgent(successors=[], predecessors=[], tools={}, state=mock_state)
-        slot = {"name": "default_param", "type": "str", "valueSource": "default", "value": "default_value"}
+        slot = {
+            "name": "default_param",
+            "type": "str",
+            "valueSource": "default",
+            "value": "default_value",
+        }
         agent.tool_slots["http_tool_example"] = [slot]
         agent.tool_map["http_tool_example"] = Mock(return_value="default result")
         tool_args = {}
@@ -773,7 +795,9 @@ class TestEndConversation:
         slots = call_args.kwargs["slots"]
         assert slots[0]["value"] == "default_value"
 
-    def test_execute_tool_slot_value_source_prompt_missing(self, mock_state: Mock) -> None:
+    def test_execute_tool_slot_value_source_prompt_missing(
+        self, mock_state: Mock
+    ) -> None:
         agent = OpenAIAgent(successors=[], predecessors=[], tools={}, state=mock_state)
         slot = {"name": "prompt_param", "type": "str", "valueSource": "prompt"}
         agent.tool_slots["http_tool_example"] = [slot]
@@ -793,7 +817,7 @@ class TestEndConversation:
             "repeatable": True,
             "schema": [{"name": "item", "type": "str", "valueSource": "prompt"}],
             "valueSource": "default",
-            "value": {"item": "default_value"}
+            "value": {"item": "default_value"},
         }
         agent.tool_slots["http_tool_example"] = [group_slot]
         agent.tool_map["http_tool_example"] = Mock(return_value="group result")
@@ -810,9 +834,16 @@ class TestEndConversation:
             "name": "group2",
             "type": "group",
             "repeatable": True,
-            "schema": [{"name": "item", "type": "str", "valueSource": "fixed", "value": "fixed_item"}],
+            "schema": [
+                {
+                    "name": "item",
+                    "type": "str",
+                    "valueSource": "fixed",
+                    "value": "fixed_item",
+                }
+            ],
             "valueSource": "fixed",
-            "value": [{"item": "fixed_item"}]
+            "value": [{"item": "fixed_item"}],
         }
         agent.tool_slots["http_tool_example"] = [group_slot]
         agent.tool_map["http_tool_example"] = Mock(return_value="group fixed result")
@@ -832,8 +863,11 @@ class TestEndConversation:
         tool_args = {"int_param": "not_an_int"}
         # Patch TYPE_CONVERTERS to raise an exception
         import arklex.env.agents.openai_agent as openai_agent_mod
+
         orig_converter = openai_agent_mod.TYPE_CONVERTERS.get("int")
-        openai_agent_mod.TYPE_CONVERTERS["int"] = lambda v: (_ for _ in ()).throw(ValueError("fail"))
+        openai_agent_mod.TYPE_CONVERTERS["int"] = lambda v: (_ for _ in ()).throw(
+            ValueError("fail")
+        )
         result = agent._execute_tool("http_tool_example", mock_state, tool_args)
         openai_agent_mod.TYPE_CONVERTERS["int"] = orig_converter  # restore
         assert result == "type error result"
@@ -843,9 +877,11 @@ class TestEndConversation:
 
     def test_execute_tool_slot_with_model_dump(self, mock_state: Mock) -> None:
         agent = OpenAIAgent(successors=[], predecessors=[], tools={}, state=mock_state)
+
         class FakeSlot:
             def model_dump(self) -> dict:
                 return {"name": "model_param", "type": "str", "valueSource": "prompt"}
+
         agent.tool_slots["http_tool_example"] = [FakeSlot()]
         agent.tool_map["http_tool_example"] = Mock(return_value="model_dump result")
         tool_args = {}
