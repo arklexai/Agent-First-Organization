@@ -142,6 +142,40 @@ class Tool:
         self.fixed_args = {}
         self.auth = {}
 
+    def _format_slots(self, slots: list[dict[str, Any]]) -> list[dict[str, Any]]:
+        """Format slots for OpenAI tool definition.
+        
+        Args:
+            slots: List of slot definitions
+            
+        Returns:
+            List of formatted slot definitions for OpenAI
+        """
+        formatted_slots = []
+        for slot in slots:
+            formatted_slot = {
+                "name": slot["name"],
+                "type": slot["type"],
+                "description": slot.get("description", ""),
+                "required": slot.get("required", False),
+            }
+            
+            # Handle enum values
+            if "enum" in slot:
+                formatted_slot["enum"] = slot["enum"]
+                
+            # Handle items for array types
+            if "items" in slot:
+                formatted_slot["items"] = slot["items"]
+                
+            # Handle group schema
+            if slot.get("type") == "group" and "schema" in slot:
+                formatted_slot["schema"] = slot["schema"]
+                
+            formatted_slots.append(formatted_slot)
+            
+        return formatted_slots
+
     def get_info(self, slots: list[dict[str, Any]]) -> dict[str, Any]:
         """Get tool information including parameters and requirements.
 

@@ -102,6 +102,38 @@ class SlotFiller(BaseSlotFilling):
             },
         )
 
+    def _slots_to_openai_schema(self, slots: list[Slot]) -> dict[str, Any]:
+        """Convert list of Slot objects to OpenAI JSON schema format.
+        
+        Args:
+            slots: List of Slot objects to convert
+            
+        Returns:
+            OpenAI JSON schema dictionary
+        """
+        properties = {}
+        required = []
+        
+        for slot in slots:
+            # Use the to_openai_schema method from the Slot class
+            slot_schema = slot.to_openai_schema()
+            
+            if slot_schema is None:
+                continue  # Skip slots that return None (like fixed value slots)
+                
+            properties[slot.name] = slot_schema
+            
+            if getattr(slot, "required", False):
+                required.append(slot.name)
+        
+        return {
+            "title": "SlotFillingOutput",
+            "description": "Structured output for slot filling",
+            "type": "object",
+            "properties": properties,
+            "required": required
+        }
+
     @handle_exceptions()
     def _fill_slots_local(
         self,
@@ -148,8 +180,18 @@ class SlotFiller(BaseSlotFilling):
             },
         )
 
+        # Generate OpenAI schema from slots
+        schema = self._slots_to_openai_schema(slots)
+        log_context.info(
+            "OpenAI schema generated",
+            extra={
+                "schema": schema,
+                "operation": "slot_filling_local",
+            },
+        )
+
         # Get model response
-        response = self.model_service.get_response(prompt, model_config, system_prompt)
+        response = self.model_service.get_response_with_structured_output(prompt, model_config, schema, system_prompt)
         log_context.info(
             "Model response received",
             extra={

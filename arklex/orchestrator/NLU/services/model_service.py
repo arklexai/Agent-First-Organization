@@ -799,9 +799,7 @@ class ModelService:
     def get_response(
         self,
         prompt: str,
-        model_config: dict[str, Any] | None = None,
         system_prompt: str | None = None,
-        response_format: str | None = None,
         note: str | None = None,
     ) -> str:
         """Get response from the model.
@@ -843,6 +841,32 @@ class ModelService:
         except Exception as e:
             log_context.error(f"Error getting model response: {str(e)}")
             raise ValueError(f"Failed to get model response: {str(e)}") from e
+
+    def get_response_with_structured_output(
+        self,
+        prompt: str,
+        model_config: dict[str, Any] | None = None,
+        schema: dict[str, Any] | None = None,
+        system_prompt: str | None = None,
+    ) -> str:
+        """Get response from the model with structured output."""
+        # Check if the model is an OpenAI model by checking the model_config
+        is_openai_model = (
+            self.model_config.get("llm_provider", "").lower() == "openai" or
+            "openai" in str(self.model).lower()
+        )
+        
+        if is_openai_model:
+            messages = []
+            if system_prompt:
+                messages.append(SystemMessage(content=system_prompt))
+            messages.append(HumanMessage(content=prompt))
+            llm = self.model.with_structured_output(schema)
+            
+            return llm.invoke(messages)
+        else:
+            return self.get_response(prompt, model_config, system_prompt)
+    
 
     def get_json_response(
         self,
@@ -999,14 +1023,14 @@ Please choose the most appropriate intent by providing the corresponding intent 
         return user_prompt, system_prompt
 
     def process_slot_response(
-        self, response: str, slots: list[dict[str, Any]]
+        self, response: str | dict[str, Any], slots: list[dict[str, Any]]
     ) -> list[dict[str, Any]]:
         """Process the model's response for slot filling.
 
         Parses the model's response and updates the slot values accordingly.
 
         Args:
-            response: Model's response containing extracted slot values
+            response: Model's response containing extracted slot values (can be string or dict)
             slots: Original slot definitions (can be dict or Pydantic model)
 
         Returns:
@@ -1016,8 +1040,15 @@ Please choose the most appropriate intent by providing the corresponding intent 
             ValueError: If response parsing fails
         """
         try:
-            # Parse the JSON response
-            extracted_values = json.loads(response)
+            # Handle both string and dict responses
+            if isinstance(response, str):
+                # Parse the JSON response if it's a string
+                extracted_values = json.loads(response)
+            elif isinstance(response, dict):
+                # Use the dict directly if it's already a dict
+                extracted_values = response
+            else:
+                raise ValueError(f"Unsupported response type: {type(response)}")
 
             # Update slot values
             for slot in slots:
