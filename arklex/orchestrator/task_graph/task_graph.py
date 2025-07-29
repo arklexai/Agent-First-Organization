@@ -188,12 +188,11 @@ class AgentGraph(TaskGraphBase):
                         attributes.append(predecessor_node["attribute"])
 
                 tool_registry = resource_initializer.init_tools(resources, attributes)
-                tool_map = {
-                    tool_registry[tool_id]["tool_instance"].name: tool_registry[
-                        tool_id
-                    ]["tool_instance"]
-                    for tool_id in tool_registry
-                }
+                tool_map = {}
+                for tool_id in tool_registry:
+                    tool_instance = tool_registry[tool_id]["tool_instance"]
+                    tool_instance.name = tool_instance.name.replace("http_tool_", "")
+                    tool_map[tool_instance.name] = tool_instance
                 self.resources.update(tool_registry)
                 if resource.get("id", "") == "openai_realtime_voice_agent":
                     prompt = node_specific_data.get("prompt", "")
