@@ -1,5 +1,5 @@
 name: "Display Coverage Comment"
-description: "Display coverage comment using py-cov-action"
+description: "Display coverage comment using custom script"
 
 inputs:
   github-token:
@@ -19,10 +19,11 @@ runs:
   steps:
     - name: Display coverage comment
       id: coverage
-      uses: py-cov-action/python-coverage-comment-action@v3
-      with:
+      shell: bash
+      run: |
+        python .github/scripts/post-coverage-comment.py
+      env:
         GITHUB_TOKEN: ${{ inputs.github-token }}
+        COVERAGE_PATH: "coverage.xml"
         MINIMUM_GREEN: ${{ inputs.minimum-green }}
         MINIMUM_ORANGE: ${{ inputs.minimum-orange }}
-        COVERAGE_PATH: "coverage.xml"
-        VERBOSE: "true"

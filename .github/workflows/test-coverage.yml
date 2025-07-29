@@ -60,10 +60,15 @@ jobs:
       - name: Run tests and check coverage threshold
         id: coverage-check
         run: |
-          # Run tests with coverage (generate XML for py-cov-action)
+          # Run tests with coverage (generate database for py-cov-action)
           pytest tests/ --cov=arklex --cov-report=term-missing --cov-report=html --cov-report=xml --no-cov-on-fail || true
           
-          # Verify coverage.xml was created
+          # Verify coverage files were created
+          if [ ! -f ".coverage" ]; then
+            echo "❌ Error: .coverage database was not generated"
+            exit 1
+          fi
+          
           if [ ! -f "coverage.xml" ]; then
             echo "❌ Error: coverage.xml was not generated"
             exit 1
@@ -107,8 +112,15 @@ jobs:
           name: htmlcov
           path: htmlcov/
 
-      - name: Verify coverage file exists
+      - name: Verify coverage files exist
         run: |
+          if [ ! -f ".coverage" ]; then
+            echo "❌ Error: .coverage database file not found"
+            exit 1
+          fi
+          echo "✅ .coverage database file found"
+          ls -la .coverage
+          
           if [ ! -f "coverage.xml" ]; then
             echo "❌ Error: coverage.xml file not found"
             exit 1
@@ -133,42 +145,25 @@ jobs:
 
       - name: Display coverage comment
         id: coverage
-        uses: py-cov-action/python-coverage-comment-action@v3
-        with:
+        run: |
+          python .github/scripts/post-coverage-comment.py
+        env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          MINIMUM_GREEN: 99.0
-          MINIMUM_ORANGE: 70
           COVERAGE_PATH: "coverage.xml"
-          VERBOSE: "true"
+          MINIMUM_GREEN: "99.0"
+          MINIMUM_ORANGE: "70"
         continue-on-error: true
 
       - name: Fallback coverage comment
         if: failure() && steps.coverage.outcome == 'failure'
         run: |
-          echo "Coverage comment action failed, creating manual comment..."
-          COVERAGE=${{ steps.coverage-check.outputs.coverage }}
-          
-          # Create a simple coverage comment
-          COMMENT="## 📊 Test Coverage Report
-          
-          **Coverage:** ${COVERAGE}%
-          
-          **Status:** $([ $(echo "$COVERAGE >= 99.0" | bc -l) -eq 1 ] && echo "✅ Excellent" || echo "⚠️ Needs improvement")
-          
-          Coverage report generated from test run."
-          
-          # Post comment using GitHub CLI or curl
-          gh pr comment ${{ github.event.number }} --body "$COMMENT" || {
-            echo "Failed to post comment via GitHub CLI, trying curl..."
-            curl -X POST \
-              -H "Authorization: token ${{ secrets.GITHUB_TOKEN }}" \
-              -H "Accept: application/vnd.github.v3+json" \
-              -d "{\"body\":\"$COMMENT\"}" \
-              "https://api.github.com/repos/${{ github.repository }}/issues/${{ github.event.number }}/comments" || {
-              echo "❌ Failed to post coverage comment"
-              exit 1
-            }
-          }
+          echo "Coverage comment action failed, trying fallback..."
+          python .github/scripts/post-coverage-comment.py
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          COVERAGE_PATH: "coverage.xml"
+          MINIMUM_GREEN: "99.0"
+          MINIMUM_ORANGE: "70"
 
       - name: Update README badge
         run: |
