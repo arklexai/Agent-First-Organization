@@ -80,27 +80,6 @@ class ConvoMessage(BaseModel):
     message: str
 
 
-# class OrchestratorMessage(BaseModel):
-#     """Message processed by the orchestrator.
-
-#     This class represents a message that has been processed by the orchestrator,
-#     including both the message content and any additional attributes or metadata
-#     that were added during processing.
-
-#     The class provides:
-#     1. Message content management
-#     2. Attribute/metadata storage
-#     3. Type-safe message handling
-
-#     Attributes:
-#         message (str): The message content.
-#         attribute (dict): Additional attributes associated with the message.
-#     """
-
-#     message: str
-#     attribute: dict[str, Any]
-
-
 ### Task status-related classes
 class StatusEnum(str, Enum):
     """Enumeration of possible task statuses.
@@ -163,7 +142,6 @@ class Metadata(BaseModel):
         attempts (Optional[int]): Number of attempts for HITL MC logic.
     """
 
-    # TODO: May need to initialize the metadata(i.e. chat_id, turn_id) based on the conversation database
     chat_id: str = Field(default_factory=lambda: str(uuid.uuid4()))
     turn_id: int = 0
     hitl: str | None = Field(default=None)
@@ -229,39 +207,6 @@ class HTTPParams(BaseModel):
     params: dict[str, Any] | None = Field(default=None)
 
 
-class SlotDetail(BaseModel):
-    """Detailed slot information for dialogue state management.
-
-    This class provides detailed information about a slot, including its verification
-    status and confirmed values. It's used in database operations and slot verification
-    processes.
-
-    The class provides:
-    1. Slot name and type management
-    2. Value storage and verification
-    3. Confirmation status tracking
-    4. Description and prompt management
-    5. Type-safe slot detail handling
-
-    Attributes:
-        name (str): Name of the slot.
-        type (str): Type of the slot (e.g., 'string', 'date', 'time').
-        value (str): Current value of the slot.
-        description (str): Description of what the slot represents.
-        prompt (str): Prompt used to collect the slot value.
-        verified_value (str): Verified value from the database.
-        confirmed (bool): Whether the slot value has been confirmed.
-    """
-
-    name: str
-    type: str
-    value: str = ""
-    description: str = ""
-    prompt: str = ""
-    verified_value: str = ""
-    confirmed: bool = False
-
-
 class OrchestratorState(BaseModel):
     """State management for message processing.
 
@@ -281,19 +226,14 @@ class OrchestratorState(BaseModel):
     Attributes:
         sys_instruct (str): System instructions for message processing.
         bot_config (BotConfig): Configuration for the bot.
+        metadata (Metadata): Session metadata.
         user_message (ConvoMessage): User's input message.
-        orchestrator_message (OrchestratorMessage): Message from the orchestrator.
+        message_flow (str): Flow of messages between nodes.
         function_calling_trajectory (List[Dict[str, Any]]): History of function calls.
         trajectory (List[List[ResourceRecord]]): Processing trajectory.
-        message_flow (str): Flow of messages between nodes.
-        response (str): Final response to the user.
-        status (StatusEnum): Current status of the message processing.
-        slots (Dict[str, List[Slot]]): Dialogue state slots.
-        metadata (Metadata): Session metadata.
-        is_stream (bool): Whether the message is being streamed.
-        message_queue (Any): Queue for streaming messages.
-        stream_type (str): Type of streaming being used.
         relevant_records (Optional[List[ResourceRecord]]): Relevant resource records.
+        stream_type (str): Type of streaming being used.
+        message_queue (Any): Queue for streaming messages.
     """
 
     # system-level configuration
@@ -303,7 +243,6 @@ class OrchestratorState(BaseModel):
     # execution fields
     user_message: ConvoMessage | None = Field(default=None)
     message_flow: str = Field(default="")
-    response: str = Field(default="")
     # record history
     function_calling_trajectory: list[dict[str, Any]] | None = Field(default=None)
     trajectory: list[list[ResourceRecord]] | None = Field(default=None)
@@ -311,10 +250,3 @@ class OrchestratorState(BaseModel):
     # streaming
     stream_type: StreamType | None = Field(default=StreamType.NON_STREAM)
     message_queue: Any = Field(exclude=True, default=None)
-    # final response
-    # response: str = Field(default="")
-    # task-related params
-    # status: StatusEnum = Field(default=StatusEnum.INCOMPLETE)
-    # slots: dict[str, list[Slot]] | None = Field(
-    #     description="record the dialogue states of each action", default=None
-    # )

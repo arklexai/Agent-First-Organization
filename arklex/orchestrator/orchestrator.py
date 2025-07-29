@@ -65,6 +65,7 @@ import janus
 from dotenv import load_dotenv
 from langchain_core.runnables import RunnableLambda
 
+from arklex.env.entities import NodeResponse
 from arklex.env.env import Environment
 from arklex.env.nested_graph.nested_graph import NESTED_GRAPH_ID, NestedGraph
 from arklex.env.tools.utils import ToolGenerator
@@ -179,8 +180,8 @@ class AgentOrg:
         )
 
         # Update planner model info now that LLMConfig is defined
-        if self.env.planner:
-            self.env.planner.set_llm_config_and_build_resource_library(self.llm_config)
+        # if self.env.planner:
+        #     self.env.planner.set_llm_config_and_build_resource_library(self.llm_config)
         # Extra configuration settings
         self.settings = self.task_graph.product_kwargs.get("settings", {}) or {}
         # HITL settings
@@ -234,26 +235,12 @@ class AgentOrg:
 
         params.memory.trajectory.append([])
 
-        # Initialize the message state
-        sys_instruct: str = (
-            "You are a "
-            + self.product_kwargs["role"]
-            + ". "
-            + self.product_kwargs["user_objective"]
-            + self.product_kwargs["builder_objective"]
-            + self.product_kwargs["intro"]
-            + self.product_kwargs.get("opt_instruct", "")
-        )
-        bot_config: BotConfig = BotConfig(
-            bot_id=self.product_kwargs.get("bot_id", "default"),
-            version=self.product_kwargs.get("version", "default"),
-            language=self.product_kwargs.get("language", "EN"),
-            bot_type=self.product_kwargs.get("bot_type", "presalebot"),
-            llm_config=self.llm_config,
-        )
+        # Initialize the orchestrator state
         orch_state: OrchestratorState = OrchestratorState(
-            sys_instruct=sys_instruct,
-            bot_config=bot_config,
+            sys_instruct=self.product_kwargs.get("sys_instruct", ""),
+            bot_config=BotConfig.model_validate(
+                self.product_kwargs.get("bot_config", {})
+            ),
         )
         return text, chat_history_str, params, orch_state
 
@@ -351,7 +338,7 @@ Answer with only 'yes' or 'no'"""
         chat_history_str: str,
         stream_type: StreamType | None,
         message_queue: janus.SyncQueue | None,
-    ) -> tuple[NodeInfo, OrchestratorState, OrchestratorParams]:
+    ) -> tuple[NodeInfo, OrchestratorState, OrchestratorParams, NodeResponse]:
         """Execute a node in the task graph.
 
         This function processes a node in the task graph, handling nested graph nodes,
@@ -374,18 +361,10 @@ Answer with only 'yes' or 'no'"""
         # Tool/Worker
         node_info, params = self.handle_nested_graph_node(node_info, params)
 
-        user_message: ConvoMessage = ConvoMessage(
-            history=chat_history_str, message=text
-        )
-        # orchestrator_message: OrchestratorMessage = OrchestratorMessage(
-        #     message=node_info.attributes["value"], attribute=node_info.attributes
-        # )
-
         # Create initial resource record with common info and output from trajectory
         resource_record: ResourceRecord = ResourceRecord(
             info={
-                "id": node_info.resource["id"],
-                "name": node_info.resource["name"],
+                "resource": node_info.resource,
                 "attribute": node_info.attribute,
                 "node_id": params.taskgraph.curr_node,
             },
@@ -395,8 +374,8 @@ Answer with only 'yes' or 'no'"""
         # Add resource record to current turn's list
         params.memory.trajectory[-1].append(resource_record)
 
-        # Update message state
-        orch_state.user_message = user_message
+        # Update orchestrator state
+        orch_state.user_message = ConvoMessage(history=chat_history_str, message=text)
         orch_state.function_calling_trajectory = (
             params.memory.function_calling_trajectory
         )
@@ -404,12 +383,16 @@ Answer with only 'yes' or 'no'"""
         orch_state.metadata = params.metadata
         orch_state.stream_type = stream_type
         orch_state.message_queue = message_queue
+        # Execute the node
         response_state: OrchestratorState
-        response_state, params = self.env.step(
-            node_info.resource_id, orch_state, params, node_info
+        response_state, node_response = self.env.step(
+            node_info.resource["id"], orch_state, node_info
         )
-        params.memory.trajectory = response_state.trajectory
-        return node_info, response_state, params
+        # Update params
+        params.taskgraph.node_status[node_info.node_id] = node_response.status
+        ## TODO: slots only for tools
+        # params.taskgraph.dialog_states = node_response.slots
+        return node_info, response_state, params, node_response
 
     def handle_nested_graph_node(
         self, node_info: NodeInfo, params: OrchestratorParams
@@ -489,9 +472,6 @@ Answer with only 'yes' or 'no'"""
             self.task_graph.postprocess_node
         )
 
-        # TODO: Implement planner-based loop control based on bot configuration
-        msg_counter = 0
-
         n_node_performed = 0
         max_n_node_performed = 5
         while n_node_performed < max_n_node_performed:
@@ -507,7 +487,7 @@ Answer with only 'yes' or 'no'"""
             log_context.info(f"The current node info is : {node_info}")
 
             # perform node
-            node_info, orch_state, params = self.perform_node(
+            node_info, orch_state, params, node_response = self.perform_node(
                 orch_state,
                 node_info,
                 params,
@@ -520,38 +500,36 @@ Answer with only 'yes' or 'no'"""
 
             n_node_performed += 1
             # If the current node is not complete, then no need to continue to the next node
-            node_status = params.taskgraph.node_status
-            cur_node_id = params.taskgraph.curr_node
-            status = node_status.get(cur_node_id, StatusEnum.COMPLETE)
-            if status == StatusEnum.INCOMPLETE:
+            if node_response.status == StatusEnum.INCOMPLETE:
                 break
-
-            # Check current node attributes
-            if node_info.resource_name in INFO_WORKERS:
-                msg_counter += 1
-            # If the counter of message worker or counter of planner or counter of ragmsg worker == 1, break the loop
-            if msg_counter == 1:
+            # If the current node has a response, break the loop
+            if node_response.response:
                 break
+            # If the current node is a leaf node, break the loop
             if node_info.is_leaf is True:
                 break
 
-        if not orch_state.response:
+        if not node_response.response:
             log_context.info("No response, do context generation")
-            if not stream_type:
-                orch_state = ToolGenerator.context_generate(orch_state)
+            if stream_type == StreamType.NON_STREAM:
+                answer = ToolGenerator.context_generate(orch_state)
+                node_response.response = answer
             else:
-                orch_state = ToolGenerator.stream_context_generate(orch_state)
+                answer = ToolGenerator.stream_context_generate(orch_state)
+                node_response.response = answer
 
-        orch_state = post_process_response(
+        node_response = post_process_response(
             orch_state,
+            node_response,
             params,
             self.hitl_worker_available,
             self.hitl_proposal_enabled,
         )
 
         return OrchestratorResp(
-            answer=orch_state.response,
+            answer=node_response.response,
             parameters=params.model_dump(),
+            choice_list=node_response.choice_list,
             human_in_the_loop=params.metadata.hitl,
         )
 

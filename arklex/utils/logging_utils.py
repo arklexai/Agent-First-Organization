@@ -99,11 +99,12 @@ class LogContext:
     ) -> None:
         self.log_context = logging.getLogger(name)
         # Set the log level only if explicitly provided
-        if level is not None:
-            if isinstance(level, str):
-                self.log_context.setLevel(getattr(logging, level))
-            else:
-                self.log_context.setLevel(level)
+        self.log_context.setLevel("INFO")
+        # if level is not None:
+        #     if isinstance(level, str):
+        #         self.log_context.setLevel(getattr(logging, level))
+        #     else:
+        #         self.log_context.setLevel(level)
         self.log_context.propagate = True
         self.base_context = base_context or {}
         handler = self._get_console_handler(log_format)

@@ -36,28 +36,22 @@ class MessageWorker(BaseWorker):
         super().__init__()
         # state = trace(input=answer, state=state)
 
-    @property
-    def worker_data(self) -> MessageWorkerData:
-        return self.msg_worker_data
-
     def init_worker_data(
         self, orch_state: OrchestratorState, node_specific_data: dict[str, Any]
     ) -> None:
+        self.orch_state = orch_state
         self.msg_worker_data: MessageWorkerData = MessageWorkerData(
-            orch_state=orch_state,
             **node_specific_data,
         )
 
     def _format_prompt(self) -> str:
-        user_message = self.msg_worker_data.orch_state.user_message
-        message_flow = self.msg_worker_data.orch_state.message_flow
-        orch_message = self.msg_worker_data.node_message
+        user_message = self.orch_state.user_message
+        message_flow = self.orch_state.message_flow
+        orch_message = self.msg_worker_data.message
 
-        prompts: dict[str, str] = load_prompts(
-            self.msg_worker_data.orch_state.bot_config
-        )
+        prompts: dict[str, str] = load_prompts(self.orch_state.bot_config)
         if message_flow:
-            if self.msg_worker_data.orch_state.stream_type == StreamType.SPEECH:
+            if self.orch_state.stream_type == StreamType.SPEECH:
                 prompt: PromptTemplate = PromptTemplate.from_template(
                     prompts["message_flow_generator_prompt_speech"]
                 )
@@ -67,14 +61,14 @@ class MessageWorker(BaseWorker):
                 )
             input_prompt = prompt.invoke(
                 {
-                    "sys_instruct": self.msg_worker_data.orch_state.sys_instruct,
+                    "sys_instruct": self.orch_state.sys_instruct,
                     "message": orch_message,
                     "formatted_chat": user_message.history,
                     "context": message_flow,
                 }
             )
         else:
-            if self.msg_worker_data.orch_state.stream_type == StreamType.SPEECH:
+            if self.orch_state.stream_type == StreamType.SPEECH:
                 prompt: PromptTemplate = PromptTemplate.from_template(
                     prompts["message_generator_prompt_speech"]
                 )
@@ -84,13 +78,13 @@ class MessageWorker(BaseWorker):
                 )
             input_prompt = prompt.invoke(
                 {
-                    "sys_instruct": self.msg_worker_data.orch_state.sys_instruct,
+                    "sys_instruct": self.orch_state.sys_instruct,
                     "message": orch_message,
                     "formatted_chat": user_message.history,
                 }
             )
         log_context.info(
-            f"Prompt for stream type {self.msg_worker_data.orch_state.stream_type}: {input_prompt.text}"
+            f"Prompt for stream type {self.orch_state.stream_type}: {input_prompt.text}"
         )
         return input_prompt.text
 
@@ -104,7 +98,7 @@ class MessageWorker(BaseWorker):
         answer: str = ""
         for chunk in invoke_chain.stream(prompt):
             answer += chunk
-            self.msg_worker_data.orch_state.message_queue.put(
+            self.orch_state.message_queue.put(
                 {"event": EventType.CHUNK.value, "message_chunk": chunk}
             )
         return answer
@@ -112,21 +106,21 @@ class MessageWorker(BaseWorker):
     def _execute(self) -> MessageWorkerOutput:
         if self.msg_worker_data.directed:
             return MessageWorkerOutput(
-                response=self.msg_worker_data.node_message,
+                response=self.msg_worker_data.message,
                 status=StatusEnum.COMPLETE,
             )
 
         input_prompt = self._format_prompt()
         model_class = validate_and_get_model_class(
-            self.msg_worker_data.orch_state.bot_config.llm_config
+            self.orch_state.bot_config.llm_config
         )
         self.llm: Any = model_class(
-            model=self.msg_worker_data.orch_state.bot_config.llm_config.model_type_or_path,
+            model=self.orch_state.bot_config.llm_config.model_type_or_path,
             temperature=0.1,
         )
         if (
-            self.msg_worker_data.orch_state.stream_type == StreamType.TEXT
-            or self.msg_worker_data.orch_state.stream_type == StreamType.SPEECH
+            self.orch_state.stream_type == StreamType.TEXT
+            or self.orch_state.stream_type == StreamType.SPEECH
         ):
             answer = self.stream_generator(input_prompt)
         else:

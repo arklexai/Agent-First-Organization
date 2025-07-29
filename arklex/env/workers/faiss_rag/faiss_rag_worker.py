@@ -32,25 +32,21 @@ class FaissRAGWorker(BaseWorker):
     def __init__(self) -> None:
         super().__init__()
 
-    @property
-    def worker_data(self) -> FaissRAGWorkerData:
-        return self.faiss_rag_worker_data
-
     def init_worker_data(
         self, orch_state: OrchestratorState, node_specific_data: dict[str, Any]
     ) -> None:
+        self.orch_state = orch_state
         self.faiss_rag_worker_data: FaissRAGWorkerData = FaissRAGWorkerData(
-            **orch_state.model_dump(),
             **node_specific_data,
         )
 
     def _execute(self) -> FaissRAGWorkerOutput:
-        retrieved_text = RetrieveEngine.faiss_retrieve(self.faiss_rag_worker_data)
-        self.faiss_rag_worker_data.message_flow = retrieved_text
-        if self.faiss_rag_worker_data.stream_type != StreamType.NON_STREAM:
-            response = ToolGenerator.stream_context_generate(self.faiss_rag_worker_data)
+        retrieved_text = RetrieveEngine.faiss_retrieve(self.orch_state)
+        self.orch_state.message_flow = retrieved_text
+        if self.orch_state.stream_type != StreamType.NON_STREAM:
+            response = ToolGenerator.stream_context_generate(self.orch_state)
         else:
-            response = ToolGenerator.context_generate(self.faiss_rag_worker_data)
+            response = ToolGenerator.context_generate(self.orch_state)
 
         return FaissRAGWorkerOutput(
             response=response,

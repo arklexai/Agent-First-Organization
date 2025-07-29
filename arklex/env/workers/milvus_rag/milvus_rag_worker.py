@@ -32,16 +32,11 @@ class MilvusRAGWorker(BaseWorker):
     def __init__(self) -> None:
         super().__init__()
 
-    @property
-    def worker_data(self) -> MilvusRAGWorkerData:
-        return self.milvus_rag_worker_data
-
     def init_worker_data(
         self,
         orch_state: OrchestratorState,
         node_specific_data: dict[str, Any],
     ) -> None:
-        print("orch state message queue: ", orch_state.message_queue)
         self.milvus_rag_worker_data: MilvusRAGWorkerData = MilvusRAGWorkerData(
             orch_state=orch_state,
             **node_specific_data,

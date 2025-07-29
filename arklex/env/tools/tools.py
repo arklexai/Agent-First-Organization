@@ -35,7 +35,7 @@ TYPE_CONVERTERS = {
 
 
 def register_tool(
-    desc: str,
+    description: str,
     slots: list[dict[str, Any]] | None = None,
     isResponse: bool = False,
 ) -> Callable:
@@ -56,7 +56,7 @@ def register_tool(
 
     def inner(func: Callable) -> Callable:
         name: str = f"{func.__name__}"
-        return Tool(name, desc, slots)
+        return Tool(name, description, slots)
 
     return inner
 
@@ -119,7 +119,7 @@ class Tool:
         self.llm_config: dict[str, Any] = {}
         self.slotfiller: SlotFiller | None = None
         # TODO: check with voicebot setup
-        self.openai_slots: list[dict[str, Any]] = self._format_slots(slots)
+        # self.openai_slots: list[dict[str, Any]] = self._format_slots(slots)
         self.properties: dict[str, dict[str, Any]] = {}
         self.fixed_args = {}
         self.auth = {}

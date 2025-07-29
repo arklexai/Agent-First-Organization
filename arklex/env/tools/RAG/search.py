@@ -37,7 +37,9 @@ class SearchConfig(TypedDict, total=False):
 class SearchEngine:
     @staticmethod
     def search(chat_history: str, bot_config: BotConfig) -> str:
-        tavily_search_executor: TavilySearchExecutor = TavilySearchExecutor()
+        tavily_search_executor: TavilySearchExecutor = TavilySearchExecutor(
+            bot_config.llm_config
+        )
         text_results: str = tavily_search_executor.search(chat_history, bot_config)
         return text_results
 
