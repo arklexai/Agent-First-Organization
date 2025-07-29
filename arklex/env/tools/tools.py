@@ -269,7 +269,11 @@ class Tool:
             if slot_name in existing_slots_dict:
                 existing_slot = existing_slots_dict[slot_name]
                 for key, value in new_slot.items():
-                    setattr(existing_slot, key, value)
+                    # Handle the schema -> slot_schema mapping
+                    if key == "schema":
+                        existing_slot.slot_schema = value
+                    else:
+                        setattr(existing_slot, key, value)
             elif new_slot.get("type") == "group":
                 self.slots.append(
                     Slot(
@@ -437,8 +441,9 @@ class Tool:
         schema_lines = []
 
         for field in (
-            slot.schema
-            if hasattr(slot, "schema") and isinstance(slot.schema, list | tuple)
+            slot.slot_schema
+            if hasattr(slot, "slot_schema")
+            and isinstance(slot.slot_schema, list | tuple)
             else []
         ):
             field_type = field.get("type", "str")
@@ -511,7 +516,7 @@ class Tool:
             value=slot.value if slot.value else [],
             description=slot.description + " " + group_prompt,
             required=slot.required,
-            schema=slot.schema,
+            schema=slot.slot_schema,
             repeatable=slot.repeatable,
         )
 
@@ -659,8 +664,9 @@ class Tool:
         """
         for item in group_value:
             for field in (
-                slot.schema
-                if hasattr(slot, "schema") and isinstance(slot.schema, list | tuple)
+                slot.slot_schema
+                if hasattr(slot, "slot_schema")
+                and isinstance(slot.slot_schema, list | tuple)
                 else []
             ):
                 field_name = field["name"]
@@ -802,9 +808,9 @@ class Tool:
                 # For each item, check required fields
                 for item in slot.value or []:
                     for field in (
-                        slot.schema
-                        if hasattr(slot, "schema")
-                        and isinstance(slot.schema, list | tuple)
+                        slot.slot_schema
+                        if hasattr(slot, "slot_schema")
+                        and isinstance(slot.slot_schema, list | tuple)
                         else []
                     ):
                         field_repeatable = field.get("repeatable", False)
@@ -855,9 +861,9 @@ class Tool:
                     missing.append(slot.prompt)
                 for idx, item in enumerate(slot.value or []):
                     for field in (
-                        slot.schema
-                        if hasattr(slot, "schema")
-                        and isinstance(slot.schema, list | tuple)
+                        slot.slot_schema
+                        if hasattr(slot, "slot_schema")
+                        and isinstance(slot.slot_schema, list | tuple)
                         else []
                     ):
                         if field.get("required", False) and (
@@ -927,8 +933,9 @@ class Tool:
                 group_properties = {}
                 group_required = []
                 for field in (
-                    slot.schema
-                    if hasattr(slot, "schema") and isinstance(slot.schema, list | tuple)
+                    slot.slot_schema
+                    if hasattr(slot, "slot_schema")
+                    and isinstance(slot.slot_schema, list | tuple)
                     else []
                 ):
                     field_source = field.get("valueSource", "")
@@ -1065,7 +1072,7 @@ class Tool:
                     else dict(field)
                     if not isinstance(field, dict)
                     else field
-                    for field in slot.schema
+                    for field in slot.slot_schema
                 ]
 
             return [
@@ -1073,7 +1080,7 @@ class Tool:
                     slot.name,
                     slot.type,
                     json.dumps(safe_schema_dump(slot), sort_keys=True)
-                    if hasattr(slot, "schema") and slot.schema
+                    if hasattr(slot, "slot_schema") and slot.slot_schema
                     else None,
                 )
                 for slot in slots
@@ -1368,8 +1375,9 @@ class Tool:
         for idx, item in enumerate(slot.value):
             missing_fields = []
             for field in (
-                slot.schema
-                if hasattr(slot, "schema") and isinstance(slot.schema, list | tuple)
+                slot.slot_schema
+                if hasattr(slot, "slot_schema")
+                and isinstance(slot.slot_schema, list | tuple)
                 else []
             ):
                 field_repeatable = field.get("repeatable", False)

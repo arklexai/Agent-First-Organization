@@ -389,7 +389,7 @@ class OpenAIRealtimeAgent(BaseAgent):
             if slot.name in tool_args:
                 slot.value = tool_args[slot.name]
             if slot.type == "group":
-                for schema_obj in slot.schema:
+                for schema_obj in slot.slot_schema:
                     if schema_obj.get("valueSource", "") == "fixed":
                         for filled_ob in tool_args[slot.name]:
                             if schema_obj.get("type") == "bool":

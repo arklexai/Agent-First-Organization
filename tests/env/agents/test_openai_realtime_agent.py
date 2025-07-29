@@ -677,7 +677,7 @@ class TestOpenAIRealtimeAgent:
         group_slot = Mock()
         group_slot.name = "group_param"
         group_slot.type = "group"
-        group_slot.schema = [
+        group_slot.slot_schema = [
             {
                 "name": "fixed_field",
                 "valueSource": "fixed",
@@ -1223,7 +1223,7 @@ class TestOpenAIRealtimeAgent:
         group_slot = Mock()
         group_slot.name = "complex_group"
         group_slot.type = "group"
-        group_slot.schema = [
+        group_slot.slot_schema = [
             {
                 "name": "bool_field",
                 "valueSource": "fixed",
