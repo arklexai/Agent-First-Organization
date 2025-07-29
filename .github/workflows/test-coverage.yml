@@ -60,10 +60,15 @@ jobs:
       - name: Run tests and check coverage threshold
         id: coverage-check
         run: |
-          # Run tests with coverage
-          pytest tests/ --cov=arklex --cov-report=term-missing --cov-report=html --cov-report=xml --no-cov-on-fail || true
+          # Run tests with coverage database (required by py-cov-action)
+          pytest tests/ --cov=arklex --cov-report=term-missing --cov-report=html --cov-report=xml --cov-report=json --no-cov-on-fail || true
           
-          # Verify coverage.xml was created
+          # Verify coverage files were created
+          if [ ! -f ".coverage" ]; then
+            echo "❌ Error: .coverage database was not generated"
+            exit 1
+          fi
+          
           if [ ! -f "coverage.xml" ]; then
             echo "❌ Error: coverage.xml was not generated"
             exit 1
@@ -107,8 +112,15 @@ jobs:
           name: htmlcov
           path: htmlcov/
 
-      - name: Verify coverage file exists
+      - name: Verify coverage files exist
         run: |
+          if [ ! -f ".coverage" ]; then
+            echo "❌ Error: .coverage database file not found"
+            exit 1
+          fi
+          echo "✅ .coverage database file found"
+          ls -la .coverage
+          
           if [ ! -f "coverage.xml" ]; then
             echo "❌ Error: coverage.xml file not found"
             exit 1
@@ -138,7 +150,7 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           MINIMUM_GREEN: 99.0
           MINIMUM_ORANGE: 70
-          COVERAGE_PATH: "coverage.xml"
+          COVERAGE_PATH: ".coverage"
           VERBOSE: "true"
         continue-on-error: true
 
