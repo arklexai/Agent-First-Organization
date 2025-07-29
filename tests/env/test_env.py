@@ -22,6 +22,7 @@ def fake_tool() -> Callable[[MessageState | None], MagicMock]:
         tool.load_slots = MagicMock()
         tool.execute = MagicMock(return_value=execute_return)
         return tool
+
     return _make_fake_tool
 
 
@@ -32,6 +33,7 @@ def fake_worker() -> Callable[[MessageState | None], Mock]:
         worker.execute = Mock(return_value=execute_return)
         worker.init_slotfilling = Mock()
         return worker
+
     return _make_fake_worker
 
 
@@ -88,9 +90,17 @@ def test_default_resource_initializer_init_workers_success_and_error() -> None:
         assert "w2" not in registry
 
 
-def test_environment_step_tool_executes_and_updates_params(fake_tool: Callable[[MessageState | None], MagicMock]) -> None:
+def test_environment_step_tool_executes_and_updates_params(
+    fake_tool: Callable[[MessageState | None], MagicMock],
+) -> None:
     # Setup a fake tool
-    tool = fake_tool(MessageState(function_calling_trajectory=[{"role": "assistant", "content": "call"}], slots={}, status=StatusEnum.COMPLETE))
+    tool = fake_tool(
+        MessageState(
+            function_calling_trajectory=[{"role": "assistant", "content": "call"}],
+            slots={},
+            status=StatusEnum.COMPLETE,
+        )
+    )
     tools = [
         {"id": "t1", "name": "fake_tool", "path": "fake_path"},
     ]
@@ -116,7 +126,9 @@ def test_environment_step_tool_executes_and_updates_params(fake_tool: Callable[[
         node_info = DummyNodeInfo()
         env.tools["t1"]["fixed_args"] = {"baz": 1}
         result_state, result_params = env.step("t1", state, params, node_info)
-        assert result_state.function_calling_trajectory == [{"role": "assistant", "content": "call"}]
+        assert result_state.function_calling_trajectory == [
+            {"role": "assistant", "content": "call"}
+        ]
         assert result_params is params
 
 
@@ -136,7 +148,9 @@ def test_environment_step_invalid_id_raises() -> None:
     assert isinstance(updated_params, OrchestratorParams)
 
 
-def test_environment_step_worker_executes_and_updates_params(fake_worker: Callable[[MessageState | None], Mock]) -> None:
+def test_environment_step_worker_executes_and_updates_params(
+    fake_worker: Callable[[MessageState | None], Mock],
+) -> None:
     """Test environment step with worker execution."""
     mock_worker = fake_worker(MessageState(status=StatusEnum.COMPLETE))
     mock_worker.init_slotfilling = Mock()
@@ -160,7 +174,9 @@ def test_environment_step_worker_executes_and_updates_params(fake_worker: Callab
     mock_worker.init_slotfilling.assert_called_once()
 
 
-def test_environment_step_worker_without_init_slotfilling(fake_worker: Callable[[MessageState | None], Mock]) -> None:
+def test_environment_step_worker_without_init_slotfilling(
+    fake_worker: Callable[[MessageState | None], Mock],
+) -> None:
     """Test environment step with worker that doesn't have init_slotfilling method."""
     mock_worker = fake_worker(MessageState(status=StatusEnum.COMPLETE))
     # Remove init_slotfilling attribute to test the hasattr check
@@ -185,11 +201,13 @@ def test_environment_step_worker_without_init_slotfilling(fake_worker: Callable[
     assert len(result_params.memory.function_calling_trajectory) == 2
 
 
-def test_environment_step_worker_with_response_content(fake_worker: Callable[[MessageState | None], Mock]) -> None:
+def test_environment_step_worker_with_response_content(
+    fake_worker: Callable[[MessageState | None], Mock],
+) -> None:
     """Test environment step with worker that has response content."""
-    mock_worker = fake_worker(MessageState(
-        status=StatusEnum.COMPLETE, response="test response"
-    ))
+    mock_worker = fake_worker(
+        MessageState(status=StatusEnum.COMPLETE, response="test response")
+    )
     env = Environment(
         tools=[],
         workers=[{"id": "worker1", "name": "test_worker", "path": "test"}],
@@ -214,11 +232,13 @@ def test_environment_step_worker_with_response_content(fake_worker: Callable[[Me
     )
 
 
-def test_environment_step_worker_with_message_flow(fake_worker: Callable[[MessageState | None], Mock]) -> None:
+def test_environment_step_worker_with_message_flow(
+    fake_worker: Callable[[MessageState | None], Mock],
+) -> None:
     """Test environment step with worker that has message_flow but no response."""
-    mock_worker = fake_worker(MessageState(
-        status=StatusEnum.COMPLETE, message_flow="test flow"
-    ))
+    mock_worker = fake_worker(
+        MessageState(status=StatusEnum.COMPLETE, message_flow="test flow")
+    )
     env = Environment(
         tools=[],
         workers=[{"id": "worker1", "name": "test_worker", "path": "test"}],
@@ -626,6 +646,41 @@ def test_default_resource_initializer_init_agents_logs_error(
                 "Agent bad_agent is not registered, error: import error" in m
                 for m in caplog.text.splitlines()
             )
+
+
+def test_init_agents_handles_openai_sdk_agent_and_skips_missing_path(
+    caplog: LogCaptureFixture,
+) -> None:
+    """Test init_agents correctly handles openai_sdk_agent and skips invalid agent with no path."""
+    agents = [
+        {
+            "id": "openai_sdk_agent",
+            "name": "openai_sdk_agent_function",
+            "sub_agents": [],
+        },
+        {
+            "id": "invalid_agent",
+            "name": "missing_path_agent",
+            # no path and not an openai_sdk_agent
+        },
+    ]
+
+    registry = DefaultResourceInitializer.init_agents(agents)
+
+    # Check openai_sdk_agent is registered correctly
+    assert "openai_sdk_agent" in registry
+    assert registry["openai_sdk_agent"]["name"] == "openai_sdk_agent_function"
+    assert registry["openai_sdk_agent"]["description"] == "sub_agent"
+    assert registry["openai_sdk_agent"]["config"] == {}
+
+    # invalid_agent should be skipped due to no path
+    assert "invalid_agent" not in registry
+
+    # Check log message for invalid agent
+    assert any(
+        "Agent missing_path_agent is not registered, error: no path specified" in msg
+        for msg in caplog.messages
+    )
 
 
 def test_model_aware_resource_initializer_init() -> None:
@@ -1066,11 +1121,19 @@ def test_environment_step_planner_with_msg_history() -> None:
     mock_planner.execute.assert_called_once()
 
 
-def test_environment_step_tool_with_attributes_and_slots(fake_tool: Callable[[MessageState | None], MagicMock]) -> None:
+def test_environment_step_tool_with_attributes_and_slots(
+    fake_tool: Callable[[MessageState | None], MagicMock],
+) -> None:
     """Test environment step with tool that has attributes and slots."""
     from arklex.orchestrator.NLU.entities.slot_entities import Slot
 
-    tool = fake_tool(MessageState(function_calling_trajectory=[{"role": "assistant", "content": "call"}], slots={"slot1": [Slot(name="slot1", value="value1")]}, status=StatusEnum.COMPLETE))
+    tool = fake_tool(
+        MessageState(
+            function_calling_trajectory=[{"role": "assistant", "content": "call"}],
+            slots={"slot1": [Slot(name="slot1", value="value1")]},
+            status=StatusEnum.COMPLETE,
+        )
+    )
     tools = [{"id": "t1", "name": "fake_tool", "path": "fake_path"}]
     with patch("importlib.import_module") as mock_import:
         fake_module = MagicMock()
@@ -1111,9 +1174,17 @@ def test_environment_step_tool_with_attributes_and_slots(fake_tool: Callable[[Me
             tool.load_slots.assert_called_once_with(["slot1", "slot2"])
 
 
-def test_environment_step_tool_with_none_additional_args(fake_tool: Callable[[MessageState | None], MagicMock]) -> None:
+def test_environment_step_tool_with_none_additional_args(
+    fake_tool: Callable[[MessageState | None], MagicMock],
+) -> None:
     """Test environment step with tool that has None additional_args."""
-    tool = fake_tool(MessageState(function_calling_trajectory=[{"role": "assistant", "content": "call"}], slots={}, status=StatusEnum.COMPLETE))
+    tool = fake_tool(
+        MessageState(
+            function_calling_trajectory=[{"role": "assistant", "content": "call"}],
+            slots={},
+            status=StatusEnum.COMPLETE,
+        )
+    )
     tools = [{"id": "t1", "name": "fake_tool", "path": "fake_path"}]
     with patch("importlib.import_module") as mock_import:
         fake_module = MagicMock()
@@ -1145,12 +1216,21 @@ def test_environment_step_tool_with_none_additional_args(fake_tool: Callable[[Me
         # Verify tool methods were called correctly
         tool.init_slotfiller.assert_called_once_with(env.slotfillapi)
         if tool.load_slots.call_count:
-            tool.load_slots.assert_called_once_with([])  # Empty list when attributes is empty
+            # Empty list when attributes is empty
+            tool.load_slots.assert_called_once_with([])
 
 
-def test_environment_step_tool_with_none_attributes(fake_tool: Callable[[MessageState | None], MagicMock]) -> None:
+def test_environment_step_tool_with_none_attributes(
+    fake_tool: Callable[[MessageState | None], MagicMock],
+) -> None:
     """Test environment step with tool that has None attributes."""
-    tool = fake_tool(MessageState(function_calling_trajectory=[{"role": "assistant", "content": "call"}], slots={}, status=StatusEnum.COMPLETE))
+    tool = fake_tool(
+        MessageState(
+            function_calling_trajectory=[{"role": "assistant", "content": "call"}],
+            slots={},
+            status=StatusEnum.COMPLETE,
+        )
+    )
     tools = [{"id": "t1", "name": "fake_tool", "path": "fake_path"}]
     with patch("importlib.import_module") as mock_import:
         fake_module = MagicMock()
@@ -1184,13 +1264,16 @@ def test_environment_step_tool_with_none_attributes(fake_tool: Callable[[Message
         # Verify tool methods were called correctly
         tool.init_slotfiller.assert_called_once_with(env.slotfillapi)
         if tool.load_slots.call_count:
-            tool.load_slots.assert_called_once_with([])  # Empty list when attributes is empty
+            # Empty list when attributes is empty
+            tool.load_slots.assert_called_once_with([])
         if tool.load_slots.call_count:
-            tool.load_slots.assert_called_once_with([])  # Empty list when attributes is empty
+            # Empty list when attributes is empty
+            tool.load_slots.assert_called_once_with([])
 
 
-
-def test_environment_step_worker_with_none_additional_args(fake_worker: Callable[[MessageState | None], Mock]) -> None:
+def test_environment_step_worker_with_none_additional_args(
+    fake_worker: Callable[[MessageState | None], Mock],
+) -> None:
     """Test environment step with worker that has None additional_args."""
     mock_worker = fake_worker(MessageState(status=StatusEnum.COMPLETE))
     mock_worker.init_slotfilling = Mock()
@@ -1218,10 +1301,14 @@ def test_environment_step_worker_with_none_additional_args(fake_worker: Callable
     mock_worker.init_slotfilling.assert_called_once()
 
 
-def test_environment_step_worker_with_empty_response_and_message_flow(fake_worker: Callable[[MessageState | None], Mock]) -> None:
+def test_environment_step_worker_with_empty_response_and_message_flow(
+    fake_worker: Callable[[MessageState | None], Mock],
+) -> None:
     """Test environment step with worker that has empty response and message_flow."""
 
-    mock_worker = fake_worker(MessageState(status=StatusEnum.COMPLETE, response="", message_flow=""))
+    mock_worker = fake_worker(
+        MessageState(status=StatusEnum.COMPLETE, response="", message_flow="")
+    )
     mock_worker.init_slotfilling = Mock()
 
     env = Environment(
@@ -1247,9 +1334,17 @@ def test_environment_step_worker_with_empty_response_and_message_flow(fake_worke
     assert result_params.memory.function_calling_trajectory[1]["content"] == ""
 
 
-def test_environment_step_tool_with_slot_schema_signature_change(fake_tool: Callable[[MessageState | None], MagicMock]) -> None:
+def test_environment_step_tool_with_slot_schema_signature_change(
+    fake_tool: Callable[[MessageState | None], MagicMock],
+) -> None:
     """Test environment step with tool when slot schema signature changes."""
-    tool = fake_tool(MessageState(function_calling_trajectory=[{"role": "assistant", "content": "call"}], slots={"slot1": [Slot(name="slot1", value="value1")]}, status=StatusEnum.COMPLETE))
+    tool = fake_tool(
+        MessageState(
+            function_calling_trajectory=[{"role": "assistant", "content": "call"}],
+            slots={"slot1": [Slot(name="slot1", value="value1")]},
+            status=StatusEnum.COMPLETE,
+        )
+    )
     tools = [{"id": "t1", "name": "fake_tool", "path": "fake_path"}]
     with patch("importlib.import_module") as mock_import:
         fake_module = MagicMock()
@@ -1266,7 +1361,12 @@ def test_environment_step_tool_with_slot_schema_signature_change(fake_tool: Call
 
         class DummyNodeInfo:
             additional_args = {"foo": "bar"}
-            attributes = {"slots": ["slot1"], "slot_groups": [{"name": "group1", "schema": [{"name": "slot1", "type": "str"}]}]}
+            attributes = {
+                "slots": ["slot1"],
+                "slot_groups": [
+                    {"name": "group1", "schema": [{"name": "slot1", "type": "str"}]}
+                ],
+            }
 
         state = MessageState()
         params = DummyOrchestratorParams()
@@ -1275,20 +1375,28 @@ def test_environment_step_tool_with_slot_schema_signature_change(fake_tool: Call
 
         # First call to establish initial slots
         result_state, result_params = env.step("t1", state, params, node_info)
-        
+
         # Second call with different slot configuration (simulating schema change)
         node_info.attributes = {"slots": ["slot1", "slot2"]}
         result_state, result_params = env.step("t1", state, params, node_info)
-        
+
         # Should reset slots due to schema change
         assert result_state.status == StatusEnum.COMPLETE
 
 
-def test_environment_step_tool_with_verified_slots(fake_tool: Callable[[MessageState | None], MagicMock]) -> None:
+def test_environment_step_tool_with_verified_slots(
+    fake_tool: Callable[[MessageState | None], MagicMock],
+) -> None:
     """Test environment step with tool that has verified slots."""
     from arklex.orchestrator.NLU.entities.slot_entities import Slot
 
-    tool = fake_tool(MessageState(function_calling_trajectory=[{"role": "assistant", "content": "call"}], slots={}, status=StatusEnum.COMPLETE))
+    tool = fake_tool(
+        MessageState(
+            function_calling_trajectory=[{"role": "assistant", "content": "call"}],
+            slots={},
+            status=StatusEnum.COMPLETE,
+        )
+    )
     tools = [{"id": "t1", "name": "fake_tool", "path": "fake_path"}]
     with patch("importlib.import_module") as mock_import:
         fake_module = MagicMock()
@@ -1309,9 +1417,7 @@ def test_environment_step_tool_with_verified_slots(fake_tool: Callable[[MessageS
 
         state = MessageState()
         # Pre-populate state with verified slots
-        state.slots = {
-            "t1": [Slot(name="slot1", value="value1", verified=True)]
-        }
+        state.slots = {"t1": [Slot(name="slot1", value="value1", verified=True)]}
         params = DummyOrchestratorParams()
         node_info = DummyNodeInfo()
         env.tools["t1"]["fixed_args"] = {"baz": 1}
@@ -1320,9 +1426,17 @@ def test_environment_step_tool_with_verified_slots(fake_tool: Callable[[MessageS
         assert result_state.status == StatusEnum.COMPLETE
 
 
-def test_environment_step_tool_with_missing_required_slots(fake_tool: Callable[[MessageState | None], MagicMock]) -> None:
+def test_environment_step_tool_with_missing_required_slots(
+    fake_tool: Callable[[MessageState | None], MagicMock],
+) -> None:
     """Test environment step with tool that has missing required slots."""
-    tool = fake_tool(MessageState(function_calling_trajectory=[{"role": "assistant", "content": "call"}], slots={}, status=StatusEnum.INCOMPLETE))
+    tool = fake_tool(
+        MessageState(
+            function_calling_trajectory=[{"role": "assistant", "content": "call"}],
+            slots={},
+            status=StatusEnum.INCOMPLETE,
+        )
+    )
     tools = [{"id": "t1", "name": "fake_tool", "path": "fake_path"}]
     with patch("importlib.import_module") as mock_import:
         fake_module = MagicMock()
@@ -1351,9 +1465,17 @@ def test_environment_step_tool_with_missing_required_slots(fake_tool: Callable[[
         assert result_state.status == StatusEnum.INCOMPLETE
 
 
-def test_environment_step_tool_with_slot_verification_needed(fake_tool: Callable[[MessageState | None], MagicMock]) -> None:
+def test_environment_step_tool_with_slot_verification_needed(
+    fake_tool: Callable[[MessageState | None], MagicMock],
+) -> None:
     """Test environment step with tool that needs slot verification."""
-    tool = fake_tool(MessageState(function_calling_trajectory=[{"role": "assistant", "content": "call"}], slots={}, status=StatusEnum.INCOMPLETE))
+    tool = fake_tool(
+        MessageState(
+            function_calling_trajectory=[{"role": "assistant", "content": "call"}],
+            slots={},
+            status=StatusEnum.INCOMPLETE,
+        )
+    )
     tools = [{"id": "t1", "name": "fake_tool", "path": "fake_path"}]
     with patch("importlib.import_module") as mock_import:
         fake_module = MagicMock()
@@ -1382,9 +1504,17 @@ def test_environment_step_tool_with_slot_verification_needed(fake_tool: Callable
         assert result_state.status == StatusEnum.INCOMPLETE
 
 
-def test_environment_step_tool_with_group_slots(fake_tool: Callable[[MessageState | None], MagicMock]) -> None:
+def test_environment_step_tool_with_group_slots(
+    fake_tool: Callable[[MessageState | None], MagicMock],
+) -> None:
     """Test environment step with tool that has group slots."""
-    tool = fake_tool(MessageState(function_calling_trajectory=[{"role": "assistant", "content": "call"}], slots={}, status=StatusEnum.COMPLETE))
+    tool = fake_tool(
+        MessageState(
+            function_calling_trajectory=[{"role": "assistant", "content": "call"}],
+            slots={},
+            status=StatusEnum.COMPLETE,
+        )
+    )
     tools = [{"id": "t1", "name": "fake_tool", "path": "fake_path"}]
     with patch("importlib.import_module") as mock_import:
         fake_module = MagicMock()
@@ -1406,7 +1536,7 @@ def test_environment_step_tool_with_group_slots(fake_tool: Callable[[MessageStat
                     {
                         "name": "group_slot",
                         "type": "group",
-                        "schema": [{"name": "field1", "type": "str", "required": True}]
+                        "schema": [{"name": "field1", "type": "str", "required": True}],
                     }
                 ]
             }
@@ -1420,9 +1550,17 @@ def test_environment_step_tool_with_group_slots(fake_tool: Callable[[MessageStat
         assert result_state.status == StatusEnum.COMPLETE
 
 
-def test_environment_step_tool_with_repeatable_slots(fake_tool: Callable[[MessageState | None], MagicMock]) -> None:
+def test_environment_step_tool_with_repeatable_slots(
+    fake_tool: Callable[[MessageState | None], MagicMock],
+) -> None:
     """Test environment step with tool that has repeatable slots."""
-    tool = fake_tool(MessageState(function_calling_trajectory=[{"role": "assistant", "content": "call"}], slots={}, status=StatusEnum.COMPLETE))
+    tool = fake_tool(
+        MessageState(
+            function_calling_trajectory=[{"role": "assistant", "content": "call"}],
+            slots={},
+            status=StatusEnum.COMPLETE,
+        )
+    )
     tools = [{"id": "t1", "name": "fake_tool", "path": "fake_path"}]
     with patch("importlib.import_module") as mock_import:
         fake_module = MagicMock()
@@ -1445,7 +1583,7 @@ def test_environment_step_tool_with_repeatable_slots(fake_tool: Callable[[Messag
                         "name": "repeatable_slot",
                         "type": "str",
                         "repeatable": True,
-                        "required": True
+                        "required": True,
                     }
                 ]
             }
@@ -1459,9 +1597,19 @@ def test_environment_step_tool_with_repeatable_slots(fake_tool: Callable[[Messag
         assert result_state.status == StatusEnum.COMPLETE
 
 
-def test_environment_step_tool_with_function_calling_trajectory(fake_tool: Callable[[MessageState | None], MagicMock]) -> None:
+def test_environment_step_tool_with_function_calling_trajectory(
+    fake_tool: Callable[[MessageState | None], MagicMock],
+) -> None:
     """Test environment step with tool that returns function calling trajectory."""
-    tool = fake_tool(MessageState(function_calling_trajectory=[{"role": "assistant", "content": "call"}, {"role": "function", "content": "result"}], status=StatusEnum.COMPLETE))
+    tool = fake_tool(
+        MessageState(
+            function_calling_trajectory=[
+                {"role": "assistant", "content": "call"},
+                {"role": "function", "content": "result"},
+            ],
+            status=StatusEnum.COMPLETE,
+        )
+    )
     tools = [{"id": "t1", "name": "fake_tool", "path": "fake_path"}]
     with patch("importlib.import_module") as mock_import:
         fake_module = MagicMock()
@@ -1490,9 +1638,17 @@ def test_environment_step_tool_with_function_calling_trajectory(fake_tool: Calla
         assert len(result_state.function_calling_trajectory) == 2
 
 
-def test_environment_step_tool_with_slots_parameter(fake_tool: Callable[[MessageState | None], MagicMock]) -> None:
+def test_environment_step_tool_with_slots_parameter(
+    fake_tool: Callable[[MessageState | None], MagicMock],
+) -> None:
     """Test environment step with tool that accepts slots parameter."""
-    tool = fake_tool(MessageState(function_calling_trajectory=[{"role": "assistant", "content": "call"}], slots={}, status=StatusEnum.COMPLETE))
+    tool = fake_tool(
+        MessageState(
+            function_calling_trajectory=[{"role": "assistant", "content": "call"}],
+            slots={},
+            status=StatusEnum.COMPLETE,
+        )
+    )
     tools = [{"id": "t1", "name": "fake_tool", "path": "fake_path"}]
     with patch("importlib.import_module") as mock_import:
         fake_module = MagicMock()
@@ -1520,9 +1676,17 @@ def test_environment_step_tool_with_slots_parameter(fake_tool: Callable[[Message
         assert result_state.status == StatusEnum.COMPLETE
 
 
-def test_environment_step_tool_with_missing_required_arguments(fake_tool: Callable[[MessageState | None], MagicMock]) -> None:
+def test_environment_step_tool_with_missing_required_arguments(
+    fake_tool: Callable[[MessageState | None], MagicMock],
+) -> None:
     """Test environment step with tool that has missing required arguments."""
-    tool = fake_tool(MessageState(function_calling_trajectory=[{"role": "assistant", "content": "call"}], slots={}, status=StatusEnum.INCOMPLETE))
+    tool = fake_tool(
+        MessageState(
+            function_calling_trajectory=[{"role": "assistant", "content": "call"}],
+            slots={},
+            status=StatusEnum.INCOMPLETE,
+        )
+    )
     tools = [{"id": "t1", "name": "fake_tool", "path": "fake_path"}]
     with patch("importlib.import_module") as mock_import:
         fake_module = MagicMock()
@@ -1551,9 +1715,18 @@ def test_environment_step_tool_with_missing_required_arguments(fake_tool: Callab
         assert result_state.status == StatusEnum.INCOMPLETE
 
 
-def test_environment_step_tool_with_authentication_error(fake_tool: Callable[[MessageState | None], MagicMock]) -> None:
+def test_environment_step_tool_with_authentication_error(
+    fake_tool: Callable[[MessageState | None], MagicMock],
+) -> None:
     """Test environment step with tool that raises AuthenticationError."""
-    tool = fake_tool(MessageState(function_calling_trajectory=[{"role": "assistant", "content": "call"}], slots={}, status=StatusEnum.INCOMPLETE, response="Authentication failed"))
+    tool = fake_tool(
+        MessageState(
+            function_calling_trajectory=[{"role": "assistant", "content": "call"}],
+            slots={},
+            status=StatusEnum.INCOMPLETE,
+            response="Authentication failed",
+        )
+    )
     tools = [{"id": "t1", "name": "fake_tool", "path": "fake_path"}]
     with patch("importlib.import_module") as mock_import:
         fake_module = MagicMock()
@@ -1582,9 +1755,18 @@ def test_environment_step_tool_with_authentication_error(fake_tool: Callable[[Me
         assert "Authentication failed" in result_state.response
 
 
-def test_environment_step_tool_with_tool_execution_error(fake_tool: Callable[[MessageState | None], MagicMock]) -> None:
+def test_environment_step_tool_with_tool_execution_error(
+    fake_tool: Callable[[MessageState | None], MagicMock],
+) -> None:
     """Test environment step with tool that raises ToolExecutionError."""
-    tool = fake_tool(MessageState(function_calling_trajectory=[{"role": "assistant", "content": "call"}], slots={}, status=StatusEnum.INCOMPLETE, response="Tool execution failed"))
+    tool = fake_tool(
+        MessageState(
+            function_calling_trajectory=[{"role": "assistant", "content": "call"}],
+            slots={},
+            status=StatusEnum.INCOMPLETE,
+            response="Tool execution failed",
+        )
+    )
     tools = [{"id": "t1", "name": "fake_tool", "path": "fake_path"}]
     with patch("importlib.import_module") as mock_import:
         fake_module = MagicMock()
@@ -1613,9 +1795,18 @@ def test_environment_step_tool_with_tool_execution_error(fake_tool: Callable[[Me
         assert "Tool execution failed" in result_state.response
 
 
-def test_environment_step_tool_with_general_exception(fake_tool: Callable[[MessageState | None], MagicMock]) -> None:
+def test_environment_step_tool_with_general_exception(
+    fake_tool: Callable[[MessageState | None], MagicMock],
+) -> None:
     """Test environment step with tool that raises general exception."""
-    tool = fake_tool(MessageState(function_calling_trajectory=[{"role": "assistant", "content": "call"}], slots={}, status=StatusEnum.INCOMPLETE, response="General error occurred"))
+    tool = fake_tool(
+        MessageState(
+            function_calling_trajectory=[{"role": "assistant", "content": "call"}],
+            slots={},
+            status=StatusEnum.INCOMPLETE,
+            response="General error occurred",
+        )
+    )
     tools = [{"id": "t1", "name": "fake_tool", "path": "fake_path"}]
     with patch("importlib.import_module") as mock_import:
         fake_module = MagicMock()
@@ -1642,3 +1833,67 @@ def test_environment_step_tool_with_general_exception(fake_tool: Callable[[Messa
         result_state, result_params = env.step("t1", state, params, node_info)
         assert result_state.status == StatusEnum.INCOMPLETE
         assert "General error occurred" in result_state.response
+
+
+def test_environment_resolve_sub_agents_merges_args_correctly(
+    fake_tool: Callable[[MessageState | None], MagicMock],
+) -> None:
+    """Test resolve_sub_agents with tool merging and agent filtering logic."""
+    # Patch tool import and set up Environment
+    tool_instance = fake_tool()
+    tools = [
+        {
+            "id": "tool1",
+            "name": "some_tool.py-abc123",
+            "description": "desc",
+            "path": "fake_path",
+        }
+    ]
+
+    with patch("importlib.import_module") as mock_import:
+        fake_module = MagicMock()
+        fake_module.some_tool = MagicMock(return_value=tool_instance)
+        mock_import.return_value = fake_module
+
+        env = Environment(
+            tools=tools,
+            workers=[],
+            agents=[],
+        )
+
+    # Add fixed args to simulate tool configuration
+    env.tools["tool1"]["fixed_args"] = {"foo": "bar"}
+
+    # Build mock predecessor with node-specific args
+    predecessor = NodeInfo()
+    predecessor.resource_id = "tool1"
+    predecessor.attributes = {"node_specific_data": {"baz": "qux"}}
+
+    # Valid agent node
+    agent_node = NodeInfo()
+    agent_node.type = "agent"
+    agent_node.attributes = {
+        "task": "Do something",
+    }
+    agent_node.additional_args = {
+        "name": "TestAgent",
+        "predecessors": [predecessor],
+    }
+
+    # Non-agent node that should be skipped
+    non_agent_node = NodeInfo()
+    non_agent_node.type = "tool"
+    non_agent_node.attributes = {}
+
+    resolved = env.resolve_sub_agents([agent_node, non_agent_node])
+
+    assert len(resolved) == 1
+    resolved_agent = resolved[0]
+    assert resolved_agent["name"] == "TestAgent"
+    assert resolved_agent["task"] == "Do something"
+    assert len(resolved_agent["tools"]) == 1
+
+    tool = resolved_agent["tools"][0]
+    assert tool["id"] == "abc123"
+    assert tool["path"] == "tool1.py"
+    assert tool["fixed_args"] == {"foo": "bar", "baz": "qux"}

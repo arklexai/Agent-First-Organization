@@ -25,7 +25,7 @@ class MultiAgent(BaseAgent):
         super().__init__()
         self.state = state
         self.workflow = None
-        self.multi_agent_config = multi_agent_config
+        self.multi_agent_config = multi_agent_config or {}
         self._load_multi_agent_system()
         log_context.info(
             f"MultiAgent initialized with {self.multi_agent_config.get('node_specific_data')} pattern."
@@ -47,6 +47,7 @@ class MultiAgent(BaseAgent):
             log_context.error(
                 f"[MultiAgent] Initialization error: {traceback.format_exc()}"
             )
+            raise
 
     def _execute(self, msg_state: MessageState, **kwargs: Any) -> dict[str, Any]:  # noqa: ANN401
         """Synchronous execution if config does not enable async."""
