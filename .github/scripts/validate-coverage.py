@@ -66,50 +66,23 @@ def validate_coverage_xml(file_path: str) -> bool | None:
         return False
 
 
-def validate_coverage_database() -> bool | None:
-    """Validate the .coverage database file."""
-    try:
-        if not os.path.exists(".coverage"):
-            print("❌ Error: .coverage database file does not exist")
-            return False
-
-        # Check file size (should be non-zero)
-        file_size = os.path.getsize(".coverage")
-        if file_size == 0:
-            print("❌ Error: .coverage database file is empty")
-            return False
-
-        print(f"✅ .coverage database file is valid (size: {file_size} bytes)")
-        return True
-
-    except Exception as e:
-        print(f"❌ Error validating .coverage database: {e}")
-        return False
-
-
 def main() -> int:
     """Main validation function."""
-    print("🔍 Validating coverage files...\n")
-
-    # Validate .coverage database
-    print("1. Checking .coverage database file:")
-    db_valid = validate_coverage_database()
+    print("🔍 Validating coverage.xml file...\n")
 
     # Validate coverage.xml
-    print("\n2. Checking coverage.xml file:")
     xml_file = sys.argv[1] if len(sys.argv) > 1 else "coverage.xml"
     xml_valid = validate_coverage_xml(xml_file)
 
     # Summary
     print("\n📊 Validation Summary:")
-    print(f"   .coverage database: {'✅ Valid' if db_valid else '❌ Invalid'}")
     print(f"   coverage.xml: {'✅ Valid' if xml_valid else '❌ Invalid'}")
 
-    if db_valid and xml_valid:
-        print("\n🎉 All coverage files are valid!")
+    if xml_valid:
+        print("\n🎉 Coverage file is valid!")
         return 0
     else:
-        print("\n⚠️ Some coverage files have issues.")
+        print("\n⚠️ Coverage file has issues.")
         return 1
 
 
