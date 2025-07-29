@@ -203,7 +203,8 @@ class OpenAIRealtimeAgent(BaseAgent):
 
     async def close(self) -> None:
         """Close the WebSocket connection to OpenAI Realtime API."""
-        await self.ws.close()
+        if self.ws is not None:
+            await self.ws.close()
 
     def set_automatic_turn_detection(self) -> None:
         """Configure automatic turn detection using server-side voice activity detection.
@@ -594,7 +595,7 @@ class OpenAIRealtimeAgent(BaseAgent):
                 if event_type == "response.function_call_arguments.done":
                     await self.internal_queue.put(openai_event)
             except Exception as e:
-                logger.error(f"Error processing openai event: {e.with_traceback()}")
+                logger.error(f"Error processing openai event: {e}")
                 logger.exception(e)
 
         logger.info("receive_events ended")
