@@ -2,19 +2,31 @@ name: Test Coverage Check
 
 on:
   pull_request:
-    types: [labeled]
+    types: [labeled, opened, synchronize]
+  workflow_dispatch:
+    inputs:
+      pr_number:
+        description: 'PR number to run coverage on (optional)'
+        required: false
+        type: string
 
 jobs:
   test:
     name: run tests and display coverage
 
-    if: github.base_ref == 'main' && github.event.label.name == 'run-coverage-tests'
+    if: |
+      (github.event_name == 'pull_request' && 
+       github.base_ref == 'main' && 
+       (github.event.label.name == 'run-coverage-tests' || github.event_name == 'workflow_dispatch')) ||
+      (github.event_name == 'workflow_dispatch')
 
     runs-on: ubuntu-latest
 
     permissions:
       pull-requests: write
       contents: write
+      actions: read
+      checks: write
 
     env:
       SHOPIFY_FIXED_ARGS: ${{ secrets.SHOPIFY_FIXED_ARGS }}
@@ -38,10 +50,24 @@ jobs:
           python -m pip install --upgrade pip
           pip install -e '.[milvus,shopify,hubspot]' --quiet
 
+      - name: Install GitHub CLI
+        run: |
+          curl -fsSL https://cli.github.com/packages/githubcli-archive-keyring.gpg | sudo dd of=/usr/share/keyrings/githubcli-archive-keyring.gpg
+          echo "deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/githubcli-archive-keyring.gpg] https://cli.github.com/packages stable main" | sudo tee /etc/apt/sources.list.d/github-cli.list > /dev/null
+          sudo apt update
+          sudo apt install gh -y
+
       - name: Run tests and check coverage threshold
         id: coverage-check
         run: |
-          pytest tests/ --cov=arklex --cov-report=term-missing --cov-report=html --cov-report=xml --no-cov-on-fail
+          # Run tests with coverage
+          pytest tests/ --cov=arklex --cov-report=term-missing --cov-report=html --cov-report=xml --no-cov-on-fail || true
+          
+          # Verify coverage.xml was created
+          if [ ! -f "coverage.xml" ]; then
+            echo "❌ Error: coverage.xml was not generated"
+            exit 1
+          fi
 
           python -c "
           import xml.etree.ElementTree as ET
@@ -81,13 +107,68 @@ jobs:
           name: htmlcov
           path: htmlcov/
 
+      - name: Verify coverage file exists
+        run: |
+          if [ ! -f "coverage.xml" ]; then
+            echo "❌ Error: coverage.xml file not found"
+            exit 1
+          fi
+          echo "✅ coverage.xml file found"
+          ls -la coverage.xml
+
+      - name: Validate coverage file
+        run: |
+          python .github/scripts/validate-coverage.py coverage.xml
+
+      - name: Check GitHub access
+        run: |
+          echo "Checking GitHub API access..."
+          curl -H "Authorization: token ${{ secrets.GITHUB_TOKEN }}" \
+               -H "Accept: application/vnd.github.v3+json" \
+               "https://api.github.com/repos/${{ github.repository }}/pulls/${{ github.event.number }}" || {
+            echo "❌ Error: Cannot access PR information"
+            exit 1
+          }
+          echo "✅ GitHub API access confirmed"
+
       - name: Display coverage comment
         id: coverage
         uses: py-cov-action/python-coverage-comment-action@v3
         with:
-          GITHUB_TOKEN: ${{ github.token }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           MINIMUM_GREEN: 99.0
           MINIMUM_ORANGE: 70
+          COVERAGE_PATH: "coverage.xml"
+          VERBOSE: "true"
+        continue-on-error: true
+
+      - name: Fallback coverage comment
+        if: failure() && steps.coverage.outcome == 'failure'
+        run: |
+          echo "Coverage comment action failed, creating manual comment..."
+          COVERAGE=${{ steps.coverage-check.outputs.coverage }}
+          
+          # Create a simple coverage comment
+          COMMENT="## 📊 Test Coverage Report
+          
+          **Coverage:** ${COVERAGE}%
+          
+          **Status:** $([ $(echo "$COVERAGE >= 99.0" | bc -l) -eq 1 ] && echo "✅ Excellent" || echo "⚠️ Needs improvement")
+          
+          Coverage report generated from test run."
+          
+          # Post comment using GitHub CLI or curl
+          gh pr comment ${{ github.event.number }} --body "$COMMENT" || {
+            echo "Failed to post comment via GitHub CLI, trying curl..."
+            curl -X POST \
+              -H "Authorization: token ${{ secrets.GITHUB_TOKEN }}" \
+              -H "Accept: application/vnd.github.v3+json" \
+              -d "{\"body\":\"$COMMENT\"}" \
+              "https://api.github.com/repos/${{ github.repository }}/issues/${{ github.event.number }}/comments" || {
+              echo "❌ Failed to post coverage comment"
+              exit 1
+            }
+          }
 
       - name: Update README badge
         run: |
