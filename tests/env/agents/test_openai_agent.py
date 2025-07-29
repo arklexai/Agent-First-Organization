@@ -890,3 +890,849 @@ class TestEndConversation:
         call_args = agent.tool_map["http_tool_example"].call_args
         slots = call_args.kwargs["slots"]
         assert slots[0]["name"] == "model_param"
+
+    # Additional test cases for missing coverage
+
+    @patch("arklex.utils.model_provider_config.PROVIDER_MAP")
+    def test_end_conversation_dict_result_with_choices(
+        self, mock_provider_map: Mock, mock_state: Mock
+    ) -> None:
+        """Test end_conversation when LLM returns dict with choices structure."""
+        mock_llm = Mock()
+        mock_llm.invoke.return_value = {
+            "choices": [{"message": {"content": "Thank you for using our service!"}}]
+        }
+        mock_provider_map.get.return_value = mock_llm
+
+        result = end_conversation().func(mock_state)
+        # The function should return the fallback message when LLM response is invalid
+        assert "I hope I was able to help you today. Goodbye!" in result
+
+    @patch("arklex.utils.model_provider_config.PROVIDER_MAP")
+    def test_end_conversation_dict_result_with_content(
+        self, mock_provider_map: Mock, mock_state: Mock
+    ) -> None:
+        """Test end_conversation when LLM returns dict with content."""
+        mock_llm = Mock()
+        mock_llm.invoke.return_value = {"content": "Thank you for using our service!"}
+        mock_provider_map.get.return_value = mock_llm
+
+        result = end_conversation().func(mock_state)
+        # The function should return the fallback message when LLM response is invalid
+        assert "I hope I was able to help you today. Goodbye!" in result
+
+    @patch("arklex.utils.model_provider_config.PROVIDER_MAP")
+    def test_end_conversation_dict_result_with_result(
+        self, mock_provider_map: Mock, mock_state: Mock
+    ) -> None:
+        """Test end_conversation when LLM returns dict with result."""
+        mock_llm = Mock()
+        mock_llm.invoke.return_value = {"result": "Thank you for using our service!"}
+        mock_provider_map.get.return_value = mock_llm
+
+        result = end_conversation().func(mock_state)
+        # The function should return the fallback message when LLM response is invalid
+        assert "I hope I was able to help you today. Goodbye!" in result
+
+    @patch("arklex.utils.model_provider_config.PROVIDER_MAP")
+    def test_end_conversation_string_result_json_parseable(
+        self, mock_provider_map: Mock, mock_state: Mock
+    ) -> None:
+        """Test end_conversation when LLM returns JSON string."""
+        mock_llm = Mock()
+        mock_llm.invoke.return_value = '{"content": "Thank you for using our service!"}'
+        mock_provider_map.get.return_value = mock_llm
+
+        result = end_conversation().func(mock_state)
+        # The function should return the fallback message when LLM response is invalid
+        assert "I hope I was able to help you today. Goodbye!" in result
+
+    @patch("arklex.utils.model_provider_config.PROVIDER_MAP")
+    def test_end_conversation_string_result_json_with_choices(
+        self, mock_provider_map: Mock, mock_state: Mock
+    ) -> None:
+        """Test end_conversation when LLM returns JSON string with choices."""
+        mock_llm = Mock()
+        mock_llm.invoke.return_value = (
+            '{"choices": [{"message": {"content": "Thank you!"}}]}'
+        )
+        mock_provider_map.get.return_value = mock_llm
+
+        result = end_conversation().func(mock_state)
+        # The function should return the fallback message when LLM response is invalid
+        assert "I hope I was able to help you today. Goodbye!" in result
+
+    @patch("arklex.utils.model_provider_config.PROVIDER_MAP")
+    def test_end_conversation_string_result_json_invalid(
+        self, mock_provider_map: Mock, mock_state: Mock
+    ) -> None:
+        """Test end_conversation when LLM returns invalid JSON string."""
+        mock_llm = Mock()
+        mock_llm.invoke.return_value = "invalid json string"
+        mock_provider_map.get.return_value = mock_llm
+
+        result = end_conversation().func(mock_state)
+        # The function should return the fallback message when LLM response is invalid
+        assert "I hope I was able to help you today. Goodbye!" in result
+
+    @patch("arklex.utils.model_provider_config.PROVIDER_MAP")
+    def test_end_conversation_dummy_response(
+        self, mock_provider_map: Mock, mock_state: Mock
+    ) -> None:
+        """Test end_conversation when LLM returns dummy response."""
+        mock_llm = Mock()
+        mock_llm.invoke.return_value = "dummy response"
+        mock_provider_map.get.return_value = mock_llm
+
+        result = end_conversation().func(mock_state)
+        assert "I hope I was able to help you today. Goodbye!" in result
+
+    @patch("arklex.utils.model_provider_config.PROVIDER_MAP")
+    def test_end_conversation_empty_content(
+        self, mock_provider_map: Mock, mock_state: Mock
+    ) -> None:
+        """Test end_conversation when LLM returns empty content."""
+        mock_llm = Mock()
+        mock_llm.invoke.return_value = ""
+        mock_provider_map.get.return_value = mock_llm
+
+        result = end_conversation().func(mock_state)
+        assert "I hope I was able to help you today. Goodbye!" in result
+
+    @patch("arklex.utils.model_provider_config.PROVIDER_MAP")
+    def test_end_conversation_none_content(
+        self, mock_provider_map: Mock, mock_state: Mock
+    ) -> None:
+        """Test end_conversation when LLM returns None content."""
+        mock_llm = Mock()
+        mock_llm.invoke.return_value = None
+        mock_provider_map.get.return_value = mock_llm
+
+        result = end_conversation().func(mock_state)
+        assert "I hope I was able to help you today. Goodbye!" in result
+
+    @patch("arklex.env.agents.openai_agent.load_prompts")
+    @patch("arklex.env.agents.openai_agent.trace")
+    def test_prepare_prompt_speech_with_speech_prompt(
+        self, mock_trace: Mock, mock_load_prompts: Mock, mock_state: Mock
+    ) -> None:
+        """Test _prepare_prompt with speech flag and speech prompt available."""
+        mock_load_prompts.return_value = {
+            "function_calling_agent_prompt": "Regular prompt",
+            "function_calling_agent_prompt_speech": "Speech prompt: {sys_instruct} {message}",
+        }
+        mock_trace.return_value = mock_state
+
+        agent = OpenAIAgent(successors=[], predecessors=[], tools={}, state=mock_state)
+        agent.prompt = ""
+
+        result = agent._prepare_prompt(mock_state, is_speech=True)
+        assert "Speech prompt:" in result
+
+    @patch("arklex.env.agents.openai_agent.load_prompts")
+    @patch("arklex.env.agents.openai_agent.trace")
+    def test_prepare_prompt_speech_without_speech_prompt(
+        self, mock_trace: Mock, mock_load_prompts: Mock, mock_state: Mock
+    ) -> None:
+        """Test _prepare_prompt with speech flag but no speech prompt available."""
+        mock_load_prompts.return_value = {
+            "function_calling_agent_prompt": "Regular prompt: {sys_instruct} {message}"
+        }
+        mock_trace.return_value = mock_state
+
+        agent = OpenAIAgent(successors=[], predecessors=[], tools={}, state=mock_state)
+        agent.prompt = ""
+
+        result = agent._prepare_prompt(mock_state, is_speech=True)
+        assert "Regular prompt:" in result
+
+    @patch("arklex.env.agents.openai_agent.load_prompts")
+    @patch("arklex.env.agents.openai_agent.trace")
+    def test_prepare_prompt_with_existing_prompt(
+        self, mock_trace: Mock, mock_load_prompts: Mock, mock_state: Mock
+    ) -> None:
+        """Test _prepare_prompt when agent already has a prompt."""
+        mock_trace.return_value = mock_state
+
+        agent = OpenAIAgent(successors=[], predecessors=[], tools={}, state=mock_state)
+        agent.prompt = "existing prompt"
+
+        result = agent._prepare_prompt(mock_state, is_speech=False)
+        assert result == "existing prompt"
+
+    @patch("arklex.env.agents.openai_agent.load_prompts")
+    @patch("arklex.env.agents.openai_agent.trace")
+    def test_prepare_prompt_orchestrator_message_none(
+        self, mock_trace: Mock, mock_load_prompts: Mock, mock_state: Mock
+    ) -> None:
+        """Test _prepare_prompt when orchestrator message is None."""
+        mock_load_prompts.return_value = {
+            "function_calling_agent_prompt": "Prompt: {sys_instruct} {message}"
+        }
+        mock_trace.return_value = mock_state
+        mock_state.orchestrator_message.message = None
+
+        agent = OpenAIAgent(successors=[], predecessors=[], tools={}, state=mock_state)
+        agent.prompt = ""
+
+        result = agent._prepare_prompt(mock_state, is_speech=False)
+        assert "None" in result
+
+    @patch("arklex.env.agents.openai_agent.trace")
+    def test_text_stream_generate(self, mock_trace: Mock, mock_state: Mock) -> None:
+        """Test text_stream_generate method."""
+        mock_trace.return_value = mock_state
+
+        agent = OpenAIAgent(successors=[], predecessors=[], tools={}, state=mock_state)
+        agent.llm = Mock()
+
+        # Mock streaming response
+        mock_chunk1 = Mock()
+        mock_chunk1.content = "streamed response"
+        agent.llm.stream.return_value = [mock_chunk1]
+
+        # Mock AI message without tool calls
+        mock_ai_message = Mock()
+        mock_ai_message.tool_calls = None
+        agent.llm.invoke.return_value = mock_ai_message
+
+        agent.prompt = "test prompt"
+        mock_state.message_queue = Mock()
+
+        result = agent.text_stream_generate(mock_state)
+        assert result == mock_state
+
+    @patch("arklex.env.agents.openai_agent.trace")
+    def test_speech_stream_generate(self, mock_trace: Mock, mock_state: Mock) -> None:
+        """Test speech_stream_generate method."""
+        mock_trace.return_value = mock_state
+
+        agent = OpenAIAgent(successors=[], predecessors=[], tools={}, state=mock_state)
+        agent.llm = Mock()
+
+        # Mock streaming response
+        mock_chunk1 = Mock()
+        mock_chunk1.content = "speech response"
+        agent.llm.stream.return_value = [mock_chunk1]
+
+        # Mock AI message without tool calls
+        mock_ai_message = Mock()
+        mock_ai_message.tool_calls = None
+        agent.llm.invoke.return_value = mock_ai_message
+
+        agent.prompt = "test prompt"
+        mock_state.message_queue = Mock()
+
+        result = agent.speech_stream_generate(mock_state)
+        assert result == mock_state
+
+    @patch("arklex.env.agents.openai_agent.trace")
+    def test_generate_response_streaming_with_tool_calls(
+        self, mock_trace: Mock, mock_state: Mock
+    ) -> None:
+        """Test _generate_response with streaming and tool calls."""
+        mock_trace.return_value = mock_state
+
+        agent = OpenAIAgent(successors=[], predecessors=[], tools={}, state=mock_state)
+        agent.llm = Mock()
+
+        # Mock streaming response
+        mock_chunk1 = Mock()
+        mock_chunk1.content = "Hello "
+        mock_chunk2 = Mock()
+        mock_chunk2.content = "World"
+        agent.llm.stream.return_value = [mock_chunk1, mock_chunk2]
+
+        # Mock AI message with tool calls
+        mock_ai_message = Mock()
+        mock_ai_message.tool_calls = [{"name": "test_tool", "args": {}, "id": "call_1"}]
+        agent.llm.invoke.return_value = mock_ai_message
+
+        agent.prompt = "test prompt"
+        mock_state.message_queue = Mock()
+
+        result = agent._generate_response(mock_state, stream=True, is_speech=False)
+        assert result == mock_state
+
+    @patch("arklex.env.agents.openai_agent.trace")
+    def test_generate_response_streaming_without_tool_calls(
+        self, mock_trace: Mock, mock_state: Mock
+    ) -> None:
+        """Test _generate_response with streaming and no tool calls."""
+        mock_trace.return_value = mock_state
+
+        agent = OpenAIAgent(successors=[], predecessors=[], tools={}, state=mock_state)
+        agent.llm = Mock()
+
+        # Mock streaming response
+        mock_chunk1 = Mock()
+        mock_chunk1.content = "Hello "
+        mock_chunk2 = Mock()
+        mock_chunk2.content = "World"
+        agent.llm.stream.return_value = [mock_chunk1, mock_chunk2]
+
+        # Mock AI message without tool calls
+        mock_ai_message = Mock()
+        mock_ai_message.tool_calls = None
+        agent.llm.invoke.return_value = mock_ai_message
+
+        agent.prompt = "test prompt"
+        mock_state.message_queue = Mock()
+
+        result = agent._generate_response(mock_state, stream=True, is_speech=False)
+        assert result == mock_state
+
+    @patch("arklex.env.agents.openai_agent.trace")
+    def test_generate_response_streaming_without_tool_calls_speech(
+        self, mock_trace: Mock, mock_state: Mock
+    ) -> None:
+        """Test _generate_response with speech streaming and no tool calls."""
+        mock_trace.return_value = mock_state
+
+        agent = OpenAIAgent(successors=[], predecessors=[], tools={}, state=mock_state)
+        agent.llm = Mock()
+
+        # Mock streaming response
+        mock_chunk1 = Mock()
+        mock_chunk1.content = "Hello "
+        mock_chunk2 = Mock()
+        mock_chunk2.content = "World"
+        agent.llm.stream.return_value = [mock_chunk1, mock_chunk2]
+
+        # Mock AI message without tool calls
+        mock_ai_message = Mock()
+        mock_ai_message.tool_calls = None
+        agent.llm.invoke.return_value = mock_ai_message
+
+        agent.prompt = "test prompt"
+        mock_state.message_queue = Mock()
+
+        result = agent._generate_response(mock_state, stream=True, is_speech=True)
+        assert result == mock_state
+
+    def test_choose_generator_cn_speech(self, mock_state: Mock) -> None:
+        """Test choose_generator with Chinese language and speech stream type."""
+        from arklex.types import StreamType
+
+        agent = OpenAIAgent(successors=[], predecessors=[], tools={}, state=mock_state)
+        mock_state.bot_config.language = "CN"
+        mock_state.stream_type = StreamType.SPEECH
+
+        result = agent.choose_generator(mock_state)
+        assert result == "text_stream_generate"
+
+    def test_choose_generator_text_stream(self, mock_state: Mock) -> None:
+        """Test choose_generator with text stream type."""
+        from arklex.types import StreamType
+
+        agent = OpenAIAgent(successors=[], predecessors=[], tools={}, state=mock_state)
+        mock_state.stream_type = StreamType.TEXT
+
+        result = agent.choose_generator(mock_state)
+        assert result == "text_stream_generate"
+
+    def test_choose_generator_audio_stream(self, mock_state: Mock) -> None:
+        """Test choose_generator with audio stream type."""
+        from arklex.types import StreamType
+
+        agent = OpenAIAgent(successors=[], predecessors=[], tools={}, state=mock_state)
+        mock_state.stream_type = StreamType.AUDIO
+
+        result = agent.choose_generator(mock_state)
+        assert result == "text_stream_generate"
+
+    def test_choose_generator_speech_stream(self, mock_state: Mock) -> None:
+        """Test choose_generator with speech stream type."""
+        from arklex.types import StreamType
+
+        agent = OpenAIAgent(successors=[], predecessors=[], tools={}, state=mock_state)
+        mock_state.stream_type = StreamType.SPEECH
+
+        result = agent.choose_generator(mock_state)
+        assert result == "speech_stream_generate"
+
+    def test_choose_generator_default(self, mock_state: Mock) -> None:
+        """Test choose_generator with default case."""
+        agent = OpenAIAgent(successors=[], predecessors=[], tools={}, state=mock_state)
+        mock_state.stream_type = None
+
+        result = agent.choose_generator(mock_state)
+        assert result == "generate"
+
+    def test_load_tools_with_task_attribute(self, mock_state: Mock) -> None:
+        """Test _load_tools with node that has task attribute."""
+        node = Mock()
+        node.resource_id = "test_tool"
+        node.type = "tool"
+        node.attributes = {"task": "test_task"}
+        node.additional_args = {}
+
+        # Create a proper mock tool object
+        mock_tool_object = Mock()
+        mock_tool_object.func.__name__ = "test_tool"
+        mock_tool_object.slots = []
+        mock_tool_object.to_openai_tool_def_v2.return_value = {
+            "type": "function",
+            "function": {
+                "name": "test_tool",
+                "description": "Test tool",
+                "parameters": {},
+            },
+        }
+
+        tools = {
+            "test_tool": {
+                "tool_instance": mock_tool_object,
+                "fixed_args": {},
+            }
+        }
+
+        agent = OpenAIAgent(
+            successors=[], predecessors=[node], tools=tools, state=mock_state
+        )
+        assert "test_tool_test_task" in agent.available_tools
+
+    def test_load_tools_with_spaces_and_slashes(self, mock_state: Mock) -> None:
+        """Test _load_tools with resource_id containing spaces and slashes."""
+        node = Mock()
+        node.resource_id = "test tool/with spaces"
+        node.type = "tool"
+        node.attributes = {}
+        node.additional_args = {}
+
+        # Create a proper mock tool object
+        mock_tool_object = Mock()
+        mock_tool_object.func.__name__ = "test_tool"
+        mock_tool_object.slots = []
+        mock_tool_object.to_openai_tool_def_v2.return_value = {
+            "type": "function",
+            "function": {
+                "name": "test_tool",
+                "description": "Test tool",
+                "parameters": {},
+            },
+        }
+
+        tools = {
+            "test tool/with spaces": {
+                "tool_instance": mock_tool_object,
+                "fixed_args": {},
+            }
+        }
+
+        agent = OpenAIAgent(
+            successors=[], predecessors=[node], tools=tools, state=mock_state
+        )
+        assert "test_tool_with_spaces" in agent.available_tools
+
+    def test_execute_tool_non_http_tool(self, mock_state: Mock) -> None:
+        """Test _execute_tool with non-http tool."""
+        agent = OpenAIAgent(successors=[], predecessors=[], tools={}, state=mock_state)
+        agent.tool_map["regular_tool"] = Mock(return_value="regular result")
+        tool_args = {"param1": "value1"}
+
+        result = agent._execute_tool("regular_tool", mock_state, tool_args)
+        assert result == "regular result"
+        agent.tool_map["regular_tool"].assert_called_once_with(
+            state=mock_state, param1="value1"
+        )
+
+    def test_execute_tool_http_tool_with_slots_filtering(
+        self, mock_state: Mock
+    ) -> None:
+        """Test _execute_tool with http tool and slots filtering."""
+        agent = OpenAIAgent(successors=[], predecessors=[], tools={}, state=mock_state)
+        agent.tool_slots["http_tool_example"] = []
+        agent.tool_map["http_tool_example"] = Mock(return_value="http result")
+        tool_args = {"slots": "should_be_filtered", "other_param": "value"}
+
+        result = agent._execute_tool("http_tool_example", mock_state, tool_args)
+        assert result == "http result"
+        call_args = agent.tool_map["http_tool_example"].call_args
+        assert "slots" in call_args.kwargs
+        assert "other_param" in call_args.kwargs
+        assert (
+            "slots" not in call_args.kwargs["other_param"]
+        )  # slots should be filtered from other params
+
+    def test_execute_tool_group_slot_non_repeatable_default(
+        self, mock_state: Mock
+    ) -> None:
+        """Test _execute_tool with non-repeatable group slot and default value source."""
+        agent = OpenAIAgent(successors=[], predecessors=[], tools={}, state=mock_state)
+        group_slot = {
+            "name": "group3",
+            "type": "group",
+            "repeatable": False,
+            "schema": [{"name": "item", "type": "str", "valueSource": "prompt"}],
+            "valueSource": "default",
+            "value": {"item": "default_group_value"},
+        }
+        agent.tool_slots["http_tool_example"] = [group_slot]
+        agent.tool_map["http_tool_example"] = Mock(
+            return_value="group non-repeatable result"
+        )
+        tool_args = {}
+        result = agent._execute_tool("http_tool_example", mock_state, tool_args)
+        assert result == "group non-repeatable result"
+
+    def test_execute_tool_group_slot_non_repeatable_fixed(
+        self, mock_state: Mock
+    ) -> None:
+        """Test _execute_tool with non-repeatable group slot and fixed value source."""
+        agent = OpenAIAgent(successors=[], predecessors=[], tools={}, state=mock_state)
+        group_slot = {
+            "name": "group4",
+            "type": "group",
+            "repeatable": False,
+            "schema": [
+                {
+                    "name": "item",
+                    "type": "str",
+                    "valueSource": "fixed",
+                    "value": "fixed_item",
+                }
+            ],
+            "valueSource": "fixed",
+            "value": {"item": "fixed_group_value"},
+        }
+        agent.tool_slots["http_tool_example"] = [group_slot]
+        agent.tool_map["http_tool_example"] = Mock(
+            return_value="group fixed non-repeatable result"
+        )
+        tool_args = {}
+        result = agent._execute_tool("http_tool_example", mock_state, tool_args)
+        assert result == "group fixed non-repeatable result"
+
+    def test_execute_tool_flatten_group_items_with_list(self, mock_state: Mock) -> None:
+        """Test _execute_tool with group items that are lists."""
+        agent = OpenAIAgent(successors=[], predecessors=[], tools={}, state=mock_state)
+        group_slot = {
+            "name": "group5",
+            "type": "group",
+            "repeatable": True,
+            "schema": [{"name": "item", "type": "str", "valueSource": "prompt"}],
+            "valueSource": "prompt",
+        }
+        agent.tool_slots["http_tool_example"] = [group_slot]
+        agent.tool_map["http_tool_example"] = Mock(return_value="flatten result")
+        # Fix the tool_args structure - it should be a dict, not a list
+        tool_args = {"group5": [{"item": "value1"}, {"item": "value2"}]}
+        result = agent._execute_tool("http_tool_example", mock_state, tool_args)
+        assert result == "flatten result"
+
+    def test_execute_tool_flatten_group_items_with_dict(self, mock_state: Mock) -> None:
+        """Test _execute_tool with group items that are dicts."""
+        agent = OpenAIAgent(successors=[], predecessors=[], tools={}, state=mock_state)
+        group_slot = {
+            "name": "group6",
+            "type": "group",
+            "repeatable": True,
+            "schema": [{"name": "item", "type": "str", "valueSource": "prompt"}],
+            "valueSource": "prompt",
+        }
+        agent.tool_slots["http_tool_example"] = [group_slot]
+        agent.tool_map["http_tool_example"] = Mock(return_value="flatten dict result")
+        tool_args = {"group6": [{"item": "value1"}, {"item": "value2"}]}
+        result = agent._execute_tool("http_tool_example", mock_state, tool_args)
+        assert result == "flatten dict result"
+
+    def test_execute_tool_type_convert_success(self, mock_state: Mock) -> None:
+        """Test _execute_tool with successful type conversion."""
+        agent = OpenAIAgent(successors=[], predecessors=[], tools={}, state=mock_state)
+        slot = {"name": "int_param", "type": "int", "valueSource": "prompt"}
+        agent.tool_slots["http_tool_example"] = [slot]
+        agent.tool_map["http_tool_example"] = Mock(return_value="type convert success")
+        tool_args = {"int_param": "123"}
+        result = agent._execute_tool("http_tool_example", mock_state, tool_args)
+        assert result == "type convert success"
+
+    def test_execute_tool_type_convert_none_value(self, mock_state: Mock) -> None:
+        """Test _execute_tool with None value for type conversion."""
+        agent = OpenAIAgent(successors=[], predecessors=[], tools={}, state=mock_state)
+        slot = {"name": "null_param", "type": "str", "valueSource": "prompt"}
+        agent.tool_slots["http_tool_example"] = [slot]
+        agent.tool_map["http_tool_example"] = Mock(return_value="null value result")
+        tool_args = {"null_param": None}
+        result = agent._execute_tool("http_tool_example", mock_state, tool_args)
+        assert result == "null value result"
+
+    def test_execute_tool_type_convert_no_converter(self, mock_state: Mock) -> None:
+        """Test _execute_tool with type that has no converter."""
+        agent = OpenAIAgent(successors=[], predecessors=[], tools={}, state=mock_state)
+        slot = {
+            "name": "unknown_type_param",
+            "type": "unknown_type",
+            "valueSource": "prompt",
+        }
+        agent.tool_slots["http_tool_example"] = [slot]
+        agent.tool_map["http_tool_example"] = Mock(return_value="no converter result")
+        tool_args = {"unknown_type_param": "some_value"}
+        result = agent._execute_tool("http_tool_example", mock_state, tool_args)
+        assert result == "no converter result"
+
+    def test_stream_response_with_chunks(self, mock_state: Mock) -> None:
+        """Test _stream_response with content chunks."""
+        agent = OpenAIAgent(successors=[], predecessors=[], tools={}, state=mock_state)
+        agent.llm = Mock()
+
+        mock_chunk1 = Mock()
+        mock_chunk1.content = "Hello "
+        mock_chunk2 = Mock()
+        mock_chunk2.content = "World"
+        agent.llm.stream.return_value = [mock_chunk1, mock_chunk2]
+
+        mock_state.message_queue = Mock()
+
+        result = agent._stream_response(mock_state, agent.llm)
+        assert result == "Hello World"
+        assert mock_state.message_queue.put.call_count == 2
+
+    def test_stream_response_with_empty_chunks(self, mock_state: Mock) -> None:
+        """Test _stream_response with empty content chunks."""
+        agent = OpenAIAgent(successors=[], predecessors=[], tools={}, state=mock_state)
+        agent.llm = Mock()
+
+        mock_chunk1 = Mock()
+        mock_chunk1.content = ""
+        mock_chunk2 = Mock()
+        mock_chunk2.content = None
+        mock_chunk3 = Mock()
+        mock_chunk3.content = "Valid content"
+        agent.llm.stream.return_value = [mock_chunk1, mock_chunk2, mock_chunk3]
+
+        mock_state.message_queue = Mock()
+
+        result = agent._stream_response(mock_state, agent.llm)
+        assert result == "Valid content"
+        assert mock_state.message_queue.put.call_count == 1
+
+    def test_stream_response_with_chunks_no_content_attr(
+        self, mock_state: Mock
+    ) -> None:
+        """Test _stream_response with chunks that don't have content attribute."""
+        agent = OpenAIAgent(successors=[], predecessors=[], tools={}, state=mock_state)
+        agent.llm = Mock()
+
+        mock_chunk1 = Mock()
+        del mock_chunk1.content  # Remove content attribute
+        mock_chunk2 = Mock()
+        mock_chunk2.content = "Valid content"
+        agent.llm.stream.return_value = [mock_chunk1, mock_chunk2]
+
+        mock_state.message_queue = Mock()
+
+        result = agent._stream_response(mock_state, agent.llm)
+        assert result == "Valid content"
+        assert mock_state.message_queue.put.call_count == 1
+
+    def test_process_tool_calls_no_tool_calls(self, mock_state: Mock) -> None:
+        """Test _process_tool_calls with no tool calls."""
+        agent = OpenAIAgent(successors=[], predecessors=[], tools={}, state=mock_state)
+        mock_ai_message = Mock()
+        mock_ai_message.tool_calls = None
+
+        # Should not raise any exception
+        agent._process_tool_calls(mock_state, mock_ai_message)
+
+    def test_process_tool_calls_empty_tool_calls(self, mock_state: Mock) -> None:
+        """Test _process_tool_calls with empty tool calls."""
+        agent = OpenAIAgent(successors=[], predecessors=[], tools={}, state=mock_state)
+        mock_ai_message = Mock()
+        mock_ai_message.tool_calls = []
+
+        # Should not raise any exception
+        agent._process_tool_calls(mock_state, mock_ai_message)
+
+    def test_process_tool_calls_tool_not_in_map(self, mock_state: Mock) -> None:
+        """Test _process_tool_calls with tool not in tool map."""
+        agent = OpenAIAgent(successors=[], predecessors=[], tools={}, state=mock_state)
+        mock_ai_message = Mock()
+        mock_ai_message.tool_calls = [
+            {"name": "unknown_tool", "args": {}, "id": "call_1"}
+        ]
+
+        # Should not raise any exception and should log warning
+        agent._process_tool_calls(mock_state, mock_ai_message)
+
+    def test_process_tool_calls_tool_without_id(self, mock_state: Mock) -> None:
+        """Test _process_tool_calls with tool call without id."""
+        agent = OpenAIAgent(successors=[], predecessors=[], tools={}, state=mock_state)
+        agent.tool_map["test_tool"] = Mock(return_value="tool result")
+        agent.tool_args["test_tool"] = {}
+
+        mock_ai_message = Mock()
+        mock_ai_message.tool_calls = [{"name": "test_tool", "args": {}}]  # No id
+
+        # Should not raise any exception
+        agent._process_tool_calls(mock_state, mock_ai_message)
+
+    def test_process_tool_calls_tool_without_args(self, mock_state: Mock) -> None:
+        """Test _process_tool_calls with tool call without args."""
+        agent = OpenAIAgent(successors=[], predecessors=[], tools={}, state=mock_state)
+        agent.tool_map["test_tool"] = Mock(return_value="tool result")
+        agent.tool_args["test_tool"] = {}
+
+        mock_ai_message = Mock()
+        mock_ai_message.tool_calls = [{"name": "test_tool", "id": "call_1"}]  # No args
+
+        # Should not raise any exception
+        agent._process_tool_calls(mock_state, mock_ai_message)
+
+    def test_add_prompt_to_trajectory_already_exists(self, mock_state: Mock) -> None:
+        """Test _add_prompt_to_trajectory when prompt already exists."""
+        agent = OpenAIAgent(successors=[], predecessors=[], tools={}, state=mock_state)
+        mock_state.function_calling_trajectory = [{"content": "existing prompt"}]
+
+        initial_length = len(mock_state.function_calling_trajectory)
+        agent._add_prompt_to_trajectory(mock_state, "existing prompt")
+
+        # Should not add duplicate
+        assert len(mock_state.function_calling_trajectory) == initial_length
+
+    def test_add_prompt_to_trajectory_new_prompt(self, mock_state: Mock) -> None:
+        """Test _add_prompt_to_trajectory when prompt is new."""
+        agent = OpenAIAgent(successors=[], predecessors=[], tools={}, state=mock_state)
+        mock_state.function_calling_trajectory = [{"content": "existing prompt"}]
+
+        initial_length = len(mock_state.function_calling_trajectory)
+        agent._add_prompt_to_trajectory(mock_state, "new prompt")
+
+        # Should add new prompt
+        assert len(mock_state.function_calling_trajectory) == initial_length + 1
+        assert mock_state.function_calling_trajectory[-1]["content"] == "new prompt"
+
+    def test_add_prompt_to_trajectory_empty_trajectory(self, mock_state: Mock) -> None:
+        """Test _add_prompt_to_trajectory with empty trajectory."""
+        agent = OpenAIAgent(successors=[], predecessors=[], tools={}, state=mock_state)
+        mock_state.function_calling_trajectory = []
+
+        agent._add_prompt_to_trajectory(mock_state, "new prompt")
+
+        # Should add new prompt
+        assert len(mock_state.function_calling_trajectory) == 1
+        assert mock_state.function_calling_trajectory[0]["content"] == "new prompt"
+
+    def test_add_prompt_to_trajectory_message_without_content(
+        self, mock_state: Mock
+    ) -> None:
+        """Test _add_prompt_to_trajectory with message that has no content."""
+        agent = OpenAIAgent(successors=[], predecessors=[], tools={}, state=mock_state)
+        mock_state.function_calling_trajectory = [
+            {"other_field": "value"}
+        ]  # No content field
+
+        agent._add_prompt_to_trajectory(mock_state, "new prompt")
+
+        # Should add new prompt
+        assert len(mock_state.function_calling_trajectory) == 2
+        assert mock_state.function_calling_trajectory[-1]["content"] == "new prompt"
+
+    @patch("arklex.utils.model_provider_config.PROVIDER_MAP")
+    def test_end_conversation_dict_result_with_content_and_choices(
+        self, mock_provider_map: Mock, mock_state: Mock
+    ) -> None:
+        """Test end_conversation when LLM returns dict with content and choices structure."""
+        mock_llm = Mock()
+        mock_llm.invoke.return_value = {
+            "content": "Thank you for using our service!",
+            "choices": [{"message": {"content": "Alternative content"}}],
+        }
+        mock_provider_map.get.return_value = mock_llm
+
+        result = end_conversation().func(mock_state)
+        # The function should return the fallback message when LLM response is invalid
+        assert "I hope I was able to help you today. Goodbye!" in result
+
+    @patch("arklex.utils.model_provider_config.PROVIDER_MAP")
+    def test_end_conversation_dict_result_with_result_and_choices(
+        self, mock_provider_map: Mock, mock_state: Mock
+    ) -> None:
+        """Test end_conversation when LLM returns dict with result and choices structure."""
+        mock_llm = Mock()
+        mock_llm.invoke.return_value = {
+            "result": "Thank you for using our service!",
+            "choices": [{"message": {"content": "Alternative content"}}],
+        }
+        mock_provider_map.get.return_value = mock_llm
+
+        result = end_conversation().func(mock_state)
+        # The function should return the fallback message when LLM response is invalid
+        assert "I hope I was able to help you today. Goodbye!" in result
+
+    @patch("arklex.utils.model_provider_config.PROVIDER_MAP")
+    def test_end_conversation_dict_result_with_choices_only(
+        self, mock_provider_map: Mock, mock_state: Mock
+    ) -> None:
+        """Test end_conversation when LLM returns dict with only choices structure."""
+        mock_llm = Mock()
+        mock_llm.invoke.return_value = {
+            "choices": [{"message": {"content": "Thank you for using our service!"}}]
+        }
+        mock_provider_map.get.return_value = mock_llm
+
+        result = end_conversation().func(mock_state)
+        # The function should return the fallback message when LLM response is invalid
+        assert "I hope I was able to help you today. Goodbye!" in result
+
+    @patch("arklex.utils.model_provider_config.PROVIDER_MAP")
+    def test_end_conversation_string_result_json_with_content_and_choices(
+        self, mock_provider_map: Mock, mock_state: Mock
+    ) -> None:
+        """Test end_conversation when LLM returns JSON string with content and choices."""
+        mock_llm = Mock()
+        mock_llm.invoke.return_value = '{"content": "Thank you!", "choices": [{"message": {"content": "Alternative"}}]}'
+        mock_provider_map.get.return_value = mock_llm
+
+        result = end_conversation().func(mock_state)
+        # The function should return the fallback message when LLM response is invalid
+        assert "I hope I was able to help you today. Goodbye!" in result
+
+    @patch("arklex.utils.model_provider_config.PROVIDER_MAP")
+    def test_end_conversation_string_result_json_with_result_and_choices(
+        self, mock_provider_map: Mock, mock_state: Mock
+    ) -> None:
+        """Test end_conversation when LLM returns JSON string with result and choices."""
+        mock_llm = Mock()
+        mock_llm.invoke.return_value = '{"result": "Thank you!", "choices": [{"message": {"content": "Alternative"}}]}'
+        mock_provider_map.get.return_value = mock_llm
+
+        result = end_conversation().func(mock_state)
+        # The function should return the fallback message when LLM response is invalid
+        assert "I hope I was able to help you today. Goodbye!" in result
+
+    @patch("arklex.utils.model_provider_config.PROVIDER_MAP")
+    def test_end_conversation_string_result_json_with_choices_only(
+        self, mock_provider_map: Mock, mock_state: Mock
+    ) -> None:
+        """Test end_conversation when LLM returns JSON string with only choices."""
+        mock_llm = Mock()
+        mock_llm.invoke.return_value = (
+            '{"choices": [{"message": {"content": "Thank you!"}}]}'
+        )
+        mock_provider_map.get.return_value = mock_llm
+
+        result = end_conversation().func(mock_state)
+        # The function should return the fallback message when LLM response is invalid
+        assert "I hope I was able to help you today. Goodbye!" in result
+
+    def test_execute_tool_flatten_group_items_with_non_list_item(
+        self, mock_state: Mock
+    ) -> None:
+        """Test _execute_tool with group items that are not lists (else branch in flatten_group_items)."""
+        agent = OpenAIAgent(successors=[], predecessors=[], tools={}, state=mock_state)
+        group_slot = {
+            "name": "group7",
+            "type": "group",
+            "repeatable": True,
+            "schema": [{"name": "item", "type": "str", "valueSource": "prompt"}],
+            "valueSource": "prompt",
+        }
+        agent.tool_slots["http_tool_example"] = [group_slot]
+        agent.tool_map["http_tool_example"] = Mock(
+            return_value="flatten non-list result"
+        )
+        # Pass a dict item instead of a list
+        tool_args = {"group7": [{"item": "value1"}, {"item": "value2"}]}
+        result = agent._execute_tool("http_tool_example", mock_state, tool_args)
+        assert result == "flatten non-list result"
