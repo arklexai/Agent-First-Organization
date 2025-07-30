@@ -33,13 +33,16 @@ class CancelOrderOutput(BaseModel):
     description="Cancel order by order id.",
     slots=ShopifyCancelOrderSlots.get_all_slots(),
 )
-def cancel_order(cancel_order_id: str, **kwargs: ShopifyAdminAuth) -> CancelOrderOutput:
+def cancel_order(
+    cancel_order_id: str, auth: ShopifyAdminAuth, **kwargs: object
+) -> CancelOrderOutput:
     """
     Cancel an order in the Shopify store.
 
     Args:
         cancel_order_id (str): The ID of the order to cancel.
-        **kwargs (ShopifyAdminAuth): Additional keyword arguments for authentication.
+        auth (ShopifyAdminAuth): Authentication credentials for the Shopify store.
+        **kwargs: Additional keyword arguments for llm configuration.
 
     Returns:
         CancelOrderOutput: A dictionary containing the cancellation result.
@@ -50,7 +53,7 @@ def cancel_order(cancel_order_id: str, **kwargs: ShopifyAdminAuth) -> CancelOrde
     try:
         log_context.info(f"Starting order cancellation for order: {cancel_order_id}")
         func_name = inspect.currentframe().f_code.co_name
-        auth = authorify_admin(kwargs)
+        auth = authorify_admin(auth)
 
         with shopify.Session.temp(**auth):
             response = shopify.GraphQL().execute(f"""

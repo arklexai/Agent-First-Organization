@@ -3,6 +3,8 @@ from datetime import datetime
 import pytz
 from hubspot import HubSpot
 
+from arklex.env.tools.hubspot.base.entities import HubspotAuth
+from arklex.env.tools.hubspot.utils import authenticate_hubspot
 from arklex.env.tools.tools import register_tool
 from arklex.utils.logging_utils import LogContext
 
@@ -30,13 +32,11 @@ slots = [
     },
 ]
 
-outputs = []
 
-errors = []
-
-
-@register_tool(description, slots, outputs, lambda x: x not in errors)
-def list_availability(timezone: str, duration: int, **kwargs: dict[str, object]) -> str:
+@register_tool(description, slots)
+def list_availability(
+    timezone: str, duration: int, auth: HubspotAuth, **kwargs: dict[str, object]
+) -> str:
     slug = kwargs.get("slug")
     log_context.info(
         f"Getting availability for {slug} in {timezone} for {duration} meeting"
@@ -52,7 +52,7 @@ def list_availability(timezone: str, duration: int, **kwargs: dict[str, object])
         return "error: invalid meeting duration. Please choose 15, 30, or 60 minutes."
 
     try:
-        api_client = HubSpot(access_token=kwargs.get("access_token"))
+        api_client = HubSpot(access_token=authenticate_hubspot(auth))
         res = api_client.api_request(
             {
                 "path": f"/scheduler/v3/meetings/meeting-links/book/availability-page/{slug}",

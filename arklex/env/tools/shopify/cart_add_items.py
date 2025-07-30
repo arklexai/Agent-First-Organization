@@ -35,7 +35,10 @@ class CartAddItemsOutput(BaseModel):
     slots=ShopifyCartAddItemsSlots.get_all_slots(),
 )
 def cart_add_items(
-    cart_id: str, product_variant_ids: list[str], **kwargs: ShopifyStorefrontAuth
+    cart_id: str,
+    product_variant_ids: list[str],
+    auth: ShopifyStorefrontAuth,
+    **kwargs: object,
 ) -> CartAddItemsOutput:
     """
     Add items to a shopping cart.
@@ -43,7 +46,8 @@ def cart_add_items(
     Args:
         cart_id (str): The ID of the shopping cart.
         product_variant_ids (list[str]): List of product variant IDs to add to the cart.
-        **kwargs (ShopifyStorefrontAuth): Additional keyword arguments for authentication.
+        auth (ShopifyStorefrontAuth): Authentication credentials for the Shopify store.
+        **kwargs: Additional keyword arguments for llm configuration.
 
     Returns:
         CartAddItemsOutput: A success message with the cart details if successful.
@@ -55,7 +59,7 @@ def cart_add_items(
             - There's an error in the request process
     """
     func_name = inspect.currentframe().f_code.co_name
-    auth = authorify_storefront(kwargs)
+    auth = authorify_storefront(auth)
 
     variable: dict[str, list[dict[str, str | int]]] = {
         "cartId": cart_id,

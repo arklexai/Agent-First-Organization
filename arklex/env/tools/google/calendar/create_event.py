@@ -72,13 +72,12 @@ slots: list[dict[str, Any]] = [
         "required": True,
     },
 ]
-outputs: list[dict[str, Any]] = []
 
 
 SUCCESS: str = "The event has been created successfully at {start_time}. The meeting invitation has been sent to {email}."
 
 
-@register_tool(description, slots, outputs)
+@register_tool(description, slots)
 def create_event(
     email: str,
     name: str,

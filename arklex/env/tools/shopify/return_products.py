@@ -35,14 +35,15 @@ class ReturnProductsOutput(BaseModel):
     slots=ShopifyReturnProductsSlots.get_all_slots(),
 )
 def return_products(
-    return_order_id: str, **kwargs: ShopifyAdminAuth
+    return_order_id: str, auth: ShopifyAdminAuth, **kwargs: object
 ) -> ReturnProductsOutput:
     """
     Process a return request for a Shopify order.
 
     Args:
         return_order_id (str): The ID of the order to be returned.
-        **kwargs (ReturnProductsParams): Additional keyword arguments for authentication.
+        auth (ShopifyAdminAuth): Authentication credentials for the Shopify store.
+        **kwargs: Additional keyword arguments for llm configuration.
 
     Returns:
         ReturnProductsOutput: A success message with return request details if successful.
@@ -54,7 +55,7 @@ def return_products(
             - The return request submission fails
     """
     func_name = inspect.currentframe().f_code.co_name
-    auth = authorify_admin(kwargs)
+    auth = authorify_admin(auth)
 
     try:
         with shopify.Session.temp(**auth):

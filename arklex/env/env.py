@@ -389,10 +389,18 @@ class Environment:
             worker_output = worker.execute(
                 orch_state, node_specific_data=node_info.data
             )
-            orch_state.response = worker_output.response
             params.taskgraph.node_status[params.taskgraph.curr_node] = (
                 worker_output.status
             )
+            # if id == WorkerItem.MULTIPLE_CHOICE_WORKER:
+            #     node_response = NodeResponse(
+            #         response=worker_output.response,
+            #         choice_list=worker_output.choice_list,
+            #     )
+            # else:
+            #     node_response = NodeResponse(
+            #         response=worker_output.response,
+            #     )
             call_id: str = str(uuid.uuid4())
             params.memory.function_calling_trajectory.append(
                 {

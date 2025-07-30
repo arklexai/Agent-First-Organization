@@ -1,10 +1,13 @@
 from datetime import datetime
+from typing import Any
 
 import pytz
 from hubspot import HubSpot
 
 from arklex.env.tools.tools import register_tool
 from arklex.utils.logging_utils import LogContext
+
+from .base.entities import HubspotAuth
 
 log_context = LogContext(__name__)
 
@@ -41,9 +44,13 @@ outputs = []
 errors = []
 
 
-@register_tool(description, slots, outputs, lambda x: x not in errors)
+@register_tool(description, slots)
 def check_availability(
-    timezone: str, duration: int, start_time: str, **kwargs: dict[str, object]
+    timezone: str,
+    duration: int,
+    start_time: str,
+    auth: HubspotAuth,
+    **kwargs: dict[str, Any],
 ) -> str:
     slug = kwargs.get("slug")
     log_context.info(

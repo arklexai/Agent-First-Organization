@@ -143,8 +143,6 @@ def replace_placeholders(
 @register_tool(
     desc="Make HTTP requests to external APIs and handle responses",
     slots=[],
-    outputs=["response"],
-    isResponse=False,
 )
 def http_tool(
     slots: list[dict[str, Any]] | None = None, **kwargs: dict[str, Any]
