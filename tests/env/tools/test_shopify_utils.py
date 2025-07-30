@@ -5,7 +5,7 @@ from unittest.mock import Mock, patch
 import pytest
 import requests
 
-from arklex.env.tools.shopify.utils import (
+from arklex.env.tools.shopify.utils.utils import (
     SHOPIFY_ADMIN_AUTH_ERROR_MSG,
     SHOPIFY_STOREFRONT_AUTH_ERROR_MSG,
     authorify_admin,

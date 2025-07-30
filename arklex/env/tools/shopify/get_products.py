@@ -9,16 +9,15 @@ This file contains the code for retrieving product information from Shopify.
 
 import inspect
 import json
-from typing import TypedDict
 
 import shopify
+from pydantic import BaseModel
 
 from arklex.env.tools.shopify._exception_prompt import ShopifyExceptionPrompt
-from arklex.env.tools.shopify.utils import authorify_admin
-from arklex.env.tools.shopify.utils_nav import PAGEINFO_OUTPUTS, cursorify
-
-# ADMIN
-from arklex.env.tools.shopify.utils_slots import ShopifyGetProductsSlots, ShopifyOutputs
+from arklex.env.tools.shopify.base.entities import ShopifyAdminAuth
+from arklex.env.tools.shopify.legacy.utils_nav import cursorify
+from arklex.env.tools.shopify.utils.utils import authorify_admin
+from arklex.env.tools.shopify.utils.utils_slots import ShopifyGetProductsSlots
 from arklex.env.tools.tools import register_tool
 from arklex.utils.exceptions import ToolExecutionError
 from arklex.utils.logging_utils import LogContext
@@ -26,35 +25,26 @@ from arklex.utils.logging_utils import LogContext
 log_context = LogContext(__name__)
 
 
-class GetProductsParams(TypedDict, total=False):
-    """Parameters for the get products tool."""
-
-    shop_url: str
-    api_version: str
-    admin_token: str
-    limit: str
-    navigate: str
-    pageInfo: str
+class GetProductsOutput(BaseModel):
+    message_flow: str
 
 
-description = (
-    "Get the inventory information and description details of multiple products."
+@register_tool(
+    description="Get the inventory information and description details of multiple products.",
+    slots=ShopifyGetProductsSlots.get_all_slots(),
 )
-slots = ShopifyGetProductsSlots.get_all_slots()
-outputs = [ShopifyOutputs.PRODUCTS_DETAILS, *PAGEINFO_OUTPUTS]
-
-
-@register_tool(description, slots, outputs)
-def get_products(product_ids: list[str], **kwargs: GetProductsParams) -> str:
+def get_products(
+    product_ids: list[str], **kwargs: ShopifyAdminAuth
+) -> GetProductsOutput:
     """
     Retrieve detailed information about multiple products from the Shopify store.
 
     Args:
         product_ids (List[str]): List of product IDs to retrieve information for.
-        **kwargs (GetProductsParams): Additional keyword arguments for pagination and authentication.
+        **kwargs (ShopifyAdminAuth): Additional keyword arguments for pagination and authentication.
 
     Returns:
-        str: A formatted string containing detailed information about each product, including:
+        GetProductsOutput: A formatted string containing detailed information about each product, including:
             - Product ID
             - Title
             - Description
@@ -67,8 +57,6 @@ def get_products(product_ids: list[str], **kwargs: GetProductsParams) -> str:
     """
     func_name = inspect.currentframe().f_code.co_name
     nav = cursorify(kwargs)
-    if not nav[1]:
-        return nav[0]
     auth = authorify_admin(kwargs)
 
     try:
@@ -128,7 +116,9 @@ def get_products(product_ids: list[str], **kwargs: GetProductsParams) -> str:
                 for variant in product.get("variants", {}).get("nodes", []):
                     response_text += f"Variant name: {variant.get('displayName', 'None')}, Variant ID: {variant.get('id', 'None')}, Price: {variant.get('price', 'None')}, Inventory Quantity: {variant.get('inventoryQuantity', 'None')}\n"
                 response_text += "\n"
-            return response_text
+            return GetProductsOutput(
+                message_flow=response_text,
+            )
     except Exception as e:
         raise ToolExecutionError(
             func_name,

@@ -8,14 +8,15 @@ This file contains the code for retrieving cart information from Shopify.
 """
 
 import inspect
-from typing import TypedDict
 
 import requests
+from pydantic import BaseModel
 
 from arklex.env.tools.shopify._exception_prompt import ShopifyExceptionPrompt
-from arklex.env.tools.shopify.utils import authorify_storefront
-from arklex.env.tools.shopify.utils_nav import PAGEINFO_OUTPUTS, cursorify
-from arklex.env.tools.shopify.utils_slots import ShopifyGetCartSlots, ShopifyOutputs
+from arklex.env.tools.shopify.base.entities import ShopifyStorefrontAuth
+from arklex.env.tools.shopify.legacy.utils_nav import cursorify
+from arklex.env.tools.shopify.utils.utils import authorify_storefront
+from arklex.env.tools.shopify.utils.utils_slots import ShopifyGetCartSlots
 from arklex.env.tools.tools import register_tool
 from arklex.utils.exceptions import ToolExecutionError
 from arklex.utils.logging_utils import LogContext
@@ -23,33 +24,23 @@ from arklex.utils.logging_utils import LogContext
 log_context = LogContext(__name__)
 
 
-class GetCartParams(TypedDict, total=False):
-    """Parameters for the get cart tool."""
-
-    shop_url: str
-    api_version: str
-    storefront_token: str
-    limit: str
-    navigate: str
-    pageInfo: str
+class GetCartOutput(BaseModel):
+    message_flow: str
 
 
-description = "Get cart information"
-slots = ShopifyGetCartSlots.get_all_slots()
-outputs = [ShopifyOutputs.GET_CART_DETAILS, *PAGEINFO_OUTPUTS]
-
-
-@register_tool(description, slots, outputs)
-def get_cart(cart_id: str, **kwargs: GetCartParams) -> str:
+@register_tool(
+    description="Get cart information", slots=ShopifyGetCartSlots.get_all_slots()
+)
+def get_cart(cart_id: str, **kwargs: ShopifyStorefrontAuth) -> GetCartOutput:
     """
     Retrieve detailed information about a shopping cart.
 
     Args:
         cart_id (str): The ID of the cart to retrieve.
-        **kwargs (GetCartParams): Additional keyword arguments for pagination and authentication.
+        **kwargs (ShopifyStorefrontAuth): Additional keyword arguments for pagination and authentication.
 
     Returns:
-        str: A formatted string containing cart information, including:
+        GetCartOutput: A formatted string containing cart information, including:
             - Checkout URL
             - Product IDs and titles for each line item
 
@@ -60,8 +51,6 @@ def get_cart(cart_id: str, **kwargs: GetCartParams) -> str:
     """
     func_name = inspect.currentframe().f_code.co_name
     nav = cursorify(kwargs)
-    if not nav[1]:
-        return nav[0]
     auth = authorify_storefront(kwargs)
 
     variable: dict[str, str] = {
@@ -153,7 +142,9 @@ def get_cart(cart_id: str, **kwargs: GetCartParams) -> str:
                 extra_message=ShopifyExceptionPrompt.CART_NOT_FOUND_ERROR_PROMPT,
             )
 
-        return response_text
+        return GetCartOutput(
+            message_flow=response_text,
+        )
     else:
         raise ToolExecutionError(
             func_name,

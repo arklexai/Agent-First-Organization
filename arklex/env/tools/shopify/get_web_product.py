@@ -16,18 +16,16 @@ This file contains the code for retrieving product information using the Shopify
 
 import inspect
 import json
-from typing import TypedDict
 
 import shopify
+from pydantic import BaseModel
 
 from arklex.env.tools.shopify._exception_prompt import ShopifyExceptionPrompt
-from arklex.env.tools.shopify.utils import authorify_admin
-from arklex.env.tools.shopify.utils_nav import PAGEINFO_OUTPUTS, cursorify
-
-# ADMIN
-from arklex.env.tools.shopify.utils_slots import (
+from arklex.env.tools.shopify.base.entities import ShopifyAdminAuth
+from arklex.env.tools.shopify.legacy.utils_nav import cursorify
+from arklex.env.tools.shopify.utils.utils import authorify_admin
+from arklex.env.tools.shopify.utils.utils_slots import (
     ShopifyGetWebProductSlots,
-    ShopifyOutputs,
 )
 from arklex.env.tools.tools import register_tool
 from arklex.utils.exceptions import ToolExecutionError
@@ -36,34 +34,27 @@ from arklex.utils.logging_utils import LogContext
 log_context = LogContext(__name__)
 
 
-class GetWebProductParams(TypedDict, total=False):
-    """Parameters for the get web product tool."""
-
-    shop_url: str
-    api_version: str
-    admin_token: str
-    limit: str
-    navigate: str
-    pageInfo: str
+class GetWebProductOutput(BaseModel):
+    message_flow: str
 
 
-description = "Get the inventory information and description details of a product."
-slots = ShopifyGetWebProductSlots.get_all_slots()
-outputs = [ShopifyOutputs.PRODUCTS_DETAILS, *PAGEINFO_OUTPUTS]
-
-
-@register_tool(description, slots, outputs)
-def get_web_product(web_product_id: str, **kwargs: GetWebProductParams) -> str:
+@register_tool(
+    description="Get the inventory information and description details of a product.",
+    slots=ShopifyGetWebProductSlots.get_all_slots(),
+)
+def get_web_product(
+    web_product_id: str, **kwargs: ShopifyAdminAuth
+) -> GetWebProductOutput:
     """
     Retrieve detailed information about a specific product using the Shopify Admin API.
 
     Args:
         web_product_id (str): The ID of the product to retrieve information for.
             Can be a full product ID or just the numeric portion.
-        **kwargs (GetWebProductParams): Additional keyword arguments for pagination and authentication.
+        **kwargs (ShopifyAdminAuth): Additional keyword arguments for pagination and authentication.
 
     Returns:
-        str: A formatted string containing detailed product information, including:
+        GetWebProductOutput: A formatted string containing detailed product information, including:
             - Product ID and title
             - Description and total inventory
             - Online store URL
@@ -83,8 +74,6 @@ def get_web_product(web_product_id: str, **kwargs: GetWebProductParams) -> str:
     """
     func_name = inspect.currentframe().f_code.co_name
     nav = cursorify(kwargs)
-    if not nav[1]:
-        return nav[0]
     auth = authorify_admin(kwargs)
 
     try:
@@ -149,7 +138,9 @@ def get_web_product(web_product_id: str, **kwargs: GetWebProductParams) -> str:
                 response_text += f"Variant name: {variant.get('displayName', 'None')}, Variant ID: {variant.get('id', 'None')}, Price: {variant.get('price', 'None')}, Inventory Quantity: {variant.get('inventoryQuantity', 'None')}\n"
             response_text += "\n"
 
-            return response_text
+            return GetWebProductOutput(
+                message_flow=response_text,
+            )
     except Exception as e:
         raise ToolExecutionError(
             func_name,

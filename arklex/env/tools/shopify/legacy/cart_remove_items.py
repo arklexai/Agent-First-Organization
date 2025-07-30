@@ -16,9 +16,9 @@ This file contains the code for removing items from a shopping cart.
 
 from typing import Any
 
-from arklex.env.tools.shopify.utils import make_query
-from arklex.env.tools.shopify.utils_cart import cart_headers, cart_url
-from arklex.env.tools.shopify.utils_slots import ShopifySlots
+from arklex.env.tools.shopify.legacy.utils_cart import cart_headers, cart_url
+from arklex.env.tools.shopify.utils.utils import make_query
+from arklex.env.tools.shopify.utils.utils_slots import ShopifySlots
 from arklex.env.tools.tools import register_tool
 
 description = "Remove items from a shopping cart by their line IDs."
