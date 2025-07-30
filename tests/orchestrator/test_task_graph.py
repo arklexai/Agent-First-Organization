@@ -12,8 +12,11 @@ from unittest.mock import Mock, patch
 import networkx as nx
 import pytest
 
-from arklex.orchestrator.entities.orch_state_entities import LLMConfig, StatusEnum
-from arklex.orchestrator.entities.orchestrator_params_entities import (
+from arklex.orchestrator.entities.orchestrator_state_entities import (
+    LLMConfig,
+    StatusEnum,
+)
+from arklex.orchestrator.entities.orchestrator_state_entities import (
     OrchestratorParams as Params,
 )
 from arklex.orchestrator.entities.taskgraph_entities import NodeInfo, PathNode
@@ -2159,7 +2162,7 @@ class TestTaskGraphCoverage:
         sample_llm_config: LLMConfig,
         always_valid_mock_model: Mock,
     ) -> None:
-        from arklex.orchestrator.entities.orchestrator_params_entities import (
+        from arklex.orchestrator.entities.orchestrator_state_entities import (
             OrchestratorParams as Params,
         )
         from arklex.orchestrator.task_graph.task_graph import TaskGraph
@@ -2182,7 +2185,7 @@ class TestTaskGraphCoverage:
         sample_llm_config: LLMConfig,
         always_valid_mock_model: Mock,
     ) -> None:
-        from arklex.orchestrator.entities.orchestrator_params_entities import (
+        from arklex.orchestrator.entities.orchestrator_state_entities import (
             OrchestratorParams as Params,
         )
         from arklex.orchestrator.task_graph.task_graph import TaskGraph
@@ -2211,7 +2214,7 @@ class TestTaskGraphCoverage:
         always_valid_mock_model: Mock,
         sample_params: Params,
     ) -> None:
-        from arklex.orchestrator.entities.orchestrator_params_entities import (
+        from arklex.orchestrator.entities.orchestrator_state_entities import (
             OrchestratorParams as Params,
         )
         from arklex.orchestrator.task_graph.task_graph import TaskGraph
@@ -2234,7 +2237,7 @@ class TestTaskGraphCoverage:
         always_valid_mock_model: Mock,
         sample_params: Params,
     ) -> None:
-        from arklex.orchestrator.entities.orchestrator_params_entities import (
+        from arklex.orchestrator.entities.orchestrator_state_entities import (
             OrchestratorParams as Params,
         )
         from arklex.orchestrator.task_graph.task_graph import TaskGraph
@@ -2258,7 +2261,7 @@ class TestTaskGraphCoverage:
         always_valid_mock_model: Mock,
         sample_params: Params,
     ) -> None:
-        from arklex.orchestrator.entities.orchestrator_params_entities import (
+        from arklex.orchestrator.entities.orchestrator_state_entities import (
             OrchestratorParams as Params,
         )
         from arklex.orchestrator.entities.taskgraph_entities import NodeInfo
@@ -2292,7 +2295,7 @@ class TestTaskGraphCoverage:
     ) -> None:
         import numpy as np
 
-        from arklex.orchestrator.entities.orchestrator_params_entities import (
+        from arklex.orchestrator.entities.orchestrator_state_entities import (
             OrchestratorParams as Params,
         )
         from arklex.orchestrator.task_graph.task_graph import TaskGraph

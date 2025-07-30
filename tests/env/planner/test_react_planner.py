@@ -19,7 +19,7 @@ from arklex.env.planner.react_planner import (
     ReactPlanner,
     aimessage_to_dict,
 )
-from arklex.orchestrator.entities.orch_state_entities import (
+from arklex.orchestrator.entities.orchestrator_state_entities import (
     ConvoMessage,
     MessageState,
     OrchestratorMessage,

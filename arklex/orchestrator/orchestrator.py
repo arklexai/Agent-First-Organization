@@ -69,18 +69,17 @@ from arklex.env.env import Environment
 from arklex.env.nested_graph.nested_graph import NESTED_GRAPH_ID, NestedGraph
 from arklex.env.tools.utils import ToolGenerator
 from arklex.memory.entities.memory_entities import ResourceRecord
-from arklex.orchestrator.entities.orch_state_entities import (
+from arklex.orchestrator.entities.orchestrator_param_entities import OrchestratorParams
+from arklex.orchestrator.entities.orchestrator_state_entities import (
     BotConfig,
     ConvoMessage,
     LLMConfig,
-    MessageState,
     OrchestratorResp,
+    OrchestratorState,
     StatusEnum,
 )
-from arklex.orchestrator.entities.orchestrator_params_entities import OrchestratorParams
 from arklex.orchestrator.entities.taskgraph_entities import (
     NodeInfo,
-    NodeTypeEnum,
     PathNode,
 )
 from arklex.orchestrator.post_process import post_process_response
@@ -197,7 +196,7 @@ class AgentOrg:
 
     def init_params(
         self, inputs: dict[str, Any]
-    ) -> tuple[str, str, OrchestratorParams, MessageState]:
+    ) -> tuple[str, str, OrchestratorParams, OrchestratorState]:
         """Initialize parameters for a new conversation turn.
 
         This function processes the input text, chat history, and parameters to initialize
@@ -252,11 +251,11 @@ class AgentOrg:
             bot_type=self.product_kwargs.get("bot_type", "presalebot"),
             llm_config=self.llm_config,
         )
-        message_state: MessageState = MessageState(
+        orch_state: OrchestratorState = OrchestratorState(
             sys_instruct=sys_instruct,
             bot_config=bot_config,
         )
-        return text, chat_history_str, params, message_state
+        return text, chat_history_str, params, orch_state
 
     def check_skip_node(self, node_info: NodeInfo, chat_history_str: str) -> bool:
         """Check if a node can be skipped in the task graph.
@@ -272,10 +271,10 @@ class AgentOrg:
         Returns:
             bool: True if the node can be skipped, False otherwise.
         """
-        if not node_info.can_skipped:
+        if not node_info.attribute.get("can_skipped", False):
             return False
 
-        task = node_info.attributes.get("task", "")
+        task = node_info.attribute.get("task", "")
         if not task:
             return False
 
@@ -343,49 +342,16 @@ Answer with only 'yes' or 'no'"""
             params.taskgraph.node_limit[curr_node] -= 1
         return params
 
-    def handl_direct_node(
-        self, node_info: NodeInfo, params: OrchestratorParams
-    ) -> tuple[bool, OrchestratorResp | None, OrchestratorParams]:
-        """Handle a direct response node in the task graph.
-
-        This function processes nodes that are configured to return direct responses,
-        such as predefined messages or multiple choice options. It updates the task graph
-        path and returns the appropriate response.
-
-        Args:
-            node_info (NodeInfo): Information about the current node.
-            params (OrchestratorParams): Current parameters and state of the conversation.
-
-        Returns:
-            Tuple[bool, Optional[OrchestratorResp], OrchestratorParams]: A tuple containing a boolean
-                indicating if a direct response was handled, the response if applicable,
-                and updated parameters.
-        """
-        node_attribute: dict[str, Any] = node_info.attributes
-        if node_attribute.get("direct") and node_attribute.get("value", "").strip():
-            params = self.post_process_node(node_info, params)
-            return_response: OrchestratorResp = OrchestratorResp(
-                answer=node_attribute["value"], parameters=params.model_dump()
-            )
-            # Multiple choice list
-            if (
-                node_info.type == NodeTypeEnum.MULTIPLE_CHOICE.value
-                and node_attribute.get("choice_list", [])
-            ):
-                return_response.choice_list = node_attribute["choice_list"]
-            return True, return_response, params
-        return False, None, params
-
     def perform_node(
         self,
-        message_state: MessageState,
+        orch_state: OrchestratorState,
         node_info: NodeInfo,
         params: OrchestratorParams,
         text: str,
         chat_history_str: str,
         stream_type: StreamType | None,
         message_queue: janus.SyncQueue | None,
-    ) -> tuple[NodeInfo, MessageState, OrchestratorParams]:
+    ) -> tuple[NodeInfo, OrchestratorState, OrchestratorParams]:
         """Execute a node in the task graph.
 
         This function processes a node in the task graph, handling nested graph nodes,
@@ -418,9 +384,9 @@ Answer with only 'yes' or 'no'"""
         # Create initial resource record with common info and output from trajectory
         resource_record: ResourceRecord = ResourceRecord(
             info={
-                "id": node_info.resource_id,
-                "name": node_info.resource_name,
-                "attribute": node_info.attributes,
+                "id": node_info.resource["id"],
+                "name": node_info.resource["name"],
+                "attribute": node_info.attribute,
                 "node_id": params.taskgraph.curr_node,
             },
             intent=params.taskgraph.intent,
@@ -430,19 +396,17 @@ Answer with only 'yes' or 'no'"""
         params.memory.trajectory[-1].append(resource_record)
 
         # Update message state
-        message_state.user_message = user_message
-        message_state.function_calling_trajectory = (
+        orch_state.user_message = user_message
+        orch_state.function_calling_trajectory = (
             params.memory.function_calling_trajectory
         )
-        message_state.trajectory = params.memory.trajectory
-        message_state.metadata = params.metadata
-        message_state.is_stream = stream_type is not None
-        message_state.stream_type = stream_type
-        message_state.message_queue = message_queue
-
-        response_state: MessageState
+        orch_state.trajectory = params.memory.trajectory
+        orch_state.metadata = params.metadata
+        orch_state.stream_type = stream_type
+        orch_state.message_queue = message_queue
+        response_state: OrchestratorState
         response_state, params = self.env.step(
-            node_info.resource_id, message_state, params, node_info
+            node_info.resource_id, orch_state, params, node_info
         )
         params.memory.trajectory = response_state.trajectory
         return node_info, response_state, params
@@ -463,7 +427,7 @@ Answer with only 'yes' or 'no'"""
         Returns:
             Tuple[NodeInfo, OrchestratorParams]: A tuple containing updated node information and parameters.
         """
-        if node_info.resource_id != NESTED_GRAPH_ID:
+        if node_info.resource.get("id") != NESTED_GRAPH_ID:
             return node_info, params
         # if current node is a nested graph resource, change current node to the start of the nested graph
         nested_graph: NestedGraph = NestedGraph(node_info=node_info)
@@ -510,8 +474,8 @@ Answer with only 'yes' or 'no'"""
         text: str
         chat_history_str: str
         params: OrchestratorParams
-        message_state: MessageState
-        text, chat_history_str, params, message_state = self.init_params(inputs)
+        orch_state: OrchestratorState
+        text, chat_history_str, params, orch_state = self.init_params(inputs)
         # TaskGraph Chain
         taskgraph_inputs: dict[str, Any] = {
             "text": text,
@@ -520,38 +484,7 @@ Answer with only 'yes' or 'no'"""
             "allow_global_intent_switch": True,
         }
 
-        # stm = ShortTermMemory(
-        #     params.memory.trajectory, chat_history_str, llm_config=self.llm_config
-        # )
-        # asyncio.run(stm.personalize())
-        message_state.trajectory = params.memory.trajectory
-
-        # Detect intent
-        # found_intent = self.intent_detector.predict_intent(
-        #     text=text,
-        #     intents=self.intents,
-        #     chat_history_str=chat_history_str,
-        #     model_config=self.llm_config,
-        # )
-        # log_context.info(f"Found Intent: {found_intent}")
-
-        # found_records, relevant_records = stm.retrieve_records(text)
-
-        # log_context.info(f"Found Records: {found_records}")
-        # if found_records:
-        #     log_context.info(
-        #         f"Relevant Records: {[r.personalized_intent for r in relevant_records]}",
-        #         extra={"context": {"records": relevant_records}},
-        #     )
-
-        # found_intent, relevant_intent = stm.retrieve_intent(text)
-
-        # log_context.info(f"Found Intent: {found_intent}")
-        # if found_intent:
-        #     log_context.info(f"Relevant Intent: {relevant_intent}")
-
-        # if found_records:
-        #     message_state.relevant_records = relevant_records
+        orch_state.trajectory = params.memory.trajectory
         taskgraph_chain = RunnableLambda(self.task_graph.get_node) | RunnableLambda(
             self.task_graph.postprocess_node
         )
@@ -563,23 +496,6 @@ Answer with only 'yes' or 'no'"""
         max_n_node_performed = 5
         while n_node_performed < max_n_node_performed:
             taskgraph_start_time = time.time()
-            # if found_intent:
-            #     taskgraph_inputs["allow_global_intent_switch"] = False
-            #     node_info = NodeInfo(
-            #         node_id=None,
-            #         type="",
-            #         resource_id="planner",
-            #         resource_name="planner",
-            #         can_skipped=False,
-            #         is_leaf=len(
-            #             list(
-            #                 self.task_graph.graph.successors(params.taskgraph.curr_node)
-            #             )
-            #         )
-            #         == 0,
-            #         attributes={"value": "", "direct": False},
-            #     )
-            # else:
             node_info, params = taskgraph_chain.invoke(taskgraph_inputs)
             taskgraph_inputs["allow_global_intent_switch"] = False
             params.metadata.timing.taskgraph = time.time() - taskgraph_start_time
@@ -590,16 +506,9 @@ Answer with only 'yes' or 'no'"""
                 continue
             log_context.info(f"The current node info is : {node_info}")
 
-            # handle direct node
-            is_direct_node, direct_response, params = self.handl_direct_node(
-                node_info, params
-            )
-            if is_direct_node:
-                return direct_response
             # perform node
-
-            node_info, message_state, params = self.perform_node(
-                message_state,
+            node_info, orch_state, params = self.perform_node(
+                orch_state,
                 node_info,
                 params,
                 text,
@@ -626,22 +535,22 @@ Answer with only 'yes' or 'no'"""
             if node_info.is_leaf is True:
                 break
 
-        if not message_state.response:
+        if not orch_state.response:
             log_context.info("No response, do context generation")
             if not stream_type:
-                message_state = ToolGenerator.context_generate(message_state)
+                orch_state = ToolGenerator.context_generate(orch_state)
             else:
-                message_state = ToolGenerator.stream_context_generate(message_state)
+                orch_state = ToolGenerator.stream_context_generate(orch_state)
 
-        message_state = post_process_response(
-            message_state,
+        orch_state = post_process_response(
+            orch_state,
             params,
             self.hitl_worker_available,
             self.hitl_proposal_enabled,
         )
 
         return OrchestratorResp(
-            answer=message_state.response,
+            answer=orch_state.response,
             parameters=params.model_dump(),
             human_in_the_loop=params.metadata.hitl,
         )
@@ -665,5 +574,7 @@ Answer with only 'yes' or 'no'"""
         Returns:
             Dict[str, Any]: A dictionary containing the response, parameters, and metadata.
         """
+        if not stream_type:
+            stream_type = StreamType.NON_STREAM
         orchestrator_response = self._get_response(inputs, stream_type, message_queue)
         return orchestrator_response.model_dump()

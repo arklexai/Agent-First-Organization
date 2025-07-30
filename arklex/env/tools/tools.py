@@ -12,7 +12,10 @@ import uuid
 from collections.abc import Callable
 from typing import Any, TypedDict
 
-from arklex.orchestrator.entities.orch_state_entities import MessageState, StatusEnum
+from arklex.orchestrator.entities.orchestrator_state_entities import (
+    OrchestratorState,
+    StatusEnum,
+)
 from arklex.orchestrator.NLU.core.slot import SlotFiller
 from arklex.orchestrator.NLU.entities.slot_entities import Slot
 from arklex.utils.exceptions import AuthenticationError, ToolExecutionError
@@ -201,7 +204,7 @@ class Tool:
                     slot.verified = True
         return populated_slots
 
-    def _init_slots(self, state: MessageState) -> None:
+    def _init_slots(self, state: OrchestratorState) -> None:
         """Initialize slots with default values from the message state.
 
         This method processes default slots from the message state and updates
@@ -850,7 +853,9 @@ class Tool:
                         missing.append(slot.prompt)
         return missing
 
-    def execute(self, state: MessageState, **fixed_args: FixedArgs) -> MessageState:
+    def execute(
+        self, state: OrchestratorState, **fixed_args: FixedArgs
+    ) -> OrchestratorState:
         """Execute the tool with the current state and fixed arguments.
 
         This method is a wrapper around _execute that handles the execution flow
@@ -993,7 +998,9 @@ class Tool:
         """
         return f"{self.__class__.__name__}"
 
-    def _execute(self, state: MessageState, **fixed_args: FixedArgs) -> MessageState:
+    def _execute(
+        self, state: OrchestratorState, **fixed_args: FixedArgs
+    ) -> OrchestratorState:
         """Execute the tool with the current state and fixed arguments.
 
         This method handles slot filling, parameter validation, and tool execution.

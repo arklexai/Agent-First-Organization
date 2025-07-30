@@ -1,17 +1,7 @@
-"""Orchestrator parameters and state management.
-
-This module defines the core parameters and state management entities used by the orchestrator
-for managing conversation flow, task execution, and system state.
-
-Key Components:
-- OrchestratorParams: Represents the orchestrator's runtime parameters including metadata,
-  task graph state, and memory management for conversation processing.
-"""
-
 from pydantic import BaseModel, Field
 
 from arklex.memory.entities.memory_entities import Memory
-from arklex.orchestrator.entities.orch_state_entities import Metadata
+from arklex.orchestrator.entities.orchestrator_state_entities import Metadata
 from arklex.orchestrator.entities.taskgraph_entities import Taskgraph
 
 

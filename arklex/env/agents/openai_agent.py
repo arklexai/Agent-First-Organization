@@ -10,7 +10,10 @@ from arklex.env.agents.agent import BaseAgent, register_agent
 from arklex.env.prompts import load_prompts
 from arklex.env.tools.tools import TYPE_CONVERTERS
 from arklex.env.tools.utils import trace
-from arklex.orchestrator.entities.orch_state_entities import MessageState, StatusEnum
+from arklex.orchestrator.entities.orchestrator_state_entities import (
+    OrchestratorState,
+    StatusEnum,
+)
 from arklex.types.stream_types import EventType, StreamType
 from arklex.utils.logging_utils import LogContext
 from arklex.utils.provider_utils import validate_and_get_model_class
@@ -23,7 +26,11 @@ class OpenAIAgent(BaseAgent):
     description: str = "General-purpose Arklex agent for chat or voice."
 
     def __init__(
-        self, successors: list, predecessors: list, tools: dict, state: MessageState
+        self,
+        successors: list,
+        predecessors: list,
+        tools: dict,
+        state: OrchestratorState,
     ) -> None:
         super().__init__()
         self.action_graph: StateGraph = self._create_action_graph()
@@ -39,19 +46,19 @@ class OpenAIAgent(BaseAgent):
 
         log_context.info(f"OpenAIAgent initialized with {len(self.tool_defs)} tools.")
 
-    def generate(self, state: MessageState) -> MessageState:
+    def generate(self, state: OrchestratorState) -> OrchestratorState:
         """Generate response without streaming."""
         return self._generate_response(state, stream=False)
 
-    def text_stream_generate(self, state: MessageState) -> MessageState:
+    def text_stream_generate(self, state: OrchestratorState) -> OrchestratorState:
         """Generate response with text streaming capability."""
         return self._generate_response(state, stream=True, is_speech=False)
 
-    def speech_stream_generate(self, state: MessageState) -> MessageState:
+    def speech_stream_generate(self, state: OrchestratorState) -> OrchestratorState:
         """Generate response with speech streaming capability."""
         return self._generate_response(state, stream=True, is_speech=True)
 
-    def _prepare_prompt(self, state: MessageState, is_speech: bool = False) -> str:
+    def _prepare_prompt(self, state: OrchestratorState, is_speech: bool = False) -> str:
         """Prepare the input prompt for generation."""
         if self.prompt:
             return self.prompt
@@ -82,7 +89,9 @@ class OpenAIAgent(BaseAgent):
         )
         return input_prompt.text
 
-    def _add_prompt_to_trajectory(self, state: MessageState, input_prompt: str) -> None:
+    def _add_prompt_to_trajectory(
+        self, state: OrchestratorState, input_prompt: str
+    ) -> None:
         """Add the input prompt to the function calling trajectory if not already present."""
         if not any(
             message.get("content") == input_prompt
@@ -93,7 +102,9 @@ class OpenAIAgent(BaseAgent):
                 SystemMessage(content=input_prompt).model_dump()
             )
 
-    def _process_tool_calls(self, state: MessageState, ai_message: AIMessage) -> None:
+    def _process_tool_calls(
+        self, state: OrchestratorState, ai_message: AIMessage
+    ) -> None:
         """Process tool calls and update the function calling trajectory."""
         if not ai_message.tool_calls:
             return
@@ -139,7 +150,9 @@ class OpenAIAgent(BaseAgent):
             else:
                 log_context.warning(f"Tool {tool_name} not found in tool map.")
 
-    def _stream_response(self, state: MessageState, final_chain: BaseChatModel) -> str:
+    def _stream_response(
+        self, state: OrchestratorState, final_chain: BaseChatModel
+    ) -> str:
         """Stream the response and put chunks in the message queue."""
         answer = ""
         for chunk in final_chain.stream(state.function_calling_trajectory):
@@ -151,8 +164,8 @@ class OpenAIAgent(BaseAgent):
         return answer
 
     def _generate_response(
-        self, state: MessageState, stream: bool = False, is_speech: bool = False
-    ) -> MessageState:
+        self, state: OrchestratorState, stream: bool = False, is_speech: bool = False
+    ) -> OrchestratorState:
         """Unified response generation method with optional streaming."""
         generation_type = (
             "speech streaming"
@@ -200,7 +213,7 @@ class OpenAIAgent(BaseAgent):
 
         return state
 
-    def choose_generator(self, state: MessageState) -> str:
+    def choose_generator(self, state: OrchestratorState) -> str:
         """Choose the appropriate generator based on stream type and language."""
         if state.bot_config.language == "CN" and state.stream_type == StreamType.SPEECH:
             return "text_stream_generate"
@@ -214,7 +227,7 @@ class OpenAIAgent(BaseAgent):
         return "generate"
 
     def _create_action_graph(self) -> StateGraph:
-        workflow = StateGraph(MessageState)
+        workflow = StateGraph(OrchestratorState)
         workflow.add_node("generate", self.generate)
         workflow.add_node("text_stream_generate", self.text_stream_generate)
         workflow.add_node("speech_stream_generate", self.speech_stream_generate)
@@ -224,7 +237,7 @@ class OpenAIAgent(BaseAgent):
 
         return workflow
 
-    def _execute(self, msg_state: MessageState, **kwargs: Any) -> dict[str, Any]:  # noqa: ANN401
+    def _execute(self, msg_state: OrchestratorState, **kwargs: Any) -> dict[str, Any]:  # noqa: ANN401
         model_class = validate_and_get_model_class(msg_state.bot_config.llm_config)
 
         self.llm = model_class(model=msg_state.bot_config.llm_config.model_type_or_path)
@@ -269,7 +282,7 @@ class OpenAIAgent(BaseAgent):
         log_context.info(f"Tool Definitions: {self.tool_defs}")
 
     def _execute_tool(
-        self, tool_name: str, state: MessageState, tool_args: dict[str, Any]
+        self, tool_name: str, state: OrchestratorState, tool_args: dict[str, Any]
     ) -> Any:  # noqa: ANN401
         """Execute a tool with unified interface.
 

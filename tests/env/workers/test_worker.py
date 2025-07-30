@@ -14,7 +14,10 @@ from arklex.env.workers.base.base_worker import (
     register_worker,
 )
 from arklex.memory.entities.memory_entities import ResourceRecord
-from arklex.orchestrator.entities.orch_state_entities import MessageState, StatusEnum
+from arklex.orchestrator.entities.orchestrator_state_entities import (
+    MessageState,
+    StatusEnum,
+)
 
 
 class TestRegisterWorkerDecorator:

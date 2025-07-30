@@ -6,8 +6,11 @@ from pytest import LogCaptureFixture
 
 from arklex.env.env import DefaultResourceInitializer, Environment
 from arklex.env.planner.react_planner import ReactPlanner
-from arklex.orchestrator.entities.orch_state_entities import MessageState, StatusEnum
-from arklex.orchestrator.entities.orchestrator_params_entities import OrchestratorParams
+from arklex.orchestrator.entities.orchestrator_param_entities import OrchestratorParams
+from arklex.orchestrator.entities.orchestrator_state_entities import (
+    OrchestratorState,
+    StatusEnum,
+)
 from arklex.orchestrator.entities.taskgraph_entities import NodeInfo
 from arklex.orchestrator.NLU.core.slot import SlotFiller
 from arklex.orchestrator.NLU.entities.slot_entities import Slot
@@ -15,8 +18,8 @@ from arklex.orchestrator.NLU.services.model_service import DummyModelService
 
 
 @pytest.fixture
-def fake_tool() -> Callable[[MessageState | None], MagicMock]:
-    def _make_fake_tool(execute_return: MessageState | None = None) -> MagicMock:
+def fake_tool() -> Callable[[OrchestratorState | None], MagicMock]:
+    def _make_fake_tool(execute_return: OrchestratorState | None = None) -> MagicMock:
         tool = MagicMock()
         tool.init_slotfiller = MagicMock()
         tool.load_slots = MagicMock()
@@ -27,8 +30,8 @@ def fake_tool() -> Callable[[MessageState | None], MagicMock]:
 
 
 @pytest.fixture
-def fake_worker() -> Callable[[MessageState | None], Mock]:
-    def _make_fake_worker(execute_return: MessageState | None = None) -> Mock:
+def fake_worker() -> Callable[[OrchestratorState | None], Mock]:
+    def _make_fake_worker(execute_return: OrchestratorState | None = None) -> Mock:
         worker = Mock()
         worker.execute = Mock(return_value=execute_return)
         worker.init_slotfilling = Mock()
@@ -91,11 +94,11 @@ def test_default_resource_initializer_init_workers_success_and_error() -> None:
 
 
 def test_environment_step_tool_executes_and_updates_params(
-    fake_tool: Callable[[MessageState | None], MagicMock],
+    fake_tool: Callable[[OrchestratorState | None], MagicMock],
 ) -> None:
     # Setup a fake tool
     tool = fake_tool(
-        MessageState(
+        OrchestratorState(
             function_calling_trajectory=[{"role": "assistant", "content": "call"}],
             slots={},
             status=StatusEnum.COMPLETE,
@@ -136,23 +139,24 @@ def test_environment_step_invalid_id_raises() -> None:
     env = Environment(tools=[], workers=[], agents=[])
     # The step method doesn't raise KeyError for invalid IDs, it falls back to planner
     # So we should test that it doesn't raise an exception
-    message_state = MessageState()
+    orch_state = OrchestratorState()
     params = OrchestratorParams()
     node_info = NodeInfo()
 
     # This should not raise an exception, it should use the planner
     response_state, updated_params = env.step(
-        "not_a_tool", message_state, params, node_info
+        "not_a_tool", orch_state, params, node_info
     )
-    assert isinstance(response_state, MessageState)
+    assert isinstance(response_state, OrchestratorState)
     assert isinstance(updated_params, OrchestratorParams)
 
 
 def test_environment_step_worker_executes_and_updates_params(
-    fake_worker: Callable[[MessageState | None], Mock],
+    fake_worker: Callable[[OrchestratorState | None], Mock],
 ) -> None:
     """Test environment step with worker execution."""
-    mock_worker = fake_worker(MessageState(status=StatusEnum.COMPLETE))
+    mock_worker = Mock()
+    mock_worker.execute.return_value = OrchestratorState(status=StatusEnum.COMPLETE)
     mock_worker.init_slotfilling = Mock()
     env = Environment(
         tools=[],
@@ -163,22 +167,23 @@ def test_environment_step_worker_executes_and_updates_params(
         "worker1": {"name": "test_worker", "execute": Mock(return_value=mock_worker)}
     }
     env.id2name = {"worker1": "test_worker"}
-    message_state = MessageState()
+    orch_state = OrchestratorState()
     params = OrchestratorParams()
     params.memory.function_calling_trajectory = []
     params.taskgraph.curr_node = "node1"
     node_info = NodeInfo()
-    result_state, result_params = env.step("worker1", message_state, params, node_info)
+    result_state, result_params = env.step("worker1", orch_state, params, node_info)
     assert result_state.status == StatusEnum.COMPLETE
     assert len(result_params.memory.function_calling_trajectory) == 2
     mock_worker.init_slotfilling.assert_called_once()
 
 
 def test_environment_step_worker_without_init_slotfilling(
-    fake_worker: Callable[[MessageState | None], Mock],
+    fake_worker: Callable[[OrchestratorState | None], Mock],
 ) -> None:
     """Test environment step with worker that doesn't have init_slotfilling method."""
-    mock_worker = fake_worker(MessageState(status=StatusEnum.COMPLETE))
+    mock_worker = Mock()
+    mock_worker.execute.return_value = OrchestratorState(status=StatusEnum.COMPLETE)
     # Remove init_slotfilling attribute to test the hasattr check
     if hasattr(mock_worker, "init_slotfilling"):
         delattr(mock_worker, "init_slotfilling")
@@ -191,22 +196,23 @@ def test_environment_step_worker_without_init_slotfilling(
         "worker1": {"name": "test_worker", "execute": Mock(return_value=mock_worker)}
     }
     env.id2name = {"worker1": "test_worker"}
-    message_state = MessageState()
+    orch_state = OrchestratorState()
     params = OrchestratorParams()
     params.memory.function_calling_trajectory = []
     params.taskgraph.curr_node = "node1"
     node_info = NodeInfo()
-    result_state, result_params = env.step("worker1", message_state, params, node_info)
+    result_state, result_params = env.step("worker1", orch_state, params, node_info)
     assert result_state.status == StatusEnum.COMPLETE
     assert len(result_params.memory.function_calling_trajectory) == 2
 
 
 def test_environment_step_worker_with_response_content(
-    fake_worker: Callable[[MessageState | None], Mock],
+    fake_worker: Callable[[OrchestratorState | None], Mock],
 ) -> None:
     """Test environment step with worker that has response content."""
-    mock_worker = fake_worker(
-        MessageState(status=StatusEnum.COMPLETE, response="test response")
+    mock_worker = Mock()
+    mock_worker.execute.return_value = OrchestratorState(
+        status=StatusEnum.COMPLETE, response="test response"
     )
     env = Environment(
         tools=[],
@@ -217,12 +223,12 @@ def test_environment_step_worker_with_response_content(
         "worker1": {"name": "test_worker", "execute": Mock(return_value=mock_worker)}
     }
     env.id2name = {"worker1": "test_worker"}
-    message_state = MessageState()
+    orch_state = OrchestratorState()
     params = OrchestratorParams()
     params.memory.function_calling_trajectory = []
     params.taskgraph.curr_node = "node1"
     node_info = NodeInfo()
-    result_state, result_params = env.step("worker1", message_state, params, node_info)
+    result_state, result_params = env.step("worker1", orch_state, params, node_info)
     assert result_state.status == StatusEnum.COMPLETE
     assert len(result_params.memory.function_calling_trajectory) == 2
     # Check that response content is used in function calling trajectory
@@ -233,11 +239,12 @@ def test_environment_step_worker_with_response_content(
 
 
 def test_environment_step_worker_with_message_flow(
-    fake_worker: Callable[[MessageState | None], Mock],
+    fake_worker: Callable[[OrchestratorState | None], Mock],
 ) -> None:
     """Test environment step with worker that has message_flow but no response."""
-    mock_worker = fake_worker(
-        MessageState(status=StatusEnum.COMPLETE, message_flow="test flow")
+    mock_worker = Mock()
+    mock_worker.execute.return_value = OrchestratorState(
+        status=StatusEnum.COMPLETE, message_flow="test flow"
     )
     env = Environment(
         tools=[],
@@ -248,12 +255,12 @@ def test_environment_step_worker_with_message_flow(
         "worker1": {"name": "test_worker", "execute": Mock(return_value=mock_worker)}
     }
     env.id2name = {"worker1": "test_worker"}
-    message_state = MessageState()
+    orch_state = OrchestratorState()
     params = OrchestratorParams()
     params.memory.function_calling_trajectory = []
     params.taskgraph.curr_node = "node1"
     node_info = NodeInfo()
-    result_state, result_params = env.step("worker1", message_state, params, node_info)
+    result_state, result_params = env.step("worker1", orch_state, params, node_info)
     assert result_state.status == StatusEnum.COMPLETE
     assert len(result_params.memory.function_calling_trajectory) == 2
     # Check that message_flow is used when response is None
@@ -265,18 +272,16 @@ def test_environment_step_planner_executes() -> None:
     mock_planner = Mock()
     mock_planner.execute.return_value = (
         "action",
-        MessageState(status=StatusEnum.COMPLETE),
+        OrchestratorState(status=StatusEnum.COMPLETE),
         [],
     )
     env = Environment(tools=[], workers=[], agents=[])
     env.planner = mock_planner
-    message_state = MessageState()
+    orch_state = OrchestratorState()
     params = OrchestratorParams()
     params.memory.function_calling_trajectory = []
     node_info = NodeInfo()
-    result_state, result_params = env.step(
-        "invalid_id", message_state, params, node_info
-    )
+    result_state, result_params = env.step("invalid_id", orch_state, params, node_info)
     assert result_state.status == StatusEnum.COMPLETE
     mock_planner.execute.assert_called_once()
 
@@ -284,7 +289,7 @@ def test_environment_step_planner_executes() -> None:
 def test_environment_step_agent_executes() -> None:
     """Test environment step with agent execution."""
     mock_agent_instance = Mock()
-    mock_agent_instance.execute.return_value = MessageState(
+    mock_agent_instance.execute.return_value = OrchestratorState(
         status=StatusEnum.COMPLETE,
         function_calling_trajectory=[{"role": "user", "content": "test"}],
     )
@@ -306,7 +311,7 @@ def test_environment_step_agent_executes() -> None:
     env.agents = {"agent1": {"name": "test_agent", "execute": mock_agent_class}}
     env.id2name = {"agent1": "test_agent"}
 
-    message_state = MessageState()
+    orch_state = OrchestratorState()
     params = OrchestratorParams()
     params.memory.function_calling_trajectory = []
     params.taskgraph.curr_node = "node1"
@@ -319,7 +324,7 @@ def test_environment_step_agent_executes() -> None:
         "extra_arg": "value",
     }
 
-    result_state, result_params = env.step("agent1", message_state, params, node_info)
+    result_state, result_params = env.step("agent1", orch_state, params, node_info)
 
     assert result_state.status == StatusEnum.COMPLETE
     assert result_params.memory.function_calling_trajectory == [
@@ -332,12 +337,12 @@ def test_environment_step_agent_executes() -> None:
         successors=["node2"],
         predecessors=["node0"],
         tools=env.tools,
-        state=message_state,
+        state=orch_state,
     )
 
     # Verify agent execute was called with correct parameters
     mock_agent_instance.execute.assert_called_once_with(
-        message_state, successors=["node2"], predecessors=["node0"], extra_arg="value"
+        orch_state, successors=["node2"], predecessors=["node0"], extra_arg="value"
     )
 
 
@@ -365,7 +370,7 @@ def test_initialize_slotfillapi_with_valid_string() -> None:
 def test_environment_step_agent_with_empty_additional_args() -> None:
     """Test agent execution with empty additional_args."""
     mock_agent_instance = Mock()
-    mock_agent_instance.execute.return_value = MessageState(
+    mock_agent_instance.execute.return_value = OrchestratorState(
         status=StatusEnum.COMPLETE, function_calling_trajectory=[]
     )
 
@@ -378,7 +383,7 @@ def test_environment_step_agent_with_empty_additional_args() -> None:
     )
     env.agents = {"agent1": {"name": "test_agent", "execute": mock_agent_class}}
 
-    message_state = MessageState()
+    orch_state = OrchestratorState()
     params = OrchestratorParams()
     params.memory.function_calling_trajectory = []
     params.taskgraph.curr_node = "node1"
@@ -387,14 +392,14 @@ def test_environment_step_agent_with_empty_additional_args() -> None:
     node_info = NodeInfo()
     node_info.additional_args = {}
 
-    result_state, result_params = env.step("agent1", message_state, params, node_info)
+    result_state, result_params = env.step("agent1", orch_state, params, node_info)
 
     # Verify agent was initialized with empty lists when keys are missing
     mock_agent_class.assert_called_once_with(
         successors=[],
         predecessors=[],
         tools=env.tools,
-        state=message_state,
+        state=orch_state,
     )
 
 
@@ -901,7 +906,9 @@ def test_environment_with_model_service_without_model_config() -> None:
 def test_environment_step_agent_with_successors_and_predecessors() -> None:
     """Test environment step with agent that has successors and predecessors."""
     mock_agent_instance = Mock()
-    mock_agent_instance.execute.return_value = MessageState(status=StatusEnum.COMPLETE)
+    mock_agent_instance.execute.return_value = OrchestratorState(
+        status=StatusEnum.COMPLETE
+    )
 
     env = Environment(
         tools=[],
@@ -916,7 +923,7 @@ def test_environment_step_agent_with_successors_and_predecessors() -> None:
     }
     env.id2name = {"agent1": "test_agent"}
 
-    message_state = MessageState()
+    message_state = OrchestratorState()
     params = OrchestratorParams()
     params.taskgraph.curr_node = "node1"
     node_info = NodeInfo()
@@ -933,7 +940,9 @@ def test_environment_step_agent_with_successors_and_predecessors() -> None:
 def test_environment_step_agent_with_empty_additional_args_second() -> None:
     """Test environment step with agent that has empty additional_args."""
     mock_agent_instance = Mock()
-    mock_agent_instance.execute.return_value = MessageState(status=StatusEnum.COMPLETE)
+    mock_agent_instance.execute.return_value = OrchestratorState(
+        status=StatusEnum.COMPLETE
+    )
 
     env = Environment(
         tools=[],
@@ -948,7 +957,7 @@ def test_environment_step_agent_with_empty_additional_args_second() -> None:
     }
     env.id2name = {"agent1": "test_agent"}
 
-    message_state = MessageState()
+    message_state = OrchestratorState()
     params = OrchestratorParams()
     params.taskgraph.curr_node = "node1"
     node_info = NodeInfo()
@@ -962,7 +971,9 @@ def test_environment_step_agent_with_empty_additional_args_second() -> None:
 def test_environment_step_agent_with_none_additional_args() -> None:
     """Test environment step with agent that has None additional_args."""
     mock_agent_instance = Mock()
-    mock_agent_instance.execute.return_value = MessageState(status=StatusEnum.COMPLETE)
+    mock_agent_instance.execute.return_value = OrchestratorState(
+        status=StatusEnum.COMPLETE
+    )
 
     env = Environment(
         tools=[],
@@ -977,7 +988,7 @@ def test_environment_step_agent_with_none_additional_args() -> None:
     }
     env.id2name = {"agent1": "test_agent"}
 
-    message_state = MessageState()
+    message_state = OrchestratorState()
     params = OrchestratorParams()
     params.taskgraph.curr_node = "node1"
     node_info = NodeInfo()
@@ -991,7 +1002,7 @@ def test_environment_step_agent_with_none_additional_args() -> None:
 def test_environment_step_agent_with_function_calling_trajectory() -> None:
     """Test environment step with agent that returns function_calling_trajectory."""
     mock_agent_instance = Mock()
-    mock_agent_instance.execute.return_value = MessageState(
+    mock_agent_instance.execute.return_value = OrchestratorState(
         status=StatusEnum.COMPLETE,
         function_calling_trajectory=[{"role": "assistant", "content": "test"}],
     )
@@ -1009,7 +1020,7 @@ def test_environment_step_agent_with_function_calling_trajectory() -> None:
     }
     env.id2name = {"agent1": "test_agent"}
 
-    message_state = MessageState()
+    message_state = OrchestratorState()
     params = OrchestratorParams()
     params.taskgraph.curr_node = "node1"
     node_info = NodeInfo()
@@ -1026,7 +1037,7 @@ def test_environment_step_agent_with_slots() -> None:
     from arklex.orchestrator.NLU.entities.slot_entities import Slot
 
     mock_agent_instance = Mock()
-    mock_agent_instance.execute.return_value = MessageState(
+    mock_agent_instance.execute.return_value = OrchestratorState(
         status=StatusEnum.COMPLETE,
         slots={
             "slot1": [Slot(name="slot1", value="value1")],
@@ -1047,7 +1058,7 @@ def test_environment_step_agent_with_slots() -> None:
     }
     env.id2name = {"agent1": "test_agent"}
 
-    message_state = MessageState()
+    message_state = OrchestratorState()
     params = OrchestratorParams()
     params.taskgraph.curr_node = "node1"
     node_info = NodeInfo()
@@ -1065,12 +1076,12 @@ def test_environment_step_planner_with_msg_history() -> None:
     mock_planner = Mock()
     mock_planner.execute.return_value = (
         "action",
-        MessageState(status=StatusEnum.COMPLETE),
+        OrchestratorState(status=StatusEnum.COMPLETE),
         [{"role": "user", "content": "test message"}],
     )
     env = Environment(tools=[], workers=[], agents=[])
     env.planner = mock_planner
-    message_state = MessageState()
+    message_state = OrchestratorState()
     params = OrchestratorParams()
     params.memory.function_calling_trajectory = []
     node_info = NodeInfo()
@@ -1082,13 +1093,16 @@ def test_environment_step_planner_with_msg_history() -> None:
 
 
 def test_environment_step_tool_with_attributes_and_slots(
-    fake_tool: Callable[[MessageState | None], MagicMock],
+    fake_tool: Callable[[OrchestratorState | None], MagicMock],
 ) -> None:
     """Test environment step with tool that has attributes and slots."""
     from arklex.orchestrator.NLU.entities.slot_entities import Slot
 
-    tool = fake_tool(
-        MessageState(
+    fake_tool = MagicMock()
+    fake_tool.init_slotfiller = MagicMock()
+    fake_tool.load_slots = MagicMock()
+    fake_tool.execute = MagicMock(
+        return_value=OrchestratorState(
             function_calling_trajectory=[{"role": "assistant", "content": "call"}],
             slots={"slot1": [Slot(name="slot1", value="value1")]},
             status=StatusEnum.COMPLETE,
@@ -1097,7 +1111,7 @@ def test_environment_step_tool_with_attributes_and_slots(
     tools = [{"id": "t1", "name": "fake_tool", "path": "fake_path"}]
     with patch("importlib.import_module") as mock_import:
         fake_module = MagicMock()
-        fake_module.fake_tool = MagicMock(return_value=tool)
+        fake_module.fake_tool = MagicMock(return_value=fake_tool)
         mock_import.return_value = fake_module
         env = Environment(tools=tools, workers=[], agents=[])
 
@@ -1112,7 +1126,7 @@ def test_environment_step_tool_with_attributes_and_slots(
             additional_args = {"foo": "bar"}
             attributes = {"slots": ["slot1", "slot2"]}
 
-        state = MessageState()
+        state = OrchestratorState()
         params = DummyOrchestratorParams()
         node_info = DummyNodeInfo()
         env.tools["t1"]["fixed_args"] = {"baz": 1}
@@ -1129,17 +1143,17 @@ def test_environment_step_tool_with_attributes_and_slots(
         assert result_params.taskgraph.node_status["n1"] == StatusEnum.COMPLETE
 
         # Verify tool methods were called correctly
-        tool.init_slotfiller.assert_called_once_with(env.slotfillapi)
-        if tool.load_slots.call_count:
-            tool.load_slots.assert_called_once_with(["slot1", "slot2"])
+        fake_tool.init_slotfiller.assert_called_once_with(env.slotfillapi)
+        fake_tool.load_slots.assert_called_once_with(["slot1", "slot2"])
 
 
-def test_environment_step_tool_with_none_additional_args(
-    fake_tool: Callable[[MessageState | None], MagicMock],
-) -> None:
-    """Test environment step with tool that has None additional_args."""
-    tool = fake_tool(
-        MessageState(
+def test_environment_step_tool_with_none_attributes() -> None:
+    """Test environment step with tool that has None attributes."""
+    fake_tool = MagicMock()
+    fake_tool.init_slotfiller = MagicMock()
+    fake_tool.load_slots = MagicMock()
+    fake_tool.execute = MagicMock(
+        return_value=OrchestratorState(
             function_calling_trajectory=[{"role": "assistant", "content": "call"}],
             slots={},
             status=StatusEnum.COMPLETE,
@@ -1148,7 +1162,7 @@ def test_environment_step_tool_with_none_additional_args(
     tools = [{"id": "t1", "name": "fake_tool", "path": "fake_path"}]
     with patch("importlib.import_module") as mock_import:
         fake_module = MagicMock()
-        fake_module.fake_tool = MagicMock(return_value=tool)
+        fake_module.fake_tool = MagicMock(return_value=fake_tool)
         mock_import.return_value = fake_module
         env = Environment(tools=tools, workers=[], agents=[])
 
@@ -1162,7 +1176,7 @@ def test_environment_step_tool_with_none_additional_args(
         class DummyNodeInfo:
             additional_args = None  # None additional_args
 
-        state = MessageState()
+        state = OrchestratorState()
         params = DummyOrchestratorParams()
         node_info = DummyNodeInfo()
         env.tools["t1"]["fixed_args"] = {"baz": 1}
@@ -1174,69 +1188,18 @@ def test_environment_step_tool_with_none_additional_args(
         assert result_params is params
 
         # Verify tool methods were called correctly
-        tool.init_slotfiller.assert_called_once_with(env.slotfillapi)
-        if tool.load_slots.call_count:
-            tool.load_slots.assert_called_once_with(
-                []
-            )  # Empty list when attributes is empty
-
-
-def test_environment_step_tool_with_none_attributes(
-    fake_tool: Callable[[MessageState | None], MagicMock],
-) -> None:
-    """Test environment step with tool that has None attributes."""
-    tool = fake_tool(
-        MessageState(
-            function_calling_trajectory=[{"role": "assistant", "content": "call"}],
-            slots={},
-            status=StatusEnum.COMPLETE,
-        )
-    )
-    tools = [{"id": "t1", "name": "fake_tool", "path": "fake_path"}]
-    with patch("importlib.import_module") as mock_import:
-        fake_module = MagicMock()
-        fake_module.fake_tool = MagicMock(return_value=tool)
-        mock_import.return_value = fake_module
-        env = Environment(tools=tools, workers=[], agents=[])
-
-        class DummyOrchestratorParams:
-            memory = MagicMock()
-            taskgraph = MagicMock()
-            taskgraph.dialog_states = {}
-            taskgraph.node_status = {}
-            taskgraph.curr_node = "n1"
-
-        class DummyNodeInfo:
-            additional_args = {"foo": "bar"}
-            attributes = {}  # Empty dict instead of None to avoid AttributeError
-            attributes = {}  # Empty dict instead of None to avoid AttributeError
-
-        state = MessageState()
-        params = DummyOrchestratorParams()
-        node_info = DummyNodeInfo()
-        env.tools["t1"]["fixed_args"] = {"baz": 1}
-
-        result_state, result_params = env.step("t1", state, params, node_info)
-        assert result_state.function_calling_trajectory == [
-            {"role": "assistant", "content": "call"}
-        ]
-        assert result_params is params
-
-        # Verify tool methods were called correctly
-        tool.init_slotfiller.assert_called_once_with(env.slotfillapi)
-        tool.load_slots.assert_called_once_with(
-            []
-        )  # Empty list when attributes is empty
-        tool.load_slots.assert_called_once_with(
+        fake_tool.init_slotfiller.assert_called_once_with(env.slotfillapi)
+        fake_tool.load_slots.assert_called_once_with(
             []
         )  # Empty list when attributes is empty
 
 
 def test_environment_step_worker_with_none_additional_args(
-    fake_worker: Callable[[MessageState | None], Mock],
+    fake_worker: Callable[[OrchestratorState | None], Mock],
 ) -> None:
     """Test environment step with worker that has None additional_args."""
-    mock_worker = fake_worker(MessageState(status=StatusEnum.COMPLETE))
+    mock_worker = Mock()
+    mock_worker.execute.return_value = OrchestratorState(status=StatusEnum.COMPLETE)
     mock_worker.init_slotfilling = Mock()
 
     env = Environment(
@@ -1249,7 +1212,7 @@ def test_environment_step_worker_with_none_additional_args(
     }
     env.id2name = {"worker1": "test_worker"}
 
-    message_state = MessageState()
+    message_state = OrchestratorState()
     params = OrchestratorParams()
     params.memory.function_calling_trajectory = []
     params.taskgraph.curr_node = "node1"
@@ -1263,12 +1226,13 @@ def test_environment_step_worker_with_none_additional_args(
 
 
 def test_environment_step_worker_with_empty_response_and_message_flow(
-    fake_worker: Callable[[MessageState | None], Mock],
+    fake_worker: Callable[[OrchestratorState | None], Mock],
 ) -> None:
     """Test environment step with worker that has empty response and message_flow."""
 
-    mock_worker = fake_worker(
-        MessageState(status=StatusEnum.COMPLETE, response="", message_flow="")
+    mock_worker = Mock()
+    mock_worker.execute.return_value = OrchestratorState(
+        status=StatusEnum.COMPLETE, response="", message_flow=""
     )
     mock_worker.init_slotfilling = Mock()
 
@@ -1282,7 +1246,7 @@ def test_environment_step_worker_with_empty_response_and_message_flow(
     }
     env.id2name = {"worker1": "test_worker"}
 
-    message_state = MessageState()
+    message_state = OrchestratorState()
     params = OrchestratorParams()
     params.memory.function_calling_trajectory = []
     params.taskgraph.curr_node = "node1"
@@ -1296,11 +1260,11 @@ def test_environment_step_worker_with_empty_response_and_message_flow(
 
 
 def test_environment_step_tool_with_slot_schema_signature_change(
-    fake_tool: Callable[[MessageState | None], MagicMock],
+    fake_tool: Callable[[OrchestratorState | None], MagicMock],
 ) -> None:
     """Test environment step with tool when slot schema signature changes."""
     tool = fake_tool(
-        MessageState(
+        OrchestratorState(
             function_calling_trajectory=[{"role": "assistant", "content": "call"}],
             slots={"slot1": [Slot(name="slot1", value="value1")]},
             status=StatusEnum.COMPLETE,
@@ -1329,7 +1293,7 @@ def test_environment_step_tool_with_slot_schema_signature_change(
                 ],
             }
 
-        state = MessageState()
+        state = OrchestratorState()
         params = DummyOrchestratorParams()
         node_info = DummyNodeInfo()
         env.tools["t1"]["fixed_args"] = {"baz": 1}
@@ -1346,13 +1310,13 @@ def test_environment_step_tool_with_slot_schema_signature_change(
 
 
 def test_environment_step_tool_with_verified_slots(
-    fake_tool: Callable[[MessageState | None], MagicMock],
+    fake_tool: Callable[[OrchestratorState | None], MagicMock],
 ) -> None:
     """Test environment step with tool that has verified slots."""
     from arklex.orchestrator.NLU.entities.slot_entities import Slot
 
     tool = fake_tool(
-        MessageState(
+        OrchestratorState(
             function_calling_trajectory=[{"role": "assistant", "content": "call"}],
             slots={},
             status=StatusEnum.COMPLETE,
@@ -1376,7 +1340,7 @@ def test_environment_step_tool_with_verified_slots(
             additional_args = {"foo": "bar"}
             attributes = {"slots": ["slot1"]}
 
-        state = MessageState()
+        state = OrchestratorState()
         # Pre-populate state with verified slots
         state.slots = {"t1": [Slot(name="slot1", value="value1", verified=True)]}
         params = DummyOrchestratorParams()
@@ -1388,11 +1352,11 @@ def test_environment_step_tool_with_verified_slots(
 
 
 def test_environment_step_tool_with_missing_required_slots(
-    fake_tool: Callable[[MessageState | None], MagicMock],
+    fake_tool: Callable[[OrchestratorState | None], MagicMock],
 ) -> None:
     """Test environment step with tool that has missing required slots."""
     tool = fake_tool(
-        MessageState(
+        OrchestratorState(
             function_calling_trajectory=[{"role": "assistant", "content": "call"}],
             slots={},
             status=StatusEnum.INCOMPLETE,
@@ -1416,7 +1380,7 @@ def test_environment_step_tool_with_missing_required_slots(
             additional_args = {"foo": "bar"}
             attributes = {"slots": ["required_slot"]}
 
-        state = MessageState()
+        state = OrchestratorState()
         params = DummyOrchestratorParams()
         node_info = DummyNodeInfo()
         env.tools["t1"]["fixed_args"] = {"baz": 1}
@@ -1427,11 +1391,11 @@ def test_environment_step_tool_with_missing_required_slots(
 
 
 def test_environment_step_tool_with_slot_verification_needed(
-    fake_tool: Callable[[MessageState | None], MagicMock],
+    fake_tool: Callable[[OrchestratorState | None], MagicMock],
 ) -> None:
     """Test environment step with tool that needs slot verification."""
     tool = fake_tool(
-        MessageState(
+        OrchestratorState(
             function_calling_trajectory=[{"role": "assistant", "content": "call"}],
             slots={},
             status=StatusEnum.INCOMPLETE,
@@ -1455,7 +1419,7 @@ def test_environment_step_tool_with_slot_verification_needed(
             additional_args = {"foo": "bar"}
             attributes = {"slots": ["slot1"]}
 
-        state = MessageState()
+        state = OrchestratorState()
         params = DummyOrchestratorParams()
         node_info = DummyNodeInfo()
         env.tools["t1"]["fixed_args"] = {"baz": 1}
@@ -1466,11 +1430,11 @@ def test_environment_step_tool_with_slot_verification_needed(
 
 
 def test_environment_step_tool_with_group_slots(
-    fake_tool: Callable[[MessageState | None], MagicMock],
+    fake_tool: Callable[[OrchestratorState | None], MagicMock],
 ) -> None:
     """Test environment step with tool that has group slots."""
     tool = fake_tool(
-        MessageState(
+        OrchestratorState(
             function_calling_trajectory=[{"role": "assistant", "content": "call"}],
             slots={},
             status=StatusEnum.COMPLETE,
@@ -1502,7 +1466,7 @@ def test_environment_step_tool_with_group_slots(
                 ]
             }
 
-        state = MessageState()
+        state = OrchestratorState()
         params = DummyOrchestratorParams()
         node_info = DummyNodeInfo()
         env.tools["t1"]["fixed_args"] = {"baz": 1}
@@ -1512,11 +1476,11 @@ def test_environment_step_tool_with_group_slots(
 
 
 def test_environment_step_tool_with_repeatable_slots(
-    fake_tool: Callable[[MessageState | None], MagicMock],
+    fake_tool: Callable[[OrchestratorState | None], MagicMock],
 ) -> None:
     """Test environment step with tool that has repeatable slots."""
     tool = fake_tool(
-        MessageState(
+        OrchestratorState(
             function_calling_trajectory=[{"role": "assistant", "content": "call"}],
             slots={},
             status=StatusEnum.COMPLETE,
@@ -1549,7 +1513,7 @@ def test_environment_step_tool_with_repeatable_slots(
                 ]
             }
 
-        state = MessageState()
+        state = OrchestratorState()
         params = DummyOrchestratorParams()
         node_info = DummyNodeInfo()
         env.tools["t1"]["fixed_args"] = {"baz": 1}
@@ -1559,11 +1523,11 @@ def test_environment_step_tool_with_repeatable_slots(
 
 
 def test_environment_step_tool_with_function_calling_trajectory(
-    fake_tool: Callable[[MessageState | None], MagicMock],
+    fake_tool: Callable[[OrchestratorState | None], MagicMock],
 ) -> None:
     """Test environment step with tool that returns function calling trajectory."""
     tool = fake_tool(
-        MessageState(
+        OrchestratorState(
             function_calling_trajectory=[
                 {"role": "assistant", "content": "call"},
                 {"role": "function", "content": "result"},
@@ -1589,7 +1553,7 @@ def test_environment_step_tool_with_function_calling_trajectory(
             additional_args = {"foo": "bar"}
             attributes = {"slots": ["slot1"]}
 
-        state = MessageState()
+        state = OrchestratorState()
         params = DummyOrchestratorParams()
         node_info = DummyNodeInfo()
         env.tools["t1"]["fixed_args"] = {"baz": 1}
@@ -1600,11 +1564,11 @@ def test_environment_step_tool_with_function_calling_trajectory(
 
 
 def test_environment_step_tool_with_slots_parameter(
-    fake_tool: Callable[[MessageState | None], MagicMock],
+    fake_tool: Callable[[OrchestratorState | None], MagicMock],
 ) -> None:
     """Test environment step with tool that accepts slots parameter."""
     tool = fake_tool(
-        MessageState(
+        OrchestratorState(
             function_calling_trajectory=[{"role": "assistant", "content": "call"}],
             slots={},
             status=StatusEnum.COMPLETE,
@@ -1628,7 +1592,7 @@ def test_environment_step_tool_with_slots_parameter(
             additional_args = {"foo": "bar"}
             attributes = {"slots": ["slot1"]}
 
-        state = MessageState()
+        state = OrchestratorState()
         params = DummyOrchestratorParams()
         node_info = DummyNodeInfo()
         env.tools["t1"]["fixed_args"] = {"baz": 1}
@@ -1638,11 +1602,11 @@ def test_environment_step_tool_with_slots_parameter(
 
 
 def test_environment_step_tool_with_missing_required_arguments(
-    fake_tool: Callable[[MessageState | None], MagicMock],
+    fake_tool: Callable[[OrchestratorState | None], MagicMock],
 ) -> None:
     """Test environment step with tool that has missing required arguments."""
     tool = fake_tool(
-        MessageState(
+        OrchestratorState(
             function_calling_trajectory=[{"role": "assistant", "content": "call"}],
             slots={},
             status=StatusEnum.INCOMPLETE,
@@ -1666,7 +1630,7 @@ def test_environment_step_tool_with_missing_required_arguments(
             additional_args = {"foo": "bar"}
             attributes = {"slots": ["required_arg"]}
 
-        state = MessageState()
+        state = OrchestratorState()
         params = DummyOrchestratorParams()
         node_info = DummyNodeInfo()
         env.tools["t1"]["fixed_args"] = {"baz": 1}
@@ -1677,11 +1641,11 @@ def test_environment_step_tool_with_missing_required_arguments(
 
 
 def test_environment_step_tool_with_authentication_error(
-    fake_tool: Callable[[MessageState | None], MagicMock],
+    fake_tool: Callable[[OrchestratorState | None], MagicMock],
 ) -> None:
     """Test environment step with tool that raises AuthenticationError."""
     tool = fake_tool(
-        MessageState(
+        OrchestratorState(
             function_calling_trajectory=[{"role": "assistant", "content": "call"}],
             slots={},
             status=StatusEnum.INCOMPLETE,
@@ -1706,7 +1670,7 @@ def test_environment_step_tool_with_authentication_error(
             additional_args = {"foo": "bar"}
             attributes = {"slots": ["slot1"]}
 
-        state = MessageState()
+        state = OrchestratorState()
         params = DummyOrchestratorParams()
         node_info = DummyNodeInfo()
         env.tools["t1"]["fixed_args"] = {"baz": 1}
@@ -1717,11 +1681,11 @@ def test_environment_step_tool_with_authentication_error(
 
 
 def test_environment_step_tool_with_tool_execution_error(
-    fake_tool: Callable[[MessageState | None], MagicMock],
+    fake_tool: Callable[[OrchestratorState | None], MagicMock],
 ) -> None:
     """Test environment step with tool that raises ToolExecutionError."""
     tool = fake_tool(
-        MessageState(
+        OrchestratorState(
             function_calling_trajectory=[{"role": "assistant", "content": "call"}],
             slots={},
             status=StatusEnum.INCOMPLETE,
@@ -1746,7 +1710,7 @@ def test_environment_step_tool_with_tool_execution_error(
             additional_args = {"foo": "bar"}
             attributes = {"slots": ["slot1"]}
 
-        state = MessageState()
+        state = OrchestratorState()
         params = DummyOrchestratorParams()
         node_info = DummyNodeInfo()
         env.tools["t1"]["fixed_args"] = {"baz": 1}
@@ -1757,11 +1721,11 @@ def test_environment_step_tool_with_tool_execution_error(
 
 
 def test_environment_step_tool_with_general_exception(
-    fake_tool: Callable[[MessageState | None], MagicMock],
+    fake_tool: Callable[[OrchestratorState | None], MagicMock],
 ) -> None:
     """Test environment step with tool that raises general exception."""
     tool = fake_tool(
-        MessageState(
+        OrchestratorState(
             function_calling_trajectory=[{"role": "assistant", "content": "call"}],
             slots={},
             status=StatusEnum.INCOMPLETE,
@@ -1786,7 +1750,7 @@ def test_environment_step_tool_with_general_exception(
             additional_args = {"foo": "bar"}
             attributes = {"slots": ["slot1"]}
 
-        state = MessageState()
+        state = OrchestratorState()
         params = DummyOrchestratorParams()
         node_info = DummyNodeInfo()
         env.tools["t1"]["fixed_args"] = {"baz": 1}

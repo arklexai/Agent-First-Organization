@@ -43,7 +43,10 @@ from langchain_core.documents import Document
 from langchain_openai import OpenAIEmbeddings
 from pydantic import BaseModel
 
-from arklex.orchestrator.entities.orch_state_entities import LLMConfig, MessageState
+from arklex.orchestrator.entities.orchestrator_state_entities import (
+    LLMConfig,
+    OrchestratorState,
+)
 from arklex.orchestrator.prompts import (
     PLANNER_REACT_INSTRUCTION_FEW_SHOT,
     PLANNER_REACT_INSTRUCTION_ZERO_SHOT,
@@ -170,8 +173,8 @@ class DefaultPlanner:
     def __init__(
         self,
         tools_map: dict[str, Any],
-        workers_map: dict[str, Any],
-        name2id: dict[str, int],
+        workers_map: dict[str, Any] | None = None,
+        name2id: dict[str, int] | None = None,
     ) -> None:
         """Initialize the default planner.
 
@@ -201,8 +204,8 @@ class DefaultPlanner:
         self.llm_config = llm_config
 
     def execute(
-        self, msg_state: MessageState, msg_history: list[dict[str, Any]]
-    ) -> tuple[dict[str, Any], MessageState, list[dict[str, Any]]]:
+        self, msg_state: OrchestratorState, msg_history: list[dict[str, Any]]
+    ) -> tuple[dict[str, Any], OrchestratorState, list[dict[str, Any]]]:
         """Execute the planner (pass-through implementation).
 
         Args:
@@ -489,7 +492,7 @@ class ReactPlanner(DefaultPlanner):
         return resource_docs
 
     def _get_planning_trajectory_summary(
-        self, state: MessageState, msg_history: list[dict[str, Any]]
+        self, state: OrchestratorState, msg_history: list[dict[str, Any]]
     ) -> str:
         """Generate a natural language summary of the expected planning trajectory.
 
@@ -743,7 +746,7 @@ class ReactPlanner(DefaultPlanner):
 
     def plan(
         self,
-        state: MessageState,
+        state: OrchestratorState,
         msg_history: list[dict[str, Any]],
         max_num_steps: int = 3,
     ) -> tuple[list[dict[str, Any]], str, Any]:
@@ -876,7 +879,7 @@ class ReactPlanner(DefaultPlanner):
         # Return the last action and response
         return msg_history, action.name, env_response.observation
 
-    def step(self, action: Action, msg_state: MessageState) -> EnvResponse:
+    def step(self, action: Action, msg_state: OrchestratorState) -> EnvResponse:
         """Execute a single action step.
 
         This method executes a single action by calling the appropriate tool or worker.
@@ -931,8 +934,8 @@ class ReactPlanner(DefaultPlanner):
         return EnvResponse(observation=observation)
 
     def execute(
-        self, msg_state: MessageState, msg_history: list[dict[str, Any]]
-    ) -> tuple[dict[str, Any], MessageState, list[dict[str, Any]]]:
+        self, msg_state: OrchestratorState, msg_history: list[dict[str, Any]]
+    ) -> tuple[dict[str, Any], OrchestratorState, list[dict[str, Any]]]:
         """Execute the planner with the given message state and history.
 
         This method is the main entry point for the planner. It calls the plan method

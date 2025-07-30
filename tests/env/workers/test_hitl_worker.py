@@ -11,7 +11,7 @@ from arklex.env.workers.hitl_worker import (
     HITLWorkerTestChat,
     HITLWorkerTestMC,
 )
-from arklex.orchestrator.entities.orch_state_entities import (
+from arklex.orchestrator.entities.orchestrator_state_entities import (
     MessageState,
     Metadata,
     StatusEnum,

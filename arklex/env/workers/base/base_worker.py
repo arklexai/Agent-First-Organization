@@ -8,39 +8,17 @@ workers that handle different types of tasks and operations within the system.
 
 import traceback
 from abc import ABC, abstractmethod
-from typing import Any, TypedDict, TypeVar
+from typing import Any
 
-from arklex.env.workers.base.entities import WorkerData
+from arklex.env.workers.base.entities import WorkerOutput
 from arklex.memory.entities.memory_entities import ResourceRecord
-from arklex.orchestrator.entities.orch_state_entities import MessageState, StatusEnum
+from arklex.orchestrator.entities.orchestrator_state_entities import (
+    OrchestratorState,
+    StatusEnum,
+)
 from arklex.utils.logging_utils import LogContext
 
 log_context = LogContext(__name__)
-
-T = TypeVar("T")
-
-
-class WorkerKwargs(TypedDict, total=False):
-    """Type definition for kwargs used in worker execution methods."""
-
-    # Add specific worker parameters as needed
-    pass
-
-
-def register_worker(cls: type[T]) -> type[T]:
-    """Register a worker class with the Arklex framework.
-
-    This decorator registers a worker class and automatically sets its name
-    to the class name. It is used to mark classes as workers in the system.
-
-    Args:
-        cls (Type[T]): The worker class to register.
-
-    Returns:
-        Type[T]: The registered worker class.
-    """
-    cls.name = cls.__name__  # Automatically set name to the class name
-    return cls
 
 
 class BaseWorker(ABC):
@@ -72,68 +50,70 @@ class BaseWorker(ABC):
         """
         return f"{self.__class__.__name__}"
 
+    @property
     @abstractmethod
-    def init_worker_data(self, input_data: WorkerData) -> None:
+    def worker_data(self) -> object:
+        """Get the worker data."""
+
+    @abstractmethod
+    def init_worker_data(
+        self, orch_state: OrchestratorState, node_specific_data: dict[str, Any]
+    ) -> None:
         """Initialize the worker data.
 
-        This abstract method must be implemented by concrete worker classes to
-        define their specific initialization logic.
+        Args:
+            orch_state (OrchestratorState): The current orchestrator state.
+            node_specific_data (dict[str, Any]): Additional keyword arguments for the execution.
         """
 
     @abstractmethod
-    def _execute(
-        self, msg_state: MessageState, **kwargs: WorkerKwargs
-    ) -> dict[str, Any]:
+    def _execute(self) -> WorkerOutput:
         """Execute the worker's core functionality.
 
         This abstract method must be implemented by concrete worker classes to
         define their specific execution logic.
 
-        Args:
-            msg_state (MessageState): The current message state.
-            **kwargs (WorkerKwargs): Additional keyword arguments for the execution.
-
         Returns:
-            Dict[str, Any]: The execution results as a dictionary.
+            WorkerOutput: The execution results.
         """
 
-    def execute(self, msg_state: MessageState, **kwargs: WorkerKwargs) -> MessageState:
+    def execute(
+        self,
+        orch_state: OrchestratorState,
+        node_specific_data: dict[str, Any],
+    ) -> WorkerOutput:
         """Execute the worker with error handling and state management.
 
         This method wraps the worker's execution with error handling and state
         management. It processes the execution results and updates the message state.
 
         Args:
-            msg_state (MessageState): The current message state.
-            **kwargs (WorkerKwargs): Additional keyword arguments for the execution.
+            orch_state (OrchestratorState): The current orchestrator state.
+            node_specific_data (dict[str, Any]): Additional keyword arguments for the execution.
 
         Returns:
             MessageState: The updated message state after execution.
         """
         try:
-            response_return: dict[str, Any] = self._execute(msg_state, **kwargs)
-            response_state: MessageState = MessageState.model_validate(response_return)
+            self.init_worker_data(orch_state, node_specific_data)
+            worker_output: WorkerOutput = self._execute()
 
             # Create a new ResourceRecord for this execution
             new_record = ResourceRecord(
                 info={"worker": self.__class__.__name__},
                 intent="worker_execution",
-                output=response_state.response
-                if response_state.response
-                else response_state.message_flow,
+                output=worker_output.response,
             )
 
             # Preserve the original trajectory and add the new record
-            if msg_state.trajectory is not None:
-                response_state.trajectory = msg_state.trajectory.copy()
-            else:
-                response_state.trajectory = []
-            response_state.trajectory.append([new_record])
-
-            if response_state.status == StatusEnum.INCOMPLETE:
-                response_state.status = StatusEnum.COMPLETE
-            return response_state
+            if not self.worker_data.orch_state.trajectory:
+                self.worker_data.orch_state.trajectory = []
+            self.worker_data.orch_state.trajectory.append([new_record])
+            return worker_output
         except Exception:
             log_context.error(traceback.format_exc())
-            msg_state.status = StatusEnum.INCOMPLETE
-            return msg_state
+            worker_output = WorkerOutput(
+                response="",
+                status=StatusEnum.INCOMPLETE,
+            )
+            return worker_output

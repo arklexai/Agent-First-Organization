@@ -10,7 +10,7 @@ from typing import Any
 import requests
 
 from arklex.env.tools.tools import register_tool
-from arklex.orchestrator.entities.orch_state_entities import HTTPParams
+from arklex.orchestrator.entities.orchestrator_state_entities import HTTPParams
 from arklex.utils.exceptions import ToolExecutionError
 from arklex.utils.logging_utils import LogContext
 

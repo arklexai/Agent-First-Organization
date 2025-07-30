@@ -60,9 +60,9 @@ class WorkerItem(Item):
     """Specific worker items organized by category."""
 
     # Workers
-    MESSAGE_WORKER = "message-worker"
-    FAISS_RAG_WORKER = "faiss-rag-worker"
-    MILVUS_RAG_WORKER = "milvus-rag-worker"
-    RAG_MESSAGE_WORKER = "rag-message-worker"
-    SEARCH_WORKER = "search-worker"
-    HUMAN_IN_THE_LOOP_WORKER = "human-in-the-loop-worker"
+    MESSAGE_WORKER = "message_worker"
+    FAISS_RAG_WORKER = "faiss_rag_worker"
+    MILVUS_RAG_WORKER = "milvus_rag_worker"
+    RAG_MESSAGE_WORKER = "rag_message_worker"
+    SEARCH_WORKER = "search_worker"
+    HUMAN_IN_THE_LOOP_WORKER = "human_in_the_loop_worker"

@@ -18,7 +18,10 @@ from langchain_core.output_parsers import StrOutputParser
 from langchain_openai import OpenAIEmbeddings
 
 from arklex.env.prompts import load_prompts
-from arklex.orchestrator.entities.orch_state_entities import LLMConfig, MessageState
+from arklex.orchestrator.entities.orchestrator_state_entities import (
+    LLMConfig,
+    OrchestratorState,
+)
 from arklex.utils.logging_utils import LogContext
 from arklex.utils.model_provider_config import (
     PROVIDER_EMBEDDING_MODELS,
@@ -31,7 +34,7 @@ log_context = LogContext(__name__)
 
 class RetrieveEngine:
     @staticmethod
-    def faiss_retrieve(state: MessageState) -> str:
+    def faiss_retrieve(state: OrchestratorState) -> str:
         # get the input message
         user_message = state.user_message
 
