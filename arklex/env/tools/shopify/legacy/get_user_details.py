@@ -22,16 +22,16 @@ This file contains the code for retrieving user details from Shopify.
 
 from typing import TypedDict
 
-from arklex.env.tools.shopify.auth_utils import AUTH_ERROR, get_access_token
-from arklex.env.tools.shopify.utils import make_query
-from arklex.env.tools.shopify.utils_nav import (
+from arklex.env.tools.shopify.legacy.auth_utils import AUTH_ERROR, get_access_token
+from arklex.env.tools.shopify.legacy.utils_nav import (
     PAGEINFO_OUTPUTS,
     PAGEINFO_SLOTS,
     cursorify,
 )
+from arklex.env.tools.shopify.utils.utils import make_query
 
 # Customer API
-from arklex.env.tools.shopify.utils_slots import ShopifyOutputs, ShopifySlots
+from arklex.env.tools.shopify.utils.utils_slots import ShopifyOutputs, ShopifySlots
 from arklex.env.tools.tools import register_tool
 
 # Placeholder values for undefined variables (module is inactive)

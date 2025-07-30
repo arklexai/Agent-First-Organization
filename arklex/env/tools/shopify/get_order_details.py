@@ -9,40 +9,35 @@ This file contains the code for retrieving detailed order information from Shopi
 
 import inspect
 import json
-from typing import TypedDict
 
 import shopify
+from pydantic import BaseModel
 
 from arklex.env.tools.shopify._exception_prompt import ShopifyExceptionPrompt
-from arklex.env.tools.shopify.utils import authorify_admin
-from arklex.env.tools.shopify.utils_slots import (
+from arklex.env.tools.shopify.base.entities import ShopifyAdminAuth
+from arklex.env.tools.shopify.utils.utils import authorify_admin
+from arklex.env.tools.shopify.utils.utils_slots import (
     ShopifyGetOrderDetailsSlots,
-    ShopifyOutputs,
 )
 from arklex.env.tools.tools import register_tool
 from arklex.utils.exceptions import ToolExecutionError
 
-description = "Get the status and details of an order."
-slots = ShopifyGetOrderDetailsSlots.get_all_slots()
-outputs = [ShopifyOutputs.ORDERS_DETAILS]
+
+class GetOrderDetailsOutput(BaseModel):
+    message_flow: str
 
 
-class GetOrderDetailsParams(TypedDict, total=False):
-    """Parameters for the get order details tool."""
-
-    shop_url: str
-    api_version: str
-    admin_token: str
-
-
-@register_tool(description, slots, outputs)
+@register_tool(
+    description="Get the status and details of an order.",
+    slots=ShopifyGetOrderDetailsSlots.get_all_slots(),
+)
 def get_order_details(
     order_ids: list[str],
     order_names: list[str],
     user_id: str,
     limit: int = 10,
-    **kwargs: GetOrderDetailsParams,
-) -> str:
+    **kwargs: ShopifyAdminAuth,
+) -> GetOrderDetailsOutput:
     """
     Retrieve detailed information about orders from the Shopify store.
 
@@ -54,7 +49,7 @@ def get_order_details(
         **kwargs (GetOrderDetailsParams): Additional keyword arguments for authentication.
 
     Returns:
-        str: A formatted string containing detailed information about each order, including:
+        GetOrderDetailsOutput: A formatted string containing detailed information about each order, including:
             - Order ID and name
             - Creation and cancellation dates
             - Return status
@@ -123,7 +118,9 @@ def get_order_details(
             """)
             result = json.loads(response)["data"]["orders"]["nodes"]
             if len(result) == 0:
-                return "You have no orders placed."
+                return GetOrderDetailsOutput(
+                    message_flow="You have no orders placed.",
+                )
             response_text = ""
             for order in result:
                 response_text += f"Order ID: {order.get('id', 'None')}\n"
@@ -148,7 +145,9 @@ def get_order_details(
                         f"    Variant: {item.get('node', {}).get('variant', {})}\n"
                     )
                 response_text += "\n"
-        return response_text
+        return GetOrderDetailsOutput(
+            message_flow=response_text,
+        )
     except Exception as e:
         raise ToolExecutionError(
             func_name,

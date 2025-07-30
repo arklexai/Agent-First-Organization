@@ -6,7 +6,6 @@ initialization, execution, and slot filling integration.
 
 import inspect
 import json
-import os
 import traceback
 import uuid
 from collections.abc import Callable
@@ -38,7 +37,6 @@ TYPE_CONVERTERS = {
 def register_tool(
     desc: str,
     slots: list[dict[str, Any]] | None = None,
-    outputs: list[str] | None = None,
     isResponse: bool = False,
 ) -> Callable:
     """Register a tool with the Arklex framework.
@@ -49,36 +47,16 @@ def register_tool(
     Args:
         desc (str): Description of the tool's functionality.
         slots (List[Dict[str, Any]], optional): List of slot definitions. Defaults to None.
-        outputs (List[str], optional): List of output field names. Defaults to None.
-        isResponse (bool, optional): Whether the tool is a response tool. Defaults to False.
 
     Returns:
         Callable: A function that creates and returns a Tool instance.
     """
     if slots is None:
         slots = []
-    if outputs is None:
-        outputs = []
-
-    current_file_dir: str = os.path.dirname(__file__)
 
     def inner(func: Callable) -> Callable:
-        file_path: str = inspect.getfile(func)
-        relative_path: str = os.path.relpath(file_path, current_file_dir)
-        # reformat the relative path to replace / and \\ with -, and remove .py, because the function calling in openai only allow the function name match the patter the pattern '^[a-zA-Z0-9_-]+$'
-        # different file paths format in Windows and linux systems
-        relative_path = (
-            relative_path.replace("/", "_")
-            .replace("\\", "_")
-            .replace(".py", "")
-            .replace(".", "_")
-        )
-        key: str = f"{relative_path}"
-
-        def tool() -> "Tool":
-            return Tool(func, key, desc, slots, outputs, isResponse)
-
-        return tool
+        name: str = f"{func.__name__}"
+        return Tool(name, desc, slots)
 
     return inner
 
@@ -120,12 +98,9 @@ class Tool:
 
     def __init__(
         self,
-        func: Callable,
         name: str,
         description: str,
         slots: list[dict[str, Any]],
-        outputs: list[str],
-        isResponse: bool,
     ) -> None:
         """Initialize a new Tool instance.
 
@@ -137,16 +112,15 @@ class Tool:
             outputs (List[str]): List of output field names.
             isResponse (bool): Whether the tool is a response tool.
         """
-        self.func: Callable = func
         self.name: str = name
         self.description: str = description
-        self.output: list[str] = outputs
-        self.slotfiller: SlotFiller | None = None
-        self.info: dict[str, Any] = self.get_info(slots)
         self.slots: list[Slot] = [Slot.model_validate(slot) for slot in slots]
-        self.isResponse: bool = isResponse
-        self.properties: dict[str, dict[str, Any]] = {}
+        self.info: dict[str, Any] = self.get_info(slots)
         self.llm_config: dict[str, Any] = {}
+        self.slotfiller: SlotFiller | None = None
+        # TODO: check with voicebot setup
+        self.openai_slots: list[dict[str, Any]] = self._format_slots(slots)
+        self.properties: dict[str, dict[str, Any]] = {}
         self.fixed_args = {}
         self.auth = {}
 

@@ -22,10 +22,10 @@ This file contains the code for retrieving a user's ID using their refresh token
 
 from typing import Literal
 
-from arklex.env.tools.shopify.auth_utils import AUTH_ERROR
+from arklex.env.tools.shopify.legacy.auth_utils import AUTH_ERROR
 
 # Customer API
-from arklex.env.tools.shopify.utils_slots import ShopifyOutputs, ShopifySlots
+from arklex.env.tools.shopify.utils.utils_slots import ShopifyOutputs, ShopifySlots
 from arklex.env.tools.tools import register_tool
 
 

@@ -16,7 +16,7 @@ import os
 
 from dotenv import load_dotenv
 
-from arklex.env.tools.shopify.utils import make_query
+from arklex.env.tools.shopify.utils.utils import make_query
 
 load_dotenv()
 

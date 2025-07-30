@@ -19,9 +19,8 @@ This file implements the function of Shopify authentication.
 # from arklex.tools.shopify_new.auth_server import authenticate_server
 import os
 
-from auth_utils import get_auth_link, get_refresh_token
-
-from arklex.env.tools.shopify.auth_server import authenticate_server
+from arklex.env.tools.shopify.legacy.auth_server import authenticate_server
+from arklex.env.tools.shopify.legacy.auth_utils import get_auth_link, get_refresh_token
 
 
 def authenticate() -> str:
