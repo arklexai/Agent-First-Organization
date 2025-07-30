@@ -11,7 +11,7 @@ from abc import ABC, abstractmethod
 from typing import Any, TypedDict, TypeVar
 
 from arklex.memory.entities.memory_entities import ResourceRecord
-from arklex.orchestrator.entities.msg_state_entities import MessageState, StatusEnum
+from arklex.orchestrator.entities.orch_state_entities import MessageState, StatusEnum
 from arklex.utils.logging_utils import LogContext
 
 log_context = LogContext(__name__)

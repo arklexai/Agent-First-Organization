@@ -29,7 +29,6 @@ from typing import Any
 from pydantic import BaseModel, Field
 
 from arklex.memory.entities.memory_entities import ResourceRecord
-from arklex.orchestrator.NLU.entities.slot_entities import Slot
 from arklex.types.model_types import LLMConfig
 from arklex.types.stream_types import StreamType
 
@@ -83,25 +82,25 @@ class ConvoMessage(BaseModel):
     message: str
 
 
-class OrchestratorMessage(BaseModel):
-    """Message processed by the orchestrator.
+# class OrchestratorMessage(BaseModel):
+#     """Message processed by the orchestrator.
 
-    This class represents a message that has been processed by the orchestrator,
-    including both the message content and any additional attributes or metadata
-    that were added during processing.
+#     This class represents a message that has been processed by the orchestrator,
+#     including both the message content and any additional attributes or metadata
+#     that were added during processing.
 
-    The class provides:
-    1. Message content management
-    2. Attribute/metadata storage
-    3. Type-safe message handling
+#     The class provides:
+#     1. Message content management
+#     2. Attribute/metadata storage
+#     3. Type-safe message handling
 
-    Attributes:
-        message (str): The message content.
-        attribute (dict): Additional attributes associated with the message.
-    """
+#     Attributes:
+#         message (str): The message content.
+#         attribute (dict): Additional attributes associated with the message.
+#     """
 
-    message: str
-    attribute: dict[str, Any]
+#     message: str
+#     attribute: dict[str, Any]
 
 
 ### Task status-related classes
@@ -265,7 +264,7 @@ class SlotDetail(BaseModel):
     confirmed: bool = False
 
 
-class MessageState(BaseModel):
+class OrchestratorState(BaseModel):
     """State management for message processing.
 
     This class manages the complete state of a message as it moves through the system,
@@ -305,21 +304,21 @@ class MessageState(BaseModel):
     bot_config: BotConfig | None = Field(default=None)
     # input message
     user_message: ConvoMessage | None = Field(default=None)
-    orchestrator_message: OrchestratorMessage | None = Field(default=None)
+    # orchestrator_message: OrchestratorMessage | None = Field(default=None)
     # action trajectory
     function_calling_trajectory: list[dict[str, Any]] | None = Field(default=None)
     trajectory: list[list[ResourceRecord]] | None = Field(default=None)
     # message flow between different nodes
-    message_flow: str = Field(
-        description="message flow between different nodes", default=""
-    )
+    # message_flow: str = Field(
+    #     description="message flow between different nodes", default=""
+    # )
     # final response
-    response: str = Field(default="")
+    # response: str = Field(default="")
     # task-related params
-    status: StatusEnum = Field(default=StatusEnum.INCOMPLETE)
-    slots: dict[str, list[Slot]] | None = Field(
-        description="record the dialogue states of each action", default=None
-    )
+    # status: StatusEnum = Field(default=StatusEnum.INCOMPLETE)
+    # slots: dict[str, list[Slot]] | None = Field(
+    #     description="record the dialogue states of each action", default=None
+    # )
     metadata: Metadata | None = Field(default=None)
     # stream
     is_stream: bool = Field(default=False)

@@ -11,7 +11,7 @@ import pytest
 
 from arklex.env.prompts import BotConfig
 from arklex.env.workers.database_worker import DataBaseWorker
-from arklex.orchestrator.entities.msg_state_entities import MessageState
+from arklex.orchestrator.entities.orch_state_entities import MessageState
 
 
 class TestDataBaseWorkerInitialization:

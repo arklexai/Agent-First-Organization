@@ -12,8 +12,8 @@ from langgraph.graph import START, StateGraph
 
 from arklex.env.tools.RAG.search import SearchEngine
 from arklex.env.tools.utils import ToolGenerator
-from arklex.env.workers.worker import BaseWorker, register_worker
-from arklex.orchestrator.entities.msg_state_entities import MessageState
+from arklex.env.workers.base.base_worker import BaseWorker, register_worker
+from arklex.orchestrator.entities.orch_state_entities import MessageState
 from arklex.utils.logging_utils import LogContext
 
 log_context = LogContext(__name__)

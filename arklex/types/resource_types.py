@@ -1,10 +1,5 @@
 from enum import Enum
 
-from pydantic import BaseModel
-
-from arklex.env.tools.tools import Tool
-from arklex.env.workers.worker import BaseWorker
-
 
 class ResourceType(str, Enum):
     """Resource type enum."""
@@ -71,11 +66,3 @@ class WorkerItem(Item):
     RAG_MESSAGE_WORKER = "rag-message-worker"
     SEARCH_WORKER = "search-worker"
     HUMAN_IN_THE_LOOP_WORKER = "human-in-the-loop-worker"
-
-
-class Resource(BaseModel):
-    """Resource model with hierarchical structure."""
-
-    type: ResourceType
-    category: ToolCategory | WorkerCategory
-    item_cls: Tool | BaseWorker

@@ -55,7 +55,7 @@ from arklex.env.agents.openai_realtime_agent import (
 )
 from arklex.env.env import DefaultResourceInitializer
 from arklex.env.nested_graph.nested_graph import NestedGraph
-from arklex.orchestrator.entities.msg_state_entities import LLMConfig, StatusEnum
+from arklex.orchestrator.entities.orch_state_entities import LLMConfig, StatusEnum
 from arklex.orchestrator.entities.orchestrator_params_entities import OrchestratorParams
 from arklex.orchestrator.entities.taskgraph_entities import NodeInfo, PathNode
 from arklex.orchestrator.NLU.core.intent import IntentDetector

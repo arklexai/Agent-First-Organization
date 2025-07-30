@@ -10,8 +10,8 @@ from arklex.env.agents.agent import BaseAgent, register_agent
 from arklex.env.prompts import load_prompts
 from arklex.env.tools.tools import TYPE_CONVERTERS
 from arklex.env.tools.utils import trace
-from arklex.orchestrator.entities.msg_state_entities import MessageState, StatusEnum
-from arklex.types import EventType, StreamType
+from arklex.orchestrator.entities.orch_state_entities import MessageState, StatusEnum
+from arklex.types.stream_types import EventType, StreamType
 from arklex.utils.logging_utils import LogContext
 from arklex.utils.provider_utils import validate_and_get_model_class
 

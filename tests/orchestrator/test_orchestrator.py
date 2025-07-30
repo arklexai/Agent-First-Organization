@@ -6,7 +6,7 @@ import pytest
 
 from arklex.env.env import Environment
 from arklex.env.nested_graph.nested_graph import NESTED_GRAPH_ID
-from arklex.orchestrator.entities.msg_state_entities import (
+from arklex.orchestrator.entities.orch_state_entities import (
     BotConfig,
     MessageState,
     OrchestratorResp,

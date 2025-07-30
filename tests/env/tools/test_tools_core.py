@@ -7,7 +7,7 @@ from arklex.env.tools import tools
 from arklex.env.tools.tools import Tool, register_tool
 
 # Mocks for dependencies
-from arklex.orchestrator.entities.msg_state_entities import MessageState, StatusEnum
+from arklex.orchestrator.entities.orch_state_entities import MessageState, StatusEnum
 from arklex.orchestrator.NLU.entities.slot_entities import Slot
 
 

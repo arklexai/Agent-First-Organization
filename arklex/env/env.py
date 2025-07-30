@@ -13,9 +13,10 @@ from typing import Any
 
 from arklex.env.agents.agent import BaseAgent
 from arklex.env.planner.react_planner import DefaultPlanner, ReactPlanner
+from arklex.env.resource_map import RESOURCE_MAP
 from arklex.env.tools.tools import Tool
-from arklex.env.workers.worker import BaseWorker
-from arklex.orchestrator.entities.msg_state_entities import MessageState
+from arklex.env.workers.base.base_worker import BaseWorker
+from arklex.orchestrator.entities.orch_state_entities import MessageState
 from arklex.orchestrator.entities.orchestrator_params_entities import OrchestratorParams
 from arklex.orchestrator.entities.taskgraph_entities import NodeInfo
 from arklex.orchestrator.NLU.core.slot import SlotFiller
@@ -164,20 +165,14 @@ class DefaultResourceInitializer(BaseResourceInitializer):
         worker_registry: dict[str, dict[str, Any]] = {}
         for worker in workers:
             worker_id: str = worker["id"]
-            name: str = worker["name"]
-            path: str = worker["path"]
             try:
-                filepath: str = os.path.join("arklex.env.workers", path)
-                module_name: str = filepath.replace(os.sep, ".").rstrip(".py")
-                module = importlib.import_module(module_name)
-                func: Callable = getattr(module, name)
                 worker_registry[worker_id] = {
-                    "name": name,
-                    "description": func.description,
-                    "execute": partial(func, **worker.get("fixed_args", {})),
+                    "item_cls": RESOURCE_MAP[worker["type"]][worker["item_cls"]][
+                        "item_cls"
+                    ],
                 }
             except Exception as e:
-                log_context.error(f"Worker {name} is not registered, error: {e}")
+                log_context.error(f"Worker {worker_id} is not registered, error: {e}")
         return worker_registry
 
     @staticmethod

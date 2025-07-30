@@ -14,7 +14,7 @@ from unittest.mock import MagicMock, Mock
 import pytest
 
 from arklex.env.env import Environment
-from arklex.orchestrator.entities.msg_state_entities import MessageState
+from arklex.orchestrator.entities.orch_state_entities import MessageState
 
 
 class MockResponse:
@@ -399,7 +399,7 @@ def create_mock_message_state(response: str = "Mock response") -> "MessageState"
     This function creates a mock MessageState object that can be used
     in tests that need to simulate message processing states.
     """
-    from arklex.orchestrator.entities.msg_state_entities import (
+    from arklex.orchestrator.entities.orch_state_entities import (
         BotConfig,
         ConvoMessage,
         LLMConfig,
@@ -504,7 +504,7 @@ class MilvusTestHelper:
         This method creates a mock MessageState specifically configured
         for Milvus integration testing scenarios.
         """
-        from arklex.orchestrator.entities.msg_state_entities import (
+        from arklex.orchestrator.entities.orch_state_entities import (
             BotConfig,
             ConvoMessage,
             LLMConfig,
