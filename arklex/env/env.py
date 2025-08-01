@@ -141,30 +141,33 @@ class DefaultResourceInitializer(BaseResourceInitializer):
                                     "description": description,
                                 }
                             )
+                            all_slots = slots + group_slots
+                            tool_instance.load_slots(all_slots)
+                            tool_instance.fixed_args.update(
+                                node_specific_data.get("http", {})
+                            )
+                            tool_instance.description = attributes.get("task", "")
+                            tool_instance.name = node_specific_data.get(
+                                "name",
+                                attributes.get("task", "").replace(" ", "_").lower(),
+                            )
                         all_slots = slots + group_slots
                         tool_instance.load_slots(all_slots)
                         tool_instance.fixed_args.update(
                             node_specific_data.get("http", {})
                         )
                         tool_instance.description = attributes.get("task", "")
-                        tool_instance.name = node_specific_data.get(
-                            "name", attributes.get("task", "").replace(" ", "_").lower()
-                        )
-                    all_slots = slots + group_slots
-                    tool_instance.load_slots(all_slots)
-                    tool_instance.fixed_args.update(node_specific_data.get("http", {}))
-                    tool_instance.description = attributes.get("task", "")
-                    tool_instance.name = tool_id
-                    tool_id = tool_instance.name
-                tool_registry[tool_id] = {
-                    "name": f"{path.replace('/', '-')}-{name}",
-                    "description": tool_instance.description,
-                    "tool_instance": tool_instance,
-                    "execute": func,
-                    "fixed_args": tool_instance.fixed_args,
-                }
-            except Exception as e:
-                log_context.error(f"Tool {name} is not registered, error: {e}")
+                        tool_instance.name = tool_id
+                        tool_id = tool_instance.name
+                    tool_registry[tool_id] = {
+                        "name": f"{path.replace('/', '-')}-{name}",
+                        "description": tool_instance.description,
+                        "tool_instance": tool_instance,
+                        "execute": func,
+                        "fixed_args": tool_instance.fixed_args,
+                    }
+                except Exception as e:
+                    log_context.error(f"Tool {name} is not registered, error: {e}")
 
         return tool_registry
 
