@@ -386,12 +386,15 @@ Answer with only 'yes' or 'no'"""
         # Execute the node
         response_state: OrchestratorState
         response_state, node_response = self.env.step(
-            node_info.resource["id"], orch_state, node_info
+            node_info.resource["id"],
+            orch_state,
+            node_info,
+            params.taskgraph.dialog_states,
         )
         # Update params
         params.taskgraph.node_status[node_info.node_id] = node_response.status
-        ## TODO: slots only for tools
-        # params.taskgraph.dialog_states = node_response.slots
+        if node_response.slots:
+            params.taskgraph.dialog_states = node_response.slots
         return node_info, response_state, params, node_response
 
     def handle_nested_graph_node(

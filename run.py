@@ -128,21 +128,19 @@ if __name__ == "__main__":
     user_prefix: str = "user"
     worker_prefix: str = "assistant"
 
-    # Find and display the initial message from the start node
-    for node in config["nodes"]:
-        if node[1].get("attribute", {}).get("start", False):
-            start_message: str = node[1]["data"]["message"]
-            break
-    history.append({"role": worker_prefix, "content": start_message})
-    pprint_with_color(f"Bot: {start_message}")
-
+    is_start: bool = True
     # Main conversation loop
     while True:
-        user_text: str = input("You: ")
-        if user_text.lower() == "quit":
-            break
+        if is_start:
+            user_text: str = "<start>"
+            is_start = False
+        else:
+            user_text: str = input("You: ")
+            if user_text.lower() == "quit":
+                break
         start_time: float = time.time()
         output = get_api_bot_response(config, history, user_text, params, env)
+        params = output["parameters"]
         history.append({"role": user_prefix, "content": user_text})
         history.append({"role": worker_prefix, "content": output["answer"]})
         print(f"getAPIBotResponse Time: {time.time() - start_time}")

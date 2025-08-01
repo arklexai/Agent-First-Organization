@@ -1,5 +1,6 @@
 from collections.abc import Mapping
 
+from arklex.env.tools.custom_tools import http_tool
 from arklex.env.tools.google.calendar.tool_collection import create_event
 from arklex.env.tools.hubspot.tool_collection import (
     check_availability,
@@ -39,11 +40,13 @@ from arklex.types.resource_types import (
 )
 
 RESOURCE_MAP: Mapping[type[Item], Mapping[str, ResourceType | ToolCategory | type]] = {
+    ############## Google Tools ##############
     ToolItem.GOOGLE_CREATE_EVENT: {
         "type": ResourceType.TOOL,
         "category": ToolCategory.GOOGLE_CALENDAR,
         "item_cls": create_event,
     },
+    ############## Shopify Tools ##############
     ToolItem.SHOPIFY_FIND_USER_ID_BY_EMAIL: {
         "type": ResourceType.TOOL,
         "category": ToolCategory.SHOPIFY,
@@ -119,6 +122,13 @@ RESOURCE_MAP: Mapping[type[Item], Mapping[str, ResourceType | ToolCategory | typ
         "category": ToolCategory.HUBSPOT,
         "item_cls": find_owner_id_by_contact_id,
     },
+    ############## Custom Tools ##############
+    ToolItem.HTTP_TOOL: {
+        "type": ResourceType.TOOL,
+        "category": ToolCategory.CUSTOM,
+        "item_cls": http_tool,
+    },
+    ############## Workers ##############
     WorkerItem.MESSAGE_WORKER: {
         "type": ResourceType.WORKER,
         "category": WorkerCategory.WORKER,

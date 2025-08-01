@@ -176,37 +176,6 @@ class OrchestratorResp(BaseModel):
     choice_list: list[str] | None = Field(default=[])
 
 
-class HTTPParams(BaseModel):
-    """Parameters for HTTP requests.
-
-    This class defines the parameters needed for making HTTP requests,
-    including endpoint, method, headers, and body data.
-
-    The class provides:
-    1. Endpoint management
-    2. HTTP method handling
-    3. Header management
-    4. Body data handling
-    5. URL parameter support
-    6. Type-safe HTTP parameter management
-
-    Attributes:
-        endpoint (str): The API endpoint URL.
-        method (str): HTTP method to use.
-        headers (Dict[str, str]): HTTP headers.
-        body (Optional[Any]): Request body.
-        params (Optional[Dict[str, Any]]): URL parameters.
-    """
-
-    endpoint: str
-    method: str = Field(default="GET")
-    headers: dict[str, str] = Field(
-        default_factory=lambda: {"Content-Type": "application/json"}
-    )
-    body: Any | None = Field(default=None)
-    params: dict[str, Any] | None = Field(default=None)
-
-
 class OrchestratorState(BaseModel):
     """State management for message processing.
 

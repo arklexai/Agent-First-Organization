@@ -352,19 +352,6 @@ class TaskGraph(TaskGraphBase):
             data=n["data"],
             is_leaf=len(list(self.graph.successors(node_id))) == 0,
             add_flow_stack=False,
-            additional_args={
-                **{
-                    k2: v2
-                    for k, v in n["attribute"].get("node_specific_data", {}).items()
-                    if isinstance(v, dict)
-                    for k2, v2 in v.items()
-                },
-                **{
-                    k: v
-                    for k, v in n["attribute"].get("node_specific_data", {}).items()
-                    if not isinstance(v, dict)
-                },
-            },
         )
 
     def _get_node(
@@ -578,21 +565,6 @@ class TaskGraph(TaskGraphBase):
                         for pred in self.graph.predecessors(curr_node)
                     ],
                     "prompt": node_info["attribute"].get("prompt", ""),
-                    **{
-                        k2: v2
-                        for k, v in node_info["attribute"]
-                        .get("node_specific_data", {})
-                        .items()
-                        if isinstance(v, dict)
-                        for k2, v2 in v.items()
-                    },
-                    **{
-                        k: v
-                        for k, v in node_info["attribute"]
-                        .get("node_specific_data", {})
-                        .items()
-                        if not isinstance(v, dict)
-                    },
                 },
             )
             return True, node_info, params
@@ -842,7 +814,7 @@ class TaskGraph(TaskGraphBase):
             )
         params.taskgraph.curr_node = curr_node
         node_info: NodeInfo = NodeInfo(
-            node_id="planner",
+            node_id="",
             resource={"id": "planner", "name": "planner"},
             attribute={"value": "", "direct": False},
             data={},

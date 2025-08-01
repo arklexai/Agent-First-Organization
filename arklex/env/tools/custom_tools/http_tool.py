@@ -8,13 +8,44 @@ import inspect
 from typing import Any
 
 import requests
+from pydantic import BaseModel, Field
 
 from arklex.env.tools.tools import register_tool
-from arklex.orchestrator.entities.orchestrator_state_entities import HTTPParams
 from arklex.utils.exceptions import ToolExecutionError
 from arklex.utils.logging_utils import LogContext
 
 log_context = LogContext(__name__)
+
+
+class HTTPParams(BaseModel):
+    """Parameters for HTTP requests.
+
+    This class defines the parameters needed for making HTTP requests,
+    including endpoint, method, headers, and body data.
+
+    The class provides:
+    1. Endpoint management
+    2. HTTP method handling
+    3. Header management
+    4. Body data handling
+    5. URL parameter support
+    6. Type-safe HTTP parameter management
+
+    Attributes:
+        endpoint (str): The API endpoint URL.
+        method (str): HTTP method to use.
+        headers (Dict[str, str]): HTTP headers.
+        body (Optional[Any]): Request body.
+        params (Optional[Dict[str, Any]]): URL parameters.
+    """
+
+    endpoint: str
+    method: str = Field(default="GET")
+    headers: dict[str, str] = Field(
+        default_factory=lambda: {"Content-Type": "application/json"}
+    )
+    body: Any | None = Field(default=None)
+    params: dict[str, Any] | None = Field(default=None)
 
 
 def clean_json_data(data: dict[str, Any]) -> dict[str, Any]:
@@ -141,18 +172,20 @@ def replace_placeholders(
 
 
 @register_tool(
-    desc="Make HTTP requests to external APIs and handle responses",
+    description="Make HTTP requests to external APIs and handle responses",
     slots=[],
 )
 def http_tool(
-    slots: list[dict[str, Any]] | None = None, **kwargs: dict[str, Any]
+    slots: list[dict[str, Any]] | None = None,
+    node_specific_data: dict[str, Any] | None = None,
+    **kwargs: dict[str, Any],
 ) -> str:
     """Make an HTTP request and return the response"""
     func_name: str = inspect.currentframe().f_code.co_name
     try:
-        params: HTTPParams = HTTPParams(**kwargs)
+        params: HTTPParams = HTTPParams(**node_specific_data)
         log_context.info(
-            f"HTTPTool execution called with args: {kwargs}, slots: {slots}"
+            f"HTTPTool execution called with params: {params}, slots: {slots}"
         )
         if slots:
             # Process slots based on their target
