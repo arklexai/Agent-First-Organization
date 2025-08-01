@@ -1,4 +1,3 @@
-import contextlib
 import json
 from typing import Any
 
@@ -9,62 +8,17 @@ from langgraph.graph import START, StateGraph
 
 from arklex.env.agents.agent import BaseAgent, register_agent
 from arklex.env.prompts import load_prompts
-from arklex.env.tools.tools import TYPE_CONVERTERS, register_tool
+from arklex.env.tools.tools import TYPE_CONVERTERS
 from arklex.env.tools.utils import trace
-from arklex.orchestrator.entities.msg_state_entities import MessageState, StatusEnum
-from arklex.types import EventType, StreamType
+from arklex.orchestrator.entities.orchestrator_state_entities import (
+    OrchestratorState,
+    StatusEnum,
+)
+from arklex.types.stream_types import EventType, StreamType
 from arklex.utils.logging_utils import LogContext
 from arklex.utils.provider_utils import validate_and_get_model_class
 
 log_context = LogContext(__name__)
-
-
-@register_tool("Ends the conversation with a thank you message.", isResponse=True)
-def end_conversation(state: MessageState) -> str:
-    """
-    Ends the conversation with a thank you message. This is a default tool that is used to end the conversation and added to the tool map of the OpenAIAgent.
-
-    Args:
-        state (MessageState): The state of the conversation.
-
-    Returns:
-        str: The thank you message or a fallback.
-    """
-    log_context.info("Ending the conversation.")
-    state.status = StatusEnum.COMPLETE
-    model_class = validate_and_get_model_class(state.bot_config.llm_config)
-
-    llm = model_class(model=state.bot_config.llm_config.model_type_or_path)
-    try:
-        result = llm.invoke([
-            SystemMessage(
-                content="Ends the conversation with a thank you and goodbye message."
-            ).model_dump(),
-        ])
-        content = None
-        if isinstance(result, dict):
-            content = result.get("content") or result.get("result")
-            if not content and "choices" in result:
-                with contextlib.suppress(Exception):
-                    content = result["choices"][0]["message"]["content"]
-        elif hasattr(result, "content"):
-            content = result.content
-        elif isinstance(result, str):
-            import json
-            try:
-                parsed = json.loads(result)
-                content = parsed.get("content") or parsed.get("result")
-                if not content and "choices" in parsed:
-                    content = parsed["choices"][0]["message"]["content"]
-            except Exception:
-                content = result  # fallback to the string itself
-
-        if not content or "dummy response" in str(content):
-            raise ValueError("LLM returned no content or dummy response")
-        return content
-    except Exception as e:
-        log_context.error(f"Error when ending conversation: {e}")
-        return "I hope I was able to help you today. Goodbye!"
 
 
 @register_agent
@@ -72,7 +26,11 @@ class OpenAIAgent(BaseAgent):
     description: str = "General-purpose Arklex agent for chat or voice."
 
     def __init__(
-        self, successors: list, predecessors: list, tools: dict, state: MessageState
+        self,
+        successors: list,
+        predecessors: list,
+        tools: dict,
+        state: OrchestratorState,
     ) -> None:
         super().__init__()
         self.action_graph: StateGraph = self._create_action_graph()
@@ -88,19 +46,19 @@ class OpenAIAgent(BaseAgent):
 
         log_context.info(f"OpenAIAgent initialized with {len(self.tool_defs)} tools.")
 
-    def generate(self, state: MessageState) -> MessageState:
+    def generate(self, state: OrchestratorState) -> OrchestratorState:
         """Generate response without streaming."""
         return self._generate_response(state, stream=False)
 
-    def text_stream_generate(self, state: MessageState) -> MessageState:
+    def text_stream_generate(self, state: OrchestratorState) -> OrchestratorState:
         """Generate response with text streaming capability."""
         return self._generate_response(state, stream=True, is_speech=False)
 
-    def speech_stream_generate(self, state: MessageState) -> MessageState:
+    def speech_stream_generate(self, state: OrchestratorState) -> OrchestratorState:
         """Generate response with speech streaming capability."""
         return self._generate_response(state, stream=True, is_speech=True)
 
-    def _prepare_prompt(self, state: MessageState, is_speech: bool = False) -> str:
+    def _prepare_prompt(self, state: OrchestratorState, is_speech: bool = False) -> str:
         """Prepare the input prompt for generation."""
         if self.prompt:
             return self.prompt
@@ -131,7 +89,9 @@ class OpenAIAgent(BaseAgent):
         )
         return input_prompt.text
 
-    def _add_prompt_to_trajectory(self, state: MessageState, input_prompt: str) -> None:
+    def _add_prompt_to_trajectory(
+        self, state: OrchestratorState, input_prompt: str
+    ) -> None:
         """Add the input prompt to the function calling trajectory if not already present."""
         if not any(
             message.get("content") == input_prompt
@@ -142,7 +102,9 @@ class OpenAIAgent(BaseAgent):
                 SystemMessage(content=input_prompt).model_dump()
             )
 
-    def _process_tool_calls(self, state: MessageState, ai_message: AIMessage) -> None:
+    def _process_tool_calls(
+        self, state: OrchestratorState, ai_message: AIMessage
+    ) -> None:
         """Process tool calls and update the function calling trajectory."""
         if not ai_message.tool_calls:
             return
@@ -188,7 +150,9 @@ class OpenAIAgent(BaseAgent):
             else:
                 log_context.warning(f"Tool {tool_name} not found in tool map.")
 
-    def _stream_response(self, state: MessageState, final_chain: BaseChatModel) -> str:
+    def _stream_response(
+        self, state: OrchestratorState, final_chain: BaseChatModel
+    ) -> str:
         """Stream the response and put chunks in the message queue."""
         answer = ""
         for chunk in final_chain.stream(state.function_calling_trajectory):
@@ -200,8 +164,8 @@ class OpenAIAgent(BaseAgent):
         return answer
 
     def _generate_response(
-        self, state: MessageState, stream: bool = False, is_speech: bool = False
-    ) -> MessageState:
+        self, state: OrchestratorState, stream: bool = False, is_speech: bool = False
+    ) -> OrchestratorState:
         """Unified response generation method with optional streaming."""
         generation_type = (
             "speech streaming"
@@ -249,7 +213,7 @@ class OpenAIAgent(BaseAgent):
 
         return state
 
-    def choose_generator(self, state: MessageState) -> str:
+    def choose_generator(self, state: OrchestratorState) -> str:
         """Choose the appropriate generator based on stream type and language."""
         if state.bot_config.language == "CN" and state.stream_type == StreamType.SPEECH:
             return "text_stream_generate"
@@ -263,7 +227,7 @@ class OpenAIAgent(BaseAgent):
         return "generate"
 
     def _create_action_graph(self) -> StateGraph:
-        workflow = StateGraph(MessageState)
+        workflow = StateGraph(OrchestratorState)
         workflow.add_node("generate", self.generate)
         workflow.add_node("text_stream_generate", self.text_stream_generate)
         workflow.add_node("speech_stream_generate", self.speech_stream_generate)
@@ -273,7 +237,7 @@ class OpenAIAgent(BaseAgent):
 
         return workflow
 
-    def _execute(self, msg_state: MessageState, **kwargs: Any) -> dict[str, Any]:  # noqa: ANN401
+    def _execute(self, msg_state: OrchestratorState, **kwargs: Any) -> dict[str, Any]:  # noqa: ANN401
         model_class = validate_and_get_model_class(msg_state.bot_config.llm_config)
 
         self.llm = model_class(model=msg_state.bot_config.llm_config.model_type_or_path)
@@ -290,11 +254,7 @@ class OpenAIAgent(BaseAgent):
         """
         for node in predecessors:
             if node.type == "tool":
-                tool_id = (
-                    f"{node.resource_id}_{node.attributes['task']}"
-                    if node.attributes.get("task")
-                    else node.resource_id
-                )
+                tool_id = f"{node.resource_id}"
                 tool_id = tool_id.replace(" ", "_").replace("/", "_")
                 self.available_tools[tool_id] = (tools[node.resource_id], node)
 
@@ -305,7 +265,7 @@ class OpenAIAgent(BaseAgent):
         """
         for tool_id, (tool, node_info) in self.available_tools.items():
             tool_object = tool["tool_instance"]
- 
+
             log_context.info(
                 f"Configuring tool: {tool_object.func.__name__} with slots: {tool_object.slots}"
             )
@@ -321,14 +281,8 @@ class OpenAIAgent(BaseAgent):
             self.tool_args[tool_id] = combined_args
         log_context.info(f"Tool Definitions: {self.tool_defs}")
 
-        end_conversation_tool = end_conversation()
-        end_conversation_tool_def = end_conversation_tool.to_openai_tool_def_v2()
-        end_conversation_tool_def["function"]["name"] = "end_conversation"
-        self.tool_defs.append(end_conversation_tool_def)
-        self.tool_map["end_conversation"] = end_conversation_tool.func
-
     def _execute_tool(
-        self, tool_name: str, state: MessageState, tool_args: dict[str, Any]
+        self, tool_name: str, state: OrchestratorState, tool_args: dict[str, Any]
     ) -> Any:  # noqa: ANN401
         """Execute a tool with unified interface.
 
@@ -343,7 +297,10 @@ class OpenAIAgent(BaseAgent):
         Returns:
             Tool execution result
         """
-        def build_slot_values(schema: list[dict[str, Any]], tool_args: dict[str, Any]) -> list[dict[str, Any]]:
+
+        def build_slot_values(
+            schema: list[dict[str, Any]], tool_args: dict[str, Any]
+        ) -> list[dict[str, Any]]:
             def type_convert(value: object, slot_type: str) -> object:
                 if value is None:
                     return value
@@ -375,13 +332,26 @@ class OpenAIAgent(BaseAgent):
                 if slot_type == "group":
                     if slot.get("repeatable", False):
                         group_values = tool_args.get(name, [])
-                        if not group_values and value_source == "default" or not group_values and value_source == "fixed":
+                        if (
+                            not group_values
+                            and value_source == "default"
+                            or not group_values
+                            and value_source == "fixed"
+                        ):
                             group_values = [slot.get("value", "")]
-                        slot_value = [build_slot_values(slot["schema"], item) for item in group_values]
+                        slot_value = [
+                            build_slot_values(slot["schema"], item)
+                            for item in group_values
+                        ]
                         slot_value = flatten_group_items(slot_value)
                     else:
                         group_value = tool_args.get(name, {})
-                        if not group_value and value_source == "default" or not group_value and value_source == "fixed":
+                        if (
+                            not group_value
+                            and value_source == "default"
+                            or not group_value
+                            and value_source == "fixed"
+                        ):
                             group_value = slot.get("value", "")
                         slot_value = build_slot_values(slot["schema"], group_value)
                 else:
@@ -400,7 +370,13 @@ class OpenAIAgent(BaseAgent):
 
         if "http_tool" in tool_name:
             all_slots = self.tool_slots.get(tool_name, [])
-            slots = build_slot_values([slot.model_dump() if hasattr(slot, "model_dump") else slot for slot in all_slots], tool_args)
+            slots = build_slot_values(
+                [
+                    slot.model_dump() if hasattr(slot, "model_dump") else slot
+                    for slot in all_slots
+                ],
+                tool_args,
+            )
             # Call http_tool with slots parameter, excluding slots from tool_args
             filtered_args = {k: v for k, v in tool_args.items() if k != "slots"}
             return self.tool_map[tool_name](slots=slots, **filtered_args)

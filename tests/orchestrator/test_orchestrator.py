@@ -6,18 +6,18 @@ import pytest
 
 from arklex.env.env import Environment
 from arklex.env.nested_graph.nested_graph import NESTED_GRAPH_ID
-from arklex.orchestrator.entities.msg_state_entities import (
+from arklex.orchestrator.entities.orchestrator_state_entities import (
     BotConfig,
     MessageState,
     OrchestratorResp,
     StatusEnum,
 )
-from arklex.orchestrator.entities.orchestrator_params_entities import (
+from arklex.orchestrator.entities.orchestrator_state_entities import (
     OrchestratorParams as Params,
 )
 from arklex.orchestrator.entities.taskgraph_entities import NodeInfo, NodeTypeEnum
 from arklex.orchestrator.orchestrator import AgentOrg
-from arklex.types import StreamType
+from arklex.types.stream_types import StreamType
 
 
 class DummyEnv(Environment):

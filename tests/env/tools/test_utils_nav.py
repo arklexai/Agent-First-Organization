@@ -7,7 +7,7 @@ including the cursorify function and related constants.
 
 import unittest
 
-from arklex.env.tools.shopify.utils_nav import (
+from arklex.env.tools.shopify.legacy.utils_nav import (
     NAVIGATE_WITH_NO_CURSOR,
     NO_NEXT_PAGE,
     NO_PREV_PAGE,

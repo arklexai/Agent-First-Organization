@@ -14,8 +14,8 @@ from langchain.prompts import PromptTemplate
 from langchain_core.output_parsers import StrOutputParser
 
 from arklex.env.prompts import load_prompts
-from arklex.orchestrator.entities.msg_state_entities import MessageState
-from arklex.types import EventType, StreamType
+from arklex.orchestrator.entities.orchestrator_state_entities import OrchestratorState
+from arklex.types.stream_types import EventType, StreamType
 from arklex.utils.exceptions import ToolError
 from arklex.utils.logging_utils import LogContext
 from arklex.utils.provider_utils import validate_and_get_model_class
@@ -36,7 +36,7 @@ class ToolExecutor(Protocol):
     tools: dict[str, Any]
 
 
-def get_prompt_template(state: MessageState, prompt_key: str) -> PromptTemplate:
+def get_prompt_template(state: OrchestratorState, prompt_key: str) -> PromptTemplate:
     """Get the prompt template based on the stream type."""
     prompts: dict[str, str] = load_prompts(state.bot_config)
 
@@ -53,7 +53,7 @@ def get_prompt_template(state: MessageState, prompt_key: str) -> PromptTemplate:
 
 class ToolGenerator:
     @staticmethod
-    def generate(state: MessageState) -> MessageState:
+    def generate(state: OrchestratorState) -> str:
         llm_config: dict[str, Any] = state.bot_config.llm_config
         user_message: Any = state.user_message
 
@@ -68,11 +68,10 @@ class ToolGenerator:
         final_chain: Any = llm | StrOutputParser()
         answer: str = final_chain.invoke(input_prompt.text)
 
-        state.response = answer
-        return state
+        return answer
 
     @staticmethod
-    def context_generate(state: MessageState) -> MessageState:
+    def context_generate(state: OrchestratorState) -> str:
         llm_config: dict[str, Any] = state.bot_config.llm_config
 
         model_class = validate_and_get_model_class(llm_config)
@@ -123,12 +122,11 @@ class ToolGenerator:
         log_context.info(f"Prompt: {input_prompt.text}")
         answer: str = final_chain.invoke(input_prompt.text)
         state.message_flow = ""
-        state.response = answer
-        state = trace(input=answer, state=state)
-        return state
+        # state = trace(input=answer, state=state)
+        return answer
 
     @staticmethod
-    def stream_context_generate(state: MessageState) -> MessageState:
+    def stream_context_generate(state: OrchestratorState) -> str:
         llm_config: dict[str, Any] = state.bot_config.llm_config
 
         model_class = validate_and_get_model_class(llm_config)
@@ -184,12 +182,11 @@ class ToolGenerator:
             )
 
         state.message_flow = ""
-        state.response = answer
-        state = trace(input=answer, state=state)
-        return state
+        # state = trace(input=answer, state=state)
+        return answer
 
     @staticmethod
-    def stream_generate(state: MessageState) -> MessageState:
+    def stream_generate(state: OrchestratorState) -> str:
         user_message: Any = state.user_message
 
         llm_config: dict[str, Any] = state.bot_config.llm_config
@@ -209,11 +206,10 @@ class ToolGenerator:
                 {"event": EventType.CHUNK.value, "message_chunk": chunk}
             )
 
-        state.response = answer
-        return state
+        return answer
 
 
-def trace(input: str, state: MessageState) -> MessageState:
+def trace(input: str, state: OrchestratorState) -> OrchestratorState:
     current_frame: inspect.FrameInfo | None = inspect.currentframe()
     previous_frame: inspect.FrameInfo | None = (
         current_frame.f_back if current_frame else None

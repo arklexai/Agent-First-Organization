@@ -14,6 +14,7 @@ from hubspot.crm.objects.emails import ApiException
 from hubspot.crm.tickets.models import SimplePublicObjectInputForCreate
 
 from arklex.env.tools.hubspot._exception_prompt import HubspotExceptionPrompt
+from arklex.env.tools.hubspot.base.entities import HubspotAuth
 from arklex.env.tools.hubspot.utils import authenticate_hubspot
 from arklex.env.tools.tools import register_tool
 from arklex.utils.exceptions import ToolExecutionError
@@ -43,18 +44,11 @@ slots: list[dict[str, Any]] = [
     },
 ]
 
-# List of output parameters for the tool
-outputs: list[dict[str, Any]] = [
-    {
-        "name": "ticket_id",
-        "type": "str",
-        "description": "The id of the ticket for the existing customer and the specific issue",
-    }
-]
 
-
-@register_tool(description, slots, outputs)
-def create_ticket(cus_cid: str, issue: str, **kwargs: dict[str, Any]) -> str:
+@register_tool(description, slots)
+def create_ticket(
+    cus_cid: str, issue: str, auth: HubspotAuth, **kwargs: dict[str, Any]
+) -> str:
     """
     Create a support ticket for a customer and associate it with their contact record.
 
@@ -70,7 +64,7 @@ def create_ticket(cus_cid: str, issue: str, **kwargs: dict[str, Any]) -> str:
         ToolExecutionError: If ticket creation or association fails
     """
     func_name: str = inspect.currentframe().f_code.co_name
-    access_token: str = authenticate_hubspot(kwargs)
+    access_token: str = authenticate_hubspot(auth)
 
     api_client: hubspot.Client = hubspot.Client.create(access_token=access_token)
 

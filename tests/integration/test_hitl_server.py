@@ -13,7 +13,7 @@ from unittest.mock import Mock, patch
 import pytest
 
 from arklex.env.env import Environment
-from arklex.orchestrator.entities.msg_state_entities import (
+from arklex.orchestrator.entities.orchestrator_state_entities import (
     BotConfig,
     ConvoMessage,
     LLMConfig,

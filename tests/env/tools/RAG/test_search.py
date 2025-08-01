@@ -15,7 +15,7 @@ from arklex.env.tools.RAG.search import (
     SearchEngine,
     TavilySearchExecutor,
 )
-from arklex.orchestrator.entities.msg_state_entities import (
+from arklex.orchestrator.entities.orchestrator_state_entities import (
     BotConfig,
     ConvoMessage,
     LLMConfig,

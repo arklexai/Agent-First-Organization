@@ -29,12 +29,8 @@ slots = [
     }
 ]
 
-outputs = []
 
-errors = []
-
-
-@register_tool(description, slots, outputs, lambda x: x not in errors)
+@register_tool(description, slots)
 def retriever(query: str, **kwargs: RetrieverParams) -> str:
     collection_name = kwargs.get("collection_name")
     bot_id = kwargs.get("bot_id")

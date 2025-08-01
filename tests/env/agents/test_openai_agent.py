@@ -3,22 +3,28 @@ from unittest.mock import Mock, patch
 import pytest
 
 from arklex.env.agents.openai_agent import OpenAIAgent, end_conversation
-from arklex.orchestrator.entities.msg_state_entities import MessageState, StatusEnum
+from arklex.orchestrator.entities.orchestrator_state_entities import (
+    OrchestratorState,
+    StatusEnum,
+)
 
 pytestmark = pytest.mark.usefixtures("patch_openai")
+
 
 @pytest.fixture(autouse=True)
 def patch_openai(monkeypatch: pytest.MonkeyPatch) -> None:
     # Patch openai.ChatCompletion.create to always return a mock response
     with patch("openai.ChatCompletion.create") as mock_create:
-        mock_create.return_value = {"choices": [{"message": {"content": "mocked response"}}]}
+        mock_create.return_value = {
+            "choices": [{"message": {"content": "mocked response"}}]
+        }
         yield
 
 
 @pytest.fixture
-def mock_state() -> MessageState:
+def mock_state() -> OrchestratorState:
     """Create a mock MessageState for testing."""
-    state = Mock(spec=MessageState)
+    state = Mock(spec=OrchestratorState)
     state.status = StatusEnum.INCOMPLETE
     state.function_calling_trajectory = []
     state.message_flow = ""
@@ -52,7 +58,7 @@ def mock_tools() -> dict:
 
     return {
         "mock_tool_id": {
-            "tool_instance": tool_object, 
+            "tool_instance": tool_object,
             "execute": lambda: tool_object,
             "fixed_args": {"fixed_param": "value"},
         }
@@ -99,7 +105,6 @@ class TestOpenAIAgent:
         assert agent.action_graph is not None
         assert agent.llm is None
         assert "mock_tool_id" in agent.available_tools
-        assert "end_conversation" in agent.tool_map
         assert len(agent.tool_defs) >= 1
 
     @patch("arklex.env.agents.openai_agent.load_prompts")
@@ -441,7 +446,6 @@ class TestOpenAIAgent:
         assert "test_tool_id" in agent.tool_map
         assert "test_tool_id" in agent.tool_args
         assert agent.tool_map["test_tool_id"].__name__ == "mock_tool"
-        assert "end_conversation" in agent.tool_map
 
     def test_configure_tools_empty(self, mock_state: Mock) -> None:
         """Test _configure_tools method with no tools."""
@@ -453,8 +457,6 @@ class TestOpenAIAgent:
         )
 
         agent._configure_tools()
-
-        assert "end_conversation" in agent.tool_map
 
     @patch("arklex.env.agents.openai_agent.load_prompts")
     @patch("arklex.env.agents.openai_agent.trace")

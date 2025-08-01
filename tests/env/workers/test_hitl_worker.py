@@ -4,14 +4,14 @@ from unittest.mock import Mock, patch
 
 import pytest
 
-from arklex.env.workers.hitl_worker import (
+from arklex.env.workers.hitl.hitl_worker import (
     HITLWorker,
     HITLWorkerChatFlag,
     HITLWorkerMCFlag,
     HITLWorkerTestChat,
     HITLWorkerTestMC,
 )
-from arklex.orchestrator.entities.msg_state_entities import (
+from arklex.orchestrator.entities.orchestrator_state_entities import (
     MessageState,
     Metadata,
     StatusEnum,

@@ -55,8 +55,11 @@ from arklex.env.agents.openai_realtime_agent import (
 )
 from arklex.env.env import DefaultResourceInitializer
 from arklex.env.nested_graph.nested_graph import NestedGraph
-from arklex.orchestrator.entities.msg_state_entities import LLMConfig, StatusEnum
-from arklex.orchestrator.entities.orchestrator_params_entities import OrchestratorParams
+from arklex.orchestrator.entities.orchestrator_param_entities import OrchestratorParams
+from arklex.orchestrator.entities.orchestrator_state_entities import (
+    LLMConfig,
+    StatusEnum,
+)
 from arklex.orchestrator.entities.taskgraph_entities import NodeInfo, PathNode
 from arklex.orchestrator.NLU.core.intent import IntentDetector
 from arklex.orchestrator.NLU.core.slot import SlotFiller
@@ -115,9 +118,7 @@ class TaskGraphBase:
 
     def get_start_node(self) -> str | None:
         for node in self.graph.nodes.data():
-            if node[1].get("type", "") == "start" or node[1].get("attribute", {}).get(
-                "start", False
-            ):
+            if node[1].get("attribute", {}).get("start", False):
                 return node[0]
         return None
 
@@ -188,12 +189,11 @@ class AgentGraph(TaskGraphBase):
                         attributes.append(predecessor_node["attribute"])
 
                 tool_registry = resource_initializer.init_tools(resources, attributes)
-                tool_map = {
-                    tool_registry[tool_id]["tool_instance"].name: tool_registry[
-                        tool_id
-                    ]["tool_instance"]
-                    for tool_id in tool_registry
-                }
+                tool_map = {}
+                for tool_id in tool_registry:
+                    tool_instance = tool_registry[tool_id]["tool_instance"]
+                    tool_instance.name = tool_instance.name.replace("http_tool_", "")
+                    tool_map[tool_instance.name] = tool_instance
                 self.resources.update(tool_registry)
                 if resource.get("id", "") == "openai_realtime_voice_agent":
                     prompt = node_specific_data.get("prompt", "")
@@ -315,13 +315,7 @@ class TaskGraph(TaskGraphBase):
         node: str | None = None
         if services_nodes:
             candidates_nodes: list[str] = [v for k, v in services_nodes.items()]
-            candidates_nodes_weights: list[float] = [
-                list(self.graph.in_edges(n, data="attribute"))[0][2]["weight"]
-                for n in candidates_nodes
-            ]
-            node = np.random.choice(
-                candidates_nodes, p=normalize(candidates_nodes_weights)
-            )
+            node = np.random.choice(candidates_nodes)
         return node
 
     def jump_to_node(
@@ -353,27 +347,11 @@ class TaskGraph(TaskGraphBase):
         n = self.graph.nodes[node_id]
         return NodeInfo(
             node_id=node_id,
-            type=n.get("type", ""),
-            resource_id=n["resource"]["id"],
-            resource_name=n["resource"]["name"],
-            can_skipped=True,
+            resource=n["resource"],
+            attribute=n["attribute"],
+            data=n["data"],
             is_leaf=len(list(self.graph.successors(node_id))) == 0,
-            attributes=n["attribute"],
             add_flow_stack=False,
-            additional_args={
-                "tags": n["attribute"].get("tags", {}),
-                **{
-                    k2: v2
-                    for k, v in n["attribute"].get("node_specific_data", {}).items()
-                    if isinstance(v, dict)
-                    for k2, v2 in v.items()
-                },
-                **{
-                    k: v
-                    for k, v in n["attribute"].get("node_specific_data", {}).items()
-                    if not isinstance(v, dict)
-                },
-            },
         )
 
     def _get_node(
@@ -387,11 +365,6 @@ class TaskGraph(TaskGraphBase):
         )
         log_context.info(f"intent in _get_node: {intent}")
         node_info: dict[str, Any] = self.graph.nodes[sample_node]
-        # Handle missing resource gracefully
-        resource_name: str = node_info.get("resource", {}).get(
-            "name", "default_resource"
-        )
-        resource_id: str = node_info.get("resource", {}).get("id", "default_id")
         if intent and intent in params.taskgraph.available_global_intents:
             # delete the corresponding node item from the intent list
             for item in params.taskgraph.available_global_intents.get(intent, []):
@@ -404,12 +377,10 @@ class TaskGraph(TaskGraphBase):
 
         node_info = NodeInfo(
             node_id=sample_node,
-            type=node_info.get("type", ""),
-            resource_id=resource_id,
-            resource_name=resource_name,
-            can_skipped=node_info.get("attribute", {}).get("can_skipped", False),
+            resource=node_info["resource"],
+            attribute=node_info["attribute"],
+            data=node_info["data"],
             is_leaf=len(list(self.graph.successors(sample_node))) == 0,
-            attributes=node_info["attribute"],
             add_flow_stack=False,
             additional_args={
                 "successors": [
@@ -421,7 +392,6 @@ class TaskGraph(TaskGraphBase):
                     for pred in self.graph.predecessors(sample_node)
                 ],
                 "prompt": node_info["attribute"].get("prompt", ""),
-                "tags": node_info["attribute"].get("tags", {}),
                 **{
                     k2: v2
                     for k, v in node_info["attribute"]
@@ -579,19 +549,12 @@ class TaskGraph(TaskGraphBase):
         status: StatusEnum = node_status.get(curr_node, StatusEnum.COMPLETE)
         if status == StatusEnum.STAY:
             node_info: dict[str, Any] = self.graph.nodes[curr_node]
-            # Handle missing resource gracefully
-            resource_name: str = node_info.get("resource", {}).get(
-                "name", "default_resource"
-            )
-            resource_id: str = node_info.get("resource", {}).get("id", "default_id")
             node_info = NodeInfo(
-                type=node_info.get("type", ""),
                 node_id=curr_node,
-                resource_id=resource_id,
-                resource_name=resource_name,
-                can_skipped=node_info.get("attribute", {}).get("can_skipped", False),
+                resource=node_info["resource"],
+                attribute=node_info["attribute"],
+                data=node_info["data"],
                 is_leaf=len(list(self.graph.successors(curr_node))) == 0,
-                attributes=node_info["attribute"],
                 additional_args={
                     "successors": [
                         self._build_neighbor_node_info(succ)
@@ -602,22 +565,6 @@ class TaskGraph(TaskGraphBase):
                         for pred in self.graph.predecessors(curr_node)
                     ],
                     "prompt": node_info["attribute"].get("prompt", ""),
-                    "tags": node_info["attribute"].get("tags", {}),
-                    **{
-                        k2: v2
-                        for k, v in node_info["attribute"]
-                        .get("node_specific_data", {})
-                        .items()
-                        if isinstance(v, dict)
-                        for k2, v2 in v.items()
-                    },
-                    **{
-                        k: v
-                        for k, v in node_info["attribute"]
-                        .get("node_specific_data", {})
-                        .items()
-                        if not isinstance(v, dict)
-                    },
                 },
             )
             return True, node_info, params
@@ -792,6 +739,22 @@ class TaskGraph(TaskGraphBase):
         log_context.info(
             f"Check intent under current node: {curr_local_intents_w_unsure}"
         )
+        # if only unsure_intent is available -> no meaningful intent prediction
+        if (
+            len(curr_local_intents_w_unsure) == 1
+            and self.unsure_intent.get("intent") in curr_local_intents_w_unsure
+        ):
+            pred_intent = self.unsure_intent.get("intent")
+            params.taskgraph.nlu_records.append(
+                {
+                    "candidate_intents": curr_local_intents_w_unsure,
+                    "pred_intent": pred_intent,
+                    "no_intent": False,
+                    "global_intent": False,
+                }
+            )
+            return False, pred_intent, params
+
         pred_intent: str = self.intent_detector.execute(
             self.text,
             curr_local_intents_w_unsure,
@@ -814,7 +777,7 @@ class TaskGraph(TaskGraphBase):
         log_context.info(
             f"Local intent predition -> found_pred_in_avil: {found_pred_in_avil}, pred_intent: {pred_intent}"
         )
-        if found_pred_in_avil:
+        if found_pred_in_avil and pred_intent != self.unsure_intent.get("intent"):
             params.taskgraph.intent = pred_intent
             next_node: str = curr_node
             for edge in self.graph.out_edges(curr_node, data="intent"):
@@ -851,14 +814,11 @@ class TaskGraph(TaskGraphBase):
             )
         params.taskgraph.curr_node = curr_node
         node_info: NodeInfo = NodeInfo(
-            node_id=None,
-            type="",
-            resource_id="planner",
-            resource_name="planner",
-            can_skipped=False,
+            node_id="",
+            resource={"id": "planner", "name": "planner"},
+            attribute={"value": "", "direct": False},
+            data={},
             is_leaf=len(list(self.graph.successors(curr_node))) == 0,
-            attributes={"value": "", "direct": False},
-            additional_args={"tags": {}},
         )
         return node_info, params
 

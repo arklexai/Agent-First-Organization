@@ -24,9 +24,12 @@ import pytest
 
 from arklex.env.env import Environment
 from arklex.env.tools.tools import Tool
-from arklex.env.workers.worker import BaseWorker
-from arklex.orchestrator.entities.msg_state_entities import MessageState, StatusEnum
-from arklex.orchestrator.entities.orchestrator_params_entities import OrchestratorParams
+from arklex.env.workers.base.base_worker import BaseWorker
+from arklex.orchestrator.entities.orchestrator_state_entities import (
+    MessageState,
+    OrchestratorParams,
+    StatusEnum,
+)
 from arklex.orchestrator.orchestrator import AgentOrg
 
 
@@ -146,7 +149,7 @@ class TestTaskGraphFullFlow:
             @staticmethod
             def init_tools(
                 tools: list[dict[str, Any]],
-                attributes_list: list[dict[str, Any]] | None = None
+                attributes_list: list[dict[str, Any]] | None = None,
             ) -> dict[str, dict[str, Any]]:
                 """Initialize mock tools."""
                 tool_registry: dict[str, dict[str, Any]] = {}

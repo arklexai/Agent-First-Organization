@@ -19,13 +19,13 @@ from arklex.env.planner.react_planner import (
     ReactPlanner,
     aimessage_to_dict,
 )
-from arklex.orchestrator.entities.msg_state_entities import (
+from arklex.orchestrator.entities.orchestrator_state_entities import (
     ConvoMessage,
-    LLMConfig,
     MessageState,
     OrchestratorMessage,
 )
-from arklex.types import StreamType
+from arklex.types.model_types import LLMConfig
+from arklex.types.stream_types import StreamType
 
 
 @pytest.fixture
