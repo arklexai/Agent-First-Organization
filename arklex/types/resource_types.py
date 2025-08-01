@@ -14,6 +14,7 @@ class ToolCategory(str, Enum):
     GOOGLE_CALENDAR = "google-calendar"
     SHOPIFY = "shopify"
     HUBSPOT = "hubspot"
+    CUSTOM = "custom"
 
 
 class WorkerCategory(str, Enum):

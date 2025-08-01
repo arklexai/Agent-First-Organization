@@ -352,19 +352,6 @@ class TaskGraph(TaskGraphBase):
             data=n["data"],
             is_leaf=len(list(self.graph.successors(node_id))) == 0,
             add_flow_stack=False,
-            additional_args={
-                **{
-                    k2: v2
-                    for k, v in n["attribute"].get("node_specific_data", {}).items()
-                    if isinstance(v, dict)
-                    for k2, v2 in v.items()
-                },
-                **{
-                    k: v
-                    for k, v in n["attribute"].get("node_specific_data", {}).items()
-                    if not isinstance(v, dict)
-                },
-            },
         )
 
     def _get_node(
@@ -578,21 +565,6 @@ class TaskGraph(TaskGraphBase):
                         for pred in self.graph.predecessors(curr_node)
                     ],
                     "prompt": node_info["attribute"].get("prompt", ""),
-                    **{
-                        k2: v2
-                        for k, v in node_info["attribute"]
-                        .get("node_specific_data", {})
-                        .items()
-                        if isinstance(v, dict)
-                        for k2, v2 in v.items()
-                    },
-                    **{
-                        k: v
-                        for k, v in node_info["attribute"]
-                        .get("node_specific_data", {})
-                        .items()
-                        if not isinstance(v, dict)
-                    },
                 },
             )
             return True, node_info, params
@@ -767,6 +739,22 @@ class TaskGraph(TaskGraphBase):
         log_context.info(
             f"Check intent under current node: {curr_local_intents_w_unsure}"
         )
+        # if only unsure_intent is available -> no meaningful intent prediction
+        if (
+            len(curr_local_intents_w_unsure) == 1
+            and self.unsure_intent.get("intent") in curr_local_intents_w_unsure
+        ):
+            pred_intent = self.unsure_intent.get("intent")
+            params.taskgraph.nlu_records.append(
+                {
+                    "candidate_intents": curr_local_intents_w_unsure,
+                    "pred_intent": pred_intent,
+                    "no_intent": False,
+                    "global_intent": False,
+                }
+            )
+            return False, pred_intent, params
+
         pred_intent: str = self.intent_detector.execute(
             self.text,
             curr_local_intents_w_unsure,
@@ -789,7 +777,7 @@ class TaskGraph(TaskGraphBase):
         log_context.info(
             f"Local intent predition -> found_pred_in_avil: {found_pred_in_avil}, pred_intent: {pred_intent}"
         )
-        if found_pred_in_avil:
+        if found_pred_in_avil and pred_intent != self.unsure_intent.get("intent"):
             params.taskgraph.intent = pred_intent
             next_node: str = curr_node
             for edge in self.graph.out_edges(curr_node, data="intent"):
@@ -826,7 +814,7 @@ class TaskGraph(TaskGraphBase):
             )
         params.taskgraph.curr_node = curr_node
         node_info: NodeInfo = NodeInfo(
-            node_id="planner",
+            node_id="",
             resource={"id": "planner", "name": "planner"},
             attribute={"value": "", "direct": False},
             data={},

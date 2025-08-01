@@ -9,7 +9,9 @@ import json
 import traceback
 import uuid
 from collections.abc import Callable
-from typing import Any, TypedDict
+from typing import Any
+
+from pydantic import BaseModel
 
 from arklex.orchestrator.entities.orchestrator_state_entities import (
     OrchestratorState,
@@ -22,6 +24,14 @@ from arklex.utils.logging_utils import LogContext
 from arklex.utils.utils import PYTHON_TO_JSON_SCHEMA, format_chat_history
 
 log_context = LogContext(__name__)
+
+
+class ToolOutput(BaseModel):
+    status: StatusEnum
+    message_flow: str | None = None
+    response: str | None = None
+    slots: dict[str, list[Slot]] | None = None
+
 
 # Type conversion mapping for slot values
 TYPE_CONVERTERS = {
@@ -37,7 +47,6 @@ TYPE_CONVERTERS = {
 def register_tool(
     description: str,
     slots: list[dict[str, Any]] | None = None,
-    isResponse: bool = False,
 ) -> Callable:
     """Register a tool with the Arklex framework.
 
@@ -56,24 +65,9 @@ def register_tool(
 
     def inner(func: Callable) -> Callable:
         name: str = f"{func.__name__}"
-        return Tool(name, description, slots)
+        return Tool(func, name, description, slots)
 
     return inner
-
-
-class FixedArgs(TypedDict, total=False):
-    """Type definition for fixed arguments passed to tool execution."""
-
-    llm_provider: str
-    model_type_or_path: str
-    temperature: float
-    shop_url: str
-    api_version: str
-    admin_token: str
-    storefront_token: str
-    limit: str
-    navigate: str
-    pageInfo: dict[str, Any]
 
 
 class Tool:
@@ -98,6 +92,7 @@ class Tool:
 
     def __init__(
         self,
+        func: Callable,
         name: str,
         description: str,
         slots: list[dict[str, Any]],
@@ -112,17 +107,19 @@ class Tool:
             outputs (List[str]): List of output field names.
             isResponse (bool): Whether the tool is a response tool.
         """
+        self.func: Callable = func
         self.name: str = name
         self.description: str = description
         self.slots: list[Slot] = [Slot.model_validate(slot) for slot in slots]
         self.info: dict[str, Any] = self.get_info(slots)
         self.llm_config: dict[str, Any] = {}
         self.slotfiller: SlotFiller | None = None
+        self.auth = {}
+        self.node_specific_data: dict[str, Any] = {}
+        self.properties: dict[str, dict[str, Any]] = {}
         # TODO: check with voicebot setup
         # self.openai_slots: list[dict[str, Any]] = self._format_slots(slots)
-        self.properties: dict[str, dict[str, Any]] = {}
-        self.fixed_args = {}
-        self.auth = {}
+        # self.fixed_args = {}
 
     def get_info(self, slots: list[dict[str, Any]]) -> dict[str, Any]:
         """Get tool information including parameters and requirements.
@@ -178,7 +175,9 @@ class Tool:
                     slot.verified = True
         return populated_slots
 
-    def _init_slots(self, state: OrchestratorState) -> None:
+    def _init_slots(
+        self, state: OrchestratorState, all_slots: dict[str, list[Slot]]
+    ) -> None:
         """Initialize slots with default values from the message state.
 
         This method processes default slots from the message state and updates
@@ -187,7 +186,7 @@ class Tool:
         Args:
             state (MessageState): The current message state.
         """
-        default_slots: list[Slot] = state.slots.get("default_slots", [])
+        default_slots: list[Slot] = all_slots.get("default_slots", [])
         log_context.info(f"Default slots are: {default_slots}")
         if not default_slots:
             return
@@ -828,8 +827,11 @@ class Tool:
         return missing
 
     def execute(
-        self, state: OrchestratorState, **fixed_args: FixedArgs
-    ) -> OrchestratorState:
+        self,
+        state: OrchestratorState,
+        all_slots: dict[str, list[Slot]],
+        auth: dict[str, Any],
+    ) -> tuple[OrchestratorState, ToolOutput]:
         """Execute the tool with the current state and fixed arguments.
 
         This method is a wrapper around _execute that handles the execution flow
@@ -843,8 +845,8 @@ class Tool:
             MessageState: The updated message state after tool execution.
         """
         self.llm_config = state.bot_config.llm_config.model_dump()
-        state = self._execute(state, **fixed_args)
-        return state
+        state, tool_output = self._execute(state, all_slots, auth)
+        return state, tool_output
 
     def to_openai_tool_def(self) -> dict:
         """Convert the tool to an OpenAI tool definition.
@@ -973,8 +975,11 @@ class Tool:
         return f"{self.__class__.__name__}"
 
     def _execute(
-        self, state: OrchestratorState, **fixed_args: FixedArgs
-    ) -> OrchestratorState:
+        self,
+        state: OrchestratorState,
+        all_slots: dict[str, list[Slot]],
+        auth: dict[str, Any],
+    ) -> tuple[OrchestratorState, ToolOutput]:
         """Execute the tool with the current state and fixed arguments.
 
         This method handles slot filling, parameter validation, and tool execution.
@@ -987,64 +992,14 @@ class Tool:
         Returns:
             MessageState: The updated message state after tool execution.
         """
-        response = ""  # Initialize as empty string
         slot_verification: bool = False
         reason: str = ""
-        response: str = ""  # Initialize response variable
+        tool_output: ToolOutput = ToolOutput(status=StatusEnum.INCOMPLETE)
 
-        # Check if we need to reset slots for a new node
-        # If this tool has been called before, check if the current slots are different
-        # from the previously stored slots (indicating a different node)
-        def slot_schema_signature(
-            slots: list[Slot],
-        ) -> list[tuple[str, str, str | None]]:
-            import json
-
-            def safe_schema_dump(slot: Slot) -> list[dict[str, Any]]:
-                return [
-                    field.model_dump()
-                    if hasattr(field, "model_dump")
-                    else dict(field)
-                    if not isinstance(field, dict)
-                    else field
-                    for field in slot.schema
-                ]
-
-            return [
-                (
-                    slot.name,
-                    slot.type,
-                    json.dumps(safe_schema_dump(slot), sort_keys=True)
-                    if hasattr(slot, "schema") and slot.schema
-                    else None,
-                )
-                for slot in slots
-            ]
-
-        if state.slots.get(self.name):
-            previous_slots = state.slots[self.name]
-            if slot_schema_signature(self.slots) != slot_schema_signature(
-                previous_slots
-            ):
-                log_context.info(
-                    "Slot configuration or schema changed, resetting slots"
-                )
-                # Reset slots to the current node's configuration
-                state.slots[self.name] = [
-                    Slot.model_validate(slot.model_dump()) for slot in self.slots
-                ]
-                self.slots = state.slots[self.name]
-            else:
-                # Load previous slots if they're from the same node and schema
-                self.slots = state.slots[self.name]
-        else:
-            state.slots[self.name] = [
-                Slot.model_validate(slot.model_dump()) for slot in self.slots
-            ]
-            self.slots = state.slots[self.name]
+        self.slots = [Slot.model_validate(slot) for slot in self.slots]
 
         # init slot values saved in default slots
-        self._init_slots(state)
+        self._init_slots(state, all_slots)
         # do slotfilling (now with valueSource logic)
         chat_history_str: str = format_chat_history(state.function_calling_trajectory)
         slots: list[Slot] = self._fill_slots_recursive(self.slots, chat_history_str)
@@ -1057,7 +1012,7 @@ class Tool:
                 slots, chat_history_str
             )
             if response:
-                state.status = StatusEnum.INCOMPLETE
+                tool_output.status = StatusEnum.INCOMPLETE
                 if is_verification:
                     slot_verification = True
                     reason = response
@@ -1066,7 +1021,6 @@ class Tool:
         missing_required = self._is_missing_required(slots)
 
         # if all required slots are filled and verified, then execute the function
-        tool_success: bool = False
         if not missing_required:
             log_context.info("all required slots filled")
             # Get all slot values, including optional ones that have values
@@ -1087,7 +1041,8 @@ class Tool:
 
             combined_kwargs: dict[str, Any] = {
                 **kwargs,
-                **fixed_args,
+                "auth": auth,
+                "node_specific_data": self.node_specific_data,
                 **self.llm_config,
             }
             try:
@@ -1096,24 +1051,28 @@ class Tool:
                     for name, param in sig.parameters.items()
                     if param.default == inspect.Parameter.empty
                 ]
-
                 # Ensure all required arguments are present
                 for arg in required_args:
                     if arg not in kwargs:
                         kwargs[arg] = ""
-
                 response = self.func(**combined_kwargs)
-                tool_success = True
+                if hasattr(response, "message_flow"):
+                    tool_output.message_flow = response.message_flow
+                elif hasattr(response, "response"):
+                    tool_output.response = response.response
+                else:
+                    tool_output.message_flow = str(response)
+                tool_output.status = StatusEnum.COMPLETE
             except ToolExecutionError as tee:
                 log_context.error(traceback.format_exc())
-                response = tee.extra_message
+                tool_output.message_flow = tee.extra_message
             except AuthenticationError as ae:
                 log_context.error(traceback.format_exc())
-                response = str(ae)
+                tool_output.message_flow = str(ae)
             except Exception as e:
                 log_context.error(traceback.format_exc())
-                response = str(e)
-            log_context.info(f"Tool {self.name} response: {response}")
+                tool_output.message_flow = str(e)
+            log_context.info(f"Tool {self.name} output: {tool_output}")
             call_id: str = str(uuid.uuid4())
             state.function_calling_trajectory.append(
                 {
@@ -1137,36 +1096,20 @@ class Tool:
                     "role": "tool",
                     "tool_call_id": call_id,
                     "name": self.name,
-                    "content": str(response),
+                    "content": tool_output.message_flow
+                    if tool_output.message_flow
+                    else tool_output.response,
                 }
-            )
-            state.status = (
-                StatusEnum.COMPLETE if tool_success else StatusEnum.INCOMPLETE
             )
 
         state.trajectory[-1][-1].input = slots
-        state.trajectory[-1][-1].output = str(response)
+        state.trajectory[-1][-1].output = str(tool_output)
 
-        if tool_success:
-            # Tool execution success
-            if self.isResponse:
-                log_context.info(
-                    "Tool exeuction COMPLETE, and the output is stored in response"
-                )
-                state.response = str(response)
-            else:
-                log_context.info(
-                    "Tool execution COMPLETE, and the output is stored in message flow"
-                )
-                state.message_flow = (
-                    state.message_flow
-                    + f"Context from {self.name} tool execution: {str(response)}\n"
-                )
-        else:
+        if tool_output.status == StatusEnum.INCOMPLETE:
             # Tool execution failed
             if slot_verification:
                 log_context.info("Tool execution INCOMPLETE due to slot verification")
-                state.message_flow = f"Context from {self.name} tool execution: {str(response)}\n Focus on the '{reason}' to generate the verification request in response please and make sure the request appear in the response."
+                tool_output.message_flow = f"Context from {self.name} tool execution: {str(tool_output.message_flow)}\n Focus on the '{reason}' to generate the verification request in response please and make sure the request appear in the response."
             else:
                 log_context.info(
                     "Tool execution INCOMPLETE due to tool execution failure"
@@ -1175,18 +1118,20 @@ class Tool:
                 missing_slots = self._missing_slots_recursive(slots)
                 if missing_slots:
                     questions_text = " ".join(missing_slots)
-                    state.message_flow = (
+                    tool_output.message_flow = (
                         state.message_flow
                         + f"IMPORTANT: The tool cannot proceed without required information. You MUST ask the user for: {questions_text}\n"
                         + "Do NOT provide any facts or information until you have collected this required information from the user.\n"
                     )
                 else:
-                    state.message_flow = (
+                    tool_output.message_flow = (
                         state.message_flow
-                        + f"Context from {self.name} tool execution: {str(response)}\n"
+                        + f"Context from {self.name} tool execution: {str(tool_output.message_flow)}\n"
                     )
-        state.slots[self.name] = slots
-        return state
+        all_slots[self.name] = slots
+        tool_output.slots = all_slots
+
+        return state, tool_output
 
     def _build_repeatable_regular_slot_prompt(self, slot: Slot) -> str:
         """Build a prompt for repeatable regular slots.

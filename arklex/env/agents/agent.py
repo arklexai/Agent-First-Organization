@@ -3,7 +3,7 @@ from abc import ABC
 from typing import Any, TypeVar
 
 from arklex.env.tools.tools import Tool
-from arklex.orchestrator.entities.msg_state_entities import MessageState
+from arklex.orchestrator.entities.orchestrator_state_entities import OrchestratorState
 from arklex.utils.logging_utils import LogContext
 
 log_context = LogContext(__name__)
@@ -59,7 +59,7 @@ class BaseAgent(ABC):
         """
         return f"{self.__class__.__name__}"
 
-    def execute(self, msg_state: MessageState, **kwargs: Any) -> MessageState:  # noqa: ANN401
+    def execute(self, msg_state: OrchestratorState, **kwargs: Any) -> OrchestratorState:  # noqa: ANN401
         """Execute the agent with error handling and state management.
 
         This method wraps the agent's execution with error handling and state
@@ -74,7 +74,9 @@ class BaseAgent(ABC):
         """
         try:
             response_return: dict[str, Any] = self._execute(msg_state, **kwargs)
-            response_state: MessageState = MessageState.model_validate(response_return)
+            response_state: OrchestratorState = OrchestratorState.model_validate(
+                response_return
+            )
             if response_state.trajectory and response_state.trajectory[-1]:
                 response_state.trajectory[-1][-1].output = (
                     response_state.response

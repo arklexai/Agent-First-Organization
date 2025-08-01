@@ -174,7 +174,6 @@ class DefaultPlanner:
         self,
         tools_map: dict[str, Any],
         workers_map: dict[str, Any] | None = None,
-        name2id: dict[str, int] | None = None,
     ) -> None:
         """Initialize the default planner.
 
@@ -185,7 +184,6 @@ class DefaultPlanner:
         """
         self.tools_map: dict[str, Any] = tools_map
         self.workers_map: dict[str, Any] = workers_map
-        self.name2id: dict[str, int] = name2id
         self.all_resources_info: dict[str, Any] = {}
         self.llm_config: LLMConfig = DEFAULT_LLM_CONFIG
 
