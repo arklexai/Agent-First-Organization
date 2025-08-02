@@ -28,8 +28,12 @@ The MAS is triggered via a Taskgraph configuration where a single node defines a
             "id": "multi_agent",
             "name": "MultiAgent",
             "path": "multi_agent.py",
-            "tools":[],
-            "sub_agents": [...], // list of agent names
+            "tools":[]
+        },
+        {
+            "id": "openai_sdk_agent",
+            "name": "OpenAISDKAgent",
+            "path": null
         }
        
     ]

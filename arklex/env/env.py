@@ -141,13 +141,23 @@ class DefaultResourceInitializer(BaseResourceInitializer):
                                     "description": description,
                                 }
                             )
+                            all_slots = slots + group_slots
+                            tool_instance.load_slots(all_slots)
+                            tool_instance.fixed_args.update(
+                                node_specific_data.get("http", {})
+                            )
+                            tool_instance.description = attributes.get("task", "")
+                            tool_instance.name = node_specific_data.get(
+                                "name",
+                                attributes.get("task", "").replace(" ", "_").lower(),
+                            )
                         all_slots = slots + group_slots
                         tool_instance.load_slots(all_slots)
-                        tool_instance.fixed_args.update(node_specific_data.get("http", {}))
-                        tool_instance.description = attributes.get("task", "")
-                        tool_instance.name = node_specific_data.get(
-                            "name", attributes.get("task", "").replace(" ", "_").lower()
+                        tool_instance.fixed_args.update(
+                            node_specific_data.get("http", {})
                         )
+                        tool_instance.description = attributes.get("task", "")
+                        tool_instance.name = tool_id
                         tool_id = tool_instance.name
                     tool_registry[tool_id] = {
                         "name": f"{path.replace('/', '-')}-{name}",
@@ -205,7 +215,6 @@ class DefaultResourceInitializer(BaseResourceInitializer):
             agent_id: str = agent["id"]
             name: str = agent["name"]
             path: str | None = agent.get("path")
-            sub_agents: list | None = agent.get("sub_agents")
 
             try:
                 if path:
@@ -217,8 +226,6 @@ class DefaultResourceInitializer(BaseResourceInitializer):
                         "name": name,
                         "description": func.description,
                         "execute": partial(func, **agent.get("fixed_args", {})),
-                        "sub_agents": sub_agents,
-                        "config": {},
                     }
                 # for sub agents in multi-agent system
                 elif agent_id == "openai_sdk_agent":

@@ -51,6 +51,7 @@ class Slot(BaseModel):
     schema: list[dict] | None = None
     items: dict | None = None
     target: str | None = None
+    valueSource: str | None = Field(default=None)
 
     def to_openai_schema(self) -> dict | None:
         if getattr(self, "valueSource", None) == "fixed":
