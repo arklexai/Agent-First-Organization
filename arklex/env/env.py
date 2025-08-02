@@ -437,24 +437,18 @@ class Environment:
             call_id: str = str(uuid.uuid4())
             params.memory.function_calling_trajectory.append(
                 {
-                    "content": None,
-                    "role": "assistant",
-                    "tool_calls": [
-                        {
-                            "function": {"arguments": "{}", "name": self.id2name[id]},
-                            "id": call_id,
-                            "type": "function",
-                        }
-                    ],
-                    "function_call": None,
+                    'type': 'function_call',
+                    'id': "fc_" + call_id, 
+                    'call_id': "call_" + call_id,
+                    'name': self.id2name[id],
+                    'arguments': "{}"
                 }
             )
             params.memory.function_calling_trajectory.append(
                 {
-                    "role": "tool",
-                    "tool_call_id": call_id,
-                    "name": self.id2name[id],
-                    "content": response_state.response
+                    "type": "function_call_output",
+                    "call_id": "call_" + call_id,
+                    "output": response_state.response
                     if response_state.response
                     else response_state.message_flow,
                 }
