@@ -489,7 +489,7 @@ PROMETHEUS_ENABLED=true
       "enabled": true,
       "min_workers": 2,
       "max_workers": 10,
-      "scale_up_threshold": 0.8,
+      "scale_up_threshold": 0.95,
       "scale_down_threshold": 0.2,
       "cooldown_period": 300,
       "metrics": ["cpu", "memory", "response_time"]

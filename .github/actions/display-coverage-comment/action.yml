@@ -8,11 +8,11 @@ inputs:
   minimum-green:
     description: "Minimum coverage percentage for green status"
     required: false
-    default: "80.0"
+    default: "95.0"
   minimum-orange:
     description: "Minimum coverage percentage for orange status"
     required: false
-    default: "70"
+    default: "85"
 
 runs:
   using: "composite"

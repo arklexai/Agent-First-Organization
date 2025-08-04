@@ -16,7 +16,7 @@ on:
       min-coverage-threshold:
         description: 'Minimum coverage threshold for color coding'
         required: false
-        default: '80.0'
+        default: '95.0'
         type: string
       badge-pattern:
         description: 'Pattern to match existing badge in README'
@@ -75,9 +75,9 @@ jobs:
           
           python -c "
           coverage = float('$COVERAGE')
-          if coverage < 90:
+          if coverage < 95:
               print('color=red')
-          elif coverage < 80:
+          elif coverage < 85:
               print('color=orange')
           else:
               print('color=green')

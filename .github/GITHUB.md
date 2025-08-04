@@ -110,7 +110,7 @@ jobs:
       - uses: actions/checkout@v4
       - uses: ./.github/actions/run-coverage-tests
         with:
-          min-coverage-threshold: '80.0'
+          min-coverage-threshold: '95.0'
 ```
 
 ### Using a Reusable Workflow

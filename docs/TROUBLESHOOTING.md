@@ -535,7 +535,7 @@ netstat -tulpn | grep :8000
 orchestrator.configure_scaling(
     min_workers=2,
     max_workers=10,
-    scale_up_threshold=0.8,
+            scale_up_threshold=0.95,
     scale_down_threshold=0.2
 )
 ```

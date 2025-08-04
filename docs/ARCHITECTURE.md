@@ -279,7 +279,7 @@ class AutoScaler:
     def __init__(self, config):
         self.min_instances = config.get('min_instances', 2)
         self.max_instances = config.get('max_instances', 10)
-        self.scale_up_threshold = config.get('scale_up_threshold', 0.8)
+        self.scale_up_threshold = config.get('scale_up_threshold', 0.95)
         self.scale_down_threshold = config.get('scale_down_threshold', 0.2)
         self.cooldown_period = config.get('cooldown_period', 300)
     

@@ -122,7 +122,7 @@ GOOGLE_CALENDAR_CREDENTIALS=path/to/credentials.json
 AUTO_SCALE_ENABLED=true
 MIN_WORKERS=2
 MAX_WORKERS=10
-SCALE_UP_THRESHOLD=0.8
+SCALE_UP_THRESHOLD=0.95
 SCALE_DOWN_THRESHOLD=0.2
 
 # Circuit Breaker
@@ -827,7 +827,7 @@ class AutoScaler:
         self.min_workers = min_workers
         self.max_workers = max_workers
         self.current_workers = min_workers
-        self.scale_up_threshold = 0.8
+        self.scale_up_threshold = 0.95
         self.scale_down_threshold = 0.2
         self.cooldown_period = 300  # 5 minutes
         self.last_scale_time = 0

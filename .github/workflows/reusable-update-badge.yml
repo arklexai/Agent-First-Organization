@@ -16,7 +16,7 @@ on:
       min-coverage-threshold:
         description: 'Minimum coverage threshold for color coding'
         required: false
-        default: '80.0'
+        default: '95.0'
         type: string
       badge-pattern:
         description: 'Pattern to match existing badge in README'
@@ -70,9 +70,9 @@ jobs:
         run: |
           COVERAGE=${{ steps.coverage.outputs.coverage }}
           
-          if (( $(echo "$COVERAGE < 90" | bc -l) )); then
+          if (( $(echo "$COVERAGE < 95" | bc -l) )); then
             echo "color=red"
-          elif (( $(echo "$COVERAGE < 80" | bc -l) )); then
+          elif (( $(echo "$COVERAGE < 85" | bc -l) )); then
             echo "color=orange"
           else
             echo "color=green"
@@ -98,4 +98,4 @@ jobs:
             git push
           else
             echo "Badge already reflects current coverage."
-          fi 
+          fi
