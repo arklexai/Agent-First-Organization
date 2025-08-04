@@ -820,6 +820,14 @@ class ReactPlanner(DefaultPlanner):
         for _ in range(max_num_steps):
             # Initialize LLM if needed
             self._initialize_llm()
+            # filter out function calls
+            messages = [
+                msg
+                for msg in messages
+                if isinstance(msg, dict)
+                and msg.get("role") in ("user", "assistant", "system")
+                and "content" in msg
+            ]
             # Invoke model to get response to ReAct instruction
             res: Any = self.llm.invoke(messages)
             message: dict[str, Any] = aimessage_to_dict(res)

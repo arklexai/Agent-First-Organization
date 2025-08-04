@@ -225,10 +225,9 @@ def test_environment_step_worker_with_response_content(
     result_state, result_params = env.step("worker1", message_state, params, node_info)
     assert result_state.status == StatusEnum.COMPLETE
     assert len(result_params.memory.function_calling_trajectory) == 2
-    # Check that response content is used in function calling trajectory
+    # Check that response output is used in function calling trajectory
     assert (
-        result_params.memory.function_calling_trajectory[1]["content"]
-        == "test response"
+        result_params.memory.function_calling_trajectory[1]["output"] == "test response"
     )
 
 
@@ -257,7 +256,7 @@ def test_environment_step_worker_with_message_flow(
     assert result_state.status == StatusEnum.COMPLETE
     assert len(result_params.memory.function_calling_trajectory) == 2
     # Check that message_flow is used when response is None
-    assert result_params.memory.function_calling_trajectory[1]["content"] == "test flow"
+    assert result_params.memory.function_calling_trajectory[1]["output"] == "test flow"
 
 
 def test_environment_step_planner_executes() -> None:
@@ -1331,7 +1330,7 @@ def test_environment_step_worker_with_empty_response_and_message_flow(
     assert result_state.status == StatusEnum.COMPLETE
     assert len(result_params.memory.function_calling_trajectory) == 2
     # Check that empty string is used when both response and message_flow are empty strings
-    assert result_params.memory.function_calling_trajectory[1]["content"] == ""
+    assert result_params.memory.function_calling_trajectory[1]["output"] == ""
 
 
 def test_environment_step_tool_with_slot_schema_signature_change(
