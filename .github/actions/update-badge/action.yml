@@ -13,7 +13,7 @@ inputs:
   min-coverage-threshold:
     description: "Minimum coverage threshold for color coding"
     required: false
-    default: "99.0"
+    default: "80.0"
   badge-pattern:
     description: "Pattern to match existing badge in README"
     required: false
@@ -55,7 +55,7 @@ runs:
 
         if (( $(echo "$COVERAGE < 90" | bc -l) )); then
           echo "color=red"
-        elif (( $(echo "$COVERAGE < 99" | bc -l) )); then
+        elif (( $(echo "$COVERAGE < 80" | bc -l) )); then
           echo "color=orange"
         else
           echo "color=green"

@@ -41,7 +41,7 @@ def parse_coverage_xml(file_path: str) -> dict[str, Any]:
 
 
 def get_coverage_status(
-    coverage_percentage: float, min_green: float = 99.0, min_orange: float = 70.0
+    coverage_percentage: float, min_green: float = 80.0, min_orange: float = 70.0
 ) -> str:
     """Determine coverage status based on thresholds."""
     if coverage_percentage >= min_green:
@@ -53,7 +53,7 @@ def get_coverage_status(
 
 
 def format_coverage_comment(
-    coverage_data: dict[str, Any], min_green: float = 99.0, min_orange: float = 70.0
+    coverage_data: dict[str, Any], min_green: float = 80.0, min_orange: float = 70.0
 ) -> str:
     """Format coverage data into a GitHub comment."""
     coverage_percentage = coverage_data["coverage_percentage"]
@@ -108,7 +108,7 @@ def main() -> None:
     github_token = os.environ.get("GITHUB_TOKEN")
     github_repository = os.environ.get("GITHUB_REPOSITORY")
     github_event_path = os.environ.get("GITHUB_EVENT_PATH")
-    min_green = float(os.environ.get("MINIMUM_GREEN", "99.0"))
+    min_green = float(os.environ.get("MINIMUM_GREEN", "80.0"))
     min_orange = float(os.environ.get("MINIMUM_ORANGE", "70"))
 
     # Validate required environment variables

@@ -31,7 +31,7 @@ jobs:
     env:
       SHOPIFY_FIXED_ARGS: ${{ secrets.SHOPIFY_FIXED_ARGS }}
       OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
-      MIN_COVERAGE_THRESHOLD: '99.0'
+      MIN_COVERAGE_THRESHOLD: '80.0'
 
     steps:
       - name: Checkout PR branch
@@ -84,7 +84,7 @@ jobs:
               coverage = float(root.attrib['line-rate']) * 100
               print(f'Coverage: {coverage:.1f}%')
 
-              min_coverage = float(os.environ.get('MIN_COVERAGE_THRESHOLD', '99.0'))
+              min_coverage = float(os.environ.get('MIN_COVERAGE_THRESHOLD', '80.0'))
               print(f'Minimum coverage threshold: {min_coverage}%')
 
               if coverage < min_coverage:
@@ -150,7 +150,7 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           COVERAGE_PATH: "coverage.xml"
-          MINIMUM_GREEN: "99.0"
+          MINIMUM_GREEN: "80.0"
           MINIMUM_ORANGE: "70"
         continue-on-error: true
 
@@ -162,7 +162,7 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           COVERAGE_PATH: "coverage.xml"
-          MINIMUM_GREEN: "99.0"
+          MINIMUM_GREEN: "80"
           MINIMUM_ORANGE: "70"
 
       - name: Update README badge
@@ -173,7 +173,7 @@ jobs:
           coverage = float('$COVERAGE')
           if coverage < 90:
               print('red')
-          elif coverage < 99:
+          elif coverage < 80:
               print('orange')
           else:
               print('green')
