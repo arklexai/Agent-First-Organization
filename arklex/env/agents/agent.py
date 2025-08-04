@@ -1,14 +1,26 @@
 import traceback
-from abc import ABC
+from abc import ABC, abstractmethod
 from typing import Any, TypeVar
 
+from pydantic import BaseModel
+
 from arklex.env.tools.tools import Tool
-from arklex.orchestrator.entities.orchestrator_state_entities import OrchestratorState
+from arklex.orchestrator.entities.orchestrator_state_entities import (
+    OrchestratorState,
+    StatusEnum,
+)
 from arklex.utils.logging_utils import LogContext
 
 log_context = LogContext(__name__)
 
 T = TypeVar("T")
+
+
+class AgentOutput(BaseModel):
+    """Output for the agent."""
+
+    response: str
+    status: StatusEnum
 
 
 def register_agent(cls: type[T]) -> type[T]:
@@ -23,7 +35,7 @@ def register_agent(cls: type[T]) -> type[T]:
     Returns:
         Type[T]: The registered agent class.
     """
-    cls.name = cls.__name__  # Automatically set name to the class name
+    cls.name = cls.__name__
     return cls
 
 
@@ -59,7 +71,28 @@ class BaseAgent(ABC):
         """
         return f"{self.__class__.__name__}"
 
-    def execute(self, msg_state: OrchestratorState, **kwargs: Any) -> OrchestratorState:  # noqa: ANN401
+    @abstractmethod
+    def init_agent_data(
+        self, orch_state: OrchestratorState, node_specific_data: dict[str, Any]
+    ) -> None:
+        """Initialize the agent data.
+
+        Args:
+            orch_state (OrchestratorState): The current orchestrator state.
+            node_specific_data (dict[str, Any]): Additional keyword arguments for the execution.
+        """
+
+    @abstractmethod
+    def _execute(self) -> tuple[OrchestratorState, AgentOutput]:
+        """Execute the agent's core functionality.
+
+        This abstract method must be implemented by concrete agent classes to
+        define their specific execution logic.
+        """
+
+    def execute(
+        self, orch_state: OrchestratorState, node_specific_data: dict[str, Any]
+    ) -> tuple[OrchestratorState, Any]:  # noqa: ANN401
         """Execute the agent with error handling and state management.
 
         This method wraps the agent's execution with error handling and state
@@ -73,17 +106,18 @@ class BaseAgent(ABC):
             MessageState: The updated message state after execution.
         """
         try:
-            response_return: dict[str, Any] = self._execute(msg_state, **kwargs)
-            response_state: OrchestratorState = OrchestratorState.model_validate(
-                response_return
-            )
+            self.init_agent_data(orch_state, node_specific_data)
+            response_state, output = self._execute()
             if response_state.trajectory and response_state.trajectory[-1]:
-                response_state.trajectory[-1][-1].output = (
-                    response_state.response
-                    if response_state.response
-                    else response_state.message_flow
-                )
-            return response_state
+                response_state.trajectory[-1][-1].output = output.response
+            agent_output: AgentOutput = AgentOutput(
+                response=output.response,
+                status=StatusEnum.INCOMPLETE,
+            )
         except Exception:
             log_context.error(traceback.format_exc())
-            return msg_state
+            agent_output: AgentOutput = AgentOutput(
+                response="",
+                status=StatusEnum.INCOMPLETE,
+            )
+        return orch_state, agent_output

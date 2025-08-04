@@ -349,24 +349,19 @@ class Environment:
             )
 
         elif id in self.agents:
-            # TODO: fix agents for refactor
             log_context.info(f"{self.agents[id]['name']} agent selected")
             agent: BaseAgent = self.agents[id]["execute"](
-                successors=node_info.additional_args.get("successors", []),
-                predecessors=node_info.additional_args.get("predecessors", []),
+                successors=node_info.successors,
+                predecessors=node_info.predecessors,
                 tools=self.tools,
                 state=orch_state,
             )
-            response_state = agent.execute(orch_state, **node_info.additional_args)
-            call_id: str = str(uuid.uuid4())
-            response_state.memory.function_calling_trajectory = (
-                response_state.function_calling_trajectory
+            orch_state, agent_output = agent.execute(
+                orch_state, **node_info.additional_args
             )
-            # params.taskgraph.node_status[params.taskgraph.curr_node] = (
-            #     response_state.status
-            # )
             node_response = NodeResponse(
-                status=StatusEnum.COMPLETE,
+                status=agent_output.status,
+                response=agent_output.response,
             )
 
         else:

@@ -380,34 +380,16 @@ class TaskGraph(TaskGraphBase):
             resource=node_info["resource"],
             attribute=node_info["attribute"],
             data=node_info["data"],
+            successors=[
+                self._build_neighbor_node_info(succ)
+                for succ in self.graph.successors(sample_node)
+            ],
+            predecessors=[
+                self._build_neighbor_node_info(pred)
+                for pred in self.graph.predecessors(sample_node)
+            ],
             is_leaf=len(list(self.graph.successors(sample_node))) == 0,
             add_flow_stack=False,
-            additional_args={
-                "successors": [
-                    self._build_neighbor_node_info(succ)
-                    for succ in self.graph.successors(sample_node)
-                ],
-                "predecessors": [
-                    self._build_neighbor_node_info(pred)
-                    for pred in self.graph.predecessors(sample_node)
-                ],
-                "prompt": node_info["attribute"].get("prompt", ""),
-                **{
-                    k2: v2
-                    for k, v in node_info["attribute"]
-                    .get("node_specific_data", {})
-                    .items()
-                    if isinstance(v, dict)
-                    for k2, v2 in v.items()
-                },
-                **{
-                    k: v
-                    for k, v in node_info["attribute"]
-                    .get("node_specific_data", {})
-                    .items()
-                    if not isinstance(v, dict)
-                },
-            },
         )
 
         return node_info, params
@@ -554,18 +536,15 @@ class TaskGraph(TaskGraphBase):
                 resource=node_info["resource"],
                 attribute=node_info["attribute"],
                 data=node_info["data"],
+                successors=[
+                    self._build_neighbor_node_info(succ)
+                    for succ in self.graph.successors(curr_node)
+                ],
+                predecessors=[
+                    self._build_neighbor_node_info(pred)
+                    for pred in self.graph.predecessors(curr_node)
+                ],
                 is_leaf=len(list(self.graph.successors(curr_node))) == 0,
-                additional_args={
-                    "successors": [
-                        self._build_neighbor_node_info(succ)
-                        for succ in self.graph.successors(curr_node)
-                    ],
-                    "predecessors": [
-                        self._build_neighbor_node_info(pred)
-                        for pred in self.graph.predecessors(curr_node)
-                    ],
-                    "prompt": node_info["attribute"].get("prompt", ""),
-                },
             )
             return True, node_info, params
         return False, NodeInfo(), params

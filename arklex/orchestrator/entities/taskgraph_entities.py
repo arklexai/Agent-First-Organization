@@ -68,9 +68,10 @@ class NodeInfo(BaseModel):
     resource: dict[str, str] = Field(default_factory=dict)
     attribute: dict[str, Any] = Field(default_factory=dict)
     data: dict[str, Any] = Field(default_factory=dict)
+    successors: list = Field(default_factory=list)
+    predecessors: list = Field(default_factory=list)
     is_leaf: bool = Field(default=False)
     add_flow_stack: bool | None = Field(default=False)
-    additional_args: dict[str, Any] | None = Field(default={})
 
 
 class PathNode(BaseModel):
