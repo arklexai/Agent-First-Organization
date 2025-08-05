@@ -122,14 +122,14 @@ class DefaultResourceInitializer(BaseResourceInitializer):
                             if required_fields
                             else f"Please provide a set of values for group '{group['name']}'."
                         )
-                        description = f"Slot group '{group['name']}' with schema: {[s['name'] for s in group.get('schema', [])]}"
+                        description = f"Slot group '{group['name']}' with schema: {[s['name'] for s in group.get('schema', [])]}. If the slot property is defined as an array, return a list of values. If it is defined as an object, return a single dictionary — even if multiple values are mentioned in the prompt. In that case, extract only the most relevant one."
                         group_slots.append(
                             {
                                 "name": group["name"],
                                 "type": "group",
                                 "schema": group.get("schema", []),
                                 "required": group.get("required", False),
-                                "repeatable": group.get("repeatable", True),
+                                "repeatable": group.get("repeatable", False),
                                 "prompt": prompt,
                                 "description": description,
                             }

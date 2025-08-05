@@ -357,8 +357,7 @@ class Tool:
         Returns:
             Filled group slot
         """
-        group_prompt = self._build_group_prompt(slot)
-        temp_group_slot = self._create_temp_group_slot(slot, group_prompt)
+        temp_group_slot = self._create_temp_group_slot(slot)
         
         # Use slotfiller to fill the group as a whole
         filled = self.slotfiller.fill_slots([temp_group_slot], chat_history_str, self.llm_config)
@@ -423,8 +422,6 @@ class Tool:
         filled = self.slotfiller.fill_slots([slot], chat_history_str, self.llm_config)
         slot.value = self._convert_value(filled[0].value, slot.type)
         return slot
-
-    def _build_group_prompt(self, slot: Slot) -> str:
         """Build a schema-driven prompt for a group slot.
         
         Args:
@@ -488,7 +485,7 @@ class Tool:
         
         return prompt
 
-    def _create_temp_group_slot(self, slot: Slot, group_prompt: str) -> Slot:
+    def _create_temp_group_slot(self, slot: Slot) -> Slot:
         """Create a temporary group slot for filling.
         
         Args:
@@ -502,7 +499,7 @@ class Tool:
             name=slot.name,
             type="group",
             value=slot.value if slot.value else [],
-            description=slot.description + " " + group_prompt,
+            description=slot.description,
             required=slot.required,
             schema=slot.schema,
             repeatable=slot.repeatable,
