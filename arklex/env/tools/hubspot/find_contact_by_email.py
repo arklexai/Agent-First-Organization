@@ -31,7 +31,7 @@ slots: list[dict[str, Any]] = [
         "name": "email",
         "type": "str",
         "description": "The email of the user, such as 'something@example.com'.",
-        "prompt": "Thanks for your interest in our products! Could you please provide your email or phone number?",
+        "prompt": "Thanks for your interest in our products! Could you please provide your email?",
         "required": True,
     },
     {

@@ -41,6 +41,7 @@ slots: list[dict[str, Any]] = [
         "description": "The question that the customer has for the specific product",
         "prompt": "",
         "required": True,
+        "verified": True,
     },
     {
         "name": "cus_fname",
@@ -115,9 +116,8 @@ def create_ticket(
         simple_public_object_input: SimplePublicObjectInput = SimplePublicObjectInput(
             properties=ticket_name
         )
-
         try:
-            api_client.crm.crm.tickets.basic_api.update(
+            api_client.crm.tickets.basic_api.update(
                 ticket_id=ticket_id,
                 simple_public_object_input=simple_public_object_input,
             )
