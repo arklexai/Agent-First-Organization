@@ -329,3 +329,44 @@ def check_available(
         raise ToolExecutionError(
             func_name, HubspotExceptionPrompt.MEETING_LINK_UNFOUND_PROMPT
         ) from e
+
+
+def parse_natural_date(
+    date_str: str,
+    base_date: datetime | None = None,
+    timezone: str | None = None,
+    date_input: bool = False,
+) -> datetime:
+    """
+    Parse a natural language date string into a datetime object.
+    Args:
+        date_str (str): Date string to parse
+        base_date (Optional[datetime]): Optional base date for relative dates
+        timezone (Optional[str]): Optional timezone
+        date_input (bool): Whether input is date-only
+    Returns:
+        datetime: Parsed datetime object
+    """
+    cal: parsedatetime.Calendar = parsedatetime.Calendar(
+        version=parsedatetime.VERSION_CONTEXT_STYLE
+    )
+    time_struct: tuple = cal.parse(date_str, base_date)[0]
+    if date_input:
+        parsed_dt: datetime = datetime(*time_struct[:3])
+    else:
+        parsed_dt: datetime = datetime(*time_struct[:6])
+
+    if base_date and (parsed_dt.date() != base_date.date()):
+        parsed_dt = datetime.combine(base_date.date(), parsed_dt.time())
+
+    if timezone:
+        local_timezone: pytz.BaseTzInfo = pytz.timezone(timezone)
+        # For date-only inputs or when date_input=True, ensure we start at midnight
+        # in the local timezone to avoid day shifts during UTC conversion
+        if date_input or (parsed_dt.hour >= 12 and parsed_dt.minute > 0):
+            # Set to midnight in the local timezone
+            parsed_dt = datetime.combine(parsed_dt.date(), datetime.min.time())
+
+        parsed_dt = local_timezone.localize(parsed_dt)
+        parsed_dt = parsed_dt.astimezone(pytz.utc)
+    return parsed_dt
