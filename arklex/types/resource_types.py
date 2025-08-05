@@ -6,6 +6,7 @@ class ResourceType(str, Enum):
 
     TOOL = "tool"
     WORKER = "worker"
+    AGENT = "agent"
 
 
 class ToolCategory(str, Enum):
@@ -21,6 +22,12 @@ class WorkerCategory(str, Enum):
     """Worker category enum for organizing different types of workers."""
 
     WORKER = "worker"
+
+
+class AgentCategory(str, Enum):
+    """Agent category enum for organizing different types of agents."""
+
+    OPENAI = "openai"
 
 
 class Item(str, Enum):
@@ -68,3 +75,10 @@ class WorkerItem(Item):
     RAG_MESSAGE_WORKER = "rag-message-worker"
     SEARCH_WORKER = "search-worker"
     HUMAN_IN_THE_LOOP_WORKER = "human-in-the-loop-worker"
+
+
+class AgentItem(Item):
+    """Specific agent items organized by category."""
+
+    OPENAI_AGENT = "openai-agent"
+    OPENAI_REALTIME_AGENT = "openai-realtime-agent"

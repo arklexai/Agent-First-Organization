@@ -1,5 +1,6 @@
 from collections.abc import Mapping
 
+from arklex.env.agents.agent_collection import OpenAIAgent, OpenAIRealtimeAgent
 from arklex.env.tools.custom_tools import http_tool
 from arklex.env.tools.google.calendar.tool_collection import create_event
 from arklex.env.tools.hubspot.tool_collection import (
@@ -31,6 +32,8 @@ from arklex.env.workers.worker_collection import (
     SearchWorker,
 )
 from arklex.types.resource_types import (
+    AgentCategory,
+    AgentItem,
     Item,
     ResourceType,
     ToolCategory,
@@ -163,5 +166,16 @@ RESOURCE_MAP: Mapping[type[Item], Mapping[str, ResourceType | ToolCategory | typ
         "type": ResourceType.WORKER,
         "category": WorkerCategory.WORKER,
         "item_cls": MultipleChoiceWorker,
+    },
+    ############## Agents ##############
+    AgentItem.OPENAI_AGENT: {
+        "type": ResourceType.AGENT,
+        "category": AgentCategory.OPENAI,
+        "item_cls": OpenAIAgent,
+    },
+    AgentItem.OPENAI_REALTIME_AGENT: {
+        "type": ResourceType.AGENT,
+        "category": AgentCategory.OPENAI,
+        "item_cls": OpenAIRealtimeAgent,
     },
 }

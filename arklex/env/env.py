@@ -4,11 +4,7 @@ This module provides functionality for managing the environment, including
 worker initialization, tool management, and slot filling integration.
 """
 
-import importlib
-import os
 import uuid
-from collections.abc import Callable
-from functools import partial
 from typing import Any
 
 from arklex.env.agents.agent import BaseAgent
@@ -76,7 +72,9 @@ class DefaultResourceInitializer(BaseResourceInitializer):
     """
 
     @staticmethod
-    def init_tools(tools: list[dict[str, Any]]) -> dict[str, dict[str, Any]]:
+    def init_tools(
+        tools: list[dict[str, Any]], nodes: list[dict[str, Any]]
+    ) -> dict[str, dict[str, Any]]:
         """Initialize tools from configuration.
 
         Args:
@@ -90,51 +88,69 @@ class DefaultResourceInitializer(BaseResourceInitializer):
         for tool in tools:
             tool_id: str = tool["id"]
             try:
-                tool_instance: Tool = RESOURCE_MAP[tool_id]["item_cls"]
-                tool_instance.auth.update(tool.get("auth", {}))
-                tool_instance.node_specific_data = tool.get("data", {})
-                if tool_id == ToolItem.HTTP_TOOL and tool.get("data"):
-                    node_data = tool.get("data")
-                    # --- Begin slot group merge logic ---
-                    slots = node_data.get("slots", [])
-                    slot_groups = node_data.get(
-                        "slot_groups", []
-                    )  # TODO: add slot groups
-                    group_slots = []
-                    for group in slot_groups:
-                        # Generate prompt/description for the group
-                        required_fields = [
-                            s["name"]
-                            for s in group.get("schema", [])
-                            if s.get("required", False)
-                        ]
-                        prompt = (
-                            f"Please provide at least one set of the following fields: {', '.join(required_fields)}."
-                            if required_fields
-                            else f"Please provide a set of values for group '{group['name']}'."
+                if tool_id == ToolItem.HTTP_TOOL:
+                    http_tool_collection = {}
+                    for node in nodes:
+                        node_info = node[1]
+                        node_data = node_info.get("data", {})
+                        if (
+                            node_info.get("resource", {}).get("id") != tool_id
+                            or not node_data
+                        ):
+                            continue
+                        # Create a new tool instance for each node to avoid sharing state
+                        base_tool: Tool = RESOURCE_MAP[tool_id]["item_cls"]
+                        tool_instance: Tool = Tool(
+                            func=base_tool.func,
+                            name=base_tool.name,
+                            description=base_tool.description,
+                            slots=[],
                         )
-                        description = f"Slot group '{group['name']}' with schema: {[s['name'] for s in group.get('schema', [])]}"
-                        group_slots.append(
-                            {
-                                "name": group["name"],
-                                "type": "group",
-                                "schema": group.get("schema", []),
-                                "required": group.get("required", False),
-                                "repeatable": group.get("repeatable", True),
-                                "prompt": prompt,
-                                "description": description,
-                            }
-                        )
-                    all_slots = slots + group_slots
-                    tool_instance.load_slots(all_slots)
-                    tool_instance.description = node_data.get(
-                        "task", ""
-                    )  # TODO: (Xinyang) does not have task description in refactored node_data for now
-                    tool_instance.name = tool_id
-                    tool_id = tool_instance.name
-                tool_registry[tool_id] = {
-                    "tool_instance": tool_instance,
-                }
+                        tool_instance.auth.update(tool.get("auth", {}))
+                        tool_instance.node_specific_data = node_data
+                        # --- Begin slot group merge logic ---
+                        slots = node_data.get("slots", [])
+                        slot_groups = node_data.get("slot_groups", [])
+                        group_slots = []
+                        for group in slot_groups:
+                            # Generate prompt/description for the group
+                            required_fields = [
+                                s["name"]
+                                for s in group.get("schema", [])
+                                if s.get("required", False)
+                            ]
+                            prompt = (
+                                f"Please provide at least one set of the following fields: {', '.join(required_fields)}."
+                                if required_fields
+                                else f"Please provide a set of values for group '{group['name']}'."
+                            )
+                            description = f"Slot group '{group['name']}' with schema: {[s['name'] for s in group.get('schema', [])]}"
+                            group_slots.append(
+                                {
+                                    "name": group["name"],
+                                    "type": "group",
+                                    "schema": group.get("schema", []),
+                                    "required": group.get("required", False),
+                                    "repeatable": group.get("repeatable", True),
+                                    "prompt": prompt,
+                                    "description": description,
+                                }
+                            )
+                        all_slots = slots + group_slots
+                        tool_instance.load_slots(all_slots)
+                        tool_instance.name = node_data.get("name", "")
+                        tool_instance.description = node_data.get("task", "")
+                        http_tool_collection[tool_instance.name] = {
+                            "tool_instance": tool_instance,
+                        }
+                    tool_registry[tool_id] = http_tool_collection
+                else:
+                    tool_instance: Tool = RESOURCE_MAP[tool_id]["item_cls"]
+                    tool_instance.auth.update(tool.get("auth", {}))
+                    tool_instance.node_specific_data = {}
+                    tool_registry[tool_id] = {
+                        "tool_instance": tool_instance,
+                    }
             except Exception as e:
                 log_context.exception(e)
                 log_context.error(f"Tool {tool_id} is not registered, error: {e}")
@@ -174,20 +190,13 @@ class DefaultResourceInitializer(BaseResourceInitializer):
         agent_registry: dict[str, dict[str, Any]] = {}
         for agent in agents:
             agent_id: str = agent["id"]
-            name: str = agent["name"]
-            path: str = agent["path"]
             try:
-                filepath: str = os.path.join("arklex.env.agents", path)
-                module_name: str = filepath.replace(os.sep, ".").rstrip(".py")
-                module = importlib.import_module(module_name)
-                func: Callable = getattr(module, name)
+                agent_instance: BaseAgent = RESOURCE_MAP[agent_id]["item_cls"]
                 agent_registry[agent_id] = {
-                    "name": name,
-                    "description": func.description,
-                    "execute": partial(func, **agent.get("fixed_args", {})),
+                    "agent_instance": agent_instance,
                 }
             except Exception as e:
-                log_context.error(f"Agent {name} is not registered, error: {e}")
+                log_context.error(f"Agent {agent_id} is not registered, error: {e}")
                 continue
         return agent_registry
 
@@ -204,9 +213,9 @@ class Environment:
         tools: list[dict[str, Any]],
         workers: list[dict[str, Any]],
         agents: list[dict[str, Any]],
+        nodes: list[dict[str, Any]],
         slotsfillapi: str = "",
         resource_initializer: BaseResourceInitializer | None = None,
-        planner_enabled: bool = False,
         model_service: ModelService | None = None,
         **kwargs: str | int | float | bool | None,
     ) -> None:
@@ -224,7 +233,9 @@ class Environment:
         if "slot_fill_api" in kwargs and not slotsfillapi:
             slotsfillapi = kwargs["slot_fill_api"]
         resource_initializer = DefaultResourceInitializer()
-        self.tools: dict[str, dict[str, Any]] = resource_initializer.init_tools(tools)
+        self.tools: dict[str, dict[str, Any]] = resource_initializer.init_tools(
+            tools, nodes
+        )
         self.workers: dict[str, dict[str, Any]] = resource_initializer.init_workers(
             workers
         )
@@ -278,8 +289,14 @@ class Environment:
         """
         node_response: NodeResponse
         if id in self.tools:
-            log_context.info(f"{id} tool selected")
-            tool: Tool = self.tools[id]["tool_instance"]
+            if id == ToolItem.HTTP_TOOL:
+                log_context.info(f"HTTP tool {node_info.data.get('name', '')} selected")
+                tool: Tool = self.tools[id][node_info.data.get("name", "")][
+                    "tool_instance"
+                ]
+            else:
+                log_context.info(f"{id} tool selected")
+                tool: Tool = self.tools[id]["tool_instance"]
             tool.init_slotfiller(self.slotfillapi)
             response_state, tool_output = tool.execute(
                 orch_state, all_slots=dialog_states, auth=tool.auth
@@ -331,7 +348,7 @@ class Environment:
                     "role": "assistant",
                     "tool_calls": [
                         {
-                            "function": {"arguments": "{}", "id": id},
+                            "function": {"arguments": "{}", "name": id},
                             "id": call_id,
                             "type": "function",
                         }
@@ -349,15 +366,14 @@ class Environment:
             )
 
         elif id in self.agents:
-            log_context.info(f"{self.agents[id]['name']} agent selected")
-            agent: BaseAgent = self.agents[id]["execute"](
+            log_context.info(f"{self.agents[id]} agent selected")
+            agent: BaseAgent = self.agents[id]["agent_instance"](
                 successors=node_info.successors,
                 predecessors=node_info.predecessors,
                 tools=self.tools,
-                state=orch_state,
             )
             orch_state, agent_output = agent.execute(
-                orch_state, **node_info.additional_args
+                orch_state, node_specific_data=node_info.data
             )
             node_response = NodeResponse(
                 status=agent_output.status,
@@ -375,19 +391,3 @@ class Environment:
 
         log_context.info(f"Response state from {id}: {orch_state}")
         return orch_state, node_response
-
-    def register_tool(self, name: str, tool: Tool) -> None:
-        """Register a tool in the environment.
-
-        Args:
-            name: Name of the tool
-            tool: Tool instance
-
-        Raises:
-            EnvironmentError: If tool registration fails
-        """
-        try:
-            self.tools[name] = tool
-            log_context.info(f"{self.tools[name]['name']} tool selected")
-        except Exception as e:
-            log_context.error(f"Tool {name} is not registered, error: {e}")

@@ -117,6 +117,7 @@ if __name__ == "__main__":
         tools=config.get("tools", []),
         workers=config.get("workers", []),
         agents=config.get("agents", []),
+        nodes=config.get("nodes", []),
         slot_fill_api=config["slotfillapi"],
         planner_enabled=True,
         model_service=model_service,  # Pass model service to environment

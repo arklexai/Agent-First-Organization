@@ -11,8 +11,8 @@ from arklex.env.prompts import load_prompts
 from arklex.env.tools.tools import TYPE_CONVERTERS
 from arklex.orchestrator.entities.orchestrator_state_entities import (
     OrchestratorState,
-    StatusEnum,
 )
+from arklex.types.resource_types import ToolItem
 from arklex.types.stream_types import EventType, StreamType
 from arklex.utils.logging_utils import LogContext
 from arklex.utils.provider_utils import validate_and_get_model_class
@@ -60,20 +60,31 @@ class OpenAIAgent(BaseAgent):
         Load tools for the agent.
         This method is called during the initialization of the agent.
         """
-        for node in predecessors:
-            if node.type == "tool":
-                tool_id = f"{node.resource_id}"
-                tool_id = tool_id.replace(" ", "_").replace("/", "_")
-                self.available_tools[tool_id] = (tools[node.resource_id], node)
+        self.tools = tools.copy()
+        all_nodes = successors + predecessors
+        for node in all_nodes:
+            if node.resource.get("id") not in tools:
+                log_context.warning(
+                    f"Tool {node.resource.get('id')} not found for openai agent"
+                )
+                continue
+
+            if node.resource.get("id") == ToolItem.HTTP_TOOL:
+                http_tool_id = node.data.get("name", "")
+                self.available_tools[http_tool_id] = tools[node.resource.get("id")][
+                    http_tool_id
+                ]
+            else:
+                tool_id = node.resource.get("id")
+                self.available_tools[tool_id] = tools[tool_id]
 
     def _configure_tools(self) -> None:
         """
         Configure tools for the agent.
         This method is called during the initialization of the agent.
         """
-        for tool_id, (tool, node_info) in self.available_tools.items():
+        for tool_id, tool in self.available_tools.items():
             tool_object = tool["tool_instance"]
-
             log_context.info(
                 f"Configuring tool: {tool_object.func.__name__} with slots: {tool_object.slots}"
             )
@@ -83,8 +94,7 @@ class OpenAIAgent(BaseAgent):
             self.tool_slots[tool_id] = tool_object.slots.copy()
             self.tool_map[tool_id] = tool_object.func
             combined_args: dict[str, Any] = {
-                **tool["fixed_args"],
-                **(node_info.additional_args or {}),
+                "node_specific_data": tool_object.node_specific_data,
             }
             self.tool_args[tool_id] = combined_args
         log_context.info(f"Tool Definitions: {self.tool_defs}")
@@ -256,6 +266,9 @@ class OpenAIAgent(BaseAgent):
                             and value_source == "fixed"
                         ):
                             group_values = [slot.get("value", "")]
+                        # TODO: temporary fix for slot group values (should be list of dicts instead of dict)
+                        if isinstance(group_values, dict):
+                            group_values = [group_values]
                         slot_value = [
                             build_slot_values(slot["schema"], item)
                             for item in group_values
@@ -290,7 +303,7 @@ class OpenAIAgent(BaseAgent):
                 result.append(slot_dict)
             return result
 
-        if "http_tool" in tool_name:
+        if tool_name in self.tools.get(ToolItem.HTTP_TOOL, {}):
             all_slots = self.tool_slots.get(tool_name, [])
             slots = build_slot_values(
                 [
@@ -319,9 +332,8 @@ class OpenAIAgent(BaseAgent):
         )
         log_context.info(f"\nGenerating {generation_type} response using the agent.")
 
-        if state.status == StatusEnum.INCOMPLETE:
-            input_prompt = self._prepare_prompt(state, is_speech)
-            self._add_prompt_to_trajectory(state, input_prompt)
+        input_prompt = self._prepare_prompt(state, is_speech)
+        self._add_prompt_to_trajectory(state, input_prompt)
 
         log_context.info(f"\nagent messages: {state.function_calling_trajectory}")
 
