@@ -1824,8 +1824,6 @@ class TestToolGroupSlotHandling:
                     "required": True,
                 }
             ],
-            outputs=["result"],
-            isResponse=False,
         )
         tool_def = tool.to_openai_tool_def()
         group_schema = tool_def["parameters"]["properties"]["group_param"]
@@ -1852,8 +1850,6 @@ class TestToolGroupSlotHandling:
                     "required": True,
                 },
             ],
-            outputs=["result"],
-            isResponse=False,
         )
         tool_def_v2 = tool.to_openai_tool_def_v2()
         properties = tool_def_v2["function"]["parameters"]["properties"]
@@ -1914,29 +1910,6 @@ class TestToolRepeatableSlots:
 
         tool_def = tool.to_openai_tool_def_v2()
         assert "param1" in tool_def["function"]["parameters"]["properties"]
-
-    def test_to_openai_tool_def_with_repeatable(self) -> None:
-        tool = Tool(
-            func=lambda param: param,
-            name="test_tool",
-            description="Test tool",
-            slots=[
-                {"name": "param", "type": "str", "repeatable": True, "required": True}
-            ],
-            outputs=["result"],
-            isResponse=False,
-        )
-        tool_def_v2 = tool.to_openai_tool_def_v2()
-        assert (
-            tool_def_v2["function"]["parameters"]["properties"]["param"]["type"]
-            == "array"
-        )
-        assert (
-            tool_def_v2["function"]["parameters"]["properties"]["param"]["items"][
-                "type"
-            ]
-            == "string"
-        )
 
 
 class TestToolEdgeCases:
@@ -2335,34 +2308,6 @@ class TestToolEdgeCases:
         ]
         slots = tool._fill_slots_recursive(tool.slots, "")
         assert slots[0].value == ["single"]
-
-    def test_to_openai_tool_def_with_repeatable(self) -> None:
-        tool = Tool(
-            func=lambda param: param,
-            name="test_tool",
-            description="Test tool",
-            slots=[
-                {
-                    "name": "param",
-                    "type": "str",
-                    "items": {"type": "string"},
-                    "required": True,
-                }
-            ],
-        )
-        tool_def = tool.to_openai_tool_def()
-        assert tool_def["parameters"]["properties"]["param"]["type"] == "array"
-        assert tool_def["parameters"]["properties"]["param"]["items"] == {
-            "type": "string"
-        }
-        tool_def_v2 = tool.to_openai_tool_def_v2()
-        assert (
-            tool_def_v2["function"]["parameters"]["properties"]["param"]["type"]
-            == "array"
-        )
-        assert tool_def_v2["function"]["parameters"]["properties"]["param"][
-            "items"
-        ] == {"type": "string"}
 
     def test_execute_slot_schema_change(self) -> None:
         tool = Tool(
