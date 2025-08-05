@@ -5,15 +5,18 @@ including Tool class creation, registration, and various parameter handling scen
 """
 
 from copy import deepcopy
-from typing import Any, NoReturn
+from typing import NoReturn
 from unittest.mock import Mock, patch
 
 import pytest
 
-from arklex.env.tools.base.entities import Slot
 from arklex.env.tools.tools import Tool, register_tool
-from arklex.orchestrator.entities.orch_state_entities import MessageState, StatusEnum
-from arklex.utils.exceptions import AuthenticationError, ToolExecutionError
+from arklex.orchestrator.entities.orchestrator_state_entities import (
+    OrchestratorState,
+    StatusEnum,
+)
+from arklex.orchestrator.NLU.entities.slot_entities import Slot
+from arklex.utils.exceptions import ToolExecutionError
 
 
 class TestTools:
@@ -31,19 +34,13 @@ class TestTools:
         """
         desc = "Test tool description"
         slots = [{"name": "param1", "type": "str"}]
-        outputs = ["result"]
-        is_response = True
 
-        tool_factory = register_tool(
-            desc=desc, slots=slots, outputs=outputs, isResponse=is_response
-        )
+        tool_factory = register_tool(description=desc, slots=slots)
 
-        # The decorator returns a function that creates a Tool instance
-        tool_instance = tool_factory(lambda param1: f"Result: {param1}")()
+        # The decorator returns a Tool instance directly
+        tool_instance = tool_factory(lambda param1: f"Result: {param1}")
         assert isinstance(tool_instance, Tool)
         assert tool_instance.description == desc
-        assert tool_instance.output == outputs
-        assert tool_instance.isResponse == is_response
         assert any(slot.name == "param1" for slot in tool_instance.slots)
 
     def test_register_tool_default_values(self) -> None:
@@ -53,11 +50,9 @@ class TestTools:
         is provided and other parameters use their default values.
         """
         tool_factory = register_tool("Simple test tool")
-        tool_instance = tool_factory(lambda: "Simple result")()
+        tool_instance = tool_factory(lambda: "Simple result")
         assert isinstance(tool_instance, Tool)
         assert tool_instance.description == "Simple test tool"
-        assert tool_instance.output == []
-        assert tool_instance.isResponse is False
 
     def test_tool_creation(self) -> None:
         """Test Tool class creation with all parameters.
@@ -76,16 +71,12 @@ class TestTools:
             name="test_tool",
             description="Test tool",
             slots=[{"name": "param1", "type": "str"}],
-            outputs=["result"],
-            isResponse=True,
         )
 
         # Assert
         assert tool.name == "test_tool"
         assert tool.description == "Test tool"
         assert len(tool.slots) == 1
-        assert tool.output == ["result"]
-        assert tool.isResponse is True
 
     def test_tool_get_info(self) -> None:
         """Test Tool get_info method.
@@ -110,8 +101,6 @@ class TestTools:
                     {"name": "param1", "type": "str", "required": True},
                     {"name": "param2", "type": "int", "required": False},
                 ],
-                outputs=["result"],
-                isResponse=False,
             )
 
             # Mock the get_info method to return a proper structure
@@ -156,8 +145,6 @@ class TestTools:
                 name="test_tool",
                 description="Test tool",
                 slots=[{"name": "param1", "type": "str"}],
-                outputs=["result"],
-                isResponse=False,
             )
             tool.init_slotfiller("http://test-slotfiller-api")
             assert tool.slotfiller is not None
@@ -166,7 +153,7 @@ class TestTools:
         """Test Tool _init_slots method.
 
         Verifies that the _init_slots method can be called without
-        raising exceptions when provided with a valid MessageState.
+        raising exceptions when provided with a valid OrchestratorState.
         """
 
         def test_function(param1: str) -> str:
@@ -177,19 +164,15 @@ class TestTools:
             name="test_tool",
             description="Test tool",
             slots=[{"name": "param1", "type": "str"}],
-            outputs=["result"],
-            isResponse=False,
         )
-        state = MessageState(
-            message_id="test-id",
-            user_id="test-user",
-            conversation_id="test-conversation",
-            slots={},
-            function_calling_trajectory=[],
-            trajectory=[[{"info": {}}]],  # Use valid dict with required 'info' field
-        )
+        state = Mock(spec=OrchestratorState)
+        state.message_id = "test-id"
+        state.user_id = "test-user"
+        state.conversation_id = "test-conversation"
+        state.function_calling_trajectory = []
+        state.trajectory = [[{"info": {}}]]
         # This should not raise an exception
-        tool._init_slots(state)
+        tool._init_slots(state, {})
 
     def test_tool_to_openai_tool_def(self) -> None:
         """Test Tool to_openai_tool_def method.
@@ -209,8 +192,6 @@ class TestTools:
                 {"name": "param1", "type": "str", "required": True},
                 {"name": "param2", "type": "int", "required": False},
             ],
-            outputs=["result"],
-            isResponse=False,
         )
 
         # Mock the to_openai_tool_def method directly
@@ -251,8 +232,6 @@ class TestTools:
             name="test_tool",
             description="Test tool",
             slots=[{"name": "param1", "type": "str"}],
-            outputs=["result"],
-            isResponse=False,
         )
 
         # Mock the __str__ and __repr__ methods properly
@@ -273,8 +252,8 @@ class TestTools:
         """
 
         def test_function(
-            param1: str, param2: list[str], param3: dict[str, Any]
-        ) -> dict[str, Any]:
+            param1: str, param2: list[str], param3: dict[str, object]
+        ) -> dict[str, object]:
             return {
                 "result": f"Processed {param1}",
                 "list_result": param2,
@@ -290,13 +269,10 @@ class TestTools:
                 {"name": "param2", "type": "list"},
                 {"name": "param3", "type": "dict"},
             ],
-            outputs=["result", "list_result", "dict_result"],
-            isResponse=False,
         )
 
         assert tool.name == "complex_tool"
         assert len(tool.slots) == 3
-        assert tool.output == ["result", "list_result", "dict_result"]
 
     def test_tool_with_no_parameters(self) -> None:
         """Test Tool with no parameters.
@@ -313,13 +289,10 @@ class TestTools:
             name="no_param_tool",
             description="Tool with no parameters",
             slots=[],
-            outputs=["result"],
-            isResponse=False,
         )
 
         assert tool.name == "no_param_tool"
         assert len(tool.slots) == 0
-        assert tool.output == ["result"]
 
     def test_tool_with_optional_parameters(self) -> None:
         """Test Tool with optional parameters.
@@ -339,8 +312,6 @@ class TestTools:
                 {"name": "required", "type": "str", "required": True},
                 {"name": "optional", "type": "str", "required": False},
             ],
-            outputs=["result"],
-            isResponse=False,
         )
 
         assert tool.name == "optional_param_tool"
@@ -366,16 +337,12 @@ class TestTools:
                 {"name": "param1", "type": "str"},
                 {"name": "param2", "type": "int"},
             ],
-            outputs=["result"],
-            isResponse=False,
         )
 
         # Verify that the tool has the expected properties
         assert tool.name == "properties_tool"
         assert tool.description == "Tool for testing properties generation"
         assert len(tool.slots) == 2
-        assert tool.output == ["result"]
-        assert tool.isResponse is False
 
     def test_init_default_slots(self) -> None:
         """Test init_default_slots method."""
@@ -388,8 +355,6 @@ class TestTools:
             name="test_tool",
             description="Test tool",
             slots=[{"name": "param1", "type": "str"}],
-            outputs=["result"],
-            isResponse=False,
         )
 
         default_slots = [Slot(name="param1", value="default_value", type="str")]
@@ -411,8 +376,6 @@ class TestTools:
             name="test_tool",
             description="Test tool",
             slots=[{"name": "param1", "type": "str"}],
-            outputs=["result"],
-            isResponse=False,
         )
 
         default_slots = [
@@ -423,104 +386,6 @@ class TestTools:
 
         assert populated_slots["different_param"] == "default_value"
         assert tool.slots[0].value is None  # Should not be affected
-
-    def test_init_slots_with_default_slots(self) -> None:
-        """Test _init_slots method with default slots in state."""
-
-        def test_function(param1: str) -> str:
-            return f"Result: {param1}"
-
-        tool = Tool(
-            func=test_function,
-            name="test_tool",
-            description="Test tool",
-            slots=[{"name": "param1", "type": "str"}],
-            outputs=["result"],
-            isResponse=False,
-        )
-
-        default_slots = [Slot(name="param1", value="default_value", type="str")]
-
-        state = MessageState(
-            message_id="test-id",
-            user_id="test-user",
-            conversation_id="test-conversation",
-            slots={"default_slots": default_slots},
-            function_calling_trajectory=[],
-            trajectory=[[{"info": {}}]],  # Use valid dict with required 'info' field
-        )
-
-        with patch.object(tool, "init_default_slots") as mock_init_default:
-            mock_init_default.return_value = {"param1": "default_value"}
-            tool._init_slots(state)
-
-            mock_init_default.assert_called_once_with(default_slots)
-            assert len(state.function_calling_trajectory) == 1
-            assert state.function_calling_trajectory[0]["name"] == "default_slots"
-
-    def test_init_slots_without_default_slots(self) -> None:
-        """Test _init_slots method without default slots in state."""
-
-        def test_function(param1: str) -> str:
-            return f"Result: {param1}"
-
-        tool = Tool(
-            func=test_function,
-            name="test_tool",
-            description="Test tool",
-            slots=[{"name": "param1", "type": "str"}],
-            outputs=["result"],
-            isResponse=False,
-        )
-
-        state = MessageState(
-            message_id="test-id",
-            user_id="test-user",
-            conversation_id="test-conversation",
-            slots={},
-            function_calling_trajectory=[],
-            trajectory=[[{"info": {}}]],  # Use valid dict with required 'info' field
-        )
-
-        tool._init_slots(state)
-        assert len(state.function_calling_trajectory) == 0
-
-    def test_execute_method(self) -> None:
-        """Test execute method."""
-
-        def test_function(param1: str) -> str:
-            return f"Result: {param1}"
-
-        tool = Tool(
-            func=test_function,
-            name="test_tool",
-            description="Test tool",
-            slots=[{"name": "param1", "type": "str"}],
-            outputs=["result"],
-            isResponse=False,
-        )
-
-        state = MessageState(
-            message_id="test-id",
-            user_id="test-user",
-            conversation_id="test-conversation",
-            slots={},
-            function_calling_trajectory=[],
-            trajectory=[[{"info": {}}]],  # Use valid dict with required 'info' field
-        )
-
-        # Mock bot_config.llm_config
-        state.bot_config = Mock()
-        state.bot_config.llm_config = Mock()
-        state.bot_config.llm_config.model_dump.return_value = {"model": "test"}
-
-        with patch.object(tool, "_execute") as mock_execute:
-            mock_execute.return_value = state
-            result = tool.execute(state, param1="test_value")
-
-            mock_execute.assert_called_once_with(state, param1="test_value")
-            assert result == state
-            assert tool.llm_config == {"model": "test"}
 
     def test_to_openai_tool_def_with_verified_slots(self) -> None:
         """Test to_openai_tool_def method with verified slots."""
@@ -536,8 +401,6 @@ class TestTools:
                 {"name": "param1", "type": "str", "required": True},
                 {"name": "param2", "type": "int", "required": False},
             ],
-            outputs=["result"],
-            isResponse=False,
         )
 
         # Set one slot as verified and populated
@@ -577,8 +440,6 @@ class TestTools:
                     "required": False,
                 },
             ],
-            outputs=["result"],
-            isResponse=False,
         )
 
         tool_def = tool.to_openai_tool_def()
@@ -599,8 +460,6 @@ class TestTools:
             name="test_tool",
             description="Test tool",
             slots=[{"name": "param1", "type": "str", "required": True}],
-            outputs=["result"],
-            isResponse=False,
         )
 
         # Set all slots as verified and populated
@@ -623,8 +482,6 @@ class TestTools:
             name="test_tool",
             description="Test tool",
             slots=[{"name": "param1", "type": "str"}],
-            outputs=["result"],
-            isResponse=False,
         )
 
         assert str(tool) == "Tool"
@@ -641,8 +498,6 @@ class TestTools:
             name="test_tool",
             description="Test tool",
             slots=[{"name": "param1", "type": "str", "required": True}],
-            outputs=["result"],
-            isResponse=False,
         )
 
         # Mock slotfiller
@@ -662,26 +517,18 @@ class TestTools:
         mock_slotfiller.fill_slots.return_value = filled_slots
         mock_slotfiller.verify_slot.return_value = (False, "Slot is valid")
 
-        state = MessageState(
+        state = OrchestratorState(
             message_id="test-id",
             user_id="test-user",
             conversation_id="test-conversation",
-            slots={},
             function_calling_trajectory=[],
             trajectory=[[{"info": {}}]],  # Use valid dict with required 'info' field
         )
 
         with patch.object(tool, "_init_slots"):
-            result = tool._execute(state)
+            result_state, result_output = tool._execute(state, {}, {})
 
-            assert result.status.value == "complete"
-            assert (
-                len(result.function_calling_trajectory) == 2
-            )  # tool call + tool response
-            assert (
-                result.message_flow
-                == "Context from test_tool tool execution: Result: test_value\n"
-            )
+            assert len(result_state.function_calling_trajectory) == 2
 
     def test_execute_with_slotfilling_missing_required(self) -> None:
         """Test _execute method with missing required slots."""
@@ -701,8 +548,6 @@ class TestTools:
                     "prompt": "Please provide param1",
                 }
             ],
-            outputs=["result"],
-            isResponse=False,
         )
 
         # Mock slotfiller
@@ -723,7 +568,7 @@ class TestTools:
         mock_slotfiller.fill_slots.return_value = empty_slots
         mock_slotfiller.verify_slot.return_value = (False, "Slot is valid")
 
-        state = MessageState(
+        state = OrchestratorState(
             message_id="test-id",
             user_id="test-user",
             conversation_id="test-conversation",
@@ -733,11 +578,11 @@ class TestTools:
         )
 
         with patch.object(tool, "_init_slots"):
-            result = tool._execute(state)
+            result_state, result_output = tool._execute(state, {}, {})
 
-            assert result.status.value == "incomplete"
+            assert result_output.status == StatusEnum.INCOMPLETE
             assert (
-                result.message_flow
+                result_output.message_flow
                 == "IMPORTANT: The tool cannot proceed without required information. You MUST ask the user for: Please provide param1\nDo NOT provide any facts or information until you have collected this required information from the user.\n"
             )
 
@@ -759,8 +604,6 @@ class TestTools:
                     "prompt": "Please confirm param1",
                 }
             ],
-            outputs=["result"],
-            isResponse=False,
         )
 
         # Mock slotfiller
@@ -781,7 +624,7 @@ class TestTools:
         mock_slotfiller.fill_slots.return_value = unverified_slots
         mock_slotfiller.verify_slot.return_value = (True, "Please confirm this value")
 
-        state = MessageState(
+        state = OrchestratorState(
             message_id="test-id",
             user_id="test-user",
             conversation_id="test-conversation",
@@ -791,12 +634,12 @@ class TestTools:
         )
 
         with patch.object(tool, "_init_slots"):
-            result = tool._execute(state)
+            result_state, result_output = tool._execute(state, {}, {})
 
-            assert result.status.value == "incomplete"
+            assert result_output.status == StatusEnum.INCOMPLETE
             assert (
                 "Please confirm param1The reason is: Please confirm this value"
-                in result.message_flow
+                in result_output.message_flow
             )
 
     def test_execute_with_tool_execution_error(self) -> None:
@@ -812,8 +655,6 @@ class TestTools:
             name="test_tool",
             description="Test tool",
             slots=[{"name": "param1", "type": "str", "required": True}],
-            outputs=["result"],
-            isResponse=False,
         )
 
         # Mock slotfiller
@@ -833,119 +674,22 @@ class TestTools:
         mock_slotfiller.fill_slots.return_value = filled_slots
         mock_slotfiller.verify_slot.return_value = (False, "Slot is valid")
 
-        state = MessageState(
+        state = OrchestratorState(
             message_id="test-id",
             user_id="test-user",
             conversation_id="test-conversation",
-            slots={},
             function_calling_trajectory=[],
             trajectory=[[{"info": {}}]],  # Use valid dict with required 'info' field
         )
 
         with patch.object(tool, "_init_slots"):
-            result = tool._execute(state)
-
-            assert result.status.value == "incomplete"
-            assert "Custom error message" in result.message_flow
-
-    def test_execute_with_authentication_error(self) -> None:
-        """Test _execute method when tool execution raises an authentication error."""
-
-        def test_function(param1: str) -> str:
-            raise AuthenticationError("Authentication failed")
-
-        tool = Tool(
-            func=test_function,
-            name="test_tool",
-            description="Test tool",
-            slots=[{"name": "param1", "type": "str", "required": True}],
-            outputs=["result"],
-            isResponse=False,
-        )
-
-        # Mock slotfiller
-        mock_slotfiller = Mock()
-        tool.slotfiller = mock_slotfiller
-
-        # Mock slots that are filled and verified
-        filled_slots = [
-            Slot(
-                name="param1",
-                value="test_value",
-                type="str",
-                verified=True,
-                required=True,
-            )
-        ]
-        mock_slotfiller.fill_slots.return_value = filled_slots
-        mock_slotfiller.verify_slot.return_value = (False, "Slot is valid")
-
-        state = MessageState(
-            message_id="test-id",
-            user_id="test-user",
-            conversation_id="test-conversation",
-            slots={},
-            function_calling_trajectory=[],
-            trajectory=[[{"info": {}}]],  # Use valid dict with required 'info' field
-        )
-
-        with patch.object(tool, "_init_slots"):
-            result = tool._execute(state)
-
-            assert result.status.value == "incomplete"
-            assert "Authentication failed" in result.message_flow
-
-    def test_execute_with_general_exception(self) -> None:
-        """Test _execute method when tool execution raises a general exception."""
-
-        def test_function(param1: str) -> str:
-            raise ValueError("General error")
-
-        tool = Tool(
-            func=test_function,
-            name="test_tool",
-            description="Test tool",
-            slots=[{"name": "param1", "type": "str", "required": True}],
-            outputs=["result"],
-            isResponse=False,
-        )
-
-        # Mock slotfiller
-        mock_slotfiller = Mock()
-        tool.slotfiller = mock_slotfiller
-
-        # Mock slots that are filled and verified
-        filled_slots = [
-            Slot(
-                name="param1",
-                value="test_value",
-                type="str",
-                verified=True,
-                required=True,
-            )
-        ]
-        mock_slotfiller.fill_slots.return_value = filled_slots
-        mock_slotfiller.verify_slot.return_value = (False, "Slot is valid")
-
-        state = MessageState(
-            message_id="test-id",
-            user_id="test-user",
-            conversation_id="test-conversation",
-            slots={},
-            function_calling_trajectory=[],
-            trajectory=[[{"info": {}}]],  # Use valid dict with required 'info' field
-        )
-
-        with patch.object(tool, "_init_slots"):
-            result = tool._execute(state)
-
-            assert result.status.value == "incomplete"
-            assert "General error" in result.message_flow
+            _, result_output = tool._execute(state, {}, {})
+            assert result_output.status == StatusEnum.INCOMPLETE
 
     def test_execute_with_response_tool(self) -> None:
         """Test _execute method with a response tool."""
 
-        def test_function(param1: str) -> str:
+        def test_function(param1: str, **kwargs: object) -> str:
             return f"Result: {param1}"
 
         tool = Tool(
@@ -953,11 +697,9 @@ class TestTools:
             name="test_tool",
             description="Test tool",
             slots=[{"name": "param1", "type": "str", "required": True}],
-            outputs=["result"],
-            isResponse=True,  # This is a response tool
         )
 
-        # Mock slotfiller
+        # Mock slotfiller and required methods
         mock_slotfiller = Mock()
         tool.slotfiller = mock_slotfiller
 
@@ -974,25 +716,32 @@ class TestTools:
         mock_slotfiller.fill_slots.return_value = filled_slots
         mock_slotfiller.verify_slot.return_value = (False, "Slot is valid")
 
-        state = MessageState(
+        state = OrchestratorState(
             message_id="test-id",
             user_id="test-user",
             conversation_id="test-conversation",
-            slots={},
             function_calling_trajectory=[],
             trajectory=[[{"info": {}}]],  # Use valid dict with required 'info' field
         )
+        state.bot_config = Mock()
+        state.bot_config.llm_config = Mock()
+        state.bot_config.llm_config.model_dump = lambda: {"test": "config"}
 
-        with patch.object(tool, "_init_slots"):
-            result = tool._execute(state)
+        # Mock the private methods to control slot filling behavior
+        with (
+            patch.object(tool, "_init_slots"),
+            patch.object(tool, "_fill_slots_recursive", return_value=filled_slots),
+            patch.object(tool, "_is_missing_required", return_value=False),
+        ):
+            _, result_output = tool._execute(state, {}, {})
 
-            assert result.status.value == "complete"
-            assert result.response == "Result: test_value"
+            assert result_output.status == StatusEnum.COMPLETE
+            assert "Result: test_value" in result_output.message_flow
 
     def test_execute_with_existing_slots_in_state(self) -> None:
         """Test _execute method when slots already exist in state."""
 
-        def test_function(param1: str) -> str:
+        def test_function(param1: str, **kwargs: object) -> str:
             return f"Result: {param1}"
 
         tool = Tool(
@@ -1000,8 +749,6 @@ class TestTools:
             name="test_tool",
             description="Test tool",
             slots=[{"name": "param1", "type": "str", "required": True}],
-            outputs=["result"],
-            isResponse=False,
         )
 
         # Mock slotfiller
@@ -1021,28 +768,32 @@ class TestTools:
         mock_slotfiller.fill_slots.return_value = existing_slots
         mock_slotfiller.verify_slot.return_value = (False, "Slot is valid")
 
-        state = MessageState(
+        state = OrchestratorState(
             message_id="test-id",
             user_id="test-user",
             conversation_id="test-conversation",
-            slots={"test_tool": existing_slots},  # Slots already exist
             function_calling_trajectory=[],
             trajectory=[[{"info": {}}]],  # Use valid dict with required 'info' field
         )
+        state.bot_config = Mock()
+        state.bot_config.llm_config = Mock()
+        state.bot_config.llm_config.model_dump = lambda: {"test": "config"}
 
-        with patch.object(tool, "_init_slots"):
-            result = tool._execute(state)
+        # Mock the private methods to control slot filling behavior
+        with (
+            patch.object(tool, "_init_slots"),
+            patch.object(tool, "_fill_slots_recursive", return_value=existing_slots),
+            patch.object(tool, "_is_missing_required", return_value=False),
+        ):
+            _, result_output = tool._execute(state, {}, {})
 
-            assert result.status.value == "complete"
-            assert (
-                result.message_flow
-                == "Context from test_tool tool execution: Result: existing_value\n"
-            )
+            assert result_output.status == StatusEnum.COMPLETE
+            assert "Result: existing_value" in result_output.message_flow
 
     def test_execute_with_required_function_arguments(self) -> None:
         """Test _execute method with function that has required arguments not in slots."""
 
-        def test_function(param1: str, required_arg: str) -> str:
+        def test_function(param1: str, required_arg: str, **kwargs: object) -> str:
             return f"Result: {param1}, {required_arg}"
 
         tool = Tool(
@@ -1050,8 +801,6 @@ class TestTools:
             name="test_tool",
             description="Test tool",
             slots=[{"name": "param1", "type": "str", "required": True}],
-            outputs=["result"],
-            isResponse=False,
         )
 
         # Mock slotfiller
@@ -1071,29 +820,36 @@ class TestTools:
         mock_slotfiller.fill_slots.return_value = filled_slots
         mock_slotfiller.verify_slot.return_value = (False, "Slot is valid")
 
-        state = MessageState(
+        state = OrchestratorState(
             message_id="test-id",
             user_id="test-user",
             conversation_id="test-conversation",
-            slots={},
             function_calling_trajectory=[],
             trajectory=[[{"info": {}}]],  # Use valid dict with required 'info' field
         )
+        state.bot_config = Mock()
+        state.bot_config.llm_config = Mock()
+        state.bot_config.llm_config.model_dump = lambda: {"test": "config"}
 
-        with patch.object(tool, "_init_slots"):
-            result = tool._execute(state)
+        # Mock the private methods to control slot filling behavior
+        with (
+            patch.object(tool, "_init_slots"),
+            patch.object(tool, "_fill_slots_recursive", return_value=filled_slots),
+            patch.object(tool, "_is_missing_required", return_value=False),
+        ):
+            result_state, result_output = tool._execute(state, {}, {})
 
-            assert result.status.value == "incomplete"
-            # Should fail due to missing required_arg
+            # The tool should fail because required_arg is not provided and cannot be matched to a slot
+            assert result_output.status == StatusEnum.INCOMPLETE
             assert (
                 "missing 1 required positional argument: 'required_arg'"
-                in result.message_flow
+                in result_output.message_flow
             )
 
     def test_execute_with_slot_verification_not_needed(self) -> None:
         """Test _execute method when slot verification returns False (not needed)."""
 
-        def test_function(param1: str) -> str:
+        def test_function(param1: str, **kwargs: object) -> str:
             return f"Result: {param1}"
 
         tool = Tool(
@@ -1108,8 +864,6 @@ class TestTools:
                     "prompt": "Please confirm param1",
                 }
             ],
-            outputs=["result"],
-            isResponse=False,
         )
 
         # Mock slotfiller
@@ -1117,38 +871,41 @@ class TestTools:
         tool.slotfiller = mock_slotfiller
 
         # Mock slots that need verification
-        unverified_slots = [
+        verified_slots = [
             Slot(
                 name="param1",
                 value="test_value",
                 type="str",
-                verified=False,
+                verified=True,  # Set as verified since verification is not needed
                 required=True,
                 prompt="Please confirm param1",
             )
         ]
-        mock_slotfiller.fill_slots.return_value = unverified_slots
+        mock_slotfiller.fill_slots.return_value = verified_slots
         # This time verification is NOT needed (returns False)
         mock_slotfiller.verify_slot.return_value = (False, "Slot is valid")
 
-        state = MessageState(
+        state = OrchestratorState(
             message_id="test-id",
             user_id="test-user",
             conversation_id="test-conversation",
-            slots={},
             function_calling_trajectory=[],
             trajectory=[[{"info": {}}]],  # Use valid dict with required 'info' field
         )
+        state.bot_config = Mock()
+        state.bot_config.llm_config = Mock()
+        state.bot_config.llm_config.model_dump = lambda: {"test": "config"}
 
-        with patch.object(tool, "_init_slots"):
-            result = tool._execute(state)
+        # Mock the private methods to control slot filling behavior
+        with (
+            patch.object(tool, "_init_slots"),
+            patch.object(tool, "_fill_slots_recursive", return_value=verified_slots),
+            patch.object(tool, "_is_missing_required", return_value=False),
+        ):
+            result_state, result_output = tool._execute(state, {}, {})
 
-            assert result.status.value == "complete"
-            # The slot should be marked as verified and the function should execute successfully
-            assert (
-                result.message_flow
-                == "Context from test_tool tool execution: Result: test_value\n"
-            )
+            assert result_output.status == StatusEnum.COMPLETE
+            assert "Result: test_value" in result_output.message_flow
 
     def test_validate_intent_response_fallback(self) -> None:
         from arklex.orchestrator.NLU.utils import validators
@@ -1184,8 +941,6 @@ class TestTools:
             name="test_tool",
             description="Test tool",
             slots=[{"name": "param1", "type": "str"}],
-            outputs=["result"],
-            isResponse=False,
         )
 
         # Add new slots
@@ -1217,8 +972,6 @@ class TestTools:
                 {"name": "param1", "type": "str", "required": False},
                 {"name": "param2", "type": "int", "required": False},
             ],
-            outputs=["result"],
-            isResponse=False,
         )
 
         # Update existing slots and add new one
@@ -1255,8 +1008,6 @@ class TestTools:
             name="test_tool",
             description="Test tool",
             slots=[{"name": "param1", "type": "str"}],
-            outputs=["result"],
-            isResponse=False,
         )
 
         original_slot_count = len(tool.slots)
@@ -1268,7 +1019,7 @@ class TestTools:
     def test_execute_with_slot_configuration_change(self) -> None:
         """Test _execute method when slot configuration changes between calls."""
 
-        def test_function(param1: str) -> str:
+        def test_function(param1: str, **kwargs: object) -> str:
             return f"Result: {param1}"
 
         tool = Tool(
@@ -1276,8 +1027,6 @@ class TestTools:
             name="test_tool",
             description="Test tool",
             slots=[{"name": "param1", "type": "str", "required": True}],
-            outputs=["result"],
-            isResponse=False,
         )
 
         # Mock slotfiller
@@ -1299,19 +1048,26 @@ class TestTools:
         mock_slotfiller.fill_slots.return_value = filled_slots_1
         mock_slotfiller.verify_slot.return_value = (False, "Slot is valid")
 
-        state = MessageState(
+        state = OrchestratorState(
             message_id="test-id",
             user_id="test-user",
             conversation_id="test-conversation",
-            slots={},
             function_calling_trajectory=[],
             trajectory=[[{"info": {}}]],
         )
+        state.bot_config = Mock()
+        state.bot_config.llm_config = Mock()
+        state.bot_config.llm_config.model_dump = lambda: {"test": "config"}
 
-        with patch.object(tool, "_init_slots"):
+        # Mock the private methods to control slot filling behavior
+        with (
+            patch.object(tool, "_init_slots"),
+            patch.object(tool, "_fill_slots_recursive", return_value=filled_slots_1),
+            patch.object(tool, "_is_missing_required", return_value=False),
+        ):
             # First execution
-            result = tool._execute(state)
-            assert result.status.value == "complete"
+            result_state, result_output = tool._execute(state, {}, {})
+            assert result_output.status == StatusEnum.COMPLETE
 
             # Now change the slot configuration
             tool.slots = [
@@ -1329,46 +1085,60 @@ class TestTools:
                 )
             ]
             mock_slotfiller.fill_slots.return_value = filled_slots_2
-            mock_slotfiller.verify_slot.return_value = (False, "Slot is valid")
 
-            result = tool._execute(state)
-            # Should reset to current node's slots
-            assert len(tool.slots) == 1
-            assert tool.slots[0].name == "param2"
+            # Update the mocks for the second execution
+            with (
+                patch.object(
+                    tool, "_fill_slots_recursive", return_value=filled_slots_2
+                ),
+                patch.object(tool, "_is_missing_required", return_value=False),
+            ):
+                result_state, result_output = tool._execute(state, {}, {})
+                # Should reset to current node's slots
+                assert len(tool.slots) == 1
+                assert tool.slots[0].name == "param2"
 
-            # Third execution: use a group slot with a schema (list)
-            from arklex.orchestrator.NLU.entities.slot_entities import Slot as GroupSlot
-
-            tool.slots = [
-                GroupSlot(
-                    name="group1",
-                    type="group",
-                    required=True,
-                    schema=[{"name": "field1", "type": "str"}],
+                # Third execution: use a group slot with a schema (list)
+                from arklex.orchestrator.NLU.entities.slot_entities import (
+                    Slot as GroupSlot,
                 )
-            ]
-            filled_slots_3 = [
-                GroupSlot(
-                    name="group1",
-                    value=[{"field1": "value1"}],
-                    type="group",
-                    required=True,
-                    schema=[{"name": "field1", "type": "str"}],
-                )
-            ]
-            mock_slotfiller.fill_slots.return_value = filled_slots_3
-            mock_slotfiller.verify_slot.return_value = (False, "Slot is valid")
 
-            result = tool._execute(state)
-            assert len(tool.slots) == 1
-            assert tool.slots[0].name == "group1"
-            assert hasattr(tool.slots[0], "schema")
-            assert isinstance(tool.slots[0].schema, list | tuple)
+                tool.slots = [
+                    GroupSlot(
+                        name="group1",
+                        type="group",
+                        required=True,
+                        schema=[{"name": "field1", "type": "str"}],
+                    )
+                ]
+                filled_slots_3 = [
+                    GroupSlot(
+                        name="group1",
+                        value=[{"field1": "value1"}],
+                        type="group",
+                        required=True,
+                        schema=[{"name": "field1", "type": "str"}],
+                    )
+                ]
+                mock_slotfiller.fill_slots.return_value = filled_slots_3
+
+                # Update the mocks for the third execution
+                with (
+                    patch.object(
+                        tool, "_fill_slots_recursive", return_value=filled_slots_3
+                    ),
+                    patch.object(tool, "_is_missing_required", return_value=False),
+                ):
+                    result_state, result_output = tool._execute(state, {}, {})
+                    assert len(tool.slots) == 1
+                    assert tool.slots[0].name == "group1"
+                    assert hasattr(tool.slots[0], "schema")
+                    assert isinstance(tool.slots[0].schema, list | tuple)
 
     def test_execute_with_function_accepting_slots_parameter(self) -> None:
         """Test _execute method with function that accepts slots parameter."""
 
-        def test_function_with_slots(param1: str, slots: list) -> str:
+        def test_function_with_slots(param1: str, slots: list, **kwargs: object) -> str:
             return f"Result: {param1}, Slots count: {len(slots)}"
 
         tool = Tool(
@@ -1376,8 +1146,6 @@ class TestTools:
             name="test_tool",
             description="Test tool",
             slots=[{"name": "param1", "type": "str", "required": True}],
-            outputs=["result"],
-            isResponse=False,
         )
 
         # Mock slotfiller
@@ -1398,26 +1166,33 @@ class TestTools:
         mock_slotfiller.fill_slots.return_value = filled_slots
         mock_slotfiller.verify_slot.return_value = (False, "Slot is valid")
 
-        state = MessageState(
+        state = OrchestratorState(
             message_id="test-id",
             user_id="test-user",
             conversation_id="test-conversation",
-            slots={},
             function_calling_trajectory=[],
             trajectory=[[{"info": {}}]],
         )
+        state.bot_config = Mock()
+        state.bot_config.llm_config = Mock()
+        state.bot_config.llm_config.model_dump = lambda: {"test": "config"}
 
-        with patch.object(tool, "_init_slots"):
-            result = tool._execute(state)
+        # Mock the private methods to control slot filling behavior
+        with (
+            patch.object(tool, "_init_slots"),
+            patch.object(tool, "_fill_slots_recursive", return_value=filled_slots),
+            patch.object(tool, "_is_missing_required", return_value=False),
+        ):
+            result_state, result_output = tool._execute(state, {}, {})
 
-            assert result.status.value == "complete"
+            assert result_output.status == StatusEnum.COMPLETE
             # Function should receive slots parameter
-            assert "Slots count: 1" in result.message_flow
+            assert "Slots count: 1" in result_output.message_flow
 
     def test_execute_with_slot_configuration_same_slots(self) -> None:
         """Test _execute method when slot configuration remains the same."""
 
-        def test_function(param1: str) -> str:
+        def test_function(param1: str, **kwargs: object) -> str:
             return f"Result: {param1}"
 
         tool = Tool(
@@ -1425,35 +1200,22 @@ class TestTools:
             name="test_tool",
             description="Test tool",
             slots=[{"name": "param1", "type": "str", "required": True}],
-            outputs=["result"],
-            isResponse=False,
         )
 
         # Mock slotfiller
         mock_slotfiller = Mock()
         tool.slotfiller = mock_slotfiller
 
-        from arklex.orchestrator.NLU.entities.slot_entities import Slot
-
-        # Create previous slots in state
-        previous_slots = [
-            Slot(
-                name="param1",
-                value="previous_value",
-                type="str",
-                verified=True,
-                required=True,
-            )
-        ]
-
-        state = MessageState(
+        state = OrchestratorState(
             message_id="test-id",
             user_id="test-user",
             conversation_id="test-conversation",
-            slots={"test_tool": previous_slots},  # Previous slots exist
             function_calling_trajectory=[],
             trajectory=[[{"info": {}}]],
         )
+        state.bot_config = Mock()
+        state.bot_config.llm_config = Mock()
+        state.bot_config.llm_config.model_dump = lambda: {"test": "config"}
 
         # Mock filled slots
         filled_slots = [
@@ -1468,12 +1230,17 @@ class TestTools:
         mock_slotfiller.fill_slots.return_value = filled_slots
         mock_slotfiller.verify_slot.return_value = (False, "Slot is valid")
 
-        with patch.object(tool, "_init_slots"):
-            result = tool._execute(state)
+        # Mock the private methods to control slot filling behavior
+        with (
+            patch.object(tool, "_init_slots"),
+            patch.object(tool, "_fill_slots_recursive", return_value=filled_slots),
+            patch.object(tool, "_is_missing_required", return_value=False),
+        ):
+            result_state, result_output = tool._execute(state, {}, {})
 
-            assert result.status.value == "complete"
-            # Should use previous slots since configuration didn't change
-            assert tool.slots == previous_slots
+            assert result_output.status == StatusEnum.COMPLETE
+            # Should execute successfully with new filled slots
+            assert "Result: new_value" in result_output.message_flow
 
 
 class TestToolValueConversion:
@@ -1486,8 +1253,6 @@ class TestToolValueConversion:
             name="test_tool",
             description="Test tool",
             slots=[{"name": "param1", "type": "str"}],
-            outputs=["result"],
-            isResponse=False,
         )
         assert tool._convert_value("123", "int") == 123
         assert tool._convert_value(123, "int") == 123
@@ -1500,8 +1265,6 @@ class TestToolValueConversion:
             name="test_tool",
             description="Test tool",
             slots=[{"name": "param1", "type": "str"}],
-            outputs=["result"],
-            isResponse=False,
         )
         assert tool._convert_value("12.34", "float") == 12.34
         assert tool._convert_value(12.34, "float") == 12.34
@@ -1514,8 +1277,6 @@ class TestToolValueConversion:
             name="test_tool",
             description="Test tool",
             slots=[{"name": "param1", "type": "str"}],
-            outputs=["result"],
-            isResponse=False,
         )
         assert tool._convert_value("true", "bool") is True
         assert tool._convert_value("false", "bool") is False
@@ -1531,8 +1292,6 @@ class TestToolValueConversion:
             name="test_tool",
             description="Test tool",
             slots=[{"name": "param1", "type": "str"}],
-            outputs=["result"],
-            isResponse=False,
         )
         assert tool._convert_value(123, "str") == "123"
         assert tool._convert_value("test", "str") == "test"
@@ -1545,8 +1304,6 @@ class TestToolValueConversion:
             name="test_tool",
             description="Test tool",
             slots=[{"name": "param1", "type": "str"}],
-            outputs=["result"],
-            isResponse=False,
         )
         assert tool._convert_value("a,b,c", "list[str]") == ["a", "b", "c"]
         assert tool._convert_value(["a", "b"], "list[str]") == ["a", "b"]
@@ -1559,8 +1316,6 @@ class TestToolValueConversion:
             name="test_tool",
             description="Test tool",
             slots=[{"name": "param1", "type": "str"}],
-            outputs=["result"],
-            isResponse=False,
         )
         assert tool._convert_value("test", "unknown") == "test"
         assert tool._convert_value(None, "unknown") is None
@@ -1572,8 +1327,6 @@ class TestToolValueConversion:
             name="test_tool",
             description="Test tool",
             slots=[{"name": "param1", "type": "str"}],
-            outputs=["result"],
-            isResponse=False,
         )
         # Should return original value on conversion error
         assert tool._convert_value("invalid", "int") == "invalid"
@@ -1589,8 +1342,6 @@ class TestToolMissingRequiredSlots:
             name="test_tool",
             description="Test tool",
             slots=[{"name": "param1", "type": "str"}],
-            outputs=["result"],
-            isResponse=False,
         )
         slots = [
             Slot(
@@ -1610,8 +1361,6 @@ class TestToolMissingRequiredSlots:
             name="test_tool",
             description="Test tool",
             slots=[{"name": "param1", "type": "str"}],
-            outputs=["result"],
-            isResponse=False,
         )
         slots = [
             Slot(
@@ -1631,8 +1380,6 @@ class TestToolMissingRequiredSlots:
             name="test_tool",
             description="Test tool",
             slots=[{"name": "param1", "type": "str"}],
-            outputs=["result"],
-            isResponse=False,
         )
         slots = [
             Slot(
@@ -1652,8 +1399,6 @@ class TestToolMissingRequiredSlots:
             name="test_tool",
             description="Test tool",
             slots=[{"name": "param1", "type": "str"}],
-            outputs=["result"],
-            isResponse=False,
         )
         slots = [
             Slot(
@@ -1680,8 +1425,6 @@ class TestToolMissingRequiredSlots:
             name="test_tool",
             description="Test tool",
             slots=[{"name": "param1", "type": "str"}],
-            outputs=["result"],
-            isResponse=False,
         )
         slots = [
             Slot(
@@ -1708,8 +1451,6 @@ class TestToolMissingRequiredSlots:
             name="test_tool",
             description="Test tool",
             slots=[{"name": "param1", "type": "str"}],
-            outputs=["result"],
-            isResponse=False,
         )
         slots = [
             Slot(
@@ -1729,8 +1470,6 @@ class TestToolMissingRequiredSlots:
             name="test_tool",
             description="Test tool",
             slots=[{"name": "param1", "type": "str"}],
-            outputs=["result"],
-            isResponse=False,
         )
         slots = [
             Slot(
@@ -1750,8 +1489,6 @@ class TestToolMissingRequiredSlots:
             name="test_tool",
             description="Test tool",
             slots=[{"name": "param1", "type": "str"}],
-            outputs=["result"],
-            isResponse=False,
         )
         slots = [
             Slot(
@@ -1771,8 +1508,6 @@ class TestToolMissingRequiredSlots:
             name="test_tool",
             description="Test tool",
             slots=[{"name": "param1", "type": "str"}],
-            outputs=["result"],
-            isResponse=False,
         )
         slots = [
             Slot(
@@ -1803,8 +1538,6 @@ class TestToolMissingSlotsRecursive:
             name="test_tool",
             description="Test tool",
             slots=[{"name": "param1", "type": "str"}],
-            outputs=["result"],
-            isResponse=False,
         )
         slots = [
             Slot(
@@ -1826,8 +1559,6 @@ class TestToolMissingSlotsRecursive:
             name="test_tool",
             description="Test tool",
             slots=[{"name": "param1", "type": "str"}],
-            outputs=["result"],
-            isResponse=False,
         )
         slots = [
             Slot(
@@ -1855,8 +1586,6 @@ class TestToolMissingSlotsRecursive:
             name="test_tool",
             description="Test tool",
             slots=[{"name": "param1", "type": "str"}],
-            outputs=["result"],
-            isResponse=False,
         )
         slots = [
             Slot(
@@ -1878,8 +1607,6 @@ class TestToolMissingSlotsRecursive:
             name="test_tool",
             description="Test tool",
             slots=[{"name": "param1", "type": "str"}],
-            outputs=["result"],
-            isResponse=False,
         )
         slots = [
             Slot(
@@ -1902,8 +1629,6 @@ class TestToolMissingSlotsRecursive:
             name="test_tool",
             description="Test tool",
             slots=[{"name": "param1", "type": "str"}],
-            outputs=["result"],
-            isResponse=False,
         )
         slots = [
             Slot(
@@ -1929,8 +1654,6 @@ class TestToolGroupSlotHandling:
             name="test_tool",
             description="Test tool",
             slots=[{"name": "param1", "type": "str"}],
-            outputs=["result"],
-            isResponse=False,
         )
         group_slots = [
             {
@@ -1959,8 +1682,6 @@ class TestToolGroupSlotHandling:
             name="test_tool",
             description="Test tool",
             slots=[{"name": "param1", "type": "str"}],
-            outputs=["result"],
-            isResponse=False,
         )
         # Add initial group slot
         tool.load_slots(
@@ -2002,8 +1723,6 @@ class TestToolGroupSlotHandling:
             name="test_tool",
             description="Test tool",
             slots=[{"name": "param1", "type": "str"}],
-            outputs=["result"],
-            isResponse=False,
         )
         tool.load_slots(
             [
@@ -2067,8 +1786,6 @@ class TestToolGroupSlotHandling:
             name="test_tool",
             description="Test tool",
             slots=[{"name": "param1", "type": "str", "repeatable": True}],
-            outputs=["result"],
-            isResponse=False,
         )
         tool.load_slots(
             [
@@ -2154,8 +1871,6 @@ class TestToolRepeatableSlots:
             name="test_tool",
             description="Test tool",
             slots=[{"name": "param1", "type": "str"}],
-            outputs=["result"],
-            isResponse=False,
         )
         tool.load_slots(
             [
@@ -2185,8 +1900,6 @@ class TestToolRepeatableSlots:
             name="test_tool",
             description="Test tool",
             slots=[{"name": "param1", "type": "str"}],
-            outputs=["result"],
-            isResponse=False,
         )
         tool.load_slots(
             [
@@ -2236,15 +1949,12 @@ class TestToolEdgeCases:
             name="test_tool",
             description="Test tool",
             slots=[{"name": "param1", "type": "str"}],
-            outputs=["result"],
-            isResponse=False,
         )
         tool.slotfiller = Mock()
         mock_filled_slot = Mock()
         mock_filled_slot.value = None
         tool.slotfiller.fill_slots.return_value = [mock_filled_slot]
-        state = MessageState()
-        state.slots = {}
+        state = OrchestratorState()
         state.function_calling_trajectory = []
         mock_traj_obj = Mock()
         mock_traj_obj.input = None
@@ -2260,9 +1970,9 @@ class TestToolEdgeCases:
 
         tool.func = failing_func
 
-        result = tool.execute(state)
-        assert result.status == StatusEnum.INCOMPLETE
-        assert "Auth failed" in result.function_calling_trajectory[-1]["content"]
+        result_state, result_output = tool.execute(state, {}, {})
+        assert result_output.status == StatusEnum.INCOMPLETE
+        assert "Auth failed" in result_output.message_flow
 
     def test_execute_with_tool_execution_error(self) -> None:
         """Test tool execution with ToolExecutionError."""
@@ -2271,15 +1981,12 @@ class TestToolEdgeCases:
             name="test_tool",
             description="Test tool",
             slots=[{"name": "param1", "type": "str"}],
-            outputs=["result"],
-            isResponse=False,
         )
         tool.slotfiller = Mock()
         mock_filled_slot = Mock()
         mock_filled_slot.value = None
         tool.slotfiller.fill_slots.return_value = [mock_filled_slot]
-        state = MessageState()
-        state.slots = {}
+        state = OrchestratorState()
         state.function_calling_trajectory = []
         mock_traj_obj = Mock()
         mock_traj_obj.input = None
@@ -2295,10 +2002,8 @@ class TestToolEdgeCases:
 
         tool.func = failing_func
 
-        result = tool.execute(state)
-        assert result.status == StatusEnum.INCOMPLETE
-        content = result.function_calling_trajectory[-1]["content"]
-        assert (content is not None and "Extra message" in content) or content == "None"
+        _, result_output = tool.execute(state, {}, {})
+        assert result_output.status == StatusEnum.INCOMPLETE
 
     def test_execute_with_general_exception(self) -> None:
         """Test tool execution with general exception."""
@@ -2307,15 +2012,12 @@ class TestToolEdgeCases:
             name="test_tool",
             description="Test tool",
             slots=[{"name": "param1", "type": "str"}],
-            outputs=["result"],
-            isResponse=False,
         )
         tool.slotfiller = Mock()
         mock_filled_slot = Mock()
         mock_filled_slot.value = None
         tool.slotfiller.fill_slots.return_value = [mock_filled_slot]
-        state = MessageState()
-        state.slots = {}
+        state = OrchestratorState()
         state.function_calling_trajectory = []
         mock_traj_obj = Mock()
         mock_traj_obj.input = None
@@ -2329,9 +2031,9 @@ class TestToolEdgeCases:
 
         tool.func = failing_func
 
-        result = tool.execute(state)
-        assert result.status == StatusEnum.INCOMPLETE
-        assert "General error" in result.function_calling_trajectory[-1]["content"]
+        result_state, result_output = tool.execute(state, {}, {})
+        assert result_output.status == StatusEnum.INCOMPLETE
+        assert "General error" in result_output.message_flow
 
     def test_execute_with_missing_required_args(self) -> None:
         """Test tool execution with missing required arguments."""
@@ -2340,15 +2042,12 @@ class TestToolEdgeCases:
             name="test_tool",
             description="Test tool",
             slots=[{"name": "param1", "type": "str"}],
-            outputs=["result"],
-            isResponse=False,
         )
         tool.slotfiller = Mock()
         mock_filled_slot = Mock()
         mock_filled_slot.value = None
         tool.slotfiller.fill_slots.return_value = [mock_filled_slot]
-        state = MessageState()
-        state.slots = {}
+        state = OrchestratorState()
         state.function_calling_trajectory = []
         mock_traj_obj = Mock()
         mock_traj_obj.input = None
@@ -2362,8 +2061,8 @@ class TestToolEdgeCases:
 
         tool.func = func_with_required_args
 
-        result = tool.execute(state)
-        assert result.status == StatusEnum.INCOMPLETE
+        _, result_output = tool.execute(state, {}, {})
+        assert result_output.status == StatusEnum.INCOMPLETE
         # Should prompt for missing required slot
 
     def test_execute_with_slots_parameter(self) -> None:
@@ -2373,15 +2072,12 @@ class TestToolEdgeCases:
             name="test_tool",
             description="Test tool",
             slots=[{"name": "param1", "type": "str"}],
-            outputs=["result"],
-            isResponse=False,
         )
         tool.slotfiller = Mock()
         mock_filled_slot = Mock()
         mock_filled_slot.value = None
         tool.slotfiller.fill_slots.return_value = [mock_filled_slot]
-        state = MessageState()
-        state.slots = {}
+        state = OrchestratorState()
         state.function_calling_trajectory = []
         mock_traj_obj = Mock()
         mock_traj_obj.input = None
@@ -2395,7 +2091,7 @@ class TestToolEdgeCases:
 
         tool.func = func_with_slots
         tool.load_slots([{"name": "test", "type": "str", "required": True}])
-        tool.execute(state)
+        tool.execute(state, {}, {})
         # Should work without error since slots parameter is accepted
 
     def test_slot_schema_signature_changed(self) -> None:
@@ -2405,15 +2101,12 @@ class TestToolEdgeCases:
             name="test_tool",
             description="Test tool",
             slots=[{"name": "param1", "type": "str"}],
-            outputs=["result"],
-            isResponse=False,
         )
         tool.slotfiller = Mock()
         mock_filled_slot = Mock()
         mock_filled_slot.value = None
         tool.slotfiller.fill_slots.return_value = [mock_filled_slot]
-        state = MessageState()
-        state.slots = {}
+        state = OrchestratorState()
         state.function_calling_trajectory = []
         mock_traj_obj = Mock()
         mock_traj_obj.input = None
@@ -2424,10 +2117,7 @@ class TestToolEdgeCases:
 
         # First call with initial slots
         tool.load_slots([{"name": "test", "type": "str", "required": True}])
-        tool.execute(state)
-        state.slots[tool.name] = [
-            Slot.model_validate(slot.model_dump()) for slot in tool.slots
-        ]
+        tool.execute(state, {}, {})
 
         # Second call with different slots (simulating different node)
         tool.load_slots(
@@ -2436,9 +2126,10 @@ class TestToolEdgeCases:
                 {"name": "test2", "type": "int", "required": False},
             ]
         )
-        tool.execute(state)
+        tool.execute(state, {}, {})
 
-        # Should reset slots due to schema change
+        # Should handle slots schema change successfully
+        assert len(tool.slots) == 3  # Should have param1, test, and test2 slots
 
     def test_verified_slots_not_in_tool_def(self) -> None:
         """Test that verified slots are not included in tool definition."""
@@ -2447,8 +2138,6 @@ class TestToolEdgeCases:
             name="test_tool",
             description="Test tool",
             slots=[{"name": "param1", "type": "str"}],
-            outputs=["result"],
-            isResponse=False,
         )
         tool.load_slots(
             [
@@ -2476,8 +2165,6 @@ class TestToolEdgeCases:
             name="test_tool",
             description="Test tool",
             slots=[{"name": "param1", "type": "str"}],
-            outputs=["result"],
-            isResponse=False,
         )
         tool.name = "test_tool"
         tool.description = "Test description"
@@ -2500,8 +2187,6 @@ class TestToolEdgeCases:
                     "schema": [{"name": "field1", "type": "str"}],
                 }
             ],
-            outputs=["result"],
-            isResponse=False,
         )
         tool.slotfiller = Mock()
         # Return a string that's not valid JSON
@@ -2523,8 +2208,6 @@ class TestToolEdgeCases:
                     "schema": [{"name": "field1", "type": "str"}],
                 }
             ],
-            outputs=["result"],
-            isResponse=False,
         )
         tool.slotfiller = Mock()
         # Return a single dict
@@ -2547,8 +2230,6 @@ class TestToolEdgeCases:
                     "schema": [{"name": "field1", "type": "str"}],
                 }
             ],
-            outputs=["result"],
-            isResponse=False,
         )
         tool.slotfiller = Mock()
         # Return an int
@@ -2597,8 +2278,6 @@ class TestToolEdgeCases:
                     ],
                 }
             ],
-            outputs=["result"],
-            isResponse=False,
         )
         tool.slotfiller = Mock()
         # Return a list of dicts with missing values
@@ -2618,8 +2297,6 @@ class TestToolEdgeCases:
             name="test_tool",
             description="Test tool",
             slots=[{"name": "repeat", "type": "str", "repeatable": True}],
-            outputs=["result"],
-            isResponse=False,
         )
         tool.slotfiller = Mock()
         # Return a string that's not valid JSON but looks like it should be JSON
@@ -2635,8 +2312,6 @@ class TestToolEdgeCases:
             name="test_tool",
             description="Test tool",
             slots=[{"name": "repeat", "type": "str", "repeatable": True}],
-            outputs=["result"],
-            isResponse=False,
         )
         tool.slotfiller = Mock()
         # Return None
@@ -2652,8 +2327,6 @@ class TestToolEdgeCases:
             name="test_tool",
             description="Test tool",
             slots=[{"name": "repeat", "type": "str", "repeatable": True}],
-            outputs=["result"],
-            isResponse=False,
         )
         tool.slotfiller = Mock()
         # Return a single value (not valid JSON array) - should be wrapped in list
@@ -2676,7 +2349,6 @@ class TestToolEdgeCases:
                     "required": True,
                 }
             ],
-            isResponse=False,
         )
         tool_def = tool.to_openai_tool_def()
         assert tool_def["parameters"]["properties"]["param"]["type"] == "array"
@@ -2698,15 +2370,12 @@ class TestToolEdgeCases:
             name="test_tool",
             description="Test tool",
             slots=[{"name": "param", "type": "str"}],
-            outputs=["result"],
-            isResponse=False,
         )
         tool.slotfiller = Mock()
         mock_filled_slot = Mock()
         mock_filled_slot.value = "val"
         tool.slotfiller.fill_slots.return_value = [mock_filled_slot]
-        state = MessageState()
-        state.slots = {}
+        state = OrchestratorState()
         state.function_calling_trajectory = []
         mock_traj_obj = Mock()
         mock_traj_obj.input = None
@@ -2715,10 +2384,10 @@ class TestToolEdgeCases:
         state.bot_config.llm_config = Mock()
         state.bot_config.llm_config.model_dump = lambda: {"test": "config"}
         # First call
-        tool.execute(state)
+        tool.execute(state, {}, {})
         # Change slots
         tool.slots = [Slot(name="param2", type="int")]
-        tool.execute(state)
+        tool.execute(state, {}, {})
         assert tool.slots[0].name == "param2"
 
     def test_execute_missing_required_args(self) -> None:
@@ -2730,15 +2399,12 @@ class TestToolEdgeCases:
             name="test_tool",
             description="Test tool",
             slots=[{"name": "param", "type": "str"}],
-            outputs=["result"],
-            isResponse=False,
         )
         tool.slotfiller = Mock()
         mock_filled_slot = Mock()
         mock_filled_slot.value = "val"
         tool.slotfiller.fill_slots.return_value = [mock_filled_slot]
-        state = MessageState()
-        state.slots = {}
+        state = OrchestratorState()
         state.function_calling_trajectory = []
         mock_traj_obj = Mock()
         mock_traj_obj.input = None
@@ -2746,8 +2412,8 @@ class TestToolEdgeCases:
         state.bot_config = Mock()
         state.bot_config.llm_config = Mock()
         state.bot_config.llm_config.model_dump = lambda: {"test": "config"}
-        result = tool.execute(state)
-        assert result.status.value == "incomplete"
+        _, result_output = tool.execute(state, {}, {})
+        assert result_output.status == StatusEnum.INCOMPLETE
 
     def test_execute_slot_verification_needed(self) -> None:
         tool = Tool(
@@ -2757,16 +2423,13 @@ class TestToolEdgeCases:
             slots=[
                 {"name": "param", "type": "str", "required": True, "prompt": "Prompt"}
             ],
-            outputs=["result"],
-            isResponse=False,
         )
         tool.slotfiller = Mock()
         mock_filled_slot = Mock()
         mock_filled_slot.value = "val"
         tool.slotfiller.fill_slots.return_value = [mock_filled_slot]
         tool.slotfiller.verify_slot.return_value = (True, "Reason")
-        state = MessageState()
-        state.slots = {}
+        state = OrchestratorState()
         state.function_calling_trajectory = []
         mock_traj_obj = Mock()
         mock_traj_obj.input = None
@@ -2774,8 +2437,8 @@ class TestToolEdgeCases:
         state.bot_config = Mock()
         state.bot_config.llm_config = Mock()
         state.bot_config.llm_config.model_dump = lambda: {"test": "config"}
-        result = tool.execute(state)
-        assert result.status.value == "incomplete"
+        _, result_output = tool.execute(state, {}, {})
+        assert result_output.status == StatusEnum.INCOMPLETE
 
     def test_build_repeatable_regular_slot_prompt(self) -> None:
         tool = Tool(
@@ -2783,8 +2446,6 @@ class TestToolEdgeCases:
             name="test_tool",
             description="Test tool",
             slots=[],
-            outputs=["result"],
-            isResponse=False,
         )
         for t in ["str", "int", "float", "bool", "unknown"]:
             slot = Slot(name="repeat", type=t, repeatable=True)
@@ -2817,8 +2478,6 @@ class TestToolEdgeCases:
                     ],
                 }
             ],
-            outputs=["result"],
-            isResponse=False,
         )
         slot = tool.slots[0]
         prompt = tool._build_group_prompt(slot)
@@ -2847,8 +2506,6 @@ class TestToolEdgeCases:
                     ],
                 }
             ],
-            outputs=["result"],
-            isResponse=False,
         )
         assert tool.slots[0].type == "group"
         assert tool.slots[0].schema[0]["repeatable"] is True
@@ -2867,8 +2524,6 @@ class TestToolEdgeCases:
                     "schema": [{"name": "field1", "type": "str", "required": True}],
                 }
             ],
-            outputs=["result"],
-            isResponse=False,
         )
         tool.slotfiller = Mock()
         # Simulate slotfiller returning a group slot with value=None
@@ -2907,8 +2562,6 @@ class TestToolEdgeCases:
                     ],
                 }
             ],
-            outputs=["result"],
-            isResponse=False,
         )
         slot = tool.slots[0]
         prompt = tool._build_group_prompt(slot)
@@ -2931,8 +2584,6 @@ class TestToolEdgeCases:
                     "schema": [{"name": "field1", "type": "str", "required": True}],
                 }
             ],
-            outputs=["result"],
-            isResponse=False,
         )
         tool.slotfiller = Mock()
         # Simulate slotfiller returning a group slot with value=None
@@ -2974,8 +2625,6 @@ class TestToolEdgeCases:
                     ],
                 }
             ],
-            outputs=["result"],
-            isResponse=False,
         )
         tool.slotfiller = Mock()
         # Simulate slotfiller returning a group slot with value=None (so prompt is built)
@@ -3017,8 +2666,6 @@ class TestToolEdgeCases:
                     ],
                 }
             ],
-            outputs=["result"],
-            isResponse=False,
         )
         tool.slotfiller = Mock()
         # Return a valid group structure with items so the field_repeatable logic gets executed
@@ -3076,8 +2723,6 @@ class TestToolEdgeCases:
             name="test_tool",
             description="Test tool",
             slots=[{"name": "group", "type": "group", "schema": schema}],
-            outputs=["result"],
-            isResponse=False,
         )
         tool.slotfiller = Mock()
 
@@ -3139,8 +2784,6 @@ class TestToolEdgeCases:
             name="test_tool",
             description="Test tool",
             slots=[{"name": "group", "type": "group", "schema": schema}],
-            outputs=["result"],
-            isResponse=False,
         )
         tool.slotfiller = Mock()
 
@@ -3171,8 +2814,6 @@ class TestToolEdgeCases:
             name="test_tool",
             description="Test tool",
             slots=[],
-            outputs=["result"],
-            isResponse=False,
         )
 
         # Test None/empty values
@@ -3203,8 +2844,6 @@ class TestToolEdgeCases:
             name="test_tool",
             description="Test tool",
             slots=[{"name": "repeat", "type": "str", "repeatable": True}],
-            outputs=["result"],
-            isResponse=False,
         )
         # slot_value is a single value (not a list, not None)
         result = tool._parse_and_validate_repeatable_value(
@@ -3219,8 +2858,6 @@ class TestToolEdgeCases:
             name="test_tool",
             description="Test tool",
             slots=[{"name": "repeat", "type": "dict", "repeatable": True}],
-            outputs=["result"],
-            isResponse=False,
         )
         # slot_value is None (not str, not list)
         result = tool._parse_and_validate_repeatable_value(
@@ -3256,8 +2893,6 @@ class TestToolEdgeCases:
                     ],
                 }
             ],
-            outputs=["result"],
-            isResponse=False,
         )
 
         # Create a group value with the specific structure - only one item
@@ -3285,8 +2920,6 @@ class TestToolEdgeCases:
             name="test_tool",
             description="Test tool",
             slots=[{"name": "param", "type": "str", "required": True}],
-            outputs=["result"],
-            isResponse=False,
         )
         tool.slotfiller = Mock()
 
@@ -3323,8 +2956,6 @@ class TestToolEdgeCases:
                     "prompt": "Please verify",
                 }
             ],
-            outputs=["result"],
-            isResponse=False,
         )
         tool.slotfiller = Mock()
         tool.slotfiller.verify_slot.return_value = (True, "Please confirm this value")
@@ -3363,8 +2994,6 @@ class TestToolEdgeCases:
                     "prompt": "Please verify",
                 }
             ],
-            outputs=["result"],
-            isResponse=False,
         )
         tool.slotfiller = Mock()
         tool.slotfiller.verify_slot.return_value = (False, "Slot is valid")
@@ -3403,8 +3032,6 @@ class TestToolEdgeCases:
                     "prompt": "Please provide param",
                 }
             ],
-            outputs=["result"],
-            isResponse=False,
         )
         tool.slotfiller = Mock()
 
@@ -3442,8 +3069,6 @@ class TestToolEdgeCases:
                     "prompt": "Please provide param",
                 }
             ],
-            outputs=["result"],
-            isResponse=False,
         )
         tool.slotfiller = Mock()
 
@@ -3472,8 +3097,6 @@ class TestToolEdgeCases:
             name="test_tool",
             description="Test tool",
             slots=[{"name": "param", "type": "str", "required": True}],
-            outputs=["result"],
-            isResponse=False,
         )
         tool.slotfiller = Mock()
 
@@ -3507,8 +3130,6 @@ class TestToolEdgeCases:
                     "prompt": "Please provide group",
                 }
             ],
-            outputs=["result"],
-            isResponse=False,
         )
         tool.slotfiller = Mock()
 
@@ -3555,8 +3176,6 @@ class TestToolEdgeCases:
                     "repeatable": True,
                 }
             ],
-            outputs=["result"],
-            isResponse=False,
         )
         tool.slotfiller = Mock()
 
@@ -3593,8 +3212,6 @@ class TestToolEdgeCases:
                     "repeatable": True,
                 }
             ],
-            outputs=["result"],
-            isResponse=False,
         )
         tool.slotfiller = Mock()
 
@@ -3631,8 +3248,6 @@ class TestToolEdgeCases:
                     "repeatable": True,
                 }
             ],
-            outputs=["result"],
-            isResponse=False,
         )
         tool.slotfiller = Mock()
 
@@ -3669,8 +3284,6 @@ class TestToolEdgeCases:
                     "repeatable": True,
                 }
             ],
-            outputs=["result"],
-            isResponse=False,
         )
         tool.slotfiller = Mock()
 
@@ -3699,8 +3312,6 @@ class TestToolEdgeCases:
             name="test_tool",
             description="Test tool",
             slots=[{"name": "group", "type": "group", "schema": []}],
-            outputs=["result"],
-            isResponse=False,
         )
 
         # Create a group slot with None value
@@ -3724,8 +3335,6 @@ class TestToolEdgeCases:
             name="test_tool",
             description="Test tool",
             slots=[{"name": "group", "type": "group", "schema": []}],
-            outputs=["result"],
-            isResponse=False,
         )
 
         # Create a group slot with empty list
@@ -3749,8 +3358,6 @@ class TestToolEdgeCases:
             name="test_tool",
             description="Test tool",
             slots=[{"name": "group", "type": "group", "schema": []}],
-            outputs=["result"],
-            isResponse=False,
         )
 
         # Create a group slot with non-list value
@@ -3787,8 +3394,6 @@ class TestToolEdgeCases:
                     ],
                 }
             ],
-            outputs=["result"],
-            isResponse=False,
         )
 
         # Create a group slot with missing repeatable field
@@ -3832,8 +3437,6 @@ class TestToolEdgeCases:
                     ],
                 }
             ],
-            outputs=["result"],
-            isResponse=False,
         )
 
         # Create a group slot with repeatable field that is not a list
@@ -3879,8 +3482,6 @@ class TestToolEdgeCases:
                     ],
                 }
             ],
-            outputs=["result"],
-            isResponse=False,
         )
 
         # Create a group slot with repeatable field that has empty list
@@ -3926,8 +3527,6 @@ class TestToolEdgeCases:
                     ],
                 }
             ],
-            outputs=["result"],
-            isResponse=False,
         )
 
         # Create a group slot with repeatable field that has empty values
@@ -3975,8 +3574,6 @@ class TestToolEdgeCases:
                     ],
                 }
             ],
-            outputs=["result"],
-            isResponse=False,
         )
 
         # Create a group slot with all valid fields

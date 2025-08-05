@@ -3,9 +3,9 @@ from unittest.mock import Mock, patch
 
 import pytest
 
-from arklex.env.agents.agent import BaseAgent, register_agent
+from arklex.env.agents.agent import AgentOutput, BaseAgent, register_agent
 from arklex.orchestrator.entities.orchestrator_state_entities import (
-    MessageState,
+    OrchestratorState,
     StatusEnum,
 )
 
@@ -47,29 +47,40 @@ class TestRegisterAgent:
 class ConcreteAgent(BaseAgent):  # noqa: D101
     """Concrete implementation of BaseAgent for testing."""
 
-    def _execute(self, msg_state: MessageState, **kwargs: Any) -> dict[str, Any]:  # noqa: ANN401
+    def init_agent_data(
+        self, orch_state: OrchestratorState, node_specific_data: dict[str, Any]
+    ) -> None:
+        pass
+
+    def _execute(self) -> tuple[OrchestratorState, AgentOutput]:  # noqa: ANN401
         """Mock implementation of _execute method."""
-        return {
-            "status": StatusEnum.COMPLETE,
-            "response": "Test response",
-            "message_flow": "",
-            "function_calling_trajectory": [],
-            "trajectory": msg_state.trajectory,
-        }
+        mock_state = Mock(spec=OrchestratorState)
+        mock_state.trajectory = [[Mock()]]
+        mock_state.trajectory[0][0].output = None
+        agent_output = AgentOutput(
+            response="Test response",
+            status=StatusEnum.COMPLETE,
+        )
+        return mock_state, agent_output
 
 
 class FailingAgent(BaseAgent):  # noqa: D101
     """Agent that raises exceptions for testing error handling."""
 
-    def _execute(self, msg_state: MessageState, **kwargs: Any) -> dict[str, Any]:  # noqa: ANN401
+    def init_agent_data(
+        self, orch_state: OrchestratorState, node_specific_data: dict[str, Any]
+    ) -> None:
+        pass
+
+    def _execute(self) -> tuple[OrchestratorState, AgentOutput]:  # noqa: ANN401
         """Implementation that raises an exception."""
         raise ValueError("Test error")
 
 
 @pytest.fixture
-def mock_state() -> MessageState:
-    """Create a mock MessageState for testing."""
-    state = Mock(spec=MessageState)
+def mock_state() -> OrchestratorState:
+    """Create a mock OrchestratorState for testing."""
+    state = Mock(spec=OrchestratorState)
     state.status = StatusEnum.INCOMPLETE
     state.response = ""
     state.message_flow = ""
@@ -79,9 +90,9 @@ def mock_state() -> MessageState:
 
 
 @pytest.fixture
-def complete_mock_state() -> MessageState:
-    """Create a mock MessageState with COMPLETE status."""
-    state = Mock(spec=MessageState)
+def complete_mock_state() -> OrchestratorState:
+    """Create a mock OrchestratorState with COMPLETE status."""
+    state = Mock(spec=OrchestratorState)
     state.status = StatusEnum.COMPLETE
     state.response = "Existing response"
     state.message_flow = ""
@@ -114,123 +125,123 @@ class TestBaseAgent:
         class TestAgent(BaseAgent):
             description = "Test agent description"
 
-            def _execute(
-                self,
-                msg_state: MessageState,
-                **kwargs: Any,  # noqa: ANN401
-            ) -> dict[str, Any]:  # noqa: ANN401
-                return {}
+            def init_agent_data(
+                self, orch_state: OrchestratorState, node_specific_data: dict[str, Any]
+            ) -> None:
+                pass
+
+            def _execute(self) -> tuple[OrchestratorState, AgentOutput]:
+                mock_state = Mock(spec=OrchestratorState)
+                agent_output = AgentOutput(response="", status=StatusEnum.INCOMPLETE)
+                return mock_state, agent_output
 
         agent = TestAgent()
         assert agent.description == "Test agent description"
 
-    @patch("arklex.env.agents.agent.MessageState.model_validate")
-    def test_execute_success(
-        self, mock_validate: Mock, mock_state: MessageState
-    ) -> None:
+    def test_execute_success(self, mock_state: OrchestratorState) -> None:
         """Test successful execution of agent."""
-        # Setup mock return value
-        mock_response_state = Mock(spec=MessageState)
-        mock_response_state.response = "Test response"
-        mock_response_state.message_flow = ""
-        mock_response_state.trajectory = [[Mock()]]
-        mock_response_state.trajectory[0][0].output = None
-        mock_validate.return_value = mock_response_state
-
         agent = ConcreteAgent()
-        result = agent.execute(mock_state)
+        result_state, agent_output = agent.execute(mock_state, node_specific_data={})
 
         # Verify the result
-        assert result == mock_response_state
-        assert mock_response_state.trajectory[0][0].output == "Test response"
-        mock_validate.assert_called_once()
+        assert agent_output.status == StatusEnum.INCOMPLETE
+        assert agent_output.response == "Test response"
 
-    @patch("arklex.env.agents.agent.MessageState.model_validate")
     def test_execute_with_message_flow_fallback(
-        self, mock_validate: Mock, mock_state: MessageState
+        self, mock_state: OrchestratorState
     ) -> None:  # noqa: E501
         """Test execution when response is empty but message_flow has content."""
-        # Setup mock return value with empty response but message_flow content
-        mock_response_state = Mock(spec=MessageState)
-        mock_response_state.response = ""
-        mock_response_state.message_flow = "Message flow content"
-        mock_response_state.trajectory = [[Mock()]]
-        mock_response_state.trajectory[0][0].output = None
-        mock_validate.return_value = mock_response_state
 
-        agent = ConcreteAgent()
-        result = agent.execute(mock_state)
+        class EmptyResponseAgent(BaseAgent):
+            def init_agent_data(
+                self, orch_state: OrchestratorState, node_specific_data: dict[str, Any]
+            ) -> None:
+                pass
 
-        assert result == mock_response_state
-        assert mock_response_state.trajectory[0][0].output == "Message flow content"
+            def _execute(self) -> tuple[OrchestratorState, AgentOutput]:
+                mock_state = Mock(spec=OrchestratorState)
+                mock_state.trajectory = [[Mock()]]
+                mock_state.trajectory[0][0].output = None
+                agent_output = AgentOutput(response="", status=StatusEnum.INCOMPLETE)
+                return mock_state, agent_output
 
-    @patch("arklex.env.agents.agent.MessageState.model_validate")
-    def test_execute_with_none_response_and_message_flow(
-        self, mock_validate: Mock, mock_state: MessageState
-    ) -> None:
-        """Test execution when both response and message_flow are None."""
-        # Setup mock return value with None values
-        mock_response_state = Mock(spec=MessageState)
-        mock_response_state.response = None
-        mock_response_state.message_flow = None
-        mock_response_state.trajectory = [[Mock()]]
-        mock_response_state.trajectory[0][0].output = None
-        mock_validate.return_value = mock_response_state
+        agent = EmptyResponseAgent()
+        _, agent_output = agent.execute(mock_state, node_specific_data={})
 
-        agent = ConcreteAgent()
-        result = agent.execute(mock_state)
+        assert agent_output.status == StatusEnum.INCOMPLETE
+        assert agent_output.response == ""
 
-        assert result == mock_response_state
-        assert mock_response_state.trajectory[0][0].output is None
-
-    @patch("arklex.env.agents.agent.MessageState.model_validate")
-    def test_execute_with_empty_trajectory(
-        self, mock_validate: Mock, mock_state: MessageState
-    ) -> None:
+    def test_execute_with_empty_trajectory(self, mock_state: OrchestratorState) -> None:
         """Test execution when trajectory is empty."""
-        mock_response_state = Mock(spec=MessageState)
-        mock_response_state.response = "Test response"
-        mock_response_state.message_flow = ""
-        mock_response_state.trajectory = []
-        mock_validate.return_value = mock_response_state
 
-        agent = ConcreteAgent()
-        result = agent.execute(mock_state)
+        class EmptyTrajectoryAgent(BaseAgent):
+            def init_agent_data(
+                self, orch_state: OrchestratorState, node_specific_data: dict[str, Any]
+            ) -> None:
+                pass
 
-        assert result == mock_response_state
+            def _execute(self) -> tuple[OrchestratorState, AgentOutput]:
+                mock_state = Mock(spec=OrchestratorState)
+                mock_state.trajectory = []
+                agent_output = AgentOutput(
+                    response="Test", status=StatusEnum.INCOMPLETE
+                )
+                return mock_state, agent_output
+
+        agent = EmptyTrajectoryAgent()
+        orch_state, _ = agent.execute(mock_state, node_specific_data={})
+
         # Should not raise an exception even with empty trajectory
+        assert True  # Test passes if no exception is raised
 
-    @patch("arklex.env.agents.agent.MessageState.model_validate")
-    def test_execute_with_none_trajectory(
-        self, mock_validate: Mock, mock_state: MessageState
-    ) -> None:
+    def test_execute_with_none_trajectory(self, mock_state: OrchestratorState) -> None:
         """Test execution when trajectory is None."""
-        mock_response_state = Mock(spec=MessageState)
-        mock_response_state.response = "Test response"
-        mock_response_state.message_flow = ""
-        mock_response_state.trajectory = None
-        mock_validate.return_value = mock_response_state
 
-        agent = ConcreteAgent()
-        result = agent.execute(mock_state)
+        class NoneTrajectoryAgent(BaseAgent):
+            def init_agent_data(
+                self, orch_state: OrchestratorState, node_specific_data: dict[str, Any]
+            ) -> None:
+                pass
 
-        assert result == mock_response_state
+            def _execute(self) -> tuple[OrchestratorState, AgentOutput]:
+                mock_state = Mock(spec=OrchestratorState)
+                mock_state.trajectory = None
+                agent_output = AgentOutput(
+                    response="Test", status=StatusEnum.INCOMPLETE
+                )
+                return mock_state, agent_output
 
-    @patch("arklex.env.agents.agent.MessageState.model_validate")
+        agent = NoneTrajectoryAgent()
+        result_state, result_output = agent.execute(mock_state, node_specific_data={})
+
+        # Should return a tuple, not just the state
+        assert isinstance(result_output, AgentOutput)
+
     def test_execute_with_nested_empty_trajectory(
-        self, mock_validate: Mock, mock_state: MessageState
+        self, mock_state: OrchestratorState
     ) -> None:
         """Test execution when trajectory has empty nested lists."""
-        mock_response_state = Mock(spec=MessageState)
-        mock_response_state.response = "Test response"
-        mock_response_state.message_flow = ""
-        mock_response_state.trajectory = [[]]
-        mock_validate.return_value = mock_response_state
 
-        agent = ConcreteAgent()
-        result = agent.execute(mock_state)
+        class NestedEmptyTrajectoryAgent(BaseAgent):
+            def init_agent_data(
+                self, orch_state: OrchestratorState, node_specific_data: dict[str, Any]
+            ) -> None:
+                pass
 
-        assert result == mock_response_state
+            def _execute(self) -> tuple[OrchestratorState, AgentOutput]:
+                mock_state = Mock(spec=OrchestratorState)
+                mock_state.trajectory = [[Mock()]]
+                mock_state.trajectory[0][0].output = None
+                agent_output = AgentOutput(
+                    response="Test response", status=StatusEnum.INCOMPLETE
+                )
+                return mock_state, agent_output
+
+        agent = NestedEmptyTrajectoryAgent()
+        _, agent_output = agent.execute(mock_state, node_specific_data={})
+
+        assert agent_output.status == StatusEnum.INCOMPLETE
+        assert agent_output.response == "Test response"
 
     def test_register_agent_with_existing_name(self) -> None:
         """Test register_agent when class already has a name attribute."""
@@ -267,32 +278,42 @@ class TestBaseAgent:
         assert agent.name == "CustomAgentName"
         assert str(agent) == "ConcreteAgent"  # str still uses class name
 
-    @patch("arklex.env.agents.agent.MessageState.model_validate")
     def test_execute_model_validate_exception(
-        self, mock_validate: Mock, mock_state: MessageState
+        self, mock_state: OrchestratorState
     ) -> None:
-        """Test execute when MessageState.model_validate raises exception."""
-        mock_validate.side_effect = ValueError("Validation error")
+        """Test execute when _execute raises exception."""
 
-        agent = ConcreteAgent()
-        result = agent.execute(mock_state)
+        class ValidationExceptionAgent(BaseAgent):
+            def init_agent_data(
+                self, orch_state: OrchestratorState, node_specific_data: dict[str, Any]
+            ) -> None:
+                pass
 
-        # Should return original state when validation fails
-        assert result == mock_state
+            def _execute(self) -> tuple[OrchestratorState, AgentOutput]:
+                raise ValueError("Validation error")
+
+        agent = ValidationExceptionAgent()
+        result_state, result_output = agent.execute(mock_state, node_specific_data={})
+
+        # Should return original state and error output when validation fails
+        assert result_state == mock_state
+        assert result_output.response == ""
+        assert result_output.status == StatusEnum.INCOMPLETE
 
     @patch("arklex.env.agents.agent.log_context.error")
     @patch("arklex.env.agents.agent.traceback.format_exc")
     def test_execute_logs_specific_exception_type(
-        self, mock_format_exc: Mock, mock_log_error: Mock, mock_state: MessageState
+        self, mock_format_exc: Mock, mock_log_error: Mock, mock_state: OrchestratorState
     ) -> None:
         """Test that execute logs the specific exception traceback."""
 
         class CustomExceptionAgent(BaseAgent):
-            def _execute(
-                self,
-                msg_state: MessageState,
-                **kwargs: Any,  # noqa: ANN401
-            ) -> dict[str, Any]:
+            def init_agent_data(
+                self, orch_state: OrchestratorState, node_specific_data: dict[str, Any]
+            ) -> None:
+                pass
+
+            def _execute(self) -> tuple[OrchestratorState, AgentOutput]:
                 raise RuntimeError("Custom runtime error")
 
         mock_format_exc.return_value = (
@@ -300,9 +321,9 @@ class TestBaseAgent:
         )
 
         agent = CustomExceptionAgent()
-        result = agent.execute(mock_state)
+        result = agent.execute(mock_state, node_specific_data={})
 
-        assert result == mock_state
+        assert result[0] == mock_state
         mock_log_error.assert_called_once_with(
             "RuntimeError: Custom runtime error\nTraceback..."
         )
@@ -312,60 +333,63 @@ class TestBaseAgent:
 
         @register_agent
         class FirstAgent(BaseAgent):
-            def _execute(
-                self,
-                msg_state: MessageState,
-                **kwargs: Any,  # noqa: ANN401
-            ) -> dict[str, Any]:
-                return {}
+            def init_agent_data(
+                self, orch_state: OrchestratorState, node_specific_data: dict[str, Any]
+            ) -> None:
+                pass
+
+            def _execute(self) -> tuple[OrchestratorState, AgentOutput]:
+                mock_state = Mock(spec=OrchestratorState)
+                agent_output = AgentOutput(response="", status=StatusEnum.INCOMPLETE)
+                return mock_state, agent_output
 
         @register_agent
         class SecondAgent(BaseAgent):
-            def _execute(
-                self,
-                msg_state: MessageState,
-                **kwargs: Any,  # noqa: ANN401
-            ) -> dict[str, Any]:
-                return {}
+            def init_agent_data(
+                self, orch_state: OrchestratorState, node_specific_data: dict[str, Any]
+            ) -> None:
+                pass
+
+            def _execute(self) -> tuple[OrchestratorState, AgentOutput]:
+                mock_state = Mock(spec=OrchestratorState)
+                agent_output = AgentOutput(response="", status=StatusEnum.INCOMPLETE)
+                return mock_state, agent_output
 
         assert FirstAgent.name == "FirstAgent"
         assert SecondAgent.name == "SecondAgent"
         assert FirstAgent.name != SecondAgent.name
 
-    @patch("arklex.env.agents.agent.MessageState.model_validate")
-    def test_execute_with_complex_kwargs(
-        self, mock_validate: Mock, mock_state: MessageState
-    ) -> None:
+    def test_execute_with_complex_kwargs(self, mock_state: OrchestratorState) -> None:
         """Test execute with complex kwargs including nested objects."""
 
         class ComplexKwargsAgent(BaseAgent):
-            def _execute(
-                self,
-                msg_state: MessageState,
-                **kwargs: Any,  # noqa: ANN401
-            ) -> dict[str, Any]:
-                nested_data = kwargs.get("nested", {})
-                return {
-                    "status": StatusEnum.COMPLETE,
-                    "response": f"Processed: {nested_data.get('key', 'default')}",
-                    "message_flow": "",
-                    "function_calling_trajectory": [],
-                    "trajectory": msg_state.trajectory,
-                }
+            def init_agent_data(
+                self, orch_state: OrchestratorState, node_specific_data: dict[str, Any]
+            ) -> None:
+                self.node_data = node_specific_data
 
-        mock_response_state = Mock(spec=MessageState)
-        mock_response_state.response = "Processed: test_value"
-        mock_response_state.message_flow = ""
-        mock_response_state.trajectory = [[Mock()]]
-        mock_response_state.trajectory[0][0].output = None
-        mock_validate.return_value = mock_response_state
+            def _execute(self) -> tuple[OrchestratorState, AgentOutput]:
+                nested_data = self.node_data.get("nested", {})
+                mock_state = Mock(spec=OrchestratorState)
+                mock_state.trajectory = [[Mock()]]
+                mock_state.trajectory[0][0].output = None
+                agent_output = AgentOutput(
+                    response=f"Processed: {nested_data.get('key', 'default')}",
+                    status=StatusEnum.COMPLETE,
+                )
+                return mock_state, agent_output
 
         agent = ComplexKwargsAgent()
-        result = agent.execute(
-            mock_state, nested={"key": "test_value"}, other_param=42, flag=True
+        result_state, result_output = agent.execute(
+            mock_state,
+            node_specific_data={
+                "nested": {"key": "test_value"},
+                "other_param": 42,
+                "flag": True,
+            },
         )
 
-        assert result == mock_response_state
+        assert "test_value" in result_output.response
 
     def test_agent_inheritance_preserves_description(self) -> None:
         """Test that agent inheritance preserves description from parent class."""
@@ -373,12 +397,15 @@ class TestBaseAgent:
         class ParentAgent(BaseAgent):
             description = "Parent description"
 
-            def _execute(
-                self,
-                msg_state: MessageState,
-                **kwargs: Any,  # noqa: ANN401
-            ) -> dict[str, Any]:
-                return {}
+            def init_agent_data(
+                self, orch_state: OrchestratorState, node_specific_data: dict[str, Any]
+            ) -> None:
+                pass
+
+            def _execute(self) -> tuple[OrchestratorState, AgentOutput]:
+                mock_state = Mock(spec=OrchestratorState)
+                agent_output = AgentOutput(response="", status=StatusEnum.INCOMPLETE)
+                return mock_state, agent_output
 
         class ChildAgent(ParentAgent):
             pass
@@ -395,12 +422,15 @@ class TestBaseAgent:
         class ParentAgent(BaseAgent):
             description = "Parent description"
 
-            def _execute(
-                self,
-                msg_state: MessageState,
-                **kwargs: Any,  # noqa: ANN401
-            ) -> dict[str, Any]:
-                return {}
+            def init_agent_data(
+                self, orch_state: OrchestratorState, node_specific_data: dict[str, Any]
+            ) -> None:
+                pass
+
+            def _execute(self) -> tuple[OrchestratorState, AgentOutput]:
+                mock_state = Mock(spec=OrchestratorState)
+                agent_output = AgentOutput(response="", status=StatusEnum.INCOMPLETE)
+                return mock_state, agent_output
 
         class ChildAgent(ParentAgent):
             description = "Child description"
@@ -411,81 +441,78 @@ class TestBaseAgent:
         assert parent.description == "Parent description"
         assert child.description == "Child description"
 
-    def test_execute_with_kwargs(self, mock_state: MessageState) -> None:
+    def test_execute_with_kwargs(self, mock_state: OrchestratorState) -> None:
         """Test execute method with additional kwargs."""
-        from unittest.mock import patch
 
         # Create a test agent that uses kwargs
         class KwargsTestAgent(BaseAgent):
-            def _execute(
-                self,
-                msg_state: MessageState,
-                **kwargs: Any,  # noqa: ANN401
-            ) -> dict[str, Any]:  # noqa: ANN401
-                return {
-                    "status": StatusEnum.COMPLETE,
-                    "response": f"Response with {kwargs.get('test_param', 'default')}",
-                    "message_flow": "",
-                    "function_calling_trajectory": [],
-                    "trajectory": msg_state.trajectory,
-                }
+            def init_agent_data(
+                self, orch_state: OrchestratorState, node_specific_data: dict[str, Any]
+            ) -> None:
+                self.node_data = node_specific_data
+
+            def _execute(self) -> tuple[OrchestratorState, AgentOutput]:
+                mock_state = Mock(spec=OrchestratorState)
+                mock_state.trajectory = [[Mock()]]
+                mock_state.trajectory[0][0].output = None
+                agent_output = AgentOutput(
+                    response=f"Response with {self.node_data.get('test_param', 'default')}",
+                    status=StatusEnum.COMPLETE,
+                )
+                return mock_state, agent_output
 
         agent = KwargsTestAgent()
+        result_state, result_output = agent.execute(
+            mock_state, node_specific_data={"test_param": "custom_value"}
+        )
 
-        # Mock MessageState.model_validate to return a proper MessageState
-        with patch(
-            "arklex.env.agents.agent.MessageState.model_validate"
-        ) as mock_validate:
-            mock_response_state = Mock(spec=MessageState)
-            mock_response_state.response = "Response with custom_value"
-            mock_response_state.message_flow = ""
-            mock_response_state.trajectory = [[Mock()]]
-            mock_response_state.trajectory[0][0].output = None
-            mock_validate.return_value = mock_response_state
-
-            result = agent.execute(mock_state, test_param="custom_value")
-
-            # Verify the result includes the custom parameter
-            assert "custom_value" in result.response
+        # Verify the result includes the custom parameter
+        assert "custom_value" in result_output.response
 
     def test_execute_with_exception_returns_original_state(
-        self, mock_state: MessageState
+        self, mock_state: OrchestratorState
     ) -> None:
         """Test execute method when _execute raises an exception - should return original state."""
 
         # Create an agent that raises an exception in _execute
         class ExceptionAgent(BaseAgent):
-            def _execute(
-                self,
-                msg_state: MessageState,
-                **kwargs: Any,  # noqa: ANN401
-            ) -> dict[str, Any]:  # noqa: ANN401
+            def init_agent_data(
+                self, orch_state: OrchestratorState, node_specific_data: dict[str, Any]
+            ) -> None:
+                pass
+
+            def _execute(self) -> tuple[OrchestratorState, AgentOutput]:
                 raise RuntimeError("Test exception")
 
         agent = ExceptionAgent()
-        result = agent.execute(mock_state)
+        result_state, result_output = agent.execute(mock_state, node_specific_data={})
 
         # Should return the original message state when exception occurs
-        assert result == mock_state
+        assert result_state == mock_state
+        assert result_output.response == ""
+        assert result_output.status == StatusEnum.INCOMPLETE
 
-    def test_execute_with_exception_logs_error(self, mock_state: MessageState) -> None:
+    def test_execute_with_exception_logs_error(
+        self, mock_state: OrchestratorState
+    ) -> None:
         """Test execute method logs error when _execute raises an exception."""
         from unittest.mock import patch
 
         # Create an agent that raises an exception in _execute
         class ExceptionAgent(BaseAgent):
-            def _execute(
-                self,
-                msg_state: MessageState,
-                **kwargs: Any,  # noqa: ANN401
-            ) -> dict[str, Any]:  # noqa: ANN401
+            def init_agent_data(
+                self, orch_state: OrchestratorState, node_specific_data: dict[str, Any]
+            ) -> None:
+                pass
+
+            def _execute(self) -> tuple[OrchestratorState, AgentOutput]:
                 raise ValueError("Test exception")
 
         agent = ExceptionAgent()
 
         # Patch the log_context.error to verify it's called
         with patch("arklex.env.agents.agent.log_context.error") as mock_error:
-            agent.execute(mock_state)
+            agent.execute(mock_state, node_specific_data={})
 
             # Verify error was logged
             mock_error.assert_called_once()
@@ -493,18 +520,19 @@ class TestBaseAgent:
             assert "Test exception" in mock_error.call_args[0][0]
 
     def test_execute_with_exception_logs_traceback(
-        self, mock_state: MessageState
+        self, mock_state: OrchestratorState
     ) -> None:
         """Test execute method logs traceback when _execute raises an exception."""
         from unittest.mock import patch
 
         # Create an agent that raises an exception in _execute
         class ExceptionAgent(BaseAgent):
-            def _execute(
-                self,
-                msg_state: MessageState,
-                **kwargs: Any,  # noqa: ANN401
-            ) -> dict[str, Any]:  # noqa: ANN401
+            def init_agent_data(
+                self, orch_state: OrchestratorState, node_specific_data: dict[str, Any]
+            ) -> None:
+                pass
+
+            def _execute(self) -> tuple[OrchestratorState, AgentOutput]:
                 raise RuntimeError("Test runtime exception")
 
         agent = ExceptionAgent()
@@ -515,7 +543,7 @@ class TestBaseAgent:
             patch("arklex.env.agents.agent.traceback.format_exc") as mock_format_exc,
         ):
             mock_format_exc.return_value = "Test traceback"
-            agent.execute(mock_state)
+            agent.execute(mock_state, node_specific_data={})
 
             # Verify traceback.format_exc was called
             mock_format_exc.assert_called_once()
@@ -523,48 +551,55 @@ class TestBaseAgent:
             mock_error.assert_called_once_with("Test traceback")
 
     def test_execute_with_exception_returns_original_state_different_exception(
-        self, mock_state: MessageState
+        self, mock_state: OrchestratorState
     ) -> None:
         """Test execute method returns original state for different exception types."""
 
         # Create an agent that raises a different exception in _execute
         class DifferentExceptionAgent(BaseAgent):
-            def _execute(
-                self,
-                msg_state: MessageState,
-                **kwargs: Any,  # noqa: ANN401
-            ) -> dict[str, Any]:  # noqa: ANN401
+            def init_agent_data(
+                self, orch_state: OrchestratorState, node_specific_data: dict[str, Any]
+            ) -> None:
+                pass
+
+            def _execute(self) -> tuple[OrchestratorState, AgentOutput]:
                 raise TypeError("Test type error")
 
         agent = DifferentExceptionAgent()
-        result = agent.execute(mock_state)
+        result_state, result_output = agent.execute(mock_state, node_specific_data={})
 
         # Should return the original message state when exception occurs
-        assert result == mock_state
+        assert result_state == mock_state
+        assert result_output.response == ""
+        assert result_output.status == StatusEnum.INCOMPLETE
 
 
 class TestAgentIntegration:
     """Integration tests for agent functionality."""
 
-    def test_registered_agent_with_execution(self, mock_state: MessageState) -> None:
+    def test_registered_agent_with_execution(
+        self, mock_state: OrchestratorState
+    ) -> None:
         """Test a registered agent can be executed successfully."""
 
         @register_agent
         class IntegrationTestAgent(BaseAgent):
             description = "Integration test agent"
 
-            def _execute(
-                self,
-                msg_state: MessageState,
-                **kwargs: Any,  # noqa: ANN401
-            ) -> dict[str, Any]:  # noqa: ANN401, E501
-                return {
-                    "status": StatusEnum.COMPLETE,
-                    "response": "Integration test complete",
-                    "message_flow": "",
-                    "function_calling_trajectory": [],
-                    "trajectory": msg_state.trajectory,
-                }
+            def init_agent_data(
+                self, orch_state: OrchestratorState, node_specific_data: dict[str, Any]
+            ) -> None:
+                pass
+
+            def _execute(self) -> tuple[OrchestratorState, AgentOutput]:
+                mock_response_state = Mock(spec=OrchestratorState)
+                mock_response_state.trajectory = [[Mock()]]
+                mock_response_state.trajectory[0][0].output = None
+                agent_output = AgentOutput(
+                    response="Integration test complete",
+                    status=StatusEnum.COMPLETE,
+                )
+                return mock_response_state, agent_output
 
         agent = IntegrationTestAgent()
 
@@ -573,18 +608,5 @@ class TestAgentIntegration:
         assert agent.description == "Integration test agent"
 
         # Test execution
-        with patch(
-            "arklex.env.agents.agent.MessageState.model_validate"
-        ) as mock_validate:
-            mock_response_state = Mock(spec=MessageState)
-            mock_response_state.response = "Integration test complete"
-            mock_response_state.message_flow = ""
-            mock_response_state.trajectory = [[Mock()]]
-            mock_response_state.trajectory[0][0].output = None
-            mock_validate.return_value = mock_response_state
-
-            agent.execute(mock_state)
-            assert (
-                mock_response_state.trajectory[0][0].output
-                == "Integration test complete"
-            )
+        result_state, result_output = agent.execute(mock_state, node_specific_data={})
+        assert result_output.response == "Integration test complete"

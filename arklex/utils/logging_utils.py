@@ -99,12 +99,11 @@ class LogContext:
     ) -> None:
         self.log_context = logging.getLogger(name)
         # Set the log level only if explicitly provided
-        self.log_context.setLevel("INFO")
-        # if level is not None:
-        #     if isinstance(level, str):
-        #         self.log_context.setLevel(getattr(logging, level))
-        #     else:
-        #         self.log_context.setLevel(level)
+        if level is not None:
+            if isinstance(level, str):
+                self.log_context.setLevel(getattr(logging, level))
+            else:
+                self.log_context.setLevel(level)
         self.log_context.propagate = True
         self.base_context = base_context or {}
         handler = self._get_console_handler(log_format)
@@ -218,10 +217,13 @@ class LogContext:
         )
 
     def exception(
-        self, message: str | Exception, context: dict[str, Any] | None = None, **kwargs: object
+        self,
+        message: str | Exception,
+        context: dict[str, Any] | None = None,
+        **kwargs: object,
     ) -> None:
         """Log an exception with traceback information.
-        
+
         Args:
             message: The message to log or the exception object
             context: Optional context dictionary
@@ -235,7 +237,7 @@ class LogContext:
             # If message is a string, use it as the message
             msg = message
             exc_info = kwargs.pop("exc_info", True)
-        
+
         self.log_context.error(
             msg, extra=self._merge_extra(context, kwargs), exc_info=exc_info, **kwargs
         )

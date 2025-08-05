@@ -43,6 +43,7 @@ class OpenAIAgent(BaseAgent):
         tools: dict,
     ) -> None:
         super().__init__()
+        self.prompt: str = ""
         self.llm: BaseChatModel | None = None
         self.available_tools: dict[str, tuple[dict[str, Any], Any]] = {}
         self.tool_map = {}
