@@ -35,8 +35,9 @@ def get_order_details(
     order_ids: list[str],
     order_names: list[str],
     user_id: str,
+    auth: ShopifyAdminAuth,
     limit: int = 10,
-    **kwargs: ShopifyAdminAuth,
+    **kwargs: object,
 ) -> GetOrderDetailsOutput:
     """
     Retrieve detailed information about orders from the Shopify store.
@@ -63,8 +64,8 @@ def get_order_details(
         ToolExecutionError: If there's an error retrieving the orders.
     """
     func_name = inspect.currentframe().f_code.co_name
+    auth = authorify_admin(auth)
     limit = int(limit) if limit else 10
-    auth = authorify_admin(kwargs)
 
     try:
         query = f"customer_id:{user_id.split('/')[-1]}"

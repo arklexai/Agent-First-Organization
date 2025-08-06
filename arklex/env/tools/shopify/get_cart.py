@@ -31,13 +31,16 @@ class GetCartOutput(BaseModel):
 @register_tool(
     description="Get cart information", slots=ShopifyGetCartSlots.get_all_slots()
 )
-def get_cart(cart_id: str, **kwargs: ShopifyStorefrontAuth) -> GetCartOutput:
+def get_cart(
+    cart_id: str, auth: ShopifyStorefrontAuth, **kwargs: object
+) -> GetCartOutput:
     """
     Retrieve detailed information about a shopping cart.
 
     Args:
         cart_id (str): The ID of the cart to retrieve.
-        **kwargs (ShopifyStorefrontAuth): Additional keyword arguments for pagination and authentication.
+        auth (ShopifyStorefrontAuth): Authentication credentials for the Shopify store.
+        **kwargs: Additional keyword arguments for llm configuration.
 
     Returns:
         GetCartOutput: A formatted string containing cart information, including:
@@ -50,8 +53,8 @@ def get_cart(cart_id: str, **kwargs: ShopifyStorefrontAuth) -> GetCartOutput:
             - There's an error retrieving the cart information
     """
     func_name = inspect.currentframe().f_code.co_name
+    auth = authorify_storefront(auth)
     nav = cursorify(kwargs)
-    auth = authorify_storefront(kwargs)
 
     variable: dict[str, str] = {
         "id": cart_id,

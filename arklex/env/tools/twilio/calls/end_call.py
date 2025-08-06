@@ -15,10 +15,6 @@ description = "Hangup the call when end of the conversation is detected"
 
 slots = []
 
-outputs = []
-
-errors = []
-
 
 class EndCallKwargs(TypedDict, total=False):
     """Type definition for kwargs used in end_call function."""
@@ -50,7 +46,7 @@ def _end_call_thread(
         log_context.error(f"Exception: {e}")
 
 
-@register_tool(description, slots, outputs, lambda x: x not in errors)
+@register_tool(description, slots)
 def end_call(**kwargs: EndCallKwargs) -> str:
     twilio_client = TwilioClient(kwargs.get("sid"), kwargs.get("auth_token"))
     call_sid = kwargs.get("call_sid")

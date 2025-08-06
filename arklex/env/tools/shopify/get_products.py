@@ -34,14 +34,15 @@ class GetProductsOutput(BaseModel):
     slots=ShopifyGetProductsSlots.get_all_slots(),
 )
 def get_products(
-    product_ids: list[str], **kwargs: ShopifyAdminAuth
+    product_ids: list[str], auth: ShopifyAdminAuth, **kwargs: object
 ) -> GetProductsOutput:
     """
     Retrieve detailed information about multiple products from the Shopify store.
 
     Args:
         product_ids (List[str]): List of product IDs to retrieve information for.
-        **kwargs (ShopifyAdminAuth): Additional keyword arguments for pagination and authentication.
+        auth (ShopifyAdminAuth): Authentication credentials for the Shopify store.
+        **kwargs: Additional keyword arguments for llm configuration.
 
     Returns:
         GetProductsOutput: A formatted string containing detailed information about each product, including:
@@ -56,8 +57,8 @@ def get_products(
         ToolExecutionError: If no products are found or if there's an error retrieving the products.
     """
     func_name = inspect.currentframe().f_code.co_name
+    auth = authorify_admin(auth)
     nav = cursorify(kwargs)
-    auth = authorify_admin(kwargs)
 
     try:
         ids = " OR ".join(f"id:{pid.split('/')[-1]}" for pid in product_ids)

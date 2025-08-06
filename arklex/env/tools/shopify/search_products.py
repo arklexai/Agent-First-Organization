@@ -33,7 +33,6 @@ log_context = LogContext(__name__)
 
 class SearchProductsOutput(BaseModel):
     response: str
-    card_list: list[dict]
 
 
 @register_tool(
@@ -41,14 +40,15 @@ class SearchProductsOutput(BaseModel):
     slots=ShopifySearchProductsSlots.get_all_slots(),
 )
 def search_products(
-    product_query: str, **kwargs: ShopifyAdminAuth
+    product_query: str, auth: ShopifyAdminAuth, **kwargs: object
 ) -> SearchProductsOutput:
     """
     Search for products in the Shopify store based on a query string.
 
     Args:
         product_query (str): The search query string to find products.
-        **kwargs: Additional keyword arguments for pagination, authentication, and LLM configuration.
+        auth (ShopifyAdminAuth): Authentication credentials for the Shopify store.
+        **kwargs: Additional keyword arguments for llm configuration.
 
     Returns:
         SearchProductsOutput: A JSON string containing:
@@ -64,9 +64,9 @@ def search_products(
     Raises:
         ToolExecutionError: If no products are found or if there's an error during the search.
     """
+    auth = authorify_admin(auth)
     func_name = inspect.currentframe().f_code.co_name
     nav = cursorify(kwargs)
-    auth = authorify_admin(kwargs)
 
     try:
         with shopify.Session.temp(**auth):
@@ -141,8 +141,7 @@ def search_products(
                 ]
                 answer = llm.invoke(message).content
                 return SearchProductsOutput(
-                    response=answer,
-                    card_list=card_list,
+                    response=json.dumps({"answer": answer, "card_list": card_list})
                 )
             else:
                 raise ToolExecutionError(

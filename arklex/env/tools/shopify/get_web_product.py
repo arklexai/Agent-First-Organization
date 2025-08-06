@@ -43,7 +43,7 @@ class GetWebProductOutput(BaseModel):
     slots=ShopifyGetWebProductSlots.get_all_slots(),
 )
 def get_web_product(
-    web_product_id: str, **kwargs: ShopifyAdminAuth
+    web_product_id: str, auth: ShopifyAdminAuth, **kwargs: object
 ) -> GetWebProductOutput:
     """
     Retrieve detailed information about a specific product using the Shopify Admin API.
@@ -51,7 +51,8 @@ def get_web_product(
     Args:
         web_product_id (str): The ID of the product to retrieve information for.
             Can be a full product ID or just the numeric portion.
-        **kwargs (ShopifyAdminAuth): Additional keyword arguments for pagination and authentication.
+        auth (ShopifyAdminAuth): Authentication credentials for the Shopify store.
+        **kwargs: Additional keyword arguments for llm configuration.
 
     Returns:
         GetWebProductOutput: A formatted string containing detailed product information, including:
@@ -73,8 +74,8 @@ def get_web_product(
         if a full ID is provided (e.g., "gid://shopify/Product/123456" -> "123456").
     """
     func_name = inspect.currentframe().f_code.co_name
+    auth = authorify_admin(auth)
     nav = cursorify(kwargs)
-    auth = authorify_admin(kwargs)
 
     try:
         with shopify.Session.temp(**auth):

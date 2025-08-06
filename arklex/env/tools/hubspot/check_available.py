@@ -20,6 +20,8 @@ from arklex.env.tools.tools import register_tool
 from arklex.utils.exceptions import ToolExecutionError
 from arklex.utils.logging_utils import LogContext
 
+from .base.entities import HubspotAuth
+
 log_context = LogContext(__name__)
 
 # Tool description for checking available meeting times
@@ -60,22 +62,14 @@ slots: list[dict[str, Any]] = [
     },
 ]
 
-# List of output parameters for the tool
-outputs: list[dict[str, Any]] = [
-    {
-        "name": "meeting_info",
-        "type": "dict",
-        "description": "The available time slots of the representative and the corresponding slug. Typically, the format is '{'slug': 'veronica-chen', 'available_time_slots': {'start':  , 'end':  }}'",
-    }
-]
 
-
-@register_tool(description, slots, outputs)
+@register_tool(description, slots)
 def check_available(
     owner_id: int,
     time_zone: str,
     meeting_date: str,
     duration: int,
+    auth: HubspotAuth,
     **kwargs: dict[str, Any],
 ) -> str:
     """
@@ -95,7 +89,7 @@ def check_available(
         ToolExecutionError: If meeting link is not found or availability check fails
     """
     func_name: str = inspect.currentframe().f_code.co_name
-    access_token: str = authenticate_hubspot(kwargs)
+    access_token: str = authenticate_hubspot(auth)
     api_client: hubspot.Client = hubspot.Client.create(access_token=access_token)
 
     try:

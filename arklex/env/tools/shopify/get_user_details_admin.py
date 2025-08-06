@@ -41,7 +41,7 @@ class GetUserDetailsAdminOutput(BaseModel):
     slots=ShopifyGetUserDetailsAdminSlots.get_all_slots(),
 )
 def get_user_details_admin(
-    user_id: str, **kwargs: ShopifyAdminAuth
+    user_id: str, auth: ShopifyAdminAuth, **kwargs: object
 ) -> GetUserDetailsAdminOutput:
     """
     Retrieve detailed information about a user using the Shopify Admin API.
@@ -49,7 +49,8 @@ def get_user_details_admin(
     Args:
         user_id (str): The ID of the user to retrieve information for.
             Can be a full user ID or just the numeric portion.
-        **kwargs (ShopifyAdminAuth): Additional keyword arguments for pagination and authentication.
+        auth (ShopifyAdminAuth): Authentication credentials for the Shopify store.
+        **kwargs: Additional keyword arguments for llm configuration.
 
     Returns:
         GetUserDetailsAdminOutput: A JSON string containing detailed user information, including:
@@ -73,8 +74,8 @@ def get_user_details_admin(
         as a JSON string that can be parsed to access individual user details.
     """
     func_name = inspect.currentframe().f_code.co_name
+    auth = authorify_admin(auth)
     nav = cursorify(kwargs)
-    auth = authorify_admin(kwargs)
 
     try:
         with shopify.Session.temp(**auth):

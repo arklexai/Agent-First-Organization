@@ -36,14 +36,15 @@ class FindUserByIdByEmailOutput(BaseModel):
     slots=ShopifyFindUserByEmailSlots.get_all_slots(),
 )
 def find_user_id_by_email(
-    user_email: str, **kwargs: ShopifyAdminAuth
+    user_email: str, auth: ShopifyAdminAuth, **kwargs: object
 ) -> FindUserByIdByEmailOutput:
     """
     Find a user's ID using their email address.
 
     Args:
         user_email (str): The email address of the user to find.
-        **kwargs (ShopifyAdminAuth): Additional keyword arguments for authentication.
+        auth (ShopifyAdminAuth): Authentication credentials for the Shopify store.
+        **kwargs: Additional keyword arguments for llm configuration.
 
     Returns:
         FindUserByIdByEmailOutput: The user's ID if exactly one user is found with the given email.
@@ -55,7 +56,7 @@ def find_user_id_by_email(
             - There's an error in the search process
     """
     func_name = inspect.currentframe().f_code.co_name
-    auth = authorify_admin(kwargs)
+    auth = authorify_admin(auth)
 
     try:
         with shopify.Session.temp(**auth):
