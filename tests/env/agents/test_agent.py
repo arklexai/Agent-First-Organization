@@ -1,3 +1,4 @@
+import asyncio
 from typing import Any
 from unittest.mock import Mock, patch
 
@@ -538,6 +539,116 @@ class TestBaseAgent:
 
         # Should return the original message state when exception occurs
         assert result == mock_state
+
+    async def test_async_execute_success(self) -> None:
+        """Test async_execute handles valid _async_execute result."""
+
+        class AsyncAgent(BaseAgent):
+            async def _async_execute(
+                self,
+                msg_state: MessageState,
+                **kwargs: Any,  # noqa: ANN401
+            ) -> dict[str, Any]:
+                return {
+                    "status": StatusEnum.COMPLETE,
+                    "response": "Async success",
+                    "message_flow": "",
+                    "function_calling_trajectory": [],
+                    "trajectory": msg_state.trajectory,
+                }
+
+            def _execute(
+                self,
+                msg_state: MessageState,
+                **kwargs: Any,  # noqa: ANN401
+            ) -> dict[str, Any]:
+                return {}
+
+        # Create a mock MessageState and expected return
+        input_state = Mock(spec=MessageState)
+        input_state.trajectory = [[Mock()]]
+        input_state.trajectory[0][0].output = None
+
+        mock_return_state = Mock(spec=MessageState)
+        mock_return_state.response = "Async success"
+        mock_return_state.message_flow = ""
+        mock_return_state.trajectory = [[Mock()]]
+        mock_return_state.trajectory[0][0].output = None
+
+        with patch(
+            "arklex.env.agents.agent.MessageState.model_validate",
+            return_value=mock_return_state,
+        ):
+            agent = AsyncAgent()
+            result = await agent.async_execute(input_state)
+
+        assert result == mock_return_state
+        assert result.trajectory[0][0].output == "Async success"
+
+    async def test_async_execute_exception_returns_original_state(self) -> None:
+        """Test async_execute logs error and returns original state on exception."""
+
+        class FailingAsyncAgent(BaseAgent):
+            async def _async_execute(
+                self,
+                msg_state: MessageState,
+                **kwargs: Any,  # noqa: ANN401
+            ) -> dict[str, Any]:
+                raise RuntimeError("Simulated async failure")
+
+            def _execute(
+                self,
+                msg_state: MessageState,
+                **kwargs: Any,  # noqa: ANN401
+            ) -> dict[str, Any]:
+                return {}
+
+        input_state = Mock(spec=MessageState)
+
+        with (
+            patch("arklex.env.agents.agent.log_context.error") as mock_error,
+            patch(
+                "arklex.env.agents.agent.traceback.format_exc",
+                return_value="Simulated traceback",
+            ),
+        ):
+            agent = FailingAsyncAgent()
+            result = await agent.async_execute(input_state)
+
+        assert result == input_state
+        mock_error.assert_called_once_with("Simulated traceback")
+
+    def test_base_agent_async_execute_not_implemented(self) -> None:
+        """Test _async_execute raises NotImplementedError by default."""
+
+        class DummyAsyncAgent(BaseAgent):
+            def _execute(
+                self,
+                msg_state: MessageState,
+                **kwargs: Any,  # noqa: ANN401
+            ) -> dict[str, Any]:
+                return {}
+
+        agent = DummyAsyncAgent()
+
+        with pytest.raises(
+            NotImplementedError, match="This agent does not support async execution"
+        ):
+            asyncio.run(agent._async_execute(Mock(spec=MessageState)))
+
+    def test_is_async_returns_false_by_default(self) -> None:
+        """Test that is_async returns False for default BaseAgent implementation."""
+
+        class DummyAgent(BaseAgent):
+            def _execute(
+                self,
+                msg_state: MessageState,
+                **kwargs: Any,  # noqa: ANN401
+            ) -> dict[str, Any]:
+                return {}
+
+        agent = DummyAgent()
+        assert agent.is_async() is False
 
 
 class TestAgentIntegration:

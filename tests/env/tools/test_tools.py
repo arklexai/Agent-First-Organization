@@ -185,7 +185,8 @@ class TestTools:
             conversation_id="test-conversation",
             slots={},
             function_calling_trajectory=[],
-            trajectory=[[{"info": {}}]],  # Use valid dict with required 'info' field
+            # Use valid dict with required 'info' field
+            trajectory=[[{"info": {}}]],
         )
         # This should not raise an exception
         tool._init_slots(state)
@@ -446,7 +447,8 @@ class TestTools:
             conversation_id="test-conversation",
             slots={"default_slots": default_slots},
             function_calling_trajectory=[],
-            trajectory=[[{"info": {}}]],  # Use valid dict with required 'info' field
+            # Use valid dict with required 'info' field
+            trajectory=[[{"info": {}}]],
         )
 
         with patch.object(tool, "init_default_slots") as mock_init_default:
@@ -478,7 +480,8 @@ class TestTools:
             conversation_id="test-conversation",
             slots={},
             function_calling_trajectory=[],
-            trajectory=[[{"info": {}}]],  # Use valid dict with required 'info' field
+            # Use valid dict with required 'info' field
+            trajectory=[[{"info": {}}]],
         )
 
         tool._init_slots(state)
@@ -505,7 +508,8 @@ class TestTools:
             conversation_id="test-conversation",
             slots={},
             function_calling_trajectory=[],
-            trajectory=[[{"info": {}}]],  # Use valid dict with required 'info' field
+            # Use valid dict with required 'info' field
+            trajectory=[[{"info": {}}]],
         )
 
         # Mock bot_config.llm_config
@@ -551,7 +555,8 @@ class TestTools:
         assert (
             "param1" not in tool_def["parameters"]["properties"]
         )  # Should be excluded
-        assert "param2" in tool_def["parameters"]["properties"]  # Should be included
+        # Should be included
+        assert "param2" in tool_def["parameters"]["properties"]
         # The required list should be empty because param1 is verified and param2 is not required
         assert (
             tool_def["parameters"]["required"] == []
@@ -667,7 +672,8 @@ class TestTools:
             conversation_id="test-conversation",
             slots={},
             function_calling_trajectory=[],
-            trajectory=[[{"info": {}}]],  # Use valid dict with required 'info' field
+            # Use valid dict with required 'info' field
+            trajectory=[[{"info": {}}]],
         )
 
         with patch.object(tool, "_init_slots"):
@@ -728,7 +734,8 @@ class TestTools:
             conversation_id="test-conversation",
             slots={},
             function_calling_trajectory=[],
-            trajectory=[[{"info": {}}]],  # Use valid dict with required 'info' field
+            # Use valid dict with required 'info' field
+            trajectory=[[{"info": {}}]],
         )
 
         with patch.object(tool, "_init_slots"):
@@ -786,7 +793,8 @@ class TestTools:
             conversation_id="test-conversation",
             slots={},
             function_calling_trajectory=[],
-            trajectory=[[{"info": {}}]],  # Use valid dict with required 'info' field
+            # Use valid dict with required 'info' field
+            trajectory=[[{"info": {}}]],
         )
 
         with patch.object(tool, "_init_slots"):
@@ -838,7 +846,8 @@ class TestTools:
             conversation_id="test-conversation",
             slots={},
             function_calling_trajectory=[],
-            trajectory=[[{"info": {}}]],  # Use valid dict with required 'info' field
+            # Use valid dict with required 'info' field
+            trajectory=[[{"info": {}}]],
         )
 
         with patch.object(tool, "_init_slots"):
@@ -885,7 +894,8 @@ class TestTools:
             conversation_id="test-conversation",
             slots={},
             function_calling_trajectory=[],
-            trajectory=[[{"info": {}}]],  # Use valid dict with required 'info' field
+            # Use valid dict with required 'info' field
+            trajectory=[[{"info": {}}]],
         )
 
         with patch.object(tool, "_init_slots"):
@@ -932,7 +942,8 @@ class TestTools:
             conversation_id="test-conversation",
             slots={},
             function_calling_trajectory=[],
-            trajectory=[[{"info": {}}]],  # Use valid dict with required 'info' field
+            # Use valid dict with required 'info' field
+            trajectory=[[{"info": {}}]],
         )
 
         with patch.object(tool, "_init_slots"):
@@ -979,7 +990,8 @@ class TestTools:
             conversation_id="test-conversation",
             slots={},
             function_calling_trajectory=[],
-            trajectory=[[{"info": {}}]],  # Use valid dict with required 'info' field
+            # Use valid dict with required 'info' field
+            trajectory=[[{"info": {}}]],
         )
 
         with patch.object(tool, "_init_slots"):
@@ -1026,7 +1038,8 @@ class TestTools:
             conversation_id="test-conversation",
             slots={"test_tool": existing_slots},  # Slots already exist
             function_calling_trajectory=[],
-            trajectory=[[{"info": {}}]],  # Use valid dict with required 'info' field
+            # Use valid dict with required 'info' field
+            trajectory=[[{"info": {}}]],
         )
 
         with patch.object(tool, "_init_slots"):
@@ -1076,7 +1089,8 @@ class TestTools:
             conversation_id="test-conversation",
             slots={},
             function_calling_trajectory=[],
-            trajectory=[[{"info": {}}]],  # Use valid dict with required 'info' field
+            # Use valid dict with required 'info' field
+            trajectory=[[{"info": {}}]],
         )
 
         with patch.object(tool, "_init_slots"):
@@ -1136,7 +1150,8 @@ class TestTools:
             conversation_id="test-conversation",
             slots={},
             function_calling_trajectory=[],
-            trajectory=[[{"info": {}}]],  # Use valid dict with required 'info' field
+            # Use valid dict with required 'info' field
+            trajectory=[[{"info": {}}]],
         )
 
         with patch.object(tool, "_init_slots"):
@@ -1337,8 +1352,14 @@ class TestTools:
 
             # Third execution: use a group slot with a schema (list)
             from arklex.orchestrator.NLU.entities.slot_entities import Slot as GroupSlot
+
             tool.slots = [
-                GroupSlot(name="group1", type="group", required=True, schema=[{"name": "field1", "type": "str"}])
+                GroupSlot(
+                    name="group1",
+                    type="group",
+                    required=True,
+                    schema=[{"name": "field1", "type": "str"}],
+                )
             ]
             filled_slots_3 = [
                 GroupSlot(
@@ -1346,7 +1367,7 @@ class TestTools:
                     value=[{"field1": "value1"}],
                     type="group",
                     required=True,
-                    schema=[{"name": "field1", "type": "str"}]
+                    schema=[{"name": "field1", "type": "str"}],
                 )
             ]
             mock_slotfiller.fill_slots.return_value = filled_slots_3
@@ -1591,7 +1612,7 @@ class TestToolMissingRequiredSlots:
                 type="group",
                 required=True,
                 value=[],
-                schema=[{"name": "field1", "required": True, "type": "str"}]
+                schema=[{"name": "field1", "required": True, "type": "str"}],
             )
         ]
         assert tool._is_missing_required(slots) is True
@@ -1612,7 +1633,7 @@ class TestToolMissingRequiredSlots:
                 type="group",
                 required=True,
                 value=None,
-                schema=[{"name": "field1", "required": True, "type": "str"}]
+                schema=[{"name": "field1", "required": True, "type": "str"}],
             )
         ]
         assert tool._is_missing_required(slots) is True
@@ -1633,7 +1654,7 @@ class TestToolMissingRequiredSlots:
                 type="group",
                 required=True,
                 value=[{"field1": None}],  # Missing required field
-                schema=[{"name": "field1", "required": True, "type": "str"}]
+                schema=[{"name": "field1", "required": True, "type": "str"}],
             )
         ]
         assert tool._is_missing_required(slots) is True
@@ -1654,7 +1675,14 @@ class TestToolMissingRequiredSlots:
                 type="group",
                 required=True,
                 value=[{"field1": []}],  # Empty repeatable field
-                schema=[{"name": "field1", "required": True, "repeatable": True, "type": "str"}]
+                schema=[
+                    {
+                        "name": "field1",
+                        "required": True,
+                        "repeatable": True,
+                        "type": "str",
+                    }
+                ],
             )
         ]
         assert tool._is_missing_required(slots) is True
@@ -1674,8 +1702,16 @@ class TestToolMissingRequiredSlots:
                 name="test_group",
                 type="group",
                 required=True,
-                value=[{"field1": [None, ""]}],  # None values in repeatable field
-                schema=[{"name": "field1", "required": True, "repeatable": True, "type": "str"}]
+                # None values in repeatable field
+                value=[{"field1": [None, ""]}],
+                schema=[
+                    {
+                        "name": "field1",
+                        "required": True,
+                        "repeatable": True,
+                        "type": "str",
+                    }
+                ],
             )
         ]
         assert tool._is_missing_required(slots) is True
@@ -1696,7 +1732,7 @@ class TestToolMissingRequiredSlots:
                 type="str",
                 required=True,
                 repeatable=True,
-                value=[]
+                value=[],
             )
         ]
         assert tool._is_missing_required(slots) is True
@@ -1717,7 +1753,7 @@ class TestToolMissingRequiredSlots:
                 type="str",
                 required=True,
                 repeatable=True,
-                value=[None, ""]
+                value=[None, ""],
             )
         ]
         assert tool._is_missing_required(slots) is True
@@ -1738,7 +1774,7 @@ class TestToolMissingRequiredSlots:
                 type="str",
                 required=True,
                 value="test",
-                verified=False
+                verified=False,
             )
         ]
         assert tool._is_missing_required(slots) is True
@@ -1759,15 +1795,15 @@ class TestToolMissingRequiredSlots:
                 type="str",
                 required=True,
                 value="test",
-                verified=True
+                verified=True,
             ),
             Slot(
                 name="test_group",
                 type="group",
                 required=True,
                 value=[{"field1": "value1"}],
-                schema=[{"name": "field1", "required": True, "type": "str"}]
-            )
+                schema=[{"name": "field1", "required": True, "type": "str"}],
+            ),
         ]
         assert tool._is_missing_required(slots) is False
 
@@ -1792,7 +1828,7 @@ class TestToolMissingSlotsRecursive:
                 required=True,
                 value=[],
                 prompt="Please provide test group",
-                schema=[{"name": "field1", "required": True, "type": "str"}]
+                schema=[{"name": "field1", "required": True, "type": "str"}],
             )
         ]
         missing = tool._missing_slots_recursive(slots)
@@ -1814,7 +1850,14 @@ class TestToolMissingSlotsRecursive:
                 type="group",
                 required=True,
                 value=[{"field1": None}],
-                schema=[{"name": "field1", "required": True, "prompt": "Field 1", "type": "str"}]
+                schema=[
+                    {
+                        "name": "field1",
+                        "required": True,
+                        "prompt": "Field 1",
+                        "type": "str",
+                    }
+                ],
             )
         ]
         missing = tool._missing_slots_recursive(slots)
@@ -1837,7 +1880,7 @@ class TestToolMissingSlotsRecursive:
                 required=True,
                 repeatable=True,
                 value=[],
-                prompt="Please provide repeatable values"
+                prompt="Please provide repeatable values",
             )
         ]
         missing = tool._missing_slots_recursive(slots)
@@ -1860,7 +1903,7 @@ class TestToolMissingSlotsRecursive:
                 required=True,
                 repeatable=True,
                 value=[None, ""],
-                prompt="Please provide repeatable values"
+                prompt="Please provide repeatable values",
             )
         ]
         missing = tool._missing_slots_recursive(slots)
@@ -1884,7 +1927,7 @@ class TestToolMissingSlotsRecursive:
                 required=True,
                 value="test",
                 verified=False,
-                prompt="Please verify the value"
+                prompt="Please verify the value",
             )
         ]
         missing = tool._missing_slots_recursive(slots)
@@ -1910,12 +1953,12 @@ class TestToolGroupSlotHandling:
                 "type": "group",
                 "schema": [
                     {"name": "field1", "type": "str", "required": True},
-                    {"name": "field2", "type": "int", "required": False}
+                    {"name": "field2", "type": "int", "required": False},
                 ],
                 "required": True,
                 "repeatable": True,
                 "prompt": "Please provide test group",
-                "description": "Test group description"
+                "description": "Test group description",
             }
         ]
         tool.load_slots(group_slots)
@@ -1935,26 +1978,33 @@ class TestToolGroupSlotHandling:
             isResponse=False,
         )
         # Add initial group slot
-        tool.load_slots([
-            {
-                "name": "test_group",
-                "type": "group",
-                "schema": [{"name": "field1", "type": "str"}],
-                "required": True
-            }
-        ])
+        tool.load_slots(
+            [
+                {
+                    "name": "test_group",
+                    "type": "group",
+                    "schema": [{"name": "field1", "type": "str"}],
+                    "required": True,
+                }
+            ]
+        )
         # initial_slot = tool.slots[0]  # Removed unused variable
-        
+
         # Merge with updated slot
-        tool.load_slots([
-            {
-                "name": "test_group",
-                "type": "group",
-                "schema": [{"name": "field1", "type": "str"}, {"name": "field2", "type": "int"}],
-                "required": False
-            }
-        ])
-        
+        tool.load_slots(
+            [
+                {
+                    "name": "test_group",
+                    "type": "group",
+                    "schema": [
+                        {"name": "field1", "type": "str"},
+                        {"name": "field2", "type": "int"},
+                    ],
+                    "required": False,
+                }
+            ]
+        )
+
         assert len(tool.slots) == 2
         assert tool.slots[1].name == "test_group"
         assert len(tool.slots[1].schema) == 2  # Should have both fields
@@ -1970,27 +2020,60 @@ class TestToolGroupSlotHandling:
             outputs=["result"],
             isResponse=False,
         )
-        tool.load_slots([
-            {
-                "name": "test_group",
-                "type": "group",
-                "schema": [
-                    {"name": "field1", "type": "str", "required": True, "description": "Field 1"},
-                    {"name": "field2", "type": "int", "required": False, "description": "Field 2"},
-                    {"name": "field3", "type": "str", "required": True, "repeatable": True, "description": "Field 3"}
-                ],
-                "required": True,
-                "description": "Test group"
-            }
-        ])
-        
+        tool.load_slots(
+            [
+                {
+                    "name": "test_group",
+                    "type": "group",
+                    "schema": [
+                        {
+                            "name": "field1",
+                            "type": "str",
+                            "required": True,
+                            "description": "Field 1",
+                        },
+                        {
+                            "name": "field2",
+                            "type": "int",
+                            "required": False,
+                            "description": "Field 2",
+                        },
+                        {
+                            "name": "field3",
+                            "type": "str",
+                            "required": True,
+                            "repeatable": True,
+                            "description": "Field 3",
+                        },
+                    ],
+                    "required": True,
+                    "description": "Test group",
+                }
+            ]
+        )
+
         tool_def = tool.to_openai_tool_def()
         assert tool_def["parameters"]["properties"]["test_group"]["type"] == "array"
-        assert tool_def["parameters"]["properties"]["test_group"]["items"]["type"] == "object"
-        assert "field1" in tool_def["parameters"]["properties"]["test_group"]["items"]["properties"]
-        assert "field2" in tool_def["parameters"]["properties"]["test_group"]["items"]["properties"]
-        assert "field1" in tool_def["parameters"]["properties"]["test_group"]["items"]["required"]
-        assert "field3" in tool_def["parameters"]["properties"]["test_group"]["items"]["properties"]
+        assert (
+            tool_def["parameters"]["properties"]["test_group"]["items"]["type"]
+            == "object"
+        )
+        assert (
+            "field1"
+            in tool_def["parameters"]["properties"]["test_group"]["items"]["properties"]
+        )
+        assert (
+            "field2"
+            in tool_def["parameters"]["properties"]["test_group"]["items"]["properties"]
+        )
+        assert (
+            "field1"
+            in tool_def["parameters"]["properties"]["test_group"]["items"]["required"]
+        )
+        assert (
+            "field3"
+            in tool_def["parameters"]["properties"]["test_group"]["items"]["properties"]
+        )
 
     def test_to_openai_tool_def_v2_with_group_slots(self) -> None:
         """Test OpenAI tool definition v2 with group slots."""
@@ -2002,17 +2085,19 @@ class TestToolGroupSlotHandling:
             outputs=["result"],
             isResponse=False,
         )
-        tool.load_slots([
-            {
-                "name": "test_group",
-                "type": "group",
-                "schema": [
-                    {"name": "field1", "type": "str", "required": True},
-                    {"name": "field2", "type": "int", "required": False},
-                ],
-                "required": True
-            }
-        ])
+        tool.load_slots(
+            [
+                {
+                    "name": "test_group",
+                    "type": "group",
+                    "schema": [
+                        {"name": "field1", "type": "str", "required": True},
+                        {"name": "field2", "type": "int", "required": False},
+                    ],
+                    "required": True,
+                }
+            ]
+        )
         tool_def = tool.to_openai_tool_def_v2()
         assert "param1" in tool_def["function"]["parameters"]["properties"]
 
@@ -2061,7 +2146,6 @@ class TestToolGroupSlotHandling:
         assert "param1" in properties
         assert "param2" not in properties
 
-
 class TestToolRepeatableSlots:
     """Test repeatable slot handling."""
 
@@ -2075,19 +2159,26 @@ class TestToolRepeatableSlots:
             outputs=["result"],
             isResponse=False,
         )
-        tool.load_slots([
-            {
-                "name": "test_repeatable",
-                "type": "str",
-                "required": True,
-                "repeatable": True,
-                "description": "Test repeatable slot"
-            }
-        ])
-        
+        tool.load_slots(
+            [
+                {
+                    "name": "test_repeatable",
+                    "type": "str",
+                    "required": True,
+                    "repeatable": True,
+                    "description": "Test repeatable slot",
+                }
+            ]
+        )
+
         tool_def = tool.to_openai_tool_def()
-        assert tool_def["parameters"]["properties"]["test_repeatable"]["type"] == "array"
-        assert tool_def["parameters"]["properties"]["test_repeatable"]["items"]["type"] == "string"
+        assert (
+            tool_def["parameters"]["properties"]["test_repeatable"]["type"] == "array"
+        )
+        assert (
+            tool_def["parameters"]["properties"]["test_repeatable"]["items"]["type"]
+            == "string"
+        )
 
     def test_to_openai_tool_def_v2_with_repeatable_slots(self) -> None:
         """Test OpenAI tool definition v2 with repeatable slots."""
@@ -2099,15 +2190,17 @@ class TestToolRepeatableSlots:
             outputs=["result"],
             isResponse=False,
         )
-        tool.load_slots([
-            {
-                "name": "test_repeatable",
-                "type": "str",
-                "required": True,
-                "repeatable": True
-            }
-        ])
-        
+        tool.load_slots(
+            [
+                {
+                    "name": "test_repeatable",
+                    "type": "str",
+                    "required": True,
+                    "repeatable": True,
+                }
+            ]
+        )
+
         tool_def = tool.to_openai_tool_def_v2()
         assert "param1" in tool_def["function"]["parameters"]["properties"]
 
@@ -2151,16 +2244,17 @@ class TestToolEdgeCases:
         state.bot_config = Mock()
         state.bot_config.llm_config = Mock()
         state.bot_config.llm_config.model_dump = lambda: {"test": "config"}
-        
+
         def failing_func(**kwargs: object) -> NoReturn:
             from arklex.utils.exceptions import AuthenticationError
+
             raise AuthenticationError("Auth failed")
-        
+
         tool.func = failing_func
-        
+
         result = tool.execute(state)
         assert result.status == StatusEnum.INCOMPLETE
-        assert "Auth failed" in result.function_calling_trajectory[-1]["content"]
+        assert "Auth failed" in result.function_calling_trajectory[-1]["output"]
 
     def test_execute_with_tool_execution_error(self) -> None:
         """Test tool execution with ToolExecutionError."""
@@ -2185,17 +2279,18 @@ class TestToolEdgeCases:
         state.bot_config = Mock()
         state.bot_config.llm_config = Mock()
         state.bot_config.llm_config.model_dump = lambda: {"test": "config"}
-        
+
         def failing_func(**kwargs: object) -> NoReturn:
             from arklex.utils.exceptions import ToolExecutionError
+
             raise ToolExecutionError("Tool failed", "Extra message")
-        
+
         tool.func = failing_func
-        
+
         result = tool.execute(state)
         assert result.status == StatusEnum.INCOMPLETE
-        content = result.function_calling_trajectory[-1]["content"]
-        assert (content is not None and "Extra message" in content) or content == "None"
+        content = result.function_calling_trajectory[-1]["output"]
+        assert (content is not None and "Extra message" in content) or content is None
 
     def test_execute_with_general_exception(self) -> None:
         """Test tool execution with general exception."""
@@ -2220,15 +2315,15 @@ class TestToolEdgeCases:
         state.bot_config = Mock()
         state.bot_config.llm_config = Mock()
         state.bot_config.llm_config.model_dump = lambda: {"test": "config"}
-        
+
         def failing_func(**kwargs: object) -> NoReturn:
             raise ValueError("General error")
-        
+
         tool.func = failing_func
-        
+
         result = tool.execute(state)
         assert result.status == StatusEnum.INCOMPLETE
-        assert "General error" in result.function_calling_trajectory[-1]["content"]
+        assert "General error" in result.function_calling_trajectory[-1]["output"]
 
     def test_execute_with_missing_required_args(self) -> None:
         """Test tool execution with missing required arguments."""
@@ -2253,12 +2348,12 @@ class TestToolEdgeCases:
         state.bot_config = Mock()
         state.bot_config.llm_config = Mock()
         state.bot_config.llm_config.model_dump = lambda: {"test": "config"}
-        
+
         def func_with_required_args(required_arg: object, **kwargs: object) -> str:
             return f"Got: {required_arg}"
-        
+
         tool.func = func_with_required_args
-        
+
         result = tool.execute(state)
         assert result.status == StatusEnum.INCOMPLETE
         # Should prompt for missing required slot
@@ -2286,10 +2381,10 @@ class TestToolEdgeCases:
         state.bot_config = Mock()
         state.bot_config.llm_config = Mock()
         state.bot_config.llm_config.model_dump = lambda: {"test": "config"}
-        
+
         def func_with_slots(slots: object, **kwargs: object) -> str:
             return f"Got {len(slots)} slots"
-        
+
         tool.func = func_with_slots
         tool.load_slots([{"name": "test", "type": "str", "required": True}])
         tool.execute(state)
@@ -2318,19 +2413,23 @@ class TestToolEdgeCases:
         state.bot_config = Mock()
         state.bot_config.llm_config = Mock()
         state.bot_config.llm_config.model_dump = lambda: {"test": "config"}
-        
+
         # First call with initial slots
         tool.load_slots([{"name": "test", "type": "str", "required": True}])
         tool.execute(state)
-        state.slots[tool.name] = [Slot.model_validate(slot.model_dump()) for slot in tool.slots]
-        
+        state.slots[tool.name] = [
+            Slot.model_validate(slot.model_dump()) for slot in tool.slots
+        ]
+
         # Second call with different slots (simulating different node)
-        tool.load_slots([
-            {"name": "test", "type": "str", "required": True},
-            {"name": "test2", "type": "int", "required": False}
-        ])
+        tool.load_slots(
+            [
+                {"name": "test", "type": "str", "required": True},
+                {"name": "test2", "type": "int", "required": False},
+            ]
+        )
         tool.execute(state)
-        
+
         # Should reset slots due to schema change
 
     def test_verified_slots_not_in_tool_def(self) -> None:
@@ -2343,19 +2442,21 @@ class TestToolEdgeCases:
             outputs=["result"],
             isResponse=False,
         )
-        tool.load_slots([
-            {
-                "name": "test_slot",
-                "type": "str",
-                "required": True,
-                "description": "Test slot"
-            }
-        ])
-        
+        tool.load_slots(
+            [
+                {
+                    "name": "test_slot",
+                    "type": "str",
+                    "required": True,
+                    "description": "Test slot",
+                }
+            ]
+        )
+
         # Mark slot as verified
         tool.slots[0].verified = True
         tool.slots[0].value = "test_value"
-        
+
         tool_def = tool.to_openai_tool_def()
         assert "test_slot" in tool_def["parameters"]["properties"]
         assert "test_slot" in tool_def["parameters"]["required"]
@@ -2372,10 +2473,10 @@ class TestToolEdgeCases:
         )
         tool.name = "test_tool"
         tool.description = "Test description"
-        
+
         str_repr = str(tool)
         repr_repr = repr(tool)
-        
+
         assert str_repr == "Tool"
         assert repr_repr == "Tool"
 
@@ -2384,13 +2485,21 @@ class TestToolEdgeCases:
             func=lambda group: group,
             name="test_tool",
             description="Test tool",
-            slots=[{"name": "group", "type": "group", "schema": [{"name": "field1", "type": "str"}]}],
+            slots=[
+                {
+                    "name": "group",
+                    "type": "group",
+                    "schema": [{"name": "field1", "type": "str"}],
+                }
+            ],
             outputs=["result"],
             isResponse=False,
         )
         tool.slotfiller = Mock()
         # Return a string that's not valid JSON
-        tool.slotfiller.fill_slots.return_value = [Slot(name="group", value="not a json", type="group")]
+        tool.slotfiller.fill_slots.return_value = [
+            Slot(name="group", value="not a json", type="group")
+        ]
         with pytest.raises(ValueError):
             tool._fill_slots_recursive(tool.slots, "")
 
@@ -2399,13 +2508,21 @@ class TestToolEdgeCases:
             func=lambda group: group,
             name="test_tool",
             description="Test tool",
-            slots=[{"name": "group", "type": "group", "schema": [{"name": "field1", "type": "str"}]}],
+            slots=[
+                {
+                    "name": "group",
+                    "type": "group",
+                    "schema": [{"name": "field1", "type": "str"}],
+                }
+            ],
             outputs=["result"],
             isResponse=False,
         )
         tool.slotfiller = Mock()
         # Return a single dict
-        tool.slotfiller.fill_slots.return_value = [Slot(name="group", value={"field1": "val"}, type="group")]
+        tool.slotfiller.fill_slots.return_value = [
+            Slot(name="group", value={"field1": "val"}, type="group")
+        ]
         slots = tool._fill_slots_recursive(tool.slots, "")
         assert isinstance(slots[0].value, list)
         assert slots[0].value[0]["field1"] == "val"
@@ -2415,13 +2532,21 @@ class TestToolEdgeCases:
             func=lambda group: group,
             name="test_tool",
             description="Test tool",
-            slots=[{"name": "group", "type": "group", "schema": [{"name": "field1", "type": "str"}]}],
+            slots=[
+                {
+                    "name": "group",
+                    "type": "group",
+                    "schema": [{"name": "field1", "type": "str"}],
+                }
+            ],
             outputs=["result"],
             isResponse=False,
         )
         tool.slotfiller = Mock()
         # Return an int
-        tool.slotfiller.fill_slots.return_value = [Slot(name="group", value=123, type="group")]
+        tool.slotfiller.fill_slots.return_value = [
+            Slot(name="group", value=123, type="group")
+        ]
         with pytest.raises(ValueError):
             tool._fill_slots_recursive(tool.slots, "")
 
@@ -2430,18 +2555,48 @@ class TestToolEdgeCases:
             func=lambda group: group,
             name="test_tool",
             description="Test tool",
-            slots=[{"name": "group", "type": "group", "schema": [
-                {"name": "fixed_field", "type": "str", "valueSource": "fixed", "value": "fixed_val"},
-                {"name": "default_field", "type": "str", "valueSource": "default", "value": "default_val"},
-                {"name": "repeatable_field", "type": "str", "valueSource": "default", "value": ["value1", "value2"], "repeatable": True},
-                {"name": "repeatable_field2", "type": "str", "valueSource": "default", "value": "value1", "repeatable": True}
-            ]}],
+            slots=[
+                {
+                    "name": "group",
+                    "type": "group",
+                    "schema": [
+                        {
+                            "name": "fixed_field",
+                            "type": "str",
+                            "valueSource": "fixed",
+                            "value": "fixed_val",
+                        },
+                        {
+                            "name": "default_field",
+                            "type": "str",
+                            "valueSource": "default",
+                            "value": "default_val",
+                        },
+                        {
+                            "name": "repeatable_field",
+                            "type": "str",
+                            "valueSource": "default",
+                            "value": ["value1", "value2"],
+                            "repeatable": True,
+                        },
+                        {
+                            "name": "repeatable_field2",
+                            "type": "str",
+                            "valueSource": "default",
+                            "value": "value1",
+                            "repeatable": True,
+                        },
+                    ],
+                }
+            ],
             outputs=["result"],
             isResponse=False,
         )
         tool.slotfiller = Mock()
         # Return a list of dicts with missing values
-        tool.slotfiller.fill_slots.return_value = [Slot(name="group", value=[{}], type="group")]
+        tool.slotfiller.fill_slots.return_value = [
+            Slot(name="group", value=[{}], type="group")
+        ]
         slots = tool._fill_slots_recursive(tool.slots, "")
         item = slots[0].value[0]
         assert item["fixed_field"] == "fixed_val"
@@ -2460,7 +2615,9 @@ class TestToolEdgeCases:
         )
         tool.slotfiller = Mock()
         # Return a string that's not valid JSON but looks like it should be JSON
-        tool.slotfiller.fill_slots.return_value = [Slot(name="repeat", value="[invalid json", type="str")]
+        tool.slotfiller.fill_slots.return_value = [
+            Slot(name="repeat", value="[invalid json", type="str")
+        ]
         with pytest.raises(ValueError):
             tool._fill_slots_recursive(tool.slots, "")
 
@@ -2475,7 +2632,9 @@ class TestToolEdgeCases:
         )
         tool.slotfiller = Mock()
         # Return None
-        tool.slotfiller.fill_slots.return_value = [Slot(name="repeat", value=None, type="str")]
+        tool.slotfiller.fill_slots.return_value = [
+            Slot(name="repeat", value=None, type="str")
+        ]
         slots = tool._fill_slots_recursive(tool.slots, "")
         assert slots[0].value == []
 
@@ -2490,7 +2649,9 @@ class TestToolEdgeCases:
         )
         tool.slotfiller = Mock()
         # Return a single value (not valid JSON array) - should be wrapped in list
-        tool.slotfiller.fill_slots.return_value = [Slot(name="repeat", value="single", type="str")]
+        tool.slotfiller.fill_slots.return_value = [
+            Slot(name="repeat", value="single", type="str")
+        ]
         slots = tool._fill_slots_recursive(tool.slots, "")
         assert slots[0].value == ["single"]
 
@@ -2509,6 +2670,7 @@ class TestToolEdgeCases:
         tool_def_v2 = tool.to_openai_tool_def_v2()
         assert tool_def_v2["function"]["parameters"]["properties"]["param"]["type"] == "array"
         assert tool_def_v2["function"]["parameters"]["properties"]["param"]["items"]["type"] == "string"
+
 
     def test_execute_slot_schema_change(self) -> None:
         tool = Tool(
@@ -2542,6 +2704,7 @@ class TestToolEdgeCases:
     def test_execute_missing_required_args(self) -> None:
         def func_with_required_args(required_arg: object, **kwargs: object) -> str:
             return f"Got: {required_arg}"
+
         tool = Tool(
             func=func_with_required_args,
             name="test_tool",
@@ -2571,7 +2734,9 @@ class TestToolEdgeCases:
             func=lambda param: param,
             name="test_tool",
             description="Test tool",
-            slots=[{"name": "param", "type": "str", "required": True, "prompt": "Prompt"}],
+            slots=[
+                {"name": "param", "type": "str", "required": True, "prompt": "Prompt"}
+            ],
             outputs=["result"],
             isResponse=False,
         )
@@ -2612,10 +2777,26 @@ class TestToolEdgeCases:
             func=lambda group: group,
             name="test_tool",
             description="Test tool",
-            slots=[{"name": "group", "type": "group", "schema": [
-                {"name": "field1", "type": "str", "required": True, "description": "desc1"},
-                {"name": "field2", "type": "int", "repeatable": True, "description": "desc2"},
-            ]}],
+            slots=[
+                {
+                    "name": "group",
+                    "type": "group",
+                    "schema": [
+                        {
+                            "name": "field1",
+                            "type": "str",
+                            "required": True,
+                            "description": "desc1",
+                        },
+                        {
+                            "name": "field2",
+                            "type": "int",
+                            "repeatable": True,
+                            "description": "desc2",
+                        },
+                    ],
+                }
+            ],
             outputs=["result"],
             isResponse=False,
         )
@@ -2631,10 +2812,21 @@ class TestToolEdgeCases:
             func=lambda group: group,
             name="test_tool",
             description="Test tool",
-            slots=[{"name": "group", "type": "group", "schema": [
-                {"name": "field1", "type": "str", "required": True, "repeatable": True},
-                {"name": "field2", "type": "int", "required": False}
-            ]}],
+            slots=[
+                {
+                    "name": "group",
+                    "type": "group",
+                    "schema": [
+                        {
+                            "name": "field1",
+                            "type": "str",
+                            "required": True,
+                            "repeatable": True,
+                        },
+                        {"name": "field2", "type": "int", "required": False},
+                    ],
+                }
+            ],
             outputs=["result"],
             isResponse=False,
         )
@@ -2648,15 +2840,21 @@ class TestToolEdgeCases:
             func=lambda group: group,
             name="test_tool",
             description="Test tool",
-            slots=[{"name": "group", "type": "group", "schema": [
-                {"name": "field1", "type": "str", "required": True}
-            ]}],
+            slots=[
+                {
+                    "name": "group",
+                    "type": "group",
+                    "schema": [{"name": "field1", "type": "str", "required": True}],
+                }
+            ],
             outputs=["result"],
             isResponse=False,
         )
         tool.slotfiller = Mock()
         # Simulate slotfiller returning a group slot with value=None
-        tool.slotfiller.fill_slots.return_value = [Slot(name="group", value=None, type="group")]
+        tool.slotfiller.fill_slots.return_value = [
+            Slot(name="group", value=None, type="group")
+        ]
         # This should not raise, and group_value should be None
         filled = tool.slotfiller.fill_slots([tool.slots[0]], "", None)
         group_value = filled[0].value
@@ -2668,17 +2866,36 @@ class TestToolEdgeCases:
             func=lambda group: group,
             name="test_tool",
             description="Test tool",
-            slots=[{"name": "group", "type": "group", "schema": [
-                {"name": "field1", "type": "str", "required": True, "repeatable": True, "description": "desc1"},
-                {"name": "field2", "type": "int", "required": False, "description": "desc2"}
-            ]}],
+            slots=[
+                {
+                    "name": "group",
+                    "type": "group",
+                    "schema": [
+                        {
+                            "name": "field1",
+                            "type": "str",
+                            "required": True,
+                            "repeatable": True,
+                            "description": "desc1",
+                        },
+                        {
+                            "name": "field2",
+                            "type": "int",
+                            "required": False,
+                            "description": "desc2",
+                        },
+                    ],
+                }
+            ],
             outputs=["result"],
             isResponse=False,
         )
         slot = tool.slots[0]
         prompt = tool._build_group_prompt(slot)
         # Should show field1 as an array in the example
-        assert '"field1": ["example string", "another_field1", "third_field1"]' in prompt
+        assert (
+            '"field1": ["example string", "another_field1", "third_field1"]' in prompt
+        )
         assert "[REPEATABLE]" in prompt
 
     def test_fill_slots_recursive_group_value_none_hits_assignment(self) -> None:
@@ -2687,63 +2904,111 @@ class TestToolEdgeCases:
             func=lambda group: group,
             name="test_tool",
             description="Test tool",
-            slots=[{"name": "group", "type": "group", "schema": [
-                {"name": "field1", "type": "str", "required": True}
-            ]}],
+            slots=[
+                {
+                    "name": "group",
+                    "type": "group",
+                    "schema": [{"name": "field1", "type": "str", "required": True}],
+                }
+            ],
             outputs=["result"],
             isResponse=False,
         )
         tool.slotfiller = Mock()
         # Simulate slotfiller returning a group slot with value=None
-        tool.slotfiller.fill_slots.return_value = [Slot(name="group", value=None, type="group")]
+        tool.slotfiller.fill_slots.return_value = [
+            Slot(name="group", value=None, type="group")
+        ]
         # This should hit the group_value assignment and None handling
         filled = tool._fill_slots_recursive(tool.slots, "")
         # After None, group_value should be converted to []
         assert isinstance(filled[0].value, list)
         assert filled[0].value == []
 
-    def test_fill_slots_recursive_group_repeatable_field_hits_inner_example_fields(self) -> None:
+    def test_fill_slots_recursive_group_repeatable_field_hits_inner_example_fields(
+        self,
+    ) -> None:
         """Test Tool._fill_slots_recursive with a group slot with a repeatable field to hit inner build_group_prompt's example_fields line."""
         tool = Tool(
             func=lambda group: group,
             name="test_tool",
             description="Test tool",
-            slots=[{"name": "group", "type": "group", "schema": [
-                {"name": "field1", "type": "str", "required": True, "repeatable": True, "description": "desc1"},
-                {"name": "field2", "type": "int", "required": False, "description": "desc2"}
-            ]}],
+            slots=[
+                {
+                    "name": "group",
+                    "type": "group",
+                    "schema": [
+                        {
+                            "name": "field1",
+                            "type": "str",
+                            "required": True,
+                            "repeatable": True,
+                            "description": "desc1",
+                        },
+                        {
+                            "name": "field2",
+                            "type": "int",
+                            "required": False,
+                            "description": "desc2",
+                        },
+                    ],
+                }
+            ],
             outputs=["result"],
             isResponse=False,
         )
         tool.slotfiller = Mock()
         # Simulate slotfiller returning a group slot with value=None (so prompt is built)
-        tool.slotfiller.fill_slots.return_value = [Slot(name="group", value=None, type="group")]
+        tool.slotfiller.fill_slots.return_value = [
+            Slot(name="group", value=None, type="group")
+        ]
         # This should hit the inner build_group_prompt and its example_fields line
         filled = tool._fill_slots_recursive(tool.slots, "")
         # After None, group_value should be converted to []
         assert isinstance(filled[0].value, list)
         assert filled[0].value == []
 
-    def test_fill_slots_recursive_group_with_valid_items_hits_repeatable_logic(self) -> None:
+    def test_fill_slots_recursive_group_with_valid_items_hits_repeatable_logic(
+        self,
+    ) -> None:
         """Test Tool._fill_slots_recursive with a group slot that returns valid items to hit field_repeatable logic."""
         tool = Tool(
             func=lambda group: group,
             name="test_tool",
             description="Test tool",
-            slots=[{"name": "group", "type": "group", "schema": [
-                {"name": "field1", "type": "str", "required": True, "repeatable": True, "description": "desc1"},
-                {"name": "field2", "type": "int", "required": False, "description": "desc2"}
-            ]}],
+            slots=[
+                {
+                    "name": "group",
+                    "type": "group",
+                    "schema": [
+                        {
+                            "name": "field1",
+                            "type": "str",
+                            "required": True,
+                            "repeatable": True,
+                            "description": "desc1",
+                        },
+                        {
+                            "name": "field2",
+                            "type": "int",
+                            "required": False,
+                            "description": "desc2",
+                        },
+                    ],
+                }
+            ],
             outputs=["result"],
             isResponse=False,
         )
         tool.slotfiller = Mock()
         # Return a valid group structure with items so the field_repeatable logic gets executed
-        tool.slotfiller.fill_slots.return_value = [Slot(
-            name="group", 
-            value=[{"field1": ["value1", "value2"], "field2": 123}], 
-            type="group"
-        )]
+        tool.slotfiller.fill_slots.return_value = [
+            Slot(
+                name="group",
+                value=[{"field1": ["value1", "value2"], "field2": 123}],
+                type="group",
+            )
+        ]
         # This should hit the field_repeatable logic when processing the items
         filled = tool._fill_slots_recursive(tool.slots, "")
         # Should have processed the repeatable field
@@ -2752,16 +3017,40 @@ class TestToolEdgeCases:
         assert filled[0].value[0]["field1"] == ["value1", "value2"]
         assert filled[0].value[0]["field2"] == 123
 
-    def test_fill_slots_recursive_group_with_llm_response_hits_repeatable_logic(self) -> None:
+    def test_fill_slots_recursive_group_with_llm_response_hits_repeatable_logic(
+        self,
+    ) -> None:
         """Test Tool._fill_slots_recursive with a group slot that gets filled by LLM response to hit field_repeatable logic."""
         # Create schema with deepcopy to prevent state leakage
-        schema = deepcopy([
-            {"name": "field1", "type": "str", "required": True, "repeatable": True, "valueSource": "fixed", "value": ["value1", "value2"], "description": "desc1"},
-            {"name": "field2", "type": "int", "required": False, "description": "desc2"},
-            {"name": "field3", "type": "str", "required": True, "repeatable": True, "valueSource": "fixed", "value": "value1", "description": "desc3"}
+        schema = deepcopy(
+            [
+                {
+                    "name": "field1",
+                    "type": "str",
+                    "required": True,
+                    "repeatable": True,
+                    "valueSource": "fixed",
+                    "value": ["value1", "value2"],
+                    "description": "desc1",
+                },
+                {
+                    "name": "field2",
+                    "type": "int",
+                    "required": False,
+                    "description": "desc2",
+                },
+                {
+                    "name": "field3",
+                    "type": "str",
+                    "required": True,
+                    "repeatable": True,
+                    "valueSource": "fixed",
+                    "value": "value1",
+                    "description": "desc3",
+                },
+            ]
+        )
 
-        ])
-        
         tool = Tool(
             func=lambda group: group,
             name="test_tool",
@@ -2771,29 +3060,33 @@ class TestToolEdgeCases:
             isResponse=False,
         )
         tool.slotfiller = Mock()
-        
+
         # Simulate what the LLM would return when asked to fill the group
         # The LLM would receive a prompt asking for a list of objects matching the schema
         # and return a JSON string that gets parsed
         llm_response = '[{"field1": ["value1", "value2"], "field2": 123}]'
-        
+
         # Mock the slotfiller to return the LLM response as a string (which gets parsed)
         mock_slot = Slot(
-            name="group", 
+            name="group",
             value=llm_response,  # LLM returns JSON string
-            type="group"
+            type="group",
         )
         tool.slotfiller.fill_slots.return_value = [mock_slot]
-        
+
         # Add debug prints to see what's happening
-        print(f"Before _fill_slots_recursive: slotfiller return value = {tool.slotfiller.fill_slots.return_value[0].value}")
-        print(f"Type of return value: {type(tool.slotfiller.fill_slots.return_value[0].value)}")
-        
+        print(
+            f"Before _fill_slots_recursive: slotfiller return value = {tool.slotfiller.fill_slots.return_value[0].value}"
+        )
+        print(
+            f"Type of return value: {type(tool.slotfiller.fill_slots.return_value[0].value)}"
+        )
+
         # This should hit the field_repeatable logic when processing the parsed items
         filled = tool._fill_slots_recursive(deepcopy(tool.slots), "")
-        
+
         print(f"After _fill_slots_recursive: filled[0].value = {filled[0].value}")
-        
+
         # Should have processed the repeatable field
         assert isinstance(filled[0].value, list)
         assert len(filled[0].value) == 1
@@ -2803,11 +3096,24 @@ class TestToolEdgeCases:
     def test_fill_slots_recursive_group_repeatable_field_dict_value_lost(self) -> None:
         """Test that when LLM returns a dict for a repeatable field, it gets lost instead of being converted to [dict]."""
         # Create schema with deepcopy to prevent state leakage
-        schema = deepcopy([
-            {"name": "field1", "type": "str", "required": True, "repeatable": True, "description": "desc1"},
-            {"name": "field2", "type": "int", "required": False, "description": "desc2"}
-        ])
-        
+        schema = deepcopy(
+            [
+                {
+                    "name": "field1",
+                    "type": "str",
+                    "required": True,
+                    "repeatable": True,
+                    "description": "desc1",
+                },
+                {
+                    "name": "field2",
+                    "type": "int",
+                    "required": False,
+                    "description": "desc2",
+                },
+            ]
+        )
+
         tool = Tool(
             func=lambda group: group,
             name="test_tool",
@@ -2817,20 +3123,16 @@ class TestToolEdgeCases:
             isResponse=False,
         )
         tool.slotfiller = Mock()
-        
+
         # Simulate LLM returning a dict for a repeatable field (which is wrong but possible)
         llm_response = '[{"field1": {"key": "value"}, "field2": 123}]'
-        
-        mock_slot = Slot(
-            name="group", 
-            value=llm_response,
-            type="group"
-        )
+
+        mock_slot = Slot(name="group", value=llm_response, type="group")
         tool.slotfiller.fill_slots.return_value = [mock_slot]
-        
+
         # This should hit the "Prompt User" case for repeatable fields
         filled = tool._fill_slots_recursive(deepcopy(tool.slots), "")
-        
+
         # The dict value should be preserved as [dict], not lost as []
         assert isinstance(filled[0].value, list)
         assert len(filled[0].value) == 1
@@ -2838,7 +3140,7 @@ class TestToolEdgeCases:
         # The field1 should be [{"key": "value"}] but it's probably []
         print(f"field1 value: {filled[0].value[0].get('field1')}")
         print(f"field1 type: {type(filled[0].value[0].get('field1'))}")
-        
+
         # This demonstrates the bug - the dict value gets lost
         # assert filled[0].value[0]["field1"] == [{"key": "value"}]
 
@@ -2852,22 +3154,28 @@ class TestToolEdgeCases:
             outputs=["result"],
             isResponse=False,
         )
-        
+
         # Test None/empty values
         assert tool._ensure_repeatable_field_value(None, "str") == []
         assert tool._ensure_repeatable_field_value("", "str") == []
-        
+
         # Test single values (should be converted to list)
         assert tool._ensure_repeatable_field_value("hello", "str") == ["hello"]
         assert tool._ensure_repeatable_field_value(123, "int") == [123]
-        assert tool._ensure_repeatable_field_value({"key": "value"}, "str") == [{"key": "value"}]
-        
+        assert tool._ensure_repeatable_field_value({"key": "value"}, "str") == [
+            {"key": "value"}
+        ]
+
         # Test existing lists (should process each value)
         assert tool._ensure_repeatable_field_value(["a", "b"], "str") == ["a", "b"]
         assert tool._ensure_repeatable_field_value([1, 2, 3], "int") == [1, 2, 3]
-        
+
         # Test mixed types in list
-        assert tool._ensure_repeatable_field_value([1, "2", 3], "str") == ["1", "2", "3"]
+        assert tool._ensure_repeatable_field_value([1, "2", 3], "str") == [
+            "1",
+            "2",
+            "3",
+        ]
 
     def test_parse_and_validate_repeatable_value_wraps_non_list(self) -> None:
         tool = Tool(
@@ -2879,7 +3187,9 @@ class TestToolEdgeCases:
             isResponse=False,
         )
         # slot_value is a single value (not a list, not None)
-        result = tool._parse_and_validate_repeatable_value(tool.slots[0], "single_value")
+        result = tool._parse_and_validate_repeatable_value(
+            tool.slots[0], "single_value"
+        )
         print(f"result: {result}")
         assert result == ["single_value"]
 
@@ -2893,7 +3203,9 @@ class TestToolEdgeCases:
             isResponse=False,
         )
         # slot_value is None (not str, not list)
-        result = tool._parse_and_validate_repeatable_value(tool.slots[0], {"key": "value"})
+        result = tool._parse_and_validate_repeatable_value(
+            tool.slots[0], {"key": "value"}
+        )
         assert result == [{"key": "value"}]
 
     def test_apply_valuesource_to_group_items_repeatable_dict_field(self) -> None:
@@ -2902,20 +3214,43 @@ class TestToolEdgeCases:
             func=lambda group: group,
             name="test_tool",
             description="Test tool",
-            slots=[{"name": "group", "type": "group", "schema": [
-                {"name": "repeatable_field3", "type": "dict", "valueSource": "default", "value": {"key_schema": "value_schema"}, "repeatable": True},
-                {"name": "repeatable_field4", "type": "dict", "valueSource": "default", "value": {"key_schema": "value_schema"}, "repeatable": False}
-            ]}],
+            slots=[
+                {
+                    "name": "group",
+                    "type": "group",
+                    "schema": [
+                        {
+                            "name": "repeatable_field3",
+                            "type": "dict",
+                            "valueSource": "default",
+                            "value": {"key_schema": "value_schema"},
+                            "repeatable": True,
+                        },
+                        {
+                            "name": "repeatable_field4",
+                            "type": "dict",
+                            "valueSource": "default",
+                            "value": {"key_schema": "value_schema"},
+                            "repeatable": False,
+                        },
+                    ],
+                }
+            ],
             outputs=["result"],
             isResponse=False,
         )
-        
+
         # Create a group value with the specific structure - only one item
-        group_value = [{"repeatable_field3": [{"key": "value"}], "repeatable_field4": {"key": "value"}}]
-        
+        group_value = [
+            {
+                "repeatable_field3": [{"key": "value"}],
+                "repeatable_field4": {"key": "value"},
+            }
+        ]
+
         # Call the method directly
         result = tool._apply_valuesource_to_group_items(tool.slots[0], group_value)
-        
+
         # The repeatable_field3 should be populated with the default value wrapped in a list
         assert len(result) == 1
         assert "repeatable_field3" in result[0]
@@ -2934,98 +3269,178 @@ class TestToolEdgeCases:
             isResponse=False,
         )
         tool.slotfiller = Mock()
-        
+
         # Create a slot that has a value and is verified (should return empty string)
-        slots = [Slot(name="param", value="test_value", type="str", verified=True, required=True)]
-        
+        slots = [
+            Slot(
+                name="param",
+                value="test_value",
+                type="str",
+                verified=True,
+                required=True,
+            )
+        ]
+
         result, is_verification = tool._handle_missing_required_slots(slots, "")
-        
+
         # Should return empty string since slot is verified
         assert result == ""
         assert is_verification is False
 
-    def test_handle_missing_required_slots_non_repeatable_unverified_verification_needed(self) -> None:
+    def test_handle_missing_required_slots_non_repeatable_unverified_verification_needed(
+        self,
+    ) -> None:
         """Test _handle_missing_required_slots with non-repeatable slot that needs verification."""
         tool = Tool(
             func=lambda param: param,
             name="test_tool",
             description="Test tool",
-            slots=[{"name": "param", "type": "str", "required": True, "prompt": "Please verify"}],
+            slots=[
+                {
+                    "name": "param",
+                    "type": "str",
+                    "required": True,
+                    "prompt": "Please verify",
+                }
+            ],
             outputs=["result"],
             isResponse=False,
         )
         tool.slotfiller = Mock()
         tool.slotfiller.verify_slot.return_value = (True, "Please confirm this value")
-        
+
         # Create a slot that has a value but is not verified
-        slots = [Slot(name="param", value="test_value", type="str", verified=False, required=True, prompt="Please verify")]
-        
+        slots = [
+            Slot(
+                name="param",
+                value="test_value",
+                type="str",
+                verified=False,
+                required=True,
+                prompt="Please verify",
+            )
+        ]
+
         result, is_verification = tool._handle_missing_required_slots(slots, "")
-        
+
         # Should return verification message
         assert "Please verifyThe reason is: Please confirm this value" in result
         assert is_verification is True
 
-    def test_handle_missing_required_slots_non_repeatable_unverified_verification_not_needed(self) -> None:
+    def test_handle_missing_required_slots_non_repeatable_unverified_verification_not_needed(
+        self,
+    ) -> None:
         """Test _handle_missing_required_slots with non-repeatable slot that doesn't need verification."""
         tool = Tool(
             func=lambda param: param,
             name="test_tool",
             description="Test tool",
-            slots=[{"name": "param", "type": "str", "required": True, "prompt": "Please verify"}],
+            slots=[
+                {
+                    "name": "param",
+                    "type": "str",
+                    "required": True,
+                    "prompt": "Please verify",
+                }
+            ],
             outputs=["result"],
             isResponse=False,
         )
         tool.slotfiller = Mock()
         tool.slotfiller.verify_slot.return_value = (False, "Slot is valid")
-        
+
         # Create a slot that has a value but is not verified
-        slots = [Slot(name="param", value="test_value", type="str", verified=False, required=True, prompt="Please verify")]
-        
+        slots = [
+            Slot(
+                name="param",
+                value="test_value",
+                type="str",
+                verified=False,
+                required=True,
+                prompt="Please verify",
+            )
+        ]
+
         result, is_verification = tool._handle_missing_required_slots(slots, "")
-        
+
         # Should return empty string since verification passed
         assert result == ""
         assert is_verification is False
 
-    def test_handle_missing_required_slots_non_repeatable_no_value_required(self) -> None:
+    def test_handle_missing_required_slots_non_repeatable_no_value_required(
+        self,
+    ) -> None:
         """Test _handle_missing_required_slots with non-repeatable slot that has no value but is required."""
         tool = Tool(
             func=lambda param: param,
             name="test_tool",
             description="Test tool",
-            slots=[{"name": "param", "type": "str", "required": True, "prompt": "Please provide param"}],
+            slots=[
+                {
+                    "name": "param",
+                    "type": "str",
+                    "required": True,
+                    "prompt": "Please provide param",
+                }
+            ],
             outputs=["result"],
             isResponse=False,
         )
         tool.slotfiller = Mock()
-        
+
         # Create a slot that has no value but is required
-        slots = [Slot(name="param", value=None, type="str", verified=False, required=True, prompt="Please provide param")]
-        
+        slots = [
+            Slot(
+                name="param",
+                value=None,
+                type="str",
+                verified=False,
+                required=True,
+                prompt="Please provide param",
+            )
+        ]
+
         result, is_verification = tool._handle_missing_required_slots(slots, "")
-        
+
         # Should return the prompt since slot is missing
         assert result == "Please provide param"
         assert is_verification is False
 
-    def test_handle_missing_required_slots_non_repeatable_no_value_not_required(self) -> None:
+    def test_handle_missing_required_slots_non_repeatable_no_value_not_required(
+        self,
+    ) -> None:
         """Test _handle_missing_required_slots with non-repeatable slot that has no value but is not required."""
         tool = Tool(
             func=lambda param: param,
             name="test_tool",
             description="Test tool",
-            slots=[{"name": "param", "type": "str", "required": False, "prompt": "Please provide param"}],
+            slots=[
+                {
+                    "name": "param",
+                    "type": "str",
+                    "required": False,
+                    "prompt": "Please provide param",
+                }
+            ],
             outputs=["result"],
             isResponse=False,
         )
         tool.slotfiller = Mock()
-        
+
         # Create a slot that has no value and is not required
-        slots = [Slot(name="param", value=None, type="str", verified=False, required=False, prompt="Please provide param")]
-        
+        slots = [
+            Slot(
+                name="param",
+                value=None,
+                type="str",
+                verified=False,
+                required=False,
+                prompt="Please provide param",
+            )
+        ]
+
         result, is_verification = tool._handle_missing_required_slots(slots, "")
-        
+
         # Should return empty string since slot is not required
         assert result == ""
         assert is_verification is False
@@ -3041,15 +3456,19 @@ class TestToolEdgeCases:
             isResponse=False,
         )
         tool.slotfiller = Mock()
-        
+
         # Create slots that are all valid (have values and are verified)
         slots = [
-            Slot(name="param1", value="value1", type="str", verified=True, required=True),
-            Slot(name="param2", value="value2", type="str", verified=True, required=False),
+            Slot(
+                name="param1", value="value1", type="str", verified=True, required=True
+            ),
+            Slot(
+                name="param2", value="value2", type="str", verified=True, required=False
+            ),
         ]
-        
+
         result, is_verification = tool._handle_missing_required_slots(slots, "")
-        
+
         # Should return empty string since all slots are valid
         assert result == ""
         assert is_verification is False
@@ -3060,28 +3479,45 @@ class TestToolEdgeCases:
             func=lambda group: group,
             name="test_tool",
             description="Test tool",
-            slots=[{"name": "group", "type": "group", "schema": [
-                {"name": "field1", "type": "str", "required": True}
-            ], "prompt": "Please provide group"}],
+            slots=[
+                {
+                    "name": "group",
+                    "type": "group",
+                    "schema": [{"name": "field1", "type": "str", "required": True}],
+                    "prompt": "Please provide group",
+                }
+            ],
             outputs=["result"],
             isResponse=False,
         )
         tool.slotfiller = Mock()
-        
+
         # Create a group slot with missing required fields
-        slots = [Slot(
-            name="group", 
-            type="group", 
-            value=[{"field1": None}],  # Missing required field
-            required=True, 
-            prompt="Please provide group",
-            schema=[{"name": "field1", "type": "str", "required": True, "prompt": "Field 1"}]
-        )]
-        
+        slots = [
+            Slot(
+                name="group",
+                type="group",
+                value=[{"field1": None}],  # Missing required field
+                required=True,
+                prompt="Please provide group",
+                schema=[
+                    {
+                        "name": "field1",
+                        "type": "str",
+                        "required": True,
+                        "prompt": "Field 1",
+                    }
+                ],
+            )
+        ]
+
         result, is_verification = tool._handle_missing_required_slots(slots, "")
-        
+
         # Should return group field missing message
-        assert "Please provide the following fields for group 'group' item 1: field1" in result
+        assert (
+            "Please provide the following fields for group 'group' item 1: field1"
+            in result
+        )
         assert is_verification is False
 
     def test_handle_missing_required_slots_repeatable_slot_empty_list(self) -> None:
@@ -3090,24 +3526,34 @@ class TestToolEdgeCases:
             func=lambda param: param,
             name="test_tool",
             description="Test tool",
-            slots=[{"name": "param", "type": "str", "required": True, "prompt": "Please provide values", "repeatable": True}],
+            slots=[
+                {
+                    "name": "param",
+                    "type": "str",
+                    "required": True,
+                    "prompt": "Please provide values",
+                    "repeatable": True,
+                }
+            ],
             outputs=["result"],
             isResponse=False,
         )
         tool.slotfiller = Mock()
-        
+
         # Create a repeatable slot with empty list
-        slots = [Slot(
-            name="param", 
-            type="str", 
-            value=[],  # Empty list
-            required=True, 
-            prompt="Please provide values",
-            repeatable=True
-        )]
-        
+        slots = [
+            Slot(
+                name="param",
+                type="str",
+                value=[],  # Empty list
+                required=True,
+                prompt="Please provide values",
+                repeatable=True,
+            )
+        ]
+
         result, is_verification = tool._handle_missing_required_slots(slots, "")
-        
+
         # Should return the prompt since the list is empty
         assert result == "Please provide values"
         assert is_verification is False
@@ -3118,24 +3564,34 @@ class TestToolEdgeCases:
             func=lambda param: param,
             name="test_tool",
             description="Test tool",
-            slots=[{"name": "param", "type": "str", "required": True, "prompt": "Please provide values", "repeatable": True}],
+            slots=[
+                {
+                    "name": "param",
+                    "type": "str",
+                    "required": True,
+                    "prompt": "Please provide values",
+                    "repeatable": True,
+                }
+            ],
             outputs=["result"],
             isResponse=False,
         )
         tool.slotfiller = Mock()
-        
+
         # Create a repeatable slot with None value
-        slots = [Slot(
-            name="param", 
-            type="str", 
-            value=None,  # None value
-            required=True, 
-            prompt="Please provide values",
-            repeatable=True
-        )]
-        
+        slots = [
+            Slot(
+                name="param",
+                type="str",
+                value=None,  # None value
+                required=True,
+                prompt="Please provide values",
+                repeatable=True,
+            )
+        ]
+
         result, is_verification = tool._handle_missing_required_slots(slots, "")
-        
+
         # Should return the prompt since the value is None
         assert result == "Please provide values"
         assert is_verification is False
@@ -3146,24 +3602,34 @@ class TestToolEdgeCases:
             func=lambda param: param,
             name="test_tool",
             description="Test tool",
-            slots=[{"name": "param", "type": "str", "required": True, "prompt": "Please provide values", "repeatable": True}],
+            slots=[
+                {
+                    "name": "param",
+                    "type": "str",
+                    "required": True,
+                    "prompt": "Please provide values",
+                    "repeatable": True,
+                }
+            ],
             outputs=["result"],
             isResponse=False,
         )
         tool.slotfiller = Mock()
-        
+
         # Create a repeatable slot with non-list value
-        slots = [Slot(
-            name="param", 
-            type="str", 
-            value="not a list",  # Not a list
-            required=True, 
-            prompt="Please provide values",
-            repeatable=True
-        )]
-        
+        slots = [
+            Slot(
+                name="param",
+                type="str",
+                value="not a list",  # Not a list
+                required=True,
+                prompt="Please provide values",
+                repeatable=True,
+            )
+        ]
+
         result, is_verification = tool._handle_missing_required_slots(slots, "")
-        
+
         # Should return the prompt since the value is not a list
         assert result == "Please provide values"
         assert is_verification is False
@@ -3174,24 +3640,34 @@ class TestToolEdgeCases:
             func=lambda param: param,
             name="test_tool",
             description="Test tool",
-            slots=[{"name": "param", "type": "str", "required": True, "prompt": "Please provide values", "repeatable": True}],
+            slots=[
+                {
+                    "name": "param",
+                    "type": "str",
+                    "required": True,
+                    "prompt": "Please provide values",
+                    "repeatable": True,
+                }
+            ],
             outputs=["result"],
             isResponse=False,
         )
         tool.slotfiller = Mock()
-        
+
         # Create a repeatable slot with empty values
-        slots = [Slot(
-            name="param", 
-            type="str", 
-            value=[None, ""],  # Empty values
-            required=True, 
-            prompt="Please provide values",
-            repeatable=True
-        )]
-        
+        slots = [
+            Slot(
+                name="param",
+                type="str",
+                value=[None, ""],  # Empty values
+                required=True,
+                prompt="Please provide values",
+                repeatable=True,
+            )
+        ]
+
         result, is_verification = tool._handle_missing_required_slots(slots, "")
-        
+
         # Should return the prompt for the first empty item
         assert "Please provide values (item 1)" in result
         assert is_verification is False
@@ -3206,18 +3682,18 @@ class TestToolEdgeCases:
             outputs=["result"],
             isResponse=False,
         )
-        
+
         # Create a group slot with None value
         slot = Slot(
             name="group",
             type="group",
             value=None,  # None value
             prompt="Please provide group",
-            schema=[]
+            schema=[],
         )
-        
+
         result = tool._check_group_slot_missing_fields(slot)
-        
+
         # Should return the prompt since value is None
         assert result == "Please provide group"
 
@@ -3231,18 +3707,18 @@ class TestToolEdgeCases:
             outputs=["result"],
             isResponse=False,
         )
-        
+
         # Create a group slot with empty list
         slot = Slot(
             name="group",
             type="group",
             value=[],  # Empty list
             prompt="Please provide group",
-            schema=[]
+            schema=[],
         )
-        
+
         result = tool._check_group_slot_missing_fields(slot)
-        
+
         # Should return the prompt since value is empty list
         assert result == "Please provide group"
 
@@ -3256,18 +3732,18 @@ class TestToolEdgeCases:
             outputs=["result"],
             isResponse=False,
         )
-        
+
         # Create a group slot with non-list value
         slot = Slot(
             name="group",
             type="group",
             value="not a list",  # Not a list
             prompt="Please provide group",
-            schema=[]
+            schema=[],
         )
-        
+
         result = tool._check_group_slot_missing_fields(slot)
-        
+
         # Should return the prompt since value is not a list
         assert result == "Please provide group"
 
@@ -3277,24 +3753,42 @@ class TestToolEdgeCases:
             func=lambda group: group,
             name="test_tool",
             description="Test tool",
-            slots=[{"name": "group", "type": "group", "schema": [
-                {"name": "repeatable_field", "type": "str", "required": True, "repeatable": True}
-            ]}],
+            slots=[
+                {
+                    "name": "group",
+                    "type": "group",
+                    "schema": [
+                        {
+                            "name": "repeatable_field",
+                            "type": "str",
+                            "required": True,
+                            "repeatable": True,
+                        }
+                    ],
+                }
+            ],
             outputs=["result"],
             isResponse=False,
         )
-        
+
         # Create a group slot with missing repeatable field
         slot = Slot(
             name="group",
             type="group",
             value=[{}],  # Missing the repeatable field entirely
             prompt="Please provide group",
-            schema=[{"name": "repeatable_field", "type": "str", "required": True, "repeatable": True}]
+            schema=[
+                {
+                    "name": "repeatable_field",
+                    "type": "str",
+                    "required": True,
+                    "repeatable": True,
+                }
+            ],
         )
-        
+
         result = tool._check_group_slot_missing_fields(slot)
-        
+
         # Should return message about missing repeatable field
         assert "repeatable_field (repeatable)" in result
 
@@ -3304,24 +3798,43 @@ class TestToolEdgeCases:
             func=lambda group: group,
             name="test_tool",
             description="Test tool",
-            slots=[{"name": "group", "type": "group", "schema": [
-                {"name": "repeatable_field", "type": "str", "required": True, "repeatable": True}
-            ]}],
+            slots=[
+                {
+                    "name": "group",
+                    "type": "group",
+                    "schema": [
+                        {
+                            "name": "repeatable_field",
+                            "type": "str",
+                            "required": True,
+                            "repeatable": True,
+                        }
+                    ],
+                }
+            ],
             outputs=["result"],
             isResponse=False,
         )
-        
+
         # Create a group slot with repeatable field that is not a list
         slot = Slot(
             name="group",
             type="group",
-            value=[{"repeatable_field": "not a list"}],  # Field exists but is not a list
+            # Field exists but is not a list
+            value=[{"repeatable_field": "not a list"}],
             prompt="Please provide group",
-            schema=[{"name": "repeatable_field", "type": "str", "required": True, "repeatable": True}]
+            schema=[
+                {
+                    "name": "repeatable_field",
+                    "type": "str",
+                    "required": True,
+                    "repeatable": True,
+                }
+            ],
         )
-        
+
         result = tool._check_group_slot_missing_fields(slot)
-        
+
         # Should return message about missing repeatable field
         assert "repeatable_field (repeatable)" in result
 
@@ -3331,51 +3844,90 @@ class TestToolEdgeCases:
             func=lambda group: group,
             name="test_tool",
             description="Test tool",
-            slots=[{"name": "group", "type": "group", "schema": [
-                {"name": "repeatable_field", "type": "str", "required": True, "repeatable": True}
-            ]}],
+            slots=[
+                {
+                    "name": "group",
+                    "type": "group",
+                    "schema": [
+                        {
+                            "name": "repeatable_field",
+                            "type": "str",
+                            "required": True,
+                            "repeatable": True,
+                        }
+                    ],
+                }
+            ],
             outputs=["result"],
             isResponse=False,
         )
-        
+
         # Create a group slot with repeatable field that has empty list
         slot = Slot(
             name="group",
             type="group",
             value=[{"repeatable_field": []}],  # Field exists but is empty list
             prompt="Please provide group",
-            schema=[{"name": "repeatable_field", "type": "str", "required": True, "repeatable": True}]
+            schema=[
+                {
+                    "name": "repeatable_field",
+                    "type": "str",
+                    "required": True,
+                    "repeatable": True,
+                }
+            ],
         )
-        
+
         result = tool._check_group_slot_missing_fields(slot)
-        
+
         # Should return message about missing repeatable field
         assert "repeatable_field (repeatable)" in result
 
-    def test_check_group_slot_missing_fields_repeatable_field_empty_values(self) -> None:
+    def test_check_group_slot_missing_fields_repeatable_field_empty_values(
+        self,
+    ) -> None:
         """Test _check_group_slot_missing_fields with repeatable field that has empty values (covers lines 1250-1252)."""
         tool = Tool(
             func=lambda group: group,
             name="test_tool",
             description="Test tool",
-            slots=[{"name": "group", "type": "group", "schema": [
-                {"name": "repeatable_field", "type": "str", "required": True, "repeatable": True}
-            ]}],
+            slots=[
+                {
+                    "name": "group",
+                    "type": "group",
+                    "schema": [
+                        {
+                            "name": "repeatable_field",
+                            "type": "str",
+                            "required": True,
+                            "repeatable": True,
+                        }
+                    ],
+                }
+            ],
             outputs=["result"],
             isResponse=False,
         )
-        
+
         # Create a group slot with repeatable field that has empty values
         slot = Slot(
             name="group",
             type="group",
-            value=[{"repeatable_field": [None, ""]}],  # Field exists but has empty values
+            # Field exists but has empty values
+            value=[{"repeatable_field": [None, ""]}],
             prompt="Please provide group",
-            schema=[{"name": "repeatable_field", "type": "str", "required": True, "repeatable": True}]
+            schema=[
+                {
+                    "name": "repeatable_field",
+                    "type": "str",
+                    "required": True,
+                    "repeatable": True,
+                }
+            ],
         )
-        
+
         result = tool._check_group_slot_missing_fields(slot)
-        
+
         # Should return message about missing values in repeatable field
         assert "repeatable_field (value 1)" in result
         assert "repeatable_field (value 2)" in result
@@ -3386,27 +3938,39 @@ class TestToolEdgeCases:
             func=lambda group: group,
             name="test_tool",
             description="Test tool",
-            slots=[{"name": "group", "type": "group", "schema": [
-                {"name": "field1", "type": "str", "required": True},
-                {"name": "field2", "type": "str", "required": True, "repeatable": True}
-            ]}],
+            slots=[
+                {
+                    "name": "group",
+                    "type": "group",
+                    "schema": [
+                        {"name": "field1", "type": "str", "required": True},
+                        {
+                            "name": "field2",
+                            "type": "str",
+                            "required": True,
+                            "repeatable": True,
+                        },
+                    ],
+                }
+            ],
             outputs=["result"],
             isResponse=False,
         )
-        
+
         # Create a group slot with all valid fields
         slot = Slot(
             name="group",
             type="group",
-            value=[{"field1": "value1", "field2": ["value2", "value3"]}],  # All fields have valid values
+            # All fields have valid values
+            value=[{"field1": "value1", "field2": ["value2", "value3"]}],
             prompt="Please provide group",
             schema=[
                 {"name": "field1", "type": "str", "required": True},
-                {"name": "field2", "type": "str", "required": True, "repeatable": True}
-            ]
+                {"name": "field2", "type": "str", "required": True, "repeatable": True},
+            ],
         )
-        
+
         result = tool._check_group_slot_missing_fields(slot)
-        
+
         # Should return empty string since all fields are valid
         assert result == ""

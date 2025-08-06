@@ -1005,31 +1005,18 @@ class Tool:
                 response = str(e)
             log_context.info(f"Tool {self.name} response: {response}")
             call_id: str = str(uuid.uuid4())
-            state.function_calling_trajectory.append(
-                {
-                    "content": None,
-                    "role": "assistant",
-                    "tool_calls": [
-                        {
-                            "function": {
-                                "arguments": json.dumps(kwargs),
-                                "name": self.name,
-                            },
-                            "id": call_id,
-                            "type": "function",
-                        }
-                    ],
-                    "function_call": None,
-                }
-            )
-            state.function_calling_trajectory.append(
-                {
-                    "role": "tool",
-                    "tool_call_id": call_id,
-                    "name": self.name,
-                    "content": str(response),
-                }
-            )
+            state.function_calling_trajectory.append({
+                'type': 'function_call',
+                'id': "fc_" + call_id, 
+                'call_id': "call_" + call_id,
+                'name': self.name,
+                'arguments': json.dumps(kwargs)
+            })
+            state.function_calling_trajectory.append({
+                "type": "function_call_output",
+                "call_id": "call_" + call_id,
+                "output": response
+            })
             state.status = (
                 StatusEnum.COMPLETE if tool_success else StatusEnum.INCOMPLETE
             )

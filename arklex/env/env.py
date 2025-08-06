@@ -4,6 +4,7 @@ This module provides functionality for managing the environment, including
 worker initialization, tool management, and slot filling integration.
 """
 
+import asyncio
 import importlib
 import os
 import uuid
@@ -12,6 +13,7 @@ from functools import partial
 from typing import Any
 
 from arklex.env.agents.agent import BaseAgent
+from arklex.env.agents.utils.tool_resolver import BUILT_IN_TOOLS
 from arklex.env.planner.react_planner import DefaultPlanner, ReactPlanner
 from arklex.env.tools.tools import Tool
 from arklex.env.workers.worker import BaseWorker
@@ -94,61 +96,79 @@ class DefaultResourceInitializer(BaseResourceInitializer):
             tool_id: str = tool["id"]
             name: str = tool["name"]
             path: str = tool["path"]
-            try:
-                filepath: str = os.path.join("arklex.env.tools", path)
-                module_name: str = filepath.replace(os.sep, ".").replace(".py", "")
-                module = importlib.import_module(module_name)
-                func: Callable = getattr(module, name)
-                tool_instance: Tool = func()
-                # update fixed args from tools config
-                tool_instance.fixed_args.update(tool.get("fixed_args", {}))
-                tool_instance.auth.update(tool.get("auth", {}))
-                if "http_tool" in tool_id and len(attributes_list) > 0:
-                    attributes = attributes_list[idx]
-                    node_specific_data = attributes.get("node_specific_data", {})
-                    # --- Begin slot group merge logic ---
-                    slots = attributes.get("slots", [])
-                    slot_groups = attributes.get("slot_groups", [])
-                    group_slots = []
-                    for group in slot_groups:
-                        # Generate prompt/description for the group
-                        required_fields = [
-                            s["name"]
-                            for s in group.get("schema", [])
-                            if s.get("required", False)
-                        ]
-                        prompt = (
-                            f"Please provide at least one set of the following fields: {', '.join(required_fields)}."
-                            if required_fields
-                            else f"Please provide a set of values for group '{group['name']}'."
+
+            # for openai_agent_sdk tools
+            if tool_id in BUILT_IN_TOOLS:
+                tool_registry[tool_id] = {"name": name, "agent_sdk_tool": True}
+            else:
+                try:
+                    filepath: str = os.path.join("arklex.env.tools", path)
+                    module_name: str = filepath.replace(os.sep, ".").replace(".py", "")
+                    module = importlib.import_module(module_name)
+                    func: Callable = getattr(module, name)
+                    tool_instance: Tool = func()
+                    # update fixed args from tools config
+                    tool_instance.fixed_args.update(tool.get("fixed_args", {}))
+                    tool_instance.auth.update(tool.get("auth", {}))
+                    if "http_tool" in tool_id and len(attributes_list) > 0:
+                        attributes = attributes_list[idx]
+                        node_specific_data = attributes.get("node_specific_data", {})
+                        # --- Begin slot group merge logic ---
+                        slots = attributes.get("slots", [])
+                        slot_groups = attributes.get("slot_groups", [])
+                        group_slots = []
+                        for group in slot_groups:
+                            # Generate prompt/description for the group
+                            required_fields = [
+                                s["name"]
+                                for s in group.get("schema", [])
+                                if s.get("required", False)
+                            ]
+                            prompt = (
+                                f"Please provide at least one set of the following fields: {', '.join(required_fields)}."
+                                if required_fields
+                                else f"Please provide a set of values for group '{group['name']}'."
+                            )
+                            description = f"Slot group '{group['name']}' with schema: {[s['name'] for s in group.get('schema', [])]}"
+                            group_slots.append(
+                                {
+                                    "name": group["name"],
+                                    "type": "group",
+                                    "schema": group.get("schema", []),
+                                    "required": group.get("required", False),
+                                    "repeatable": group.get("repeatable", True),
+                                    "prompt": prompt,
+                                    "description": description,
+                                }
+                            )
+                            all_slots = slots + group_slots
+                            tool_instance.load_slots(all_slots)
+                            tool_instance.fixed_args.update(
+                                node_specific_data.get("http", {})
+                            )
+                            tool_instance.description = attributes.get("task", "")
+                            tool_instance.name = node_specific_data.get(
+                                "name",
+                                attributes.get("task", "").replace(" ", "_").lower(),
+                            )
+                        all_slots = slots + group_slots
+                        tool_instance.load_slots(all_slots)
+                        tool_instance.fixed_args.update(
+                            node_specific_data.get("http", {})
                         )
-                        description = f"Slot group '{group['name']}' with schema: {[s['name'] for s in group.get('schema', [])]}"
-                        group_slots.append(
-                            {
-                                "name": group["name"],
-                                "type": "group",
-                                "schema": group.get("schema", []),
-                                "required": group.get("required", False),
-                                "repeatable": group.get("repeatable", True),
-                                "prompt": prompt,
-                                "description": description,
-                            }
-                        )
-                    all_slots = slots + group_slots
-                    tool_instance.load_slots(all_slots)
-                    tool_instance.fixed_args.update(node_specific_data.get("http", {}))
-                    tool_instance.description = attributes.get("task", "")
-                    tool_instance.name = tool_id
-                    tool_id = tool_instance.name
-                tool_registry[tool_id] = {
-                    "name": f"{path.replace('/', '-')}-{name}",
-                    "description": tool_instance.description,
-                    "tool_instance": tool_instance,
-                    "execute": func,
-                    "fixed_args": tool_instance.fixed_args,
-                }
-            except Exception as e:
-                log_context.error(f"Tool {name} is not registered, error: {e}")
+                        tool_instance.description = attributes.get("task", "")
+                        tool_instance.name = tool_id
+                        tool_id = tool_instance.name
+                    tool_registry[tool_id] = {
+                        "name": f"{path.replace('/', '-')}-{name}",
+                        "description": tool_instance.description,
+                        "tool_instance": tool_instance,
+                        "execute": func,
+                        "fixed_args": tool_instance.fixed_args,
+                    }
+                except Exception as e:
+                    log_context.error(f"Tool {name} is not registered, error: {e}")
+
         return tool_registry
 
     @staticmethod
@@ -194,20 +214,36 @@ class DefaultResourceInitializer(BaseResourceInitializer):
         for agent in agents:
             agent_id: str = agent["id"]
             name: str = agent["name"]
-            path: str = agent["path"]
+            path: str | None = agent.get("path")
+
             try:
-                filepath: str = os.path.join("arklex.env.agents", path)
-                module_name: str = filepath.replace(os.sep, ".").rstrip(".py")
-                module = importlib.import_module(module_name)
-                func: Callable = getattr(module, name)
-                agent_registry[agent_id] = {
-                    "name": name,
-                    "description": func.description,
-                    "execute": partial(func, **agent.get("fixed_args", {})),
-                }
+                if path:
+                    filepath: str = os.path.join("arklex.env.agents", path)
+                    module_name: str = filepath.replace(os.sep, ".").rstrip(".py")
+                    module = importlib.import_module(module_name)
+                    func: Callable = getattr(module, name)
+                    agent_registry[agent_id] = {
+                        "name": name,
+                        "description": func.description,
+                        "execute": partial(func, **agent.get("fixed_args", {})),
+                    }
+                # for sub agents in multi-agent system
+                elif agent_id == "openai_sdk_agent":
+                    agent_registry[agent_id] = {
+                        "name": name,
+                        "description": "sub_agent",
+                        "config": {},
+                    }
+                else:
+                    log_context.error(
+                        f"Agent {name} is not registered, error: no path specified and is not openai_sdk_agent resource"
+                    )
+                    continue
+
             except Exception as e:
                 log_context.error(f"Agent {name} is not registered, error: {e}")
                 continue
+
         return agent_registry
 
 
@@ -408,24 +444,18 @@ class Environment:
             call_id: str = str(uuid.uuid4())
             params.memory.function_calling_trajectory.append(
                 {
-                    "content": None,
-                    "role": "assistant",
-                    "tool_calls": [
-                        {
-                            "function": {"arguments": "{}", "name": self.id2name[id]},
-                            "id": call_id,
-                            "type": "function",
-                        }
-                    ],
-                    "function_call": None,
+                    'type': 'function_call',
+                    'id': "fc_" + call_id, 
+                    'call_id': "call_" + call_id,
+                    'name': self.id2name[id],
+                    'arguments': "{}"
                 }
             )
             params.memory.function_calling_trajectory.append(
                 {
-                    "role": "tool",
-                    "tool_call_id": call_id,
-                    "name": self.id2name[id],
-                    "content": response_state.response
+                    "type": "function_call_output",
+                    "call_id": "call_" + call_id,
+                    "output": response_state.response
                     if response_state.response
                     else response_state.message_flow,
                 }
@@ -436,13 +466,30 @@ class Environment:
 
         elif id in self.agents:
             log_context.info(f"{self.agents[id]['name']} agent selected")
+            agent_config = self.agents[id].get("config", {})
+            successors = node_info.additional_args.get("successors", [])
+            # Resolve sub-agents if needed
+            if not agent_config and id == "multi_agent":
+                agent_config = node_info.attributes.copy()
+                agent_config["sub_agents"] = self.resolve_sub_agents(successors)
+                self.agents[id]["config"] = agent_config
+
             agent: BaseAgent = self.agents[id]["execute"](
                 successors=node_info.additional_args.get("successors", []),
                 predecessors=node_info.additional_args.get("predecessors", []),
                 tools=self.tools,
                 state=message_state,
+                **({"multi_agent_config": agent_config} if agent_config else {}),
             )
-            response_state = agent.execute(message_state, **node_info.additional_args)
+
+            if agent.is_async():
+                response_state = asyncio.run(
+                    agent.async_execute(message_state, **node_info.additional_args)
+                )
+            else:
+                response_state = agent.execute(
+                    message_state, **node_info.additional_args
+                )
             call_id: str = str(uuid.uuid4())
             params.memory.function_calling_trajectory = (
                 response_state.function_calling_trajectory
@@ -481,3 +528,56 @@ class Environment:
             log_context.info(f"{self.tools[name]['name']} tool selected")
         except Exception as e:
             log_context.error(f"Tool {name} is not registered, error: {e}")
+
+    def resolve_sub_agents(self, successors: list[NodeInfo]) -> list[dict[str, Any]]:
+        resolved = []
+
+        for node in successors:
+            # make sure it is a sub_agent
+            if node.type != "agent" and node.attributes.get("type") != "agent":
+                continue
+            attributes = node.attributes or {}
+            name = node.additional_args.get("name", []) or attributes.get(
+                "node_specific_data", {}
+            ).get("name", "")
+            task = attributes.get("task")
+            # Find tools for this agent by collecting tools from its predecessors
+            tools = []
+            for pred in node.additional_args.get("predecessors", []):
+                tool_info = self.tools.get(pred.resource_id)
+                if tool_info:
+                    tool_name = tool_info.get("name", "")
+                    tool_id = (
+                        tool_name.split(".py-")[-1]
+                        if ".py-" in tool_name
+                        else tool_name
+                    )
+
+                    # Merge tool_info fixed_args with node-specific ones
+                    node_specific_args = (
+                        pred.attributes.get("node_specific_data", {}) or {}
+                    )
+                    merged_args = {
+                        **(tool_info.get("fixed_args") or {}),
+                        **node_specific_args,
+                    }
+
+                    tools.append(
+                        {
+                            "id": tool_id,
+                            "path": None
+                            if tool_info.get("agent_sdk_tool")
+                            else f"{pred.resource_id}.py",
+                            "description": tool_info.get("description"),
+                            "fixed_args": merged_args,
+                        }
+                    )
+
+            resolved.append(
+                {
+                    "name": name,
+                    "task": task,
+                    "tools": tools,
+                }
+            )
+        return resolved
