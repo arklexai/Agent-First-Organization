@@ -13,8 +13,8 @@ from langchain_core.language_models import BaseChatModel
 from langchain_openai import ChatOpenAI
 from langgraph.graph import StateGraph
 
-from arklex.env.workers.faiss_rag_worker import FaissRAGWorker
-from arklex.env.workers.milvus_rag_worker import MilvusRAGWorker
+from arklex.env.workers.faiss_rag.faiss_rag_worker import FaissRAGWorker
+from arklex.env.workers.milvus_rag_worker.milvus_rag_worker import MilvusRAGWorker
 from arklex.env.workers.rag_message_worker import (
     RAGMessageWorker,
     RagMsgWorker,

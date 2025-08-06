@@ -13,7 +13,7 @@ from langchain_community.tools import TavilySearchResults
 from langchain_core.output_parsers import StrOutputParser
 
 from arklex.env.prompts import load_prompts
-from arklex.orchestrator.entities.orch_state_entities import LLMConfig, MessageState
+from arklex.orchestrator.entities.orch_state_entities import BotConfig, LLMConfig
 from arklex.utils.exceptions import SearchError
 from arklex.utils.logging_utils import LogContext
 from arklex.utils.provider_utils import validate_and_get_model_class
@@ -33,11 +33,10 @@ class SearchConfig(TypedDict, total=False):
 
 class SearchEngine:
     @staticmethod
-    def search(state: MessageState) -> MessageState:
+    def search(chat_history: str, bot_config: BotConfig) -> str:
         tavily_search_executor: TavilySearchExecutor = TavilySearchExecutor()
-        text_results: str = tavily_search_executor.search(state)
-        state.message_flow = text_results
-        return state
+        text_results: str = tavily_search_executor.search(chat_history, bot_config)
+        return text_results
 
 
 class TavilySearchExecutor:
@@ -64,15 +63,13 @@ class TavilySearchExecutor:
             search_text += f"Content: {res['content']} \n\n"
         return search_text
 
-    def search(self, state: MessageState) -> str:
-        prompts: dict[str, str] = load_prompts(state.bot_config)
+    def search(self, chat_history: str, bot_config: BotConfig) -> str:
+        prompts: dict[str, str] = load_prompts(bot_config)
         contextualize_q_prompt: PromptTemplate = PromptTemplate.from_template(
             prompts["retrieve_contextualize_q_prompt"]
         )
         ret_input_chain: Any = contextualize_q_prompt | self.llm | StrOutputParser()
-        ret_input: str = ret_input_chain.invoke(
-            {"chat_history": state.user_message.history}
-        )
+        ret_input: str = ret_input_chain.invoke({"chat_history": chat_history})
         log_context.info(f"Reformulated input for search engine: {ret_input}")
         search_results: list[dict[str, Any]] = self.search_tool.invoke(
             {"query": ret_input}

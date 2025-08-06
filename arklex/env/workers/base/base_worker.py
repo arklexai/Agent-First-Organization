@@ -10,7 +10,8 @@ import traceback
 from abc import ABC, abstractmethod
 from typing import Any, TypedDict, TypeVar
 
-from arklex.orchestrator.entities.msg_state_entities import MessageState, StatusEnum
+from arklex.env.workers.base.entities import WorkerData
+from arklex.orchestrator.entities.orch_state_entities import MessageState, StatusEnum
 from arklex.utils.logging_utils import LogContext
 
 log_context = LogContext(__name__)
@@ -69,6 +70,14 @@ class BaseWorker(ABC):
             str: The name of the worker class.
         """
         return f"{self.__class__.__name__}"
+
+    @abstractmethod
+    def init_worker_data(self, input_data: WorkerData) -> None:
+        """Initialize the worker data.
+
+        This abstract method must be implemented by concrete worker classes to
+        define their specific initialization logic.
+        """
 
     @abstractmethod
     def _execute(
