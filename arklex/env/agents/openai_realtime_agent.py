@@ -1,6 +1,7 @@
 import asyncio
 import base64
 import datetime
+import json
 import logging
 import os
 import threading
@@ -16,7 +17,7 @@ from pydantic import BaseModel
 
 from arklex.env.agents.agent import BaseAgent, register_agent
 from arklex.env.tools.tools import Tool
-from arklex.env.tools.types import Transcript
+from arklex.env.tools.types import ChatRole, Transcript
 
 logger = logging.getLogger(__name__)
 
@@ -422,13 +423,37 @@ class OpenAIRealtimeAgent(BaseAgent):
         combined_kwargs["call_sid"] = self.call_sid
         combined_kwargs["response_played_event"] = self.response_played
         try:
+            self.transcript.append(
+                Transcript(
+                    id=str(uuid.uuid4()),
+                    text=json.dumps(
+                        {"function_name": tool.name, "arguments": tool_args}
+                    ),
+                    origin=ChatRole.TOOL,
+                    created_at=datetime.datetime.now(datetime.timezone.utc),
+                )
+            )
             response = await asyncio.to_thread(tool.func, **combined_kwargs)
+            try:
+                response_object = json.loads(response)
+            except json.JSONDecodeError:
+                response_object = response
         except Exception as e:
             logger.error(f"Error running tool {tool.name}: {e}")
             logger.exception(e)
             response = "unexpected error calling tool"
+            response_object = response
         logger.info(f"Tool {tool.name} response: {response}")
-
+        self.transcript.append(
+            Transcript(
+                id=str(uuid.uuid4()),
+                text=json.dumps(
+                    {"function_name": tool.name, "response": response_object}
+                ),
+                origin=ChatRole.TOOL,
+                created_at=datetime.datetime.now(datetime.timezone.utc),
+            )
+        )
         await self.add_function_call_output(call_id, response)
         await self.create_response()
 
