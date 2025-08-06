@@ -53,13 +53,20 @@ def mock_tools() -> dict:
     tool_func.__name__ = "mock_tool"
     tool_object.func = tool_func
 
-    return {
+    # Configure auth and slots as proper dictionaries
+    tool_object.auth = {}
+    tool_object.slots = []
+
+    # Create a proper dictionary structure
+    tools_dict = {
         "mock_tool_id": {
             "tool_instance": tool_object,
             "execute": lambda: tool_object,
             "fixed_args": {"fixed_param": "value"},
         }
     }
+
+    return tools_dict
 
 
 @pytest.fixture
@@ -83,7 +90,7 @@ class TestOpenAIAgent:
         mock_trace: Mock,
         mock_load_prompts: Mock,
         mock_state: Mock,
-        mock_tools: Mock,
+        mock_tools: dict,
         mock_nodes: Mock,
     ) -> None:
         """Test OpenAIAgent initialization."""
@@ -172,7 +179,7 @@ class TestOpenAIAgent:
         mock_json_dumps: Mock,
         mock_trace: Mock,
         mock_state: Mock,
-        mock_tools: Mock,
+        mock_tools: dict,
     ) -> None:
         """Test generate method with tool calls."""
         mock_json_dumps.return_value = '{"result": "success"}'
@@ -384,7 +391,7 @@ class TestOpenAIAgent:
         assert isinstance(result, dict)
 
     def test_load_tools(
-        self, mock_state: Mock, mock_tools: Mock, mock_nodes: Mock
+        self, mock_state: Mock, mock_tools: dict, mock_nodes: Mock
     ) -> None:
         """Test _load_tools method."""
         agent = OpenAIAgent(
@@ -424,7 +431,7 @@ class TestOpenAIAgent:
         # Test that non-existent tool is not loaded
         assert "nonexistent_tool" not in agent.available_tools
 
-    def test_configure_tools(self, mock_state: Mock, mock_tools: Mock) -> None:
+    def test_configure_tools(self, mock_state: Mock, mock_tools: dict) -> None:
         """Test _configure_tools method."""
         agent = OpenAIAgent(
             successors=[],
@@ -437,7 +444,9 @@ class TestOpenAIAgent:
         mock_node = Mock()
         mock_node.attributes = {}
         mock_node.additional_args = {}
-        agent.available_tools["test_tool_id"] = (mock_tools["mock_tool_id"], mock_node)
+        # Get the tool from the mock_tools using the dictionary access
+        tool_data = mock_tools["mock_tool_id"]
+        agent.available_tools["test_tool_id"] = (tool_data, mock_node)
         agent._configure_tools()
 
         assert "test_tool_id" in agent.tool_map
