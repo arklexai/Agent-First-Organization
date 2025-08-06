@@ -444,11 +444,11 @@ class Environment:
             call_id: str = str(uuid.uuid4())
             params.memory.function_calling_trajectory.append(
                 {
-                    'type': 'function_call',
-                    'id': "fc_" + call_id, 
-                    'call_id': "call_" + call_id,
-                    'name': self.id2name[id],
-                    'arguments': "{}"
+                    "type": "function_call",
+                    "id": "fc_" + call_id,
+                    "call_id": "call_" + call_id,
+                    "name": self.id2name[id],
+                    "arguments": "{}",
                 }
             )
             params.memory.function_calling_trajectory.append(
@@ -560,6 +560,7 @@ class Environment:
                     merged_args = {
                         **(tool_info.get("fixed_args") or {}),
                         **node_specific_args,
+                        **tool_info.get("tool_instance").auth,
                     }
 
                     tools.append(
