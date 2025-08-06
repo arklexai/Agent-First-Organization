@@ -322,34 +322,34 @@ class Environment:
             orch_state, worker_output = worker.execute(
                 orch_state, node_specific_data=node_info.data
             )
-            # content = ""
+            content = ""
             if id == WorkerItem.MULTIPLE_CHOICE_WORKER:
                 node_response = NodeResponse(
                     status=worker_output.status,
                     response=worker_output.response,
                     choice_list=worker_output.choice_list,
                 )
-                # content = (
-                #     worker_output.response + "\n" + "\n".join(worker_output.choice_list)
-                # )
+                content = (
+                    worker_output.response + "\n" + "\n".join(worker_output.choice_list)
+                )
             elif id == WorkerItem.HUMAN_IN_THE_LOOP_WORKER:
                 node_response = NodeResponse(
                     status=worker_output.status,
                 )
-                # content = orch_state.message_flow
+                content = orch_state.message_flow
             else:
                 node_response = NodeResponse(
                     status=worker_output.status,
                     response=worker_output.response,
                 )
-                # content = worker_output.response
+                content = worker_output.response
             call_id: str = str(uuid.uuid4())
             orch_state.function_calling_trajectory.append(
                 {
                     "type": "function_call",
                     "id": "fc_" + call_id,
                     "call_id": "call_" + call_id,
-                    "name": self.id2name[id],
+                    "name": id,
                     "arguments": "{}",
                 }
             )
@@ -357,9 +357,7 @@ class Environment:
                 {
                     "type": "function_call_output",
                     "call_id": "call_" + call_id,
-                    "output": response_state.response
-                    if response_state.response
-                    else response_state.message_flow,
+                    "output": content,
                 }
             )
 
