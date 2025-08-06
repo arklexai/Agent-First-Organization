@@ -10,7 +10,6 @@ import traceback
 from abc import ABC, abstractmethod
 from typing import Any, TypedDict, TypeVar
 
-from arklex.memory.entities.memory_entities import ResourceRecord
 from arklex.orchestrator.entities.msg_state_entities import MessageState, StatusEnum
 from arklex.utils.logging_utils import LogContext
 
@@ -105,21 +104,11 @@ class BaseWorker(ABC):
             response_return: dict[str, Any] = self._execute(msg_state, **kwargs)
             response_state: MessageState = MessageState.model_validate(response_return)
 
-            # Create a new ResourceRecord for this execution
-            new_record = ResourceRecord(
-                info={"worker": self.__class__.__name__},
-                intent="worker_execution",
-                output=response_state.response
-                if response_state.response
-                else response_state.message_flow,
-            )
-
             # Preserve the original trajectory and add the new record
             if msg_state.trajectory is not None:
                 response_state.trajectory = msg_state.trajectory.copy()
             else:
                 response_state.trajectory = []
-            response_state.trajectory.append([new_record])
 
             if response_state.status == StatusEnum.INCOMPLETE:
                 response_state.status = StatusEnum.COMPLETE
