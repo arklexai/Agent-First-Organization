@@ -384,7 +384,7 @@ class Environment:
             tool: Tool = self.tools[id]["tool_instance"]
             tool.init_slotfiller(self.slotfillapi)
             combined_args: dict[str, Any] = {
-                **self.tools[id]["fixed_args"],
+                **tool.fixed_args,
                 **tool.auth,
                 **(node_info.additional_args or {}),
             }
