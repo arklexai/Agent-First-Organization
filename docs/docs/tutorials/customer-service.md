@@ -1,4 +1,4 @@
-# Customer Service agent
+# Customer Service Agent
 
 *Enhance your agents with Retrieval Augmented Generation (RAG)*
 

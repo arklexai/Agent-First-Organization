@@ -340,7 +340,9 @@ class OpenAIAgent(BaseAgent):
                             and value_source == "fixed"
                         ):
                             group_value = slot.get("value", "")
-                        slot_value = build_slot_values(slot["schema"], group_value)
+                        slot_list = build_slot_values(slot["schema"], group_value)
+                        # Convert list of slot dicts to single object for non-repeatable groups
+                        slot_value = {slot_dict["name"]: slot_dict["value"] for slot_dict in slot_list}
                 else:
                     if value_source == "fixed":
                         slot_value = slot.get("value", "")

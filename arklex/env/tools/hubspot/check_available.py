@@ -38,20 +38,15 @@ slots: list[dict[str, Any]] = [
     {
         "name": "time_zone",
         "type": "str",
-        "enum": [
-            "America/New_York",
-            "America/Los_Angeles",
-            "Asia/Tokyo",
-            "Europe/London",
-        ],
-        "description": "The timezone of the user. It allows users to input abbreviation like nyc, NYC. If you are not sure, just ask the user to confirm in response.",
+        "enum": pytz.common_timezones,
+        "description": "The timezone of the user. For example, 'America/New_York'.",
         "prompt": "Could you please provide your timezone or where are you now?",
         "required": True,
     },
     {
         "name": "meeting_date",
         "type": "str",
-        "description": "The exact date (only the month and day) the customer want to take meeting with the representative. e.g. today, Next Monday, May 1st. If users confirm the specific date, then accept it.",
+        "description": "The exact date (only the month and day) the customer want to take meeting with the representative. e.g. today, Next Monday, May 1st. IMPORTANT: please TRANSFORM tmr to tomorrow.",
         "prompt": "Could you please give me the date of the meeting?",
         "required": True,
     },
@@ -155,12 +150,15 @@ def check_available(
             version=parsedatetime.VERSION_CONTEXT_STYLE
         )
         # Use current date as base to ensure consistent parsing
-        current_date = datetime.now()
-        time_struct: tuple = cal.parse(meeting_date, current_date)[0]
-        meeting_date: datetime = datetime(*time_struct[:3])
+        current_date: datetime = datetime.now()
+        dt: datetime
+        status: int
+        dt, status = cal.parseDT(meeting_date, sourceTime=current_date)
+        log_context.info(f"Today is {current_date}. Then the date you ask is:{dt}")
+        exact_date: datetime = datetime(dt.year, dt.month, dt.day)
 
-        last_day: int = calendar.monthrange(meeting_date.year, meeting_date.month)[1]
-        is_last_day: bool = meeting_date.day == last_day
+        last_day: int = calendar.monthrange(exact_date.year, exact_date.month)[1]
+        is_last_day: bool = exact_date.day == last_day
 
         month_offset: int = 1 if is_last_day else 0
 
@@ -181,7 +179,7 @@ def check_available(
                 .get(duration_ms, {})
             )
             slots: list[dict[str, Any]] = availability.get("availabilities", [])
-            time_zone: pytz.BaseTzInfo = pytz.timezone(time_zone)
+            time_zone_obj: pytz.BaseTzInfo = pytz.timezone(time_zone)
 
             ab_times: list[dict[str, int]] = []
 
@@ -203,19 +201,19 @@ def check_available(
             for ab_time in ab_times:
                 start_dt: datetime = datetime.fromtimestamp(
                     ab_time["start"] / 1000, tz=pytz.utc
-                ).astimezone(time_zone)
-                if meeting_date.date() == start_dt.date():
+                ).astimezone(time_zone_obj)
+                if exact_date.date() == start_dt.date():
                     same_dt_info["available_time_slots"].append(
                         {
                             "start": datetime.fromtimestamp(
                                 ab_time["start"] / 1000, tz=timezone.utc
                             )
-                            .astimezone(time_zone)
+                            .astimezone(time_zone_obj)
                             .isoformat(),
                             "end": datetime.fromtimestamp(
                                 ab_time["end"] / 1000, tz=timezone.utc
                             )
-                            .astimezone(time_zone)
+                            .astimezone(time_zone_obj)
                             .isoformat(),
                         }
                     )
@@ -225,12 +223,12 @@ def check_available(
                             "start": datetime.fromtimestamp(
                                 ab_time["start"] / 1000, tz=timezone.utc
                             )
-                            .astimezone(time_zone)
+                            .astimezone(time_zone_obj)
                             .isoformat(),
                             "end": datetime.fromtimestamp(
                                 ab_time["end"] / 1000, tz=timezone.utc
                             )
-                            .astimezone(time_zone)
+                            .astimezone(time_zone_obj)
                             .isoformat(),
                         }
                     )
@@ -238,17 +236,86 @@ def check_available(
             response: str = ""
             if len(same_dt_info["available_time_slots"]) != 0:
                 response += f"The slug for your meeting is: {meeting_slug}\n"
-                response += f"The alternative time for you on the same date is {same_dt_info['available_time_slots']}\n"
-                response += "Feel free to choose from it\n"
-                response += "You must give some available time slots for users as the reference to choose.\n"
+                response += f"Here are the available time slots for your meeting about {duration} mins in {exact_date}:\n"
+
+                slots: list[tuple[datetime, datetime]] = [
+                    (
+                        datetime.fromisoformat(slot["start"]),
+                        datetime.fromisoformat(slot["end"]),
+                    )
+                    for slot in same_dt_info["available_time_slots"]
+                ]
+                slots.sort()
+
+                merged_slots: list[tuple[datetime, datetime]] = []
+                current_start: datetime
+                current_end: datetime
+                current_start, current_end = slots[0]
+                for start, end in slots[1:]:
+                    if start == current_end:
+                        current_end = end
+                    else:
+                        merged_slots.append((current_start, current_end))
+                        current_start, current_end = start, end
+                merged_slots.append((current_start, current_end))
+                for start, end in merged_slots:
+                    start_str: str = start.strftime("%I:%M %p").lstrip("0")
+                    end_str: str = end.strftime("%I:%M %p").lstrip("0")
+                    response += f" - {start_str} – {end_str}\n"
+
+                response += (
+                    "\nPlease pick one of the time slots above as your preferred start time.\n"
+                    "You should follow the instructions below to generate response.\n"
+                )
+
+                response += (
+                    "\nInstruction: If the user already mentioned a specific time (e.g. 9:00 am) and only if it matches one of the available time slots above, "
+                    "you should confirm that the requested time is available, and then ask for continuing."
+                    "Otherwise, merge all consecutive 15-minute time slots (e.g., 1:00–1:15 and 1:15–1:30 → 1:00–1:30), and present the merged time ranges in the response. DO NOT PROVIDE A LONG LIST."
+                    "Please also inform the customer that start times must be at 15-minute intervals (e.g., 9:00, 9:15, etc.)."
+                )
+
             else:
                 response += f"The slug for your meeting is: {meeting_slug}\n"
                 response += (
-                    "I am sorry there is no available time slots on the same day.\n"
+                    "I'm sorry, there are no available time slots on the selected date.\n"
+                    f"Here are the available time slots on other dates for your {duration}-minute meeting:\n"
                 )
-                response += f"If you want to change the date, available times for other dates are {other_dt_info['available_time_slots']}\n"
-                response += "Feel free to choose from the list.\n"
-                response += "You must give some available time slots for users as the reference so that they could choose from.\n"
+                slots: list[tuple[datetime, datetime]] = [
+                    (
+                        datetime.fromisoformat(slot["start"]),
+                        datetime.fromisoformat(slot["end"]),
+                    )
+                    for slot in other_dt_info["available_time_slots"]
+                ]
+                slots.sort()
+                merged_slots: list[tuple[datetime, datetime]] = []
+                current_start: datetime
+                current_end: datetime
+                current_start, current_end = slots[0]
+                for start, end in slots[1:]:
+                    if start == current_end:
+                        current_end = end
+                    else:
+                        merged_slots.append((current_start, current_end))
+                        current_start, current_end = start, end
+                merged_slots.append((current_start, current_end))
+                for start, end in merged_slots:
+                    start_str: str = start.strftime("%b %d, %I:%M %p").lstrip("0")
+                    end_str: str = end.strftime("%I:%M %p").lstrip("0")
+                    response += f" - {start_str} – {end_str}\n"
+
+                response += (
+                    "\nPlease pick one of the time slots above as your preferred start time.\n"
+                    "You should follow the instructions below to generate response.\n"
+                )
+
+                response += (
+                    "\nInstruction: If the user already mentioned a specific time (e.g. 9:00 am) and only if it matches one of the available time slots above, "
+                    "you should confirm that the requested time is available, and then ask for continuing. "
+                    "Otherwise, merge all consecutive 15-minute time slots (e.g., 1:00–1:15 and 1:15–1:30 → 1:00–1:30), and present the merged time ranges in the response. DO NOT PROVIDE A LONG LIST."
+                    "Please also inform the customer that start times must be at 15-minute intervals (e.g., 9:00, 9:15, etc.)."
+                )
             return response
         except ApiException as e:
             log_context.info(
@@ -272,13 +339,11 @@ def parse_natural_date(
 ) -> datetime:
     """
     Parse a natural language date string into a datetime object.
-
     Args:
         date_str (str): Date string to parse
         base_date (Optional[datetime]): Optional base date for relative dates
         timezone (Optional[str]): Optional timezone
         date_input (bool): Whether input is date-only
-
     Returns:
         datetime: Parsed datetime object
     """

@@ -11,6 +11,7 @@ from typing import Any
 import hubspot
 from hubspot.crm.associations.v4 import AssociationSpec
 from hubspot.crm.objects.emails import ApiException
+from hubspot.crm.tickets import SimplePublicObjectInput
 from hubspot.crm.tickets.models import SimplePublicObjectInputForCreate
 
 from arklex.env.tools.hubspot._exception_prompt import HubspotExceptionPrompt
@@ -40,6 +41,23 @@ slots: list[dict[str, Any]] = [
         "description": "The question that the customer has for the specific product",
         "prompt": "",
         "required": True,
+        "verified": True,
+    },
+    {
+        "name": "cus_fname",
+        "type": "str",
+        "description": "The first name of the customer contact.",
+        "prompt": "",
+        "required": True,
+        "verified": True,
+    },
+    {
+        "name": "cus_lname",
+        "type": "str",
+        "description": "The last name of the customer contact.",
+        "prompt": "",
+        "required": True,
+        "verified": True,
     },
 ]
 
@@ -54,7 +72,9 @@ outputs: list[dict[str, Any]] = [
 
 
 @register_tool(description, slots, outputs)
-def create_ticket(cus_cid: str, issue: str, **kwargs: dict[str, Any]) -> str:
+def create_ticket(
+    cus_cid: str, issue: str, cus_fname: str, cus_lname: str, **kwargs: dict[str, Any]
+) -> str:
     """
     Create a support ticket for a customer and associate it with their contact record.
 
@@ -90,6 +110,23 @@ def create_ticket(cus_cid: str, issue: str, **kwargs: dict[str, Any]) -> str:
         )
         ticket_creation_response: dict[str, Any] = ticket_creation_response.to_dict()
         ticket_id: str = ticket_creation_response["id"]
+        ticket_name: dict[str, Any] = {
+            "subject": ticket_id + "_" + cus_fname + " " + cus_lname,
+        }
+        simple_public_object_input: SimplePublicObjectInput = SimplePublicObjectInput(
+            properties=ticket_name
+        )
+        try:
+            api_client.crm.tickets.basic_api.update(
+                ticket_id=ticket_id,
+                simple_public_object_input=simple_public_object_input,
+            )
+        except ApiException as e:
+            log_context.info(f"Exception when calling Crm.tickets.update: {e}\n")
+            raise ToolExecutionError(
+                func_name, HubspotExceptionPrompt.TICKET_UPDATE_ERROR_PROMPT
+            ) from e
+
         association_spec: list[AssociationSpec] = [
             AssociationSpec(
                 association_category="HUBSPOT_DEFINED", association_type_id=15
