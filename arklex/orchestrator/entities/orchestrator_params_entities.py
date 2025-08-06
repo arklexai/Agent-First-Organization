@@ -11,7 +11,7 @@ Key Components:
 from pydantic import BaseModel, Field
 
 from arklex.memory.entities.memory_entities import Memory
-from arklex.orchestrator.entities.msg_state_entities import Metadata
+from arklex.orchestrator.entities.orch_state_entities import Metadata
 from arklex.orchestrator.entities.taskgraph_entities import Taskgraph
 
 

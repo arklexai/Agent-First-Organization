@@ -69,12 +69,11 @@ from arklex.env.env import Environment
 from arklex.env.nested_graph.nested_graph import NESTED_GRAPH_ID, NestedGraph
 from arklex.env.tools.utils import ToolGenerator
 from arklex.memory.entities.memory_entities import ResourceRecord
-from arklex.orchestrator.entities.msg_state_entities import (
+from arklex.orchestrator.entities.orch_state_entities import (
     BotConfig,
     ConvoMessage,
     LLMConfig,
     MessageState,
-    OrchestratorMessage,
     OrchestratorResp,
     StatusEnum,
 )
@@ -412,9 +411,9 @@ Answer with only 'yes' or 'no'"""
         user_message: ConvoMessage = ConvoMessage(
             history=chat_history_str, message=text
         )
-        orchestrator_message: OrchestratorMessage = OrchestratorMessage(
-            message=node_info.attributes["value"], attribute=node_info.attributes
-        )
+        # orchestrator_message: OrchestratorMessage = OrchestratorMessage(
+        #     message=node_info.attributes["value"], attribute=node_info.attributes
+        # )
 
         # Create initial resource record with common info and output from trajectory
         resource_record: ResourceRecord = ResourceRecord(
@@ -432,12 +431,10 @@ Answer with only 'yes' or 'no'"""
 
         # Update message state
         message_state.user_message = user_message
-        message_state.orchestrator_message = orchestrator_message
         message_state.function_calling_trajectory = (
             params.memory.function_calling_trajectory
         )
         message_state.trajectory = params.memory.trajectory
-        message_state.slots = params.taskgraph.dialog_states
         message_state.metadata = params.metadata
         message_state.is_stream = stream_type is not None
         message_state.stream_type = stream_type

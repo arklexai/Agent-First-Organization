@@ -12,7 +12,7 @@ from unittest.mock import Mock, patch
 import networkx as nx
 import pytest
 
-from arklex.orchestrator.entities.msg_state_entities import LLMConfig, StatusEnum
+from arklex.orchestrator.entities.orch_state_entities import LLMConfig, StatusEnum
 from arklex.orchestrator.entities.orchestrator_params_entities import (
     OrchestratorParams as Params,
 )

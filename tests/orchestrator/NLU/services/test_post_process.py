@@ -3,7 +3,7 @@ from unittest.mock import Mock, patch
 import pytest
 
 from arklex.memory.entities.memory_entities import ResourceRecord
-from arklex.orchestrator.entities.msg_state_entities import MessageState, Metadata
+from arklex.orchestrator.entities.orch_state_entities import MessageState, Metadata
 from arklex.orchestrator.entities.orchestrator_params_entities import OrchestratorParams
 from arklex.orchestrator.post_process import (
     RAG_NODES_STEPS,

@@ -20,7 +20,7 @@ from arklex.env.workers.rag_message_worker import (
     RagMsgWorker,
     RagMsgWorkerKwargs,
 )
-from arklex.orchestrator.entities.msg_state_entities import MessageState
+from arklex.orchestrator.entities.orch_state_entities import MessageState
 
 # Set test environment
 os.environ["ARKLEX_TEST_ENV"] = "local"

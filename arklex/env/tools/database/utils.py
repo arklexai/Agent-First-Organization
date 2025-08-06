@@ -19,7 +19,7 @@ from langchain_core.output_parsers import StrOutputParser
 from langchain_openai import ChatOpenAI
 
 from arklex.env.prompts import load_prompts
-from arklex.orchestrator.entities.msg_state_entities import (
+from arklex.orchestrator.entities.orch_state_entities import (
     MessageState,
     Slot,
     SlotDetail,

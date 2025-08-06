@@ -18,9 +18,9 @@ from langgraph.graph import START, StateGraph
 
 from arklex.env.prompts import load_prompts
 from arklex.env.tools.RAG.retrievers.milvus_retriever import RetrieveEngine
-from arklex.env.workers.message_worker import MessageWorker
-from arklex.env.workers.worker import BaseWorker, register_worker
-from arklex.orchestrator.entities.msg_state_entities import MessageState
+from arklex.env.workers.base.base_worker import BaseWorker, register_worker
+from arklex.env.workers.message_worker.message_worker import MessageWorker
+from arklex.orchestrator.entities.orch_state_entities import MessageState
 from arklex.utils.logging_utils import LogContext
 from arklex.utils.model_provider_config import PROVIDER_MAP
 

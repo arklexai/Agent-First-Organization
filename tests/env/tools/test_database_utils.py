@@ -18,7 +18,7 @@ from arklex.env.tools.database.utils import (
     USER_ID,
     DatabaseActions,
 )
-from arklex.orchestrator.entities.msg_state_entities import (
+from arklex.orchestrator.entities.orch_state_entities import (
     MessageState,
     SlotDetail,
     StatusEnum,

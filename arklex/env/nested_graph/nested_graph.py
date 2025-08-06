@@ -1,7 +1,7 @@
 from collections.abc import Callable
 from typing import Any
 
-from arklex.orchestrator.entities.msg_state_entities import StatusEnum
+from arklex.orchestrator.entities.orch_state_entities import StatusEnum
 from arklex.orchestrator.entities.orchestrator_params_entities import OrchestratorParams
 from arklex.orchestrator.entities.taskgraph_entities import NodeInfo, PathNode
 
