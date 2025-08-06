@@ -14,7 +14,7 @@ from langchain.prompts import PromptTemplate
 from langchain_core.output_parsers import StrOutputParser
 
 from arklex.env.prompts import load_prompts
-from arklex.orchestrator.entities.orch_state_entities import OrchestratorState
+from arklex.orchestrator.entities.orchestrator_state_entities import OrchestratorState
 from arklex.types.stream_types import EventType, StreamType
 from arklex.utils.exceptions import ToolError
 from arklex.utils.logging_utils import LogContext

@@ -7,37 +7,44 @@ information. The worker supports both streaming and non-streaming responses, usi
 graph to manage the workflow of document retrieval and response generation.
 """
 
-from typing import TypedDict
+from typing import Any
 
 from arklex.env.tools.RAG.retrievers.faiss_retriever import RetrieveEngine
 from arklex.env.tools.utils import ToolGenerator
-from arklex.env.workers.base.base_worker import BaseWorker, register_worker
-from arklex.env.workers.faiss_rag.entities import FaissRAGWorkerData, FaissRAGWorkerResp
-from arklex.orchestrator.entities.orch_state_entities import StatusEnum
+from arklex.env.workers.base.base_worker import BaseWorker
+from arklex.env.workers.faiss_rag.entities import (
+    FaissRAGWorkerData,
+    FaissRAGWorkerOutput,
+)
+from arklex.orchestrator.entities.orchestrator_state_entities import (
+    OrchestratorState,
+    StatusEnum,
+)
 from arklex.types.stream_types import StreamType
 from arklex.utils.logging_utils import LogContext
 
 log_context = LogContext(__name__)
 
 
-class FaissRAGWorkerKwargs(TypedDict, total=False):
-    """Type definition for kwargs used in FaissRAGWorker._execute method."""
-
-    # Add specific worker parameters as needed
-    pass
-
-
-@register_worker
 class FaissRAGWorker(BaseWorker):
     description: str = "Answer the user's questions based on the company's internal documentations (unstructured text data), such as the policies, FAQs, and product information"
 
     def __init__(self) -> None:
         super().__init__()
 
-    def init_worker_data(self, input_data: FaissRAGWorkerData) -> None:
-        self.faiss_rag_worker_data: FaissRAGWorkerData = input_data
+    @property
+    def worker_data(self) -> FaissRAGWorkerData:
+        return self.faiss_rag_worker_data
 
-    def _execute(self) -> FaissRAGWorkerResp:
+    def init_worker_data(
+        self, orch_state: OrchestratorState, node_specific_data: dict[str, Any]
+    ) -> None:
+        self.faiss_rag_worker_data: FaissRAGWorkerData = FaissRAGWorkerData(
+            **orch_state.model_dump(),
+            **node_specific_data,
+        )
+
+    def _execute(self) -> FaissRAGWorkerOutput:
         retrieved_text = RetrieveEngine.faiss_retrieve(self.faiss_rag_worker_data)
         self.faiss_rag_worker_data.message_flow = retrieved_text
         if self.faiss_rag_worker_data.stream_type != StreamType.NON_STREAM:
@@ -45,7 +52,7 @@ class FaissRAGWorker(BaseWorker):
         else:
             response = ToolGenerator.context_generate(self.faiss_rag_worker_data)
 
-        return FaissRAGWorkerResp(
+        return FaissRAGWorkerOutput(
             response=response,
             status=StatusEnum.COMPLETE,
         )

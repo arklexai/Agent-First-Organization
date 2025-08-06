@@ -38,9 +38,12 @@ from typing import Any, TypedDict
 
 from langgraph.graph import START, StateGraph
 
-from arklex.env.workers.base.base_worker import BaseWorker, register_worker
+from arklex.env.workers.base.base_worker import BaseWorker
 from arklex.env.workers.utils.chat_client import ChatClient
-from arklex.orchestrator.entities.orch_state_entities import MessageState, StatusEnum
+from arklex.orchestrator.entities.orchestrator_state_entities import (
+    OrchestratorState,
+    StatusEnum,
+)
 from arklex.orchestrator.NLU.core.slot import SlotFiller
 from arklex.utils.logging_utils import LogContext
 
@@ -122,7 +125,7 @@ class HITLWorker(BaseWorker):
         self.slot_fill_api = kwargs.get("slot_fill_api", self.slot_fill_api)
         self.action_graph: StateGraph = self._create_action_graph()
 
-    def verify_literal(self, state: MessageState) -> tuple[bool, str]:
+    def verify_literal(self, state: OrchestratorState) -> tuple[bool, str]:
         """Verify if human intervention is needed based on the message content.
 
         This method determines whether human verification is required for the
@@ -154,7 +157,7 @@ class HITLWorker(BaseWorker):
         """
         return True, ""
 
-    def verify(self, state: MessageState) -> tuple[bool, str]:
+    def verify(self, state: OrchestratorState) -> tuple[bool, str]:
         """Perform comprehensive verification to determine if human intervention is needed.
 
         This method combines literal and slot verification to determine if
@@ -201,7 +204,7 @@ class HITLWorker(BaseWorker):
             )
         )
 
-    def chat(self, state: MessageState) -> MessageState:
+    def chat(self, state: OrchestratorState) -> OrchestratorState:
         """Connect to chat with the human in the loop.
 
         This method establishes a connection to the HITL chat server and
@@ -224,7 +227,7 @@ class HITLWorker(BaseWorker):
         # state.messageFlow['result'] = chat_history[-1]
         return state
 
-    def multiple_choice(self, state: MessageState) -> MessageState:
+    def multiple_choice(self, state: OrchestratorState) -> OrchestratorState:
         """Connect to give human in the loop multiple choice options.
 
         This method establishes a connection to the HITL server for multiple
@@ -241,7 +244,7 @@ class HITLWorker(BaseWorker):
         )
         return client.sync_main(message=self.create_prompt())
 
-    def hitl(self, state: MessageState) -> str:
+    def hitl(self, state: OrchestratorState) -> str:
         """Execute human-in-the-loop interaction based on the configured mode.
 
         This method handles the main HITL logic, routing to either chat or
@@ -256,7 +259,7 @@ class HITLWorker(BaseWorker):
         result: str | None = None
         match self.mode:
             case "chat":
-                chat_result: MessageState = self.chat(state)
+                chat_result: OrchestratorState = self.chat(state)
                 state.user_message.history += "\n" + chat_result
                 state.user_message.message = chat_result.split(f"{self.name}: ")[
                     -1
@@ -267,7 +270,7 @@ class HITLWorker(BaseWorker):
                 attempts: int = self.params["max_retries"]
 
                 for _ in range(attempts):
-                    selection: MessageState = self.multiple_choice(state)
+                    selection: OrchestratorState = self.multiple_choice(state)
 
                     result = self.params["choices"].get(selection)
 
@@ -282,14 +285,14 @@ class HITLWorker(BaseWorker):
         state.response = result
         return state
 
-    def fallback(self, state: MessageState) -> MessageState:
+    def fallback(self, state: OrchestratorState) -> OrchestratorState:
         """Handle fallback when human intervention is not needed.
 
         Args:
             state: The current message state
 
         Returns:
-            MessageState: The updated state with fallback message
+            OrchestratorState: The updated state with fallback message
         """
         state.message_flow = "The user don't need human help"
         state.status = StatusEnum.COMPLETE
@@ -301,7 +304,7 @@ class HITLWorker(BaseWorker):
         Returns:
             StateGraph representing the worker's execution flow
         """
-        workflow: StateGraph = StateGraph(MessageState)
+        workflow: StateGraph = StateGraph(OrchestratorState)
         # Add nodes for each worker
         workflow.add_node("hitl", self.hitl)
         # Add edges
@@ -309,8 +312,8 @@ class HITLWorker(BaseWorker):
         return workflow
 
     def _execute(
-        self, state: MessageState, **kwargs: HITLWorkerExecuteKwargs
-    ) -> MessageState:
+        self, state: OrchestratorState, **kwargs: HITLWorkerExecuteKwargs
+    ) -> OrchestratorState:
         """Execute the HITL worker with the given state.
 
         This method performs verification to determine if human intervention
@@ -328,23 +331,22 @@ class HITLWorker(BaseWorker):
             return self.error(state)
 
         graph = self.action_graph.compile()
-        result: MessageState = graph.invoke(state)
+        result: OrchestratorState = graph.invoke(state)
         return result
 
-    def error(self, state: MessageState) -> MessageState:
+    def error(self, state: OrchestratorState) -> OrchestratorState:
         """Handle error state when HITL processing fails.
 
         Args:
             state: Current message state
 
         Returns:
-            MessageState with error status
+            OrchestratorState with error status
         """
         state.status = StatusEnum.INCOMPLETE
         return state
 
 
-@register_worker
 class HITLWorkerTestChat(HITLWorker):
     """Test implementation for local chat functionality.
 
@@ -394,7 +396,6 @@ class HITLWorkerTestChat(HITLWorker):
         return "chat" in message
 
 
-@register_worker
 class HITLWorkerTestMC(HITLWorker):
     """Test implementation for multiple choice functionality.
 
@@ -455,7 +456,6 @@ class HITLWorkerTestMC(HITLWorker):
         return "buy" in message
 
 
-@register_worker
 class HITLWorkerChatFlag(HITLWorker):
     """Production chat worker with flag-based state management.
 
@@ -471,7 +471,7 @@ class HITLWorkerChatFlag(HITLWorker):
     description: str = "Human in the loop worker"
     mode: str = "chat"
 
-    def verify_literal(self, state: MessageState) -> tuple[bool, str]:
+    def verify_literal(self, state: OrchestratorState) -> tuple[bool, str]:
         """Verify if chat interaction is needed based on message state.
 
         This method checks the message from the user. Since the NLU has already
@@ -488,8 +488,8 @@ class HITLWorkerChatFlag(HITLWorker):
         return True, message
 
     def _execute(
-        self, state: MessageState, **kwargs: HITLWorkerExecuteKwargs
-    ) -> MessageState:
+        self, state: OrchestratorState, **kwargs: HITLWorkerExecuteKwargs
+    ) -> OrchestratorState:
         """Execute the chat worker with flag-based state management.
 
         This method manages the conversation flow using metadata flags to
@@ -522,7 +522,6 @@ class HITLWorkerChatFlag(HITLWorker):
         return state
 
 
-@register_worker
 class HITLWorkerMCFlag(HITLWorker):
     """Production multiple choice worker with flag-based state management.
 
@@ -562,8 +561,8 @@ class HITLWorkerMCFlag(HITLWorker):
         return "buy" in message
 
     def _execute(
-        self, state: MessageState, **kwargs: HITLWorkerExecuteKwargs
-    ) -> MessageState:
+        self, state: OrchestratorState, **kwargs: HITLWorkerExecuteKwargs
+    ) -> OrchestratorState:
         """Execute the multiple choice worker with flag-based state management.
 
         This method manages the multiple choice interaction flow using metadata

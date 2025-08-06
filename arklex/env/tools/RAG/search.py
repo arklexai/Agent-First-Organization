@@ -13,7 +13,10 @@ from langchain_community.tools import TavilySearchResults
 from langchain_core.output_parsers import StrOutputParser
 
 from arklex.env.prompts import load_prompts
-from arklex.orchestrator.entities.orch_state_entities import BotConfig, LLMConfig
+from arklex.orchestrator.entities.orchestrator_state_entities import (
+    BotConfig,
+    LLMConfig,
+)
 from arklex.utils.exceptions import SearchError
 from arklex.utils.logging_utils import LogContext
 from arklex.utils.provider_utils import validate_and_get_model_class

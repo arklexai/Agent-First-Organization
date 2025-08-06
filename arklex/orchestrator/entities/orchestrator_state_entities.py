@@ -298,20 +298,21 @@ class OrchestratorState(BaseModel):
         relevant_records (Optional[List[ResourceRecord]]): Relevant resource records.
     """
 
-    # system configuration
+    # system-level configuration
     sys_instruct: str = Field(default="")
-    # bot configuration
     bot_config: BotConfig | None = Field(default=None)
-    # input message
+    metadata: Metadata | None = Field(default=None)
+    # execution fields
     user_message: ConvoMessage | None = Field(default=None)
-    # orchestrator_message: OrchestratorMessage | None = Field(default=None)
-    # action trajectory
+    message_flow: str = Field(default="")
+    response: str = Field(default="")
+    # record history
     function_calling_trajectory: list[dict[str, Any]] | None = Field(default=None)
     trajectory: list[list[ResourceRecord]] | None = Field(default=None)
-    # message flow between different nodes
-    message_flow: str = Field(
-        description="message flow between different nodes", default=""
-    )
+    relevant_records: list[ResourceRecord] | None = Field(default=None)
+    # streaming
+    stream_type: StreamType | None = Field(default=StreamType.NON_STREAM)
+    message_queue: Any = Field(exclude=True, default=None)
     # final response
     # response: str = Field(default="")
     # task-related params
@@ -319,10 +320,3 @@ class OrchestratorState(BaseModel):
     # slots: dict[str, list[Slot]] | None = Field(
     #     description="record the dialogue states of each action", default=None
     # )
-    metadata: Metadata | None = Field(default=None)
-    # stream
-    is_stream: bool = Field(default=False)
-    message_queue: Any = Field(exclude=True, default=None)
-    stream_type: StreamType | None = Field(default=StreamType.NON_STREAM)
-    # memory records
-    relevant_records: list[ResourceRecord] | None = Field(default=None)

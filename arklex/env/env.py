@@ -11,13 +11,12 @@ from collections.abc import Callable
 from functools import partial
 from typing import Any
 
-from arklex.env.agents.agent import BaseAgent
 from arklex.env.planner.react_planner import DefaultPlanner, ReactPlanner
 from arklex.env.resource_map import RESOURCE_MAP
 from arklex.env.tools.tools import Tool
 from arklex.env.workers.base.base_worker import BaseWorker
-from arklex.orchestrator.entities.orch_state_entities import MessageState
-from arklex.orchestrator.entities.orchestrator_params_entities import OrchestratorParams
+from arklex.orchestrator.entities.orchestrator_param_entities import OrchestratorParams
+from arklex.orchestrator.entities.orchestrator_state_entities import OrchestratorState
 from arklex.orchestrator.entities.taskgraph_entities import NodeInfo
 from arklex.orchestrator.NLU.core.slot import SlotFiller
 from arklex.orchestrator.NLU.services.api_service import APIClientService
@@ -163,13 +162,12 @@ class DefaultResourceInitializer(BaseResourceInitializer):
             dictionary mapping worker IDs to their configurations
         """
         worker_registry: dict[str, dict[str, Any]] = {}
+        log_context.info(f"Workers: {workers}")
         for worker in workers:
             worker_id: str = worker["id"]
             try:
                 worker_registry[worker_id] = {
-                    "item_cls": RESOURCE_MAP[worker["type"]][worker["item_cls"]][
-                        "item_cls"
-                    ],
+                    "item_cls": RESOURCE_MAP[worker["id"]]["item_cls"],
                 }
             except Exception as e:
                 log_context.error(f"Worker {worker_id} is not registered, error: {e}")
@@ -206,59 +204,59 @@ class DefaultResourceInitializer(BaseResourceInitializer):
         return agent_registry
 
 
-class ModelAwareResourceInitializer(DefaultResourceInitializer):
-    """Resource initializer that passes model configuration to workers.
+# class ModelAwareResourceInitializer(DefaultResourceInitializer):
+#     """Resource initializer that passes model configuration to workers.
 
-    This class extends DefaultResourceInitializer to pass model configuration
-    to workers that require it, ensuring proper model initialization.
-    """
+#     This class extends DefaultResourceInitializer to pass model configuration
+#     to workers that require it, ensuring proper model initialization.
+#     """
 
-    def __init__(self, model_config: dict[str, Any] | None = None) -> None:
-        """Initialize the model-aware resource initializer.
+#     def __init__(self, model_config: dict[str, Any] | None = None) -> None:
+#         """Initialize the model-aware resource initializer.
 
-        Args:
-            model_config: Model configuration to pass to workers
-        """
-        self.model_config = model_config
+#         Args:
+#             model_config: Model configuration to pass to workers
+#         """
+#         self.model_config = model_config
 
-    def init_workers(self, workers: list[dict[str, Any]]) -> dict[str, dict[str, Any]]:
-        """Initialize workers from configuration with model configuration.
+#     def init_workers(self, workers: list[dict[str, Any]]) -> dict[str, dict[str, Any]]:
+#         """Initialize workers from configuration with model configuration.
 
-        Args:
-            workers: list of worker configurations
+#         Args:
+#             workers: list of worker configurations
 
-        Returns:
-            dictionary mapping worker IDs to their configurations
-        """
-        worker_registry: dict[str, dict[str, Any]] = {}
-        for worker in workers:
-            worker_id: str = worker["id"]
-            name: str = worker["name"]
-            path: str = worker["path"]
-            try:
-                filepath: str = os.path.join("arklex.env.workers", path)
-                module_name: str = filepath.replace(os.sep, ".").rstrip(".py")
-                module = importlib.import_module(module_name)
-                func: Callable = getattr(module, name)
+#         Returns:
+#             dictionary mapping worker IDs to their configurations
+#         """
+#         worker_registry: dict[str, dict[str, Any]] = {}
+#         for worker in workers:
+#             worker_id: str = worker["id"]
+#             name: str = worker["name"]
+#             path: str = worker["path"]
+#             try:
+#                 filepath: str = os.path.join("arklex.env.workers", path)
+#                 module_name: str = filepath.replace(os.sep, ".").rstrip(".py")
+#                 module = importlib.import_module(module_name)
+#                 func: Callable = getattr(module, name)
 
-                # Add model_config to fixed_args if the worker accepts it
-                fixed_args = worker.get("fixed_args", {})
-                if self.model_config and hasattr(func, "__init__"):
-                    # Check if the worker's __init__ method accepts model_config
-                    import inspect
+#                 # Add model_config to fixed_args if the worker accepts it
+#                 fixed_args = worker.get("fixed_args", {})
+#                 if self.model_config and hasattr(func, "__init__"):
+#                     # Check if the worker's __init__ method accepts model_config
+#                     import inspect
 
-                    sig = inspect.signature(func.__init__)
-                    if "model_config" in sig.parameters:
-                        fixed_args["model_config"] = self.model_config
+#                     sig = inspect.signature(func.__init__)
+#                     if "model_config" in sig.parameters:
+#                         fixed_args["model_config"] = self.model_config
 
-                worker_registry[worker_id] = {
-                    "name": name,
-                    "description": func.description,
-                    "execute": partial(func, **fixed_args),
-                }
-            except Exception as e:
-                log_context.error(f"Worker {name} is not registered, error: {e}")
-        return worker_registry
+#                 worker_registry[worker_id] = {
+#                     "name": name,
+#                     "description": func.description,
+#                     "execute": partial(func, **fixed_args),
+#                 }
+#             except Exception as e:
+#                 log_context.error(f"Worker {name} is not registered, error: {e}")
+#         return worker_registry
 
 
 class Environment:
@@ -294,13 +292,14 @@ class Environment:
             slotsfillapi = kwargs["slot_fill_api"]
 
         # Use ModelAwareResourceInitializer if model_service is provided
-        if resource_initializer is None:
-            if model_service and hasattr(model_service, "model_config"):
-                resource_initializer = ModelAwareResourceInitializer(
-                    model_config=model_service.model_config
-                )
-            else:
-                resource_initializer = DefaultResourceInitializer()
+        # if resource_initializer is None:
+        #     if model_service and hasattr(model_service, "model_config"):
+        #         resource_initializer = ModelAwareResourceInitializer(
+        #             model_config=model_service.model_config
+        #         )
+        #     else:
+        #         resource_initializer = DefaultResourceInitializer()
+        resource_initializer = DefaultResourceInitializer()
 
         attributes_list = kwargs.get("attributes", [])
         self.tools: dict[str, dict[str, Any]] = resource_initializer.init_tools(
@@ -312,14 +311,6 @@ class Environment:
         self.agents: dict[str, dict[str, Any]] = resource_initializer.init_agents(
             agents
         )
-        self.name2id: dict[str, str] = {
-            resource["name"]: id
-            for id, resource in {**self.tools, **self.workers, **self.agents}.items()
-        }
-        self.id2name: dict[str, str] = {
-            id: resource["name"]
-            for id, resource in {**self.tools, **self.workers, **self.agents}.items()
-        }
         self.model_service = model_service or DummyModelService(
             {
                 "model_name": "dummy",
@@ -332,11 +323,11 @@ class Environment:
         self.slotfillapi: SlotFiller = self.initialize_slotfillapi(slotsfillapi)
         if planner_enabled:
             self.planner: ReactPlanner | DefaultPlanner = ReactPlanner(
-                tools_map=self.tools, workers_map=self.workers, name2id=self.name2id
+                tools_map=self.tools, workers_map=self.workers
             )
         else:
             self.planner: ReactPlanner | DefaultPlanner = DefaultPlanner(
-                tools_map=self.tools, workers_map=self.workers, name2id=self.name2id
+                tools_map=self.tools, workers_map=self.workers
             )
 
     def initialize_slotfillapi(self, slotsfillapi: str) -> SlotFiller:
@@ -358,10 +349,10 @@ class Environment:
     def step(
         self,
         id: str,
-        message_state: MessageState,
+        orch_state: OrchestratorState,
         params: OrchestratorParams,
         node_info: NodeInfo,
-    ) -> tuple[MessageState, OrchestratorParams]:
+    ) -> tuple[OrchestratorState, OrchestratorParams]:
         """Execute a step in the environment.
 
         Args:
@@ -373,7 +364,7 @@ class Environment:
         Returns:
             Tuple containing updated message state and parameters
         """
-        response_state: MessageState
+        response_state: OrchestratorState
         if id in self.tools:
             log_context.info(f"{self.tools[id]['name']} tool selected")
             tool: Tool = self.tools[id]["tool_instance"]
@@ -383,7 +374,7 @@ class Environment:
                 **tool.auth,
                 **(node_info.additional_args or {}),
             }
-            response_state = tool.execute(message_state, **combined_args)
+            response_state = tool.execute(orch_state, **combined_args)
             params.memory.function_calling_trajectory = (
                 response_state.function_calling_trajectory
             )
@@ -393,12 +384,14 @@ class Environment:
             )
 
         elif id in self.workers:
-            log_context.info(f"{self.workers[id]['name']} worker selected")
-            worker: BaseWorker = self.workers[id]["execute"]()
-            if hasattr(worker, "init_slotfilling"):
-                worker.init_slotfilling(self.slotfillapi)
-            response_state = worker.execute(
-                message_state, **(node_info.additional_args or {})
+            log_context.info(f"{id} worker selected")
+            worker: BaseWorker = self.workers[id]["item_cls"]()
+            worker_output = worker.execute(
+                orch_state, node_specific_data=node_info.data
+            )
+            orch_state.response = worker_output.response
+            params.taskgraph.node_status[params.taskgraph.curr_node] = (
+                worker_output.status
             )
             call_id: str = str(uuid.uuid4())
             params.memory.function_calling_trajectory.append(
@@ -407,7 +400,7 @@ class Environment:
                     "role": "assistant",
                     "tool_calls": [
                         {
-                            "function": {"arguments": "{}", "name": self.id2name[id]},
+                            "function": {"arguments": "{}", "id": id},
                             "id": call_id,
                             "type": "function",
                         }
@@ -419,47 +412,44 @@ class Environment:
                 {
                     "role": "tool",
                     "tool_call_id": call_id,
-                    "name": self.id2name[id],
-                    "content": response_state.response
-                    if response_state.response
-                    else response_state.message_flow,
+                    "id": id,
+                    "content": orch_state.response
+                    if orch_state.response
+                    else orch_state.message_flow,
                 }
             )
-            params.taskgraph.node_status[params.taskgraph.curr_node] = (
-                response_state.status
-            )
 
-        elif id in self.agents:
-            log_context.info(f"{self.agents[id]['name']} agent selected")
-            agent: BaseAgent = self.agents[id]["execute"](
-                successors=node_info.additional_args.get("successors", []),
-                predecessors=node_info.additional_args.get("predecessors", []),
-                tools=self.tools,
-                state=message_state,
-            )
-            response_state = agent.execute(message_state, **node_info.additional_args)
-            call_id: str = str(uuid.uuid4())
-            params.memory.function_calling_trajectory = (
-                response_state.function_calling_trajectory
-            )
-            params.taskgraph.dialog_states = response_state.slots
-            params.taskgraph.node_status[params.taskgraph.curr_node] = (
-                response_state.status
-            )
-        else:
-            # Resource not found in any registry, use planner as fallback
-            log_context.info(
-                f"Resource {id} not found in registries, using planner as fallback"
-            )
-            action: str
-            response_state: MessageState
-            msg_history: list[dict[str, Any]]
-            action, response_state, msg_history = self.planner.execute(
-                message_state, params.memory.function_calling_trajectory
-            )
+        # elif id in self.agents:
+        #     log_context.info(f"{self.agents[id]['name']} agent selected")
+        #     agent: BaseAgent = self.agents[id]["execute"](
+        #         successors=node_info.additional_args.get("successors", []),
+        #         predecessors=node_info.additional_args.get("predecessors", []),
+        #         tools=self.tools,
+        #         state=message_state,
+        #     )
+        #     response_state = agent.execute(message_state, **node_info.additional_args)
+        #     call_id: str = str(uuid.uuid4())
+        #     params.memory.function_calling_trajectory = (
+        #         response_state.function_calling_trajectory
+        #     )
+        #     params.taskgraph.dialog_states = response_state.slots
+        #     params.taskgraph.node_status[params.taskgraph.curr_node] = (
+        #         response_state.status
+        #     )
+        # else:
+        #     # Resource not found in any registry, use planner as fallback
+        #     log_context.info(
+        #         f"Resource {id} not found in registries, using planner as fallback"
+        #     )
+        #     action: str
+        #     response_state: MessageState
+        #     msg_history: list[dict[str, Any]]
+        #     action, response_state, msg_history = self.planner.execute(
+        #         message_state, params.memory.function_calling_trajectory
+        #     )
 
-        log_context.info(f"Response state from {id}: {response_state}")
-        return response_state, params
+        log_context.info(f"Response state from {id}: {orch_state}")
+        return orch_state, params
 
     def register_tool(self, name: str, tool: Tool) -> None:
         """Register a tool in the environment.

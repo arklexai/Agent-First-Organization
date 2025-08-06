@@ -3,7 +3,10 @@ from unittest.mock import Mock, patch
 import pytest
 
 from arklex.env.agents.openai_agent import OpenAIAgent, end_conversation
-from arklex.orchestrator.entities.msg_state_entities import MessageState, StatusEnum
+from arklex.orchestrator.entities.orchestrator_state_entities import (
+    OrchestratorState,
+    StatusEnum,
+)
 
 pytestmark = pytest.mark.usefixtures("patch_openai")
 
@@ -19,9 +22,9 @@ def patch_openai(monkeypatch: pytest.MonkeyPatch) -> None:
 
 
 @pytest.fixture
-def mock_state() -> MessageState:
+def mock_state() -> OrchestratorState:
     """Create a mock MessageState for testing."""
-    state = Mock(spec=MessageState)
+    state = Mock(spec=OrchestratorState)
     state.status = StatusEnum.INCOMPLETE
     state.function_calling_trajectory = []
     state.message_flow = ""

@@ -15,7 +15,7 @@ from unittest.mock import MagicMock, Mock
 
 import pytest
 
-from arklex.orchestrator.entities.orch_state_entities import MessageState
+from arklex.orchestrator.entities.orchestrator_state_entities import MessageState
 
 # Add the project root to the Python path to ensure imports work correctly
 project_root = Path(__file__).parent.parent.parent

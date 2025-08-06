@@ -1,13 +1,16 @@
-from arklex.env.workers.base.entities import WorkerData, WorkerResp
+from pydantic import BaseModel
+
+from arklex.env.workers.base.entities import WorkerOutput
+from arklex.orchestrator.entities.orchestrator_state_entities import OrchestratorState
 
 
-class MessageWorkerData(WorkerData):
+class MessageWorkerData(BaseModel):
     """Data for the message worker."""
 
-    message_flow: str
-    node_message: str
+    orch_state: OrchestratorState
+    message: str
     directed: bool
 
 
-class MessageWorkerResp(WorkerResp):
+class MessageWorkerOutput(WorkerOutput):
     """Response for the message worker."""

@@ -13,12 +13,13 @@ from langchain.prompts import PromptTemplate
 from langchain_core.output_parsers import StrOutputParser
 
 from arklex.env.prompts import load_prompts
-from arklex.env.workers.base.base_worker import BaseWorker, register_worker
-from arklex.env.workers.message_worker.entities import (
+from arklex.env.workers.base.base_worker import BaseWorker
+from arklex.env.workers.message.entities import (
     MessageWorkerData,
-    MessageWorkerResp,
+    MessageWorkerOutput,
 )
-from arklex.orchestrator.entities.orch_state_entities import (
+from arklex.orchestrator.entities.orchestrator_state_entities import (
+    OrchestratorState,
     StatusEnum,
 )
 from arklex.types.stream_types import EventType, StreamType
@@ -28,7 +29,6 @@ from arklex.utils.provider_utils import validate_and_get_model_class
 log_context = LogContext(__name__)
 
 
-@register_worker
 class MessageWorker(BaseWorker):
     description: str = "The worker that used to deliver the message to the user, either a question or provide some information."
 
@@ -36,17 +36,28 @@ class MessageWorker(BaseWorker):
         super().__init__()
         # state = trace(input=answer, state=state)
 
-    def init_worker_data(self, input_data: MessageWorkerData) -> None:
-        self.msg_worker_data: MessageWorkerData = input_data
+    @property
+    def worker_data(self) -> MessageWorkerData:
+        return self.msg_worker_data
 
-    def _format_prompt(self) -> dict[str, str]:
-        user_message = self.msg_worker_data.user_message
+    def init_worker_data(
+        self, orch_state: OrchestratorState, node_specific_data: dict[str, Any]
+    ) -> None:
+        self.msg_worker_data: MessageWorkerData = MessageWorkerData(
+            orch_state=orch_state,
+            **node_specific_data,
+        )
+
+    def _format_prompt(self) -> str:
+        user_message = self.msg_worker_data.orch_state.user_message
+        message_flow = self.msg_worker_data.orch_state.message_flow
         orch_message = self.msg_worker_data.node_message
-        message_flow = self.msg_worker_data.message_flow
 
-        prompts: dict[str, str] = load_prompts(self.msg_worker_data.bot_config)
+        prompts: dict[str, str] = load_prompts(
+            self.msg_worker_data.orch_state.bot_config
+        )
         if message_flow:
-            if self.msg_worker_data.stream_type == StreamType.SPEECH:
+            if self.msg_worker_data.orch_state.stream_type == StreamType.SPEECH:
                 prompt: PromptTemplate = PromptTemplate.from_template(
                     prompts["message_flow_generator_prompt_speech"]
                 )
@@ -56,14 +67,14 @@ class MessageWorker(BaseWorker):
                 )
             input_prompt = prompt.invoke(
                 {
-                    "sys_instruct": self.msg_worker_data.sys_instruct,
+                    "sys_instruct": self.msg_worker_data.orch_state.sys_instruct,
                     "message": orch_message,
                     "formatted_chat": user_message.history,
                     "context": message_flow,
                 }
             )
         else:
-            if self.msg_worker_data.stream_type == StreamType.SPEECH:
+            if self.msg_worker_data.orch_state.stream_type == StreamType.SPEECH:
                 prompt: PromptTemplate = PromptTemplate.from_template(
                     prompts["message_generator_prompt_speech"]
                 )
@@ -73,13 +84,13 @@ class MessageWorker(BaseWorker):
                 )
             input_prompt = prompt.invoke(
                 {
-                    "sys_instruct": self.msg_worker_data.sys_instruct,
+                    "sys_instruct": self.msg_worker_data.orch_state.sys_instruct,
                     "message": orch_message,
                     "formatted_chat": user_message.history,
                 }
             )
         log_context.info(
-            f"Prompt for stream type {self.msg_worker_data.stream_type}: {input_prompt.text}"
+            f"Prompt for stream type {self.msg_worker_data.orch_state.stream_type}: {input_prompt.text}"
         )
         return input_prompt.text
 
@@ -93,35 +104,35 @@ class MessageWorker(BaseWorker):
         answer: str = ""
         for chunk in invoke_chain.stream(prompt):
             answer += chunk
-            self.msg_worker_data.message_queue.put(
+            self.msg_worker_data.orch_state.message_queue.put(
                 {"event": EventType.CHUNK.value, "message_chunk": chunk}
             )
         return answer
 
-    def _execute(self) -> dict[str, Any]:
+    def _execute(self) -> MessageWorkerOutput:
         if self.msg_worker_data.directed:
-            return MessageWorkerResp(
+            return MessageWorkerOutput(
                 response=self.msg_worker_data.node_message,
                 status=StatusEnum.COMPLETE,
             )
 
         input_prompt = self._format_prompt()
         model_class = validate_and_get_model_class(
-            self.msg_worker_data.bot_config.llm_config
+            self.msg_worker_data.orch_state.bot_config.llm_config
         )
         self.llm: Any = model_class(
-            model=self.msg_worker_data.bot_config.llm_config.model_type_or_path,
+            model=self.msg_worker_data.orch_state.bot_config.llm_config.model_type_or_path,
             temperature=0.1,
         )
         if (
-            self.msg_worker_data.stream_type == StreamType.TEXT
-            or self.msg_worker_data.stream_type == StreamType.SPEECH
+            self.msg_worker_data.orch_state.stream_type == StreamType.TEXT
+            or self.msg_worker_data.orch_state.stream_type == StreamType.SPEECH
         ):
             answer = self.stream_generator(input_prompt)
         else:
             answer = self.generator(input_prompt)
 
-        return MessageWorkerResp(
+        return MessageWorkerOutput(
             response=answer,
             status=StatusEnum.COMPLETE,
         )

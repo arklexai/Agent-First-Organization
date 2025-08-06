@@ -16,7 +16,7 @@ from typing import Any
 from unittest.mock import MagicMock, Mock, patch
 
 from arklex.env.workers.message_worker.message_worker import MessageWorker
-from arklex.orchestrator.entities.orch_state_entities import (
+from arklex.orchestrator.entities.orchestrator_state_entities import (
     BotConfig,
     ConvoMessage,
     LLMConfig,
