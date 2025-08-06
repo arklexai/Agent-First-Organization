@@ -83,7 +83,7 @@ strict-versions = [
   "linkify-it-py==2.0.3",
   "mdit-py-plugins==0.4.2",
   "networkx==3.4.2",
-  "orjson==3.9.0",
+  "orjson==3.11.1",
   "phonenumbers==8.13.48",
   "PySocks==1.7.1",
   "python-Levenshtein==0.26.0",
