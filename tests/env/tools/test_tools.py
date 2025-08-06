@@ -1338,7 +1338,7 @@ class TestTools:
             # Third execution: use a group slot with a schema (list)
             from arklex.orchestrator.NLU.entities.slot_entities import Slot as GroupSlot
             tool.slots = [
-                GroupSlot(name="group1", type="group", required=True, schema=[{"name": "field1", "type": "str"}])
+                GroupSlot(name="group1", type="group", required=True, slot_schema=[{"name": "field1", "type": "str"}])
             ]
             filled_slots_3 = [
                 GroupSlot(
@@ -1346,7 +1346,7 @@ class TestTools:
                     value=[{"field1": "value1"}],
                     type="group",
                     required=True,
-                    schema=[{"name": "field1", "type": "str"}]
+                    slot_schema=[{"name": "field1", "type": "str"}]
                 )
             ]
             mock_slotfiller.fill_slots.return_value = filled_slots_3
@@ -1355,8 +1355,8 @@ class TestTools:
             result = tool._execute(state)
             assert len(tool.slots) == 1
             assert tool.slots[0].name == "group1"
-            assert hasattr(tool.slots[0], "schema")
-            assert isinstance(tool.slots[0].schema, list | tuple)
+            assert hasattr(tool.slots[0], "slot_schema")
+            assert isinstance(tool.slots[0].slot_schema, list | tuple)
 
     def test_execute_with_function_accepting_slots_parameter(self) -> None:
         """Test _execute method with function that accepts slots parameter."""
@@ -1591,7 +1591,7 @@ class TestToolMissingRequiredSlots:
                 type="group",
                 required=True,
                 value=[],
-                schema=[{"name": "field1", "required": True, "type": "str"}]
+                slot_schema=[{"name": "field1", "required": True, "type": "str"}]
             )
         ]
         assert tool._is_missing_required(slots) is True
@@ -1612,7 +1612,7 @@ class TestToolMissingRequiredSlots:
                 type="group",
                 required=True,
                 value=None,
-                schema=[{"name": "field1", "required": True, "type": "str"}]
+                slot_schema=[{"name": "field1", "required": True, "type": "str"}]
             )
         ]
         assert tool._is_missing_required(slots) is True
@@ -1633,7 +1633,7 @@ class TestToolMissingRequiredSlots:
                 type="group",
                 required=True,
                 value=[{"field1": None}],  # Missing required field
-                schema=[{"name": "field1", "required": True, "type": "str"}]
+                slot_schema=[{"name": "field1", "required": True, "type": "str"}]
             )
         ]
         assert tool._is_missing_required(slots) is True
@@ -1654,7 +1654,7 @@ class TestToolMissingRequiredSlots:
                 type="group",
                 required=True,
                 value=[{"field1": []}],  # Empty repeatable field
-                schema=[{"name": "field1", "required": True, "repeatable": True, "type": "str"}]
+                slot_schema=[{"name": "field1", "required": True, "repeatable": True, "type": "str"}]
             )
         ]
         assert tool._is_missing_required(slots) is True
@@ -1675,7 +1675,7 @@ class TestToolMissingRequiredSlots:
                 type="group",
                 required=True,
                 value=[{"field1": [None, ""]}],  # None values in repeatable field
-                schema=[{"name": "field1", "required": True, "repeatable": True, "type": "str"}]
+                slot_schema=[{"name": "field1", "required": True, "repeatable": True, "type": "str"}]
             )
         ]
         assert tool._is_missing_required(slots) is True
@@ -1766,7 +1766,7 @@ class TestToolMissingRequiredSlots:
                 type="group",
                 required=True,
                 value=[{"field1": "value1"}],
-                schema=[{"name": "field1", "required": True, "type": "str"}]
+                slot_schema=[{"name": "field1", "required": True, "type": "str"}]
             )
         ]
         assert tool._is_missing_required(slots) is False
@@ -1792,7 +1792,7 @@ class TestToolMissingSlotsRecursive:
                 required=True,
                 value=[],
                 prompt="Please provide test group",
-                schema=[{"name": "field1", "required": True, "type": "str"}]
+                slot_schema=[{"name": "field1", "required": True, "type": "str"}]
             )
         ]
         missing = tool._missing_slots_recursive(slots)
@@ -1814,7 +1814,7 @@ class TestToolMissingSlotsRecursive:
                 type="group",
                 required=True,
                 value=[{"field1": None}],
-                schema=[{"name": "field1", "required": True, "prompt": "Field 1", "type": "str"}]
+                slot_schema=[{"name": "field1", "required": True, "prompt": "Field 1", "type": "str"}]
             )
         ]
         missing = tool._missing_slots_recursive(slots)
@@ -1922,7 +1922,7 @@ class TestToolGroupSlotHandling:
         assert len(tool.slots) == 2
         assert tool.slots[1].type == "group"
         assert tool.slots[1].name == "test_group"
-        assert tool.slots[1].schema == group_slots[0]["schema"]
+        assert tool.slots[1].slot_schema == group_slots[0]["schema"]
 
     def test_load_slots_merge_existing_group_slots(self) -> None:
         """Test merging existing group slots with new ones."""
@@ -1950,14 +1950,14 @@ class TestToolGroupSlotHandling:
             {
                 "name": "test_group",
                 "type": "group",
-                "schema": [{"name": "field1", "type": "str"}, {"name": "field2", "type": "int"}],
+                "slot_schema": [{"name": "field1", "type": "str"}, {"name": "field2", "type": "int"}],
                 "required": False
             }
         ])
         
         assert len(tool.slots) == 2
         assert tool.slots[1].name == "test_group"
-        assert len(tool.slots[1].schema) == 2  # Should have both fields
+        assert len(tool.slots[1].slot_schema) == 2  # Should have both fields
         assert tool.slots[1].required is False  # Should be updated
 
     def test_to_openai_tool_def_with_group_slots(self) -> None:
@@ -1974,7 +1974,7 @@ class TestToolGroupSlotHandling:
             {
                 "name": "test_group",
                 "type": "group",
-                "schema": [
+                "slot_schema": [
                     {"name": "field1", "type": "str", "required": True, "description": "Field 1"},
                     {"name": "field2", "type": "int", "required": False, "description": "Field 2"},
                     {"name": "field3", "type": "str", "required": True, "repeatable": True, "description": "Field 3"}
@@ -2430,7 +2430,7 @@ class TestToolEdgeCases:
             func=lambda group: group,
             name="test_tool",
             description="Test tool",
-            slots=[{"name": "group", "type": "group", "schema": [
+            slots=[{"name": "group", "type": "group", "slot_schema": [
                 {"name": "fixed_field", "type": "str", "valueSource": "fixed", "value": "fixed_val"},
                 {"name": "default_field", "type": "str", "valueSource": "default", "value": "default_val"},
                 {"name": "repeatable_field", "type": "str", "valueSource": "default", "value": ["value1", "value2"], "repeatable": True},
@@ -2612,7 +2612,7 @@ class TestToolEdgeCases:
             func=lambda group: group,
             name="test_tool",
             description="Test tool",
-            slots=[{"name": "group", "type": "group", "schema": [
+            slots=[{"name": "group", "type": "group", "slot_schema": [
                 {"name": "field1", "type": "str", "required": True, "description": "desc1"},
                 {"name": "field2", "type": "int", "repeatable": True, "description": "desc2"},
             ]}],
@@ -2631,7 +2631,7 @@ class TestToolEdgeCases:
             func=lambda group: group,
             name="test_tool",
             description="Test tool",
-            slots=[{"name": "group", "type": "group", "schema": [
+            slots=[{"name": "group", "type": "group", "slot_schema": [
                 {"name": "field1", "type": "str", "required": True, "repeatable": True},
                 {"name": "field2", "type": "int", "required": False}
             ]}],
@@ -2639,8 +2639,8 @@ class TestToolEdgeCases:
             isResponse=False,
         )
         assert tool.slots[0].type == "group"
-        assert tool.slots[0].schema[0]["repeatable"] is True
-        assert tool.slots[0].schema[0]["name"] == "field1"
+        assert tool.slots[0].slot_schema[0]["repeatable"] is True
+        assert tool.slots[0].slot_schema[0]["name"] == "field1"
 
     def test_group_slot_filled_value_none(self) -> None:
         """Test that group_value is None after slotfiller fill returns None value."""
@@ -2708,7 +2708,7 @@ class TestToolEdgeCases:
             func=lambda group: group,
             name="test_tool",
             description="Test tool",
-            slots=[{"name": "group", "type": "group", "schema": [
+            slots=[{"name": "group", "type": "group", "slot_schema": [
                 {"name": "field1", "type": "str", "required": True, "repeatable": True, "description": "desc1"},
                 {"name": "field2", "type": "int", "required": False, "description": "desc2"}
             ]}],
@@ -2730,7 +2730,7 @@ class TestToolEdgeCases:
             func=lambda group: group,
             name="test_tool",
             description="Test tool",
-            slots=[{"name": "group", "type": "group", "schema": [
+            slots=[{"name": "group", "type": "group", "slot_schema": [
                 {"name": "field1", "type": "str", "required": True, "repeatable": True, "description": "desc1"},
                 {"name": "field2", "type": "int", "required": False, "description": "desc2"}
             ]}],
@@ -2766,7 +2766,7 @@ class TestToolEdgeCases:
             func=lambda group: group,
             name="test_tool",
             description="Test tool",
-            slots=[{"name": "group", "type": "group", "schema": schema}],
+            slots=[{"name": "group", "type": "group", "slot_schema": schema}],
             outputs=["result"],
             isResponse=False,
         )
@@ -3075,7 +3075,7 @@ class TestToolEdgeCases:
             value=[{"field1": None}],  # Missing required field
             required=True, 
             prompt="Please provide group",
-            schema=[{"name": "field1", "type": "str", "required": True, "prompt": "Field 1"}]
+            slot_schema=[{"name": "field1", "type": "str", "required": True, "prompt": "Field 1"}]
         )]
         
         result, is_verification = tool._handle_missing_required_slots(slots, "")
@@ -3213,7 +3213,7 @@ class TestToolEdgeCases:
             type="group",
             value=None,  # None value
             prompt="Please provide group",
-            schema=[]
+            slot_schema=[]
         )
         
         result = tool._check_group_slot_missing_fields(slot)
@@ -3238,7 +3238,7 @@ class TestToolEdgeCases:
             type="group",
             value=[],  # Empty list
             prompt="Please provide group",
-            schema=[]
+            slot_schema=[]
         )
         
         result = tool._check_group_slot_missing_fields(slot)
@@ -3263,7 +3263,7 @@ class TestToolEdgeCases:
             type="group",
             value="not a list",  # Not a list
             prompt="Please provide group",
-            schema=[]
+            slot_schema=[]
         )
         
         result = tool._check_group_slot_missing_fields(slot)
@@ -3290,7 +3290,7 @@ class TestToolEdgeCases:
             type="group",
             value=[{}],  # Missing the repeatable field entirely
             prompt="Please provide group",
-            schema=[{"name": "repeatable_field", "type": "str", "required": True, "repeatable": True}]
+            slot_schema=[{"name": "repeatable_field", "type": "str", "required": True, "repeatable": True}]
         )
         
         result = tool._check_group_slot_missing_fields(slot)
@@ -3317,7 +3317,7 @@ class TestToolEdgeCases:
             type="group",
             value=[{"repeatable_field": "not a list"}],  # Field exists but is not a list
             prompt="Please provide group",
-            schema=[{"name": "repeatable_field", "type": "str", "required": True, "repeatable": True}]
+            slot_schema=[{"name": "repeatable_field", "type": "str", "required": True, "repeatable": True}]
         )
         
         result = tool._check_group_slot_missing_fields(slot)
@@ -3344,7 +3344,7 @@ class TestToolEdgeCases:
             type="group",
             value=[{"repeatable_field": []}],  # Field exists but is empty list
             prompt="Please provide group",
-            schema=[{"name": "repeatable_field", "type": "str", "required": True, "repeatable": True}]
+            slot_schema=[{"name": "repeatable_field", "type": "str", "required": True, "repeatable": True}]
         )
         
         result = tool._check_group_slot_missing_fields(slot)
@@ -3371,7 +3371,7 @@ class TestToolEdgeCases:
             type="group",
             value=[{"repeatable_field": [None, ""]}],  # Field exists but has empty values
             prompt="Please provide group",
-            schema=[{"name": "repeatable_field", "type": "str", "required": True, "repeatable": True}]
+            slot_schema=[{"name": "repeatable_field", "type": "str", "required": True, "repeatable": True}]
         )
         
         result = tool._check_group_slot_missing_fields(slot)
@@ -3400,7 +3400,7 @@ class TestToolEdgeCases:
             type="group",
             value=[{"field1": "value1", "field2": ["value2", "value3"]}],  # All fields have valid values
             prompt="Please provide group",
-            schema=[
+            slot_schema=[
                 {"name": "field1", "type": "str", "required": True},
                 {"name": "field2", "type": "str", "required": True, "repeatable": True}
             ]
