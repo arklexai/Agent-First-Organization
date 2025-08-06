@@ -251,21 +251,24 @@ class OpenAIAgent(BaseAgent):
         This method is called during the initialization of the agent.
         """
         for tool_id, (tool, node_info) in self.available_tools.items():
-            tool_object = tool["tool_instance"]
+            tool_instance = tool["tool_instance"]
 
             log_context.info(
-                f"Configuring tool: {tool_object.func.__name__} with slots: {tool_object.slots}"
+                f"Configuring tool: {tool_instance.func.__name__} with slots: {tool_instance.slots}"
             )
-            tool_def = tool_object.to_openai_tool_def_v2()
+            tool_def = tool_instance.to_openai_tool_def_v2()
             tool_def["function"]["name"] = tool_id
             self.tool_defs.append(tool_def)
-            self.tool_slots[tool_id] = tool_object.slots.copy()
-            self.tool_map[tool_id] = tool_object.func
-            combined_args: dict[str, Any] = {
-                **tool["fixed_args"],
-                **(node_info.additional_args or {}),
-            }
+            self.tool_slots[tool_id] = tool_instance.slots.copy()
+            self.tool_map[tool_id] = tool_instance.func
+            combined_args: dict[str, Any] = {}
+            log_context.info(f"Combined args before: {combined_args}")
+            combined_args.update(node_info.additional_args)
+            combined_args.update(tool["fixed_args"])
+            combined_args.update(tool_instance.auth)
+            log_context.info(f"Combined args after: {combined_args}")
             self.tool_args[tool_id] = combined_args
+
         log_context.info(f"Tool Definitions: {self.tool_defs}")
 
     def _execute_tool(
