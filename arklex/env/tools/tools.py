@@ -1101,6 +1101,19 @@ class Tool:
                     else tool_output.response,
                 }
             )
+            # Trajectory for multi-agent
+            # state.function_calling_trajectory.append({
+            #     'type': 'function_call',
+            #     'id': "fc_" + call_id,
+            #     'call_id': "call_" + call_id,
+            #     'name': self.name,
+            #     'arguments': json.dumps(kwargs)
+            # })
+            # state.function_calling_trajectory.append({
+            #     "type": "function_call_output",
+            #     "call_id": "call_" + call_id,
+            #     "output": response
+            # })
 
         state.trajectory[-1][-1].input = slots
         state.trajectory[-1][-1].output = str(tool_output)

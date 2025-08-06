@@ -154,6 +154,7 @@ class DefaultResourceInitializer(BaseResourceInitializer):
             except Exception as e:
                 log_context.exception(e)
                 log_context.error(f"Tool {tool_id} is not registered, error: {e}")
+
         return tool_registry
 
     @staticmethod
@@ -198,6 +199,7 @@ class DefaultResourceInitializer(BaseResourceInitializer):
             except Exception as e:
                 log_context.error(f"Agent {agent_id} is not registered, error: {e}")
                 continue
+
         return agent_registry
 
 
@@ -320,48 +322,44 @@ class Environment:
             orch_state, worker_output = worker.execute(
                 orch_state, node_specific_data=node_info.data
             )
-            content = ""
+            # content = ""
             if id == WorkerItem.MULTIPLE_CHOICE_WORKER:
                 node_response = NodeResponse(
                     status=worker_output.status,
                     response=worker_output.response,
                     choice_list=worker_output.choice_list,
                 )
-                content = (
-                    worker_output.response + "\n" + "\n".join(worker_output.choice_list)
-                )
+                # content = (
+                #     worker_output.response + "\n" + "\n".join(worker_output.choice_list)
+                # )
             elif id == WorkerItem.HUMAN_IN_THE_LOOP_WORKER:
                 node_response = NodeResponse(
                     status=worker_output.status,
                 )
-                content = orch_state.message_flow
+                # content = orch_state.message_flow
             else:
                 node_response = NodeResponse(
                     status=worker_output.status,
                     response=worker_output.response,
                 )
-                content = worker_output.response
+                # content = worker_output.response
             call_id: str = str(uuid.uuid4())
             orch_state.function_calling_trajectory.append(
                 {
-                    "content": None,
-                    "role": "assistant",
-                    "tool_calls": [
-                        {
-                            "function": {"arguments": "{}", "name": id},
-                            "id": call_id,
-                            "type": "function",
-                        }
-                    ],
-                    "function_call": None,
+                    "type": "function_call",
+                    "id": "fc_" + call_id,
+                    "call_id": "call_" + call_id,
+                    "name": self.id2name[id],
+                    "arguments": "{}",
                 }
             )
             orch_state.function_calling_trajectory.append(
                 {
-                    "role": "tool",
-                    "tool_call_id": call_id,
-                    "id": id,
-                    "content": content,
+                    "type": "function_call_output",
+                    "call_id": "call_" + call_id,
+                    "output": response_state.response
+                    if response_state.response
+                    else response_state.message_flow,
                 }
             )
 
@@ -373,7 +371,34 @@ class Environment:
                 tools=self.tools,
             )
             orch_state, agent_output = agent.execute(
-                orch_state, node_specific_data=node_info.data
+                orch_state,
+                node_specific_data=node_info.data,
+                # log_context.info(f"{self.agents[id]['name']} agent selected")
+                # agent_config = self.agents[id].get("config", {})
+                # successors = node_info.additional_args.get("successors", [])
+                # # Resolve sub-agents if needed
+                # if not agent_config and id == "multi_agent":
+                #     agent_config = node_info.attributes.copy()
+                #     agent_config["sub_agents"] = self.resolve_sub_agents(successors)
+                #     self.agents[id]["config"] = agent_config
+                # agent: BaseAgent = self.agents[id]["execute"](
+                #     successors=node_info.additional_args.get("successors", []),
+                #     predecessors=node_info.additional_args.get("predecessors", []),
+                #     tools=self.tools,
+                #     state=message_state,
+                #     **({"multi_agent_config": agent_config} if agent_config else {}),
+                # )
+                # if agent.is_async():
+                #     response_state = asyncio.run(
+                #         agent.async_execute(message_state, **node_info.additional_args)
+                #     )
+                # else:
+                #     response_state = agent.execute(
+                #         message_state, **node_info.additional_args
+                #     )
+                # call_id: str = str(uuid.uuid4())
+                # params.memory.function_calling_trajectory = (
+                #     response_state.function_calling_trajectory
             )
             node_response = NodeResponse(
                 status=agent_output.status,
@@ -391,3 +416,56 @@ class Environment:
 
         log_context.info(f"Response state from {id}: {orch_state}")
         return orch_state, node_response
+
+    def resolve_sub_agents(self, successors: list[NodeInfo]) -> list[dict[str, Any]]:
+        resolved = []
+
+        for node in successors:
+            # make sure it is a sub_agent
+            if node.type != "agent" and node.attributes.get("type") != "agent":
+                continue
+            attributes = node.attributes or {}
+            name = node.additional_args.get("name", []) or attributes.get(
+                "node_specific_data", {}
+            ).get("name", "")
+            task = attributes.get("task")
+            # Find tools for this agent by collecting tools from its predecessors
+            tools = []
+            for pred in node.additional_args.get("predecessors", []):
+                tool_info = self.tools.get(pred.resource_id)
+                if tool_info:
+                    tool_name = tool_info.get("name", "")
+                    tool_id = (
+                        tool_name.split(".py-")[-1]
+                        if ".py-" in tool_name
+                        else tool_name
+                    )
+
+                    # Merge tool_info fixed_args with node-specific ones
+                    node_specific_args = (
+                        pred.attributes.get("node_specific_data", {}) or {}
+                    )
+                    merged_args = {
+                        **(tool_info.get("fixed_args") or {}),
+                        **node_specific_args,
+                    }
+
+                    tools.append(
+                        {
+                            "id": tool_id,
+                            "path": None
+                            if tool_info.get("agent_sdk_tool")
+                            else f"{pred.resource_id}.py",
+                            "description": tool_info.get("description"),
+                            "fixed_args": merged_args,
+                        }
+                    )
+
+            resolved.append(
+                {
+                    "name": name,
+                    "task": task,
+                    "tools": tools,
+                }
+            )
+        return resolved
