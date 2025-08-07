@@ -265,7 +265,7 @@ def check_available(
                 response += (
                     "\nInstruction: If the user already mentioned a specific time (e.g. 9:00 am) and only if it matches one of the available time slots above, "
                     "you should confirm that the requested time is available, and then ask for continuing."
-                    "Otherwise, merge all consecutive 15-minute time slots (e.g., 1:00–1:15 and 1:15–1:30 → 1:00–1:30), and present the merged time ranges in the response. DO NOT PROVIDE A LONG LIST."
+                    "Otherwise, merge all consecutive time slots (e.g., 1:00–1:15 and 1:15–1:30 → 1:00–1:30, 1:00–2:00 and 2:00–3:00 → 2:00–3:00), and present the merged time ranges in the response. DO NOT PROVIDE A LONG LIST."
                     "Please also inform the customer that start times must be at 15-minute intervals (e.g., 9:00, 9:15, etc.)."
                 )
 
@@ -307,7 +307,7 @@ def check_available(
                 response += (
                     "\nInstruction: If the user already mentioned a specific time (e.g. 9:00 am) and only if it matches one of the available time slots above, "
                     "you should confirm that the requested time is available, and then ask for continuing. "
-                    "Otherwise, merge all consecutive 15-minute time slots (e.g., 1:00–1:15 and 1:15–1:30 → 1:00–1:30), and present the merged time ranges in the response. DO NOT PROVIDE A LONG LIST."
+                    "Otherwise, merge all consecutive time slots (e.g., 1:00–1:15 and 1:15–1:30 → 1:00–1:30, 1:00–2:00 and 2:00–3:00 → 2:00–3:00)), and present the merged time ranges in the response. DO NOT PROVIDE A LONG LIST."
                     "Please also inform the customer that start times must be at 15-minute intervals (e.g., 9:00, 9:15, etc.)."
                 )
             return response
