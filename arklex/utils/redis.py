@@ -170,7 +170,7 @@ class RedisPool:
             log_context.debug("Redis ping successful")
             return response
         except Exception as e:
-            log_context.error(f"Redis ping failed: {e}")
+            log_context.warning(f"Redis ping failed: {e}")
             return False
 
     def set(
@@ -207,7 +207,7 @@ class RedisPool:
             log_context.debug(f"Redis SET successful for key: {key}")
             return bool(result)
         except Exception as e:
-            log_context.error(f"Redis SET failed for key {key}: {e}")
+            log_context.warning(f"Redis SET failed for key {key}: {e}")
             return False
 
     def get(self, key: str, decode_json: bool = True) -> str | None:
@@ -243,7 +243,7 @@ class RedisPool:
             log_context.debug(f"Redis GET successful for key: {key}")
             return value
         except Exception as e:
-            log_context.error(f"Redis GET failed for key {key}: {e}")
+            log_context.warning(f"Redis GET failed for key {key}: {e}")
             return None
 
     def delete(self, *keys: str) -> int:
@@ -260,7 +260,7 @@ class RedisPool:
             log_context.debug(f"Redis DELETE successful for keys: {keys}")
             return result
         except Exception as e:
-            log_context.error(f"Redis DELETE failed for keys {keys}: {e}")
+            log_context.warning(f"Redis DELETE failed for keys {keys}: {e}")
             return 0
 
     def exists(self, *keys: str) -> int:
@@ -277,7 +277,7 @@ class RedisPool:
             log_context.debug(f"Redis EXISTS check for keys: {keys}")
             return result
         except Exception as e:
-            log_context.error(f"Redis EXISTS failed for keys {keys}: {e}")
+            log_context.warning(f"Redis EXISTS failed for keys {keys}: {e}")
             return 0
 
     def expire(self, key: str, ttl: int) -> bool:
@@ -295,7 +295,7 @@ class RedisPool:
             log_context.debug(f"Redis EXPIRE successful for key: {key}")
             return bool(result)
         except Exception as e:
-            log_context.error(f"Redis EXPIRE failed for key {key}: {e}")
+            log_context.warning(f"Redis EXPIRE failed for key {key}: {e}")
             return False
 
     def ttl(self, key: str) -> int:
@@ -312,7 +312,7 @@ class RedisPool:
             log_context.debug(f"Redis TTL check for key: {key}")
             return result
         except Exception as e:
-            log_context.error(f"Redis TTL failed for key {key}: {e}")
+            log_context.warning(f"Redis TTL failed for key {key}: {e}")
             return -2
 
     def flush_db(self) -> bool:
@@ -326,7 +326,7 @@ class RedisPool:
             log_context.warning("Redis database flushed")
             return bool(result)
         except Exception as e:
-            log_context.error(f"Redis FLUSHDB failed: {e}")
+            log_context.warning(f"Redis FLUSHDB failed: {e}")
             return False
 
     def keys(self, pattern: str = "*") -> list[str]:
@@ -349,7 +349,7 @@ class RedisPool:
             )
             return result
         except Exception as e:
-            log_context.error(f"Redis KEYS failed for pattern {pattern}: {e}")
+            log_context.warning(f"Redis KEYS failed for pattern {pattern}: {e}")
             return []
 
     def close(self) -> None:
@@ -361,7 +361,7 @@ class RedisPool:
             self.connection_pool.disconnect()
             log_context.info("Redis connection pool closed")
         except Exception as e:
-            log_context.error(f"Error closing Redis connection pool: {e}")
+            log_context.warning(f"Error closing Redis connection pool: {e}")
 
 
 # Filter out None values from Redis config
