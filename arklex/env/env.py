@@ -4,28 +4,23 @@ This module provides functionality for managing the environment, including
 worker initialization, tool management, and slot filling integration.
 """
 
-import asyncio
-import importlib
-import os
 import uuid
-from collections.abc import Callable
-from functools import partial
 from typing import Any
 
 from arklex.env.agents.agent import BaseAgent
-from arklex.env.agents.utils.tool_resolver import BUILT_IN_TOOLS
-from arklex.env.planner.react_planner import DefaultPlanner, ReactPlanner
+from arklex.env.entities import NodeResponse
+from arklex.env.resource_map import RESOURCE_MAP
 from arklex.env.tools.tools import Tool
-from arklex.env.workers.worker import BaseWorker
-from arklex.orchestrator.entities.msg_state_entities import MessageState
-from arklex.orchestrator.entities.orchestrator_params_entities import OrchestratorParams
-from arklex.orchestrator.entities.taskgraph_entities import NodeInfo
-from arklex.orchestrator.NLU.core.slot import SlotFiller
+from arklex.env.workers.base.base_worker import BaseWorker
+from arklex.orchestrator.entities.orchestrator_state_entities import OrchestratorState
+from arklex.orchestrator.entities.taskgraph_entities import NodeInfo, StatusEnum
+from arklex.orchestrator.NLU.core.slot import Slot, SlotFiller
 from arklex.orchestrator.NLU.services.api_service import APIClientService
 from arklex.orchestrator.NLU.services.model_service import (
     DummyModelService,
     ModelService,
 )
+from arklex.types.resource_types import ToolItem, WorkerItem
 from arklex.utils.logging_utils import LogContext
 
 log_context = LogContext(__name__)
@@ -78,7 +73,7 @@ class DefaultResourceInitializer(BaseResourceInitializer):
 
     @staticmethod
     def init_tools(
-        tools: list[dict[str, Any]], attributes_list: list[dict[str, Any]] | None = None
+        tools: list[dict[str, Any]], nodes: list[dict[str, Any]]
     ) -> dict[str, dict[str, Any]]:
         """Initialize tools from configuration.
 
@@ -90,32 +85,32 @@ class DefaultResourceInitializer(BaseResourceInitializer):
             dictionary mapping tool IDs to their configurations
         """
         tool_registry: dict[str, dict[str, Any]] = {}
-        if attributes_list is None:
-            attributes_list = []
-        for idx, tool in enumerate(tools):
+        for tool in tools:
             tool_id: str = tool["id"]
-            name: str = tool["name"]
-            path: str = tool["path"]
-
-            # for openai_agent_sdk tools
-            if tool_id in BUILT_IN_TOOLS:
-                tool_registry[tool_id] = {"name": name, "agent_sdk_tool": True}
-            else:
-                try:
-                    filepath: str = os.path.join("arklex.env.tools", path)
-                    module_name: str = filepath.replace(os.sep, ".").replace(".py", "")
-                    module = importlib.import_module(module_name)
-                    func: Callable = getattr(module, name)
-                    tool_instance: Tool = func()
-                    # update fixed args from tools config
-                    tool_instance.fixed_args.update(tool.get("fixed_args", {}))
-                    tool_instance.auth.update(tool.get("auth", {}))
-                    if "http_tool" in tool_id and len(attributes_list) > 0:
-                        attributes = attributes_list[idx]
-                        node_specific_data = attributes.get("node_specific_data", {})
+            try:
+                if tool_id == ToolItem.HTTP_TOOL:
+                    http_tool_collection = {}
+                    for node in nodes:
+                        node_info = node[1]
+                        node_data = node_info.get("data", {})
+                        if (
+                            node_info.get("resource", {}).get("id") != tool_id
+                            or not node_data
+                        ):
+                            continue
+                        # Create a new tool instance for each node to avoid sharing state
+                        base_tool: Tool = RESOURCE_MAP[tool_id]["item_cls"]
+                        tool_instance: Tool = Tool(
+                            func=base_tool.func,
+                            name=base_tool.name,
+                            description=base_tool.description,
+                            slots=[],
+                        )
+                        tool_instance.auth.update(tool.get("auth", {}))
+                        tool_instance.node_specific_data = node_data
                         # --- Begin slot group merge logic ---
-                        slots = attributes.get("slots", [])
-                        slot_groups = attributes.get("slot_groups", [])
+                        slots = node_data.get("slots", [])
+                        slot_groups = node_data.get("slot_groups", [])
                         group_slots = []
                         for group in slot_groups:
                             # Generate prompt/description for the group
@@ -141,33 +136,24 @@ class DefaultResourceInitializer(BaseResourceInitializer):
                                     "description": description,
                                 }
                             )
-                            all_slots = slots + group_slots
-                            tool_instance.load_slots(all_slots)
-                            tool_instance.fixed_args.update(
-                                node_specific_data.get("http", {})
-                            )
-                            tool_instance.description = attributes.get("task", "")
-                            tool_instance.name = node_specific_data.get(
-                                "name",
-                                attributes.get("task", "").replace(" ", "_").lower(),
-                            )
                         all_slots = slots + group_slots
                         tool_instance.load_slots(all_slots)
-                        tool_instance.fixed_args.update(
-                            node_specific_data.get("http", {})
-                        )
-                        tool_instance.description = attributes.get("task", "")
-                        tool_instance.name = tool_id
-                        tool_id = tool_instance.name
+                        tool_instance.name = node_data.get("name", "")
+                        tool_instance.description = node_data.get("task", "")
+                        http_tool_collection[tool_instance.name] = {
+                            "tool_instance": tool_instance,
+                        }
+                    tool_registry[tool_id] = http_tool_collection
+                else:
+                    tool_instance: Tool = RESOURCE_MAP[tool_id]["item_cls"]
+                    tool_instance.auth.update(tool.get("auth", {}))
+                    tool_instance.node_specific_data = {}
                     tool_registry[tool_id] = {
-                        "name": f"{path.replace('/', '-')}-{name}",
-                        "description": tool_instance.description,
                         "tool_instance": tool_instance,
-                        "execute": func,
-                        "fixed_args": tool_instance.fixed_args,
                     }
-                except Exception as e:
-                    log_context.error(f"Tool {name} is not registered, error: {e}")
+            except Exception as e:
+                log_context.exception(e)
+                log_context.error(f"Tool {tool_id} is not registered, error: {e}")
 
         return tool_registry
 
@@ -184,20 +170,12 @@ class DefaultResourceInitializer(BaseResourceInitializer):
         worker_registry: dict[str, dict[str, Any]] = {}
         for worker in workers:
             worker_id: str = worker["id"]
-            name: str = worker["name"]
-            path: str = worker["path"]
             try:
-                filepath: str = os.path.join("arklex.env.workers", path)
-                module_name: str = filepath.replace(os.sep, ".").rstrip(".py")
-                module = importlib.import_module(module_name)
-                func: Callable = getattr(module, name)
                 worker_registry[worker_id] = {
-                    "name": name,
-                    "description": func.description,
-                    "execute": partial(func, **worker.get("fixed_args", {})),
+                    "item_cls": RESOURCE_MAP[worker["id"]]["item_cls"],
                 }
             except Exception as e:
-                log_context.error(f"Worker {name} is not registered, error: {e}")
+                log_context.error(f"Worker {worker_id} is not registered, error: {e}")
         return worker_registry
 
     @staticmethod
@@ -213,93 +191,16 @@ class DefaultResourceInitializer(BaseResourceInitializer):
         agent_registry: dict[str, dict[str, Any]] = {}
         for agent in agents:
             agent_id: str = agent["id"]
-            name: str = agent["name"]
-            path: str | None = agent.get("path")
-
             try:
-                if path:
-                    filepath: str = os.path.join("arklex.env.agents", path)
-                    module_name: str = filepath.replace(os.sep, ".").rstrip(".py")
-                    module = importlib.import_module(module_name)
-                    func: Callable = getattr(module, name)
-                    agent_registry[agent_id] = {
-                        "name": name,
-                        "description": func.description,
-                        "execute": partial(func, **agent.get("fixed_args", {})),
-                    }
-                # for sub agents in multi-agent system
-                elif agent_id == "openai_sdk_agent":
-                    agent_registry[agent_id] = {
-                        "name": name,
-                        "description": "sub_agent",
-                        "config": {},
-                    }
-                else:
-                    log_context.error(
-                        f"Agent {name} is not registered, error: no path specified and is not openai_sdk_agent resource"
-                    )
-                    continue
-
+                agent_instance: BaseAgent = RESOURCE_MAP[agent_id]["item_cls"]
+                agent_registry[agent_id] = {
+                    "agent_instance": agent_instance,
+                }
             except Exception as e:
-                log_context.error(f"Agent {name} is not registered, error: {e}")
+                log_context.error(f"Agent {agent_id} is not registered, error: {e}")
                 continue
 
         return agent_registry
-
-
-class ModelAwareResourceInitializer(DefaultResourceInitializer):
-    """Resource initializer that passes model configuration to workers.
-
-    This class extends DefaultResourceInitializer to pass model configuration
-    to workers that require it, ensuring proper model initialization.
-    """
-
-    def __init__(self, model_config: dict[str, Any] | None = None) -> None:
-        """Initialize the model-aware resource initializer.
-
-        Args:
-            model_config: Model configuration to pass to workers
-        """
-        self.model_config = model_config
-
-    def init_workers(self, workers: list[dict[str, Any]]) -> dict[str, dict[str, Any]]:
-        """Initialize workers from configuration with model configuration.
-
-        Args:
-            workers: list of worker configurations
-
-        Returns:
-            dictionary mapping worker IDs to their configurations
-        """
-        worker_registry: dict[str, dict[str, Any]] = {}
-        for worker in workers:
-            worker_id: str = worker["id"]
-            name: str = worker["name"]
-            path: str = worker["path"]
-            try:
-                filepath: str = os.path.join("arklex.env.workers", path)
-                module_name: str = filepath.replace(os.sep, ".").rstrip(".py")
-                module = importlib.import_module(module_name)
-                func: Callable = getattr(module, name)
-
-                # Add model_config to fixed_args if the worker accepts it
-                fixed_args = worker.get("fixed_args", {})
-                if self.model_config and hasattr(func, "__init__"):
-                    # Check if the worker's __init__ method accepts model_config
-                    import inspect
-
-                    sig = inspect.signature(func.__init__)
-                    if "model_config" in sig.parameters:
-                        fixed_args["model_config"] = self.model_config
-
-                worker_registry[worker_id] = {
-                    "name": name,
-                    "description": func.description,
-                    "execute": partial(func, **fixed_args),
-                }
-            except Exception as e:
-                log_context.error(f"Worker {name} is not registered, error: {e}")
-        return worker_registry
 
 
 class Environment:
@@ -314,9 +215,9 @@ class Environment:
         tools: list[dict[str, Any]],
         workers: list[dict[str, Any]],
         agents: list[dict[str, Any]],
+        nodes: list[dict[str, Any]],
         slotsfillapi: str = "",
         resource_initializer: BaseResourceInitializer | None = None,
-        planner_enabled: bool = False,
         model_service: ModelService | None = None,
         **kwargs: str | int | float | bool | None,
     ) -> None:
@@ -333,19 +234,9 @@ class Environment:
         # Accept slot_fill_api as an alias for slotsfillapi for compatibility with tests
         if "slot_fill_api" in kwargs and not slotsfillapi:
             slotsfillapi = kwargs["slot_fill_api"]
-
-        # Use ModelAwareResourceInitializer if model_service is provided
-        if resource_initializer is None:
-            if model_service and hasattr(model_service, "model_config"):
-                resource_initializer = ModelAwareResourceInitializer(
-                    model_config=model_service.model_config
-                )
-            else:
-                resource_initializer = DefaultResourceInitializer()
-
-        attributes_list = kwargs.get("attributes", [])
+        resource_initializer = DefaultResourceInitializer()
         self.tools: dict[str, dict[str, Any]] = resource_initializer.init_tools(
-            tools, attributes_list=attributes_list
+            tools, nodes
         )
         self.workers: dict[str, dict[str, Any]] = resource_initializer.init_workers(
             workers
@@ -353,14 +244,6 @@ class Environment:
         self.agents: dict[str, dict[str, Any]] = resource_initializer.init_agents(
             agents
         )
-        self.name2id: dict[str, str] = {
-            resource["name"]: id
-            for id, resource in {**self.tools, **self.workers, **self.agents}.items()
-        }
-        self.id2name: dict[str, str] = {
-            id: resource["name"]
-            for id, resource in {**self.tools, **self.workers, **self.agents}.items()
-        }
         self.model_service = model_service or DummyModelService(
             {
                 "model_name": "dummy",
@@ -371,14 +254,6 @@ class Environment:
             }
         )
         self.slotfillapi: SlotFiller = self.initialize_slotfillapi(slotsfillapi)
-        if planner_enabled:
-            self.planner: ReactPlanner | DefaultPlanner = ReactPlanner(
-                tools_map=self.tools, workers_map=self.workers, name2id=self.name2id
-            )
-        else:
-            self.planner: ReactPlanner | DefaultPlanner = DefaultPlanner(
-                tools_map=self.tools, workers_map=self.workers, name2id=self.name2id
-            )
 
     def initialize_slotfillapi(self, slotsfillapi: str) -> SlotFiller:
         """Initialize the slot filling API.
@@ -399,10 +274,10 @@ class Environment:
     def step(
         self,
         id: str,
-        message_state: MessageState,
-        params: OrchestratorParams,
+        orch_state: OrchestratorState,
         node_info: NodeInfo,
-    ) -> tuple[MessageState, OrchestratorParams]:
+        dialog_states: dict[str, list[Slot]],
+    ) -> tuple[OrchestratorState, NodeResponse]:
         """Execute a step in the environment.
 
         Args:
@@ -414,120 +289,131 @@ class Environment:
         Returns:
             Tuple containing updated message state and parameters
         """
-        response_state: MessageState
+        node_response: NodeResponse
         if id in self.tools:
-            log_context.info(f"{self.tools[id]['name']} tool selected")
-            tool: Tool = self.tools[id]["tool_instance"]
+            if id == ToolItem.HTTP_TOOL:
+                log_context.info(f"HTTP tool {node_info.data.get('name', '')} selected")
+                tool: Tool = self.tools[id][node_info.data.get("name", "")][
+                    "tool_instance"
+                ]
+            else:
+                log_context.info(f"{id} tool selected")
+                tool: Tool = self.tools[id]["tool_instance"]
             tool.init_slotfiller(self.slotfillapi)
-            combined_args: dict[str, Any] = {
-                **self.tools[id]["fixed_args"],
-                **tool.auth,
-                **(node_info.additional_args or {}),
-            }
-            response_state = tool.execute(message_state, **combined_args)
-            params.memory.function_calling_trajectory = (
-                response_state.function_calling_trajectory
+            response_state, tool_output = tool.execute(
+                orch_state, all_slots=dialog_states, auth=tool.auth
             )
-            params.taskgraph.dialog_states = response_state.slots
-            params.taskgraph.node_status[params.taskgraph.curr_node] = (
-                response_state.status
-            )
+            response_state.message_flow = tool_output.message_flow
+            if id == ToolItem.SHOPIFY_SEARCH_PRODUCTS:
+                node_response = NodeResponse(
+                    status=tool_output.status,
+                    response=tool_output.response,
+                    slots=tool_output.slots,
+                )
+            else:
+                node_response = NodeResponse(
+                    status=tool_output.status,
+                    slots=tool_output.slots,
+                )
 
         elif id in self.workers:
-            log_context.info(f"{self.workers[id]['name']} worker selected")
-            worker: BaseWorker = self.workers[id]["execute"]()
-            if hasattr(worker, "init_slotfilling"):
-                worker.init_slotfilling(self.slotfillapi)
-            response_state = worker.execute(
-                message_state, **(node_info.additional_args or {})
+            log_context.info(f"{id} worker selected")
+            worker: BaseWorker = self.workers[id]["item_cls"]()
+            orch_state, worker_output = worker.execute(
+                orch_state, node_specific_data=node_info.data
             )
+            content = ""
+            if id == WorkerItem.MULTIPLE_CHOICE_WORKER:
+                node_response = NodeResponse(
+                    status=worker_output.status,
+                    response=worker_output.response,
+                    choice_list=worker_output.choice_list,
+                )
+                content = (
+                    worker_output.response + "\n" + "\n".join(worker_output.choice_list)
+                )
+            elif id == WorkerItem.HUMAN_IN_THE_LOOP_WORKER:
+                node_response = NodeResponse(
+                    status=worker_output.status,
+                )
+                content = orch_state.message_flow
+            else:
+                node_response = NodeResponse(
+                    status=worker_output.status,
+                    response=worker_output.response,
+                )
+                content = worker_output.response
             call_id: str = str(uuid.uuid4())
-            params.memory.function_calling_trajectory.append(
+            orch_state.function_calling_trajectory.append(
                 {
-                    'type': 'function_call',
-                    'id': "fc_" + call_id, 
-                    'call_id': "call_" + call_id,
-                    'name': self.id2name[id],
-                    'arguments': "{}"
+                    "type": "function_call",
+                    "id": "fc_" + call_id,
+                    "call_id": "call_" + call_id,
+                    "name": id,
+                    "arguments": "{}",
                 }
             )
-            params.memory.function_calling_trajectory.append(
+            orch_state.function_calling_trajectory.append(
                 {
                     "type": "function_call_output",
                     "call_id": "call_" + call_id,
-                    "output": response_state.response
-                    if response_state.response
-                    else response_state.message_flow,
+                    "output": content,
                 }
-            )
-            params.taskgraph.node_status[params.taskgraph.curr_node] = (
-                response_state.status
             )
 
         elif id in self.agents:
-            log_context.info(f"{self.agents[id]['name']} agent selected")
-            agent_config = self.agents[id].get("config", {})
-            successors = node_info.additional_args.get("successors", [])
-            # Resolve sub-agents if needed
-            if not agent_config and id == "multi_agent":
-                agent_config = node_info.attributes.copy()
-                agent_config["sub_agents"] = self.resolve_sub_agents(successors)
-                self.agents[id]["config"] = agent_config
-
-            agent: BaseAgent = self.agents[id]["execute"](
-                successors=node_info.additional_args.get("successors", []),
-                predecessors=node_info.additional_args.get("predecessors", []),
+            log_context.info(f"{self.agents[id]} agent selected")
+            agent: BaseAgent = self.agents[id]["agent_instance"](
+                successors=node_info.successors,
+                predecessors=node_info.predecessors,
                 tools=self.tools,
-                state=message_state,
-                **({"multi_agent_config": agent_config} if agent_config else {}),
+            )
+            orch_state, agent_output = agent.execute(
+                orch_state,
+                node_specific_data=node_info.data,
+                # log_context.info(f"{self.agents[id]['name']} agent selected")
+                # agent_config = self.agents[id].get("config", {})
+                # successors = node_info.additional_args.get("successors", [])
+                # # Resolve sub-agents if needed
+                # if not agent_config and id == "multi_agent":
+                #     agent_config = node_info.attributes.copy()
+                #     agent_config["sub_agents"] = self.resolve_sub_agents(successors)
+                #     self.agents[id]["config"] = agent_config
+                # agent: BaseAgent = self.agents[id]["execute"](
+                #     successors=node_info.additional_args.get("successors", []),
+                #     predecessors=node_info.additional_args.get("predecessors", []),
+                #     tools=self.tools,
+                #     state=message_state,
+                #     **({"multi_agent_config": agent_config} if agent_config else {}),
+                # )
+                # if agent.is_async():
+                #     response_state = asyncio.run(
+                #         agent.async_execute(message_state, **node_info.additional_args)
+                #     )
+                # else:
+                #     response_state = agent.execute(
+                #         message_state, **node_info.additional_args
+                #     )
+                # call_id: str = str(uuid.uuid4())
+                # params.memory.function_calling_trajectory = (
+                #     response_state.function_calling_trajectory
+            )
+            node_response = NodeResponse(
+                status=agent_output.status,
+                response=agent_output.response,
             )
 
-            if agent.is_async():
-                response_state = asyncio.run(
-                    agent.async_execute(message_state, **node_info.additional_args)
-                )
-            else:
-                response_state = agent.execute(
-                    message_state, **node_info.additional_args
-                )
-            call_id: str = str(uuid.uuid4())
-            params.memory.function_calling_trajectory = (
-                response_state.function_calling_trajectory
-            )
-            params.taskgraph.dialog_states = response_state.slots
-            params.taskgraph.node_status[params.taskgraph.curr_node] = (
-                response_state.status
-            )
         else:
             # Resource not found in any registry, use planner as fallback
             log_context.info(
-                f"Resource {id} not found in registries, using planner as fallback"
+                f"Resource {id} not found in registries, return orch_state directly"
             )
-            action: str
-            response_state: MessageState
-            msg_history: list[dict[str, Any]]
-            action, response_state, msg_history = self.planner.execute(
-                message_state, params.memory.function_calling_trajectory
+            node_response = NodeResponse(
+                status=StatusEnum.COMPLETE,
             )
 
-        log_context.info(f"Response state from {id}: {response_state}")
-        return response_state, params
-
-    def register_tool(self, name: str, tool: Tool) -> None:
-        """Register a tool in the environment.
-
-        Args:
-            name: Name of the tool
-            tool: Tool instance
-
-        Raises:
-            EnvironmentError: If tool registration fails
-        """
-        try:
-            self.tools[name] = tool
-            log_context.info(f"{self.tools[name]['name']} tool selected")
-        except Exception as e:
-            log_context.error(f"Tool {name} is not registered, error: {e}")
+        log_context.info(f"Response state from {id}: {orch_state}")
+        return orch_state, node_response
 
     def resolve_sub_agents(self, successors: list[NodeInfo]) -> list[dict[str, Any]]:
         resolved = []

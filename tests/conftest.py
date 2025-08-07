@@ -20,6 +20,40 @@ from arklex.utils.logging_config import setup_logging
 if os.getenv("ARKLEX_TEST_ENV") == "local":
     sys.modules["arklex.utils.mysql"] = MagicMock()
 
+# Mock Google API client modules BEFORE other imports to prevent dependency issues
+# This prevents import failures when googleapiclient is not installed
+sys.modules["googleapiclient"] = MagicMock()
+sys.modules["googleapiclient.discovery"] = MagicMock()
+sys.modules["google.auth"] = MagicMock()
+sys.modules["google.auth.transport.requests"] = MagicMock()
+sys.modules["google_auth_oauthlib.flow"] = MagicMock()
+
+# Mock HubSpot module BEFORE other imports to prevent dependency issues
+# This prevents import failures when hubspot package is not installed
+hubspot_mock = MagicMock()
+sys.modules["hubspot"] = hubspot_mock
+sys.modules["hubspot.crm"] = MagicMock()
+sys.modules["hubspot.crm.objects"] = MagicMock()
+sys.modules["hubspot.crm.objects.meetings"] = MagicMock()
+sys.modules["hubspot.crm.objects.emails"] = MagicMock()
+sys.modules["hubspot.crm.objects.communications"] = MagicMock()
+sys.modules["hubspot.crm.objects.communications.models"] = MagicMock()
+sys.modules["hubspot.crm.contacts"] = MagicMock()
+sys.modules["hubspot.crm.deals"] = MagicMock()
+sys.modules["hubspot.crm.tickets"] = MagicMock()
+sys.modules["hubspot.crm.tickets.models"] = MagicMock()
+sys.modules["hubspot.crm.associations"] = MagicMock()
+sys.modules["hubspot.crm.associations.v4"] = MagicMock()
+
+# Mock other potential third-party dependencies
+sys.modules["shopify"] = MagicMock()
+sys.modules["twilio"] = MagicMock()
+sys.modules["twilio.rest"] = MagicMock()
+sys.modules["parsedatetime"] = MagicMock()
+sys.modules["pymilvus"] = MagicMock()
+sys.modules["faiss"] = MagicMock()
+sys.modules["acuityscheduling"] = MagicMock()
+
 # Set up common environment variables for local testing
 if os.getenv("ARKLEX_TEST_ENV") == "local":
     os.environ.setdefault("MYSQL_USERNAME", "test_user")

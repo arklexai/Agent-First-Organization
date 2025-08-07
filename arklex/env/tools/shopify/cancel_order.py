@@ -9,12 +9,15 @@ This file contains the code for cancelling orders using the Shopify Admin API.
 
 import inspect
 import json
-from typing import TypedDict
 
 import shopify
+from pydantic import BaseModel
 
-from arklex.env.tools.shopify.utils import authorify_admin
-from arklex.env.tools.shopify.utils_slots import ShopifyCancelOrderSlots, ShopifyOutputs
+from arklex.env.tools.shopify.base.entities import ShopifyAdminAuth
+from arklex.env.tools.shopify.utils.utils import authorify_admin
+from arklex.env.tools.shopify.utils.utils_slots import (
+    ShopifyCancelOrderSlots,
+)
 from arklex.env.tools.tools import register_tool
 from arklex.utils.exceptions import ShopifyError, ToolExecutionError
 from arklex.utils.logging_utils import LogContext
@@ -22,29 +25,27 @@ from arklex.utils.logging_utils import LogContext
 log_context = LogContext(__name__)
 
 
-class CancelOrderParams(TypedDict, total=False):
-    """Parameters for the cancel order tool."""
-
-    shop_url: str
-    access_token: str
+class CancelOrderOutput(BaseModel):
+    message_flow: str
 
 
-description = "Cancel order by order id."
-slots = ShopifyCancelOrderSlots.get_all_slots()
-outputs = [ShopifyOutputs.CANECEL_REQUEST_DETAILS]
-
-
-@register_tool(description, slots, outputs)
-def cancel_order(cancel_order_id: str, **kwargs: CancelOrderParams) -> dict[str, str]:
+@register_tool(
+    description="Cancel order by order id.",
+    slots=ShopifyCancelOrderSlots.get_all_slots(),
+)
+def cancel_order(
+    cancel_order_id: str, auth: ShopifyAdminAuth, **kwargs: object
+) -> CancelOrderOutput:
     """
     Cancel an order in the Shopify store.
 
     Args:
         cancel_order_id (str): The ID of the order to cancel.
-        **kwargs (CancelOrderParams): Additional keyword arguments for authentication.
+        auth (ShopifyAdminAuth): Authentication credentials for the Shopify store.
+        **kwargs: Additional keyword arguments for llm configuration.
 
     Returns:
-        Dict[str, str]: A dictionary containing the cancellation result.
+        CancelOrderOutput: A dictionary containing the cancellation result.
 
     Raises:
         ShopifyError: If cancellation fails
@@ -52,7 +53,7 @@ def cancel_order(cancel_order_id: str, **kwargs: CancelOrderParams) -> dict[str,
     try:
         log_context.info(f"Starting order cancellation for order: {cancel_order_id}")
         func_name = inspect.currentframe().f_code.co_name
-        auth = authorify_admin(kwargs)
+        auth = authorify_admin(auth)
 
         with shopify.Session.temp(**auth):
             response = shopify.GraphQL().execute(f"""
@@ -83,7 +84,10 @@ def cancel_order(cancel_order_id: str, **kwargs: CancelOrderParams) -> dict[str,
                 log_context.info(
                     f"Order cancellation completed for order: {cancel_order_id}"
                 )
-                return "The order is successfully cancelled. " + json.dumps(response)
+                return CancelOrderOutput(
+                    message_flow="The order is successfully cancelled. "
+                    + json.dumps(response),
+                )
             else:
                 raise ToolExecutionError(
                     func_name, json.dumps(order_cancel_response["userErrors"])

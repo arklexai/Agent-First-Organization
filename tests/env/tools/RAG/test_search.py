@@ -15,12 +15,12 @@ from arklex.env.tools.RAG.search import (
     SearchEngine,
     TavilySearchExecutor,
 )
-from arklex.orchestrator.entities.msg_state_entities import (
+from arklex.orchestrator.entities.orchestrator_state_entities import (
     BotConfig,
     ConvoMessage,
-    LLMConfig,
-    MessageState,
+    OrchestratorState,
 )
+from arklex.types.model_types import LLMConfig
 from arklex.utils.exceptions import SearchError
 
 
@@ -43,9 +43,9 @@ def mock_bot_config() -> BotConfig:
 
 
 @pytest.fixture
-def mock_message_state(mock_bot_config: BotConfig) -> MessageState:
+def mock_message_state(mock_bot_config: BotConfig) -> OrchestratorState:
     """Create a mock message state."""
-    return MessageState(
+    return OrchestratorState(
         sys_instruct="You are a helpful assistant.",
         bot_config=mock_bot_config,
         user_message=ConvoMessage(
@@ -111,7 +111,7 @@ class TestSearchEngine:
     """Test the SearchEngine class."""
 
     def test_search_engine_search_method(
-        self, mock_message_state: MessageState
+        self, mock_message_state: OrchestratorState
     ) -> None:
         """Test SearchEngine.search method."""
         with patch(
@@ -121,17 +121,22 @@ class TestSearchEngine:
             mock_executor.search.return_value = "Search results text"
             mock_executor_class.return_value = mock_executor
 
-            result = SearchEngine.search(mock_message_state)
+            result = SearchEngine.search(
+                "test chat history", mock_message_state.bot_config
+            )
 
             # Verify TavilySearchExecutor was instantiated
-            mock_executor_class.assert_called_once()
+            mock_executor_class.assert_called_once_with(
+                mock_message_state.bot_config.llm_config
+            )
 
-            # Verify search method was called with the state
-            mock_executor.search.assert_called_once_with(mock_message_state)
+            # Verify search method was called with the correct parameters
+            mock_executor.search.assert_called_once_with(
+                "test chat history", mock_message_state.bot_config
+            )
 
-            # Verify the message_flow was updated
-            assert result.message_flow == "Search results text"
-            assert result == mock_message_state
+            # Verify the result
+            assert result == "Search results text"
 
 
 class TestTavilySearchExecutor:
@@ -285,7 +290,7 @@ class TestTavilySearchExecutor:
 
     def test_search_method(
         self,
-        mock_message_state: MessageState,
+        mock_message_state: OrchestratorState,
         mock_search_results: list[dict[str, str]],
     ) -> None:
         """Test search method."""
@@ -334,7 +339,7 @@ class TestTavilySearchExecutor:
                 LLMConfig(model_type_or_path="gpt-3.5-turbo", llm_provider="openai")
             )
 
-            result = executor.search(mock_message_state)
+            result = executor.search("test chat history", mock_message_state.bot_config)
 
             # Verify prompts were loaded
             mock_load_prompts.assert_called_once_with(mock_message_state.bot_config)
@@ -346,7 +351,7 @@ class TestTavilySearchExecutor:
 
             # Verify chain was invoked with chat history
             mock_chain.invoke.assert_called_once_with(
-                {"chat_history": mock_message_state.user_message.history}
+                {"chat_history": "test chat history"}
             )
 
             # Verify log message
@@ -521,7 +526,7 @@ class TestSearchIntegration:
     """Integration tests for the search functionality."""
 
     @pytest.mark.integration
-    def test_full_search_flow(self, mock_message_state: MessageState) -> None:
+    def test_full_search_flow(self, mock_message_state: OrchestratorState) -> None:
         """Test the complete search flow from SearchEngine to TavilySearchExecutor."""
         with (
             patch(
@@ -552,12 +557,18 @@ class TestSearchIntegration:
             mock_prompt_instance.__or__().__or__ = Mock(return_value=mock_chain)
 
             # Execute search
-            result = SearchEngine.search(mock_message_state)
+            result = SearchEngine.search(
+                "test chat history", mock_message_state.bot_config
+            )
 
             # Verify the complete flow
-            mock_executor_class.assert_called_once()
-            mock_executor.search.assert_called_once_with(mock_message_state)
-            assert result.message_flow == "Processed search results"
+            mock_executor_class.assert_called_once_with(
+                mock_message_state.bot_config.llm_config
+            )
+            mock_executor.search.assert_called_once_with(
+                "test chat history", mock_message_state.bot_config
+            )
+            assert result == "Processed search results"
 
     def test_search_with_different_languages(self) -> None:
         """Test search functionality with different language configurations."""
@@ -572,7 +583,7 @@ class TestSearchIntegration:
             ),
         )
 
-        en_state = MessageState(
+        en_state = OrchestratorState(
             sys_instruct="You are a helpful assistant.",
             bot_config=en_config,
             user_message=ConvoMessage(
@@ -591,7 +602,7 @@ class TestSearchIntegration:
             ),
         )
 
-        cn_state = MessageState(
+        cn_state = OrchestratorState(
             sys_instruct="You are a helpful assistant.",
             bot_config=cn_config,
             user_message=ConvoMessage(

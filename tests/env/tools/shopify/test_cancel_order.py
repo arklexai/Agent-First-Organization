@@ -19,9 +19,8 @@ class TestCancelOrder:
 
     def get_original_function(self) -> callable:
         """Get the original function from the decorated function."""
-        # Create a Tool instance and access the original function
-        tool_instance = cancel_order()
-        return tool_instance.func
+        # Access the original function from the Tool instance
+        return cancel_order.func
 
     def teardown_method(self) -> None:
         """Clean up test environment."""
@@ -46,13 +45,15 @@ class TestCancelOrder:
         # Execute function
         result = self.get_original_function()(
             cancel_order_id="gid://shopify/Order/12345",
-            shop_url="https://test-shop.myshopify.com",
-            admin_token="test_admin_token",
-            api_version="2024-10",
+            auth={
+                "shop_url": "https://test-shop.myshopify.com",
+                "admin_token": "test_admin_token",
+                "api_version": "2024-10",
+            },
         )
 
         # Verify result
-        assert "successfully cancelled" in result
+        assert "successfully cancelled" in result.message_flow
 
         # Verify GraphQL query was called with correct parameters
         mock_graphql_instance.execute.assert_called_once()
@@ -89,9 +90,11 @@ class TestCancelOrder:
         with pytest.raises(ShopifyError) as exc_info:
             self.get_original_function()(
                 cancel_order_id="gid://shopify/Order/99999",
-                shop_url="https://test-shop.myshopify.com",
-                admin_token="test_admin_token",
-                api_version="2024-10",
+                auth={
+                    "shop_url": "https://test-shop.myshopify.com",
+                    "admin_token": "test_admin_token",
+                    "api_version": "2024-10",
+                },
             )
 
         assert "Order cancellation failed" in str(exc_info.value)
@@ -114,9 +117,11 @@ class TestCancelOrder:
         with pytest.raises(ShopifyError) as exc_info:
             self.get_original_function()(
                 cancel_order_id="gid://shopify/Order/12345",
-                shop_url="https://test-shop.myshopify.com",
-                admin_token="test_admin_token",
-                api_version="2024-10",
+                auth={
+                    "shop_url": "https://test-shop.myshopify.com",
+                    "admin_token": "test_admin_token",
+                    "api_version": "2024-10",
+                },
             )
 
         assert "Order cancellation failed" in str(exc_info.value)
@@ -139,9 +144,11 @@ class TestCancelOrder:
         with pytest.raises(ShopifyError) as exc_info:
             self.get_original_function()(
                 cancel_order_id="gid://shopify/Order/12345",
-                shop_url="https://test-shop.myshopify.com",
-                admin_token="test_admin_token",
-                api_version="2024-10",
+                auth={
+                    "shop_url": "https://test-shop.myshopify.com",
+                    "admin_token": "test_admin_token",
+                    "api_version": "2024-10",
+                },
             )
 
         assert "Order cancellation failed" in str(exc_info.value)
@@ -165,9 +172,11 @@ class TestCancelOrder:
         with pytest.raises(ShopifyError) as exc_info:
             self.get_original_function()(
                 cancel_order_id="gid://shopify/Order/12345",
-                shop_url="https://test-shop.myshopify.com",
-                admin_token="test_admin_token",
-                api_version="2024-10",
+                auth={
+                    "shop_url": "https://test-shop.myshopify.com",
+                    "admin_token": "test_admin_token",
+                    "api_version": "2024-10",
+                },
             )
 
         assert "Order cancellation failed" in str(exc_info.value)
@@ -191,9 +200,11 @@ class TestCancelOrder:
         with pytest.raises(ShopifyError) as exc_info:
             self.get_original_function()(
                 cancel_order_id="gid://shopify/Order/12345",
-                shop_url="https://test-shop.myshopify.com",
-                admin_token="test_admin_token",
-                api_version="2024-10",
+                auth={
+                    "shop_url": "https://test-shop.myshopify.com",
+                    "admin_token": "test_admin_token",
+                    "api_version": "2024-10",
+                },
             )
 
         assert "Order cancellation failed" in str(exc_info.value)
@@ -211,9 +222,11 @@ class TestCancelOrder:
         with pytest.raises(ShopifyError) as exc_info:
             self.get_original_function()(
                 cancel_order_id="gid://shopify/Order/12345",
-                shop_url="https://test-shop.myshopify.com",
-                admin_token="test_admin_token",
-                api_version="2024-10",
+                auth={
+                    "shop_url": "https://test-shop.myshopify.com",
+                    "admin_token": "test_admin_token",
+                    "api_version": "2024-10",
+                },
             )
 
         assert "Order cancellation failed" in str(exc_info.value)
@@ -236,13 +249,15 @@ class TestCancelOrder:
         # Execute function
         result = self.get_original_function()(
             cancel_order_id="gid://shopify/Order/12345",
-            shop_url="https://test-shop.myshopify.com",
-            admin_token="test_admin_token",
-            api_version="2024-10",
+            auth={
+                "shop_url": "https://test-shop.myshopify.com",
+                "admin_token": "test_admin_token",
+                "api_version": "2024-10",
+            },
         )
 
         # Verify result
-        assert "successfully cancelled" in result
+        assert "successfully cancelled" in result.message_flow
 
     @patch("arklex.env.tools.shopify.cancel_order.shopify.Session.temp")
     @patch("arklex.env.tools.shopify.cancel_order.shopify.GraphQL")
@@ -262,13 +277,15 @@ class TestCancelOrder:
         # Execute function
         result = self.get_original_function()(
             cancel_order_id="gid://shopify/Order/12345",
-            shop_url="https://test-shop.myshopify.com",
-            admin_token="test_admin_token",
-            api_version="2024-10",
+            auth={
+                "shop_url": "https://test-shop.myshopify.com",
+                "admin_token": "test_admin_token",
+                "api_version": "2024-10",
+            },
         )
 
         # Verify result
-        assert "successfully cancelled" in result
+        assert "successfully cancelled" in result.message_flow
 
     @patch("arklex.env.tools.shopify.cancel_order.shopify.Session.temp")
     @patch("arklex.env.tools.shopify.cancel_order.shopify.GraphQL")
@@ -288,21 +305,22 @@ class TestCancelOrder:
         # Execute function
         result = self.get_original_function()(
             cancel_order_id="gid://shopify/Order/12345",
-            shop_url="https://test-shop.myshopify.com",
-            admin_token="test_admin_token",
-            api_version="2024-10",
+            auth={
+                "shop_url": "https://test-shop.myshopify.com",
+                "admin_token": "test_admin_token",
+                "api_version": "2024-10",
+            },
         )
 
         # Verify result
-        assert "successfully cancelled" in result
+        assert "successfully cancelled" in result.message_flow
 
     def test_cancel_order_function_registration(self) -> None:
         """Test that the cancel_order function is properly registered as a tool."""
         # Verify the function is callable
-        assert callable(cancel_order)
 
         # Verify the function returns a Tool instance when called
-        tool_instance = cancel_order()
+        tool_instance = cancel_order
         from arklex.env.tools.tools import Tool
 
         assert isinstance(tool_instance, Tool)
@@ -310,7 +328,6 @@ class TestCancelOrder:
         # Verify the tool has the expected attributes
         assert hasattr(tool_instance, "description")
         assert hasattr(tool_instance, "slots")
-        assert hasattr(tool_instance, "output")
 
         # Verify the description matches expected value
         assert "Cancel order by order id" in tool_instance.description

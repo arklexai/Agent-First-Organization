@@ -912,7 +912,7 @@ class ModelService:
             intents_choice += choice_str
             count = new_count
 
-        prompt = f"""Given the following intents and their definitions, determine the most appropriate intent for the user's input.
+        prompt = f"""Given the following intents and their definitions, determine the most appropriate intent for the user's last input.
 
 Intent Definitions:
 {definition_str}

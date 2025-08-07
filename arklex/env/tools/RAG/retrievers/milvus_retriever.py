@@ -31,8 +31,6 @@ from arklex.env.tools.RAG.retrievers.retriever_document import (
     embed,
     embed_retriever_document,
 )
-from arklex.env.tools.utils import trace
-from arklex.orchestrator.entities.msg_state_entities import MessageState
 from arklex.utils.logging_utils import LogContext
 from arklex.utils.mysql import mysql_pool
 from arklex.utils.provider_utils import validate_and_get_model_class
@@ -47,22 +45,14 @@ log_context = LogContext(__name__)
 class RetrieveEngine:
     @staticmethod
     def milvus_retrieve(
-        state: MessageState, tags: dict[str, object] | None = None
-    ) -> MessageState:
-        # get the input message
-        user_message = state.user_message
-
+        chat_history: str, bot_config: object, tags: dict[str, object] | None = None
+    ) -> tuple[str, dict[str, object]]:
         # Search for the relevant documents
-        milvus_retriever = MilvusRetrieverExecutor(state.bot_config)
+        milvus_retriever = MilvusRetrieverExecutor(bot_config)
         if tags is None:
             tags = {}
-        retrieved_text, retriever_params = milvus_retriever.retrieve(
-            user_message.history, tags
-        )
-
-        state.message_flow = retrieved_text
-        state = trace(input=retriever_params, state=state)
-        return state
+        retrieved_text, retriever_params = milvus_retriever.retrieve(chat_history, tags)
+        return retrieved_text, retriever_params
 
 
 class MilvusRetriever:

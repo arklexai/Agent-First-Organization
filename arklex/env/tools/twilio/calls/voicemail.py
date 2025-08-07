@@ -15,10 +15,6 @@ description = "Call this tool when you detect that you have reached the voicemai
 
 slots = []
 
-outputs = []
-
-errors = []
-
 
 class VoicemailKwargs(TypedDict, total=False):
     """Type definition for kwargs used in voicemail function."""
@@ -50,7 +46,7 @@ def _end_call_thread(
         log_context.error(f"Exception: {e}")
 
 
-@register_tool(description, slots, outputs, lambda x: x not in errors)
+@register_tool(description, slots)
 def voicemail(**kwargs: VoicemailKwargs) -> str:
     twilio_client = TwilioClient(kwargs.get("sid"), kwargs.get("auth_token"))
     call_sid = kwargs.get("call_sid")

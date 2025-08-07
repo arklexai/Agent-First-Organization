@@ -21,6 +21,8 @@ from arklex.env.tools.tools import register_tool
 from arklex.utils.exceptions import ToolExecutionError
 from arklex.utils.logging_utils import LogContext
 
+from .base.entities import HubspotAuth
+
 log_context = LogContext(__name__)
 
 description: str = "Schedule a meeting for the existing customer with the specific representative. If you are not sure any information, please ask users to confirm in response."
@@ -90,16 +92,9 @@ slots: list[dict[str, Any]] = [
         "required": True,
     },
 ]
-outputs: list[dict[str, Any]] = [
-    {
-        "name": "meeting_confirmation_info",
-        "type": "dict",
-        "description": "The detailed information about the meeting to let the customer confirm",
-    }
-]
 
 
-@register_tool(description, slots, outputs)
+@register_tool(description, slots)
 def create_meeting(
     cus_fname: str,
     cus_lname: str,
@@ -109,6 +104,7 @@ def create_meeting(
     duration: int,
     slug: str,
     time_zone: str,
+    auth: HubspotAuth,
     **kwargs: dict[str, Any],
 ) -> str:
     """
@@ -132,7 +128,7 @@ def create_meeting(
         ToolExecutionError: If meeting scheduling fails
     """
     func_name: str = inspect.currentframe().f_code.co_name
-    access_token: str = authenticate_hubspot(kwargs)
+    access_token: str = authenticate_hubspot(auth)
 
     parsed_meeting_date: datetime = parse_natural_date(
         meeting_date, timezone=time_zone, date_input=True
