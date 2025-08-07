@@ -18,7 +18,6 @@ from typing import Any
 
 from dotenv import load_dotenv
 
-from arklex.env.tools.database.build_database import build_database
 from arklex.env.tools.RAG.build_rag import build_rag
 from arklex.orchestrator.generator.generator import Generator
 from arklex.utils.loader import Loader
@@ -118,20 +117,6 @@ def init_worker(args: argparse.Namespace) -> None:
     if "FaissRAGWorker" in worker_names:
         log_context.info("Initializing FaissRAGWorker...")
         build_rag(args.output_dir, config["rag_docs"])
-
-    # Initialize DataBaseWorker and related workers if specified
-    elif any(
-        node in worker_names
-        for node in (
-            "DataBaseWorker",
-            "search_show",
-            "book_show",
-            "check_booking",
-            "cancel_booking",
-        )
-    ):
-        log_context.info("Initializing DataBaseWorker...")
-        build_database(args.output_dir)
 
 
 def load_documents(
@@ -402,12 +387,6 @@ def main() -> None:
         log_context.info("🔍 Building RAG system...")
         build_rag(os.path.dirname(args.config), config["rag_docs"])
         log_context.info("✅ RAG system built successfully")
-
-    # Build database if specified
-    if "database" in config:
-        log_context.info("🗄️ Building database...")
-        build_database(config["database"])
-        log_context.info("✅ Database built successfully")
 
     elapsed_time = time.time() - start_time
     log_context.info(
