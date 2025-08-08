@@ -263,6 +263,7 @@ class OpenAIAgent(BaseAgent):
             self.tool_map[tool_id] = tool_object.func
             combined_args: dict[str, Any] = {
                 **tool["fixed_args"],
+                **tool_object.auth,
                 **(node_info.additional_args or {}),
             }
             self.tool_args[tool_id] = combined_args
@@ -342,7 +343,10 @@ class OpenAIAgent(BaseAgent):
                             group_value = slot.get("value", "")
                         slot_list = build_slot_values(slot["schema"], group_value)
                         # Convert list of slot dicts to single object for non-repeatable groups
-                        slot_value = {slot_dict["name"]: slot_dict["value"] for slot_dict in slot_list}
+                        slot_value = {
+                            slot_dict["name"]: slot_dict["value"]
+                            for slot_dict in slot_list
+                        }
                 else:
                     if value_source == "fixed":
                         slot_value = slot.get("value", "")
