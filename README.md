@@ -132,7 +132,7 @@ graph TB
 | [Shopify Integration](./examples/shopify/README.md) | E-commerce management | ⭐⭐⭐ |
 | [HubSpot CRM](./examples/hubspot/README.md) | Contact management | ⭐⭐⭐ |
 | [Calendar Booking](./examples/calendar/) | Scheduling system | ⭐⭐ |
-| [Human-in-the-Loop](./examples/hitl_server/) | Interactive workflows | ⭐⭐⭐⭐ |
+| [Human-in-the-Loop](./examples/hitl_server/README.md) | Interactive workflows | ⭐⭐⭐⭐ |
 
 ---
 
