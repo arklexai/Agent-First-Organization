@@ -128,7 +128,7 @@ graph TB
 
 | **Example** | **Description** | **Complexity** |
 |-------------|-----------------|----------------|
-| [Customer Service](./examples/customer_service/) | RAG-powered support | ⭐⭐ |
+| [Customer Service](./examples/customer_service/README.md) | RAG-powered support | ⭐⭐ |
 | [Shopify Integration](./examples/shopify/) | E-commerce management | ⭐⭐⭐ |
 | [HubSpot CRM](./examples/hubspot/) | Contact management | ⭐⭐⭐ |
 | [Calendar Booking](./examples/calendar/) | Scheduling system | ⭐⭐ |
