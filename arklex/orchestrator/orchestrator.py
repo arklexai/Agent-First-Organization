@@ -84,7 +84,7 @@ from arklex.orchestrator.entities.taskgraph_entities import (
     PathNode,
 )
 from arklex.orchestrator.post_process import post_process_response
-from arklex.orchestrator.task_graph.task_graph import TaskGraph
+from arklex.orchestrator.task_graph.task_graph import TaskGraph, SubTaskGraphLogic, SubTaskGraphNLU
 from arklex.types.stream_types import StreamType
 from arklex.utils.logging_utils import LogContext
 from arklex.utils.model_config import MODEL
@@ -479,7 +479,31 @@ Answer with only 'yes' or 'no'"""
         max_n_node_performed = 5
         while n_node_performed < max_n_node_performed:
             taskgraph_start_time = time.time()
-            node_info, params = taskgraph_chain.invoke(taskgraph_inputs)
+
+            #--------------------------- route taskgraph - start -------------------------
+            # node_info, params = taskgraph_chain.invoke(taskgraph_inputs)  # 原本的
+            curr_node, params, node_info = self.task_graph.preprocess_node(taskgraph_inputs, params)
+            if node_info is not None:
+                pass
+            else:
+                if self.task_graph._is_logic_node(curr_node):
+                    # logic node →  logic subgraph
+                    logic_subgraph_config = self.task_graph.get_subgraph(curr_node)
+                    logic_graph = SubTaskGraphLogic("logic", logic_subgraph_config, curr_node)
+                    # note: curr_node has to be the start node in logic subgraph
+                    logic_target, params = logic_graph.get_node(taskgraph_inputs)
+                    node_info, params = self.task_graph._get_node(logic_target, params)
+
+                else:
+                    # NLU node
+                    nlu_graph = SubTaskGraphNLU("nlu", 
+                                                self.task_graph.product_kwargs, 
+                                                self.task_graph.llm_config,
+                                                model_service = self.env.model_service)
+                    node_info, params = nlu_graph._get_node_nlu_flow(taskgraph_inputs, curr_node, params) 
+            #--------------------------- route taskgraph - end ----------------------
+
+
             taskgraph_inputs["allow_global_intent_switch"] = False
             params.metadata.timing.taskgraph = time.time() - taskgraph_start_time
             # Check if current node can be skipped

@@ -32,7 +32,7 @@ from arklex.env.tools.RAG.retrievers.retriever_document import (
     embed_retriever_document,
 )
 from arklex.utils.logging_utils import LogContext
-from arklex.utils.mysql import mysql_pool
+#from arklex.utils.mysql import mysql_pool
 from arklex.utils.provider_utils import validate_and_get_model_class
 
 EMBED_DIMENSION = 1536

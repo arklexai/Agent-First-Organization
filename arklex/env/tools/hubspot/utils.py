@@ -14,7 +14,7 @@ from pydantic import BaseModel
 from arklex.env.tools.types import ResourceAuthGroup
 from arklex.utils.exceptions import AuthenticationError
 from arklex.utils.logging_utils import LogContext
-from arklex.utils.mysql import mysql_pool
+#from arklex.utils.mysql import mysql_pool
 
 log_context = LogContext(__name__)
 # Error message for missing HubSpot authentication parameters

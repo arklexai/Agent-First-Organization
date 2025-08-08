@@ -176,7 +176,8 @@ class Generator:
                     )
         # Initialize tools
         self.tools = resource_initializer.init_tools(
-            self.product_kwargs.get("tools", [])
+            self.product_kwargs.get("tools", []),
+            self.product_kwargs.get("nodes", [])
         )
 
         # Set configuration flags

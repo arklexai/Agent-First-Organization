@@ -67,7 +67,8 @@ def load_prompts(bot_config: BotConfig) -> dict[str, str]:
         use cases and interaction modes.
     """
     prompts: dict[str, str]
-    if bot_config.language == "EN":
+    print(f'------------debug: {bot_config.language}')
+    if bot_config.language == "en":
         ### ================================== Generator Prompts ================================== ###
         prompts = {
             # ===== vanilla prompt ===== #

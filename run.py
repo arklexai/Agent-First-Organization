@@ -23,10 +23,11 @@ from arklex.utils.logging_utils import LogContext
 from arklex.utils.model_provider_config import LLM_PROVIDERS
 from arklex.utils.provider_utils import get_provider_config
 
-load_dotenv()
+print("-------")
+load_dotenv("/Users/yuju/arklex-intern/arklex-main/.env")
+print("-------OPENAI_API_KEY:", os.getenv("OPENAI_API_KEY"))
 
 log_context = LogContext(__name__)
-
 
 def pprint_with_color(
     data: object, color_code: str = "\033[34m"

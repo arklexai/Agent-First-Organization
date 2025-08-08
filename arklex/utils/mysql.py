@@ -45,6 +45,9 @@ import os
 import time
 from typing import Any
 
+from dotenv import load_dotenv
+load_dotenv("/Users/yuju/arklex-intern/arklex-main/.env")
+
 import mysql.connector
 
 from arklex.utils.logging_utils import LogContext
@@ -281,4 +284,4 @@ class MySQLPool:
 
 
 # Create a global instance of the MySQL connection pool
-mysql_pool = MySQLPool(POOL_SIZE, **MYSQL_CONFIG)
+# mysql_pool = MySQLPool(POOL_SIZE, **MYSQL_CONFIG)

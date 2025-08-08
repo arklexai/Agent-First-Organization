@@ -19,7 +19,7 @@ from langchain.text_splitter import RecursiveCharacterTextSplitter
 from openai import OpenAI
 
 from arklex.utils.logging_utils import LogContext
-from arklex.utils.mysql import mysql_pool
+#from arklex.utils.mysql import mysql_pool
 from arklex.utils.redis import redis_pool
 
 DEFAULT_CHUNK_ENCODING = "cl100k_base"
