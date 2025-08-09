@@ -87,7 +87,7 @@ class DefaultResourceInitializer(BaseResourceInitializer):
         tool_registry: dict[str, dict[str, Any]] = {}
         for tool in tools:
             tool_id: str = tool["id"]
-            tool_item_id = ToolItem[tool_id]
+            tool_item_id: ToolItem = ToolItem[tool_id]
             try:
                 if tool_item_id == ToolItem.HTTP_TOOL:
                     http_tool_collection = {}
@@ -292,7 +292,7 @@ class Environment:
         """
         node_response: NodeResponse
         if id in self.tools:
-            tool_id = ToolItem[id]
+            tool_id: ToolItem = ToolItem[id]
             if tool_id == ToolItem.HTTP_TOOL:
                 log_context.info(f"HTTP tool {node_info.data.get('name', '')} selected")
                 tool: Tool = self.tools[id][node_info.data.get("name", "")][
