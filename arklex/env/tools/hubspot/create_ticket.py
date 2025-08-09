@@ -39,8 +39,8 @@ slots: list[dict[str, Any]] = [
     {
         "name": "issue",
         "type": "str",
-        "description": "The question that the customer has for the specific product",
-        "prompt": "",
+        "description": "The question that the customer has for the specific product.",
+        "prompt": "Could you please tell me what is the problem?",
         "required": True,
         "verified": True,
     },
@@ -137,7 +137,9 @@ def create_ticket(
                 to_object_id=ticket_id,
                 association_spec=association_spec,
             )
-            return ticket_id
+            return (
+                f"Your ticket is successfully created and your ticket_id is {ticket_id}"
+            )
         except ApiException as e:
             log_context.info(f"Exception when calling AssociationV4: {e}\n")
             raise ToolExecutionError(

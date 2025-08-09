@@ -146,5 +146,17 @@ if __name__ == "__main__":
         history.append({"role": worker_prefix, "content": output["answer"]})
         print(f"getAPIBotResponse Time: {time.time() - start_time}")
         pprint_with_color(
-            f"Bot: {output['answer']}\\n{output['choice_list']}\\n{output['human_in_the_loop']}"
+            "\n".join(
+                [f"Bot: {output['answer']}"]
+                + (
+                    [str(output["choice_list"])]
+                    if output.get("choice_list") is not None
+                    else []
+                )
+                + (
+                    [str(output["human_in_the_loop"])]
+                    if output.get("human_in_the_loop") is not None
+                    else []
+                )
+            )
         )

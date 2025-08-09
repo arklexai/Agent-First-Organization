@@ -4,166 +4,180 @@
       "0",
       {
         "resource": {
-          "id": "be303c9a-a902-4de9-bbb2-61343e59e888",
+          "id": "message-worker",
           "name": "MessageWorker"
         },
         "attribute": {
-          "value": "Hello! Welcome to Richtech. How can I assist you today?",
-          "task": "start message",
-          "directed": false
+          "start": true,
+          "can_skipped": false,
+          "limit": 1
         },
-        "limit": 1,
-        "type": "start"
+        "data": {
+          "message": "Hello! Welcome to Richtech. How can I assist you today?",
+          "directed": false
+        }
       }
     ],
     [
       "1",
       {
         "resource": {
-          "id": "ddbe6adc-cd0e-40bc-8a95-91cb69ed807b",
+          "id": "HUBSPOT_FIND_CONTACT_BY_EMAIL",
           "name": "search_customer"
         },
         "attribute": {
-          "value": "",
-          "task": "Detect whether this is the existing customer from our hubspot platform",
-          "directed": false
+          "can_skipped": false,
+          "limit": 1
         },
-        "limit": 1
+        "data": {
+          "directed": false
+        }
       }
     ],
     [
       "2",
       {
         "resource": {
-          "id": "FaissRAGWorker",
+          "id": "faiss-rag-worker",
           "name": "FaissRAGWorker"
         },
         "attribute": {
-          "value": "",
-          "task": "Retrieve information from the documentations to answer customer question",
-          "directed": false
+          "can_skipped": false,
+          "limit": 1
         },
-        "limit": 1
+        "data": {
+          "directed": false
+        }
       }
     ],
     [
       "3",
       {
         "resource": {
-          "id": "ddbe6adc-cd0e-40bc-8a95-91cb69ed807b",
+          "id": "HUBSPOT_FIND_CONTACT_BY_EMAIL",
           "name": "search_customer"
         },
         "attribute": {
-          "value": "",
-          "task": "Detect whether this is the existing customer from our hubspot platform",
-          "directed": false
+          "can_skipped": false,
+          "limit": 1
         },
-        "limit": 1
+        "data": {
+          "directed": false
+        }
       }
     ],
     [
       "4",
       {
         "resource": {
-          "id": "aa8dd20d-fda7-475b-91ce-8c5fc356a2b7",
+          "id": "HUBSPOT_CREATE_TICKET",
           "name": "create_ticket"
         },
         "attribute": {
-          "value": "",
-          "task": "create the ticket for the existing customer",
-          "directed": false
+          "can_skipped": false,
+          "limit": 1
         },
-        "limit": 1
+        "data": {
+          "directed": false
+        }
       }
     ],
     [
       "5",
       {
         "resource": {
-          "id": "ddbe6adc-cd0e-40bc-8a95-91cb69ed807b",
+          "id": "HUBSPOT_FIND_CONTACT_BY_EMAIL",
           "name": "search_customer"
         },
         "attribute": {
-          "value": "",
-          "task": "Detect whether this is the existing customer from our hubspot platform",
-          "directed": false
+          "can_skipped": false,
+          "limit": 1
         },
-        "limit": 1
+        "data": {
+          "directed": false
+        }
       }
     ],
     [
       "6",
       {
         "resource": {
-          "id": "11860b97-dfcf-4f1d-9e44-8767c50fd371",
+          "id": "HUBSPOT_FIND_OWNER_ID_BY_CONTACT_ID",
           "name": "find_owner_id_by_contact_id"
         },
         "attribute": {
-          "value": "",
-          "task": "find the owner id of the contact",
-          "directed": false
+          "can_skipped": false,
+          "limit": 1
         },
-        "limit": 1
+        "data": {
+          "directed": false
+        }
       }
     ],
     [
       "7",
       {
         "resource": {
-          "id": "8a6784c2-a130-4eb4-9924-4f4c58f4bf9d",
+          "id": "HUBSPOT_CHECK_AVAILABLE",
           "name": "check_available"
         },
         "attribute": {
-          "value": "",
-          "task": "Show customer the busy time the representative has",
-          "directed": false
+          "can_skipped": false,
+          "limit": 1
         },
-        "limit": 1
+        "data": {
+          "directed": false
+        }
       }
     ],
     [
       "8",
       {
         "resource": {
-          "id": "be303c9a-a902-4de9-bbb2-61343e59e888",
+          "id": "message-worker",
           "name": "MessageWorker"
         },
         "attribute": {
-          "value": "",
-          "task": "Show the customer with the available times",
-          "directed": false
+          "can_skipped": false,
+          "limit": 1
         },
-        "limit": 1
+        "data": {
+          "message": "Which time slots is good for you to choose?",
+          "directed": false
+        }
       }
     ],
     [
       "9",
       {
         "resource": {
-          "id": "e86daf21-41a3-40b2-9695-3ed59be46cc4",
+          "id": "HUBSPOT_CREATE_MEETING",
           "name": "create_meeting"
         },
         "attribute": {
-          "value": "",
-          "task": "schedule a meeting for the customer to the specific representative",
-          "directed": false
+          "can_skipped": false,
+          "limit": 1
         },
-        "limit": 1
+        "data": {
+          "directed": false
+        }
       }
     ],
     [
       "10",
       {
         "resource": {
-          "id": "be303c9a-a902-4de9-bbb2-61343e59e888",
+          "id": "message-worker",
           "name": "MessageWorker"
         },
         "attribute": {
-          "value": "",
-          "task": "Show the customer with meeting details",
-          "directed": false
+          "can_skipped": false,
+          "limit": 1
         },
-        "limit": 1
+        "data": {
+          "message": "This is the detail of your booking confirmation.",
+          "directed": false
+        }
       }
     ]
   ],
@@ -211,7 +225,7 @@
       "3",
       "4",
       {
-        "intent": "customer exists",
+        "intent": "Customer exists",
         "attribute": {
           "weight": 1,
           "pred": true,
@@ -237,7 +251,7 @@
       "5",
       "6",
       {
-        "intent": "Cotinue booking a meeting after finding the owner",
+        "intent": "Cotinue booking a meeting",
         "attribute": {
           "weight": 1,
           "pred": true,
@@ -250,7 +264,7 @@
       "6",
       "7",
       {
-        "intent": "Cotinue booking a meeting after checking the available time",
+        "intent": "Cotinue booking a meeting",
         "attribute": {
           "weight": 1,
           "pred": true,
@@ -263,7 +277,7 @@
       "7",
       "8",
       {
-        "intent": "Cotinue booking a meeting after choosing the available time",
+        "intent": "Cotinue booking a meeting",
         "attribute": {
           "weight": 1,
           "pred": true,
@@ -276,7 +290,7 @@
       "8",
       "9",
       {
-        "intent": "Cotinue booking a meeting for the final result",
+        "intent": "Cotinue booking a meeting",
         "attribute": {
           "weight": 1,
           "pred": true,
@@ -299,6 +313,16 @@
       }
     ]
   ],
+  "bot_config": {
+        "bot_id": "123",
+        "version": "v1",
+        "language": "EN",
+        "llm_config": {
+            "model_type_or_path": "gpt-4o-mini",
+            "llm_provider": "openai"
+        }
+  },
+  "sys_instruct": "Help the user with their inquiries.",
   "role": "customer service assistant",
   "user_objective": "The customer service assistant helps users with customer service inquiries. It can provide information about products, services, and policies, as well as help users resolve issues and complete transactions.",
   "builder_objective": "The customer service assistant helps to request customer's contact information.",
@@ -309,56 +333,42 @@
   "tasks": [],
   "tools": [
     {
-      "id": "ddbe6adc-cd0e-40bc-8a95-91cb69ed807b",
-      "name": "find_contact_by_email",
-      "path": "hubspot.find_contact_by_email",
-      "fixed_args": {
-        "access_token": "<access-token>"
+      "id": "HUBSPOT_FIND_CONTACT_BY_EMAIL",
+      "auth": {
+        "access_token": "<access_token>"
       }
     },
     {
-      "id": "aa8dd20d-fda7-475b-91ce-8c5fc356a2b7",
-      "name": "create_ticket",
-      "path": "hubspot.create_ticket",
-      "fixed_args": {
-        "access_token": "<access-token>"
+      "id": "HUBSPOT_CREATE_TICKET",
+      "auth": {
+        "access_token": "<access_token>"
       }
     },
     {
-      "id": "8a6784c2-a130-4eb4-9924-4f4c58f4bf9d",
-      "name": "check_available",
-      "path": "hubspot.check_available",
-      "fixed_args": {
-        "access_token": "<access-token>"
+      "id": "HUBSPOT_CHECK_AVAILABLE",
+      "auth": {
+        "access_token": "<access_token>"
       }
     },
     {
-      "id": "e86daf21-41a3-40b2-9695-3ed59be46cc4",
-      "name": "create_meeting",
-      "path": "hubspot.create_meeting",
-      "fixed_args": {
-        "access_token": "<access-token>"
+      "id": "HUBSPOT_CREATE_MEETING",
+      "auth": {
+        "access_token": "<access_token>"
       }
     },
     {
-      "id": "11860b97-dfcf-4f1d-9e44-8767c50fd371",
-      "name": "find_owner_id_by_contact_id",
-      "path": "hubspot.find_owner_id_by_contact_id",
-      "fixed_args": {
-        "access_token": "<access-token>"
+      "id": "HUBSPOT_FIND_OWNER_ID_BY_CONTACT_ID",
+      "auth": {
+        "access_token": "<access_token>"
       }
     }
   ],
   "workers": [
     {
-      "id": "be303c9a-a902-4de9-bbb2-61343e59e888",
-      "name": "MessageWorker",
-      "path": "message_worker.py"
+      "id": "message-worker"
     },
     {
-      "id": "FaissRAGWorker",
-      "name": "FaissRAGWorker",
-      "path": "faiss_rag_worker.py"
+      "id": "faiss-rag-worker"
     }
   ],
   "nluapi": "",

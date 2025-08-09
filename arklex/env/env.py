@@ -87,8 +87,9 @@ class DefaultResourceInitializer(BaseResourceInitializer):
         tool_registry: dict[str, dict[str, Any]] = {}
         for tool in tools:
             tool_id: str = tool["id"]
+            tool_item_id = ToolItem[tool_id]
             try:
-                if tool_id == ToolItem.HTTP_TOOL:
+                if tool_item_id == ToolItem.HTTP_TOOL:
                     http_tool_collection = {}
                     for node in nodes:
                         node_info = node[1]
@@ -99,7 +100,7 @@ class DefaultResourceInitializer(BaseResourceInitializer):
                         ):
                             continue
                         # Create a new tool instance for each node to avoid sharing state
-                        base_tool: Tool = RESOURCE_MAP[tool_id]["item_cls"]
+                        base_tool: Tool = RESOURCE_MAP[tool_item_id]["item_cls"]
                         tool_instance: Tool = Tool(
                             func=base_tool.func,
                             name=base_tool.name,
@@ -145,7 +146,7 @@ class DefaultResourceInitializer(BaseResourceInitializer):
                         }
                     tool_registry[tool_id] = http_tool_collection
                 else:
-                    tool_instance: Tool = RESOURCE_MAP[tool_id]["item_cls"]
+                    tool_instance: Tool = RESOURCE_MAP[tool_item_id]["item_cls"]
                     tool_instance.auth.update(tool.get("auth", {}))
                     tool_instance.node_specific_data = {}
                     tool_registry[tool_id] = {
@@ -291,7 +292,8 @@ class Environment:
         """
         node_response: NodeResponse
         if id in self.tools:
-            if id == ToolItem.HTTP_TOOL:
+            tool_id = ToolItem[id]
+            if tool_id == ToolItem.HTTP_TOOL:
                 log_context.info(f"HTTP tool {node_info.data.get('name', '')} selected")
                 tool: Tool = self.tools[id][node_info.data.get("name", "")][
                     "tool_instance"
@@ -304,7 +306,7 @@ class Environment:
                 orch_state, all_slots=dialog_states, auth=tool.auth
             )
             response_state.message_flow = tool_output.message_flow
-            if id == ToolItem.SHOPIFY_SEARCH_PRODUCTS:
+            if tool_id == ToolItem.SHOPIFY_SEARCH_PRODUCTS:
                 node_response = NodeResponse(
                     status=tool_output.status,
                     response=tool_output.response,

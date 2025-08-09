@@ -48,7 +48,7 @@ slots: list[dict[str, Any]] = [
     {
         "name": "meeting_date",
         "type": "str",
-        "description": "The exact date (only the month and day) the customer want to take meeting with the representative. e.g. today, Next Monday, May 1st. IMPORTANT: please TRANSFORM tmr to tomorrow.",
+        "description": "Accept either an explicit date (e.g. May 1st, Aug 11) or a relative date phrase (e.g. tomorrow, next Monday). If the customer uses an abbreviation like 'tmr', transform it into the full word (e.g. 'tomorrow'). Do not repeatedly ask for confirmation unless the date is missing.",
         "prompt": "Could you please give me the date of the meeting?",
         "required": True,
     },
@@ -232,27 +232,30 @@ def check_available(
                 response += f"The slug for your meeting is: {meeting_slug}\n"
                 response += f"Here are the available time slots for your meeting about {duration} mins in {exact_date}:\n"
 
-                slots: list[tuple[datetime, datetime]] = [
-                    (
-                        datetime.fromisoformat(slot["start"]),
-                        datetime.fromisoformat(slot["end"]),
-                    )
-                    for slot in same_dt_info["available_time_slots"]
-                ]
-                slots.sort()
+                # slots: list[tuple[datetime, datetime]] = [
+                #     (
+                #         datetime.fromisoformat(slot["start"]),
+                #         datetime.fromisoformat(slot["end"]),
+                #     )
+                #     for slot in same_dt_info["available_time_slots"]
+                # ]
+                # slots.sort()
+                #
+                # merged_slots: list[tuple[datetime, datetime]] = []
+                # current_start: datetime
+                # current_end: datetime
+                # current_start, current_end = slots[0]
+                # for start, end in slots[1:]:
+                #     if start == current_end:
+                #         current_end = end
+                #     else:
+                #         merged_slots.append((current_start, current_end))
+                #         current_start, current_end = start, end
+                # merged_slots.append((current_start, current_end))
+                for slot in same_dt_info["available_time_slots"]:
+                    start = datetime.fromisoformat(slot["start"])
+                    end = datetime.fromisoformat(slot["end"])
 
-                merged_slots: list[tuple[datetime, datetime]] = []
-                current_start: datetime
-                current_end: datetime
-                current_start, current_end = slots[0]
-                for start, end in slots[1:]:
-                    if start == current_end:
-                        current_end = end
-                    else:
-                        merged_slots.append((current_start, current_end))
-                        current_start, current_end = start, end
-                merged_slots.append((current_start, current_end))
-                for start, end in merged_slots:
                     start_str: str = start.strftime("%I:%M %p").lstrip("0")
                     end_str: str = end.strftime("%I:%M %p").lstrip("0")
                     response += f" - {start_str} – {end_str}\n"
@@ -264,9 +267,8 @@ def check_available(
 
                 response += (
                     "\nInstruction: If the user already mentioned a specific time (e.g. 9:00 am) and only if it matches one of the available time slots above, "
-                    "you should confirm that the requested time is available, and then ask for continuing."
-                    "Otherwise, merge all consecutive time slots (e.g., 1:00–1:15 and 1:15–1:30 → 1:00–1:30, 1:00–2:00 and 2:00–3:00 → 2:00–3:00), and present the merged time ranges in the response. DO NOT PROVIDE A LONG LIST."
-                    "Please also inform the customer that start times must be at 15-minute intervals (e.g., 9:00, 9:15, etc.)."
+                    "you should confirm that the requested time is available, and then ask for continuing. There is no need to show the other available time slots."
+                    "Please provide up to 5 **non-consecutive** time slots to the customer (e.g. 9:00 AM–10:00 AM, 1:00 PM–2:00 PM), so that the options don't appear crowded."
                 )
 
             else:
@@ -275,40 +277,43 @@ def check_available(
                     "I'm sorry, there are no available time slots on the selected date.\n"
                     f"Here are the available time slots on other dates for your {duration}-minute meeting:\n"
                 )
-                slots: list[tuple[datetime, datetime]] = [
-                    (
-                        datetime.fromisoformat(slot["start"]),
-                        datetime.fromisoformat(slot["end"]),
-                    )
-                    for slot in other_dt_info["available_time_slots"]
-                ]
-                slots.sort()
-                merged_slots: list[tuple[datetime, datetime]] = []
-                current_start: datetime
-                current_end: datetime
-                current_start, current_end = slots[0]
-                for start, end in slots[1:]:
-                    if start == current_end:
-                        current_end = end
-                    else:
-                        merged_slots.append((current_start, current_end))
-                        current_start, current_end = start, end
-                merged_slots.append((current_start, current_end))
-                for start, end in merged_slots:
-                    start_str: str = start.strftime("%b %d, %I:%M %p").lstrip("0")
-                    end_str: str = end.strftime("%I:%M %p").lstrip("0")
+                # slots: list[tuple[datetime, datetime]] = [
+                #     (
+                #         datetime.fromisoformat(slot["start"]),
+                #         datetime.fromisoformat(slot["end"]),
+                #     )
+                #     for slot in other_dt_info["available_time_slots"]
+                # ]
+                # slots.sort()
+                # merged_slots: list[tuple[datetime, datetime]] = []
+                # current_start: datetime
+                # current_end: datetime
+                # current_start, current_end = slots[0]
+                # for start, end in slots[1:]:
+                #     if start == current_end:
+                #         current_end = end
+                #     else:
+                #         merged_slots.append((current_start, current_end))
+                #         current_start, current_end = start, end
+                # merged_slots.append((current_start, current_end))
+                for slot in other_dt_info["available_time_slots"]:
+                    start = datetime.fromisoformat(slot["start"])
+                    end = datetime.fromisoformat(slot["end"])
+
+                    start_str = start.strftime("%b %d, %I:%M %p").lstrip("0")
+                    end_str = end.strftime("%I:%M %p").lstrip("0")
+
                     response += f" - {start_str} – {end_str}\n"
 
                 response += (
-                    "\nPlease pick one of the time slots above as your preferred start time.\n"
+                    "\nPlease pick one of the time slots.\n"
                     "You should follow the instructions below to generate response.\n"
                 )
 
                 response += (
-                    "\nInstruction: If the user already mentioned a specific time (e.g. 9:00 am) and only if it matches one of the available time slots above, "
-                    "you should confirm that the requested time is available, and then ask for continuing. "
-                    "Otherwise, merge all consecutive time slots (e.g., 1:00–1:15 and 1:15–1:30 → 1:00–1:30, 1:00–2:00 and 2:00–3:00 → 2:00–3:00)), and present the merged time ranges in the response. DO NOT PROVIDE A LONG LIST."
-                    "Please also inform the customer that start times must be at 15-minute intervals (e.g., 9:00, 9:15, etc.)."
+                    "\nInstruction: Please provide up to 5 **non-consecutive** time slots to the customer (e.g. 9:00 AM–10:00 AM, 1:00 PM–2:00 PM), so that the options don't appear crowded."
+                    "In addition these time slots should come from different date."
+                    "You should also ensure the correct date for the time slots. DO NOT MESS THEM UP!"
                 )
             return response
         except ApiException as e:
