@@ -231,27 +231,6 @@ def check_available(
             if len(same_dt_info["available_time_slots"]) != 0:
                 response += f"The slug for your meeting is: {meeting_slug}\n"
                 response += f"Here are the available time slots for your meeting about {duration} mins in {exact_date}:\n"
-
-                # slots: list[tuple[datetime, datetime]] = [
-                #     (
-                #         datetime.fromisoformat(slot["start"]),
-                #         datetime.fromisoformat(slot["end"]),
-                #     )
-                #     for slot in same_dt_info["available_time_slots"]
-                # ]
-                # slots.sort()
-                #
-                # merged_slots: list[tuple[datetime, datetime]] = []
-                # current_start: datetime
-                # current_end: datetime
-                # current_start, current_end = slots[0]
-                # for start, end in slots[1:]:
-                #     if start == current_end:
-                #         current_end = end
-                #     else:
-                #         merged_slots.append((current_start, current_end))
-                #         current_start, current_end = start, end
-                # merged_slots.append((current_start, current_end))
                 for slot in same_dt_info["available_time_slots"]:
                     start = datetime.fromisoformat(slot["start"])
                     end = datetime.fromisoformat(slot["end"])
@@ -277,25 +256,6 @@ def check_available(
                     "I'm sorry, there are no available time slots on the selected date.\n"
                     f"Here are the available time slots on other dates for your {duration}-minute meeting:\n"
                 )
-                # slots: list[tuple[datetime, datetime]] = [
-                #     (
-                #         datetime.fromisoformat(slot["start"]),
-                #         datetime.fromisoformat(slot["end"]),
-                #     )
-                #     for slot in other_dt_info["available_time_slots"]
-                # ]
-                # slots.sort()
-                # merged_slots: list[tuple[datetime, datetime]] = []
-                # current_start: datetime
-                # current_end: datetime
-                # current_start, current_end = slots[0]
-                # for start, end in slots[1:]:
-                #     if start == current_end:
-                #         current_end = end
-                #     else:
-                #         merged_slots.append((current_start, current_end))
-                #         current_start, current_end = start, end
-                # merged_slots.append((current_start, current_end))
                 for slot in other_dt_info["available_time_slots"]:
                     start = datetime.fromisoformat(slot["start"])
                     end = datetime.fromisoformat(slot["end"])
