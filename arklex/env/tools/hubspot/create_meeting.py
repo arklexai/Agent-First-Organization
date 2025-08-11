@@ -84,7 +84,7 @@ slots: list[dict[str, Any]] = [
     {
         "name": "time_zone",
         "type": "str",
-        "enum": pytz.common_timezones,
+        "enum": list(pytz.common_timezones),
         "description": "The timezone of the user. For example, 'America/New_York'.",
         "prompt": "Could you please provide your timezone or where are you now?",
         "required": True,
@@ -141,7 +141,8 @@ def create_meeting(
         dt: datetime = parse_natural_date(
             meeting_start_time, parsed_meeting_date, timezone=time_zone
         )
-        meeting_start_time_ms: int = int(dt.timestamp() * 1000)
+        dt_utc: datetime = dt.astimezone(pytz.utc)
+        meeting_start_time_ms: int = int(dt_utc.timestamp() * 1000)
     duration_int: int = int(duration)
     duration_ms: int = int(timedelta(minutes=duration_int).total_seconds() * 1000)
 
@@ -215,7 +216,6 @@ def parse_natural_date(
             parsed_dt = datetime.combine(parsed_dt.date(), datetime.min.time())
 
         parsed_dt = local_timezone.localize(parsed_dt)
-        parsed_dt = parsed_dt.astimezone(pytz.utc)
     return parsed_dt
 
 

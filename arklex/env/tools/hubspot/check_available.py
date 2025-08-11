@@ -40,7 +40,7 @@ slots: list[dict[str, Any]] = [
     {
         "name": "time_zone",
         "type": "str",
-        "enum": pytz.common_timezones,
+        "enum": list(pytz.common_timezones),
         "description": "The timezone of the user. For example, 'America/New_York'.",
         "prompt": "Could you please provide your timezone or where are you now?",
         "required": True,
