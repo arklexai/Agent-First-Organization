@@ -53,7 +53,7 @@ slots: list[dict[str, Any]] = [
     {
         "name": "meeting_date",
         "type": "str",
-        "description": "The exact date (only the month and day) the customer want to take meeting with the representative. e.g. tomorrow, today, Next Monday, May 1st. If you are not sure about the input, ask the user to give you confirmation.",
+        "description": f"The exact date (only the month and day) the customer want to take meeting with the representative. e.g. tomorrow, today, Next Monday, May 1st. Today is {datetime.today().strftime('%B %d, %Y')}.",
         "prompt": "Could you please give me the date of the meeting?",
         "required": True,
         "verified": True,
@@ -147,6 +147,8 @@ def create_meeting(
 
     api_client: hubspot.Client = hubspot.Client.create(access_token=access_token)
 
+    log_context.info(f"The meeting start time in ms is {meeting_start_time_ms}")
+
     try:
         create_meeting_response: Any = api_client.api_request(
             {
@@ -208,7 +210,7 @@ def parse_natural_date(
         local_timezone: pytz.BaseTzInfo = pytz.timezone(timezone)
         # For date-only inputs or when date_input=True, ensure we start at midnight
         # in the local timezone to avoid day shifts during UTC conversion
-        if date_input or (parsed_dt.hour >= 12 and parsed_dt.minute > 0):
+        if date_input:
             # Set to midnight in the local timezone
             parsed_dt = datetime.combine(parsed_dt.date(), datetime.min.time())
 

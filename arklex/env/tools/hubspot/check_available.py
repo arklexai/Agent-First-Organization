@@ -48,7 +48,7 @@ slots: list[dict[str, Any]] = [
     {
         "name": "meeting_date",
         "type": "str",
-        "description": "Accept either an explicit date (e.g. May 1st, Aug 11) or a relative date phrase (e.g. tomorrow, next Monday). If the customer uses an abbreviation like 'tmr', transform it into the full word (e.g. 'tomorrow'). Do not repeatedly ask for confirmation unless the date is missing.",
+        "description": f"Accept either an explicit date (e.g. May 1st, Aug 11) or a relative date phrase (e.g. tomorrow, next Monday). If the customer uses an abbreviation like 'tmr', transform it into the full word (e.g. 'tomorrow'). Do not repeatedly ask for confirmation unless the date is missing. Today is {datetime.today().strftime('%B %d, %Y')}",
         "prompt": "Could you please give me the date of the meeting?",
         "required": True,
     },
@@ -272,7 +272,7 @@ def check_available(
 
                 response += (
                     "\nInstruction: Please provide up to 5 **non-consecutive** time slots to the customer (e.g. 9:00 AM–10:00 AM, 1:00 PM–2:00 PM), so that the options don't appear crowded."
-                    "In addition these time slots should come from different date."
+                    "In addition these time slots should come from the same date which is the closet to the requested date."
                     "You should also ensure the correct date for the time slots. DO NOT MESS THEM UP!"
                 )
             return response
