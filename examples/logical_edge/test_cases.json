@@ -1,0 +1,55 @@
+[
+  {
+    "test_id": 0,
+    "user_utterance": [
+        "I would like to request a refund."
+    ],
+    "description": "Test the logic edge: when user mentions 'refund', route directly to the billing/refund node.",
+    "criteria": "Directly route to support node without standard NLU intent matching.",
+    "final_state": "Successfully reaches the support node and prompts user for details.",
+    "trajectory": [
+        "5"
+    ],
+    "expected_conversation": [
+        {
+        "role": "assistant",
+        "content": "Hello! I'm here to assist you with any customer service inquiries you may have. Whether you need information about our products, services, or policies, or if you need help with any issues or transactions, feel free to ask. How can I assist you today?"
+        },
+        {
+        "role": "user",
+        "content": "I would like to request a refund."
+        },
+        {
+        "role": "assistant",
+        "content": "Could you please provide more details about your refund request? For example, what item or service are you seeking a refund for?"
+        }
+    ]
+  },
+  {
+    "test_id": 1,
+    "user_utterance": [
+        "I wanna book a demonstration for ADAM robot."
+    ],
+    "description": "Test the logic edge: when user asks to book a demonstration, should directly route to the demo booking node.",
+    "criteria": "Route to demo booking node if user input contains 'book' and 'demonstration'.",
+    "final_state": "Route to the corresponding node",
+    "trajectory": [
+        "6"
+    ],
+    "expected_conversation": [
+        {
+        "role": "assistant",
+        "content": "Hello! Welcome to Richtech. How can I assist you today?"
+        },
+        {
+        "role": "user",
+        "content": "I wanna book a demonstration for ADAM robot."
+        },
+        {
+        "role": "assistant",
+        "content": "Great! May I have your contact information (email or phone) so we can schedule your ADAM robot demonstration?"
+        }
+    ]
+  }
+
+]

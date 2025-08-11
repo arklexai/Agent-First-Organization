@@ -1,0 +1,261 @@
+{
+    "nodes": [
+        [
+            "0",
+            {
+                "resource": {
+                    "id": "message-worker",
+                    "name": "MessageWorker"
+                },
+                "attribute": {
+                    "start": true,
+                    "can_skipped": false,
+                    "limit": 1
+                },
+                "data": {
+                    "message": "Hello! I'm here to assist you with any customer service inquiries.",
+                    "directed": true
+                }
+            }
+        ],
+        [
+            "1",
+            {
+                "resource": {
+                    "id": "message-worker",
+                    "name": "MessageWorker"
+                },
+                "attribute": {
+                    "start": false,
+                    "can_skipped": false,
+                    "limit": 1
+                },
+                "data": {
+                    "message": "We have products related to customer service chatbot.",
+                    "directed": true
+                }
+            }
+        ],
+        [
+            "2",
+            {
+                "resource": {
+                    "id": "milvus-rag-worker",
+                    "name": "MilvusRAGWorker"
+                },
+                "attribute": {
+                    "start": false,
+                    "can_skipped": false,
+                    "limit": 1
+                },
+                "data": {
+                    "tags": {}
+                }
+            }
+        ],
+        [
+            "3",
+            {
+                "resource": {
+                    "id": "faiss-rag-worker",
+                    "name": "FaissRAGWorker"
+                },
+                "attribute": {
+                    "start": false,
+                    "can_skipped": false,
+                    "limit": 1
+                },
+                "data": {
+                    "tags": {}
+                }
+            }
+        ],
+        [
+            "4",
+            {
+                "resource": {
+                    "id": "search-worker",
+                    "name": "SearchWorker"
+                },
+                "attribute": {
+                    "start": false,
+                    "can_skipped": false,
+                    "limit": 1
+                },
+                "data": {}
+            }
+        ],
+        [
+            "5",
+            {
+                "resource": {
+                    "id": "human-in-the-loop-worker",
+                    "name": "HITLWorker"
+                },
+                "attribute": {
+                    "start": false,
+                    "can_skipped": false,
+                    "limit": 1
+                },
+                "data": {}
+            }
+        ],
+        [
+            "6",
+            {
+                "resource": {
+                    "id": "multiple-choice-worker",
+                    "name": "MultipleChoiceWorker"
+                },
+                "attribute": {
+                    "start": false,
+                    "can_skipped": false,
+                    "limit": 1
+                },
+                "data": {
+                    "question": "Which car would you like to buy?",
+                    "choice_list": [
+                        "Car A",
+                        "Car B",
+                        "Car C"
+                    ]
+                }
+            }
+        ]
+    ],
+    "edges": [
+        [
+            "0",
+            "1",
+            {
+                "type": "logic",
+                "intent": "refund request (logic edge example)",
+                "cases": [
+                    {
+                        "condition": {
+                            "param": "memory.function_calling_trajectory[-1].content",
+                            "op": "contains",
+                            "value": "refund"
+                        },
+                        "target": "5"
+                    }
+                ],
+                "attribute": {
+                    "weight": 10,
+                    "pred": false,
+                    "definition": "If user mentions refund, directly route to HITLWorker",
+                    "sample_utterances": ["I want a refund", "How do I get a refund?"]
+                }
+            }
+        ],
+        [
+            "0",
+            "1",
+            {
+                "intent": "ask about products",
+                "attribute": {
+                    "weight": 1,
+                    "pred": true,
+                    "definition": "",
+                    "sample_utterances": []
+                }
+            }
+        ],
+        [
+            "0",
+            "3",
+            {
+                "intent": "ask about customer service",
+                "attribute": {
+                    "weight": 1,
+                    "pred": true,
+                    "definition": "",
+                    "sample_utterances": []
+                }
+            }
+        ],
+        [
+            "0",
+            "4",
+            {
+                "intent": "ask about search",
+                "attribute": {
+                    "weight": 1,
+                    "pred": true,
+                    "definition": "",
+                    "sample_utterances": []
+                }
+            }
+        ],
+        [
+            "0",
+            "5",
+            {
+                "intent": "ask for real agent",
+                "attribute": {
+                    "weight": 1,
+                    "pred": true,
+                    "definition": "",
+                    "sample_utterances": []
+                }
+            }
+        ],
+        [
+            "0",
+            "6",
+            {
+                "intent": "ask for available car options",
+                "attribute": {
+                    "weight": 1,
+                    "pred": true,
+                    "definition": "",
+                    "sample_utterances": []
+                }
+            }
+        ],
+        [
+            "6",
+            "1",
+            {
+                "intent": "ask about weather",
+                "attribute": {
+                    "weight": 1,
+                    "pred": false,
+                    "definition": "",
+                    "sample_utterances": []
+                }
+            }
+        ]
+    ],
+    "sys_instruct": "Help the user with their inquiries.",
+    "bot_config": {
+        "bot_id": "123",
+        "version": "v1",
+        "language": "EN",
+        "llm_config": {
+            "model_type_or_path": "gpt-4o-mini",
+            "llm_provider": "openai"
+        }
+    },
+    "slotfillapi": "",
+    "workers": [
+        {
+            "id": "message-worker"
+        },
+        {
+            "id": "milvus-rag-worker"
+        },
+        {
+            "id": "faiss-rag-worker"
+        },
+        {
+            "id": "search-worker"
+        },
+        {
+            "id": "human-in-the-loop-worker"
+        },
+        {
+            "id": "multiple-choice-worker"
+        }
+    ]
+}
