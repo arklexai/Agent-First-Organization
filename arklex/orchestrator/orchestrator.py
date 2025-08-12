@@ -100,6 +100,7 @@ INFO_WORKERS: list[str] = [
     "MessageWorker",
     "RagMsgWorker",
     "HITLWorkerChatFlag",
+    "AnswerNodeWorker"
 ]
 
 

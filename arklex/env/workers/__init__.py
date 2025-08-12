@@ -12,6 +12,7 @@ Key Components:
 - Message Workers:
   - Basic message generation (message_worker.py)
   - RAG-enhanced message generation (rag_message_worker.py)
+  - Answer Node worker (answer_node_worker.py)
 - Database Workers:
   - Database operations and queries (database_worker.py)
 - Search Workers:
@@ -36,6 +37,7 @@ Usage:
         BaseWorker,
         MessageWorker,
         RAGMessageWorker,
+        AnswerNodeWorker,
         DatabaseWorker,
         SearchWorker,
         FAISSRAGWorker,
