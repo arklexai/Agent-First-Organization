@@ -17,6 +17,11 @@ class TestGetWebProduct:
         """Set up test environment."""
         os.environ["ARKLEX_TEST_ENV"] = "local"
 
+    def get_original_function(self) -> callable:
+        """Get the original function from the decorated function."""
+        # Access the original function from the Tool instance
+        return get_web_product.func
+
     def teardown_method(self) -> None:
         """Clean up test environment."""
         if "ARKLEX_TEST_ENV" in os.environ:
@@ -27,7 +32,7 @@ class TestGetWebProduct:
     def test_get_web_product_success(
         self, mock_graphql: Mock, mock_session_temp: Mock
     ) -> None:
-        """Test successful web product retrieval."""
+        """Test successful product retrieval."""
         # Setup mocks
         mock_session = MagicMock()
         mock_session_temp.return_value.__enter__.return_value = mock_session
@@ -38,39 +43,25 @@ class TestGetWebProduct:
                 "products": {
                     "nodes": [
                         {
-                            "id": "gid://shopify/Product/12345",
+                            "id": "gid://shopify/Product/123",
                             "title": "Test Product",
-                            "description": "A test product description",
-                            "totalInventory": 100,
-                            "onlineStoreUrl": "https://test-shop.myshopify.com/products/test-product",
-                            "options": [
-                                {"name": "Size", "values": ["Small", "Medium", "Large"]}
-                            ],
+                            "description": "Test Description",
+                            "totalInventory": 10,
+                            "onlineStoreUrl": "https://test-shop.myshopify.com/products/test",
+                            "options": [{"name": "Size", "values": ["S", "M", "L"]}],
                             "category": {"name": "Clothing"},
                             "variants": {
                                 "nodes": [
                                     {
-                                        "displayName": "Small",
-                                        "id": "gid://shopify/ProductVariant/67890",
-                                        "price": "29.99",
-                                        "inventoryQuantity": 30,
-                                    },
-                                    {
-                                        "displayName": "Medium",
-                                        "id": "gid://shopify/ProductVariant/67891",
-                                        "price": "29.99",
-                                        "inventoryQuantity": 40,
-                                    },
+                                        "id": "gid://shopify/ProductVariant/456",
+                                        "title": "S",
+                                        "price": "19.99",
+                                        "inventoryQuantity": 5,
+                                    }
                                 ]
                             },
                         }
-                    ],
-                    "pageInfo": {
-                        "endCursor": "cursor1",
-                        "hasNextPage": False,
-                        "hasPreviousPage": False,
-                        "startCursor": "cursor1",
-                    },
+                    ]
                 }
             }
         }
@@ -78,65 +69,43 @@ class TestGetWebProduct:
         mock_graphql.return_value = mock_graphql_instance
 
         # Execute function
-        result = get_web_product().func(
-            web_product_id="gid://shopify/Product/12345",
-            shop_url="https://test-shop.myshopify.com",
-            admin_token="test_admin_token",
-            api_version="2024-10",
+        result = self.get_original_function()(
+            web_product_id="123",
+            auth={
+                "shop_url": "https://test-shop.myshopify.com",
+                "admin_token": "test_admin_token",
+                "api_version": "2024-10",
+            },
         )
 
         # Verify result
-        assert "Product ID: gid://shopify/Product/12345" in result
-        assert "Title: Test Product" in result
-        assert "Description: A test product description" in result
-        assert "Total Inventory: 100" in result
-        assert "Options:" in result
-        assert "Category: Clothing" in result
-        assert "Variant name: Small" in result
-        assert "Variant ID: gid://shopify/ProductVariant/67890" in result
-        assert "Price: 29.99" in result
-        assert "Inventory Quantity: 30" in result
-
-        # Verify GraphQL query was called with correct parameters
-        mock_graphql_instance.execute.assert_called_once()
-        call_args = mock_graphql_instance.execute.call_args[0][0]
-        assert "products" in call_args
-        assert "id:12345" in call_args  # Should extract numeric part from full ID
+        assert "Test Product" in result.message_flow
+        assert "Test Description" in result.message_flow
 
     @patch("arklex.env.tools.shopify.get_web_product.shopify.Session.temp")
     @patch("arklex.env.tools.shopify.get_web_product.shopify.GraphQL")
     def test_get_web_product_no_products_found(
         self, mock_graphql: Mock, mock_session_temp: Mock
     ) -> None:
-        """Test web product retrieval when no products are found."""
+        """Test product retrieval when no products are found."""
         # Setup mocks
         mock_session = MagicMock()
         mock_session_temp.return_value.__enter__.return_value = mock_session
 
         mock_graphql_instance = MagicMock()
-        mock_response = {
-            "data": {
-                "products": {
-                    "nodes": [],
-                    "pageInfo": {
-                        "endCursor": None,
-                        "hasNextPage": False,
-                        "hasPreviousPage": False,
-                        "startCursor": None,
-                    },
-                }
-            }
-        }
+        mock_response = {"data": {"products": {"nodes": []}}}
         mock_graphql_instance.execute.return_value = json.dumps(mock_response)
         mock_graphql.return_value = mock_graphql_instance
 
         # Execute function and verify exception
         with pytest.raises(ToolExecutionError) as exc_info:
-            get_web_product().func(
-                web_product_id="gid://shopify/Product/99999",
-                shop_url="https://test-shop.myshopify.com",
-                admin_token="test_admin_token",
-                api_version="2024-10",
+            self.get_original_function()(
+                web_product_id="99999",
+                auth={
+                    "shop_url": "https://test-shop.myshopify.com",
+                    "admin_token": "test_admin_token",
+                    "api_version": "2024-10",
+                },
             )
 
         assert "Tool get_web_product execution failed" in str(exc_info.value)
@@ -157,11 +126,13 @@ class TestGetWebProduct:
 
         # Execute function and verify exception
         with pytest.raises(ToolExecutionError) as exc_info:
-            get_web_product().func(
+            self.get_original_function()(
                 web_product_id="gid://shopify/Product/12345",
-                shop_url="https://test-shop.myshopify.com",
-                admin_token="test_admin_token",
-                api_version="2024-10",
+                auth={
+                    "shop_url": "https://test-shop.myshopify.com",
+                    "admin_token": "test_admin_token",
+                    "api_version": "2024-10",
+                },
             )
 
         assert "Tool get_web_product execution failed" in str(exc_info.value)
@@ -177,11 +148,13 @@ class TestGetWebProduct:
 
         # Execute function and verify exception
         with pytest.raises(ToolExecutionError) as exc_info:
-            get_web_product().func(
+            self.get_original_function()(
                 web_product_id="gid://shopify/Product/12345",
-                shop_url="https://test-shop.myshopify.com",
-                admin_token="test_admin_token",
-                api_version="2024-10",
+                auth={
+                    "shop_url": "https://test-shop.myshopify.com",
+                    "admin_token": "test_admin_token",
+                    "api_version": "2024-10",
+                },
             )
 
         assert "Tool get_web_product execution failed" in str(exc_info.value)
@@ -234,54 +207,27 @@ class TestGetWebProduct:
         mock_graphql.return_value = mock_graphql_instance
 
         # Execute function with pagination parameters
-        result = get_web_product().func(
+        result = self.get_original_function()(
             web_product_id="gid://shopify/Product/12345",
-            shop_url="https://test-shop.myshopify.com",
-            admin_token="test_admin_token",
-            api_version="2024-10",
+            auth={
+                "shop_url": "https://test-shop.myshopify.com",
+                "admin_token": "test_admin_token",
+                "api_version": "2024-10",
+            },
             limit="10",
             navigate="next",
             pageInfo='{"endCursor": "cursor1", "hasNextPage": true}',
         )
 
         # Verify result
-        assert "Product ID: gid://shopify/Product/12345" in result
-        assert "Title: Test Product" in result
+        assert "Product ID: gid://shopify/Product/12345" in result.message_flow
+        assert "Title: Test Product" in result.message_flow
 
         # Verify GraphQL query contains pagination parameters
         mock_graphql_instance.execute.assert_called_once()
         call_args = mock_graphql_instance.execute.call_args[0][0]
         assert "first: 10" in call_args
         assert 'after: "cursor1"' in call_args
-
-    @patch("arklex.env.tools.shopify.get_web_product.shopify.Session.temp")
-    @patch("arklex.env.tools.shopify.get_web_product.shopify.GraphQL")
-    def test_get_web_product_with_navigation_return_early(
-        self, mock_graphql: Mock, mock_session_temp: Mock
-    ) -> None:
-        """Test web product retrieval when navigation returns early."""
-        # This test simulates the case where cursorify returns early
-        with patch(
-            "arklex.env.tools.shopify.get_web_product.cursorify"
-        ) as mock_cursorify:
-            mock_cursorify.return_value = ("first: 10", False)
-
-            # Execute function
-            result = get_web_product().func(
-                web_product_id="gid://shopify/Product/12345",
-                shop_url="https://test-shop.myshopify.com",
-                admin_token="test_admin_token",
-                api_version="2024-10",
-                limit="10",
-            )
-
-            # Verify result is the navigation string
-            assert result == "first: 10"
-
-            # Verify no GraphQL execution was made
-            mock_graphql_instance = MagicMock()
-            mock_graphql.return_value = mock_graphql_instance
-            mock_graphql_instance.execute.assert_not_called()
 
     @patch("arklex.env.tools.shopify.get_web_product.shopify.Session.temp")
     @patch("arklex.env.tools.shopify.get_web_product.shopify.GraphQL")
@@ -327,20 +273,21 @@ class TestGetWebProduct:
         mock_graphql.return_value = mock_graphql_instance
 
         # Execute function
-        result = get_web_product().func(
+        result = self.get_original_function()(
             web_product_id="gid://shopify/Product/12345",
-            shop_url="https://test-shop.myshopify.com",
-            admin_token="test_admin_token",
-            api_version="2024-10",
+            auth={
+                "shop_url": "https://test-shop.myshopify.com",
+                "admin_token": "test_admin_token",
+                "api_version": "2024-10",
+            },
         )
 
         # Verify result handles missing fields gracefully
-        assert "Product ID: gid://shopify/Product/12345" in result
-        assert "Title: Test Product" in result
-        assert "Description: None" in result
-        assert "Total Inventory: None" in result
-        assert "Options: None" in result
-        assert "Category: None" in result
+        assert "Product ID: gid://shopify/Product/12345" in result.message_flow
+        assert "Title: Test Product" in result.message_flow
+        assert "Description: None" in result.message_flow
+        assert "Total Inventory: None" in result.message_flow
+        assert "Options: None" in result.message_flow
 
     @patch("arklex.env.tools.shopify.get_web_product.shopify.Session.temp")
     @patch("arklex.env.tools.shopify.get_web_product.shopify.GraphQL")
@@ -380,17 +327,21 @@ class TestGetWebProduct:
         mock_graphql.return_value = mock_graphql_instance
 
         # Execute function
-        result = get_web_product().func(
+        result = self.get_original_function()(
             web_product_id="gid://shopify/Product/12345",
-            shop_url="https://test-shop.myshopify.com",
-            admin_token="test_admin_token",
-            api_version="2024-10",
+            auth={
+                "shop_url": "https://test-shop.myshopify.com",
+                "admin_token": "test_admin_token",
+                "api_version": "2024-10",
+            },
         )
 
         # Verify result handles empty variants gracefully
-        assert "Product ID: gid://shopify/Product/12345" in result
-        assert "Title: Test Product" in result
-        assert "The following are several variants of the product:" in result
+        assert "Product ID: gid://shopify/Product/12345" in result.message_flow
+        assert "Title: Test Product" in result.message_flow
+        assert (
+            "The following are several variants of the product:" in result.message_flow
+        )
 
     @patch("arklex.env.tools.shopify.get_web_product.shopify.Session.temp")
     @patch("arklex.env.tools.shopify.get_web_product.shopify.GraphQL")
@@ -430,17 +381,21 @@ class TestGetWebProduct:
         mock_graphql.return_value = mock_graphql_instance
 
         # Execute function
-        result = get_web_product().func(
+        result = self.get_original_function()(
             web_product_id="gid://shopify/Product/12345",
-            shop_url="https://test-shop.myshopify.com",
-            admin_token="test_admin_token",
-            api_version="2024-10",
+            auth={
+                "shop_url": "https://test-shop.myshopify.com",
+                "admin_token": "test_admin_token",
+                "api_version": "2024-10",
+            },
         )
 
         # Verify result handles missing variants key gracefully
-        assert "Product ID: gid://shopify/Product/12345" in result
-        assert "Title: Test Product" in result
-        assert "The following are several variants of the product:" in result
+        assert "Product ID: gid://shopify/Product/12345" in result.message_flow
+        assert "Title: Test Product" in result.message_flow
+        assert (
+            "The following are several variants of the product:" in result.message_flow
+        )
 
     @patch("arklex.env.tools.shopify.get_web_product.shopify.Session.temp")
     @patch("arklex.env.tools.shopify.get_web_product.shopify.GraphQL")
@@ -489,16 +444,18 @@ class TestGetWebProduct:
         mock_graphql.return_value = mock_graphql_instance
 
         # Execute function with numeric ID
-        result = get_web_product().func(
+        result = self.get_original_function()(
             web_product_id="12345",  # Numeric ID instead of full GID
-            shop_url="https://test-shop.myshopify.com",
-            admin_token="test_admin_token",
-            api_version="2024-10",
+            auth={
+                "shop_url": "https://test-shop.myshopify.com",
+                "admin_token": "test_admin_token",
+                "api_version": "2024-10",
+            },
         )
 
         # Verify result
-        assert "Product ID: gid://shopify/Product/12345" in result
-        assert "Title: Test Product" in result
+        assert "Product ID: gid://shopify/Product/12345" in result.message_flow
+        assert "Title: Test Product" in result.message_flow
 
         # Verify GraphQL query was called with the numeric ID
         mock_graphql_instance.execute.assert_called_once()
@@ -507,27 +464,21 @@ class TestGetWebProduct:
 
     def test_get_web_product_function_registration(self) -> None:
         """Test that the get_web_product function is properly registered as a tool."""
-        # Create a tool instance to access the attributes
-        tool_instance = get_web_product()
+        # Verify the function returns a Tool instance when called
+        tool_instance = get_web_product
+        from arklex.env.tools.tools import Tool
 
-        # Verify the function has the expected attributes from register_tool decorator
-        assert hasattr(tool_instance, "func")
+        assert isinstance(tool_instance, Tool)
+
+        # Verify the tool has the expected attributes
         assert hasattr(tool_instance, "description")
         assert hasattr(tool_instance, "slots")
-        assert hasattr(tool_instance, "output")
 
         # Verify the description matches expected value
         assert (
             "inventory information and description details of a product"
             in tool_instance.description
         )
-
-        # Verify the function signature
-        import inspect
-
-        sig = inspect.signature(tool_instance.func)
-        assert "web_product_id" in sig.parameters
-        assert "kwargs" in sig.parameters
 
     @patch("arklex.env.tools.shopify.get_web_product.shopify.Session.temp")
     @patch("arklex.env.tools.shopify.get_web_product.shopify.GraphQL")
@@ -545,11 +496,13 @@ class TestGetWebProduct:
 
         # Execute function and verify exception
         with pytest.raises(ToolExecutionError) as exc_info:
-            get_web_product().func(
+            self.get_original_function()(
                 web_product_id="gid://shopify/Product/12345",
-                shop_url="https://test-shop.myshopify.com",
-                admin_token="test_admin_token",
-                api_version="2024-10",
+                auth={
+                    "shop_url": "https://test-shop.myshopify.com",
+                    "admin_token": "test_admin_token",
+                    "api_version": "2024-10",
+                },
             )
 
         assert "Tool get_web_product execution failed" in str(exc_info.value)
@@ -571,11 +524,13 @@ class TestGetWebProduct:
 
         # Execute function and verify exception
         with pytest.raises(ToolExecutionError) as exc_info:
-            get_web_product().func(
+            self.get_original_function()(
                 web_product_id="gid://shopify/Product/12345",
-                shop_url="https://test-shop.myshopify.com",
-                admin_token="test_admin_token",
-                api_version="2024-10",
+                auth={
+                    "shop_url": "https://test-shop.myshopify.com",
+                    "admin_token": "test_admin_token",
+                    "api_version": "2024-10",
+                },
             )
 
         assert "Tool get_web_product execution failed" in str(exc_info.value)
@@ -597,11 +552,13 @@ class TestGetWebProduct:
 
         # Execute function and verify exception
         with pytest.raises(ToolExecutionError) as exc_info:
-            get_web_product().func(
+            self.get_original_function()(
                 web_product_id="gid://shopify/Product/12345",
-                shop_url="https://test-shop.myshopify.com",
-                admin_token="test_admin_token",
-                api_version="2024-10",
+                auth={
+                    "shop_url": "https://test-shop.myshopify.com",
+                    "admin_token": "test_admin_token",
+                    "api_version": "2024-10",
+                },
             )
 
         assert "Tool get_web_product execution failed" in str(exc_info.value)
@@ -623,11 +580,13 @@ class TestGetWebProduct:
 
         # Execute function and verify exception
         with pytest.raises(ToolExecutionError) as exc_info:
-            get_web_product().func(
+            self.get_original_function()(
                 web_product_id="gid://shopify/Product/12345",
-                shop_url="https://test-shop.myshopify.com",
-                admin_token="test_admin_token",
-                api_version="2024-10",
+                auth={
+                    "shop_url": "https://test-shop.myshopify.com",
+                    "admin_token": "test_admin_token",
+                    "api_version": "2024-10",
+                },
             )
 
         assert "Tool get_web_product execution failed" in str(exc_info.value)

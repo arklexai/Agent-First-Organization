@@ -25,6 +25,11 @@ class HubspotExceptionPrompt(ExceptionPrompt):
         "Ticket creation failed, please try again later."
     )
 
+    # Error message when ticket updating fails
+    TICKET_UPDATE_ERROR_PROMPT: str = (
+        "Ticket name can't be updated, please try again later."
+    )
+
     # Error message when a user cannot be found in the system
     USER_NOT_FOUND_PROMPT: str = "User not found (not an existing customer)"
 

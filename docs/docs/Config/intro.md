@@ -23,9 +23,10 @@ Here is the structure for a **Config** JSON file:
             * `name (Required, Str)`: The WorkerClassName. Such as `MessageWorker`
             * `path (Required, Str)`: The file path of the worker start from the arklex/env/workers folder. Such as `message_worker.py`.
 * `tools (Optional, List(Dict))`: The tools (e.g. APIs, function, etc.) pre-defined under arklex/env/tools folder that you want to use for the chatbot. Each tool will be defined as a function decorated with @register_tool. The decorator includes the **description** - the purpose of the function, **slots** - the arguments needed for the function, **outputs** - expected result of the function. For more details, please refer to the arklex/env/tools/shopify/find_user_id_by_email.py as an example. The field required for each tool object is:
-            *`id (Required, uuid)`: The unique id for the worker
+
+            * `id (Required, uuid)`: The unique id for the worker
             * `name (Required, Str)`: The tool function name. Such as `find_user_id_by_email`.
-            *`path (Required, Str)`: The file path of the worker start from the arklex/env/tools folder. Such as `shopify/find_user_id_by_email.py`.
+            * `path (Required, Str)`: The file path of the worker start from the arklex/env/tools folder. Such as `shopify/find_user_id_by_email.py`.
             * `fixed_args (Optional, Dict)`: All the must and deterministic arguments for the tool function, such as credentials or already known argument during development. It should be a dictionary. Such as `{"token": "<access_token>", "shop_url": "<url>", "api_version": "<version>"}`
 * `settings (Optional, Dict)`: The extra configuration settings that you want to use for the chatbot. The dictionary should contain the following fields:
              * `hitl_proposal (Optional)` : Enable the HITL (human in the the loop) postprocess checking. When enabled, if the bot truly doesn't know the answer and question is relevant, it will ask the user if they want to connect to human assistant. Set to `True` or `False`

@@ -220,10 +220,30 @@ def format_chat_history(chat_history: list[dict[str, str]]) -> str:
     Returns:
         str: The formatted chat history string, with each message on a new line.
     """
-    chat_history_str: str = ""
+    lines = []
+
     for turn in chat_history:
-        chat_history_str += f"{turn['role']}: {turn['content']}\n"
-    return chat_history_str.strip()
+        role = turn.get("role")
+        content = turn.get("content", "")
+        type_ = turn.get("type")
+
+        if type_ == "function_call":
+            name = turn.get("name", "unknown_function")
+            args = turn.get("arguments", "{}")
+            lines.append(f"function_call ({name}): {args}")
+
+        elif type_ == "function_call_output":
+            output = turn.get("output", "")
+            lines.append(f"function_call_output: {output}")
+
+        elif role in {"assistant", "user"}:
+            lines.append(f"{role}: {content}")
+
+        else:
+            # Fallback for unknown entries
+            lines.append(f"{role or type_}: {content}")
+
+    return "\n".join(lines).strip()
 
 
 def format_truncated_chat_history(

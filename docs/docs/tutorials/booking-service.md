@@ -1,4 +1,4 @@
-# Booking Service Bot
+# Booking Service Agent
 
 *Connect your bots to databases through DatabaseWorkers*
 

@@ -9,15 +9,15 @@ This file contains the code for adding items to a shopping cart.
 
 import inspect
 import json
-from typing import TypedDict
 
 import requests
+from pydantic import BaseModel
 
 from arklex.env.tools.shopify._exception_prompt import ShopifyExceptionPrompt
-from arklex.env.tools.shopify.utils import authorify_storefront
-from arklex.env.tools.shopify.utils_slots import (
+from arklex.env.tools.shopify.base.entities import ShopifyStorefrontAuth
+from arklex.env.tools.shopify.utils.utils import authorify_storefront
+from arklex.env.tools.shopify.utils.utils_slots import (
     ShopifyCartAddItemsSlots,
-    ShopifyOutputs,
 )
 from arklex.env.tools.tools import register_tool
 from arklex.utils.exceptions import ToolExecutionError
@@ -26,33 +26,31 @@ from arklex.utils.logging_utils import LogContext
 log_context = LogContext(__name__)
 
 
-class CartAddItemsParams(TypedDict, total=False):
-    """Parameters for the cart add items tool."""
-
-    shop_url: str
-    api_version: str
-    storefront_token: str
+class CartAddItemsOutput(BaseModel):
+    message_flow: str
 
 
-description = "Add items to user's shopping cart."
-slots = ShopifyCartAddItemsSlots.get_all_slots()
-outputs = [ShopifyOutputs.CART_ADD_ITEMS_DETAILS]
-
-
-@register_tool(description, slots, outputs)
+@register_tool(
+    description="Add items to user's shopping cart.",
+    slots=ShopifyCartAddItemsSlots.get_all_slots(),
+)
 def cart_add_items(
-    cart_id: str, product_variant_ids: list[str], **kwargs: CartAddItemsParams
-) -> str:
+    cart_id: str,
+    product_variant_ids: list[str],
+    auth: ShopifyStorefrontAuth,
+    **kwargs: object,
+) -> CartAddItemsOutput:
     """
     Add items to a shopping cart.
 
     Args:
         cart_id (str): The ID of the shopping cart.
-        product_variant_ids (List[str]): List of product variant IDs to add to the cart.
-        **kwargs (CartAddItemsParams): Additional keyword arguments for authentication.
+        product_variant_ids (list[str]): List of product variant IDs to add to the cart.
+        auth (ShopifyStorefrontAuth): Authentication credentials for the Shopify store.
+        **kwargs: Additional keyword arguments for llm configuration.
 
     Returns:
-        str: A success message with the cart details if successful.
+        CartAddItemsOutput: A success message with the cart details if successful.
 
     Raises:
         ToolExecutionError: If:
@@ -61,7 +59,7 @@ def cart_add_items(
             - There's an error in the request process
     """
     func_name = inspect.currentframe().f_code.co_name
-    auth = authorify_storefront(kwargs)
+    auth = authorify_storefront(auth)
 
     variable: dict[str, list[dict[str, str | int]]] = {
         "cartId": cart_id,
@@ -115,9 +113,9 @@ def cart_add_items(
                         extra_message=ShopifyExceptionPrompt.CART_ADD_ITEMS_ERROR_PROMPT,
                     )
 
-                return (
-                    "Items are successfully added to the shopping cart. "
-                    + json.dumps(cart_lines_add["cart"])
+                return CartAddItemsOutput(
+                    message_flow="Items are successfully added to the shopping cart. "
+                    + json.dumps(cart_lines_add["cart"]),
                 )
         else:
             raise ToolExecutionError(

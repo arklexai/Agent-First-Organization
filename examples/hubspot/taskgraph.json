@@ -125,12 +125,42 @@
       "8",
       {
         "resource": {
+          "id": "be303c9a-a902-4de9-bbb2-61343e59e888",
+          "name": "MessageWorker"
+        },
+        "attribute": {
+          "value": "",
+          "task": "Show the customer with the available times",
+          "directed": false
+        },
+        "limit": 1
+      }
+    ],
+    [
+      "9",
+      {
+        "resource": {
           "id": "e86daf21-41a3-40b2-9695-3ed59be46cc4",
           "name": "create_meeting"
         },
         "attribute": {
           "value": "",
           "task": "schedule a meeting for the customer to the specific representative",
+          "directed": false
+        },
+        "limit": 1
+      }
+    ],
+    [
+      "10",
+      {
+        "resource": {
+          "id": "be303c9a-a902-4de9-bbb2-61343e59e888",
+          "name": "MessageWorker"
+        },
+        "attribute": {
+          "value": "",
+          "task": "Show the customer with meeting details",
           "directed": false
         },
         "limit": 1
@@ -155,7 +185,7 @@
       "1",
       "2",
       {
-        "intent": "none",
+        "intent": "Customer exists",
         "attribute": {
           "weight": 1,
           "pred": true,
@@ -181,7 +211,7 @@
       "3",
       "4",
       {
-        "intent": "none",
+        "intent": "customer exists",
         "attribute": {
           "weight": 1,
           "pred": true,
@@ -207,7 +237,7 @@
       "5",
       "6",
       {
-        "intent": "none",
+        "intent": "Cotinue booking a meeting after finding the owner",
         "attribute": {
           "weight": 1,
           "pred": true,
@@ -220,7 +250,7 @@
       "6",
       "7",
       {
-        "intent": "none",
+        "intent": "Cotinue booking a meeting after checking the available time",
         "attribute": {
           "weight": 1,
           "pred": true,
@@ -233,7 +263,33 @@
       "7",
       "8",
       {
-        "intent": "none",
+        "intent": "Cotinue booking a meeting after choosing the available time",
+        "attribute": {
+          "weight": 1,
+          "pred": true,
+          "definition": "",
+          "sample_utterances": []
+        }
+      }
+    ],
+    [
+      "8",
+      "9",
+      {
+        "intent": "Cotinue booking a meeting for the final result",
+        "attribute": {
+          "weight": 1,
+          "pred": true,
+          "definition": "",
+          "sample_utterances": []
+        }
+      }
+    ],
+    [
+      "9",
+      "10",
+      {
+        "intent": "Cotinue booking a meeting",
         "attribute": {
           "weight": 1,
           "pred": true,
@@ -257,7 +313,7 @@
       "name": "find_contact_by_email",
       "path": "hubspot.find_contact_by_email",
       "fixed_args": {
-        "access_token": "<access_token>"
+        "access_token": "<access-token>"
       }
     },
     {
@@ -265,7 +321,7 @@
       "name": "create_ticket",
       "path": "hubspot.create_ticket",
       "fixed_args": {
-        "access_token": "<access_token>"
+        "access_token": "<access-token>"
       }
     },
     {
@@ -273,7 +329,7 @@
       "name": "check_available",
       "path": "hubspot.check_available",
       "fixed_args": {
-        "access_token": "<access_token>"
+        "access_token": "<access-token>"
       }
     },
     {
@@ -281,7 +337,7 @@
       "name": "create_meeting",
       "path": "hubspot.create_meeting",
       "fixed_args": {
-        "access_token": "<access_token>"
+        "access_token": "<access-token>"
       }
     },
     {
@@ -289,7 +345,7 @@
       "name": "find_owner_id_by_contact_id",
       "path": "hubspot.find_owner_id_by_contact_id",
       "fixed_args": {
-        "access_token": "<access_token>"
+        "access_token": "<access-token>"
       }
     }
   ],

@@ -5,7 +5,7 @@ from unittest.mock import Mock, patch
 import pytest
 import requests
 
-from arklex.env.tools.shopify.utils import (
+from arklex.env.tools.shopify.utils.utils import (
     SHOPIFY_ADMIN_AUTH_ERROR_MSG,
     SHOPIFY_STOREFRONT_AUTH_ERROR_MSG,
     authorify_admin,
@@ -193,7 +193,7 @@ class TestAuthorifyStorefront:
 class TestMakeQuery:
     """Test cases for make_query function."""
 
-    @patch("arklex.env.tools.shopify.utils.requests.post")
+    @patch("arklex.env.tools.shopify.utils.utils.requests.post")
     def test_make_query_success(self, mock_post: Mock) -> None:
         """Test successful query execution."""
         url = "https://test.myshopify.com/api/2024-01/graphql.json"
@@ -217,7 +217,7 @@ class TestMakeQuery:
             headers=headers,
         )
 
-    @patch("arklex.env.tools.shopify.utils.requests.post")
+    @patch("arklex.env.tools.shopify.utils.utils.requests.post")
     def test_make_query_http_error(self, mock_post: Mock) -> None:
         """Test query execution with HTTP error."""
         url = "https://test.myshopify.com/api/2024-01/graphql.json"
@@ -235,7 +235,7 @@ class TestMakeQuery:
         assert "Query failed to run by returning code of 400" in str(exc_info.value)
         assert query in str(exc_info.value)
 
-    @patch("arklex.env.tools.shopify.utils.requests.post")
+    @patch("arklex.env.tools.shopify.utils.utils.requests.post")
     def test_make_query_server_error(self, mock_post: Mock) -> None:
         """Test query execution with server error."""
         url = "https://test.myshopify.com/api/2024-01/graphql.json"
@@ -253,7 +253,7 @@ class TestMakeQuery:
         assert "Query failed to run by returning code of 500" in str(exc_info.value)
         assert query in str(exc_info.value)
 
-    @patch("arklex.env.tools.shopify.utils.requests.post")
+    @patch("arklex.env.tools.shopify.utils.utils.requests.post")
     def test_make_query_network_error(self, mock_post: Mock) -> None:
         """Test query execution with network error."""
         url = "https://test.myshopify.com/api/2024-01/graphql.json"
@@ -268,7 +268,7 @@ class TestMakeQuery:
 
         assert "Network error" in str(exc_info.value)
 
-    @patch("arklex.env.tools.shopify.utils.requests.post")
+    @patch("arklex.env.tools.shopify.utils.utils.requests.post")
     def test_make_query_with_empty_variables(self, mock_post: Mock) -> None:
         """Test query execution with empty variables."""
         url = "https://test.myshopify.com/api/2024-01/graphql.json"
@@ -292,7 +292,7 @@ class TestMakeQuery:
             headers=headers,
         )
 
-    @patch("arklex.env.tools.shopify.utils.requests.post")
+    @patch("arklex.env.tools.shopify.utils.utils.requests.post")
     def test_make_query_with_empty_headers(self, mock_post: Mock) -> None:
         """Test query execution with empty headers."""
         url = "https://test.myshopify.com/api/2024-01/graphql.json"

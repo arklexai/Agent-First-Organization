@@ -5,7 +5,7 @@ from unittest.mock import MagicMock, Mock, patch
 import pytest
 
 from arklex.env.tools.utils import ToolGenerator, execute_tool, trace
-from arklex.orchestrator.entities.msg_state_entities import MessageState
+from arklex.orchestrator.entities.orchestrator_state_entities import OrchestratorState
 
 
 class TestGetPromptTemplate:
@@ -17,7 +17,7 @@ class TestGetPromptTemplate:
     ) -> None:
         """Test get_prompt_template for speech non-Chinese."""
         # Setup
-        state = Mock(spec=MessageState)
+        state = Mock(spec=OrchestratorState)
         state.stream_type = "speech"
         state.bot_config = Mock()
         state.bot_config.language = "EN"
@@ -41,7 +41,7 @@ class TestGetPromptTemplate:
     def test_get_prompt_template_speech_chinese(self, mock_load_prompts: Mock) -> None:
         """Test get_prompt_template for speech Chinese."""
         # Setup
-        state = Mock(spec=MessageState)
+        state = Mock(spec=OrchestratorState)
         state.stream_type = "speech"
         state.bot_config = Mock()
         state.bot_config.language = "CN"
@@ -65,7 +65,7 @@ class TestGetPromptTemplate:
     def test_get_prompt_template_non_speech(self, mock_load_prompts: Mock) -> None:
         """Test get_prompt_template for non-speech."""
         # Setup
-        state = Mock(spec=MessageState)
+        state = Mock(spec=OrchestratorState)
         state.stream_type = "text"
         state.bot_config = Mock()
 
@@ -101,7 +101,7 @@ class TestToolGenerator:
     ) -> None:
         """Test ToolGenerator.generate method."""
         # Setup
-        state = Mock(spec=MessageState)
+        state = Mock(spec=OrchestratorState)
         state.bot_config = Mock()
         state.bot_config.llm_config = Mock()
         state.bot_config.llm_config.llm_provider = "openai"
@@ -127,8 +127,7 @@ class TestToolGenerator:
         result = ToolGenerator.generate(state)
 
         # Assert
-        assert result == state
-        assert state.response == '{"result": "dummy response"}'
+        assert result == '{"result": "dummy response"}'
 
     @patch("arklex.utils.model_provider_config.PROVIDER_MAP")
     @patch("arklex.env.tools.utils.get_prompt_template")
@@ -143,7 +142,7 @@ class TestToolGenerator:
     ) -> None:
         """Test ToolGenerator.context_generate method with dict steps."""
         # Setup
-        state = Mock(spec=MessageState)
+        state = Mock(spec=OrchestratorState)
         state.bot_config = Mock()
         state.bot_config.llm_config = Mock()
         state.bot_config.llm_config.llm_provider = "openai"
@@ -182,8 +181,7 @@ class TestToolGenerator:
         result = ToolGenerator.context_generate(state)
 
         # Assert
-        assert result == state
-        assert state.response == '{"result": "dummy response"}'
+        assert result == '{"result": "dummy response"}'
         assert state.message_flow == ""
 
     @patch("arklex.utils.model_provider_config.PROVIDER_MAP")
@@ -199,7 +197,7 @@ class TestToolGenerator:
     ) -> None:
         """Test ToolGenerator.context_generate method without relevant_records."""
         # Setup
-        state = Mock(spec=MessageState)
+        state = Mock(spec=OrchestratorState)
         state.bot_config = Mock()
         state.bot_config.llm_config = Mock()
         state.bot_config.llm_config.llm_provider = "openai"
@@ -231,8 +229,7 @@ class TestToolGenerator:
         result = ToolGenerator.context_generate(state)
 
         # Assert
-        assert result == state
-        assert state.response == '{"result": "dummy response"}'
+        assert isinstance(result, str)
         assert state.message_flow == ""
 
     @patch("arklex.utils.model_provider_config.PROVIDER_MAP")
@@ -248,7 +245,7 @@ class TestToolGenerator:
     ) -> None:
         """Test ToolGenerator.stream_context_generate method."""
         # Setup
-        state = Mock(spec=MessageState)
+        state = Mock(spec=OrchestratorState)
         state.bot_config = Mock()
         state.bot_config.llm_config = Mock()
         state.bot_config.llm_config.llm_provider = "openai"
@@ -288,8 +285,7 @@ class TestToolGenerator:
             result = ToolGenerator.stream_context_generate(state)
 
         # Assert
-        assert result == state
-        assert state.response == "chunk1chunk2chunk3"
+        assert result == "chunk1chunk2chunk3"
         assert state.message_flow == ""
         assert state.message_queue.put.call_count == 3
 
@@ -308,7 +304,7 @@ class TestToolGenerator:
     ) -> None:
         """Test ToolGenerator.stream_context_generate method without relevant_records."""
         # Setup
-        state = Mock(spec=MessageState)
+        state = Mock(spec=OrchestratorState)
         state.bot_config = Mock()
         state.bot_config.llm_config = Mock()
         state.bot_config.llm_config.llm_provider = "openai"
@@ -337,8 +333,7 @@ class TestToolGenerator:
             return_value=iter(["chunk1", "chunk2"]),
         ):
             result = ToolGenerator.stream_context_generate(state)
-        assert result == state
-        assert state.response == "chunk1chunk2"
+        assert result == "chunk1chunk2"
         assert state.message_flow == ""
         assert state.message_queue.put.call_count == 2
 
@@ -354,7 +349,7 @@ class TestToolGenerator:
         mock_validate_model: Mock,
     ) -> None:
         """Test ToolGenerator.stream_generate method."""
-        state = Mock(spec=MessageState)
+        state = Mock(spec=OrchestratorState)
         state.bot_config = Mock()
         state.bot_config.llm_config = Mock()
         state.bot_config.llm_config.llm_provider = "openai"
@@ -376,8 +371,7 @@ class TestToolGenerator:
             from arklex.env.tools import utils as utils_mod
 
             result = utils_mod.ToolGenerator.stream_generate(state)
-            assert result == state
-            assert state.response == "chunk1chunk2chunk3"
+            assert result == "chunk1chunk2chunk3"
             assert state.message_queue.put.call_count == 3
 
     @patch("arklex.env.tools.utils.StrOutputParser")
@@ -394,7 +388,7 @@ class TestToolGenerator:
         mock_str_output_parser: Mock,
     ) -> None:
         """Test ToolGenerator.stream_generate method with empty stream."""
-        state = Mock(spec=MessageState)
+        state = Mock(spec=OrchestratorState)
         state.bot_config = Mock()
         state.bot_config.llm_config = Mock()
         state.bot_config.llm_config.llm_provider = "openai"
@@ -417,8 +411,7 @@ class TestToolGenerator:
             return_value=iter([]),
         ):
             result = ToolGenerator.stream_generate(state)
-        assert result == state
-        assert state.response == ""
+        assert result == ""
         assert state.message_queue.put.call_count == 0
 
 
@@ -429,7 +422,7 @@ class TestTrace:
     def test_trace(self, mock_inspect: Mock) -> None:
         """Test trace function."""
         # Setup
-        state = Mock(spec=MessageState)
+        state = Mock(spec=OrchestratorState)
         state.trajectory = [[Mock()]]
         state.trajectory[-1][-1].steps = []
 
@@ -442,7 +435,7 @@ class TestTrace:
         result = trace("test input", state)
 
         # Assert
-        assert result == state
+        assert result is state  # trace returns the modified state object
         assert len(state.trajectory[-1][-1].steps) == 1
         assert state.trajectory[-1][-1].steps[0] == {"test_function": "test input"}
 
@@ -450,7 +443,7 @@ class TestTrace:
     def test_trace_no_current_frame(self, mock_inspect: Mock) -> None:
         """Test trace function when no current frame is available."""
         # Setup
-        state = Mock(spec=MessageState)
+        state = Mock(spec=OrchestratorState)
         state.trajectory = [[Mock()]]
         state.trajectory[-1][-1].steps = []
 
@@ -460,7 +453,7 @@ class TestTrace:
         result = trace("test input", state)
 
         # Assert
-        assert result == state
+        assert result is state  # trace returns the modified state object
         assert len(state.trajectory[-1][-1].steps) == 1
         assert state.trajectory[-1][-1].steps[0] == {"unknown": "test input"}
 
@@ -468,7 +461,7 @@ class TestTrace:
     def test_trace_no_previous_frame(self, mock_inspect: Mock) -> None:
         """Test trace function when no previous frame is available."""
         # Setup
-        state = Mock(spec=MessageState)
+        state = Mock(spec=OrchestratorState)
         state.trajectory = [[Mock()]]
         state.trajectory[-1][-1].steps = []
 
@@ -480,7 +473,7 @@ class TestTrace:
         result = trace("test input", state)
 
         # Assert
-        assert result == state
+        assert result is state  # trace returns the modified state object
         assert len(state.trajectory[-1][-1].steps) == 1
         assert state.trajectory[-1][-1].steps[0] == {"unknown": "test input"}
 

@@ -1,22 +1,26 @@
 import asyncio
 import base64
 import datetime
-import json
 import logging
 import os
 import threading
 import uuid
 from collections import defaultdict
-from typing import Literal
+from typing import Any, Literal
 
 import numpy as np
+import orjson
 import websockets
 from jinja2 import Template
 from pydantic import BaseModel
 
-from arklex.env.agents.agent import BaseAgent, register_agent
+from arklex.env.agents.agent import BaseAgent, register_agent, AgentOutput
 from arklex.env.tools.tools import Tool
 from arklex.env.tools.types import Transcript
+from arklex.orchestrator.entities.orchestrator_state_entities import (
+    OrchestratorState,
+    StatusEnum,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -255,7 +259,7 @@ class OpenAIRealtimeAgent(BaseAgent):
             event["session"]["input_audio_transcription"]["language"] = (
                 self.transcription_language
             )
-        await self.ws.send(json.dumps(event))
+        await self.ws.send(orjson.dumps(event).decode())
 
     async def send_audio(self, b64_encoded_audio: str) -> None:
         """
@@ -265,7 +269,7 @@ class OpenAIRealtimeAgent(BaseAgent):
             b64_encoded_audio: Base64 encoded audio data to send
         """
         event = {"type": "input_audio_buffer.append", "audio": b64_encoded_audio}
-        await self.ws.send(json.dumps(event))
+        await self.ws.send(orjson.dumps(event).decode())
 
     async def truncate_audio(self, item_id: str, audio_end_ms: int) -> None:
         """
@@ -282,7 +286,7 @@ class OpenAIRealtimeAgent(BaseAgent):
             "content_index": 0,
             "audio_end_ms": audio_end_ms,
         }
-        await self.ws.send(json.dumps(event))
+        await self.ws.send(orjson.dumps(event).decode())
 
     async def commit_audio(self) -> None:
         """
@@ -291,7 +295,7 @@ class OpenAIRealtimeAgent(BaseAgent):
         This signals that the current audio input is complete and ready for processing.
         """
         event = {"type": "input_audio_buffer.commit"}
-        await self.ws.send(json.dumps(event))
+        await self.ws.send(orjson.dumps(event).decode())
 
     async def create_response(self) -> None:
         """
@@ -300,7 +304,7 @@ class OpenAIRealtimeAgent(BaseAgent):
         This triggers the model to generate a response based on the current conversation context.
         """
         logger.info("Creating response")
-        await self.ws.send(json.dumps({"type": "response.create"}))
+        await self.ws.send(orjson.dumps({"type": "response.create"}).decode())
 
     async def wait_till_input_audio(self) -> bool:
         """
@@ -336,7 +340,7 @@ class OpenAIRealtimeAgent(BaseAgent):
             output: The output/result of the function call
         """
         await self.ws.send(
-            json.dumps(
+            orjson.dumps(
                 {
                     "type": "conversation.item.create",
                     "item": {
@@ -345,7 +349,7 @@ class OpenAIRealtimeAgent(BaseAgent):
                         "output": output,
                     },
                 }
-            )
+            ).decode()
         )
 
     async def run_voicemail_tool(self, tool: Tool) -> None:
@@ -469,7 +473,7 @@ class OpenAIRealtimeAgent(BaseAgent):
         """
         async for openai_message in self.ws:
             try:
-                openai_event = json.loads(openai_message)
+                openai_event = orjson.loads(openai_message)
                 event_type = openai_event.get("type")
                 logger.info(f"Received event type: {event_type}")
 
@@ -491,7 +495,7 @@ class OpenAIRealtimeAgent(BaseAgent):
                                     await self.run_tool(
                                         output["call_id"],
                                         output["name"],
-                                        json.loads(output["arguments"]),
+                                        orjson.loads(output["arguments"]),
                                     )
                                 except Exception as e:
                                     logger.error(
@@ -626,3 +630,29 @@ class OpenAIRealtimeAgent(BaseAgent):
         await self.internal_queue.put(None)
         await self.input_audio_buffer_event_queue.put(None)
         await self.external_queue.put(None)
+
+    def init_agent_data(
+        self, orch_state: OrchestratorState, node_specific_data: dict[str, Any]
+    ) -> None:
+        """Initialize the agent data.
+
+        Args:
+            orch_state (OrchestratorState): The current orchestrator state.
+            node_specific_data (dict[str, Any]): Additional keyword arguments for the execution.
+        """
+        # For OpenAIRealtimeAgent, this method can be a no-op as initialization
+        # is handled in the __init__ method
+        pass
+
+    def _execute(self) -> tuple[OrchestratorState, AgentOutput]:
+        """Execute the agent's core functionality.
+
+        This method is not used for OpenAIRealtimeAgent as it operates
+        asynchronously through WebSocket connections.
+
+        Returns:
+            tuple[OrchestratorState, AgentOutput]: A placeholder return for the abstract method.
+        """
+        # This method is not used for OpenAIRealtimeAgent as it operates
+        # asynchronously through WebSocket connections
+        return OrchestratorState(), AgentOutput(response="", status=StatusEnum.COMPLETE)

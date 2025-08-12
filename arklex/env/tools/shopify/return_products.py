@@ -9,16 +9,14 @@ This file contains the code for processing product returns in Shopify.
 
 import inspect
 import json
-from typing import TypedDict
 
 import shopify
+from pydantic import BaseModel
 
 from arklex.env.tools.shopify._exception_prompt import ShopifyExceptionPrompt
-
-# general GraphQL navigation utilities
-from arklex.env.tools.shopify.utils import authorify_admin
-from arklex.env.tools.shopify.utils_slots import (
-    ShopifyOutputs,
+from arklex.env.tools.shopify.base.entities import ShopifyAdminAuth
+from arklex.env.tools.shopify.utils.utils import authorify_admin
+from arklex.env.tools.shopify.utils.utils_slots import (
     ShopifyReturnProductsSlots,
 )
 from arklex.env.tools.tools import register_tool
@@ -28,33 +26,27 @@ from arklex.utils.logging_utils import LogContext
 log_context = LogContext(__name__)
 
 
-class ReturnProductsParams(TypedDict, total=False):
-    """Parameters for the return products tool."""
-
-    shop_url: str
-    api_version: str
-    admin_token: str
+class ReturnProductsOutput(BaseModel):
+    message_flow: str
 
 
-description = "Return order by order id. If no fulfillments are found, the function will return an error message."
-slots = ShopifyReturnProductsSlots.get_all_slots()
-# change output
-outputs = [
-    ShopifyOutputs.RETURN_REQUEST_DETAILS,
-]
-
-
-@register_tool(description, slots, outputs)
-def return_products(return_order_id: str, **kwargs: ReturnProductsParams) -> str:
+@register_tool(
+    description="Return order by order id. If no fulfillments are found, the function will return an error message.",
+    slots=ShopifyReturnProductsSlots.get_all_slots(),
+)
+def return_products(
+    return_order_id: str, auth: ShopifyAdminAuth, **kwargs: object
+) -> ReturnProductsOutput:
     """
     Process a return request for a Shopify order.
 
     Args:
         return_order_id (str): The ID of the order to be returned.
-        **kwargs (ReturnProductsParams): Additional keyword arguments for authentication.
+        auth (ShopifyAdminAuth): Authentication credentials for the Shopify store.
+        **kwargs: Additional keyword arguments for llm configuration.
 
     Returns:
-        str: A success message with return request details if successful.
+        ReturnProductsOutput: A success message with return request details if successful.
 
     Raises:
         ToolExecutionError: If:
@@ -63,7 +55,7 @@ def return_products(return_order_id: str, **kwargs: ReturnProductsParams) -> str
             - The return request submission fails
     """
     func_name = inspect.currentframe().f_code.co_name
-    auth = authorify_admin(kwargs)
+    auth = authorify_admin(auth)
 
     try:
         with shopify.Session.temp(**auth):
@@ -147,9 +139,9 @@ def return_products(return_order_id: str, **kwargs: ReturnProductsParams) -> str
             try:
                 response = json.loads(response)["data"]
                 if response.get("returnRequest"):
-                    return (
-                        "The product return request is successfully submitted. "
-                        + json.dumps(response)
+                    return ReturnProductsOutput(
+                        message_flow="The product return request is successfully submitted. "
+                        + json.dumps(response),
                     )
                 else:
                     raise ToolExecutionError(

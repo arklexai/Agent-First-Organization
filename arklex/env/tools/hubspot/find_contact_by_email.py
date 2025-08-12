@@ -15,6 +15,7 @@ from hubspot.crm.objects.communications.models import SimplePublicObjectInputFor
 from hubspot.crm.objects.emails import ApiException, PublicObjectSearchRequest
 
 from arklex.env.tools.hubspot._exception_prompt import HubspotExceptionPrompt
+from arklex.env.tools.hubspot.base.entities import HubspotAuth
 from arklex.env.tools.hubspot.utils import authenticate_hubspot
 from arklex.env.tools.tools import register_tool
 from arklex.utils.exceptions import ToolExecutionError
@@ -22,16 +23,14 @@ from arklex.utils.logging_utils import LogContext
 
 log_context = LogContext(__name__)
 
-# Tool description for finding contacts by email
 description: str = "Find the contacts record by email. If the record is found, the lastmodifieddate of the contact will be updated. If the correspodning record is not found, the function will return an error message."
 
-# List of required parameters for the tool
 slots: list[dict[str, Any]] = [
     {
         "name": "email",
         "type": "str",
         "description": "The email of the user, such as 'something@example.com'.",
-        "prompt": "Thanks for your interest in our products! Could you please provide your email or phone number?",
+        "prompt": "Thanks for your interest in our products! Could you please provide your email?",
         "required": True,
     },
     {
@@ -43,18 +42,11 @@ slots: list[dict[str, Any]] = [
     },
 ]
 
-# List of output parameters for the tool
-outputs: list[dict[str, Any]] = [
-    {
-        "name": "contact_information",
-        "type": "dict",
-        "description": "The basic contact information for the existing customer (e.g. id, first_name, last_name, etc.)",
-    }
-]
 
-
-@register_tool(description, slots, outputs)
-def find_contact_by_email(email: str, chat: str, **kwargs: dict[str, Any]) -> str:
+@register_tool(description, slots)
+def find_contact_by_email(
+    email: str, chat: str, auth: HubspotAuth, **kwargs: dict[str, Any]
+) -> str:
     """
     Find a contact in HubSpot by email and update their communication history.
 
@@ -70,7 +62,7 @@ def find_contact_by_email(email: str, chat: str, **kwargs: dict[str, Any]) -> st
         ToolExecutionError: If contact is not found or API calls fail
     """
     func_name: str = inspect.currentframe().f_code.co_name
-    access_token: str = authenticate_hubspot(kwargs)
+    access_token: str = authenticate_hubspot(auth)
 
     api_client: hubspot.Client = hubspot.Client.create(access_token=access_token)
     public_object_search_request: PublicObjectSearchRequest = PublicObjectSearchRequest(

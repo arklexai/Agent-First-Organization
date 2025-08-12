@@ -8,34 +8,68 @@ import inspect
 from typing import Any
 
 import requests
+from pydantic import BaseModel, Field
 
 from arklex.env.tools.tools import register_tool
-from arklex.orchestrator.entities.msg_state_entities import HTTPParams
 from arklex.utils.exceptions import ToolExecutionError
 from arklex.utils.logging_utils import LogContext
 
 log_context = LogContext(__name__)
 
 
+class HTTPParams(BaseModel):
+    """Parameters for HTTP requests.
+
+    This class defines the parameters needed for making HTTP requests,
+    including endpoint, method, headers, and body data.
+
+    The class provides:
+    1. Endpoint management
+    2. HTTP method handling
+    3. Header management
+    4. Body data handling
+    5. URL parameter support
+    6. Type-safe HTTP parameter management
+
+    Attributes:
+        endpoint (str): The API endpoint URL.
+        method (str): HTTP method to use.
+        headers (Dict[str, str]): HTTP headers.
+        body (Optional[Any]): Request body.
+        params (Optional[Dict[str, Any]]): URL parameters.
+    """
+
+    endpoint: str
+    method: str = Field(default="GET")
+    headers: dict[str, str] = Field(
+        default_factory=lambda: {"Content-Type": "application/json"}
+    )
+    body: Any | None = Field(default=None)
+    params: dict[str, Any] | None = Field(default=None)
+
+
 def clean_json_data(data: dict[str, Any]) -> dict[str, Any]:
     """
     Clean JSON data by removing or replacing invalid values that could cause parsing errors.
-    
+
     Args:
         data: Dictionary to clean
-        
+
     Returns:
         Cleaned dictionary with valid JSON values
     """
     if not isinstance(data, dict):
         return data
-    
+
     cleaned_data = {}
     for key, value in data.items():
         if isinstance(value, dict):
             cleaned_data[key] = clean_json_data(value)
         elif isinstance(value, list):
-            cleaned_data[key] = [clean_json_data(item) if isinstance(item, dict) else item for item in value]
+            cleaned_data[key] = [
+                clean_json_data(item) if isinstance(item, dict) else item
+                for item in value
+            ]
         elif isinstance(value, str):
             # Remove any remaining placeholders that might cause JSON parsing issues
             if "{{" in value and "}}" in value:
@@ -45,31 +79,32 @@ def clean_json_data(data: dict[str, Any]) -> dict[str, Any]:
                 cleaned_data[key] = value
         else:
             cleaned_data[key] = value
-    
+
     return cleaned_data
 
 
 def validate_request_body(body: dict[str, Any] | None) -> dict[str, Any] | None:
     """
     Validate and clean the request body to ensure it's valid JSON.
-    
+
     Args:
         body: Request body to validate
-        
+
     Returns:
         Cleaned and validated request body
     """
     if body is None:
         return None
-    
+
     try:
         # First clean the data
         cleaned_body = clean_json_data(body)
-        
+
         # Test JSON serialization to catch any remaining issues
         import json
+
         json.dumps(cleaned_body)
-        
+
         return cleaned_body
     except (TypeError, ValueError) as e:
         log_context.error(f"Invalid request body after cleaning: {str(e)}")
@@ -137,20 +172,20 @@ def replace_placeholders(
 
 
 @register_tool(
-    desc="Make HTTP requests to external APIs and handle responses",
+    description="Make HTTP requests to external APIs and handle responses",
     slots=[],
-    outputs=["response"],
-    isResponse=False,
 )
 def http_tool(
-    slots: list[dict[str, Any]] | None = None, **kwargs: dict[str, Any]
+    slots: list[dict[str, Any]] | None = None,
+    node_specific_data: dict[str, Any] | None = None,
+    **kwargs: dict[str, Any],
 ) -> str:
     """Make an HTTP request and return the response"""
     func_name: str = inspect.currentframe().f_code.co_name
     try:
-        params: HTTPParams = HTTPParams(**kwargs)
+        params: HTTPParams = HTTPParams(**node_specific_data)
         log_context.info(
-            f"HTTPTool execution called with args: {kwargs}, slots: {slots}"
+            f"HTTPTool execution called with params: {params}, slots: {slots}"
         )
         if slots:
             # Process slots based on their target
@@ -203,7 +238,7 @@ def http_tool(
         # Clean and validate JSON data to prevent parsing errors
         if params.body:
             params.body = validate_request_body(params.body)
-        
+
         # Remove any {{}} placeholders from params and body as these are optional parameters
         def remove_placeholders(data_dict: dict[str, Any] | None) -> None:
             if not data_dict:
@@ -228,7 +263,7 @@ def http_tool(
         log_context.info(
             f"Making a {params.method} request to {params.endpoint}, with body: {params.body} and params: {params.params}"
         )
-        
+
         response: requests.Response = requests.request(
             method=params.method,
             url=params.endpoint,
@@ -237,15 +272,18 @@ def http_tool(
             params=params.params,
         )
         response.raise_for_status()
-        
+
         # Handle JSON parsing with better error handling
         try:
             response_data: dict[str, Any] | list[Any] = response.json()
         except ValueError as json_error:
             log_context.error(f"Failed to parse JSON response: {str(json_error)}")
             # Return the raw text if JSON parsing fails
-            response_data = {"raw_response": response.text, "error": "JSON parsing failed"}
-        
+            response_data = {
+                "raw_response": response.text,
+                "error": "JSON parsing failed",
+            }
+
         log_context.info(
             f"Response from the {params.endpoint} for body: {params.body} and params: {params.params} is: {response_data}"
         )
