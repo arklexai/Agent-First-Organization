@@ -6,7 +6,7 @@ import os
 import threading
 import uuid
 from collections import defaultdict
-from typing import Any, Literal
+from typing import Literal
 
 import numpy as np
 import orjson
@@ -14,13 +14,9 @@ import websockets
 from jinja2 import Template
 from pydantic import BaseModel
 
-from arklex.env.agents.agent import BaseAgent, register_agent, AgentOutput
+from arklex.env.agents.agent import BaseAgent, register_agent
 from arklex.env.tools.tools import Tool
 from arklex.env.tools.types import Transcript
-from arklex.orchestrator.entities.orchestrator_state_entities import (
-    OrchestratorState,
-    StatusEnum,
-)
 
 logger = logging.getLogger(__name__)
 
@@ -630,29 +626,3 @@ class OpenAIRealtimeAgent(BaseAgent):
         await self.internal_queue.put(None)
         await self.input_audio_buffer_event_queue.put(None)
         await self.external_queue.put(None)
-
-    def init_agent_data(
-        self, orch_state: OrchestratorState, node_specific_data: dict[str, Any]
-    ) -> None:
-        """Initialize the agent data.
-
-        Args:
-            orch_state (OrchestratorState): The current orchestrator state.
-            node_specific_data (dict[str, Any]): Additional keyword arguments for the execution.
-        """
-        # For OpenAIRealtimeAgent, this method can be a no-op as initialization
-        # is handled in the __init__ method
-        pass
-
-    def _execute(self) -> tuple[OrchestratorState, AgentOutput]:
-        """Execute the agent's core functionality.
-
-        This method is not used for OpenAIRealtimeAgent as it operates
-        asynchronously through WebSocket connections.
-
-        Returns:
-            tuple[OrchestratorState, AgentOutput]: A placeholder return for the abstract method.
-        """
-        # This method is not used for OpenAIRealtimeAgent as it operates
-        # asynchronously through WebSocket connections
-        return OrchestratorState(), AgentOutput(response="", status=StatusEnum.COMPLETE)
