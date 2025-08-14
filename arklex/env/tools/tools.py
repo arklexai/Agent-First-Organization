@@ -26,6 +26,7 @@ TYPE_CONVERTERS = {
     "int": int,
     "float": float,
     "bool": lambda v: v if isinstance(v, bool) else (v.lower() == "true" if isinstance(v, str) else bool(v)),
+    "boolean": lambda v: v if isinstance(v, bool) else (v.lower() == "true" if isinstance(v, str) else bool(v)),
     "str": lambda v: v if isinstance(v, dict | list) else str(v),
 }
 
@@ -402,7 +403,7 @@ class Tool:
         example_fields = []
         schema_lines = []
         
-        for field in (slot.schema if hasattr(slot, 'schema') and isinstance(slot.schema, list | tuple) else []):
+        for field in self._iter_group_fields(slot):
             field_type = field.get("type", "str")
             field_repeatable = field.get("repeatable", False)
             example_value = self._get_example_value_for_type(field_type)
@@ -576,7 +577,7 @@ class Tool:
             Updated group value with valueSource logic applied
         """
         for item in group_value:
-            for field in (slot.schema if hasattr(slot, 'schema') and isinstance(slot.schema, list | tuple) else []):
+            for field in self._iter_group_fields(slot):
                 field_name = field["name"]
                 field_repeatable = field.get("repeatable", False)
                 val_source = field.get("valueSource", "Prompt User")
@@ -688,7 +689,7 @@ class Tool:
                     return True
                 # For each item, check required fields
                 for item in (slot.value or []):
-                    for field in (slot.schema if hasattr(slot, 'schema') and isinstance(slot.schema, list | tuple) else []):
+                    for field in self._iter_group_fields(slot):
                         field_repeatable = field.get("repeatable", False)
                         if field.get("required", False):
                             if field_repeatable:
@@ -727,7 +728,7 @@ class Tool:
                 if slot.required and (not slot.value or not isinstance(slot.value, list) or len(slot.value) == 0):
                     missing.append(slot.prompt)
                 for idx, item in enumerate(slot.value or []):
-                    for field in (slot.schema if hasattr(slot, 'schema') and isinstance(slot.schema, list | tuple) else []):
+                    for field in self._iter_group_fields(slot):
                         if field.get("required", False) and (item.get(field["name"]) in [None, ""]):
                             missing.append(f"{field.get('prompt', field['name'])} (group '{slot.name}' item {idx+1})")
             else:
@@ -786,10 +787,7 @@ class Tool:
                 # For group, define as array of objects with schema
                 group_properties = {}
                 group_required = []
-                for field in (slot.schema if hasattr(slot, 'schema') and isinstance(slot.schema, list | tuple) else []):
-                    field_source = field.get("valueSource", "")
-                    if field_source == "fixed":
-                        continue
+                for field in self._iter_group_fields(slot):
                     field_repeatable = field.get("repeatable", False)
                     if field_repeatable:
                         # If field is repeatable, make it an array
@@ -847,6 +845,18 @@ class Tool:
         }
 
     def to_openai_tool_def_v2(self) -> dict:
+        # If any slot provides a full OpenAI function schema, use it directly
+        for slot in self.slots:
+            schema_obj = getattr(slot, "schema", None)
+            if isinstance(schema_obj, dict) and ("function" in schema_obj or schema_obj.get("type") == "function"):
+                function_block = schema_obj.get("function", schema_obj.get("function", {}))
+                # Ensure minimal structure
+                if isinstance(function_block, dict) and function_block.get("parameters"):
+                    return {
+                        "type": "function",
+                        "function": function_block,
+                    }
+        # Fallback: build schema from slots
         parameters = {
             "type": "object",
             "properties": {},
@@ -881,19 +891,254 @@ class Tool:
         """
         return f"{self.__class__.__name__}"
 
+    def _recursively_remove_fixed_fields(self, schema_obj: dict[str, Any]) -> dict[str, Any]:
+        """Recursively traverse schema and remove all valueSource=fixed fields at any nesting level."""
+        if not isinstance(schema_obj, dict):
+            return schema_obj
+        
+        # Deep copy the entire schema object
+        import copy
+        result = copy.deepcopy(schema_obj)
+        
+        # Handle properties at current level
+        if "properties" in result:
+            properties = result["properties"]
+            required = result.get("required", [])
+            new_required = []
+            
+            for key, prop in list(properties.items()):
+                if not isinstance(prop, dict):
+                    properties[key] = prop
+                    continue
+                
+                # Remove value field from the copy
+                prop.pop("value", None)
+                
+                # Check if this property should be removed (valueSource=fixed)
+                if prop.get("valueSource") == "fixed":
+                    # Remove from properties
+                    del properties[key]
+                    # Don't add to required
+                    continue
+                else:
+                    # Keep in required if it was there
+                    if key in required:
+                        new_required.append(key)
+                    # Recursively process nested properties
+                    properties[key] = self._recursively_remove_fixed_fields(prop)
+            
+            result["required"] = new_required
+        
+        # Handle items (for arrays)
+        if "items" in result:
+            result["items"] = self._recursively_remove_fixed_fields(result["items"])
+        
+        # Handle additionalProperties
+        if "additionalProperties" in result:
+            result["additionalProperties"] = self._recursively_remove_fixed_fields(result["additionalProperties"])
+        
+        # Handle allOf, anyOf, oneOf
+        for key in ["allOf", "anyOf", "oneOf"]:
+            if key in result:
+                result[key] = [self._recursively_remove_fixed_fields(item) for item in result[key]]
+        
+        # Handle if/then/else
+        for key in ["if", "then", "else"]:
+            if key in result:
+                result[key] = self._recursively_remove_fixed_fields(result[key])
+        
+        return result
+
+    def _recursively_apply_valuesource(self, extracted: dict[str, Any], schema_obj: dict[str, Any]) -> dict[str, Any]:
+        """Recursively apply valueSource rules to extracted data based on schema."""
+        if not isinstance(extracted, dict) or not isinstance(schema_obj, dict):
+            return extracted
+        
+        result = extracted.copy()
+        
+        # Handle properties at current level
+        if "properties" in schema_obj:
+            properties = schema_obj["properties"]
+            for key, prop in properties.items():
+                if not isinstance(prop, dict):
+                    continue
+                
+                # Get current value
+                cur_val = result.get(key)
+                
+                # Apply valueSource logic
+                vsrc = prop.get("valueSource", "prompt")
+                ftype = prop.get("type", "str")
+                fval = prop.get("value")
+                
+                if vsrc == "fixed":
+                    # Apply fixed value
+                    if prop.get("type") == "array":
+                        # Handle repeatable fields
+                        if isinstance(fval, list):
+                            result[key] = [self._convert_value(v, ftype) for v in fval]
+                        else:
+                            result[key] = [self._convert_value(fval, ftype)]
+                    else:
+                        result[key] = self._convert_value(fval, ftype)
+                elif vsrc == "default":
+                    # Apply default if current value is empty
+                    if cur_val in [None, ""] or (isinstance(cur_val, list) and len(cur_val) == 0):
+                        if prop.get("type") == "array":
+                            if isinstance(fval, list):
+                                result[key] = [self._convert_value(v, ftype) for v in fval]
+                            else:
+                                result[key] = [self._convert_value(fval, ftype)]
+                        else:
+                            result[key] = self._convert_value(fval, ftype)
+                    else:
+                        # Keep current value, but convert type
+                        if prop.get("type") == "array":
+                            if isinstance(cur_val, list):
+                                result[key] = [self._convert_value(v, ftype) for v in cur_val]
+                            else:
+                                result[key] = [self._convert_value(cur_val, ftype)]
+                        else:
+                            result[key] = self._convert_value(cur_val, ftype)
+                else:
+                    # prompt - keep current value, convert type
+                    if prop.get("type") == "array":
+                        if isinstance(cur_val, list):
+                            result[key] = [self._convert_value(v, ftype) for v in cur_val]
+                        else:
+                            result[key] = [self._convert_value(cur_val or "", ftype)]
+                    else:
+                        result[key] = self._convert_value(cur_val or "", ftype)
+                
+                # Recursively process nested objects
+                if prop.get("type") == "object" and isinstance(result.get(key), dict):
+                    result[key] = self._recursively_apply_valuesource(result[key], prop)
+                # Recursively process array items
+                elif prop.get("type") == "array" and isinstance(result.get(key), list):
+                    items_schema = prop.get("items", {})
+                    if items_schema.get("type") == "object":
+                        result[key] = [self._recursively_apply_valuesource(item, items_schema) for item in result[key]]
+           
+        return result
+
+    def _fill_slots_via_schema(self, state: MessageState) -> list[Slot]:
+        """Fill all slots by prompting the LLM with individual slot schemas."""
+        chat_history_str: str = format_chat_history(state.function_calling_trajectory)
+        
+        # Use the model service from the slot filler environment
+        model_service = self.slotfiller.model_service if self.slotfiller else None
+        if model_service is None:
+            log_context.error("Model service not initialized")
+            return self.slots
+        
+        # Process each slot individually
+        for slot in self.slots:
+            # Get the function definition for this specific slot
+            function_def = self._get_slot_function_schema(slot)
+            if not function_def:
+                continue
+            
+            # Get LLM response for this slot
+            user_prompt, system_prompt = model_service.format_slot_schema_input(function_def, chat_history_str)
+            response_str = model_service.get_response(user_prompt, self.llm_config, system_prompt)
+            
+            try:
+                extracted = json.loads(response_str)
+            except Exception:
+                log_context.error(f"Failed to parse LLM response for slot {slot.name}: {response_str}")
+                extracted = {}
+            
+            # Apply valueSource logic for this slot
+            extracted = self._apply_valuesource_to_slot(slot, extracted)
+            
+            # Set the slot value
+            if slot.type == "group":
+                val = extracted.get(slot.name, [])
+                if not isinstance(val, list):
+                    val = []
+                slot.value = val
+            else:
+                slot.value = extracted.get(slot.name)
+        
+        return self.slots
+
+    def _get_slot_function_schema(self, slot: Slot) -> dict[str, Any] | None:
+        """Get the function schema for a specific slot."""
+        schema_obj = getattr(slot, "schema", None)
+        if isinstance(schema_obj, dict) and ("function" in schema_obj or schema_obj.get("type") == "function"):
+            function_block = schema_obj.get("function", schema_obj.get("function", {}))
+            # Recursively remove all fixed fields from the parameters schema
+            cleaned_params = self._recursively_remove_fixed_fields(function_block.get("parameters", {}))
+            return {
+                "name": function_block.get("name", self.name),
+                "description": function_block.get("description", self.description),
+                "parameters": cleaned_params,
+            }
+        else:
+            # Fallback: construct schema from individual slot
+            if getattr(slot, 'valueSource', None) == 'fixed':
+                return None  # Skip fixed slots
+            
+            parameters = {
+                "type": "object",
+                "properties": {
+                    slot.name: slot.to_openai_schema()
+                },
+                "required": [slot.name] if getattr(slot, 'required', False) else [],
+            }
+            return {
+                "name": self.name,
+                "description": self.description,
+                "parameters": parameters,
+            }
+
+    def _apply_valuesource_to_slot(self, slot: Slot, extracted: dict[str, Any]) -> dict[str, Any]:
+        """Apply valueSource logic for a specific slot."""
+        schema_obj = getattr(slot, "schema", None)
+        if isinstance(schema_obj, dict) and ("function" in schema_obj or schema_obj.get("type") == "function"):
+            function_block = schema_obj.get("function", schema_obj.get("function", {}))
+            params = function_block.get("parameters", {})
+            return self._recursively_apply_valuesource(extracted, params)
+        else:
+            # Fallback: legacy slot-based logic for this slot
+            if slot.type == "group":
+                items = extracted.get(slot.name, []) or []
+                if not isinstance(items, list):
+                    items = []
+                new_items: list[dict[str, Any]] = []
+                for item in items:
+                    if not isinstance(item, dict):
+                        continue
+                    for field in self._iter_group_fields(slot):
+                        fname = field["name"]
+                        frepeat = field.get("repeatable", False)
+                        vsrc = field.get("valueSource", "prompt")
+                        ftype = field.get("type", "str")
+                        fval = field.get("value")
+                        cur = item.get(fname)
+                        if vsrc == "fixed":
+                            item[fname] = self._apply_fixed_valuesource(frepeat, ftype, fval)
+                        elif vsrc == "default":
+                            item[fname] = self._apply_default_valuesource(cur, frepeat, ftype, fval)
+                        else:
+                            item[fname] = self._apply_prompt_user_valuesource(cur, frepeat, ftype)
+                    new_items.append(item)
+                extracted[slot.name] = new_items
+            else:
+                vsrc = getattr(slot, "valueSource", "prompt")
+                repeat = getattr(slot, "repeatable", False)
+                ftype = getattr(slot, "type", "str")
+                fval = getattr(slot, "value", None)
+                cur = extracted.get(slot.name)
+                if vsrc == "fixed":
+                    extracted[slot.name] = self._apply_fixed_valuesource(repeat, ftype, fval)
+                elif vsrc == "default":
+                    extracted[slot.name] = self._apply_default_valuesource(cur, repeat, ftype, fval)
+                else:
+                    extracted[slot.name] = self._apply_prompt_user_valuesource(cur, repeat, ftype)
+            return extracted
+
     def _execute(self, state: MessageState, **fixed_args: FixedArgs) -> MessageState:
-        """Execute the tool with the current state and fixed arguments.
-
-        This method handles slot filling, parameter validation, and tool execution.
-        It manages the execution flow, error handling, and state updates.
-
-        Args:
-            state (MessageState): The current message state.
-            **fixed_args (FixedArgs): Additional fixed arguments for the tool.
-
-        Returns:
-            MessageState: The updated message state after tool execution.
-        """
         response = ""  # Initialize as empty string
         slot_verification: bool = False
         reason: str = ""
@@ -904,11 +1149,16 @@ class Tool:
         # from the previously stored slots (indicating a different node)
         def slot_schema_signature(slots: list[Slot]) -> list[tuple[str, str, str | None]]:
             import json
-            def safe_schema_dump(slot: Slot) -> list[dict[str, Any]]:
-                return [
-                    field.model_dump() if hasattr(field, 'model_dump') else dict(field) if not isinstance(field, dict) else field
-                    for field in slot.schema
-                ]
+            def safe_schema_dump(slot: Slot) -> list[dict[str, Any]] | dict[str, Any] | None:
+                if hasattr(slot, 'schema') and slot.schema:
+                    if isinstance(slot.schema, (list, tuple)):
+                        return [
+                            field.model_dump() if hasattr(field, 'model_dump') else dict(field) if not isinstance(field, dict) else field
+                            for field in slot.schema
+                        ]
+                    elif isinstance(slot.schema, dict):
+                        return slot.schema
+                return None
                 
             return [
                 (
@@ -937,15 +1187,14 @@ class Tool:
 
         # init slot values saved in default slots
         self._init_slots(state)
-        # do slotfilling (now with valueSource logic)
-        chat_history_str: str = format_chat_history(state.function_calling_trajectory)
-        slots: list[Slot] = self._fill_slots_recursive(self.slots, chat_history_str)
+        # NEW: schema-based slot filling only
+        slots: list[Slot] = self._fill_slots_via_schema(state)
         log_context.info(f"{slots=}")
 
         # Check if any required slots are missing or unverified (including groups)
         missing_required = self._is_missing_required(slots)
         if missing_required:
-            response, is_verification = self._handle_missing_required_slots(slots, chat_history_str)
+            response, is_verification = self._handle_missing_required_slots(slots, format_chat_history(state.function_calling_trajectory))
             if response:
                 state.status = StatusEnum.INCOMPLETE
                 if is_verification:
@@ -1177,7 +1426,7 @@ class Tool:
         
         for idx, item in enumerate(slot.value):
             missing_fields = []
-            for field in (slot.schema if hasattr(slot, 'schema') and isinstance(slot.schema, list | tuple) else []):
+            for field in self._iter_group_fields(slot):
                 field_repeatable = field.get("repeatable", False)
                 if field.get("required", False):
                     if field_repeatable:
@@ -1197,3 +1446,55 @@ class Tool:
                 return f"Please provide the following fields for group '{slot.name}' item {idx+1}: {', '.join(missing_fields)}."
         
         return ""
+
+    def _iter_group_fields(self, slot: Slot) -> list[dict[str, Any]]:
+        """Return inner field definitions for a group slot from either list-style or OpenAI function-style schema."""
+        # If already list or tuple of fields
+        if hasattr(slot, "schema") and isinstance(slot.schema, (list, tuple)):
+            return list(slot.schema)
+        # If OpenAI function-style schema dict
+        if hasattr(slot, "schema") and isinstance(slot.schema, dict):
+            try:
+                function_block = slot.schema.get("function", {})
+                parameters = function_block.get("parameters", {})
+                properties = parameters.get("properties", {})
+                group_prop = properties.get(slot.name)
+                if not group_prop:
+                    return []
+                # For array of objects, inner spec is under items
+                items = group_prop.get("items", {}) if group_prop.get("type") == "array" else group_prop
+                if items.get("type") != "object":
+                    return []
+                inner_props = items.get("properties", {})
+                required_fields = set(items.get("required", []))
+                fields: list[dict[str, Any]] = []
+                for field_name, field_def in inner_props.items():
+                    json_type = field_def.get("type", "string")
+                    if json_type == "array":
+                        item_type = (field_def.get("items", {}) or {}).get("type", "string")
+                        repeatable = True
+                    else:
+                        item_type = json_type
+                        repeatable = False
+                    internal_type = {
+                        "string": "str",
+                        "integer": "int",
+                        "number": "float",
+                        "boolean": "bool",
+                    }.get(item_type, "str")
+                    field_entry: dict[str, Any] = {
+                        "name": field_name,
+                        "type": internal_type,
+                        "description": field_def.get("description", ""),
+                        "prompt": field_def.get("prompt", ""),
+                        "required": field_name in required_fields,
+                        "repeatable": repeatable,
+                        "valueSource": field_def.get("valueSource"),
+                    }
+                    if "value" in field_def:
+                        field_entry["value"] = field_def.get("value")
+                    fields.append(field_entry)
+                return fields
+            except Exception:
+                return []
+        return []

@@ -1084,6 +1084,39 @@ Please choose the most appropriate intent by providing the corresponding intent 
             # Default to needing verification if JSON parsing fails
             return True, f"Failed to parse verification response: {str(e)}"
 
+    def format_slot_schema_input(
+        self, function_def: dict[str, Any], context: str
+    ) -> tuple[str, str]:
+        """Format input for slot extraction using an OpenAI-style function schema.
+
+        Args:
+            function_def: Dict with keys 'name','description','parameters' matching OpenAI function schema
+            context: Input context to extract values from
+
+        Returns:
+            Tuple of (user_prompt, system_prompt)
+        """
+        name = function_def.get("name", "tool")
+        description = function_def.get("description", "")
+        parameters = function_def.get("parameters", {})
+        # Provide the parameters JSON exactly to the model
+        schema_json = json.dumps(parameters, ensure_ascii=False)
+
+        system_prompt = (
+            "You are a precise information extraction assistant. "
+            "Given a JSON Schema for function parameters and a conversation context, "
+            "extract values strictly matching the schema. Return ONLY a JSON object that conforms to the 'parameters' schema. "
+            "Do not include Markdown or explanations."
+        )
+        user_prompt = (
+            f"Function: {name}\n"
+            f"Description: {description}\n"
+            f"Parameters JSON Schema:\n{schema_json}\n\n"
+            f"Context:\n{context}\n\n"
+            "Return a JSON object whose keys and value types exactly match the 'properties' under the parameters schema."
+        )
+        return user_prompt, system_prompt
+
 
 class DummyModelService(ModelService):
     """A dummy model service for testing purposes.

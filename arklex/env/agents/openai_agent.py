@@ -309,6 +309,57 @@ class OpenAIAgent(BaseAgent):
                         result.append(item)
                 return result
 
+            def iter_group_fields(slot_def: dict[str, Any]) -> list[dict[str, Any]]:
+                # If 'schema' is already list-like of field dicts
+                slot_schema = slot_def.get("schema")
+                if isinstance(slot_schema, (list, tuple)):
+                    return list(slot_schema)
+                # If OpenAI function-style schema dict
+                if isinstance(slot_schema, dict) and "function" in slot_schema:
+                    try:
+                        function_block = slot_schema.get("function", {})
+                        parameters = function_block.get("parameters", {})
+                        properties = parameters.get("properties", {})
+                        group_prop = properties.get(slot_def.get("name"))
+                        if not group_prop:
+                            return []
+                        items = group_prop.get("items", {}) if group_prop.get("type") == "array" else group_prop
+                        if items.get("type") != "object":
+                            return []
+                        inner_props = items.get("properties", {})
+                        required_fields = set(items.get("required", []))
+                        fields: list[dict[str, Any]] = []
+                        for field_name, field_def in inner_props.items():
+                            json_type = field_def.get("type", "string")
+                            if json_type == "array":
+                                item_type = (field_def.get("items", {}) or {}).get("type", "string")
+                                repeatable = True
+                            else:
+                                item_type = json_type
+                                repeatable = False
+                            internal_type = {
+                                "string": "str",
+                                "integer": "int",
+                                "number": "float",
+                                "boolean": "bool",
+                            }.get(item_type, "str")
+                            field_entry: dict[str, Any] = {
+                                "name": field_name,
+                                "type": internal_type,
+                                "description": field_def.get("description", ""),
+                                "prompt": field_def.get("prompt", ""),
+                                "required": field_name in required_fields,
+                                "repeatable": repeatable,
+                                "valueSource": field_def.get("valueSource"),
+                            }
+                            if "value" in field_def:
+                                field_entry["value"] = field_def.get("value")
+                            fields.append(field_entry)
+                        return fields
+                    except Exception:
+                        return []
+                return []
+
             result = []
             for slot in schema:
                 name = slot["name"]
@@ -317,6 +368,7 @@ class OpenAIAgent(BaseAgent):
                 slot_value = None
 
                 if slot_type == "group":
+                    fields = iter_group_fields(slot)
                     if slot.get("repeatable", False):
                         group_values = tool_args.get(name, [])
                         if (
@@ -327,7 +379,7 @@ class OpenAIAgent(BaseAgent):
                         ):
                             group_values = [slot.get("value", "")]
                         slot_value = [
-                            build_slot_values(slot["schema"], item)
+                            build_slot_values(fields, item)
                             for item in group_values
                         ]
                         slot_value = flatten_group_items(slot_value)
@@ -340,7 +392,7 @@ class OpenAIAgent(BaseAgent):
                             and value_source == "fixed"
                         ):
                             group_value = slot.get("value", "")
-                        slot_list = build_slot_values(slot["schema"], group_value)
+                        slot_list = build_slot_values(fields, group_value)
                         # Convert list of slot dicts to single object for non-repeatable groups
                         slot_value = {slot_dict["name"]: slot_dict["value"] for slot_dict in slot_list}
                 else:

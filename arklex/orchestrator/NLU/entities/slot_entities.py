@@ -48,13 +48,23 @@ class Slot(BaseModel):
     required: bool = Field(default=False)
     verified: bool = Field(default=False)
     repeatable: bool = Field(default=False)
-    schema: list[dict] | None = None
+    schema: dict | list[dict] | None = None
     items: dict | None = None
     target: str | None = None
     valueSource: str | None = Field(default=None)
 
+    # Allow field name 'schema' even though BaseModel defines method/attr with same name
+    model_config = {"protected_namespaces": (), "arbitrary_types_allowed": True}
+
     def to_openai_schema(self) -> dict | None:
-        
+        """Build the OpenAI JSON schema for this slot's parameter definition.
+
+        If an OpenAI-style schema dict is already attached to this slot under
+        self.schema (containing a top-level key 'function' and nested
+        parameters.properties), we will extract this slot's property from there.
+        Otherwise, we will synthesize the property schema from this slot's fields.
+        """
+
         def _get_type_map() -> dict[str, str]:
             """Get the mapping from internal types to OpenAI schema types."""
             return {
@@ -64,18 +74,36 @@ class Slot(BaseModel):
                 "bool": "boolean",
             }
 
+        # If a full OpenAI function schema is provided on this slot, prefer extracting from it
+        if isinstance(self.schema, dict) and "function" in self.schema:
+            try:
+                properties = (
+                    self.schema.get("function", {})
+                    .get("parameters", {})
+                    .get("properties", {})
+                )
+                if self.name in properties:
+                    return properties[self.name]
+            except Exception:
+                # Fall back to synthesizing schema if extraction fails
+                pass
+
         def _build_group_schema() -> dict:
             """Build schema for group type fields."""
-            properties = {}
-            required = []
-            for field in self.schema or []:
+            properties: dict[str, Any] = {}
+            required: list[str] = []
+
+            for field in (self.schema or []):
                 field_slot = field if isinstance(field, Slot) else Slot(**field)
-                if getattr(field_slot, "valueSource", None) == "fixed":
+                field_property = field_slot.to_openai_schema()
+                # Include the property even if it's fixed; consumer logic can choose to ignore
+                if field_property is None:
+                    # None only when cannot be represented; skip
                     continue
-                properties[field_slot.name] = field_slot.to_openai_schema()
+                properties[field_slot.name] = field_property
                 if getattr(field_slot, "required", False):
                     required.append(field_slot.name)
-            
+
             return {
                 "type": "object",
                 "properties": properties,
@@ -86,18 +114,30 @@ class Slot(BaseModel):
         def _build_primitive_schema() -> dict:
             """Build schema for primitive type fields."""
             type_map = _get_type_map()
-            return {
+            schema: dict[str, Any] = {
                 "type": type_map.get(self.type, "string"),
                 "description": getattr(self, "description", ""),
             }
-        
-        if getattr(self, "valueSource", None) == "fixed":
-            return None
-        
-        # Handle repeatable fields - they should be arrays
+            # Preserve prompt/valueSource/value for downstream use and validation
+            if getattr(self, "prompt", None):
+                schema["prompt"] = self.prompt
+            if getattr(self, "valueSource", None):
+                schema["valueSource"] = self.valueSource
+            if getattr(self, "value", None) is not None:
+                schema["value"] = self.value
+            if getattr(self, "enum", None):
+                schema["enum"] = list(self.enum or [])
+            return schema
+
+        # Handle repeatable fields
         if getattr(self, "repeatable", False):
             if self.type == "group":
                 # For repeatable group, each item is an object with the group's schema
+                # If self.schema already encodes a full array property, return it directly
+                if isinstance(self.schema, dict) and "function" in self.schema:
+                    extracted = self.to_openai_schema()  # attempt extraction again
+                    if extracted is not None:
+                        return extracted
                 return {
                     "type": "array",
                     "items": _build_group_schema(),
@@ -111,6 +151,11 @@ class Slot(BaseModel):
                     "description": getattr(self, "description", ""),
                 }
         elif self.type == "group":
+            # Non-repeatable group returns the object schema
+            if isinstance(self.schema, dict) and "function" in self.schema:
+                extracted = self.to_openai_schema()  # attempt extraction again
+                if extracted is not None:
+                    return extracted
             return _build_group_schema()
         else:
             # Primitive type
