@@ -17,7 +17,7 @@ from rich.panel import Panel
 
 from arklex.env.agents.patterns.base_pattern import BasePattern
 from arklex.env.agents.utils.agent_loader import build_agents
-from arklex.orchestrator.entities.msg_state_entities import MessageState
+from arklex.orchestrator.entities.orchestrator_state_entities import OrchestratorState
 
 console = Console()
 
@@ -34,7 +34,7 @@ class ParallelPattern(BasePattern):
             model=self.llm_config.model_type_or_path,
         )
 
-    async def step_fn(self, state: MessageState) -> MessageState:
+    async def step_fn(self, state: OrchestratorState) -> OrchestratorState:
         input_items = state.function_calling_trajectory
 
         with trace(f"{self.config['role']}"):

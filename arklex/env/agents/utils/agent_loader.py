@@ -1,7 +1,7 @@
 from agents import Agent, Tool
 
 from arklex.env.agents.utils.tool_resolver import resolve_tools_for_agent
-from arklex.orchestrator.entities.msg_state_entities import LLMConfig
+from arklex.types.model_types import LLMConfig
 
 
 def build_agents(agent_configs: list[dict], llm_config: LLMConfig) -> list[Agent]:

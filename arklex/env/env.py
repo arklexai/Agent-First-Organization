@@ -145,7 +145,10 @@ class DefaultResourceInitializer(BaseResourceInitializer):
                         }
                     tool_registry[tool_id] = http_tool_collection
                 else:
+                    print(f"tool_id: {tool_id}")
+                    print(f"RESOURCE_MAP: {RESOURCE_MAP}")
                     tool_instance: Tool = RESOURCE_MAP[tool_id]["item_cls"]
+                    print(f"tool_instance: {tool_instance}")
                     tool_instance.auth.update(tool.get("auth", {}))
                     tool_instance.node_specific_data = {}
                     tool_registry[tool_id] = {
@@ -300,9 +303,11 @@ class Environment:
                 log_context.info(f"{id} tool selected")
                 tool: Tool = self.tools[id]["tool_instance"]
             tool.init_slotfiller(self.slotfillapi)
+            log_context.info(f"orch state: {orch_state}")
             response_state, tool_output = tool.execute(
                 orch_state, all_slots=dialog_states, auth=tool.auth
             )
+            log_context.info(f"response state: {response_state}")
             response_state.message_flow = tool_output.message_flow
             if id == ToolItem.SHOPIFY_SEARCH_PRODUCTS:
                 node_response = NodeResponse(
