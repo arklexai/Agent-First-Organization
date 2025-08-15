@@ -1,6 +1,6 @@
 """Milvus retriever tool."""
 
-from typing import TypedDict
+from typing import Any, TypedDict
 
 from arklex.env.tools.RAG.retrievers.milvus_retriever import MilvusRetriever
 from arklex.env.tools.tools import register_tool
@@ -31,10 +31,10 @@ slots = [
 
 
 @register_tool(description, slots)
-def retriever(query: str, **kwargs: RetrieverParams) -> str:
-    collection_name = kwargs.get("collection_name")
-    bot_id = kwargs.get("bot_id")
-    version = kwargs.get("version")
+def retriever(query: str, auth: RetrieverParams, **kwargs: dict[str, Any]) -> str:
+    collection_name = auth.get("collection_name")
+    bot_id = auth.get("bot_id")
+    version = auth.get("version")
     log_context.info(
         f"Retrieving from collection {collection_name} for bot {bot_id} version {version} with query {query}"
     )

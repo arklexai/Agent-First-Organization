@@ -200,7 +200,6 @@ class AgentGraph(TaskGraphBase):
                 tool_registry = resource_initializer.init_tools(
                     available_tools, available_nodes
                 )
-                log_context.info(f"tool_registry: {tool_registry}")
                 tool_map = {}
                 for tool_id in tool_registry:
                     if tool_id == ToolItem.HTTP_TOOL:
