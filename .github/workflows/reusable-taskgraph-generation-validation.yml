@@ -24,12 +24,12 @@ jobs:
     
     env:
       OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
-      MYSQL_USERNAME=admin
-      MYSQL_PASSWORD=Edu_bot2023
-      MYSQL_HOSTNAME=localhost
-      MYSQL_PORT=3306
-      MYSQL_DB_NAME=edubot_dev
-      MYSQL_CONNECTION_TIMEOUT=10
+      MYSQL_USERNAME: admin
+      MYSQL_PASSWORD: Edu_bot2023
+      MYSQL_HOSTNAME: localhost
+      MYSQL_PORT: 3306
+      MYSQL_DB_NAME: edubot_dev
+      MYSQL_CONNECTION_TIMEOUT: 10
     
     steps:
       - name: Checkout code
