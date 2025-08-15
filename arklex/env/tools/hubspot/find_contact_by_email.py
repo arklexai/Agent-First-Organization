@@ -15,7 +15,7 @@ from hubspot.crm.objects.communications.models import SimplePublicObjectInputFor
 from hubspot.crm.objects.emails import ApiException, PublicObjectSearchRequest
 
 from arklex.env.tools.hubspot._exception_prompt import HubspotExceptionPrompt
-from arklex.env.tools.hubspot.base.entities import HubspotAuth
+from arklex.env.tools.hubspot.base.entities import HubspotAuthTokens
 from arklex.env.tools.hubspot.utils import authenticate_hubspot
 from arklex.env.tools.tools import register_tool
 from arklex.utils.exceptions import ToolExecutionError
@@ -45,7 +45,7 @@ slots: list[dict[str, Any]] = [
 
 @register_tool(description, slots)
 def find_contact_by_email(
-    email: str, chat: str, auth: HubspotAuth, **kwargs: dict[str, Any]
+    email: str, chat: str, auth: HubspotAuthTokens, **kwargs: dict[str, Any]
 ) -> str:
     """
     Find a contact in HubSpot by email and update their communication history.

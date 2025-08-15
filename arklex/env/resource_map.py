@@ -1,9 +1,10 @@
 from collections.abc import Mapping
 
 from arklex.env.agents.agent_collection import OpenAIAgent, OpenAIRealtimeAgent
-from arklex.env.tools.custom_tools import http_tool
-from arklex.env.tools.google.calendar.tool_collection import create_event
+from arklex.env.tools.custom_tools import http_tool, retriever
+from arklex.env.tools.google.calendar.tool_collection import create_event, free_busy
 from arklex.env.tools.hubspot.tool_collection import (
+    book_meeting,
     check_availability,
     check_available,
     create_meeting,
@@ -21,6 +22,12 @@ from arklex.env.tools.shopify.tool_collection import (
     get_web_product,
     return_products,
     search_products,
+)
+from arklex.env.tools.twilio.tool_collection import (
+    end_call,
+    send_predefined_sms,
+    send_sms,
+    voicemail,
 )
 from arklex.env.workers.worker_collection import (
     FaissRAGWorker,
@@ -48,6 +55,11 @@ RESOURCE_MAP: Mapping[type[Item], Mapping[str, ResourceType | ToolCategory | typ
         "type": ResourceType.TOOL,
         "category": ToolCategory.GOOGLE_CALENDAR,
         "item_cls": create_event,
+    },
+    ToolItem.GOOGLE_FREE_BUSY: {
+        "type": ResourceType.TOOL,
+        "category": ToolCategory.GOOGLE_CALENDAR,
+        "item_cls": free_busy,
     },
     ############## Shopify Tools ##############
     ToolItem.SHOPIFY_FIND_USER_ID_BY_EMAIL: {
@@ -95,15 +107,20 @@ RESOURCE_MAP: Mapping[type[Item], Mapping[str, ResourceType | ToolCategory | typ
         "category": ToolCategory.SHOPIFY,
         "item_cls": return_products,
     },
-    ToolItem.HUBSPOT_CHECK_AVAILABLE: {
-        "type": ResourceType.TOOL,
-        "category": ToolCategory.HUBSPOT,
-        "item_cls": check_available,
-    },
     ToolItem.HUBSPOT_CHECK_AVAILABILITY: {
         "type": ResourceType.TOOL,
         "category": ToolCategory.HUBSPOT,
         "item_cls": check_availability,
+    },
+    ToolItem.HUBSPOT_BOOK_MEETING: {
+        "type": ResourceType.TOOL,
+        "category": ToolCategory.HUBSPOT,
+        "item_cls": book_meeting,
+    },
+    ToolItem.HUBSPOT_CHECK_AVAILABLE: {
+        "type": ResourceType.TOOL,
+        "category": ToolCategory.HUBSPOT,
+        "item_cls": check_available,
     },
     ToolItem.HUBSPOT_CREATE_MEETING: {
         "type": ResourceType.TOOL,
@@ -125,11 +142,37 @@ RESOURCE_MAP: Mapping[type[Item], Mapping[str, ResourceType | ToolCategory | typ
         "category": ToolCategory.HUBSPOT,
         "item_cls": find_owner_id_by_contact_id,
     },
+    ############## Twilio Tools ##############
+    ToolItem.TWILIO_SMS_SEND_SMS: {
+        "type": ResourceType.TOOL,
+        "category": ToolCategory.TWILIO,
+        "item_cls": send_sms,
+    },
+    ToolItem.TWILIO_SMS_SEND_PREDEFINED_SMS: {
+        "type": ResourceType.TOOL,
+        "category": ToolCategory.TWILIO,
+        "item_cls": send_predefined_sms,
+    },
+    ToolItem.TWILIO_CALL_END_CALL: {
+        "type": ResourceType.TOOL,
+        "category": ToolCategory.TWILIO,
+        "item_cls": end_call,
+    },
+    ToolItem.TWILIO_CALL_VOICEMAIL: {
+        "type": ResourceType.TOOL,
+        "category": ToolCategory.TWILIO,
+        "item_cls": voicemail,
+    },
     ############## Custom Tools ##############
     ToolItem.HTTP_TOOL: {
         "type": ResourceType.TOOL,
         "category": ToolCategory.CUSTOM,
         "item_cls": http_tool,
+    },
+    ToolItem.RETRIEVER: {
+        "type": ResourceType.TOOL,
+        "category": ToolCategory.CUSTOM,
+        "item_cls": retriever,
     },
     ############## Workers ##############
     WorkerItem.MESSAGE_WORKER: {
@@ -173,7 +216,7 @@ RESOURCE_MAP: Mapping[type[Item], Mapping[str, ResourceType | ToolCategory | typ
         "category": AgentCategory.OPENAI,
         "item_cls": OpenAIAgent,
     },
-    AgentItem.OPENAI_REALTIME_AGENT: {
+    AgentItem.OPENAI_REALTIME_VOICE_AGENT: {
         "type": ResourceType.AGENT,
         "category": AgentCategory.OPENAI,
         "item_cls": OpenAIRealtimeAgent,

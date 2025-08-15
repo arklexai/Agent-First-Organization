@@ -21,7 +21,7 @@ from arklex.env.tools.tools import register_tool
 from arklex.utils.exceptions import ToolExecutionError
 from arklex.utils.logging_utils import LogContext
 
-from .base.entities import HubspotAuth
+from .base.entities import HubspotAuthTokens
 
 log_context = LogContext(__name__)
 
@@ -104,7 +104,7 @@ def create_meeting(
     duration: int,
     slug: str,
     time_zone: str,
-    auth: HubspotAuth,
+    auth: HubspotAuthTokens,
     **kwargs: dict[str, Any],
 ) -> str:
     """

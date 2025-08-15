@@ -87,9 +87,11 @@ class DefaultResourceInitializer(BaseResourceInitializer):
         tool_registry: dict[str, dict[str, Any]] = {}
         for tool in tools:
             tool_id: str = tool["id"]
+            if tool_id not in [item.value for item in ToolItem]:
+                log_context.warning(f"Tool {tool_id} is not in ToolItem, skipping")
+                continue
             try:
                 if tool_id == ToolItem.HTTP_TOOL:
-                    http_tool_collection = {}
                     for node in nodes:
                         node_info = node[1]
                         node_data = node_info.get("data", {})
@@ -139,15 +141,26 @@ class DefaultResourceInitializer(BaseResourceInitializer):
                         all_slots = slots + group_slots
                         tool_instance.load_slots(all_slots)
                         tool_instance.name = node_data.get("name", "")
-                        tool_instance.description = node_data.get("task", "")
-                        http_tool_collection[tool_instance.name] = {
+                        tool_instance.description = node_info.get("attribute", {}).get(
+                            "task", ""
+                        )
+                        tool_registry[tool_instance.name] = {
                             "tool_instance": tool_instance,
                         }
-                    tool_registry[tool_id] = http_tool_collection
                 else:
                     tool_instance: Tool = RESOURCE_MAP[tool_id]["item_cls"]
                     tool_instance.auth.update(tool.get("auth", {}))
                     tool_instance.node_specific_data = {}
+                    for node in nodes:
+                        node_info = node[1]
+                        fixed_args = node_info.get("data", {}).get("fixed_args", {})
+                        if (
+                            node_info.get("resource", {}).get("id") != tool_id
+                            or not fixed_args
+                        ):
+                            continue
+                        tool_instance.fixed_args.update(fixed_args)
+                        break
                     tool_registry[tool_id] = {
                         "tool_instance": tool_instance,
                     }
@@ -293,17 +306,15 @@ class Environment:
         if id in self.tools:
             if id == ToolItem.HTTP_TOOL:
                 log_context.info(f"HTTP tool {node_info.data.get('name', '')} selected")
-                tool: Tool = self.tools[id][node_info.data.get("name", "")][
-                    "tool_instance"
-                ]
+                tool: Tool = self.tools[node_info.data.get("name", "")]["tool_instance"]
             else:
                 log_context.info(f"{id} tool selected")
                 tool: Tool = self.tools[id]["tool_instance"]
             tool.init_slotfiller(self.slotfillapi)
-            response_state, tool_output = tool.execute(
+            orch_state, tool_output = tool.execute(
                 orch_state, all_slots=dialog_states, auth=tool.auth
             )
-            response_state.message_flow = tool_output.message_flow
+            orch_state.message_flow = tool_output.message_flow
             if id == ToolItem.SHOPIFY_SEARCH_PRODUCTS:
                 node_response = NodeResponse(
                     status=tool_output.status,
@@ -346,18 +357,24 @@ class Environment:
             call_id: str = str(uuid.uuid4())
             orch_state.function_calling_trajectory.append(
                 {
-                    "type": "function_call",
-                    "id": "fc_" + call_id,
-                    "call_id": "call_" + call_id,
-                    "name": id,
-                    "arguments": "{}",
+                    "role": "assistant",
+                    "content": None,
+                    "tool_calls": [
+                        {
+                            "function": {"arguments": "{}", "name": id},
+                            "id": call_id,
+                            "type": "function",
+                        }
+                    ],
+                    "function_call": None,
                 }
             )
             orch_state.function_calling_trajectory.append(
                 {
-                    "type": "function_call_output",
-                    "call_id": "call_" + call_id,
-                    "output": content,
+                    "role": "tool",
+                    "content": content,
+                    "tool_call_id": call_id,
+                    "id": id,
                 }
             )
 

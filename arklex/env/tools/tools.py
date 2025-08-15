@@ -116,10 +116,10 @@ class Tool:
         self.slotfiller: SlotFiller | None = None
         self.auth = {}
         self.node_specific_data: dict[str, Any] = {}
+        self.fixed_args = {}
         self.properties: dict[str, dict[str, Any]] = {}
         # TODO: check with voicebot setup
         # self.openai_slots: list[dict[str, Any]] = self._format_slots(slots)
-        # self.fixed_args = {}
 
     def get_info(self, slots: list[dict[str, Any]]) -> dict[str, Any]:
         """Get tool information including parameters and requirements.
