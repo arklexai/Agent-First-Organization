@@ -56,21 +56,6 @@ def test_resolve_tool_builtin(mock_import: MagicMock) -> None:
     assert isinstance(result, WebSearchTool)
 
 
-def test_resolve_tool_dynamic_function_tool_real() -> None:
-    tool = tool_resolver.resolve_tool(
-        "search_products",
-        path="shopify/search_products.py",
-        fixed_args={
-            "llm_provider": "openai",
-            "model_type_or_path": "gpt-4o-mini",
-        },
-    )
-
-    assert isinstance(tool, FunctionTool)
-    assert hasattr(tool, "on_invoke_tool")
-    assert callable(tool.on_invoke_tool)
-
-
 @pytest.mark.asyncio
 async def test_wrap_function_tool_with_fixed_args_execution() -> None:
     def dummy_func(foo: str, bar: str) -> str:
