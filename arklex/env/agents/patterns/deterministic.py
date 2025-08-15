@@ -13,7 +13,7 @@ from agents import Runner, trace
 
 from arklex.env.agents.patterns.base_pattern import BasePattern
 from arklex.env.agents.utils.agent_loader import build_agents
-from arklex.orchestrator.entities.msg_state_entities import MessageState
+from arklex.orchestrator.entities.orchestrator_state_entities import OrchestratorState
 
 
 class DeterministicPattern(BasePattern):
@@ -21,7 +21,7 @@ class DeterministicPattern(BasePattern):
         super().__init__(config)
         self.agents = build_agents(config["sub_agents"], self.llm_config)
 
-    def step_fn(self, state: MessageState) -> MessageState:
+    def step_fn(self, state: OrchestratorState) -> OrchestratorState:
         input_items = state.function_calling_trajectory
 
         with trace(f"{self.config['role']}"):

@@ -4,12 +4,15 @@ from unittest.mock import AsyncMock, Mock, patch
 import pytest
 
 from arklex.env.agents.multi_agent import MultiAgent
-from arklex.orchestrator.entities.msg_state_entities import MessageState, StatusEnum
+from arklex.orchestrator.entities.orchestrator_state_entities import (
+    OrchestratorState,
+    StatusEnum,
+)
 
 
 @pytest.fixture
-def mock_state() -> MessageState:
-    state = Mock(spec=MessageState)
+def mock_state() -> OrchestratorState:
+    state = Mock(spec=OrchestratorState)
     state.status = StatusEnum.INCOMPLETE
     state.function_calling_trajectory = []
     state.message_flow = ""

@@ -148,7 +148,10 @@ class DefaultResourceInitializer(BaseResourceInitializer):
                             "tool_instance": tool_instance,
                         }
                 else:
+                    print(f"tool_id: {tool_id}")
+                    print(f"RESOURCE_MAP: {RESOURCE_MAP}")
                     tool_instance: Tool = RESOURCE_MAP[tool_id]["item_cls"]
+                    print(f"tool_instance: {tool_instance}")
                     tool_instance.auth.update(tool.get("auth", {}))
                     tool_instance.node_specific_data = {}
                     for node in nodes:
