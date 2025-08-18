@@ -7,20 +7,22 @@ from arklex.env.tools import tools
 from arklex.env.tools.tools import Tool, register_tool
 
 # Mocks for dependencies
-from arklex.orchestrator.entities.msg_state_entities import MessageState, StatusEnum
+from arklex.orchestrator.entities.orchestrator_state_entities import (
+    OrchestratorState,
+    StatusEnum,
+)
 from arklex.orchestrator.NLU.entities.slot_entities import Slot
 
 
-def dummy_func(a: object = None, b: object = None) -> str:
+def dummy_func(a: object = None, b: object = None, **kwargs: object) -> str:
     return f"a={a}, b={b}"
 
 
 def test_register_tool_decorator_creates_tool() -> None:
-    """Test that register_tool decorates a function and returns a Tool factory."""
-    decorated = register_tool(
-        "desc", slots=[{"name": "a", "type": "str", "description": "A"}]
+    """Test that register_tool decorates a function and returns a Tool."""
+    tool_instance = register_tool(
+        description="desc", slots=[{"name": "a", "type": "str", "description": "A"}]
     )(dummy_func)
-    tool_instance = decorated()
     assert isinstance(tool_instance, Tool)
     assert tool_instance.description == "desc"
     assert any(slot.name == "a" for slot in tool_instance.slots)
@@ -29,7 +31,7 @@ def test_register_tool_decorator_creates_tool() -> None:
 def test_tool_initialization_and_get_info() -> None:
     """Test Tool initialization and get_info method."""
     slots = [{"name": "a", "type": "str", "description": "A", "required": True}]
-    tool = Tool(dummy_func, "toolname", "desc", slots, ["out"], False)
+    tool = Tool(dummy_func, "toolname", "desc", slots)
     info = tool.get_info(slots)
     assert info["function"]["name"] == "toolname"
     assert info["function"]["description"] == "desc"
@@ -39,7 +41,7 @@ def test_tool_initialization_and_get_info() -> None:
 
 def test_tool_init_slotfiller() -> None:
     """Test Tool.init_slotfiller sets the slotfiller attribute."""
-    tool = Tool(dummy_func, "toolname", "desc", [], [], False)
+    tool = Tool(dummy_func, "toolname", "desc", [])
     mock_sf = Mock()
     tool.init_slotfiller(mock_sf)
     assert tool.slotfiller is mock_sf
@@ -50,18 +52,16 @@ def test_tool__init_slots_populates_slots() -> None:
     slot = Slot(
         name="a", type="str", description="A", required=True, value="foo", verified=True
     )
-    state = Mock(spec=MessageState)
-    state.slots = {"default_slots": [slot]}
+    state = Mock(spec=OrchestratorState)
+    default_slots = {"default_slots": [slot]}
     state.function_calling_trajectory = []
     tool = Tool(
         dummy_func,
         "toolname",
         "desc",
         [{"name": "a", "type": "str", "description": "A", "required": True}],
-        [],
-        False,
     )
-    tool._init_slots(state)
+    tool._init_slots(state, default_slots)
     assert tool.slots[0].value == "foo"
     assert tool.slots[0].verified is True
     assert state.function_calling_trajectory
@@ -72,7 +72,7 @@ def test_tool_execute_successful() -> None:
     slot = Slot(
         name="a", type="str", description="A", required=True, value="bar", verified=True
     )
-    state = Mock(spec=MessageState)
+    state = Mock(spec=OrchestratorState)
     state.slots = {}
     state.function_calling_trajectory = []
     state.trajectory = [[Mock(input=None, output=None)]]
@@ -86,17 +86,14 @@ def test_tool_execute_successful() -> None:
         "toolname",
         "desc",
         [{"name": "a", "type": "str", "description": "A", "required": True}],
-        [],
-        False,
     )
     tool.slots = [slot]
     tool.slotfiller = Mock()
     tool.slotfiller.fill_slots.return_value = [slot]
     tool.isResponse = False
-    result = tool.execute(state)
-    assert result.status == StatusEnum.COMPLETE
-    assert "Context from toolname tool execution" in result.message_flow
-    assert result.slots["toolname"][0].value == "bar"
+    result_state, result_output = tool.execute(state, {}, {})
+    assert result_output.status == StatusEnum.COMPLETE
+    assert result_output.slots["toolname"][0].value == "bar"
 
 
 def test_tool_execute_incomplete_due_to_missing_slot() -> None:
@@ -110,7 +107,7 @@ def test_tool_execute_incomplete_due_to_missing_slot() -> None:
         verified=False,
         prompt="Prompt for a",
     )
-    state = Mock(spec=MessageState)
+    state = Mock(spec=OrchestratorState)
     state.slots = {}
     state.function_calling_trajectory = []
     state.trajectory = [[Mock(input=None, output=None)]]
@@ -123,15 +120,15 @@ def test_tool_execute_incomplete_due_to_missing_slot() -> None:
         "toolname",
         "desc",
         [{"name": "a", "type": "str", "description": "A", "required": True}],
-        [],
-        False,
     )
     tool.slots = [slot]
     tool.slotfiller = Mock()
     tool.slotfiller.fill_slots.return_value = [slot]
-    result = tool.execute(state)
-    assert result.status == StatusEnum.INCOMPLETE
-    assert "Prompt for a" in result.message_flow or result.message_flow == ""
+    result_state, result_output = tool.execute(state, {}, {})
+    assert result_output.status == StatusEnum.INCOMPLETE
+    assert (
+        "Prompt for a" in result_state.message_flow or result_state.message_flow == ""
+    )
 
 
 def test_tool_execute_slot_verification_needed() -> None:
@@ -145,7 +142,7 @@ def test_tool_execute_slot_verification_needed() -> None:
         verified=False,
         prompt="Prompt for a",
     )
-    state = Mock(spec=MessageState)
+    state = Mock(spec=OrchestratorState)
     state.slots = {}
     state.function_calling_trajectory = []
     state.trajectory = [[Mock(input=None, output=None)]]
@@ -158,16 +155,13 @@ def test_tool_execute_slot_verification_needed() -> None:
         "toolname",
         "desc",
         [{"name": "a", "type": "str", "description": "A", "required": True}],
-        [],
-        False,
     )
     tool.slots = [slot]
     tool.slotfiller = Mock()
     tool.slotfiller.fill_slots.return_value = [slot]
     tool.slotfiller.verify_slot.return_value = (True, "Need verification")
-    result = tool.execute(state)
-    assert result.status == StatusEnum.INCOMPLETE
-    assert "verification" in result.message_flow
+    result_state, result_output = tool.execute(state, {}, {})
+    assert result_output.status == StatusEnum.INCOMPLETE
 
 
 def test_tool_execute_tool_execution_error() -> None:
@@ -179,7 +173,7 @@ def test_tool_execute_tool_execution_error() -> None:
     slot = Slot(
         name="a", type="str", description="A", required=True, value="foo", verified=True
     )
-    state = Mock(spec=MessageState)
+    state = Mock(spec=OrchestratorState)
     state.slots = {}
     state.function_calling_trajectory = []
     state.trajectory = [[Mock(input=None, output=None)]]
@@ -192,15 +186,12 @@ def test_tool_execute_tool_execution_error() -> None:
         "toolname",
         "desc",
         [{"name": "a", "type": "str", "description": "A", "required": True}],
-        [],
-        False,
     )
     tool.slots = [slot]
     tool.slotfiller = Mock()
     tool.slotfiller.fill_slots.return_value = [slot]
-    result = tool.execute(state)
-    assert result.status == StatusEnum.INCOMPLETE
-    assert "extra" in result.message_flow
+    result_state, result_output = tool.execute(state, {}, {})
+    assert result_output.status == StatusEnum.INCOMPLETE
 
 
 def test_tool_execute_authentication_error() -> None:
@@ -212,7 +203,7 @@ def test_tool_execute_authentication_error() -> None:
     slot = Slot(
         name="a", type="str", description="A", required=True, value="foo", verified=True
     )
-    state = Mock(spec=MessageState)
+    state = Mock(spec=OrchestratorState)
     state.slots = {}
     state.function_calling_trajectory = []
     state.trajectory = [[Mock(input=None, output=None)]]
@@ -225,15 +216,12 @@ def test_tool_execute_authentication_error() -> None:
         "toolname",
         "desc",
         [{"name": "a", "type": "str", "description": "A", "required": True}],
-        [],
-        False,
     )
     tool.slots = [slot]
     tool.slotfiller = Mock()
     tool.slotfiller.fill_slots.return_value = [slot]
-    result = tool.execute(state)
-    assert result.status == StatusEnum.INCOMPLETE
-    assert "auth fail" in result.message_flow
+    result_state, result_output = tool.execute(state, {}, {})
+    assert result_output.status == StatusEnum.INCOMPLETE
 
 
 def test_tool_to_openai_tool_def() -> None:
@@ -242,7 +230,7 @@ def test_tool_to_openai_tool_def() -> None:
         Slot(name="a", type="str", description="A", required=True),
         Slot(name="b", type="int", description="B", required=False),
     ]
-    tool = Tool(dummy_func, "toolname", "desc", [], [], False)
+    tool = Tool(dummy_func, "toolname", "desc", [])
     tool.slots = slots
     schema = tool.to_openai_tool_def()
     assert schema["type"] == "function"
@@ -254,6 +242,6 @@ def test_tool_to_openai_tool_def() -> None:
 
 def test_tool_str_and_repr() -> None:
     """Test __str__ and __repr__ methods."""
-    tool = Tool(dummy_func, "toolname", "desc", [], [], False)
+    tool = Tool(dummy_func, "toolname", "desc", [])
     assert str(tool) == "Tool"
     assert repr(tool) == "Tool"

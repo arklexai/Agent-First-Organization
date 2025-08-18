@@ -281,4 +281,8 @@ class MySQLPool:
 
 
 # Create a global instance of the MySQL connection pool
-mysql_pool = MySQLPool(POOL_SIZE, **MYSQL_CONFIG)
+if os.getenv("MYSQL_LAZY_LOAD"):
+    # This ensures that the mysql_pool is not initialized during integration tests
+    mysql_pool = None
+else:
+    mysql_pool = MySQLPool(POOL_SIZE, **MYSQL_CONFIG)

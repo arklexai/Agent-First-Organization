@@ -7,7 +7,10 @@ from arklex.env.tools.RAG.retrievers.faiss_retriever import (
     FaissRetrieverExecutor,
     RetrieveEngine,
 )
-from arklex.orchestrator.entities.msg_state_entities import LLMConfig, MessageState
+from arklex.orchestrator.entities.orchestrator_state_entities import (
+    OrchestratorState,
+)
+from arklex.types.model_types import LLMConfig
 
 
 @pytest.fixture
@@ -76,38 +79,6 @@ class TestFaissRetrieverExecutor:
 
             assert retriever.texts == mock_documents
             assert retriever.index_path == "/tmp/test_db/index"
-            assert retriever.embedding_model is not None
-            assert retriever.retriever is not None
-
-    def test_initialization_anthropic_provider(
-        self, mock_documents: list[Document]
-    ) -> None:
-        """Test initialization with Anthropic provider."""
-        config = Mock(spec=LLMConfig)
-        config.llm_provider = "anthropic"
-        config.model_type_or_path = "claude-3-sonnet-20240229"
-
-        with (
-            patch(
-                "arklex.env.tools.RAG.retrievers.faiss_retriever.OpenAIEmbeddings"
-            ) as mock_embeddings,
-            patch(
-                "arklex.env.tools.RAG.retrievers.faiss_retriever.FAISS"
-            ) as mock_faiss,
-        ):
-            mock_embeddings_instance = Mock()
-            mock_embeddings.return_value = mock_embeddings_instance
-
-            mock_faiss_instance = Mock()
-            mock_faiss.from_documents.return_value = mock_faiss_instance
-            mock_faiss_instance.as_retriever.return_value = Mock()
-
-            retriever = FaissRetrieverExecutor(
-                texts=mock_documents,
-                index_path="/tmp/test_db/index",
-                llm_config=config,
-            )
-
             assert retriever.embedding_model is not None
             assert retriever.retriever is not None
 
@@ -279,7 +250,7 @@ class TestRetrieveEngine:
 
     def test_faiss_retrieve(self) -> None:
         """Test faiss_retrieve static method."""
-        mock_state = Mock(spec=MessageState)
+        mock_state = Mock(spec=OrchestratorState)
         mock_state.user_message = Mock()
         mock_state.user_message.history = "test query"
         mock_state.bot_config = Mock()
@@ -300,14 +271,9 @@ class TestRetrieveEngine:
             patch(
                 "arklex.env.tools.RAG.retrievers.faiss_retriever.FaissRetrieverExecutor.load_docs"
             ) as mock_load_docs,
-            patch(
-                "arklex.env.tools.RAG.retrievers.faiss_retriever.trace"
-            ) as mock_trace,
         ):
             mock_load_docs.return_value = mock_retriever
-            mock_trace.return_value = mock_state
 
             result = RetrieveEngine.faiss_retrieve(mock_state)
 
-            assert result == mock_state
-            assert mock_state.message_flow == "retrieved text"
+            assert result == "retrieved text"

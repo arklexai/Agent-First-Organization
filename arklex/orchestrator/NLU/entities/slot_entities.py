@@ -54,15 +54,18 @@ class Slot(BaseModel):
     valueSource: str | None = Field(default=None)
 
     def to_openai_schema(self) -> dict | None:
-        if getattr(self, "valueSource", None) == "fixed":
-            return None
-        if self.items is not None:
+        
+        def _get_type_map() -> dict[str, str]:
+            """Get the mapping from internal types to OpenAI schema types."""
             return {
-                "type": "array",
-                "items": self.items,
-                "description": getattr(self, "description", ""),
+                "str": "string",
+                "int": "integer",
+                "float": "number",
+                "bool": "boolean",
             }
-        if self.type == "group":
+
+        def _build_group_schema() -> dict:
+            """Build schema for group type fields."""
             properties = {}
             required = []
             for field in self.schema or []:
@@ -72,23 +75,46 @@ class Slot(BaseModel):
                 properties[field_slot.name] = field_slot.to_openai_schema()
                 if getattr(field_slot, "required", False):
                     required.append(field_slot.name)
+            
             return {
                 "type": "object",
                 "properties": properties,
                 "required": required,
                 "description": getattr(self, "description", ""),
             }
-        # Primitive type
-        type_map = {
-            "str": "string",
-            "int": "integer",
-            "float": "number",
-            "bool": "boolean",
-        }
-        return {
-            "type": type_map.get(self.type, "string"),
-            "description": getattr(self, "description", ""),
-        }
+
+        def _build_primitive_schema() -> dict:
+            """Build schema for primitive type fields."""
+            type_map = _get_type_map()
+            return {
+                "type": type_map.get(self.type, "string"),
+                "description": getattr(self, "description", ""),
+            }
+        
+        if getattr(self, "valueSource", None) == "fixed":
+            return None
+        
+        # Handle repeatable fields - they should be arrays
+        if getattr(self, "repeatable", False):
+            if self.type == "group":
+                # For repeatable group, each item is an object with the group's schema
+                return {
+                    "type": "array",
+                    "items": _build_group_schema(),
+                    "description": getattr(self, "description", ""),
+                }
+            else:
+                # For repeatable primitive types, define the item type
+                return {
+                    "type": "array",
+                    "items": _build_primitive_schema(),
+                    "description": getattr(self, "description", ""),
+                }
+        elif self.type == "group":
+            return _build_group_schema()
+        else:
+            # Primitive type
+            return _build_primitive_schema()
 
 
 class SlotInput(BaseModel):

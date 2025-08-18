@@ -10,15 +10,15 @@ This file contains the code for finding a user's ID using their email address.
 
 import inspect
 import json
-from typing import TypedDict
 
 import shopify
+from pydantic import BaseModel
 
 from arklex.env.tools.shopify._exception_prompt import ShopifyExceptionPrompt
-from arklex.env.tools.shopify.utils import authorify_admin
-from arklex.env.tools.shopify.utils_slots import (
+from arklex.env.tools.shopify.base.entities import ShopifyAdminAuth
+from arklex.env.tools.shopify.utils.utils import authorify_admin
+from arklex.env.tools.shopify.utils.utils_slots import (
     ShopifyFindUserByEmailSlots,
-    ShopifyOutputs,
 )
 from arklex.env.tools.tools import register_tool
 from arklex.utils.exceptions import ToolExecutionError
@@ -27,30 +27,27 @@ from arklex.utils.logging_utils import LogContext
 log_context = LogContext(__name__)
 
 
-class FindUserParams(TypedDict, total=False):
-    """Parameters for the find user by email tool."""
-
-    shop_url: str
-    api_version: str
-    admin_token: str
+class FindUserByIdByEmailOutput(BaseModel):
+    message_flow: str
 
 
-description = "Find user id by email. If the user is not found, the function will return an error message."
-slots = ShopifyFindUserByEmailSlots.get_all_slots()
-outputs = [ShopifyOutputs.USER_ID]
-
-
-@register_tool(description, slots, outputs)
-def find_user_id_by_email(user_email: str, **kwargs: FindUserParams) -> str:
+@register_tool(
+    description="Find user id by email. If the user is not found, the function will return an error message.",
+    slots=ShopifyFindUserByEmailSlots.get_all_slots(),
+)
+def find_user_id_by_email(
+    user_email: str, auth: ShopifyAdminAuth, **kwargs: object
+) -> FindUserByIdByEmailOutput:
     """
     Find a user's ID using their email address.
 
     Args:
         user_email (str): The email address of the user to find.
-        **kwargs (FindUserParams): Additional keyword arguments for authentication.
+        auth (ShopifyAdminAuth): Authentication credentials for the Shopify store.
+        **kwargs: Additional keyword arguments for llm configuration.
 
     Returns:
-        str: The user's ID if exactly one user is found with the given email.
+        FindUserByIdByEmailOutput: The user's ID if exactly one user is found with the given email.
 
     Raises:
         ToolExecutionError: If:
@@ -59,7 +56,7 @@ def find_user_id_by_email(user_email: str, **kwargs: FindUserParams) -> str:
             - There's an error in the search process
     """
     func_name = inspect.currentframe().f_code.co_name
-    auth = authorify_admin(kwargs)
+    auth = authorify_admin(auth)
 
     try:
         with shopify.Session.temp(**auth):
@@ -77,7 +74,9 @@ def find_user_id_by_email(user_email: str, **kwargs: FindUserParams) -> str:
         nodes = json.loads(response)["data"]["customers"]["edges"]
         if len(nodes) == 1:
             user_id = nodes[0]["node"]["id"]
-            return user_id
+            return FindUserByIdByEmailOutput(
+                message_flow=f"User id: {user_id}",
+            )
         else:
             raise ToolExecutionError(
                 func_name,

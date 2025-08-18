@@ -21,14 +21,14 @@
         {
             "source": "https://www.richtechrobotics.com/",
             "type": "url",
-            "num": 20
+            "num": 3
         }
     ],
     "rag_docs": [
         {
             "source": "https://www.richtechrobotics.com/",
             "type": "url",
-            "num": 20
+            "num": 3
         },
         {
             "source": "this is some text",

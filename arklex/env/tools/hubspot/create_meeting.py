@@ -21,6 +21,8 @@ from arklex.env.tools.tools import register_tool
 from arklex.utils.exceptions import ToolExecutionError
 from arklex.utils.logging_utils import LogContext
 
+from .base.entities import HubspotAuth
+
 log_context = LogContext(__name__)
 
 description: str = "Schedule a meeting for the existing customer with the specific representative. If you are not sure any information, please ask users to confirm in response."
@@ -56,6 +58,7 @@ slots: list[dict[str, Any]] = [
         "description": "The exact date (only the month and day) the customer want to take meeting with the representative. e.g. tomorrow, today, Next Monday, May 1st. If you are not sure about the input, ask the user to give you confirmation.",
         "prompt": "Could you please give me the date of the meeting?",
         "required": True,
+        "verified": True,
     },
     {
         "name": "meeting_start_time",
@@ -63,12 +66,13 @@ slots: list[dict[str, Any]] = [
         "description": "The exact start time the customer want to take meeting with the representative. e.g. 1pm, 1:00 PM. If you are not sure about the input, ask the user to give you confirmation.",
         "prompt": "Could you please give me the start time of the meeting?",
         "required": True,
+        "verified": True,
     },
     {
         "name": "duration",
         "type": "int",
         "enum": [15, 30, 60],
-        "description": "The exact duration of the meeting. Please ask the user to input. DO NOT AUTOMATICALLY GIVE THE SLOT ANY VALUE.",
+        "description": "The exact duration of the meeting. Please ask the user to input.",
         "prompt": "Could you please give me the duration of the meeting (e.g. 15, 30, 60 mins)?",
         "required": True,
     },
@@ -82,27 +86,15 @@ slots: list[dict[str, Any]] = [
     {
         "name": "time_zone",
         "type": "str",
-        "enum": [
-            "America/New_York",
-            "America/Los_Angeles",
-            "Asia/Tokyo",
-            "Europe/London",
-        ],
-        "description": "The timezone of the user. For example, 'America/New_York'. It allows users to input abbreviation like nyc, NYC. If you are not sure, just ask the user to confirm in response.",
+        "enum": pytz.common_timezones,
+        "description": "The timezone of the user. For example, 'America/New_York'.",
         "prompt": "Could you please provide your timezone or where are you now?",
         "required": True,
     },
 ]
-outputs: list[dict[str, Any]] = [
-    {
-        "name": "meeting_confirmation_info",
-        "type": "dict",
-        "description": "The detailed information about the meeting to let the customer confirm",
-    }
-]
 
 
-@register_tool(description, slots, outputs)
+@register_tool(description, slots)
 def create_meeting(
     cus_fname: str,
     cus_lname: str,
@@ -112,6 +104,7 @@ def create_meeting(
     duration: int,
     slug: str,
     time_zone: str,
+    auth: HubspotAuth,
     **kwargs: dict[str, Any],
 ) -> str:
     """
@@ -135,9 +128,9 @@ def create_meeting(
         ToolExecutionError: If meeting scheduling fails
     """
     func_name: str = inspect.currentframe().f_code.co_name
-    access_token: str = authenticate_hubspot(kwargs)
+    access_token: str = authenticate_hubspot(auth)
 
-    meeting_date: datetime = parse_natural_date(
+    parsed_meeting_date: datetime = parse_natural_date(
         meeting_date, timezone=time_zone, date_input=True
     )
     if is_iso8601(meeting_start_time):
@@ -145,15 +138,14 @@ def create_meeting(
         if dt.tzinfo is None:
             dt = pytz.timezone(time_zone).localize(dt)
         dt_utc: datetime = dt.astimezone(pytz.utc)
-        meeting_start_time: int = int(dt_utc.timestamp() * 1000)
+        meeting_start_time_ms: int = int(dt_utc.timestamp() * 1000)
     else:
         dt: datetime = parse_natural_date(
-            meeting_start_time, meeting_date, timezone=time_zone
+            meeting_start_time, parsed_meeting_date, timezone=time_zone
         )
-        meeting_start_time: int = int(dt.timestamp() * 1000)
-
-    duration: int = int(duration)
-    duration: int = int(timedelta(minutes=duration).total_seconds() * 1000)
+        meeting_start_time_ms: int = int(dt.timestamp() * 1000)
+    duration_int: int = int(duration)
+    duration_ms: int = int(timedelta(minutes=duration_int).total_seconds() * 1000)
 
     api_client: hubspot.Client = hubspot.Client.create(access_token=access_token)
 
@@ -164,8 +156,8 @@ def create_meeting(
                 "method": "POST",
                 "body": {
                     "slug": slug,
-                    "duration": duration,
-                    "startTime": meeting_start_time,
+                    "duration": duration_ms,
+                    "startTime": meeting_start_time_ms,
                     "email": cus_email,
                     "firstName": cus_fname,
                     "lastName": cus_lname,
@@ -175,8 +167,8 @@ def create_meeting(
                 "qs": {"timezone": time_zone},
             }
         )
-        create_meeting_response: dict[str, Any] = create_meeting_response.json()
-        return json.dumps(create_meeting_response)
+        create_meeting_response_dict: dict[str, Any] = create_meeting_response.json()
+        return json.dumps(create_meeting_response_dict)
     except ApiException as e:
         log_context.info(f"Exception when scheduling a meeting: {e}\n")
         raise ToolExecutionError(
@@ -205,7 +197,7 @@ def parse_natural_date(
     cal: parsedatetime.Calendar = parsedatetime.Calendar(
         version=parsedatetime.VERSION_CONTEXT_STYLE
     )
-    time_struct: tuple = cal.parse(date_str, base_date)[0]
+    time_struct: tuple[int, ...] = cal.parse(date_str, base_date)[0]
     if date_input:
         parsed_dt: datetime = datetime(*time_struct[:3])
     else:

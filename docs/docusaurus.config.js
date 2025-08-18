@@ -78,9 +78,10 @@ const config = {
   ],
   themeConfig: {
     colorMode: {
-      disableSwitch: true, // Disables the theme toggle button
+      disableSwitch: true,
     },
   },
+  
 
   scripts: [
     {
@@ -88,6 +89,8 @@ const config = {
       async: false,
     },
   ],
+ 
+  
 };
 
 export default config;

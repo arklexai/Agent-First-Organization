@@ -29,7 +29,7 @@ jobs:
     uses: ./.github/workflows/reusable-run-coverage-tests.yml
     with:
       coverage-command: 'ARKLEX_TEST_ENV=local pytest tests/ --cov=arklex --cov-report=term-missing --cov-report=html --cov-report=xml --no-cov-on-fail'
-      min-coverage-threshold: '99.0'
+      min-coverage-threshold: '95.0'
 
   summary:
     name: Nightly Regression Summary

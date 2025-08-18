@@ -32,9 +32,12 @@ Here is an exmaple of the generated TaskGraph for the customer service assistant
         [
             "0",
             {
-                "name": "MessageWorker",
+                "resource": {
+                    "id": "26bb6634-3bee-417d-ad75-23269ac17bc3",
+                    "name": "MessageWorker"
+                },
                 "attribute": {
-                    "value": "Hello! I'm your Customer Service Assistant. How may I assist you with your inquiries today? Whether you need information about our products, services, or policies, or need help resolving an issue or completing a transaction, I'm here to help.",
+                    "value": "Hello! I'm here to assist you with any customer service inquiries you may have. Whether you need information about our products, services, or policies, or if you need help with any issues or transactions, feel free to ask. How can I assist you today?",
                     "task": "start message",
                     "directed": false
                 },
@@ -45,10 +48,13 @@ Here is an exmaple of the generated TaskGraph for the customer service assistant
         [
             "1",
             {
-                "name": "RAGWorker",
+                "resource": {
+                    "id": "FaissRAGWorker",
+                    "name": "FaissRAGWorker"
+                },
                 "attribute": {
-                    "value": "Here are the detailed specifications and features of our Richtech Robotics products: [insert specifications and features here]. If you have any more questions, feel free to ask!",
-                    "task": "Provide detailed information about the specifications and features of Richtech Robotics products",
+                    "value": "",
+                    "task": "Use FaissRAGWorker to retrieve detailed information from the company's internal documentation about Richtech Robotics' products relevant to the user's needs.",
                     "directed": false
                 },
                 "limit": 1
@@ -90,30 +96,42 @@ Here is an exmaple of the generated TaskGraph for the customer service assistant
     "builder_objective": "The customer service assistant helps to request customer's contact information.",
     "domain": "robotics and automation",
     "intro": "Richtech Robotics's headquarter is in Las Vegas; the other office is in Austin. Richtech Robotics provide worker robots (ADAM, ARM, ACE), delivery robots (Matradee, Matradee X, Matradee L, Richie), cleaning robots (DUST-E SX, DUST-E MX) and multipurpose robots (skylark). Their products are intended for business purposes, but not for home purpose; the ADAM robot is available for purchase and rental for multiple purposes. This robot bartender makes tea, coffee and cocktails. Richtech Robotics also operate the world's first robot milk tea shop, ClouTea, in Las Vegas (www.cloutea.com), where all milk tea beverages are prepared by the ADAM robot. The delivery time will be one month for the delivery robot, 2 weeks for standard ADAM, and two months for commercial cleaning robot. ",
-    "task_docs": [
+     "task_docs": [
         {
             "source": "https://www.richtechrobotics.com/",
+            "type":"url",
             "num": 20
         }
     ],
     "rag_docs": [
         {
             "source": "https://www.richtechrobotics.com/",
+            "type":"url",
             "num": 20
         }
     ],
     "tasks": [],
-    "tools": [],
     "workers": [
-        "RAGAWorker",
-        "RagMsgWorker",
-        "MessageWorker",
-        "SearchWorker",
-        "DefaultWorker"
+        {
+            "id": "FaissRAGWorker",
+            "name": "FaissRAGWorker",
+            "path": "faiss_rag_worker.py"
+        },
+        {
+            "id": "26bb6634-3bee-417d-ad75-23269ac17bc3",
+            "name": "MessageWorker",
+            "path": "message_worker.py"
+        },
+        {
+            "id": "9c15af81-04b3-443e-be04-a3522124b905",
+            "name": "SearchWorker",
+            "path": "search_worker.py"
+        }
     ],
-    "nluapi": "http://localhost:55135/nlu/predict",
-    "slotfillapi": "http://localhost:55135/slotfill/predict",
-    "settings":{}
+    "tools": [],
+    "nluapi": "",
+    "slotfillapi": "",
+    "settings": {}
 }
 ```
 
@@ -121,6 +139,6 @@ Here is an exmaple of the generated TaskGraph for the customer service assistant
 
 * `nodes`: The nodes in the TaskGraph, each node contains the worker name, task, and the directed attribute.
 * `edges`: The edges in the TaskGraph, each edge contains the intent, weight, pred, definition, and sample_utterances.
-* fields in the config file: role, user_objective, builder_objective, domain, intro, task_docs, rag_docs, tasks, workers, tools, settings
-* nluapi: It will automatically add the default NLU api which use the `NLUModelAPI` service defined under `./agentorg/orchestrator/NLU/api.py` file. If you want to customize the NLU api, you can change the `nluapi` field to your own NLU api url.
-* slotfillapi: It will automatically add the default SlotFill api which use the `SlotFillModelAPI` service defined under `./agentorg/orchestrator/NLU/api.py` file. If you want to customize the SlotFill api, you can change the `slotfillapi` field to your own SlotFill api url.
+* **fields copied from the config file:** role, user_objective, builder_objective, domain, intro, task_docs, rag_docs, tasks, workers, tools, settings
+* `nluapi`: It will automatically add the default NLU api which use the `NLUModelAPI` service defined under `./agentorg/orchestrator/NLU/api.py` file. If you want to customize the NLU api, you can change the `nluapi` field to your own NLU api url.
+* `slotfillapi`: It will automatically add the default SlotFill api which use the `SlotFillModelAPI` service defined under `./agentorg/orchestrator/NLU/api.py` file. If you want to customize the SlotFill api, you can change the `slotfillapi` field to your own SlotFill api url.

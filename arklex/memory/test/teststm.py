@@ -2,7 +2,7 @@ import asyncio
 from typing import Any
 
 from arklex.memory.core import ShortTermMemory
-from arklex.orchestrator.entities.msg_state_entities import (
+from arklex.orchestrator.entities.orchestrator_state_entities import (
     BotConfig,
     LLMConfig,
     MessageState,

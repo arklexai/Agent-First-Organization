@@ -16,49 +16,44 @@ This file contains the code for retrieving user details using the Shopify Admin 
 
 import inspect
 import json
-from typing import TypedDict
 
 # Admin API
 import shopify
+from pydantic import BaseModel
 
 from arklex.env.tools.shopify._exception_prompt import ShopifyExceptionPrompt
-from arklex.env.tools.shopify.utils import authorify_admin
-from arklex.env.tools.shopify.utils_nav import PAGEINFO_OUTPUTS, cursorify
-from arklex.env.tools.shopify.utils_slots import (
+from arklex.env.tools.shopify.base.entities import ShopifyAdminAuth
+from arklex.env.tools.shopify.legacy.utils_nav import cursorify
+from arklex.env.tools.shopify.utils.utils import authorify_admin
+from arklex.env.tools.shopify.utils.utils_slots import (
     ShopifyGetUserDetailsAdminSlots,
-    ShopifyOutputs,
 )
 from arklex.env.tools.tools import register_tool
 from arklex.utils.exceptions import ToolExecutionError
 
-description = "Get the details of a user with Admin API."
-slots = ShopifyGetUserDetailsAdminSlots.get_all_slots()
-outputs = [ShopifyOutputs.USER_DETAILS, *PAGEINFO_OUTPUTS]
+
+class GetUserDetailsAdminOutput(BaseModel):
+    message_flow: str
 
 
-class GetUserDetailsAdminParams(TypedDict, total=False):
-    """Parameters for the get user details admin tool."""
-
-    shop_url: str
-    api_version: str
-    admin_token: str
-    limit: str
-    navigate: str
-    pageInfo: str
-
-
-@register_tool(description, slots, outputs)
-def get_user_details_admin(user_id: str, **kwargs: GetUserDetailsAdminParams) -> str:
+@register_tool(
+    description="Get the details of a user with Admin API.",
+    slots=ShopifyGetUserDetailsAdminSlots.get_all_slots(),
+)
+def get_user_details_admin(
+    user_id: str, auth: ShopifyAdminAuth, **kwargs: object
+) -> GetUserDetailsAdminOutput:
     """
     Retrieve detailed information about a user using the Shopify Admin API.
 
     Args:
         user_id (str): The ID of the user to retrieve information for.
             Can be a full user ID or just the numeric portion.
-        **kwargs (GetUserDetailsAdminParams): Additional keyword arguments for pagination and authentication.
+        auth (ShopifyAdminAuth): Authentication credentials for the Shopify store.
+        **kwargs: Additional keyword arguments for llm configuration.
 
     Returns:
-        str: A JSON string containing detailed user information, including:
+        GetUserDetailsAdminOutput: A JSON string containing detailed user information, including:
             - First and last name
             - Email and phone
             - Order count and spending amount
@@ -79,10 +74,8 @@ def get_user_details_admin(user_id: str, **kwargs: GetUserDetailsAdminParams) ->
         as a JSON string that can be parsed to access individual user details.
     """
     func_name = inspect.currentframe().f_code.co_name
+    auth = authorify_admin(auth)
     nav = cursorify(kwargs)
-    if not nav[1]:
-        return nav[0]
-    auth = authorify_admin(kwargs)
 
     try:
         with shopify.Session.temp(**auth):
@@ -118,7 +111,9 @@ def get_user_details_admin(user_id: str, **kwargs: GetUserDetailsAdminParams) ->
             """)
             data: dict[str, str] | None = json.loads(response)["data"]["customer"]
             if data:
-                return json.dumps(data)
+                return GetUserDetailsAdminOutput(
+                    message_flow=json.dumps(data),
+                )
             else:
                 raise ToolExecutionError(
                     func_name,
