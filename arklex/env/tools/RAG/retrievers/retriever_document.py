@@ -44,9 +44,13 @@ def embed(text: str, cache: bool = False) -> list[float]:
         if cache:
             cache_key = _generate_cache_key(text)
             cached_embedding = redis_pool.get(cache_key, decode_json=True)
-            if cached_embedding:
+            if cached_embedding is not None:
                 log_context.info(f"Cache hit for text of length {len(text)}")
-                return cached_embedding
+                return (
+                    cached_embedding
+                    if isinstance(cached_embedding, list)
+                    else json.loads(cached_embedding)
+                )
     except Exception as e:
         log_context.warning(f"Redis cache read error: {e}")
 
