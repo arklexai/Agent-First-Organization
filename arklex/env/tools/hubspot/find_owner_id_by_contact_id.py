@@ -11,7 +11,7 @@ import hubspot
 from hubspot.crm.objects.emails import ApiException
 
 from arklex.env.tools.hubspot._exception_prompt import HubspotExceptionPrompt
-from arklex.env.tools.hubspot.base.entities import HubspotAuth
+from arklex.env.tools.hubspot.base.entities import HubspotAuthTokens
 from arklex.env.tools.hubspot.utils import authenticate_hubspot
 from arklex.env.tools.tools import register_tool
 from arklex.utils.exceptions import ToolExecutionError
@@ -44,7 +44,7 @@ outputs: list[dict[str, Any]] = [
 
 @register_tool(description, slots)
 def find_owner_id_by_contact_id(
-    cus_cid: str, auth: HubspotAuth, **kwargs: dict[str, Any]
+    cus_cid: str, auth: HubspotAuthTokens, **kwargs: dict[str, Any]
 ) -> str:
     """
     Find the owner ID for a given contact ID.

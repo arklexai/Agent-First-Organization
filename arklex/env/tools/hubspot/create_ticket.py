@@ -15,7 +15,7 @@ from hubspot.crm.tickets import SimplePublicObjectInput
 from hubspot.crm.tickets.models import SimplePublicObjectInputForCreate
 
 from arklex.env.tools.hubspot._exception_prompt import HubspotExceptionPrompt
-from arklex.env.tools.hubspot.base.entities import HubspotAuth
+from arklex.env.tools.hubspot.base.entities import HubspotAuthTokens
 from arklex.env.tools.hubspot.utils import authenticate_hubspot
 from arklex.env.tools.tools import register_tool
 from arklex.utils.exceptions import ToolExecutionError
@@ -69,7 +69,7 @@ def create_ticket(
     issue: str,
     cus_fname: str,
     cus_lname: str,
-    auth: HubspotAuth,
+    auth: HubspotAuthTokens,
     **kwargs: dict[str, Any],
 ) -> str:
     """

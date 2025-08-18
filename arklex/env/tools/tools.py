@@ -126,10 +126,10 @@ class Tool:
         self.slotfiller: SlotFiller | None = None
         self.auth = {}
         self.node_specific_data: dict[str, Any] = {}
+        self.fixed_args = {}
         self.properties: dict[str, dict[str, Any]] = {}
         # TODO: check with voicebot setup
         # self.openai_slots: list[dict[str, Any]] = self._format_slots(slots)
-        # self.fixed_args = {}
 
     def _format_slots(self, slots: list[dict[str, Any]]) -> list[dict[str, Any]]:
         """Format slots for OpenAI tool definition.

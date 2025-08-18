@@ -823,6 +823,7 @@ class MilvusRetrieverExecutor:
             )
         rt = time.time() - st
         log_context.info(f"MilvusRetriever search took {rt} seconds")
+        log_context.info(f"Retriever results: {ret_results}")
         retriever_params = self.postprocess(ret_results)
         retriever_params["timing"] = {"retriever_input": rit, "retriever_search": rt}
         thought = self.generate_thought(ret_results)

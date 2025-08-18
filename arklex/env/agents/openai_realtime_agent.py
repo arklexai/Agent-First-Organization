@@ -1,12 +1,13 @@
 import asyncio
 import base64
 import datetime
+import json
 import logging
 import os
 import threading
 import uuid
 from collections import defaultdict
-from typing import Literal
+from typing import Any, Literal
 
 import numpy as np
 import orjson
@@ -16,7 +17,8 @@ from pydantic import BaseModel
 
 from arklex.env.agents.agent import BaseAgent, register_agent
 from arklex.env.tools.tools import Tool
-from arklex.env.tools.types import Transcript
+from arklex.env.tools.types import ChatRole, Transcript
+from arklex.orchestrator.entities.orchestrator_state_entities import OrchestratorState
 
 logger = logging.getLogger(__name__)
 
@@ -164,6 +166,14 @@ class OpenAIRealtimeAgent(BaseAgent):
         # this event is used to signal that the audio response has finished playing through twilio
         self.response_played: threading.Event = threading.Event()
         self.transcription_language = transcription_language
+
+    def _execute(self) -> object:
+        pass
+
+    def init_agent_data(
+        self, orch_state: OrchestratorState, node_specific_data: dict[str, Any]
+    ) -> None:
+        pass
 
     def set_telephone_mode(self) -> None:
         """
@@ -418,17 +428,46 @@ class OpenAIRealtimeAgent(BaseAgent):
             kwargs = {"slots": tool.slots}
         else:
             kwargs = {slot.name: slot.value for slot in tool.slots}
-        combined_kwargs = {**kwargs, **tool.fixed_args, **tool.auth}
+        combined_kwargs = {
+            **kwargs,
+            **tool.fixed_args,
+            "auth": tool.auth,
+            "node_specific_data": tool.node_specific_data,
+        }
         combined_kwargs["call_sid"] = self.call_sid
         combined_kwargs["response_played_event"] = self.response_played
         try:
+            self.transcript.append(
+                Transcript(
+                    id=str(uuid.uuid4()),
+                    text=json.dumps(
+                        {"function_name": tool.name, "arguments": tool_args}
+                    ),
+                    origin=ChatRole.TOOL,
+                    created_at=datetime.datetime.now(datetime.timezone.utc),
+                )
+            )
             response = await asyncio.to_thread(tool.func, **combined_kwargs)
+            try:
+                response_object = json.loads(response)
+            except json.JSONDecodeError:
+                response_object = response
         except Exception as e:
             logger.error(f"Error running tool {tool.name}: {e}")
             logger.exception(e)
             response = "unexpected error calling tool"
+            response_object = response
         logger.info(f"Tool {tool.name} response: {response}")
-
+        self.transcript.append(
+            Transcript(
+                id=str(uuid.uuid4()),
+                text=json.dumps(
+                    {"function_name": tool.name, "response": response_object}
+                ),
+                origin=ChatRole.TOOL,
+                created_at=datetime.datetime.now(datetime.timezone.utc),
+            )
+        )
         await self.add_function_call_output(call_id, response)
         await self.create_response()
 

@@ -30,6 +30,6 @@ class MultipleChoiceWorker(BaseWorker):
     def _execute(self) -> MultipleChoiceWorkerOutput:
         return MultipleChoiceWorkerOutput(
             response=self.multiple_choice_worker_data.question,
-            choice_list=self.multiple_choice_worker_data.choice_list,
+            choice_list=self.multiple_choice_worker_data.choices,
             status=StatusEnum.COMPLETE,
         )

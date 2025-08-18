@@ -67,6 +67,7 @@ from arklex.orchestrator.NLU.services.model_service import (
     DummyModelService,
     ModelService,
 )
+from arklex.types.resource_types import AgentItem, ResourceType, ToolItem
 from arklex.utils.exceptions import TaskGraphError
 from arklex.utils.logging_utils import LogContext
 from arklex.utils.utils import normalize, str_similarity
@@ -159,43 +160,59 @@ class AgentGraph(TaskGraphBase):
         self.graph.add_nodes_from(formatted_nodes)
         self.graph.add_edges_from(edges)
 
+        all_resources: list[dict[str, Any]] = self.product_kwargs["tools"]
+        resource_map: dict[str, dict[str, Any]] = {}
+        for resource in all_resources:
+            resource_map[resource["id"]] = resource
+
         resource_initializer = DefaultResourceInitializer()
         for node in self.graph.nodes.data():
-            if node[1].get("type", "") == "agent":
-                node_specific_data = (
-                    node[1].get("attribute", {}).get("node_specific_data", {})
-                )
+            if node[1].get("attribute", {}).get("type", "") == ResourceType.AGENT:
+                node_specific_data = node[1].get("data", {})
                 resource = node[1].get("resource", {})
 
                 # process successors and predecessors to get resources
-                resources = []
-                attributes = []
+                available_tools = []
+                available_nodes = []
                 for node_id in self.graph.successors(node[0]):
                     successor_node = self.graph.nodes[node_id]
                     if (
-                        successor_node.get("type", "") == "tool"
+                        successor_node.get("attribute", {}).get("type", "")
+                        == ResourceType.TOOL
                         and successor_node["resource"]["id"] != "planner"
                     ):
-                        resources.append(successor_node["resource"])
-                        attributes.append(successor_node["attribute"])
+                        available_tools.append(
+                            resource_map[successor_node["resource"]["id"]]
+                        )
+                        available_nodes.append([node_id, successor_node])
 
                 for node_id in self.graph.predecessors(node[0]):
                     predecessor_node = self.graph.nodes[node_id]
                     if (
-                        predecessor_node.get("type", "") == "tool"
+                        predecessor_node.get("attribute", {}).get("type", "")
+                        == ResourceType.TOOL
                         and predecessor_node["resource"]["id"] != "planner"
                     ):
-                        resources.append(predecessor_node["resource"])
-                        attributes.append(predecessor_node["attribute"])
-
-                tool_registry = resource_initializer.init_tools(resources, attributes)
+                        available_tools.append(
+                            resource_map[predecessor_node["resource"]["id"]]
+                        )
+                        available_nodes.append([node_id, predecessor_node])
+                tool_registry = resource_initializer.init_tools(
+                    available_tools, available_nodes
+                )
                 tool_map = {}
                 for tool_id in tool_registry:
-                    tool_instance = tool_registry[tool_id]["tool_instance"]
-                    tool_instance.name = tool_instance.name.replace("http_tool_", "")
-                    tool_map[tool_instance.name] = tool_instance
+                    if tool_id == ToolItem.HTTP_TOOL:
+                        for tool_name in tool_registry[tool_id]:
+                            tool_instance = tool_registry[tool_id][tool_name][
+                                "tool_instance"
+                            ]
+                            tool_map[tool_instance.name] = tool_instance
+                    else:
+                        tool_instance = tool_registry[tool_id]["tool_instance"]
+                        tool_map[tool_instance.name] = tool_instance
                 self.resources.update(tool_registry)
-                if resource.get("id", "") == "openai_realtime_voice_agent":
+                if resource.get("id", "") == AgentItem.OPENAI_REALTIME_VOICE_AGENT:
                     prompt = node_specific_data.get("prompt", "")
                     # prompt_variables_test_values = node_specific_data.get("prompt_variables_test_values", None)
                     prompt_variables = []

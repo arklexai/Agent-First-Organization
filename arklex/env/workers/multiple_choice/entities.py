@@ -6,7 +6,7 @@ from arklex.orchestrator.entities.orchestrator_state_entities import StatusEnum
 
 class MultipleChoiceWorkerData(BaseModel):
     question: str
-    choice_list: list[str]
+    choices: list[str]
 
 
 class MultipleChoiceWorkerOutput(WorkerOutput):
