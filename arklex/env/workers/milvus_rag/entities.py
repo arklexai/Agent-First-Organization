@@ -4,7 +4,6 @@ from pydantic import BaseModel
 
 from arklex.env.workers.base.entities import WorkerOutput
 from arklex.orchestrator.entities.orchestrator_state_entities import (
-    OrchestratorState,
     StatusEnum,
 )
 
@@ -12,7 +11,6 @@ from arklex.orchestrator.entities.orchestrator_state_entities import (
 class MilvusRAGWorkerData(BaseModel):
     """Data for the Milvus RAG worker."""
 
-    orch_state: OrchestratorState
     tags: dict[str, Any]
 
 

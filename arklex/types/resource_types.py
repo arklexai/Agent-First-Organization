@@ -55,13 +55,13 @@ class ToolItem(Item):
     SHOPIFY_RETURN_PRODUCTS = "shopify/return-products"
 
     # HubSpot Tools
-    HUBSPOT_BOOK_MEETING = "hubspot/book-meeting"
-    HUBSPOT_CHECK_AVAILABILITY = "hubspot/check-availability"
-    HUBSPOT_CHECK_AVAILABLE = "hubspot/check-available"
-    HUBSPOT_CREATE_MEETING = "hubspot/create-meeting"
-    HUBSPOT_CREATE_TICKET = "hubspot/create-ticket"
-    HUBSPOT_FIND_CONTACT_BY_EMAIL = "hubspot/find-contact-by-email"
-    HUBSPOT_FIND_OWNER_ID_BY_CONTACT_ID = "hubspot/find-owner-id-by-contact-id"
+    HUBSPOT_BOOK_MEETING = "hubspot/meeting/book-meeting"
+    HUBSPOT_CHECK_AVAILABILITY = "hubspot/meeting/check-availability"
+    HUBSPOT_CHECK_AVAILABLE = "hubspot/meeting/check-available"
+    HUBSPOT_CREATE_MEETING = "hubspot/meeting/create-meeting"
+    HUBSPOT_CREATE_TICKET = "hubspot/ticket/create-ticket"
+    HUBSPOT_FIND_CONTACT_BY_EMAIL = "hubspot/contact/find-contact-by-email"
+    HUBSPOT_FIND_OWNER_ID_BY_CONTACT_ID = "hubspot/contact/find-owner-id-by-contact-id"
 
     # Twilio Tools
     TWILIO_SMS_SEND_SMS = "twilio/sms/send-sms"
