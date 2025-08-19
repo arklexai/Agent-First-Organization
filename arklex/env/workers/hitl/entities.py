@@ -11,4 +11,5 @@ class HitlWorkerData(BaseModel):
 class HitlWorkerOutput(WorkerOutput):
     """Output for the HITL worker."""
 
+    response: str
     status: StatusEnum

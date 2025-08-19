@@ -303,7 +303,7 @@ class Environment:
             Tuple containing updated message state and parameters
         """
         node_response: NodeResponse
-        if id in self.tools:
+        if id in self.tools or id == ToolItem.HTTP_TOOL:
             if id == ToolItem.HTTP_TOOL:
                 log_context.info(f"HTTP tool {node_info.data.get('name', '')} selected")
                 tool: Tool = self.tools[node_info.data.get("name", "")]["tool_instance"]
@@ -343,11 +343,6 @@ class Environment:
                 content = (
                     worker_output.response + "\n" + "\n".join(worker_output.choice_list)
                 )
-            elif id == WorkerItem.HUMAN_IN_THE_LOOP_WORKER:
-                node_response = NodeResponse(
-                    status=worker_output.status,
-                )
-                content = orch_state.message_flow
             else:
                 node_response = NodeResponse(
                     status=worker_output.status,
