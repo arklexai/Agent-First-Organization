@@ -346,12 +346,9 @@ class TaskGraph(TaskGraphBase):
             candidates_nodes: list[dict[str, Any]] = [
                 self.intents[pred_intent][intent_idx]
             ]
-            candidates_nodes_weights: list[float] = [
-                node["attribute"]["weight"] for node in candidates_nodes
-            ]
+            # Use equal weights instead of node attribute weights
             next_node: str = np.random.choice(
-                [node["target_node"] for node in candidates_nodes],
-                p=normalize(candidates_nodes_weights),
+                [node["target_node"] for node in candidates_nodes]
             )
             next_intent: str = pred_intent
         except Exception as e:

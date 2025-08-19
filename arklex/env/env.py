@@ -343,11 +343,6 @@ class Environment:
                 content = (
                     worker_output.response + "\n" + "\n".join(worker_output.choice_list)
                 )
-            elif id == WorkerItem.HUMAN_IN_THE_LOOP_WORKER:
-                node_response = NodeResponse(
-                    status=worker_output.status,
-                )
-                content = orch_state.message_flow
             else:
                 node_response = NodeResponse(
                     status=worker_output.status,
