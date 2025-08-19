@@ -67,7 +67,7 @@ class RagMsgWorker(BaseWorker):
 
     def _format_prompt(self, context: str) -> str:
         user_message = self.orch_state.user_message
-        orch_message = self.rag_message_worker_data.node_message
+        orch_message = self.rag_message_worker_data.message
         if context:
             if self.orch_state.stream_type == StreamType.SPEECH:
                 prompt: PromptTemplate = PromptTemplate.from_template(
