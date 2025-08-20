@@ -284,7 +284,7 @@ class Tool:
                 for key, value in new_slot.items():
                     # Handle schema/slot_schema mapping for group slots
                     if key == "schema" and existing_slot.type == "group":
-                        setattr(existing_slot, "slot_schema", value)
+                        existing_slot.slot_schema = value
                     else:
                         setattr(existing_slot, key, value)
             else:
