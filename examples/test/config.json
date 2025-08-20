@@ -2,48 +2,33 @@
     "role": "customer service assistant",
     "user_objective": "The customer service assistant helps users with customer service inquiries. It can provide information about products, services, and policies, as well as help users resolve issues and complete transactions.",
     "builder_objective": "The customer service assistant helps to request customer's contact information.",
-    "domain": "robotics and automation",
-    "intro": "Richtech Robotics's headquarter is in Las Vegas; the other office is in Austin. Richtech Robotics provide worker robots (ADAM, ARM, ACE), delivery robots (Matradee, Matradee X, Matradee L, Richie), cleaning robots (DUST-E SX, DUST-E MX) and multipurpose robots (skylark). Their products are intended for business purposes, but not for home purpose; the ADAM robot is available for purchase and rental for multiple purposes. This robot bartender makes tea, coffee and cocktails. Richtech Robotics also operate the world's first robot milk tea shop, ClouTea, in Las Vegas (www.cloutea.com), where all milk tea beverages are prepared by the ADAM robot. The delivery time will be one month for the delivery robot, 2 weeks for standard ADAM, and two months for commercial cleaning robot. ",
-    "instructions": [
-        {
-            "source": "The user should be able to ask what is the name of the company",
-            "type": "text"
-        },
-        {
-            "source": "before any actions, you must make sure that the user is authenticated",
-            "type": "text"
-        }
-    ],
-    "example_conversations": [
-        "User: I want to know your product. Bot: Are you inquiring about any specific products? User: I am looking for a cleaning robot. Bot: are you Luigi? User: no. Bot: here are the information of the cleaning robots: <information about product> "
-    ],
+    "domain": "consumer-facing AI agent",
+    "intro": "Arklex.AI is a company that provides consumer-facing AI agent that Optimized for enterprise deployment, with real-time interactions, seamless technical and business team collaboration, and effortless scalable deployment.",
+    "instructions": [],
+    "example_conversations": [],
     "task_docs": [
         {
-            "source": "https://www.richtechrobotics.com/",
+            "source": "https://arklex.ai/",
             "type": "url",
             "num": 3
         }
     ],
     "rag_docs": [
         {
-            "source": "https://www.richtechrobotics.com/",
+            "source": "https://arklex.ai/",
             "type": "url",
             "num": 3
-        },
-        {
-            "source": "this is some text",
-            "type": "text"
         }
     ],
     "tasks": [
         {
-            "task": "User can ask what robotics means"
+            "task": "User can ask what Arklex.AI is"
         },
         {
-            "task": "Assist with customer service and support inquiries"
+            "task": "User can ask what Arklex.AI can do"
         },
         {
-            "task": "Search for latest news and updates about Richtech Robotics"
+            "task": "User can ask what Arklex.AI can do"
         }
     ],
     "workers": [
