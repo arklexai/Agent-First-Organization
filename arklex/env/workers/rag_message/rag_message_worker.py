@@ -130,7 +130,9 @@ class RagMsgWorker(BaseWorker):
                 self.orch_state.bot_config,
                 self.rag_message_worker_data.tags,
             )
-            self.orch_state = trace(input=retriever_params, state=self.orch_state)
+            self.orch_state = trace(
+                input=retriever_params, source="milvus_retrieve", state=self.orch_state
+            )
 
         input_prompt = self._format_prompt(retrieve_text)
         if (

@@ -48,7 +48,9 @@ class MilvusRAGWorker(BaseWorker):
             self.orch_state.bot_config,
             self.milvus_rag_worker_data.tags,
         )
-        self.orch_state = trace(input=retriever_params, state=self.orch_state)
+        self.orch_state = trace(
+            input=retriever_params, source="milvus_retrieve", state=self.orch_state
+        )
         self.orch_state.message_flow = retrieved_text
         if self.orch_state.stream_type != StreamType.NON_STREAM:
             response = ToolGenerator.stream_context_generate(self.orch_state)
