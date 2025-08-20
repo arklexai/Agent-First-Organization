@@ -13,7 +13,6 @@ from langchain.prompts import PromptTemplate
 from langchain_core.output_parsers import StrOutputParser
 
 from arklex.env.prompts import load_prompts
-from arklex.env.tools.utils import trace
 from arklex.env.workers.base.base_worker import BaseWorker
 from arklex.env.workers.message.entities import (
     MessageWorkerData,
@@ -126,7 +125,6 @@ class MessageWorker(BaseWorker):
         else:
             answer = self.generator(input_prompt)
 
-        self.orch_state = trace(input=answer, state=self.orch_state)
         return MessageWorkerOutput(
             response=answer,
             status=StatusEnum.COMPLETE,
