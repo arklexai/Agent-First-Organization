@@ -790,7 +790,7 @@ class MilvusRetrieverExecutor:
                 "confidence": confidence_score,
             }
             retriever_returns.append(item)
-        return {"retriever": retriever_returns}
+        return {"source": retriever_returns}
 
     def retrieve(
         self, chat_history_str: str, tags: dict[str, object] | None = None

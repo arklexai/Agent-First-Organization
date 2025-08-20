@@ -51,7 +51,7 @@ class RetrieveEngine:
             user_message.history, prompts["retrieve_contextualize_q_prompt"]
         )
 
-        state = trace(input=retriever_returns, state=state)
+        state = trace(input=retriever_returns, source="faiss_retrieve", state=state)
         return retrieved_text
 
 

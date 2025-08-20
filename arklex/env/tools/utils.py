@@ -7,7 +7,6 @@ states. The module integrates with various language models and prompt templates 
 provide flexible response generation capabilities.
 """
 
-import inspect
 from typing import Any, Protocol, TypedDict
 
 from langchain.prompts import PromptTemplate
@@ -209,15 +208,8 @@ class ToolGenerator:
         return answer
 
 
-def trace(input: str, state: OrchestratorState) -> OrchestratorState:
-    current_frame: inspect.FrameInfo | None = inspect.currentframe()
-    previous_frame: inspect.FrameInfo | None = (
-        current_frame.f_back if current_frame else None
-    )
-    previous_function_name: str = (
-        previous_frame.f_code.co_name if previous_frame else "unknown"
-    )
-    response_meta: dict[str, str] = {previous_function_name: input}
+def trace(input: str, source: str, state: OrchestratorState) -> OrchestratorState:
+    response_meta: dict[str, str] = {source: input}
     state.trajectory[-1][-1].steps.append(response_meta)
     return state
 

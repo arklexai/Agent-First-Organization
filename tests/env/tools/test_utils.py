@@ -418,64 +418,20 @@ class TestToolGenerator:
 class TestTrace:
     """Test cases for trace function."""
 
-    @patch("arklex.env.tools.utils.inspect")
-    def test_trace(self, mock_inspect: Mock) -> None:
+    def test_trace(self) -> None:
         """Test trace function."""
         # Setup
         state = Mock(spec=OrchestratorState)
         state.trajectory = [[Mock()]]
         state.trajectory[-1][-1].steps = []
 
-        mock_frame = Mock()
-        mock_frame.f_back = Mock()
-        mock_frame.f_back.f_code.co_name = "test_function"
-        mock_inspect.currentframe.return_value = mock_frame
-
         # Execute
-        result = trace("test input", state)
+        result = trace("test input", "test_function", state)
 
         # Assert
         assert result is state  # trace returns the modified state object
         assert len(state.trajectory[-1][-1].steps) == 1
         assert state.trajectory[-1][-1].steps[0] == {"test_function": "test input"}
-
-    @patch("arklex.env.tools.utils.inspect")
-    def test_trace_no_current_frame(self, mock_inspect: Mock) -> None:
-        """Test trace function when no current frame is available."""
-        # Setup
-        state = Mock(spec=OrchestratorState)
-        state.trajectory = [[Mock()]]
-        state.trajectory[-1][-1].steps = []
-
-        mock_inspect.currentframe.return_value = None
-
-        # Execute
-        result = trace("test input", state)
-
-        # Assert
-        assert result is state  # trace returns the modified state object
-        assert len(state.trajectory[-1][-1].steps) == 1
-        assert state.trajectory[-1][-1].steps[0] == {"unknown": "test input"}
-
-    @patch("arklex.env.tools.utils.inspect")
-    def test_trace_no_previous_frame(self, mock_inspect: Mock) -> None:
-        """Test trace function when no previous frame is available."""
-        # Setup
-        state = Mock(spec=OrchestratorState)
-        state.trajectory = [[Mock()]]
-        state.trajectory[-1][-1].steps = []
-
-        mock_frame = Mock()
-        mock_frame.f_back = None
-        mock_inspect.currentframe.return_value = mock_frame
-
-        # Execute
-        result = trace("test input", state)
-
-        # Assert
-        assert result is state  # trace returns the modified state object
-        assert len(state.trajectory[-1][-1].steps) == 1
-        assert state.trajectory[-1][-1].steps[0] == {"unknown": "test input"}
 
 
 class TestExecuteTool:
