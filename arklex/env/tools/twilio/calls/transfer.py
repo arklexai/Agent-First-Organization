@@ -14,10 +14,6 @@ description = "Transfer the call to a human agent"
 
 slots = []
 
-errors = []
-
-outputs = []
-
 
 class TransferCallKwargs(TypedDict, total=False):
     """Type definition for kwargs used in transfer_call function."""
@@ -29,7 +25,7 @@ class TransferCallKwargs(TypedDict, total=False):
     transfer_message: str
 
 
-@register_tool(description, slots, outputs, lambda x: x not in errors)
+@register_tool(description, slots)
 def transfer(**kwargs: TransferCallKwargs) -> str:
     try:
         call_sid = kwargs.get("call_sid")

@@ -68,6 +68,7 @@ class ToolItem(Item):
     TWILIO_SMS_SEND_PREDEFINED_SMS = "twilio/sms/send-predefined-sms"
     TWILIO_CALL_END_CALL = "twilio/call/end-call"
     TWILIO_CALL_VOICEMAIL = "twilio/call/voicemail"
+    TWILIO_CALL_TRANSFER = "twilio/call/transfer"
 
     # Custom Tools
     HTTP_TOOL = "custom/http-tool"

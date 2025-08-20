@@ -154,6 +154,12 @@ resource_map: Mapping[type[Item], Mapping[str, ResourceType | ToolCategory | typ
         "module": "arklex.env.tools.twilio.calls.voicemail",
         "item_cls": "voicemail",
     },
+    ToolItem.TWILIO_CALL_TRANSFER: {
+        "type": ResourceType.TOOL,
+        "category": ToolCategory.TWILIO,
+        "module": "arklex.env.tools.twilio.calls.transfer",
+        "item_cls": "transfer",
+    },
     ToolItem.HTTP_TOOL: {
         "type": ResourceType.TOOL,
         "category": ToolCategory.CUSTOM,
