@@ -67,25 +67,24 @@ class OpenAIAgent(BaseAgent):
         all_nodes = successors + predecessors
         
         for node in all_nodes:
-            node_id = node.resource.get("id")
             
             if (
-                node_id not in tools
-                and node_id != ToolItem.HTTP_TOOL
+                node.resource.get("id") not in tools
+                and node.resource.get("id") != ToolItem.HTTP_TOOL
             ):
                 log_context.warning(
-                    f"Tool {node_id} not found for openai agent"
+                    f"Tool {node.resource.get('id')} not found for openai agent"
                 )
                 continue
 
-            if node_id == ToolItem.HTTP_TOOL:
+            if node.resource.get("id") == ToolItem.HTTP_TOOL:
                 http_tool_id = node.data.get("name", "")
-                if http_tool_id in tools:
-                    self.available_tools[http_tool_id] = tools[http_tool_id]
-                    self.http_tools.append(http_tool_id)
+                self.available_tools[http_tool_id] = tools[http_tool_id]
+                self.http_tools.append(http_tool_id)
+
             else:
-                if node_id in tools:
-                    self.available_tools[node_id] = tools[node_id]
+                tool_id = node.resource.get("id")
+                self.available_tools[tool_id] = tools[tool_id]
 
     def _configure_tools(self) -> None:
         """
