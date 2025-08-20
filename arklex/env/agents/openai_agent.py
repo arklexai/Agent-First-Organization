@@ -62,9 +62,13 @@ class OpenAIAgent(BaseAgent):
         This method is called during the initialization of the agent.
         """
         self.tools = tools.copy()
+        self.http_tools = []
         all_nodes = successors + predecessors
         for node in all_nodes:
-            if node.resource.get("id") not in tools:
+            if (
+                node.resource.get("id") not in tools
+                and node.resource.get("id") != ToolItem.HTTP_TOOL
+            ):
                 log_context.warning(
                     f"Tool {node.resource.get('id')} not found for openai agent"
                 )
@@ -72,9 +76,8 @@ class OpenAIAgent(BaseAgent):
 
             if node.resource.get("id") == ToolItem.HTTP_TOOL:
                 http_tool_id = node.data.get("name", "")
-                self.available_tools[http_tool_id] = tools[node.resource.get("id")][
-                    http_tool_id
-                ]
+                self.available_tools[http_tool_id] = tools[http_tool_id]
+                self.http_tools.append(http_tool_id)
             else:
                 tool_id = node.resource.get("id")
                 self.available_tools[tool_id] = tools[tool_id]
@@ -304,7 +307,7 @@ class OpenAIAgent(BaseAgent):
                 result.append(slot_dict)
             return result
 
-        if tool_name in self.tools.get(ToolItem.HTTP_TOOL, {}):
+        if tool_name in self.http_tools:
             all_slots = self.tool_slots.get(tool_name, [])
             slots = build_slot_values(
                 [
