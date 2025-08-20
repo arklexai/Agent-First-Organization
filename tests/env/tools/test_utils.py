@@ -418,8 +418,7 @@ class TestToolGenerator:
 class TestTrace:
     """Test cases for trace function."""
 
-    @patch("arklex.env.tools.utils.inspect")
-    def test_trace(self, mock_inspect: Mock) -> None:
+    def test_trace(self) -> None:
         """Test trace function."""
         # Setup
         state = Mock(spec=OrchestratorState)
