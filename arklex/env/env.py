@@ -305,8 +305,14 @@ class Environment:
         node_response: NodeResponse
         if id in self.tools or id == ToolItem.HTTP_TOOL:
             if id == ToolItem.HTTP_TOOL:
-                log_context.info(f"HTTP tool {node_info.data.get('name', '')} selected")
-                tool: Tool = self.tools[node_info.data.get("name", "")]["tool_instance"]
+                task_name = node_info.data.get("name", "")
+                if task_name in self.tools:
+                    log_context.info(f"HTTP tool {task_name} selected")
+                    tool: Tool = self.tools[task_name]["tool_instance"]
+                else:
+                    log_context.error(f"HTTP tool with task name '{task_name}' not found in tools registry")
+                    node_response = NodeResponse(status=StatusEnum.ERROR)
+                    return orch_state, node_response
             else:
                 log_context.info(f"{id} tool selected")
                 tool: Tool = self.tools[id]["tool_instance"]
@@ -374,7 +380,7 @@ class Environment:
             )
 
         elif id in self.agents:
-            log_context.info(f"{self.agents[id]} agent selected")
+            log_context.info(f"Agent {id} selected")
             agent: BaseAgent = self.agents[id]["agent_instance"](
                 successors=node_info.successors,
                 predecessors=node_info.predecessors,
