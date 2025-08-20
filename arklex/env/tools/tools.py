@@ -1025,44 +1025,7 @@ class Tool:
         reason: str = ""
         tool_output: ToolOutput = ToolOutput(status=StatusEnum.INCOMPLETE)
 
-
-        # Check if we need to reset slots for a new node
-        # If this tool has been called before, check if the current slots are different
-        # from the previously stored slots (indicating a different node)
-        def slot_schema_signature(slots: list[Slot]) -> list[tuple[str, str, str | None]]:
-            import json
-            def safe_schema_dump(slot: Slot) -> list[dict[str, Any]]:
-                return [
-                    field.model_dump() if hasattr(field, 'model_dump') else dict(field) if not isinstance(field, dict) else field
-                    for field in slot.slot_schema
-                ]
-                
-            return [
-                (
-                    slot.name,
-                    slot.type,
-                    json.dumps(safe_schema_dump(slot), sort_keys=True) if hasattr(slot, 'slot_schema') and slot.slot_schema else None
-                )
-                for slot in slots
-            ]
-
-        if state.slots.get(self.name):
-            previous_slots = state.slots[self.name]
-            if slot_schema_signature(self.slots) != slot_schema_signature(previous_slots):
-                log_context.info(
-                    "Slot configuration or schema changed, resetting slots"
-                )
-                # Reset slots to the current node's configuration
-                state.slots[self.name] = [Slot.model_validate(slot.model_dump()) for slot in self.slots]
-                self.slots = state.slots[self.name]
-            else:
-                # Load previous slots if they're from the same node and schema
-                self.slots = state.slots[self.name]
-        else:
-            state.slots[self.name] = [Slot.model_validate(slot.model_dump()) for slot in self.slots]
-            self.slots = state.slots[self.name]
-
-
+        self.slots = [Slot.model_validate(slot) for slot in self.slots]
         # init slot values saved in default slots
         self._init_slots(state, all_slots)
         # do slotfilling (now with valueSource logic)
