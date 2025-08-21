@@ -101,7 +101,7 @@ class MilvusRetriever:
             field_name="embedding", datatype=DataType.FLOAT_VECTOR, dim=EMBED_DIMENSION
         )
         schema.add_field(field_name="timestamp", datatype=DataType.INT64)
-        # schema.add_field(field_name="num_tokens", datatype=DataType.INT64)
+        schema.add_field(field_name="num_tokens", datatype=DataType.INT64)
         index_params = self.client.prepare_index_params()
         index_params.add_index(field_name="id")
         index_params.add_index(field_name="qa_doc_id")
