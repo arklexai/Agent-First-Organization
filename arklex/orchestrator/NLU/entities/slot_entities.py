@@ -54,7 +54,6 @@ class Slot(BaseModel):
     valueSource: str | None = Field(default=None)
 
     def to_openai_schema(self) -> dict | None:
-        
         def _get_type_map() -> dict[str, str]:
             """Get the mapping from internal types to OpenAI schema types."""
             return {
@@ -75,7 +74,7 @@ class Slot(BaseModel):
                 properties[field_slot.name] = field_slot.to_openai_schema()
                 if getattr(field_slot, "required", False):
                     required.append(field_slot.name)
-            
+
             return {
                 "type": "object",
                 "properties": properties,
@@ -90,10 +89,10 @@ class Slot(BaseModel):
                 "type": type_map.get(self.type, "string"),
                 "description": getattr(self, "description", ""),
             }
-        
+
         if getattr(self, "valueSource", None) == "fixed":
             return None
-        
+
         # Handle repeatable fields - they should be arrays
         if getattr(self, "repeatable", False):
             if self.type == "group":

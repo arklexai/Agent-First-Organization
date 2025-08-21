@@ -1,8 +1,8 @@
-import sqlite3
 import argparse
-from pathlib import Path
 import os
-from typing import List, Dict, Any, Tuple
+import sqlite3
+from pathlib import Path
+from typing import Any
 
 
 def build_database(folder_path: str) -> None:
@@ -51,7 +51,7 @@ def build_database(folder_path: str) -> None:
     """)
 
     # Populate sample data
-    shows: List[Dict[str, Any]] = [
+    shows: list[dict[str, Any]] = [
         {
             "show_name": "The Dead, 1904",
             "genre": "Opera",
@@ -164,7 +164,7 @@ def build_database(folder_path: str) -> None:
         },
     ]
 
-    users: List[Dict[str, Any]] = [
+    users: list[dict[str, Any]] = [
         {
             "first_name": "Alice",
             "last_name": "Smith",
@@ -211,14 +211,14 @@ def build_database(folder_path: str) -> None:
     for show in shows:
         columns: str = ", ".join(show.keys())
         placeholders: str = ", ".join(["?"] * len(show))
-        values: Tuple[Any, ...] = tuple(show.values())
+        values: tuple[Any, ...] = tuple(show.values())
         sql: str = f"INSERT INTO show ({columns}) VALUES ({placeholders})"
         cursor.execute(sql, values)
 
     for user in users:
         columns: str = ", ".join(user.keys())
         placeholders: str = ", ".join(["?"] * len(user))
-        values: Tuple[Any, ...] = tuple(user.values())
+        values: tuple[Any, ...] = tuple(user.values())
         sql: str = f"INSERT INTO user ({columns}) VALUES ({placeholders})"
         cursor.execute(sql, values)
 

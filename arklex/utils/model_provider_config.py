@@ -75,6 +75,7 @@ class DummyLLM:
     def invoke(self, messages: object) -> object:
         class Response:
             content = "Thank you for using our service. Goodbye!"
+
         return Response()
 
 

@@ -42,7 +42,13 @@ Usage:
 
 import collections
 import copy
-from typing import Any, List, Optional
+import json
+import operator
+import re
+import time
+import uuid
+from dataclasses import dataclass, field
+from typing import Any
 
 import networkx as nx
 import numpy as np
@@ -72,10 +78,6 @@ from arklex.utils.exceptions import TaskGraphError
 from arklex.utils.logging_utils import LogContext
 from arklex.utils.utils import normalize, str_similarity
 
-import operator
-import re
-import json, uuid, time
-from dataclasses import dataclass, field
 
 @dataclass
 class PrimitiveRow:
@@ -85,6 +87,7 @@ class PrimitiveRow:
     actual: Any
     result: bool
 
+
 @dataclass
 class DecisionLog:
     ts: float
@@ -92,7 +95,8 @@ class DecisionLog:
     node_id: str
     edge_id: str
     decision: str
-    table: List[PrimitiveRow] = field(default_factory=list)
+    table: list[PrimitiveRow] = field(default_factory=list)
+
 
 class ConditionTracer:
     def __init__(self, node_id: str, edge_id: str) -> None:
@@ -104,7 +108,15 @@ class ConditionTracer:
             decision="",
         )
 
-    def record_primitive(self, *, param: str, operator: str, expected: object, actual: object, result: bool) -> None:
+    def record_primitive(
+        self,
+        *,
+        param: str,
+        operator: str,
+        expected: object,
+        actual: object,
+        result: bool,
+    ) -> None:
         self._log.table.append(PrimitiveRow(param, operator, expected, actual, result))
 
     def set_decision(self, decision: str) -> None:
@@ -128,24 +140,25 @@ class ConditionTracer:
         }
         return json.dumps(payload, ensure_ascii=False)
 
+
 log_context = LogContext(__name__)
 
 _OPS = {
-        "eq": operator.eq,
-        "ne": operator.ne,
-        "gt": operator.gt,
-        "gte": operator.ge,
-        "lt": operator.lt,
-        "lte": operator.le,
-        "contains": lambda a, b: isinstance(a, str) and b in a,
-        "regex": lambda a, b: isinstance(a, str) and re.search(b, a) is not None,
-        "exists": lambda a, _: a is not None,
-        
-        "null": lambda a, _: a is None,
-        "not_null": lambda a, _: a is not None,
-        "in": lambda a, b: (b is not None and a in b),
-        "not_in": lambda a, b: (b is not None and a not in b)
-    }
+    "eq": operator.eq,
+    "ne": operator.ne,
+    "gt": operator.gt,
+    "gte": operator.ge,
+    "lt": operator.lt,
+    "lte": operator.le,
+    "contains": lambda a, b: isinstance(a, str) and b in a,
+    "regex": lambda a, b: isinstance(a, str) and re.search(b, a) is not None,
+    "exists": lambda a, _: a is not None,
+    "null": lambda a, _: a is None,
+    "not_null": lambda a, _: a is not None,
+    "in": lambda a, b: (b is not None and a in b),
+    "not_in": lambda a, b: (b is not None and a not in b),
+}
+
 
 class TaskGraphBase:
     """Base class for task graph functionality.
@@ -1136,21 +1149,20 @@ class TaskGraphNLU(TaskGraphBase):
         self.graph.add_nodes_from(formatted_nodes)
         self.graph.add_edges_from(edges)
 
+
 class SubTaskGraphLogic(TaskGraphBase):
     """
     A TaskGraph subclass that processes 'logic' edges directly within its get_node method,
     without a separate handler class. It first evaluates logic-based edges, then falls
     back to random None-edge transitions or stays on the current node.
     """
+
     def __init__(
-        self,
-        name: str,
-        product_kwargs: dict[str, Any],
-        curr_node: str
+        self, name: str, product_kwargs: dict[str, Any], curr_node: str
     ) -> None:
         TaskGraphBase.__init__(self, name, product_kwargs)
 
-        self.initial_node: Optional[str] = self.get_initial_flow()
+        self.initial_node: str | None = self.get_initial_flow()
         self.curr_node = curr_node
 
     def get_node(self, inputs: dict[str, Any]) -> tuple[NodeInfo, OrchestratorParams]:
@@ -1163,8 +1175,8 @@ class SubTaskGraphLogic(TaskGraphBase):
         logic_target = self._evaluate_logic(self.curr_node, params)
 
         return logic_target, params
-        
-    def _evaluate_logic(self, curr_node: str, params: OrchestratorParams) -> Optional[str]:
+
+    def _evaluate_logic(self, curr_node: str, params: OrchestratorParams) -> str | None:
         """
         Return the target node id of the first outgoing edge of type 'logic'
         whose condition matches the current OrchestratorParams.
@@ -1173,32 +1185,46 @@ class SubTaskGraphLogic(TaskGraphBase):
         for _, target_node, edge_data in self.graph.out_edges(curr_node, data=True):
             if edge_data.get("type") != "logic":
                 continue
-            
+
             edge_id = edge_data.get("id") or f"{curr_node}->{target_node}"
             tracer = ConditionTracer(node_id=curr_node, edge_id=edge_id)
-            
-            cases: List[dict[str, Any]] = edge_data.get("cases", [])
+
+            cases: list[dict[str, Any]] = edge_data.get("cases", [])
             if cases:
                 for case in cases:
                     cond = case.get("condition", {})
                     if self._check_condition(cond, params):
                         chosen = case.get("target")
-                        log_context.info(f"[LogicEdge] Case matched: routing to {chosen}" + tracer.dump())
+                        log_context.info(
+                            f"[LogicEdge] Case matched: routing to {chosen}"
+                            + tracer.dump()
+                        )
                         tracer.set_decision(chosen)
                         return chosen
                 # if all cases are not matched，fallback to the target node
                 tracer.set_decision("default")
-                log_context.info(f"[LogicEdge] No case matched, routing to default target {target_node}" + tracer.dump())
+                log_context.info(
+                    f"[LogicEdge] No case matched, routing to default target {target_node}"
+                    + tracer.dump()
+                )
                 return target_node
             # Single-condition edge fallback
             cond = edge_data.get("condition") or {}
             if cond and self._check_condition(cond, params):
                 tracer.set_decision("single-edge")
-                log_context.info(f"[LogicEdge] Condition matched for edge => {target_node}" + tracer.dump())
+                log_context.info(
+                    f"[LogicEdge] Condition matched for edge => {target_node}"
+                    + tracer.dump()
+                )
                 return target_node
         return None
-                
-    def _check_condition(self, cond: dict[str, Any], params: OrchestratorParams, tracer: Optional[ConditionTracer] = None) -> bool:
+
+    def _check_condition(
+        self,
+        cond: dict[str, Any],
+        params: OrchestratorParams,
+        tracer: ConditionTracer | None = None,
+    ) -> bool:
         """
         Evaluate a condition dict with boolean combiners and primitives.
 
@@ -1213,22 +1239,26 @@ class SubTaskGraphLogic(TaskGraphBase):
             return False
         # Boolean combiners
         if "and" in cond:
-            return all (self._check_condition(c, params, tracer = tracer) for c in cond["and"])
+            return all(
+                self._check_condition(c, params, tracer=tracer) for c in cond["and"]
+            )
         if "or" in cond:
-            return any (self._check_condition(c, params, tracer = tracer) for c in cond["or"])
+            return any(
+                self._check_condition(c, params, tracer=tracer) for c in cond["or"]
+            )
         if "not" in cond:
-            return not self._check_condition(cond["not"], params, tracer = tracer) 
+            return not self._check_condition(cond["not"], params, tracer=tracer)
         # Primitive condition
-        return self._eval_primitive(cond, params, tracer = tracer)
+        return self._eval_primitive(cond, params, tracer=tracer)
 
     def _deep_get(self, obj: object, path: str, default: object | None) -> object:
-        pattern = r'([a-zA-Z0-9_]+)(\[\-?\d+\])?'
-        parts = path.split('.')
+        pattern = r"([a-zA-Z0-9_]+)(\[\-?\d+\])?"
+        parts = path.split(".")
         for part in parts:
             match = re.fullmatch(pattern, part)
             if not match:
                 return default
-            
+
             key = match.group(1)
             idx = match.group(2)
 
@@ -1240,14 +1270,19 @@ class SubTaskGraphLogic(TaskGraphBase):
                 return default
 
             if idx:
-                index = int(idx[1:-1]) 
+                index = int(idx[1:-1])
                 try:
                     obj = obj[index]
                 except (IndexError, TypeError):
                     return default
         return obj
 
-    def _eval_primitive(self, cond: dict[str, Any], params: OrchestratorParams, tracer: Optional[ConditionTracer] = None) -> bool:
+    def _eval_primitive(
+        self,
+        cond: dict[str, Any],
+        params: OrchestratorParams,
+        tracer: ConditionTracer | None = None,
+    ) -> bool:
         """
         Evaluate a primitive condition in canonical form:
         {"param": "path.to.value", "op": "gt", "value": 2}
@@ -1259,7 +1294,9 @@ class SubTaskGraphLogic(TaskGraphBase):
         Returns False if format invalid or op unknown.
         """
         if "param" not in cond:
-            log_context.warning(f"Invalid primitive condition (missing 'param'): {cond}")
+            log_context.warning(
+                f"Invalid primitive condition (missing 'param'): {cond}"
+            )
             return False
         val = self._deep_get(params, cond["param"])
 
@@ -1282,4 +1319,3 @@ class SubTaskGraphLogic(TaskGraphBase):
                 result=res,
             )
         return res
-
