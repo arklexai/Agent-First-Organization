@@ -125,13 +125,12 @@ class Tool:
         Returns:
             Tool: A new Tool instance with the same configuration but independent state.
         """
-        new_tool = Tool(
+        return Tool(
             func=self.func,
             name=self.name,
             description=self.description,
             slots=self.slots,
         )
-        return new_tool
 
     def get_info(self, slots: list[dict[str, Any]]) -> dict[str, Any]:
         """Get tool information including parameters and requirements.
