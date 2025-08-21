@@ -1,4 +1,5 @@
 import json
+import re
 from typing import Any
 
 from langchain.prompts import PromptTemplate
@@ -101,7 +102,6 @@ class OpenAIAgent(BaseAgent):
             # Sanitize tool name for OpenAI (only allow alphanumeric, underscore, hyphen)
             sanitized_tool_id = tool_id.replace("/", "_").replace(" ", "_").replace("-", "_")
             # Remove any other invalid characters
-            import re
             sanitized_tool_id = re.sub(r'[^a-zA-Z0-9_-]', '_', sanitized_tool_id)
             
             tool_def["function"]["name"] = sanitized_tool_id
