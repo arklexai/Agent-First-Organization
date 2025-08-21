@@ -15,6 +15,7 @@ class ToolCategory(str, Enum):
     GOOGLE_CALENDAR = "google-calendar"
     SHOPIFY = "shopify"
     HUBSPOT = "hubspot"
+    TWILIO = "twilio"
     CUSTOM = "custom"
 
 
@@ -39,6 +40,7 @@ class ToolItem(Item):
 
     # Google Calendar Tools
     GOOGLE_CREATE_EVENT = "google/calendar/create-event"
+    GOOGLE_FREE_BUSY = "google/calendar/free-busy"
 
     # Shopify Tools
     SHOPIFY_FIND_USER_ID_BY_EMAIL = "shopify/find-user-id-by-email"
@@ -53,15 +55,24 @@ class ToolItem(Item):
     SHOPIFY_RETURN_PRODUCTS = "shopify/return-products"
 
     # HubSpot Tools
-    HUBSPOT_CHECK_AVAILABLE = "hubspot/check-available"
-    HUBSPOT_CHECK_AVAILABILITY = "hubspot/check-availability"
-    HUBSPOT_CREATE_MEETING = "hubspot/create-meeting"
-    HUBSPOT_CREATE_TICKET = "hubspot/create-ticket"
-    HUBSPOT_FIND_CONTACT_BY_EMAIL = "hubspot/find-contact-by-email"
-    HUBSPOT_FIND_OWNER_ID_BY_CONTACT_ID = "hubspot/find-owner-id-by-contact-id"
+    HUBSPOT_BOOK_MEETING = "hubspot/meeting/book-meeting"
+    HUBSPOT_CHECK_AVAILABILITY = "hubspot/meeting/check-availability"
+    HUBSPOT_CHECK_AVAILABLE = "hubspot/meeting/check-available"
+    HUBSPOT_CREATE_MEETING = "hubspot/meeting/create-meeting"
+    HUBSPOT_CREATE_TICKET = "hubspot/ticket/create-ticket"
+    HUBSPOT_FIND_CONTACT_BY_EMAIL = "hubspot/contact/find-contact-by-email"
+    HUBSPOT_FIND_OWNER_ID_BY_CONTACT_ID = "hubspot/contact/find-owner-id-by-contact-id"
+
+    # Twilio Tools
+    TWILIO_SMS_SEND_SMS = "twilio/sms/send-sms"
+    TWILIO_SMS_SEND_PREDEFINED_SMS = "twilio/sms/send-predefined-sms"
+    TWILIO_CALL_END_CALL = "twilio/call/end-call"
+    TWILIO_CALL_VOICEMAIL = "twilio/call/voicemail"
+    TWILIO_CALL_TRANSFER = "twilio/call/transfer"
 
     # Custom Tools
-    HTTP_TOOL = "custom-tools/http-tool"
+    HTTP_TOOL = "custom/http-tool"
+    RETRIEVER = "custom/retriever"
 
 
 class WorkerItem(Item):
@@ -81,4 +92,4 @@ class AgentItem(Item):
     """Specific agent items organized by category."""
 
     OPENAI_AGENT = "openai-agent"
-    OPENAI_REALTIME_AGENT = "openai-realtime-agent"
+    OPENAI_REALTIME_VOICE_AGENT = "openai-realtime-voice-agent"

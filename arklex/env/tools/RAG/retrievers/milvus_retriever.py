@@ -32,7 +32,7 @@ from arklex.env.tools.RAG.retrievers.retriever_document import (
     embed_retriever_document,
 )
 from arklex.utils.logging_utils import LogContext
-#from arklex.utils.mysql import mysql_pool
+from arklex.utils.mysql import mysql_pool
 from arklex.utils.provider_utils import validate_and_get_model_class
 
 EMBED_DIMENSION = 1536
@@ -790,7 +790,7 @@ class MilvusRetrieverExecutor:
                 "confidence": confidence_score,
             }
             retriever_returns.append(item)
-        return {"retriever": retriever_returns}
+        return {"source": retriever_returns}
 
     def retrieve(
         self, chat_history_str: str, tags: dict[str, object] | None = None
@@ -823,6 +823,7 @@ class MilvusRetrieverExecutor:
             )
         rt = time.time() - st
         log_context.info(f"MilvusRetriever search took {rt} seconds")
+        log_context.info(f"Retriever results: {ret_results}")
         retriever_params = self.postprocess(ret_results)
         retriever_params["timing"] = {"retriever_input": rit, "retriever_search": rt}
         thought = self.generate_thought(ret_results)

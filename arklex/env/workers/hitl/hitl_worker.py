@@ -45,14 +45,15 @@ class HITLWorker(BaseWorker):
             HitlWorkerOutput: Output of the HITL worker
         """
         if not self.orch_state.metadata.hitl:
-            self.orch_state.message_flow = "I'll connect you to a representative!"
             self.orch_state.metadata.hitl = "live"
             return HitlWorkerOutput(
                 status=StatusEnum.STAY,
+                response="I'll connect you to a representative!",
             )
         else:
             self.orch_state.message_flow = "Live chat completed"
             self.orch_state.metadata.hitl = None
             return HitlWorkerOutput(
                 status=StatusEnum.COMPLETE,
+                response="",
             )

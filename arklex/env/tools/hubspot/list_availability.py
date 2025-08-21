@@ -3,7 +3,7 @@ from datetime import datetime
 import pytz
 from hubspot import HubSpot
 
-from arklex.env.tools.hubspot.base.entities import HubspotAuth
+from arklex.env.tools.hubspot.base.entities import HubspotAuthTokens
 from arklex.env.tools.hubspot.utils import authenticate_hubspot
 from arklex.env.tools.tools import register_tool
 from arklex.utils.logging_utils import LogContext
@@ -35,7 +35,7 @@ slots = [
 
 @register_tool(description, slots)
 def list_availability(
-    timezone: str, duration: int, auth: HubspotAuth, **kwargs: dict[str, object]
+    timezone: str, duration: int, auth: HubspotAuthTokens, **kwargs: dict[str, object]
 ) -> str:
     slug = kwargs.get("slug")
     log_context.info(

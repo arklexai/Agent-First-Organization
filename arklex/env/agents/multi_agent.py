@@ -4,7 +4,7 @@ from typing import Any
 
 from arklex.env.agents.agent import BaseAgent, register_agent
 from arklex.env.agents.patterns.registry import dispatch_pattern
-from arklex.orchestrator.entities.msg_state_entities import MessageState
+from arklex.orchestrator.entities.orchestrator_state_entities import OrchestratorState
 from arklex.utils.logging_utils import LogContext
 
 log_context = LogContext(__name__)
@@ -19,7 +19,7 @@ class MultiAgent(BaseAgent):
         successors: list,
         predecessors: list,
         tools: list,
-        state: MessageState,
+        state: OrchestratorState,
         multi_agent_config: dict[str, Any],
     ) -> None:
         super().__init__()
@@ -30,6 +30,11 @@ class MultiAgent(BaseAgent):
         log_context.info(
             f"MultiAgent initialized with {self.multi_agent_config.get('node_specific_data')} pattern."
         )
+
+    def init_agent_data(
+        self, orch_state: OrchestratorState, node_specific_data: dict[str, Any]
+    ) -> None:
+        pass
 
     def is_async(self) -> bool:
         """Check if this multi-agent instance should be run asynchronously."""
@@ -49,7 +54,7 @@ class MultiAgent(BaseAgent):
             )
             raise
 
-    def _execute(self, msg_state: MessageState, **kwargs: Any) -> dict[str, Any]:  # noqa: ANN401
+    def _execute(self, msg_state: OrchestratorState, **kwargs: Any) -> dict[str, Any]:  # noqa: ANN401
         """Synchronous execution if config does not enable async."""
         try:
             log_context.info("[MultiAgent] Executing MAS workflow (sync)...")
@@ -65,7 +70,7 @@ class MultiAgent(BaseAgent):
 
     async def _async_execute(
         self,
-        msg_state: MessageState,
+        msg_state: OrchestratorState,
         **kwargs: Any,  # noqa: ANN401
     ) -> dict[str, Any]:
         """Asynchronous execution if enabled in config."""

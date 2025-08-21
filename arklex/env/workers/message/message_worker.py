@@ -34,7 +34,6 @@ class MessageWorker(BaseWorker):
 
     def __init__(self) -> None:
         super().__init__()
-        # state = trace(input=answer, state=state)
 
     def init_worker_data(
         self, orch_state: OrchestratorState, node_specific_data: dict[str, Any]

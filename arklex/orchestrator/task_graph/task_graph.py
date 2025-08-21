@@ -7,7 +7,7 @@ Key Components:
 - TaskGraphBase: Base class for task graph functionality
 - TaskGraph: Main class for managing conversation flow and intent handling
 - NodeInfo: Information about graph nodes
-- OrchestratorParams: Parameters for graph traversal
+- Params: Parameters for graph traversal
 - PathNode: Node information for path tracking
 
 Features:
@@ -22,7 +22,7 @@ Features:
 
 Usage:
     from arklex.orchestrator.task_graph import TaskGraph
-    from arklex.utils.graph_state import LLMConfig, OrchestratorParams
+    from arklex.utils.graph_state import LLMConfig, Params
 
     # Initialize task graph
     config = {
@@ -36,13 +36,13 @@ Usage:
     task_graph = TaskGraph("conversation", config, llm_config)
 
     # Process input
-    params = OrchestratorParams(...)
+    params = Params(...)
     node_info, updated_params = task_graph.get_node({"input": "user message"})
 """
 
 import collections
 import copy
-from typing import Any, Tuple, Dict, List, Any, Optional, DefaultDict
+from typing import Any, List, Optional
 
 import networkx as nx
 import numpy as np
@@ -67,12 +67,69 @@ from arklex.orchestrator.NLU.services.model_service import (
     DummyModelService,
     ModelService,
 )
+from arklex.types.resource_types import AgentItem, ResourceType, ToolItem
 from arklex.utils.exceptions import TaskGraphError
 from arklex.utils.logging_utils import LogContext
 from arklex.utils.utils import normalize, str_similarity
 
 import operator
 import re
+import json, uuid, time
+from dataclasses import dataclass, field
+
+@dataclass
+class PrimitiveRow:
+    param: str
+    operator: str
+    expected: Any
+    actual: Any
+    result: bool
+
+@dataclass
+class DecisionLog:
+    ts: float
+    run_id: str
+    node_id: str
+    edge_id: str
+    decision: str
+    table: List[PrimitiveRow] = field(default_factory=list)
+
+class ConditionTracer:
+    def __init__(self, node_id: str, edge_id: str):
+        self._log = DecisionLog(
+            ts=time.time(),
+            run_id=str(uuid.uuid4()),
+            node_id=node_id,
+            edge_id=edge_id,
+            decision="",
+        )
+
+    def record_primitive(self, *, param: str, operator: str, expected: Any, actual: Any, result: bool):
+        self._log.table.append(PrimitiveRow(param, operator, expected, actual, result))
+
+    def set_decision(self, decision: str):
+        self._log.decision = decision
+
+    def dump(self) -> str:
+        payload = {
+            "node_id": self._log.node_id,
+            "edge_id": self._log.edge_id,
+            "decision": self._log.decision,
+            "table": [
+                {
+                    "param": p.param,
+                    "operator": p.operator,
+                    "expected": p.expected,
+                    "actual": p.actual,
+                    "result": p.result,
+                }
+                for p in self._log.table
+            ],
+        }
+        return json.dumps(payload, ensure_ascii=False)
+
+log_context = LogContext(__name__)
+
 _OPS = {
         "eq": operator.eq,
         "ne": operator.ne,
@@ -83,10 +140,12 @@ _OPS = {
         "contains": lambda a, b: isinstance(a, str) and b in a,
         "regex": lambda a, b: isinstance(a, str) and re.search(b, a) is not None,
         "exists": lambda a, _: a is not None,
+        
+        "null": lambda a, _: a is None,
+        "not_null": lambda a, _: a is not None,
+        "in": lambda a, b: (b is not None and a in b),
+        "not_in": lambda a, b: (b is not None and a not in b)
     }
-
-log_context = LogContext(__name__)
-
 
 class TaskGraphBase:
     """Base class for task graph functionality.
@@ -173,43 +232,59 @@ class AgentGraph(TaskGraphBase):
         self.graph.add_nodes_from(formatted_nodes)
         self.graph.add_edges_from(edges)
 
+        all_resources: list[dict[str, Any]] = self.product_kwargs["tools"]
+        resource_map: dict[str, dict[str, Any]] = {}
+        for resource in all_resources:
+            resource_map[resource["id"]] = resource
+
         resource_initializer = DefaultResourceInitializer()
         for node in self.graph.nodes.data():
-            if node[1].get("type", "") == "agent":
-                node_specific_data = (
-                    node[1].get("attribute", {}).get("node_specific_data", {})
-                )
+            if node[1].get("attribute", {}).get("type", "") == ResourceType.AGENT:
+                node_specific_data = node[1].get("data", {})
                 resource = node[1].get("resource", {})
 
                 # process successors and predecessors to get resources
-                resources = []
-                attributes = []
+                available_tools = []
+                available_nodes = []
                 for node_id in self.graph.successors(node[0]):
                     successor_node = self.graph.nodes[node_id]
                     if (
-                        successor_node.get("type", "") == "tool"
+                        successor_node.get("attribute", {}).get("type", "")
+                        == ResourceType.TOOL
                         and successor_node["resource"]["id"] != "planner"
                     ):
-                        resources.append(successor_node["resource"])
-                        attributes.append(successor_node["attribute"])
+                        available_tools.append(
+                            resource_map[successor_node["resource"]["id"]]
+                        )
+                        available_nodes.append([node_id, successor_node])
 
                 for node_id in self.graph.predecessors(node[0]):
                     predecessor_node = self.graph.nodes[node_id]
                     if (
-                        predecessor_node.get("type", "") == "tool"
+                        predecessor_node.get("attribute", {}).get("type", "")
+                        == ResourceType.TOOL
                         and predecessor_node["resource"]["id"] != "planner"
                     ):
-                        resources.append(predecessor_node["resource"])
-                        attributes.append(predecessor_node["attribute"])
-
-                tool_registry = resource_initializer.init_tools(resources, attributes)
+                        available_tools.append(
+                            resource_map[predecessor_node["resource"]["id"]]
+                        )
+                        available_nodes.append([node_id, predecessor_node])
+                tool_registry = resource_initializer.init_tools(
+                    available_tools, available_nodes
+                )
                 tool_map = {}
                 for tool_id in tool_registry:
-                    tool_instance = tool_registry[tool_id]["tool_instance"]
-                    tool_instance.name = tool_instance.name.replace("http_tool_", "")
-                    tool_map[tool_instance.name] = tool_instance
+                    if tool_id == ToolItem.HTTP_TOOL:
+                        for tool_name in tool_registry[tool_id]:
+                            tool_instance = tool_registry[tool_id][tool_name][
+                                "tool_instance"
+                            ]
+                            tool_map[tool_instance.name] = tool_instance
+                    else:
+                        tool_instance = tool_registry[tool_id]["tool_instance"]
+                        tool_map[tool_instance.name] = tool_instance
                 self.resources.update(tool_registry)
-                if resource.get("id", "") == "openai_realtime_voice_agent":
+                if resource.get("id", "") == AgentItem.OPENAI_REALTIME_VOICE_AGENT:
                     prompt = node_specific_data.get("prompt", "")
                     # prompt_variables_test_values = node_specific_data.get("prompt_variables_test_values", None)
                     prompt_variables = []
@@ -242,7 +317,7 @@ class AgentGraph(TaskGraphBase):
                     continue
 
 
-class TaskGraph(TaskGraphBase):
+class TaskGraphNLU(TaskGraphBase):
     """Task graph management and execution.
 
     This class manages the execution of task graphs, including node management,
@@ -343,12 +418,9 @@ class TaskGraph(TaskGraphBase):
             candidates_nodes: list[dict[str, Any]] = [
                 self.intents[pred_intent][intent_idx]
             ]
-            candidates_nodes_weights: list[float] = [
-                node["attribute"]["weight"] for node in candidates_nodes
-            ]
+            # Use equal weights instead of node attribute weights
             next_node: str = np.random.choice(
-                [node["target_node"] for node in candidates_nodes],
-                p=normalize(candidates_nodes_weights),
+                [node["target_node"] for node in candidates_nodes]
             )
             next_intent: str = pred_intent
         except Exception as e:
@@ -383,7 +455,7 @@ class TaskGraph(TaskGraphBase):
         self, sample_node: str, params: OrchestratorParams, intent: str | None = None
     ) -> tuple[NodeInfo, OrchestratorParams]:
         """
-        Get the output format (NodeInfo, OrchestratorParams) that get_node should return
+        Get the output format (NodeInfo, Params) that get_node should return
         """
         log_context.info(
             f"available_intents in _get_node: {params.taskgraph.available_global_intents}"
@@ -481,6 +553,26 @@ class TaskGraph(TaskGraphBase):
         params.taskgraph.curr_node = curr_node
         return curr_node, params
 
+    def get_available_global_intents(
+        self, params: OrchestratorParams
+    ) -> dict[str, list[dict[str, Any]]]:
+        """
+        Get available global intents
+        """
+        available_global_intents: dict[str, list[dict[str, Any]]] = (
+            params.taskgraph.available_global_intents
+        )
+        if not available_global_intents:
+            available_global_intents = copy.deepcopy(self.intents)
+
+        # Always ensure unsure_intent is present
+        if self.unsure_intent.get("intent") not in available_global_intents:
+            available_global_intents[self.unsure_intent.get("intent")] = [
+                self.unsure_intent
+            ]
+        log_context.info(f"Available global intents: {available_global_intents}")
+        return available_global_intents
+
     def update_node_limit(self, params: OrchestratorParams) -> OrchestratorParams:
         """
         Update the node_limit in params which will be used to check if we can skip the node or not
@@ -572,6 +664,97 @@ class TaskGraph(TaskGraphBase):
 
         return False, {}, params
 
+    def global_intent_prediction(
+        self,
+        curr_node: str,
+        params: OrchestratorParams,
+        available_global_intents: dict[str, list[dict[str, Any]]],
+        excluded_intents: dict[str, Any],
+    ) -> tuple[bool, str | None, dict[str, Any], OrchestratorParams]:
+        """
+        Do global intent prediction
+        """
+        candidate_intents: dict[str, list[dict[str, Any]]] = copy.deepcopy(
+            available_global_intents
+        )
+        candidate_intents = {
+            k: v for k, v in candidate_intents.items() if k not in excluded_intents
+        }
+        pred_intent: str | None = None
+        # if only unsure_intent is available -> no meaningful intent prediction
+        if (
+            len(candidate_intents) == 1
+            and self.unsure_intent.get("intent") in candidate_intents
+        ):
+            pred_intent = self.unsure_intent.get("intent")
+            # Add NLU record for unsure intent
+            params.taskgraph.nlu_records.append(
+                {
+                    "candidate_intents": candidate_intents,
+                    "pred_intent": pred_intent,
+                    "no_intent": False,
+                    "global_intent": True,
+                }
+            )
+            return False, pred_intent, {}, params
+        else:  # global intent prediction
+            # if match other intent, add flow, jump over
+            candidate_intents[self.unsure_intent.get("intent")] = candidate_intents.get(
+                self.unsure_intent.get("intent"), [self.unsure_intent]
+            )
+            log_context.info(
+                f"Available global intents with unsure intent: {candidate_intents}"
+            )
+
+            pred_intent = self.intent_detector.execute(
+                self.text,
+                candidate_intents,
+                self.chat_history_str,
+                self.llm_config.model_dump(),
+            )
+            params.taskgraph.nlu_records.append(
+                {
+                    "candidate_intents": candidate_intents,
+                    "pred_intent": pred_intent,
+                    "no_intent": False,
+                    "global_intent": True,
+                }
+            )
+            found_pred_in_avil: bool
+            intent_idx: int
+            found_pred_in_avil, pred_intent, intent_idx = self._postprocess_intent(
+                pred_intent, candidate_intents
+            )
+            # if found prediction and prediction is not unsure intent and current intent
+            if found_pred_in_avil and pred_intent != self.unsure_intent.get("intent"):
+                # If the prediction is the same as the current global intent and the current node is not a leaf node, continue the current global intent
+                if (
+                    pred_intent == params.taskgraph.curr_global_intent
+                    and len(list(self.graph.successors(curr_node))) != 0
+                    and params.taskgraph.node_status.get(
+                        curr_node, StatusEnum.INCOMPLETE
+                    )
+                    == StatusEnum.INCOMPLETE
+                ):
+                    return False, pred_intent, {}, params
+                next_node: str
+                next_intent: str
+                next_node, next_intent = self.jump_to_node(
+                    pred_intent, intent_idx, curr_node
+                )
+                log_context.info(f"curr_node: {next_node}")
+                node_info: NodeInfo
+                node_info, params = self._get_node(
+                    next_node, params, intent=next_intent
+                )
+                # if current node is not a leaf node and jump to another node, then add it onto stack
+                if next_node != curr_node and list(self.graph.successors(curr_node)):
+                    node_info.add_flow_stack = True
+                params.taskgraph.curr_global_intent = pred_intent
+                params.taskgraph.intent = pred_intent
+                return True, pred_intent, node_info, params
+        return False, pred_intent, {}, params
+
     def handle_random_next_node(
         self, curr_node: str, params: OrchestratorParams
     ) -> tuple[bool, dict[str, Any], OrchestratorParams]:
@@ -610,6 +793,110 @@ class TaskGraph(TaskGraphBase):
                 ]
             return True, node_info, params
         return False, {}, params
+
+    def local_intent_prediction(
+        self,
+        curr_node: str,
+        params: OrchestratorParams,
+        curr_local_intents: dict[str, list[dict[str, Any]]],
+    ) -> tuple[bool, dict[str, Any], OrchestratorParams]:
+        """
+        Do local intent prediction
+        """
+        curr_local_intents_w_unsure: dict[str, list[dict[str, Any]]] = copy.deepcopy(
+            curr_local_intents
+        )
+        curr_local_intents_w_unsure[self.unsure_intent.get("intent")] = (
+            curr_local_intents_w_unsure.get(
+                self.unsure_intent.get("intent"), [self.unsure_intent]
+            )
+        )
+        log_context.info(
+            f"Check intent under current node: {curr_local_intents_w_unsure}"
+        )
+        # if only unsure_intent is available -> no meaningful intent prediction
+        if (
+            len(curr_local_intents_w_unsure) == 1
+            and self.unsure_intent.get("intent") in curr_local_intents_w_unsure
+        ):
+            pred_intent = self.unsure_intent.get("intent")
+            params.taskgraph.nlu_records.append(
+                {
+                    "candidate_intents": curr_local_intents_w_unsure,
+                    "pred_intent": pred_intent,
+                    "no_intent": False,
+                    "global_intent": False,
+                }
+            )
+            return False, pred_intent, params
+
+        pred_intent: str = self.intent_detector.execute(
+            self.text,
+            curr_local_intents_w_unsure,
+            self.chat_history_str,
+            self.llm_config.model_dump(),
+        )
+        params.taskgraph.nlu_records.append(
+            {
+                "candidate_intents": curr_local_intents_w_unsure,
+                "pred_intent": pred_intent,
+                "no_intent": False,
+                "global_intent": False,
+            }
+        )
+        found_pred_in_avil: bool
+        intent_idx: int
+        found_pred_in_avil, pred_intent, intent_idx = self._postprocess_intent(
+            pred_intent, curr_local_intents_w_unsure
+        )
+        log_context.info(
+            f"Local intent predition -> found_pred_in_avil: {found_pred_in_avil}, pred_intent: {pred_intent}"
+        )
+        if found_pred_in_avil and pred_intent != self.unsure_intent.get("intent"):
+            params.taskgraph.intent = pred_intent
+            next_node: str = curr_node
+            for edge in self.graph.out_edges(curr_node, data="intent"):
+                if edge[2] == pred_intent:
+                    next_node = edge[1]  # found intent under the current node
+                    break
+            log_context.info(f"curr_node: {next_node}")
+            node_info: NodeInfo
+            node_info, params = self._get_node(next_node, params, intent=pred_intent)
+            if curr_node == self.start_node:
+                params.taskgraph.curr_global_intent = pred_intent
+            return True, node_info, params
+        return False, {}, params
+
+    def handle_unknown_intent(
+        self, curr_node: str, params: OrchestratorParams
+    ) -> tuple[NodeInfo, OrchestratorParams]:
+        """
+        If unknown intent, call planner
+        """
+        # if none of the available intents can represent user's utterance, transfer to the planner to let it decide for the next step
+        params.taskgraph.intent = self.unsure_intent.get("intent")
+        params.taskgraph.curr_global_intent = self.unsure_intent.get("intent")
+        if params.taskgraph.nlu_records:
+            # no intent found
+            params.taskgraph.nlu_records[-1]["no_intent"] = True
+        else:
+            params.taskgraph.nlu_records.append(
+                {
+                    "candidate_intents": [],
+                    "pred_intent": "",
+                    "no_intent": True,
+                    "global_intent": False,
+                }
+            )
+        params.taskgraph.curr_node = curr_node
+        node_info: NodeInfo = NodeInfo(
+            node_id="",
+            resource={"id": "planner", "name": "planner"},
+            attribute={"value": "", "direct": False},
+            data={},
+            is_leaf=len(list(self.graph.successors(curr_node))) == 0,
+        )
+        return node_info, params
 
     def handle_leaf_node(
         self, curr_node: str, params: OrchestratorParams
@@ -848,382 +1135,8 @@ class TaskGraph(TaskGraphBase):
                 formatted_nodes.append(node)
         self.graph.add_nodes_from(formatted_nodes)
         self.graph.add_edges_from(edges)
-    
-    def preprocess_node(self, inputs: Dict[str, Any], params: OrchestratorParams) -> Tuple[str, OrchestratorParams]:
-        self.text = inputs["text"]
-        self.chat_history_str = inputs["chat_history_str"]
-        params = inputs["parameters"]
-        params.taskgraph.nlu_records = []
 
-        if self.text == "<start>":
-            curr_node = self.start_node
-            params.taskgraph.curr_node = curr_node
-            node_info, params = self._get_node(curr_node, params)
-            return curr_node, params, node_info
-
-        curr_node, params = self.get_current_node(params)
-        is_multi_step_node, node_output, params = self.handle_multi_step_node(curr_node, params)
-        if is_multi_step_node:
-            return curr_node, params, node_output
-
-        curr_node, params = self.handle_leaf_node(curr_node, params)
-        params.taskgraph.curr_node = curr_node
-        return curr_node, params, None
-
-    def _is_logic_node(self, curr_node) -> bool:
-        """
-        Return True if the current node has any outgoing edges of type 'logic'.
-        """
-        for _, _, edge_data in self.graph.out_edges(curr_node, data=True):
-            if edge_data.get("type") == "logic":
-                return True
-        return False
-    
-    def get_subgraph(self, curr_node: str) -> Dict[str, Any]:
-        """
-        Extracts a minimal subgraph containing all outgoing logic edges
-        from the given curr_node, and all nodes involved in those edges.
-        
-        Args:
-            curr_node (str): The node ID from which to extract the logic subgraph.
-        
-        Returns:
-            Dict[str, Any]: A dictionary containing "nodes" and "edges" suitable for
-                            initializing a SubTaskGraphLogic instance.
-        """
-        logic_edges = [
-            (u, v, copy.deepcopy(d))
-            for u, v, d in self.graph.out_edges(curr_node, data=True)
-            if d.get("type") == "logic"
-        ]
-        node_ids = set()
-        for u, v, _ in logic_edges:
-            node_ids.add(u)
-            node_ids.add(v)
-        nodes = []
-        for nid in node_ids:
-            ndata = copy.deepcopy(self.graph.nodes[nid])
-            ndata["id"] = nid
-            nodes.append((nid, ndata))
-        return {
-            "nodes": nodes,    # tuple version
-            "edges": logic_edges,
-            "start_node": curr_node,
-        }
-
-class SubTaskGraphNLU(TaskGraph):
-    def __init__(
-        self,
-        name: str,
-        product_kwargs: Dict[str, Any],
-        llm_config: LLMConfig,
-        slotfillapi: str = "",
-        model_service: Any = None,
-    ) -> None:
-        """Initialize the task graph.
-
-        Args:
-            name: Name of the task graph
-            product_kwargs: Configuration settings for the graph
-            llm_config: Configuration for language model
-            slotfillapi: API endpoint for slot filling
-            model_service: Model service for intent detection (required)
-        """
-        super().__init__(name, product_kwargs, llm_config, slotfillapi, model_service)
-
-    def _get_node_nlu_flow(self, inputs: Dict[str, Any], curr_node: str, params: OrchestratorParams) -> Tuple[NodeInfo, OrchestratorParams]:
-        """
-        Get the next node
-        """
-        self.text: str = inputs["text"]
-        self.chat_history_str: str = inputs["chat_history_str"]
-        params: OrchestratorParams = inputs["parameters"]
-
-        curr_node: str
-        allow_global_intent_switch: bool = inputs["allow_global_intent_switch"]
-
-        # available global intents
-        available_global_intents: Dict[str, List[Dict[str, Any]]] = (
-            self.get_available_global_intents(params)
-        )
-
-        # update limit
-        params = self.update_node_limit(params)
-
-        # Get local intents of the curr_node
-        curr_local_intents: Dict[str, List[Dict[str, Any]]] = self.get_local_intent(
-            curr_node, params
-        )
-
-        if (
-            not curr_local_intents and allow_global_intent_switch
-        ):  # no local intent under the current node
-            log_context.info("no local intent under the current node")
-            is_global_intent_found: bool
-            pred_intent: Optional[str]
-            node_output: NodeInfo
-            is_global_intent_found, pred_intent, node_output, params = (
-                self.global_intent_prediction(
-                    curr_node, params, available_global_intents, {}
-                )
-            )
-            if is_global_intent_found:
-                return node_output, params
-
-        # if current node is incompleted -> return current node
-        is_incomplete_node: bool
-        node_output: Dict[str, Any]
-        is_incomplete_node, node_output, params = self.handle_incomplete_node(
-            curr_node, params
-        )
-        if is_incomplete_node:
-            return node_output, params
-
-        # if completed and no local intents -> randomly choose one of the next connected nodes (edges with intent = None)
-        if not curr_local_intents:
-            log_context.info(
-                "no local or global intent found, move to the next connected node(s)"
-            )
-            has_random_next_node: bool
-            node_output: Dict[str, Any]
-            has_random_next_node, node_output, params = self.handle_random_next_node(
-                curr_node, params
-            )
-            if has_random_next_node:
-                return node_output, params
-
-        log_context.info("Finish global condition, start local intent prediction")
-        is_local_intent_found: bool
-        node_output: Dict[str, Any]
-        is_local_intent_found, node_output, params = self.local_intent_prediction(
-            curr_node, params, curr_local_intents
-        )
-        if is_local_intent_found:
-            return node_output, params
-
-        pred_intent: Optional[str] = None
-        if allow_global_intent_switch:
-            is_global_intent_found: bool
-            node_output: Dict[str, Any]
-            is_global_intent_found, pred_intent, node_output, params = (
-                self.global_intent_prediction(
-                    curr_node,
-                    params,
-                    available_global_intents,
-                    {**curr_local_intents, **{"none": None}},
-                )
-            )
-            if is_global_intent_found:
-                return node_output, params
-        if pred_intent and pred_intent != self.unsure_intent.get(
-            "intent"
-        ):  # if not unsure intent
-            # If user didn't indicate all the intent of children nodes under the current node,
-            # then we could randomly choose one of Nones to continue the dialog flow
-            has_random_next_node: bool
-            node_output: Dict[str, Any]
-            has_random_next_node, node_output, params = self.handle_random_next_node(
-                curr_node, params
-            )
-            if has_random_next_node:
-                return node_output, params
-
-        # if none of the available intents can represent user's utterance or it is an unsure intents,
-        # transfer to the planner to let it decide for the next step
-        node_output: NodeInfo
-        node_output, params = self.handle_unknown_intent(curr_node, params)
-        return node_output, params
-    
-    def handle_unknown_intent(
-        self, curr_node: str, params: OrchestratorParams
-    ) -> Tuple[NodeInfo, OrchestratorParams]:
-        """
-        If unknown intent, call planner
-        """
-        # if none of the available intents can represent user's utterance, transfer to the planner to let it decide for the next step
-        params.taskgraph.intent = self.unsure_intent.get("intent")
-        params.taskgraph.curr_global_intent = self.unsure_intent.get("intent")
-        if params.taskgraph.nlu_records:
-            params.taskgraph.nlu_records[-1]["no_intent"] = True  # no intent found
-        else:
-            params.taskgraph.nlu_records.append(
-                {
-                    "candidate_intents": [],
-                    "pred_intent": "",
-                    "no_intent": True,
-                    "global_intent": False,
-                }
-            )
-        params.taskgraph.curr_node = curr_node
-        node_info: NodeInfo = NodeInfo(
-            node_id=None,
-            type="",
-            resource_id="planner",
-            resource_name="planner",
-            can_skipped=False,
-            is_leaf=len(list(self.graph.successors(curr_node))) == 0,
-            attributes={"value": "", "direct": False},
-            additional_args={"tags": {}},
-        )
-        return node_info, params
-    
-    def local_intent_prediction(
-        self,
-        curr_node: str,
-        params: OrchestratorParams,
-        curr_local_intents: Dict[str, List[Dict[str, Any]]],
-    ) -> Tuple[bool, Dict[str, Any], OrchestratorParams]:
-        """
-        Do local intent prediction
-        """
-        curr_local_intents_w_unsure: Dict[str, List[Dict[str, Any]]] = copy.deepcopy(
-            curr_local_intents
-        )
-        curr_local_intents_w_unsure[self.unsure_intent.get("intent")] = (
-            curr_local_intents_w_unsure.get(
-                self.unsure_intent.get("intent"), [self.unsure_intent]
-            )
-        )
-        log_context.info(
-            f"Check intent under current node: {curr_local_intents_w_unsure}"
-        )
-        pred_intent: str = self.intent_detector.execute(
-            self.text,
-            curr_local_intents_w_unsure,
-            self.chat_history_str,
-            self.llm_config.model_dump(),
-        )
-        params.taskgraph.nlu_records.append(
-            {
-                "candidate_intents": curr_local_intents_w_unsure,
-                "pred_intent": pred_intent,
-                "no_intent": False,
-                "global_intent": False,
-            }
-        )
-        found_pred_in_avil: bool
-        intent_idx: int
-        found_pred_in_avil, pred_intent, intent_idx = self._postprocess_intent(
-            pred_intent, curr_local_intents
-        )
-        log_context.info(
-            f"Local intent predition -> found_pred_in_avil: {found_pred_in_avil}, pred_intent: {pred_intent}"
-        )
-        if found_pred_in_avil:
-            params.taskgraph.intent = pred_intent
-            next_node: str = curr_node
-            for edge in self.graph.out_edges(curr_node, data="intent"):
-                if edge[2] == pred_intent:
-                    next_node = edge[1]  # found intent under the current node
-                    break
-            log_context.info(f"curr_node: {next_node}")
-            node_info: NodeInfo
-            node_info, params = self._get_node(next_node, params, intent=pred_intent)
-            if curr_node == self.start_node:
-                params.taskgraph.curr_global_intent = pred_intent
-            return True, node_info, params
-        return False, {}, params
-
-    def global_intent_prediction(
-        self,
-        curr_node: str,
-        params: OrchestratorParams,
-        available_global_intents: Dict[str, List[Dict[str, Any]]],
-        excluded_intents: Dict[str, Any],
-    ) -> Tuple[bool, Optional[str], Dict[str, Any], OrchestratorParams]:
-        """
-        Do global intent prediction
-        """
-        candidate_intents: Dict[str, List[Dict[str, Any]]] = copy.deepcopy(
-            available_global_intents
-        )
-        candidate_intents = {
-            k: v for k, v in candidate_intents.items() if k not in excluded_intents
-        }
-        pred_intent: Optional[str] = None
-        # if only unsure_intent is available -> move directly to this intent
-        if (
-            len(candidate_intents) == 1
-            and self.unsure_intent.get("intent") in candidate_intents.keys()
-        ):
-            pred_intent = self.unsure_intent.get("intent")
-        else:  # global intent prediction
-            # if match other intent, add flow, jump over
-            candidate_intents[self.unsure_intent.get("intent")] = candidate_intents.get(
-                self.unsure_intent.get("intent"), [self.unsure_intent]
-            )
-            log_context.info(
-                f"Available global intents with unsure intent: {candidate_intents}"
-            )
-
-            pred_intent = self.intent_detector.execute(
-                self.text,
-                candidate_intents,
-                self.chat_history_str,
-                self.llm_config.model_dump(),
-            )
-            params.taskgraph.nlu_records.append(
-                {
-                    "candidate_intents": candidate_intents,
-                    "pred_intent": pred_intent,
-                    "no_intent": False,
-                    "global_intent": True,
-                }
-            )
-            found_pred_in_avil: bool
-            intent_idx: int
-            found_pred_in_avil, pred_intent, intent_idx = self._postprocess_intent(
-                pred_intent, available_global_intents
-            )
-            # if found prediction and prediction is not unsure intent and current intent
-            if found_pred_in_avil and pred_intent != self.unsure_intent.get("intent"):
-                # If the prediction is the same as the current global intent and the current node is not a leaf node, continue the current global intent
-                if (
-                    pred_intent == params.taskgraph.curr_global_intent
-                    and len(list(self.graph.successors(curr_node))) != 0
-                    and params.taskgraph.node_status.get(
-                        curr_node, StatusEnum.INCOMPLETE
-                    )
-                    == StatusEnum.INCOMPLETE
-                ):
-                    return False, pred_intent, {}, params
-                next_node: str
-                next_intent: str
-                next_node, next_intent = self.jump_to_node(
-                    pred_intent, intent_idx, curr_node
-                )
-                log_context.info(f"curr_node: {next_node}")
-                node_info: NodeInfo
-                node_info, params = self._get_node(
-                    next_node, params, intent=next_intent
-                )
-                # if current node is not a leaf node and jump to another node, then add it onto stack
-                if next_node != curr_node and list(self.graph.successors(curr_node)):
-                    node_info.add_flow_stack = True
-                params.taskgraph.curr_global_intent = pred_intent
-                params.taskgraph.intent = pred_intent
-                return True, pred_intent, node_info, params
-        return False, pred_intent, {}, params
-
-    def get_available_global_intents(
-        self, params: OrchestratorParams
-    ) -> Dict[str, List[Dict[str, Any]]]:
-        """
-        Get available global intents
-        """
-        available_global_intents: Dict[str, List[Dict[str, Any]]] = (
-            params.taskgraph.available_global_intents
-        )
-        if not available_global_intents:
-            available_global_intents = copy.deepcopy(self.intents)
-            if self.unsure_intent.get("intent") not in available_global_intents.keys():
-                available_global_intents[self.unsure_intent.get("intent")].append(
-                    self.unsure_intent
-                )
-        log_context.info(f"Available global intents: {available_global_intents}")
-        return available_global_intents
-
-class SubTaskGraphLogic(TaskGraph):
+class SubTaskGraphLogic(TaskGraphBase):
     """
     A TaskGraph subclass that processes 'logic' edges directly within its get_node method,
     without a separate handler class. It first evaluates logic-based edges, then falls
@@ -1232,26 +1145,15 @@ class SubTaskGraphLogic(TaskGraph):
     def __init__(
         self,
         name: str,
-        product_kwargs: Dict[str, Any],
+        product_kwargs: dict[str, Any],
         curr_node: str
     ) -> None:
-        #super().__init__(name, product_kwargs, llm_config, slotfillapi=slotfillapi, model_service=model_service)
         TaskGraphBase.__init__(self, name, product_kwargs)
-        self.unsure_intent: Dict[str, Any] = {
-            "intent": "others",
-            "source_node": None,
-            "target_node": None,
-            "attribute": {
-                "weight": 1,
-                "pred": False,
-                "definition": "",
-                "sample_utterances": [],
-            },
-        }
+
         self.initial_node: Optional[str] = self.get_initial_flow()
         self.curr_node = curr_node
 
-    def get_node(self, inputs: Dict[str, Any]) -> tuple[NodeInfo, OrchestratorParams]:
+    def get_node(self, inputs: dict[str, Any]) -> tuple[NodeInfo, OrchestratorParams]:
         """
         Get the next node
         """
@@ -1273,28 +1175,32 @@ class SubTaskGraphLogic(TaskGraph):
         for _, target_node, edge_data in self.graph.out_edges(curr_node, data=True):
             if edge_data.get("type") != "logic":
                 continue
-            cases: List[Dict[str, Any]] = edge_data.get("cases", [])
+            
+            edge_id = edge_data.get("id") or f"{curr_node}->{target_node}"
+            tracer = ConditionTracer(node_id=curr_node, edge_id=edge_id)
+            
+            cases: List[dict[str, Any]] = edge_data.get("cases", [])
             if cases:
                 for case in cases:
                     cond = case.get("condition", {})
                     if self._check_condition(cond, params):
                         chosen = case.get("target")
-                        log_context.info(f"[LogicEdge] Case matched: routing to {chosen}")
+                        log_context.info(f"[LogicEdge] Case matched: routing to {chosen}" + tracer.dump())
+                        tracer.set_decision(chosen)
                         return chosen
                 # if all cases are not matched，fallback to the target node
-                log_context.info(f"[LogicEdge] No case matched, routing to default target {target_node}")
+                tracer.set_decision("default")
+                log_context.info(f"[LogicEdge] No case matched, routing to default target {target_node}" + tracer.dump())
                 return target_node
             # Single-condition edge fallback
             cond = edge_data.get("condition") or {}
             if cond and self._check_condition(cond, params):
-                log_context.info(f"[LogicEdge] Condition matched for edge => {target_node}")
+                tracer.set_decision("single-edge")
+                log_context.info(f"[LogicEdge] Condition matched for edge => {target_node}" + tracer.dump())
                 return target_node
         return None
-            
-    # ------------------ Condition Evaluation ------------------ # 
-    # _check_condition()
-    #    └── _eval_primitive() + _deep_get()
-    def _check_condition(self, cond: Dict[str, Any], params: OrchestratorParams) -> bool:
+                
+    def _check_condition(self, cond: dict[str, Any], params: OrchestratorParams, tracer: Optional[ConditionTracer] = None) -> bool:
         """
         Evaluate a condition dict with boolean combiners and primitives.
 
@@ -1302,19 +1208,20 @@ class SubTaskGraphLogic(TaskGraph):
         - 'and': list of conditions
         - 'or': list of conditions
         - 'not': single condition
-        - primitive: forwarded to _eval_primitive
+        -  _check_condition()
+              └── _eval_primitive() + _deep_get()
         """
         if not isinstance(cond, dict):
             return False
         # Boolean combiners
         if "and" in cond:
-            return all (self._check_condition(c, params) for c in cond["and"])
+            return all (self._check_condition(c, params, tracer = tracer) for c in cond["and"])
         if "or" in cond:
-            return any (self._check_condition(c, params) for c in cond["or"])
+            return any (self._check_condition(c, params, tracer = tracer) for c in cond["or"])
         if "not" in cond:
-            return not self._check_condition(cond["not"], params) 
+            return not self._check_condition(cond["not"], params, tracer = tracer) 
         # Primitive condition
-        return self._eval_primitive(cond, params)
+        return self._eval_primitive(cond, params, tracer = tracer)
 
     def _deep_get(self, obj: Any, path: str, default: Any = None) -> Any:
         pattern = r'([a-zA-Z0-9_]+)(\[\-?\d+\])?'
@@ -1342,7 +1249,7 @@ class SubTaskGraphLogic(TaskGraph):
                     return default
         return obj
 
-    def _eval_primitive(self, cond: Dict[str, Any], params: OrchestratorParams) -> bool:
+    def _eval_primitive(self, cond: dict[str, Any], params: OrchestratorParams, tracer: Optional[ConditionTracer] = None) -> bool:
         """
         Evaluate a primitive condition in canonical form:
         {"param": "path.to.value", "op": "gt", "value": 2}
@@ -1363,4 +1270,18 @@ class SubTaskGraphLogic(TaskGraph):
         if not op_func:
             log_context.warning(f"Unknown op '{op_name}' in condition {cond}")
             return False
-        return op_func(val, cond.get("value"))
+        try:
+            res = bool(op_func(val, cond.get("value")))
+        except Exception:
+            res = False
+
+        if tracer:
+            tracer.record_primitive(
+                param=cond["param"],
+                operator=op_name,
+                expected=cond.get("value"),
+                actual=val,
+                result=res,
+            )
+        return res
+

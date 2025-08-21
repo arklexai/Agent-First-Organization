@@ -18,6 +18,7 @@ from langchain_core.output_parsers import StrOutputParser
 from langchain_openai import OpenAIEmbeddings
 
 from arklex.env.prompts import load_prompts
+from arklex.env.tools.utils import trace
 from arklex.orchestrator.entities.orchestrator_state_entities import (
     LLMConfig,
     OrchestratorState,
@@ -50,7 +51,7 @@ class RetrieveEngine:
             user_message.history, prompts["retrieve_contextualize_q_prompt"]
         )
 
-        # state = trace(input=retriever_returns, state=state)
+        state = trace(input=retriever_returns, source="faiss_retrieve", state=state)
         return retrieved_text
 
 

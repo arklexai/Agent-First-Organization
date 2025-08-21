@@ -84,7 +84,7 @@ from arklex.orchestrator.entities.taskgraph_entities import (
     PathNode,
 )
 from arklex.orchestrator.post_process import post_process_response
-from arklex.orchestrator.task_graph.task_graph import TaskGraph, SubTaskGraphLogic, SubTaskGraphNLU
+from arklex.orchestrator.task_graph.task_graph import TaskGraphNLU, SubTaskGraphLogic
 from arklex.types.stream_types import StreamType
 from arklex.utils.logging_utils import LogContext
 from arklex.utils.model_config import MODEL
@@ -164,7 +164,7 @@ class AgentOrg:
             slot_fill_api=self.product_kwargs.get("slot_fill_api", ""),
             planner_enabled=False,
         )
-        self.task_graph: TaskGraph = TaskGraph(
+        self.task_graph: TaskGraphNLU = TaskGraphNLU(
             "taskgraph",
             self.product_kwargs,
             self.llm_config,
@@ -479,9 +479,7 @@ Answer with only 'yes' or 'no'"""
         max_n_node_performed = 5
         while n_node_performed < max_n_node_performed:
             taskgraph_start_time = time.time()
-
-            #--------------------------- route taskgraph - start -------------------------
-            # node_info, params = taskgraph_chain.invoke(taskgraph_inputs)  # 原本的
+            
             curr_node, params, node_info = self.task_graph.preprocess_node(taskgraph_inputs, params)
             if node_info is not None:
                 pass
@@ -495,15 +493,8 @@ Answer with only 'yes' or 'no'"""
                     node_info, params = self.task_graph._get_node(logic_target, params)
 
                 else:
-                    # NLU node
-                    nlu_graph = SubTaskGraphNLU("nlu", 
-                                                self.task_graph.product_kwargs, 
-                                                self.task_graph.llm_config,
-                                                model_service = self.env.model_service)
-                    node_info, params = nlu_graph._get_node_nlu_flow(taskgraph_inputs, curr_node, params) 
-            #--------------------------- route taskgraph - end ----------------------
-
-
+                    node_info, params = taskgraph_chain.invoke(taskgraph_inputs)
+            
             taskgraph_inputs["allow_global_intent_switch"] = False
             params.metadata.timing.taskgraph = time.time() - taskgraph_start_time
             # Check if current node can be skipped

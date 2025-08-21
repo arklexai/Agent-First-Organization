@@ -19,7 +19,7 @@ from langchain.text_splitter import RecursiveCharacterTextSplitter
 from openai import OpenAI
 
 from arklex.utils.logging_utils import LogContext
-#from arklex.utils.mysql import mysql_pool
+from arklex.utils.mysql import mysql_pool
 from arklex.utils.redis import redis_pool
 
 DEFAULT_CHUNK_ENCODING = "cl100k_base"
@@ -44,9 +44,13 @@ def embed(text: str, cache: bool = False) -> list[float]:
         if cache:
             cache_key = _generate_cache_key(text)
             cached_embedding = redis_pool.get(cache_key, decode_json=True)
-            if cached_embedding:
+            if cached_embedding is not None:
                 log_context.info(f"Cache hit for text of length {len(text)}")
-                return cached_embedding
+                return (
+                    cached_embedding
+                    if isinstance(cached_embedding, list)
+                    else json.loads(cached_embedding)
+                )
     except Exception as e:
         log_context.warning(f"Redis cache read error: {e}")
 
