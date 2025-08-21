@@ -118,8 +118,20 @@ class Tool:
         self.node_specific_data: dict[str, Any] = {}
         self.fixed_args = {}
         self.properties: dict[str, dict[str, Any]] = {}
-        # TODO: check with voicebot setup
-        # self.openai_slots: list[dict[str, Any]] = self._format_slots(slots)
+
+    def copy(self) -> "Tool":
+        """Create a copy of this tool instance.
+
+        Returns:
+            Tool: A new Tool instance with the same configuration but independent state.
+        """
+        new_tool = Tool(
+            func=self.func,
+            name=self.name,
+            description=self.description,
+            slots=self.slots,
+        )
+        return new_tool
 
     def get_info(self, slots: list[dict[str, Any]]) -> dict[str, Any]:
         """Get tool information including parameters and requirements.
