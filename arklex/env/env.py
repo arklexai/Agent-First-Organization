@@ -102,12 +102,7 @@ class DefaultResourceInitializer(BaseResourceInitializer):
                             continue
                         # Create a new tool instance for each node to avoid sharing state
                         base_tool: Tool = RESOURCE_MAP[tool_id]["item_cls"]
-                        tool_instance: Tool = Tool(
-                            func=base_tool.func,
-                            name=base_tool.name,
-                            description=base_tool.description,
-                            slots=[],
-                        )
+                        tool_instance: Tool = base_tool.copy()
                         tool_instance.auth.update(tool.get("auth", {}))
                         tool_instance.node_specific_data = node_data
                         # --- Begin slot group merge logic ---
@@ -148,7 +143,8 @@ class DefaultResourceInitializer(BaseResourceInitializer):
                             "tool_instance": tool_instance,
                         }
                 else:
-                    tool_instance: Tool = RESOURCE_MAP[tool_id]["item_cls"]
+                    base_tool: Tool = RESOURCE_MAP[tool_id]["item_cls"]
+                    tool_instance: Tool = base_tool.copy()
                     tool_instance.auth.update(tool.get("auth", {}))
                     tool_instance.node_specific_data = {}
                     for node in nodes:
