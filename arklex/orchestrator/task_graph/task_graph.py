@@ -95,7 +95,7 @@ class DecisionLog:
     table: List[PrimitiveRow] = field(default_factory=list)
 
 class ConditionTracer:
-    def __init__(self, node_id: str, edge_id: str):
+    def __init__(self, node_id: str, edge_id: str) -> None:
         self._log = DecisionLog(
             ts=time.time(),
             run_id=str(uuid.uuid4()),
@@ -104,10 +104,10 @@ class ConditionTracer:
             decision="",
         )
 
-    def record_primitive(self, *, param: str, operator: str, expected: Any, actual: Any, result: bool):
+    def record_primitive(self, *, param: str, operator: str, expected: object, actual: object, result: bool) -> None:
         self._log.table.append(PrimitiveRow(param, operator, expected, actual, result))
 
-    def set_decision(self, decision: str):
+    def set_decision(self, decision: str) -> None:
         self._log.decision = decision
 
     def dump(self) -> str:
@@ -1158,8 +1158,6 @@ class SubTaskGraphLogic(TaskGraphBase):
         Get the next node
         """
         params: OrchestratorParams = inputs["parameters"]
-        # boolean to check if we allow global intent switch or not.
-        allow_global_intent_switch: bool = inputs["allow_global_intent_switch"]
         params.taskgraph.nlu_records = []
 
         logic_target = self._evaluate_logic(self.curr_node, params)
@@ -1223,7 +1221,7 @@ class SubTaskGraphLogic(TaskGraphBase):
         # Primitive condition
         return self._eval_primitive(cond, params, tracer = tracer)
 
-    def _deep_get(self, obj: Any, path: str, default: Any = None) -> Any:
+    def _deep_get(self, obj: object, path: str, default: object | None) -> object:
         pattern = r'([a-zA-Z0-9_]+)(\[\-?\d+\])?'
         parts = path.split('.')
         for part in parts:
