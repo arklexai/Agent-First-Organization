@@ -48,7 +48,7 @@ class Slot(BaseModel):
     required: bool = Field(default=False)
     verified: bool = Field(default=False)
     repeatable: bool = Field(default=False)
-    schema: dict | list[dict] | None = None
+    slot_schema: list[dict] | None = None
     items: dict | None = None
     target: str | None = None
     valueSource: str | None = Field(default=None)
@@ -90,10 +90,9 @@ class Slot(BaseModel):
 
         def _build_group_schema() -> dict:
             """Build schema for group type fields."""
-            properties: dict[str, Any] = {}
-            required: list[str] = []
-
-            for field in (self.schema or []):
+            properties = {}
+            required = []
+            for field in self.slot_schema or []:
                 field_slot = field if isinstance(field, Slot) else Slot(**field)
                 field_property = field_slot.to_openai_schema()
                 # Include the property even if it's fixed; consumer logic can choose to ignore

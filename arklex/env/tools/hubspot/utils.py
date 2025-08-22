@@ -9,8 +9,8 @@ from datetime import datetime, timedelta
 from typing import Any
 
 import requests
-from pydantic import BaseModel
 
+from arklex.env.tools.hubspot.base.entities import HubspotAuthTokens
 from arklex.env.tools.types import ResourceAuthGroup
 from arklex.utils.exceptions import AuthenticationError
 from arklex.utils.logging_utils import LogContext
@@ -49,12 +49,6 @@ class HubspotNotIntegratedError(Exception):
         super().__init__(
             f"HubSpot not integrated for bot {bot_id} version {bot_version}"
         )
-
-
-class HubspotAuthTokens(BaseModel):
-    access_token: str
-    refresh_token: str
-    expiry_time_str: str
 
 
 def refresh_token_if_needed(

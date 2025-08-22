@@ -44,21 +44,7 @@ Usage:
     )
 """
 
-from dataclasses import dataclass
-
-
-@dataclass
-class BotConfig:
-    """Configuration for bot language settings.
-
-    This class defines the language configuration for the bot, which determines
-    which set of prompts to use for generation and interaction.
-
-    Attributes:
-        language: The language code for the bot (e.g., "EN" for English, "CN" for Chinese)
-    """
-
-    language: str
+from arklex.orchestrator.entities.orchestrator_state_entities import BotConfig
 
 
 def load_prompts(bot_config: BotConfig) -> dict[str, str]:
@@ -235,29 +221,6 @@ The answer has to be in English and should only be yes or no.
 ----------------
 Answer:
 """,
-            ### ================================== DefaultWorker Prompts ================================== ###
-            "choose_worker_prompt": """You are an assistant that has access to the following set of tools. Here are the names and descriptions for each tool:
-{workers_info}
-Based on the conversation history and current task, choose the appropriate worker to respond to the user's message.
-Task:
-{task}
-Conversation:
-{formatted_chat}
-The response must be the name of one of the workers ({workers_name}).
-Answer:
-""",
-            ### ================================== Database-related Prompts ================================== ###
-            "database_action_prompt": """You are an assistant that has access to the following set of actions. Here are the names and descriptions for each action:
-{actions_info}
-Based on the given user intent, please provide the action that is supposed to be taken.
-User's Intent:
-{user_intent}
-The response must be the name of one of the actions ({actions_name}).
-""",
-            "database_slot_prompt": """The user has provided a value for the slot {slot}. The value is {value}. 
-If the provided value matches any of the following values: {value_list} (they may not be exactly the same and you can reformulate the value), please provide the reformulated value. Otherwise, respond None. 
-Your response should only be the reformulated value or None.
-""",
             # ===== regenerate answer prompt ===== #
             "regenerate_response": """
 Original Answer:
@@ -343,29 +306,6 @@ Conversation:
 The answer has to be in English and should only be yes or no.
 ----------------
 Answer:
-""",
-            ### ================================== DefaultWorker Prompts ================================== ###
-            "choose_worker_prompt": """你是一个助手，可以使用以下其中一组工具。以下是每个工具的名称和描述：
-{workers_info}
-根据对话历史和当前任务，选择适当的工具来回复用户的消息。
-任务：
-{task}
-对话：
-{formatted_chat}
-回复必须是工具之一的名称（{workers_name}）。
-答案：
-""",
-            ### ================================== Database-related Prompts ================================== ###
-            "database_action_prompt": """你是一个助手，可以选择以下其中一个操作。以下是每个操作的名称和描述：
-{actions_info}
-根据给定的用户意图，请提供应该执行的操作。
-用户意图：
-{user_intent}
-回复必须是其中一个操作的名称（{actions_name}）。
-""",
-            "database_slot_prompt": """用户为这个slot：{slot}提供了一个值。该值为{value}。
-如果提供的值与以下任何一个值匹配：{value_list}（它们可能不完全相同，你可以重新构造值），请提供重新构造后的值。否则，回复None。
-你的回复应该只是重新构造后的值或None。
 """,
         }
     else:

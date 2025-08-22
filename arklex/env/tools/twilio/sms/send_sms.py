@@ -20,10 +20,6 @@ slots = [
     }
 ]
 
-outputs = []
-
-errors = []
-
 
 class SendSmsKwargs(TypedDict, total=False):
     """Type definition for kwargs used in send_sms function."""
@@ -35,7 +31,7 @@ class SendSmsKwargs(TypedDict, total=False):
     message: str
 
 
-@register_tool(description, slots, outputs, lambda x: x not in errors)
+@register_tool(description, slots)
 def send_sms(**kwargs: SendSmsKwargs) -> str:
     twilio_client = TwilioClient(kwargs.get("sid"), kwargs.get("auth_token"))
     phone_no_to = kwargs.get("phone_no_to")

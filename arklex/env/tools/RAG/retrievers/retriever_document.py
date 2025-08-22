@@ -44,9 +44,13 @@ def embed(text: str, cache: bool = False) -> list[float]:
         if cache:
             cache_key = _generate_cache_key(text)
             cached_embedding = redis_pool.get(cache_key, decode_json=True)
-            if cached_embedding:
+            if cached_embedding is not None:
                 log_context.info(f"Cache hit for text of length {len(text)}")
-                return cached_embedding
+                return (
+                    cached_embedding
+                    if isinstance(cached_embedding, list)
+                    else json.loads(cached_embedding)
+                )
     except Exception as e:
         log_context.warning(f"Redis cache read error: {e}")
 
@@ -114,7 +118,7 @@ class RetrieverDocument:
         metadata: dict,
         is_chunked: bool,
         bot_uid: str,
-        # num_tokens: int = None,
+        num_tokens: int = None,
         embedding: list[float] | None = None,
         timestamp: int | None = None,
     ) -> None:
@@ -127,7 +131,7 @@ class RetrieverDocument:
             self.metadata = json.loads(metadata)
         else:
             self.metadata = metadata
-        # self.num_tokens = num_tokens
+        self.num_tokens = num_tokens
         self.embedding = embedding
         self.is_chunked = is_chunked
         self.timestamp = int(timestamp)
@@ -159,7 +163,7 @@ class RetrieverDocument:
                 qa_doc_type=self.qa_doc_type,
                 text=chunk,
                 metadata=self.metadata,
-                # num_tokens=len(tokens),
+                num_tokens=len(tokens),
                 embedding=None,
                 bot_uid=self.bot_uid,
                 is_chunked=True,
@@ -177,7 +181,7 @@ class RetrieverDocument:
             "qa_doc_type": self.qa_doc_type.value,
             "text": self.text,
             "metadata": self.metadata,
-            # "num_tokens": self.num_tokens,
+            "num_tokens": self.num_tokens,
             "embedding": self.embedding,
             "is_chunked": self.is_chunked,
             "timestamp": self.timestamp,
@@ -192,7 +196,7 @@ class RetrieverDocument:
             or self.chunk_idx is None
             or self.qa_doc_type is None
             or self.text is None
-            # or self.num_tokens is None
+            or self.num_tokens is None
             or self.metadata is None
             or self.timestamp is None
             or self.bot_uid is None
@@ -207,7 +211,7 @@ class RetrieverDocument:
             "text": self.text,
             "metadata": self.metadata,
             "timestamp": self.timestamp,
-            # "num_tokens": self.num_tokens,
+            "num_tokens": self.num_tokens,
             "embedding": embed(self.text),
             "bot_uid": self.bot_uid,
         }
@@ -221,7 +225,7 @@ class RetrieverDocument:
             qa_doc_type=RetrieverDocumentType(doc_dict["qa_doc_type"]),
             text=doc_dict["text"],
             metadata=doc_dict["metadata"],
-            # num_tokens=doc_dict["num_tokens"],
+            num_tokens=doc_dict["num_tokens"],
             embedding=doc_dict["embedding"],
             is_chunked=doc_dict["is_chunked"],
             timestamp=doc_dict["timestamp"],
@@ -230,14 +234,13 @@ class RetrieverDocument:
 
     @classmethod
     def faq_retreiver_doc(
-        #     cls, id: str, text: str, metadata: dict, bot_uid: str, timestamp: int = None, num_tokens: int = None
-        # ):
         cls,
         id: str,
         text: str,
         metadata: dict,
         bot_uid: str,
         timestamp: int | None = None,
+        num_tokens: int = None,
     ) -> "RetrieverDocument":
         return cls(
             id,
@@ -247,7 +250,7 @@ class RetrieverDocument:
             text,
             metadata,
             is_chunked=False,
-            # num_tokens=num_tokens,
+            num_tokens=num_tokens,
             embedding=None,
             timestamp=timestamp,
             bot_uid=bot_uid,

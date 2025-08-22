@@ -7,16 +7,18 @@ import os
 import threading
 import uuid
 from collections import defaultdict
-from typing import Literal
+from typing import Any, Literal
 
 import numpy as np
+import orjson
 import websockets
 from jinja2 import Template
 from pydantic import BaseModel
 
 from arklex.env.agents.agent import BaseAgent, register_agent
 from arklex.env.tools.tools import Tool
-from arklex.env.tools.types import Transcript
+from arklex.env.tools.types import ChatRole, Transcript
+from arklex.orchestrator.entities.orchestrator_state_entities import OrchestratorState
 
 logger = logging.getLogger(__name__)
 
@@ -165,6 +167,14 @@ class OpenAIRealtimeAgent(BaseAgent):
         self.response_played: threading.Event = threading.Event()
         self.transcription_language = transcription_language
 
+    def _execute(self) -> object:
+        pass
+
+    def init_agent_data(
+        self, orch_state: OrchestratorState, node_specific_data: dict[str, Any]
+    ) -> None:
+        pass
+
     def set_telephone_mode(self) -> None:
         """
         Enable telephone mode for the agent.
@@ -255,7 +265,7 @@ class OpenAIRealtimeAgent(BaseAgent):
             event["session"]["input_audio_transcription"]["language"] = (
                 self.transcription_language
             )
-        await self.ws.send(json.dumps(event))
+        await self.ws.send(orjson.dumps(event).decode())
 
     async def send_audio(self, b64_encoded_audio: str) -> None:
         """
@@ -265,7 +275,7 @@ class OpenAIRealtimeAgent(BaseAgent):
             b64_encoded_audio: Base64 encoded audio data to send
         """
         event = {"type": "input_audio_buffer.append", "audio": b64_encoded_audio}
-        await self.ws.send(json.dumps(event))
+        await self.ws.send(orjson.dumps(event).decode())
 
     async def truncate_audio(self, item_id: str, audio_end_ms: int) -> None:
         """
@@ -282,7 +292,7 @@ class OpenAIRealtimeAgent(BaseAgent):
             "content_index": 0,
             "audio_end_ms": audio_end_ms,
         }
-        await self.ws.send(json.dumps(event))
+        await self.ws.send(orjson.dumps(event).decode())
 
     async def commit_audio(self) -> None:
         """
@@ -291,7 +301,7 @@ class OpenAIRealtimeAgent(BaseAgent):
         This signals that the current audio input is complete and ready for processing.
         """
         event = {"type": "input_audio_buffer.commit"}
-        await self.ws.send(json.dumps(event))
+        await self.ws.send(orjson.dumps(event).decode())
 
     async def create_response(self) -> None:
         """
@@ -300,7 +310,7 @@ class OpenAIRealtimeAgent(BaseAgent):
         This triggers the model to generate a response based on the current conversation context.
         """
         logger.info("Creating response")
-        await self.ws.send(json.dumps({"type": "response.create"}))
+        await self.ws.send(orjson.dumps({"type": "response.create"}).decode())
 
     async def wait_till_input_audio(self) -> bool:
         """
@@ -336,7 +346,7 @@ class OpenAIRealtimeAgent(BaseAgent):
             output: The output/result of the function call
         """
         await self.ws.send(
-            json.dumps(
+            orjson.dumps(
                 {
                     "type": "conversation.item.create",
                     "item": {
@@ -345,7 +355,7 @@ class OpenAIRealtimeAgent(BaseAgent):
                         "output": output,
                     },
                 }
-            )
+            ).decode()
         )
 
     async def run_voicemail_tool(self, tool: Tool) -> None:
@@ -402,7 +412,7 @@ class OpenAIRealtimeAgent(BaseAgent):
             if slot.name in tool_args:
                 slot.value = tool_args[slot.name]
             if slot.type == "group":
-                for schema_obj in slot.schema:
+                for schema_obj in slot.slot_schema:
                     if schema_obj.get("valueSource", "") == "fixed":
                         for filled_ob in tool_args[slot.name]:
                             if schema_obj.get("type") == "bool":
@@ -418,17 +428,47 @@ class OpenAIRealtimeAgent(BaseAgent):
             kwargs = {"slots": tool.slots}
         else:
             kwargs = {slot.name: slot.value for slot in tool.slots}
-        combined_kwargs = {**kwargs, **tool.fixed_args, **tool.auth}
+        combined_kwargs = {
+            **kwargs,
+            **tool.fixed_args,
+            "auth": tool.auth,
+            "node_specific_data": tool.node_specific_data,
+        }
         combined_kwargs["call_sid"] = self.call_sid
         combined_kwargs["response_played_event"] = self.response_played
+        logger.info(f"combined_kwargs: {combined_kwargs}")
         try:
+            self.transcript.append(
+                Transcript(
+                    id=str(uuid.uuid4()),
+                    text=json.dumps(
+                        {"function_name": tool.name, "arguments": tool_args}
+                    ),
+                    origin=ChatRole.TOOL,
+                    created_at=datetime.datetime.now(datetime.timezone.utc),
+                )
+            )
             response = await asyncio.to_thread(tool.func, **combined_kwargs)
+            try:
+                response_object = json.loads(response)
+            except json.JSONDecodeError:
+                response_object = response
         except Exception as e:
             logger.error(f"Error running tool {tool.name}: {e}")
             logger.exception(e)
             response = "unexpected error calling tool"
+            response_object = response
         logger.info(f"Tool {tool.name} response: {response}")
-
+        self.transcript.append(
+            Transcript(
+                id=str(uuid.uuid4()),
+                text=json.dumps(
+                    {"function_name": tool.name, "response": response_object}
+                ),
+                origin=ChatRole.TOOL,
+                created_at=datetime.datetime.now(datetime.timezone.utc),
+            )
+        )
         await self.add_function_call_output(call_id, response)
         await self.create_response()
 
@@ -469,7 +509,7 @@ class OpenAIRealtimeAgent(BaseAgent):
         """
         async for openai_message in self.ws:
             try:
-                openai_event = json.loads(openai_message)
+                openai_event = orjson.loads(openai_message)
                 event_type = openai_event.get("type")
                 logger.info(f"Received event type: {event_type}")
 
@@ -491,7 +531,7 @@ class OpenAIRealtimeAgent(BaseAgent):
                                     await self.run_tool(
                                         output["call_id"],
                                         output["name"],
-                                        json.loads(output["arguments"]),
+                                        orjson.loads(output["arguments"]),
                                     )
                                 except Exception as e:
                                     logger.error(

@@ -11,7 +11,7 @@ from arklex.env.tools.google.calendar._exception_prompt import (
 )
 from arklex.env.tools.google.calendar.utils import AUTH_ERROR
 from arklex.env.tools.tools import register_tool
-from arklex.types import StreamType
+from arklex.types.stream_types import StreamType
 from arklex.utils.exceptions import AuthenticationError, ToolExecutionError
 from arklex.utils.logging_utils import LogContext
 
@@ -72,13 +72,12 @@ slots: list[dict[str, Any]] = [
         "required": True,
     },
 ]
-outputs: list[dict[str, Any]] = []
 
 
 SUCCESS: str = "The event has been created successfully at {start_time}. The meeting invitation has been sent to {email}."
 
 
-@register_tool(description, slots, outputs)
+@register_tool(description, slots)
 def create_event(
     email: str,
     name: str,
