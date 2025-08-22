@@ -1,4 +1,5 @@
 import json
+import re
 from typing import Any
 
 from langchain.prompts import PromptTemplate
@@ -50,6 +51,7 @@ class OpenAIAgent(BaseAgent):
         self.tool_defs = []
         self.tool_args: dict[str, Any] = {}
         self.tool_slots: dict[str, Any] = {}
+        self.tool_name_mapping: dict[str, str] = {}  # sanitized_name -> original_name
 
         self._load_tools(successors=successors, predecessors=predecessors, tools=tools)
         self._configure_tools()
@@ -64,7 +66,9 @@ class OpenAIAgent(BaseAgent):
         self.tools = tools.copy()
         self.http_tools = []
         all_nodes = successors + predecessors
+        
         for node in all_nodes:
+            
             if (
                 node.resource.get("id") not in tools
                 and node.resource.get("id") != ToolItem.HTTP_TOOL
@@ -78,6 +82,7 @@ class OpenAIAgent(BaseAgent):
                 http_tool_id = node.data.get("name", "")
                 self.available_tools[http_tool_id] = tools[http_tool_id]
                 self.http_tools.append(http_tool_id)
+
             else:
                 tool_id = node.resource.get("id")
                 self.available_tools[tool_id] = tools[tool_id]
@@ -93,14 +98,21 @@ class OpenAIAgent(BaseAgent):
                 f"Configuring tool: {tool_object.func.__name__} with slots: {tool_object.slots}"
             )
             tool_def = tool_object.to_openai_tool_def_v2()
-            tool_def["function"]["name"] = tool_id
+            
+            # Sanitize tool name for OpenAI (only allow alphanumeric, underscore, hyphen)
+            sanitized_tool_id = tool_id.replace("/", "_").replace(" ", "_").replace("-", "_")
+            # Remove any other invalid characters
+            sanitized_tool_id = re.sub(r'[^a-zA-Z0-9_-]', '_', sanitized_tool_id)
+            
+            tool_def["function"]["name"] = sanitized_tool_id
             self.tool_defs.append(tool_def)
-            self.tool_slots[tool_id] = tool_object.slots.copy()
-            self.tool_map[tool_id] = tool_object.func
+            self.tool_slots[sanitized_tool_id] = tool_object.slots.copy()
+            self.tool_map[sanitized_tool_id] = tool_object.func
+            self.tool_name_mapping[sanitized_tool_id] = tool_id  # Store mapping
             combined_args: dict[str, Any] = {
                 "node_specific_data": tool_object.node_specific_data,
             }
-            self.tool_args[tool_id] = combined_args
+            self.tool_args[sanitized_tool_id] = combined_args
         log_context.info(f"Tool Definitions: {self.tool_defs}")
 
     def init_agent_data(
@@ -274,7 +286,7 @@ class OpenAIAgent(BaseAgent):
                         if isinstance(group_values, dict):
                             group_values = [group_values]
                         slot_value = [
-                            build_slot_values(slot["schema"], item)
+                            build_slot_values(slot["slot_schema"], item)
                             for item in group_values
                         ]
                         slot_value = flatten_group_items(slot_value)
@@ -287,7 +299,7 @@ class OpenAIAgent(BaseAgent):
                             and value_source == "fixed"
                         ):
                             group_value = slot.get("value", "")
-                        slot_list = build_slot_values(slot["schema"], group_value)
+                        slot_list = build_slot_values(slot["slot_schema"], group_value)
                         # Convert list of slot dicts to single object for non-repeatable groups
                         slot_value = {
                             slot_dict["name"]: slot_dict["value"]
@@ -307,7 +319,12 @@ class OpenAIAgent(BaseAgent):
                 result.append(slot_dict)
             return result
 
-        if tool_name in self.http_tools:
+        # Check if this is an HTTP tool using the mapping
+        original_tool_name = self.tool_name_mapping.get(tool_name)
+        is_http_tool = original_tool_name in self.http_tools if original_tool_name else False
+        
+        if is_http_tool:
+            # This is an HTTP tool
             all_slots = self.tool_slots.get(tool_name, [])
             slots = build_slot_values(
                 [
