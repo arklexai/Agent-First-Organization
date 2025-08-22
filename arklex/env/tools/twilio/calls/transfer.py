@@ -39,8 +39,6 @@ def transfer(**kwargs: TransferCallKwargs) -> str:
             f"Executing call transfer for call_sid: {call_sid} to {transfer_to_number}"
         )
 
-        log_context.info(f"kwargs: {kwargs}")
-
         twilio_client = TwilioClient(
             kwargs.get("auth").get("sid"), kwargs.get("auth").get("auth_token")
         )
