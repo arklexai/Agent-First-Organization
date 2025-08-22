@@ -138,14 +138,6 @@
                             "value": "refund"
                         },
                         "target": "5"
-                    },
-                    {
-                        "condition": {
-                            "param": "memory.function_calling_trajectory[-1].content",
-                            "op": "contains",
-                            "value": "demonstration"
-                        },
-                        "target": "6"
                     }
                 ],
                 "attribute": {
