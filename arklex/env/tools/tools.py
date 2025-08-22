@@ -139,7 +139,7 @@ class Tool:
             func=self.func,
             name=self.name,
             description=self.description,
-            slots=self.slots,
+            slots=[i.model_dump() for i in self.slots],
         )
 
     def _format_slots(self, slots: list[dict[str, Any]]) -> list[dict[str, Any]]:
