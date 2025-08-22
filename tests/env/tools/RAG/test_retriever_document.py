@@ -203,6 +203,7 @@ class TestRetrieverDocument:
             bot_uid="test_bot__1.0",
             embedding=[0.1, 0.2, 0.3],
             timestamp=1234567890,
+            num_tokens=100,
         )
 
         result = doc.to_dict()
@@ -218,6 +219,7 @@ class TestRetrieverDocument:
             "is_chunked": False,
             "timestamp": 1234567890,
             "bot_uid": "test_bot__1.0",
+            "num_tokens": 100,
         }
         assert result == expected
 
@@ -234,6 +236,7 @@ class TestRetrieverDocument:
             is_chunked=False,
             bot_uid="test_bot__1.0",
             timestamp=1234567890,
+            num_tokens=100,
         )
 
         with pytest.raises(ValueError, match="Missing values"):
@@ -250,6 +253,7 @@ class TestRetrieverDocument:
             is_chunked=False,
             bot_uid="test_bot__1.0",
             timestamp=1234567890,
+            num_tokens=100,
         )
 
         with pytest.raises(ValueError, match="Missing values"):
@@ -268,6 +272,7 @@ class TestRetrieverDocument:
             "is_chunked": False,
             "timestamp": 1234567890,
             "bot_uid": "test_bot__1.0",
+            "num_tokens": 100,
         }
 
         doc = RetrieverDocument.from_dict(doc_dict)
@@ -282,6 +287,7 @@ class TestRetrieverDocument:
         assert doc.is_chunked is False
         assert doc.timestamp == 1234567890
         assert doc.bot_uid == "test_bot__1.0"
+        assert doc.num_tokens == 100
 
     def test_faq_retreiver_doc(self) -> None:
         """Test faq_retreiver_doc class method."""
