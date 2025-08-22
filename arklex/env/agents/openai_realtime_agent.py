@@ -436,6 +436,7 @@ class OpenAIRealtimeAgent(BaseAgent):
         }
         combined_kwargs["call_sid"] = self.call_sid
         combined_kwargs["response_played_event"] = self.response_played
+        logger.info(f"combined_kwargs: {combined_kwargs}")
         try:
             self.transcript.append(
                 Transcript(
