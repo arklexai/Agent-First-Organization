@@ -108,26 +108,17 @@ class Tool:
         self.func: Callable = func
         self.name: str = name
         self.description: str = description
-
-        # Process slots to handle schema/slot_schema mapping for group slots
-        processed_slots = []
-        for slot in slots:
-            if slot.get("type") == "group" and "schema" in slot:
-                # Create a copy with slot_schema instead of schema
-                processed_slot = slot.copy()
-                processed_slot["slot_schema"] = processed_slot.pop("schema")
-                processed_slots.append(processed_slot)
-            else:
-                processed_slots.append(slot)
-        
-        self.slots: list[Slot] = [Slot.model_validate(slot) for slot in processed_slots]
-        self.info: dict[str, Any] = self.get_info(slots)
+        self.slots: list[Slot] = []
         self.llm_config: dict[str, Any] = {}
         self.slotfiller: SlotFiller | None = None
         self.auth = {}
         self.node_specific_data: dict[str, Any] = {}
         self.fixed_args = {}
         self.properties: dict[str, dict[str, Any]] = {}
+        
+        # Load initial slots
+        if slots:
+            self.load_slots(slots)
 
     def copy(self) -> "Tool":
         """Create a copy of this tool instance.
@@ -274,7 +265,7 @@ class Tool:
 
             New slots:
                 [{"name": "param1", "type": "str", "required": False},
-                 {"name": "param3", "type": "bool", "required": True}]
+                 {"name": "param3", "type="bool", "required": True}]
 
             Result:
                 [Slot(name="param1", type="str", required=False),  # Updated
@@ -284,11 +275,22 @@ class Tool:
         if not slots:
             return
 
+        # Process slots to handle schema/slot_schema mapping for group slots
+        processed_slots = []
+        for slot in slots:
+            if slot.get("type") == "group" and "schema" in slot:
+                # Create a copy with slot_schema instead of schema
+                processed_slot = slot.copy()
+                processed_slot["slot_schema"] = processed_slot.pop("schema")
+                processed_slots.append(processed_slot)
+            else:
+                processed_slots.append(slot)
+
         # Create a dictionary of existing slots for easy lookup
         existing_slots_dict = {slot.name: slot for slot in self.slots}
 
         # Process new slots
-        for new_slot in slots:
+        for new_slot in processed_slots:
             slot_name = new_slot["name"]
             if slot_name in existing_slots_dict:
                 existing_slot = existing_slots_dict[slot_name]

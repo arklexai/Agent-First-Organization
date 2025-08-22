@@ -124,7 +124,7 @@ class SlotFiller(BaseSlotFilling):
         }
 
     @handle_exceptions()
-    def _fill_slots_local(
+    def _fill_slots(
         self,
         slots: list[Slot],
         context: str,
@@ -401,7 +401,7 @@ class SlotFiller(BaseSlotFilling):
         )
 
         try:
-            filled_slots = self._fill_slots_local(
+            filled_slots = self._fill_slots(
                 slots, context, model_config, type
             )
 
