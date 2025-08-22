@@ -60,7 +60,9 @@ def transfer(**kwargs: TransferCallKwargs) -> str:
         call.update(twiml=str(response))
 
         log_context.info("Call transfer completed successfully.")
+        return "Call transfer completed successfully."
 
     except Exception as e:
         log_context.error(f"Error executing call transfer: {e}")
         log_context.exception(e)
+        return "Call transfer failed."
