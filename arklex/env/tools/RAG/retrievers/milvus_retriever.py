@@ -101,7 +101,7 @@ class MilvusRetriever:
             field_name="embedding", datatype=DataType.FLOAT_VECTOR, dim=EMBED_DIMENSION
         )
         schema.add_field(field_name="timestamp", datatype=DataType.INT64)
-        # schema.add_field(field_name="num_tokens", datatype=DataType.INT64)
+        schema.add_field(field_name="num_tokens", datatype=DataType.INT64)
         index_params = self.client.prepare_index_params()
         index_params.add_index(field_name="id")
         index_params.add_index(field_name="qa_doc_id")
@@ -669,15 +669,19 @@ class MilvusRetriever:
         )
         return len(res)
 
-    # def get_token_count_for_bot(self, collection_name: str, bot_id: str, version: str):
-    #     log_context.info(f"Counting tokens in collection {collection_name} for bot_id: {bot_id}, version: {version}")
-    #     partition_key = self.get_bot_uid(bot_id, version)
-    #     res = self.client.query(
-    #         collection_name=collection_name,
-    #         filter=f"bot_uid=='{partition_key}'",
-    #         output_fields=["num_tokens"],
-    #     )
-    #     return sum([r.get("num_tokens", 0) for r in res])
+    def get_token_count_for_bot(
+        self, collection_name: str, bot_id: str, version: str
+    ) -> int:
+        log_context.info(
+            f"Counting tokens in collection {collection_name} for bot_id: {bot_id}, version: {version}"
+        )
+        partition_key = self.get_bot_uid(bot_id, version)
+        res = self.client.query(
+            collection_name=collection_name,
+            filter=f"bot_uid=='{partition_key}'",
+            output_fields=["num_tokens"],
+        )
+        return sum([r.get("num_tokens", 0) for r in res])
 
     def get_collection_size(self, collection_name: str) -> int:
         # real time vector count for the collection
