@@ -15,11 +15,15 @@ description = "Transfer the call to a human agent"
 slots = []
 
 
+class TwilioAuth(TypedDict):
+    sid: str
+    auth_token: str
+
+
 class TransferCallKwargs(TypedDict, total=False):
     """Type definition for kwargs used in transfer_call function."""
 
-    sid: str
-    auth_token: str
+    auth: TwilioAuth
     call_sid: str
     transfer_to_number: str
     transfer_message: str
@@ -35,7 +39,11 @@ def transfer(**kwargs: TransferCallKwargs) -> str:
             f"Executing call transfer for call_sid: {call_sid} to {transfer_to_number}"
         )
 
-        twilio_client = TwilioClient(kwargs.get("sid"), kwargs.get("auth_token"))
+        log_context.info(f"kwargs: {kwargs}")
+
+        twilio_client = TwilioClient(
+            kwargs.get("auth").get("sid"), kwargs.get("auth").get("auth_token")
+        )
 
         # Create TwiML for transfer
 
