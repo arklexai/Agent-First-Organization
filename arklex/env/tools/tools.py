@@ -129,7 +129,7 @@ class Tool:
             func=self.func,
             name=self.name,
             description=self.description,
-            slots=self.slots,
+            slots=[i.model_dump() for i in self.slots],
         )
 
     def get_info(self, slots: list[dict[str, Any]]) -> dict[str, Any]:
