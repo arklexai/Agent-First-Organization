@@ -85,8 +85,6 @@ class Tool:
         slotfillapi (Optional[SlotFiller]): Slot filling API instance.
         info (Dict[str, Any]): Tool information including parameters and requirements.
         slots (List[Slot]): List of slot instances.
-        isResponse (bool): Whether the tool is a response tool.
-        properties (Dict[str, Dict[str, Any]]): Tool properties.
         llm_config (Dict[str, Any]): Language model configuration.
     """
 
@@ -110,14 +108,17 @@ class Tool:
         self.func: Callable = func
         self.name: str = name
         self.description: str = description
-        self.slots: list[Slot] = [Slot.model_validate(slot) for slot in slots]
-        self.info: dict[str, Any] = self.get_info(slots)
+        self.slots: list[Slot] = []
         self.llm_config: dict[str, Any] = {}
         self.slotfiller: SlotFiller | None = None
         self.auth = {}
         self.node_specific_data: dict[str, Any] = {}
         self.fixed_args = {}
         self.properties: dict[str, dict[str, Any]] = {}
+        
+        # Load initial slots
+        if slots:
+            self.load_slots(slots)
 
     def copy(self) -> "Tool":
         """Create a copy of this tool instance.
@@ -131,6 +132,40 @@ class Tool:
             description=self.description,
             slots=[i.model_dump() for i in self.slots],
         )
+
+    def _format_slots(self, slots: list[dict[str, Any]]) -> list[dict[str, Any]]:
+        """Format slots for OpenAI tool definition.
+        
+        Args:
+            slots: List of slot definitions
+            
+        Returns:
+            List of formatted slot definitions for OpenAI
+        """
+        formatted_slots = []
+        for slot in slots:
+            formatted_slot = {
+                "name": slot["name"],
+                "type": slot["type"],
+                "description": slot.get("description", ""),
+                "required": slot.get("required", False),
+            }
+            
+            # Handle enum values
+            if "enum" in slot:
+                formatted_slot["enum"] = slot["enum"]
+                
+            # Handle items for array types
+            if "items" in slot:
+                formatted_slot["items"] = slot["items"]
+                
+            # Handle group schema
+            if slot.get("type") == "group" and "schema" in slot:
+                formatted_slot["slot_schema"] = slot["schema"]
+                
+            formatted_slots.append(formatted_slot)
+            
+        return formatted_slots
 
     def get_info(self, slots: list[dict[str, Any]]) -> dict[str, Any]:
         """Get tool information including parameters and requirements.
@@ -230,7 +265,7 @@ class Tool:
 
             New slots:
                 [{"name": "param1", "type": "str", "required": False},
-                 {"name": "param3", "type": "bool", "required": True}]
+                 {"name": "param3", "type="bool", "required": True}]
 
             Result:
                 [Slot(name="param1", type="str", required=False),  # Updated
@@ -240,31 +275,47 @@ class Tool:
         if not slots:
             return
 
+        # Process slots to handle schema/slot_schema mapping for group slots
+        processed_slots = []
+        for slot in slots:
+            if slot.get("type") == "group" and "schema" in slot:
+                # Create a copy with slot_schema instead of schema
+                processed_slot = slot.copy()
+                processed_slot["slot_schema"] = processed_slot.pop("schema")
+                processed_slots.append(processed_slot)
+            else:
+                processed_slots.append(slot)
+
         # Create a dictionary of existing slots for easy lookup
         existing_slots_dict = {slot.name: slot for slot in self.slots}
 
         # Process new slots
-        for new_slot in slots:
+        for new_slot in processed_slots:
             slot_name = new_slot["name"]
             if slot_name in existing_slots_dict:
                 existing_slot = existing_slots_dict[slot_name]
                 for key, value in new_slot.items():
-                    setattr(existing_slot, key, value)
+                    # Handle schema/slot_schema mapping for group slots
+                    if key == "schema" and existing_slot.type == "group":
+                        existing_slot.slot_schema = value
+                    else:
+                        setattr(existing_slot, key, value)
             else:
                 if new_slot.get("type") == "group":
-                    self.slots.append(
-                        Slot(
-                            name=new_slot["name"],
-                            type="group",
-                            schema=new_slot.get("schema", []),
-                            required=new_slot.get("required", False),
-                            repeatable=new_slot.get("repeatable", True),
-                            prompt=new_slot.get("prompt", ""),
-                            description=new_slot.get("description", ""),
-                            value=[],
-                            valueSource=new_slot.get("valueSource", None),
-                        )
-                    )
+                    # Handle both "schema" and "slot_schema" keys for backward compatibility
+                    schema = new_slot.get("slot_schema") or new_slot.get("schema", [])
+                    self.slots.append(Slot(
+                        name=new_slot["name"],
+                        type="group",
+                        slot_schema=schema,
+                        required=new_slot.get("required", False),
+                        repeatable=new_slot.get("repeatable", True),
+                        prompt=new_slot.get("prompt", ""),
+                        description=new_slot.get("description", ""),
+                        value=[],
+                        valueSource=new_slot.get("valueSource", None),
+                    ))
+
                 else:
                     self.slots.append(Slot.model_validate(new_slot))
 
@@ -319,8 +370,9 @@ class Tool:
         Returns:
             Filled group slot
         """
-        group_prompt = self._build_group_prompt(slot)
-        temp_group_slot = self._create_temp_group_slot(slot, group_prompt)
+
+        temp_group_slot = self._create_temp_group_slot(slot)
+        
 
         # Use slotfiller to fill the group as a whole
         filled = self.slotfiller.fill_slots(
@@ -404,11 +456,7 @@ class Tool:
         example_fields = []
         schema_lines = []
 
-        for field in (
-            slot.schema
-            if hasattr(slot, "schema") and isinstance(slot.schema, list | tuple)
-            else []
-        ):
+        for field in (slot.slot_schema if hasattr(slot, 'slot_schema') and isinstance(slot.slot_schema, list | tuple) else []):
             field_type = field.get("type", "str")
             field_repeatable = field.get("repeatable", False)
             example_value = self._get_example_value_for_type(field_type)
@@ -461,8 +509,8 @@ class Tool:
         )
 
         return prompt
-
-    def _create_temp_group_slot(self, slot: Slot, group_prompt: str) -> Slot:
+    
+    def _create_temp_group_slot(self, slot: Slot) -> Slot:
         """Create a temporary group slot for filling.
 
         Args:
@@ -476,9 +524,9 @@ class Tool:
             name=slot.name,
             type="group",
             value=slot.value if slot.value else [],
-            description=slot.description + " " + group_prompt,
+            description=slot.description,
             required=slot.required,
-            schema=slot.schema,
+            slot_schema=slot.slot_schema,
             repeatable=slot.repeatable,
         )
 
@@ -615,11 +663,8 @@ class Tool:
             Updated group value with valueSource logic applied
         """
         for item in group_value:
-            for field in (
-                slot.schema
-                if hasattr(slot, "schema") and isinstance(slot.schema, list | tuple)
-                else []
-            ):
+
+            for field in (slot.slot_schema if hasattr(slot, 'slot_schema') and isinstance(slot.slot_schema, list | tuple) else []):
                 field_name = field["name"]
                 field_repeatable = field.get("repeatable", False)
                 val_source = field.get("valueSource", "Prompt User")
@@ -748,13 +793,9 @@ class Tool:
                 ):
                     return True
                 # For each item, check required fields
-                for item in slot.value or []:
-                    for field in (
-                        slot.schema
-                        if hasattr(slot, "schema")
-                        and isinstance(slot.schema, list | tuple)
-                        else []
-                    ):
+
+                for item in (slot.value or []):
+                    for field in (slot.slot_schema if hasattr(slot, 'slot_schema') and isinstance(slot.slot_schema, list | tuple) else []):
                         field_repeatable = field.get("repeatable", False)
                         if field.get("required", False):
                             if field_repeatable:
@@ -805,18 +846,11 @@ class Tool:
                 ):
                     missing.append(slot.prompt)
                 for idx, item in enumerate(slot.value or []):
-                    for field in (
-                        slot.schema
-                        if hasattr(slot, "schema")
-                        and isinstance(slot.schema, list | tuple)
-                        else []
-                    ):
-                        if field.get("required", False) and (
-                            item.get(field["name"]) in [None, ""]
-                        ):
-                            missing.append(
-                                f"{field.get('prompt', field['name'])} (group '{slot.name}' item {idx + 1})"
-                            )
+                    for field in (slot.slot_schema if hasattr(slot, 'slot_schema') and isinstance(slot.slot_schema, list | tuple) else []):
+                        if field.get("required", False) and (item.get(field["name"]) in [None, ""]):
+                            missing.append(f"{field.get('prompt', field['name'])} (group '{slot.name}' item {idx+1})")
+
+
             else:
                 # Handle regular slots (non-group)
                 if getattr(slot, "repeatable", False):
@@ -882,11 +916,8 @@ class Tool:
                 # For group, define as array of objects with schema
                 group_properties = {}
                 group_required = []
-                for field in (
-                    slot.schema
-                    if hasattr(slot, "schema") and isinstance(slot.schema, list | tuple)
-                    else []
-                ):
+                for field in (slot.slot_schema if hasattr(slot, 'slot_schema') and isinstance(slot.slot_schema, list | tuple) else []):
+
                     field_source = field.get("valueSource", "")
                     if field_source == "fixed":
                         continue
@@ -1008,7 +1039,6 @@ class Tool:
         tool_output: ToolOutput = ToolOutput(status=StatusEnum.INCOMPLETE)
 
         self.slots = [Slot.model_validate(slot) for slot in self.slots]
-
         # init slot values saved in default slots
         self._init_slots(state, all_slots)
         # do slotfilling (now with valueSource logic)
@@ -1273,8 +1303,8 @@ class Tool:
         for idx, item in enumerate(slot.value):
             missing_fields = []
             for field in (
-                slot.schema
-                if hasattr(slot, "schema") and isinstance(slot.schema, list | tuple)
+                slot.slot_schema 
+                if hasattr(slot, 'slot_schema') and isinstance(slot.slot_schema, list | tuple) 
                 else []
             ):
                 field_repeatable = field.get("repeatable", False)

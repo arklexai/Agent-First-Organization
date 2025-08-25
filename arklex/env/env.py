@@ -370,7 +370,7 @@ class Environment:
             )
 
         elif id in self.agents:
-            log_context.info(f"{self.agents[id]} agent selected")
+            log_context.info(f"Agent {id} selected")
             agent: BaseAgent = self.agents[id]["agent_instance"](
                 successors=node_info.successors,
                 predecessors=node_info.predecessors,
