@@ -1,10 +1,13 @@
 from datetime import datetime
+from typing import Any
 
 import pytz
 from hubspot import HubSpot
 
 from arklex.env.tools.tools import register_tool
 from arklex.utils.logging_utils import LogContext
+
+from .base.entities import HubspotAuthTokens
 
 log_context = LogContext(__name__)
 
@@ -36,14 +39,14 @@ slots = [
     },
 ]
 
-outputs = []
 
-errors = []
-
-
-@register_tool(description, slots, outputs, lambda x: x not in errors)
+@register_tool(description, slots)
 def check_availability(
-    timezone: str, duration: int, start_time: str, **kwargs: dict[str, object]
+    timezone: str,
+    duration: int,
+    start_time: str,
+    auth: HubspotAuthTokens,
+    **kwargs: dict[str, Any],
 ) -> str:
     slug = kwargs.get("slug")
     log_context.info(
@@ -63,7 +66,7 @@ def check_availability(
     start_time_obj = tz.localize(start_time_obj)
     log_context.info(f"start_time_obj: {start_time_obj}")
     try:
-        api_client = HubSpot(access_token=kwargs.get("access_token"))
+        api_client = HubSpot(access_token=auth["access_token"])
         res = api_client.api_request(
             {
                 "path": f"/scheduler/v3/meetings/meeting-links/book/availability-page/{slug}",
@@ -87,7 +90,7 @@ def check_availability(
 
     while has_more:
         try:
-            api_client = HubSpot(access_token=kwargs.get("access_token"))
+            api_client = HubSpot(access_token=auth["access_token"])
             res = api_client.api_request(
                 {
                     "path": f"/scheduler/v3/meetings/meeting-links/book/availability-page/{slug}",

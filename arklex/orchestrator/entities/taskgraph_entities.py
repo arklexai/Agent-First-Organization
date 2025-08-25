@@ -15,7 +15,7 @@ from typing import Any
 
 from pydantic import BaseModel, Field
 
-from arklex.orchestrator.entities.msg_state_entities import StatusEnum
+from arklex.orchestrator.entities.orchestrator_state_entities import StatusEnum
 from arklex.orchestrator.NLU.entities.slot_entities import Slot
 
 
@@ -56,25 +56,22 @@ class NodeInfo(BaseModel):
 
     Attributes:
         node_id (Optional[str]): Unique identifier for the node.
-        type (str): Type of the node.
-        resource_id (str): Resource identifier.
-        resource_name (str): Name of the resource.
-        can_skipped (bool): Whether the node can be skipped.
+        resource (Dict[str, str]): Resource information.
+        attribute (Dict[str, Any]): Node attributes.
+        data (Dict[str, Any]): Node data.
         is_leaf (bool): Whether the node is a leaf node.
-        attributes (Dict[str, Any]): Additional node attributes.
         add_flow_stack (Optional[bool]): Whether to add to flow stack.
         additional_args (Optional[Dict[str, Any]]): Additional arguments for the node.
     """
 
-    node_id: str | None = Field(default=None)
-    type: str = Field(default="")
-    resource_id: str = Field(default="")
-    resource_name: str = Field(default="")
-    can_skipped: bool = Field(default=False)
+    node_id: str = Field(default="")
+    resource: dict[str, str] = Field(default_factory=dict)
+    attribute: dict[str, Any] = Field(default_factory=dict)
+    data: dict[str, Any] = Field(default_factory=dict)
+    successors: list = Field(default_factory=list)
+    predecessors: list = Field(default_factory=list)
     is_leaf: bool = Field(default=False)
-    attributes: dict[str, Any] = Field(default_factory=dict)
     add_flow_stack: bool | None = Field(default=False)
-    additional_args: dict[str, Any] | None = Field(default={})
 
 
 class PathNode(BaseModel):

@@ -12,8 +12,6 @@ log_context = LogContext(__name__)
 description = "Send a predefined SMS message"
 
 slots = []
-outputs = []
-errors = []
 
 
 class SendPredefinedSmsKwargs(TypedDict, total=False):
@@ -28,7 +26,7 @@ class SendPredefinedSmsKwargs(TypedDict, total=False):
     message: str
 
 
-@register_tool(description, slots, outputs, lambda x: x not in errors)
+@register_tool(description, slots)
 def send_predefined_sms(**kwargs: SendPredefinedSmsKwargs) -> str:
     """Send a predefined SMS message.
 

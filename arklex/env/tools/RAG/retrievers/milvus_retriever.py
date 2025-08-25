@@ -31,8 +31,6 @@ from arklex.env.tools.RAG.retrievers.retriever_document import (
     embed,
     embed_retriever_document,
 )
-from arklex.env.tools.utils import trace
-from arklex.orchestrator.entities.msg_state_entities import MessageState
 from arklex.utils.logging_utils import LogContext
 from arklex.utils.mysql import mysql_pool
 from arklex.utils.provider_utils import validate_and_get_model_class
@@ -47,22 +45,14 @@ log_context = LogContext(__name__)
 class RetrieveEngine:
     @staticmethod
     def milvus_retrieve(
-        state: MessageState, tags: dict[str, object] | None = None
-    ) -> MessageState:
-        # get the input message
-        user_message = state.user_message
-
+        chat_history: str, bot_config: object, tags: dict[str, object] | None = None
+    ) -> tuple[str, dict[str, object]]:
         # Search for the relevant documents
-        milvus_retriever = MilvusRetrieverExecutor(state.bot_config)
+        milvus_retriever = MilvusRetrieverExecutor(bot_config)
         if tags is None:
             tags = {}
-        retrieved_text, retriever_params = milvus_retriever.retrieve(
-            user_message.history, tags
-        )
-
-        state.message_flow = retrieved_text
-        state = trace(input=retriever_params, state=state)
-        return state
+        retrieved_text, retriever_params = milvus_retriever.retrieve(chat_history, tags)
+        return retrieved_text, retriever_params
 
 
 class MilvusRetriever:
@@ -111,7 +101,7 @@ class MilvusRetriever:
             field_name="embedding", datatype=DataType.FLOAT_VECTOR, dim=EMBED_DIMENSION
         )
         schema.add_field(field_name="timestamp", datatype=DataType.INT64)
-        # schema.add_field(field_name="num_tokens", datatype=DataType.INT64)
+        schema.add_field(field_name="num_tokens", datatype=DataType.INT64)
         index_params = self.client.prepare_index_params()
         index_params.add_index(field_name="id")
         index_params.add_index(field_name="qa_doc_id")
@@ -679,15 +669,19 @@ class MilvusRetriever:
         )
         return len(res)
 
-    # def get_token_count_for_bot(self, collection_name: str, bot_id: str, version: str):
-    #     log_context.info(f"Counting tokens in collection {collection_name} for bot_id: {bot_id}, version: {version}")
-    #     partition_key = self.get_bot_uid(bot_id, version)
-    #     res = self.client.query(
-    #         collection_name=collection_name,
-    #         filter=f"bot_uid=='{partition_key}'",
-    #         output_fields=["num_tokens"],
-    #     )
-    #     return sum([r.get("num_tokens", 0) for r in res])
+    def get_token_count_for_bot(
+        self, collection_name: str, bot_id: str, version: str
+    ) -> int:
+        log_context.info(
+            f"Counting tokens in collection {collection_name} for bot_id: {bot_id}, version: {version}"
+        )
+        partition_key = self.get_bot_uid(bot_id, version)
+        res = self.client.query(
+            collection_name=collection_name,
+            filter=f"bot_uid=='{partition_key}'",
+            output_fields=["num_tokens"],
+        )
+        return sum([r.get("num_tokens", 0) for r in res])
 
     def get_collection_size(self, collection_name: str) -> int:
         # real time vector count for the collection
@@ -800,7 +794,7 @@ class MilvusRetrieverExecutor:
                 "confidence": confidence_score,
             }
             retriever_returns.append(item)
-        return {"retriever": retriever_returns}
+        return {"source": retriever_returns}
 
     def retrieve(
         self, chat_history_str: str, tags: dict[str, object] | None = None
@@ -833,6 +827,7 @@ class MilvusRetrieverExecutor:
             )
         rt = time.time() - st
         log_context.info(f"MilvusRetriever search took {rt} seconds")
+        log_context.info(f"Retriever results: {ret_results}")
         retriever_params = self.postprocess(ret_results)
         retriever_params["timing"] = {"retriever_input": rit, "retriever_search": rt}
         thought = self.generate_thought(ret_results)

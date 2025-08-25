@@ -40,12 +40,8 @@ slots = [
     },
 ]
 
-outputs = []
 
-errors = [AUTH_ERROR]
-
-
-@register_tool(description, slots, outputs, lambda x: x not in errors)
+@register_tool(description, slots)
 def free_busy(
     time_min: str,
     time_max: str,

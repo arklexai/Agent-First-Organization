@@ -4,6 +4,7 @@ from datetime import datetime
 import pytz
 from hubspot import HubSpot
 
+from arklex.env.tools.hubspot.base.entities import HubspotAuthTokens
 from arklex.env.tools.tools import register_tool
 
 logger = logging.getLogger(__name__)
@@ -52,12 +53,8 @@ slots = [
     },
 ]
 
-outputs = []
 
-errors = []
-
-
-@register_tool(description, slots, outputs, lambda x: x not in errors)
+@register_tool(description, slots)
 def book_meeting(
     first_name: str,
     last_name: str,
@@ -65,10 +62,11 @@ def book_meeting(
     start_time: str,
     duration: int,
     timezone: str,
+    auth: HubspotAuthTokens,
     **kwargs: dict[str, object],
 ) -> str:
     slug = kwargs.get("slug")
-    api_client = HubSpot(access_token=kwargs.get("access_token"))
+    api_client = HubSpot(access_token=auth["access_token"])
 
     logger.info(
         f"Booking a meeting for {first_name} {last_name} with {slug} at {start_time} for {duration} minutes in {timezone} timezone."
