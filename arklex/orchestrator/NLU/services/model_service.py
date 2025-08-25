@@ -350,7 +350,7 @@ class ModelService:
             
             return llm.invoke(messages)
         else:
-            return self.get_response(prompt, model_config, system_prompt)
+            return self.get_response(prompt, system_prompt)
     
 
     def get_json_response(
@@ -377,7 +377,7 @@ class ModelService:
             ValueError: If JSON parsing fails or response is invalid
         """
         try:
-            response = self.get_response(prompt, model_config, system_prompt)
+            response = self.get_response(prompt, system_prompt)
             return json.loads(response)
         except json.JSONDecodeError as e:
             log_context.error(f"Error parsing JSON response: {str(e)}")
