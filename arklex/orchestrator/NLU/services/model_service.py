@@ -284,9 +284,7 @@ class ModelService:
     def get_response(
         self,
         prompt: str,
-        model_config: dict[str, Any] | None = None,
         system_prompt: str | None = None,
-        response_format: str | None = None,
         note: str | None = None,
     ) -> str:
         """Get response from the model.
@@ -379,7 +377,7 @@ class ModelService:
             ValueError: If JSON parsing fails or response is invalid
         """
         try:
-            response = self.get_response(prompt, model_config, system_prompt)
+            response = self.get_response(prompt, system_prompt)
             return json.loads(response)
         except json.JSONDecodeError as e:
             log_context.error(f"Error parsing JSON response: {str(e)}")
