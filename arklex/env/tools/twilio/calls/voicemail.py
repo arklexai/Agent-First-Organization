@@ -7,6 +7,7 @@ from typing import TypedDict
 from twilio.rest import Client as TwilioClient
 
 from arklex.env.tools.tools import register_tool
+from arklex.env.tools.twilio.base.entities import TwilioAuth
 from arklex.utils.logging_utils import LogContext
 
 log_context = LogContext(__name__)
@@ -19,8 +20,6 @@ slots = []
 class VoicemailKwargs(TypedDict, total=False):
     """Type definition for kwargs used in voicemail function."""
 
-    sid: str
-    auth_token: str
     call_sid: str
     response_played_event: threading.Event
 
@@ -47,8 +46,8 @@ def _end_call_thread(
 
 
 @register_tool(description, slots)
-def voicemail(**kwargs: VoicemailKwargs) -> str:
-    twilio_client = TwilioClient(kwargs.get("sid"), kwargs.get("auth_token"))
+def voicemail(auth: TwilioAuth, **kwargs: VoicemailKwargs) -> str:
+    twilio_client = TwilioClient(auth.get("sid"), auth.get("auth_token"))
     call_sid = kwargs.get("call_sid")
     response_played_event = kwargs.get("response_played_event")
     threading.Thread(
