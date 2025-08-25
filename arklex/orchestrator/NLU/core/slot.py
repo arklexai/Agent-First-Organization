@@ -267,7 +267,7 @@ class SlotFiller(BaseSlotFilling):
         )
 
         # Get model response
-        response = self.model_service.get_response(prompt, model_config)
+        response = self.model_service.get_response(prompt)
         log_context.info(
             "Model response received",
             extra={

@@ -284,7 +284,9 @@ class ModelService:
     def get_response(
         self,
         prompt: str,
+        model_config: dict[str, Any] | None = None,
         system_prompt: str | None = None,
+        response_format: str | None = None,
         note: str | None = None,
     ) -> str:
         """Get response from the model.
@@ -350,7 +352,7 @@ class ModelService:
             
             return llm.invoke(messages)
         else:
-            return self.get_response(prompt, model_config, system_prompt)
+            return self.get_response(prompt, system_prompt)
     
 
     def get_json_response(
