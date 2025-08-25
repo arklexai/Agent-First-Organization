@@ -6,14 +6,12 @@ handling, and state management. The module serves as a foundation for implementi
 workers that handle different types of tasks and operations within the system.
 """
 
-import traceback
 from abc import ABC, abstractmethod
 from typing import Any
 
 from arklex.env.workers.base.entities import WorkerOutput
 from arklex.orchestrator.entities.orchestrator_state_entities import (
     OrchestratorState,
-    StatusEnum,
 )
 from arklex.utils.logging_utils import LogContext
 
@@ -88,15 +86,7 @@ class BaseWorker(ABC):
         Returns:
             MessageState: The updated message state after execution.
         """
-        try:
-            self.init_worker_data(orch_state, node_specific_data)
-            worker_output: WorkerOutput = self._execute()
-
-        except Exception:
-            log_context.error(traceback.format_exc())
-            worker_output = WorkerOutput(
-                response="",
-                status=StatusEnum.INCOMPLETE,
-            )
+        self.init_worker_data(orch_state, node_specific_data)
+        worker_output: WorkerOutput = self._execute()
 
         return self.orch_state, worker_output
