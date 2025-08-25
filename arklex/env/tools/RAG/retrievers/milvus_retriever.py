@@ -196,6 +196,7 @@ class MilvusRetriever:
                 "text",
                 "embedding",
                 "timestamp",
+                "num_tokens",
             ],
         )
 

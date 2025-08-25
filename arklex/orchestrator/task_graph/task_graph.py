@@ -656,13 +656,11 @@ class TaskGraph(TaskGraphBase):
             # if found prediction and prediction is not unsure intent and current intent
             if found_pred_in_avil and pred_intent != self.unsure_intent.get("intent"):
                 # If the prediction is the same as the current global intent and the current node is not a leaf node, continue the current global intent
-                if (
-                    pred_intent == params.taskgraph.curr_global_intent
-                    and len(list(self.graph.successors(curr_node))) != 0
-                    and params.taskgraph.node_status.get(
+                if pred_intent == params.taskgraph.curr_global_intent and (
+                    len(list(self.graph.successors(curr_node))) != 0
+                    or params.taskgraph.node_status.get(
                         curr_node, StatusEnum.INCOMPLETE
                     )
-                    == StatusEnum.INCOMPLETE
                 ):
                     return False, pred_intent, {}, params
                 next_node: str
