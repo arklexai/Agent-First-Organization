@@ -225,9 +225,6 @@ class OpenAIRealtimeAgent(BaseAgent):
         # Construct the WebSocket URL
         websocket_url = f"{ws_url}/v1/realtime?model=gpt-4o-realtime-preview-2025-06-03"
         
-        logger.info(f"🔧 Connecting to OpenAI Realtime API at: {websocket_url}")
-        logger.info(f"🔌 ACTUAL WebSocket connection URL: {websocket_url}")
-        
         self.ws = await websockets.connect(
             websocket_url,
             extra_headers={
