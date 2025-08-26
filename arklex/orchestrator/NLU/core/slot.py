@@ -16,7 +16,7 @@ from typing import Any
 from arklex.orchestrator.NLU.core.base import BaseSlotFilling
 from arklex.orchestrator.NLU.entities.slot_entities import Slot
 from arklex.orchestrator.NLU.services.model_service import ModelService
-from arklex.utils.exceptions import ModelError, ValidationError
+from arklex.utils.exceptions import ModelError
 from arklex.utils.logging_utils import LogContext, handle_exceptions
 
 log_context = LogContext(__name__)
@@ -70,18 +70,6 @@ class SlotFiller(BaseSlotFilling):
         Raises:
             ValidationError: If model_service is not provided
         """
-        if not model_service:
-            log_context.error(
-                "Model service is required",
-                extra={"operation": "initialization"},
-            )
-            raise ValidationError(
-                "Model service is required",
-                details={
-                    "service": "SlotFiller",
-                    "operation": "initialization",
-                },
-            )
         self.model_service = model_service
         log_context.info(
             "SlotFiller initialized successfully",
@@ -93,34 +81,34 @@ class SlotFiller(BaseSlotFilling):
 
     def _slots_to_openai_schema(self, slots: list[Slot]) -> dict[str, Any]:
         """Convert list of Slot objects to OpenAI JSON schema format.
-        
+
         Args:
             slots: List of Slot objects to convert
-            
+
         Returns:
             OpenAI JSON schema dictionary
         """
         properties = {}
         required = []
-        
+
         for slot in slots:
             # Use the to_openai_schema method from the Slot class
             slot_schema = slot.to_openai_schema()
-            
+
             if slot_schema is None:
                 continue  # Skip slots that return None (like fixed value slots)
-                
+
             properties[slot.name] = slot_schema
-            
+
             if getattr(slot, "required", False):
                 required.append(slot.name)
-        
+
         return {
             "title": "SlotFillingOutput",
             "description": "Structured output for slot filling",
             "type": "object",
             "properties": properties,
-            "required": required
+            "required": required,
         }
 
     @handle_exceptions()
@@ -131,7 +119,7 @@ class SlotFiller(BaseSlotFilling):
         model_config: dict[str, Any],
         type: str = "chat",
     ) -> list[Slot]:
-        """Fill slots using local model.
+        """Fill slots.
 
         Args:
             slots: List of slots to fill
@@ -146,16 +134,6 @@ class SlotFiller(BaseSlotFilling):
             ModelError: If slot filling fails
             ValidationError: If input validation fails
         """
-        log_context.info(
-            "Using local model for slot filling",
-            extra={
-                "slots": [slot.name for slot in slots],
-                "context_length": len(context),
-                "type": type,
-                "operation": "slot_filling_local",
-            },
-        )
-
         # Format input
         prompt, system_prompt = self.model_service.format_slot_input(
             slots, context, type
@@ -180,7 +158,9 @@ class SlotFiller(BaseSlotFilling):
         )
 
         # Get model response
-        response = self.model_service.get_response_with_structured_output(prompt, model_config, schema, system_prompt)
+        response = self.model_service.get_response_with_structured_output(
+            prompt, schema, system_prompt
+        )
         log_context.info(
             "Model response received",
             extra={
@@ -308,8 +288,6 @@ class SlotFiller(BaseSlotFilling):
                 },
             ) from e
 
-
-
     @handle_exceptions()
     def verify_slot(
         self,
@@ -401,9 +379,7 @@ class SlotFiller(BaseSlotFilling):
         )
 
         try:
-            filled_slots = self._fill_slots(
-                slots, context, model_config, type
-            )
+            filled_slots = self._fill_slots(slots, context, model_config, type)
 
             log_context.info(
                 "Slot filling completed",

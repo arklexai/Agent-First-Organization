@@ -167,7 +167,6 @@ class AgentOrg:
         self.task_graph: TaskGraph = TaskGraph(
             "taskgraph",
             self.product_kwargs,
-            self.llm_config,
             model_service=self.env.model_service,
         )
 
