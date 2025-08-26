@@ -513,6 +513,7 @@ Please choose the most appropriate intent by providing the corresponding intent 
         """Process the model's response for slot filling.
 
         Parses the model's response and updates the slot values accordingly.
+        Handles both traditional slot structures and new slot_schema structures.
 
         Args:
             response: Model's response containing extracted slot values (can be string or dict)
@@ -535,23 +536,14 @@ Please choose the most appropriate intent by providing the corresponding intent 
             else:
                 raise ValueError(f"Unsupported response type: {type(response)}")
 
-            # Update slot values
-            for slot in slots:
-                # Handle both dict and Pydantic model inputs
-                if isinstance(slot, dict):
-                    slot_name = slot.get("name", "")
-                    if slot_name in extracted_values:
-                        slot["value"] = extracted_values[slot_name]
-                    else:
-                        slot["value"] = None
-                else:
-                    slot_name = getattr(slot, "name", "")
-                    if slot_name in extracted_values:
-                        slot.value = extracted_values[slot_name]
-                    else:
-                        slot.value = None
+            # Check if we're dealing with a slot_schema structure
+            if len(slots) == 1 and hasattr(slots[0], 'slot_schema') and slots[0].slot_schema:
+                # Handle new slot_schema structure
+                return self._process_slot_schema_response(extracted_values, slots)
+            else:
+                # Handle traditional slot structure
+                return self._process_traditional_slot_response(extracted_values, slots)
 
-            return slots
         except json.JSONDecodeError as e:
             log_context.error(f"Error parsing slot filling response: {str(e)}")
             raise ValueError(f"Failed to parse slot filling response: {str(e)}") from e
@@ -560,6 +552,63 @@ Please choose the most appropriate intent by providing the corresponding intent 
             raise ValueError(
                 f"Failed to process slot filling response: {str(e)}"
             ) from e
+
+    def _process_slot_schema_response(self, extracted_values: dict, slots: list) -> list:
+        """Process response for slot_schema structure.
+        
+        Args:
+            extracted_values: Extracted values from model response
+            slots: Original slot definitions
+            
+        Returns:
+            Updated list of slots with extracted values
+        """
+        slot = slots[0]
+        
+        # Extract values from the nested schema structure
+        # The response should match the structure defined in slot_schema
+        if isinstance(extracted_values, dict):
+            # For slot_schema, we need to extract values from the nested structure
+            # The extracted_values should contain the actual data, not the schema
+            for field_name, field_value in extracted_values.items():
+                # Find the corresponding slot field and update its value
+                if hasattr(slot, field_name):
+                    setattr(slot, field_name, field_value)
+                else:
+                    # If it's a nested field, we might need to handle it differently
+                    # For now, just set it as a value
+                    slot.value = field_value
+                    break  # Assuming the main value is what we want
+        
+        return slots
+
+    def _process_traditional_slot_response(self, extracted_values: dict, slots: list) -> list:
+        """Process response for traditional slot structure.
+        
+        Args:
+            extracted_values: Extracted values from model response
+            slots: Original slot definitions
+            
+        Returns:
+            Updated list of slots with extracted values
+        """
+        # Update slot values
+        for slot in slots:
+            # Handle both dict and Pydantic model inputs
+            if isinstance(slot, dict):
+                slot_name = slot.get("name", "")
+                if slot_name in extracted_values:
+                    slot["value"] = extracted_values[slot_name]
+                else:
+                    slot["value"] = None
+            else:
+                slot_name = getattr(slot, "name", "")
+                if slot_name in extracted_values:
+                    slot.value = extracted_values[slot_name]
+                else:
+                    slot.value = None
+
+        return slots
 
     def format_verification_input(
         self, slot: dict[str, Any], chat_history_str: str

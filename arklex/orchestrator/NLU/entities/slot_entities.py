@@ -48,7 +48,7 @@ class Slot(BaseModel):
     required: bool = Field(default=False)
     verified: bool = Field(default=False)
     repeatable: bool = Field(default=False)
-    slot_schema: list[dict] | None = None
+    slot_schema: list[dict] | dict | None = None
     items: dict | None = None
     target: str | None = None
     valueSource: str | None = Field(default=None)
@@ -75,7 +75,19 @@ class Slot(BaseModel):
             }
 
         # If a full OpenAI function schema is provided on this slot, prefer extracting from it
-        if isinstance(self.schema, dict) and "function" in self.schema:
+        if isinstance(self.slot_schema, dict) and "function" in self.slot_schema:
+            try:
+                properties = (
+                    self.slot_schema.get("function", {})
+                    .get("parameters", {})
+                    .get("properties", {})
+                )
+                if self.name in properties:
+                    return properties[self.name]
+            except Exception:
+                # Fall back to synthesizing schema if extraction fails
+                pass
+        elif isinstance(self.schema, dict) and "function" in self.schema:
             try:
                 properties = (
                     self.schema.get("function", {})

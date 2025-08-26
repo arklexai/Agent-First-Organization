@@ -91,17 +91,32 @@ class SlotFiller(BaseSlotFilling):
             },
         )
 
-    def _slots_to_openai_schema(self, slots: list[Slot]) -> dict[str, Any]:
-        """Convert list of Slot objects to OpenAI JSON schema format.
+    def _slots_to_openai_schema(self, slots: list[Slot]) -> tuple[dict[str, Any], dict]:
+        """Convert list of Slot objects to OpenAI JSON schema format using the new slot_schema structure.
         
         Args:
             slots: List of Slot objects to convert
             
         Returns:
-            OpenAI JSON schema dictionary
+            Tuple of (OpenAI JSON schema dictionary, fixed values mapping)
         """
+        import copy
+        
+        # If we have a single slot with slot_schema, use it directly
+        if len(slots) == 1 and slots[0].slot_schema:
+            slot = slots[0]
+            # Deep copy the slot_schema to avoid modifying the original
+            schema_copy = copy.deepcopy(slot.slot_schema)
+            
+            # Remove non-OpenAI standard fields from the schema
+            self._remove_non_openai_fields(schema_copy)
+            
+            return schema_copy, {}
+        
+        # Fallback to the original method for multiple slots or slots without slot_schema
         properties = {}
         required = []
+        fixed_values = {}
         
         for slot in slots:
             # Use the to_openai_schema method from the Slot class
@@ -121,7 +136,74 @@ class SlotFiller(BaseSlotFilling):
             "type": "object",
             "properties": properties,
             "required": required
-        }
+        }, fixed_values
+    
+    def _extract_fixed_values(self, schema_obj: dict) -> dict:
+        """Extract fixed values from schema before removing them.
+        
+        Args:
+            schema_obj: Schema object to extract fixed values from
+            
+        Returns:
+            Dictionary mapping field paths to their fixed values and types
+        """
+        fixed_values = {}
+        
+        def extract_from_object(obj, path=""):
+            if isinstance(obj, dict):
+                # Check if this is a properties object
+                if "properties" in obj:
+                    for field_name, field_schema in obj["properties"].items():
+                        full_path = f"{path}.{field_name}" if path else field_name
+                        
+                        # Check if this field has a fixed value
+                        if field_schema.get("valueSource") == "fixed" and "value" in field_schema:
+                            fixed_values[full_path] = {
+                                "value": field_schema["value"],
+                                "type": field_schema.get("type", "string")
+                            }
+                        
+                        # Recursively check nested properties
+                        if isinstance(field_schema, dict) and "properties" in field_schema:
+                            extract_from_object(field_schema, full_path)
+                
+                # Check if this is an items object (for arrays)
+                elif "items" in obj and isinstance(obj["items"], dict):
+                    extract_from_object(obj["items"], path)
+                
+                # Recursively process all nested dictionaries
+                for key, value in obj.items():
+                    if isinstance(value, dict):
+                        new_path = f"{path}.{key}" if path else key
+                        extract_from_object(value, new_path)
+        
+        extract_from_object(schema_obj)
+        return fixed_values
+
+    def _remove_non_openai_fields(self, schema_obj):
+        """Recursively remove non-OpenAI standard fields from schema objects.
+        
+        Args:
+            schema_obj: Schema object to clean (dict, list, or primitive)
+        """
+        if isinstance(schema_obj, dict):
+            # Fields to remove from all levels
+            fields_to_remove = ['valueSource', 'value', 'id', 'target', 'prompt']
+            
+            # Remove non-OpenAI fields from current level
+            for field in fields_to_remove:
+                schema_obj.pop(field, None)
+            
+            # Recursively clean nested objects
+            for key, value in list(schema_obj.items()):
+                if isinstance(value, (dict, list)):
+                    self._remove_non_openai_fields(value)
+                    
+        elif isinstance(schema_obj, list):
+            # Recursively clean list items
+            for item in schema_obj:
+                if isinstance(item, (dict, list)):
+                    self._remove_non_openai_fields(item)
 
     @handle_exceptions()
     def _fill_slots(
@@ -170,7 +252,7 @@ class SlotFiller(BaseSlotFilling):
         )
 
         # Generate OpenAI schema from slots
-        schema = self._slots_to_openai_schema(slots)
+        schema, fixed_values = self._slots_to_openai_schema(slots)
         log_context.info(
             "OpenAI schema generated",
             extra={
@@ -194,6 +276,11 @@ class SlotFiller(BaseSlotFilling):
         # Process response
         try:
             filled_slots = self.model_service.process_slot_response(response, slots)
+            
+            # If we used the new slot_schema structure, evaluate and fill back default/fixed values
+            if len(slots) == 1 and slots[0].slot_schema:
+                filled_slots = self._evaluate_and_fill_slot_values(filled_slots, slots[0])
+            
             log_context.info(
                 "Slot filling completed",
                 extra={
@@ -226,6 +313,137 @@ class SlotFiller(BaseSlotFilling):
                     "operation": "slot_filling_local",
                 },
             ) from e
+
+    def _evaluate_and_fill_slot_values(self, filled_slots: list[Slot], original_slot: Slot) -> list[Slot]:
+        """Evaluate and fill back default and fixed values from slot_schema structure.
+        
+        Args:
+            filled_slots: List of slots with model-extracted values
+            original_slot: Original slot with slot_schema structure
+            
+        Returns:
+            Updated list of slots with proper values filled
+        """
+        if not original_slot.slot_schema:
+            return filled_slots
+            
+        # For the new slot_schema structure, we need to handle the nested array structure
+        for slot in filled_slots:
+            if slot.name == original_slot.name and slot.value and isinstance(slot.value, list):
+                # This is an array slot, we need to process each item
+                updated_items = []
+                for item in slot.value:
+                    if isinstance(item, dict):
+                        # Apply fixed values to each item in the array using direct field access
+                        updated_item = self._apply_fixed_values_direct(item, original_slot.slot_schema)
+                        updated_items.append(updated_item)
+                    else:
+                        updated_items.append(item)
+                slot.value = updated_items
+                
+                log_context.info(
+                    f"Applied fixed values to array slot {slot.name}",
+                    extra={
+                        "slot_name": slot.name,
+                        "updated_value": slot.value,
+                        "operation": "slot_filling_evaluation",
+                    },
+                )
+        
+        return filled_slots
+    
+    def _apply_fixed_values_direct(self, item: dict, slot_schema: dict) -> dict:
+        """Apply fixed values directly to an item using field-level access.
+        
+        Args:
+            item: Dictionary item to update
+            slot_schema: The slot schema containing field definitions
+            
+        Returns:
+            Updated item with fixed values applied
+        """
+        try:
+            # Get the array items schema directly
+            slot_name = None
+            for key in slot_schema.get("function", {}).get("parameters", {}).get("properties", {}):
+                slot_name = key
+                break
+            
+            if not slot_name:
+                return item
+                
+            # Get the array items schema
+            array_schema = slot_schema.get("function", {}).get("parameters", {}).get("properties", {}).get(slot_name, {})
+            items_schema = array_schema.get("items", {})
+            properties = items_schema.get("properties", {})
+            
+            # Apply fixed values directly to each field
+            updated_item = item.copy()
+            for field_name, field_schema in properties.items():
+                # Check if this field has a fixed value (direct access, no path navigation)
+                if field_schema.get("valueSource") == "fixed" and "value" in field_schema:
+                    # Convert and apply the fixed value
+                    fixed_value = self._convert_value_to_type(
+                        field_schema["value"], 
+                        field_schema.get("type", "string")
+                    )
+                    updated_item[field_name] = fixed_value
+                    log_context.info(
+                        f"Applied fixed value to field {field_name}",
+                        extra={
+                            "field_name": field_name,
+                            "fixed_value": fixed_value,
+                            "original_value": field_schema["value"],
+                            "type": field_schema.get("type", "string"),
+                            "operation": "slot_filling_evaluation",
+                        },
+                    )
+            
+            return updated_item
+            
+        except Exception as e:
+            log_context.error(
+                f"Error applying fixed values to item",
+                extra={
+                    "error": str(e),
+                    "item": item,
+                    "operation": "slot_filling_evaluation",
+                },
+            )
+            return item
+    
+    def _convert_value_to_type(self, value: Any, target_type: str) -> Any:
+        """Convert a value to the specified type.
+        
+        Args:
+            value: The value to convert
+            target_type: The target type (boolean, integer, number, string)
+            
+        Returns:
+            Converted value
+        """
+        try:
+            if target_type == "boolean":
+                if isinstance(value, str):
+                    return value.lower() in ("true", "1", "yes", "on")
+                return bool(value)
+            elif target_type == "integer":
+                return int(value)
+            elif target_type == "number":
+                return float(value)
+            else:  # string or unknown type
+                return str(value)
+        except (ValueError, TypeError) as e:
+            log_context.warning(
+                f"Failed to convert value {value} to type {target_type}",
+                extra={
+                    "value": value,
+                    "target_type": target_type,
+                    "error": str(e),
+                    "operation": "slot_filling_type_conversion",
+                },
+            )
+            return value
 
     @handle_exceptions()
     def _verify_slot_local(
@@ -335,7 +553,7 @@ class SlotFiller(BaseSlotFilling):
         log_context.info(
             "Starting slot verification",
             extra={
-                "slot": slot.get("name"),
+                "slot": slot.name,
                 "mode": "local",
                 "operation": "slot_verification",
             },
@@ -360,7 +578,7 @@ class SlotFiller(BaseSlotFilling):
                 "Slot verification failed",
                 extra={
                     "error": str(e),
-                    "slot": slot.get("name"),
+                    "slot": slot.name,
                     "operation": "slot_verification",
                 },
             )

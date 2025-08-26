@@ -275,11 +275,11 @@ class Tool:
         if not slots:
             return
 
-        # Process slots to handle schema/slot_schema mapping for group slots
+        # Process slots to handle schema/slot_schema mapping for all slot types
         processed_slots = []
         for slot in slots:
-            if slot.get("type") == "group" and "schema" in slot:
-                # Create a copy with slot_schema instead of schema
+            if "schema" in slot:
+                # Create a copy with slot_schema instead of schema for all slot types
                 processed_slot = slot.copy()
                 processed_slot["slot_schema"] = processed_slot.pop("schema")
                 processed_slots.append(processed_slot)
@@ -295,27 +295,25 @@ class Tool:
             if slot_name in existing_slots_dict:
                 existing_slot = existing_slots_dict[slot_name]
                 for key, value in new_slot.items():
-                    # Handle schema/slot_schema mapping for group slots
-                    if key == "schema" and existing_slot.type == "group":
+                    # Handle schema/slot_schema mapping for all slot types
+                    if key == "schema":
                         existing_slot.slot_schema = value
                     else:
                         setattr(existing_slot, key, value)
             else:
-                if new_slot.get("type") == "group":
-                    # Handle both "schema" and "slot_schema" keys for backward compatibility
-                    schema = new_slot.get("slot_schema") or new_slot.get("schema", [])
+                if new_slot.get("slot_schema"):
+                    # Handle slots with slot_schema for all types
                     self.slots.append(Slot(
                         name=new_slot["name"],
-                        type="group",
-                        slot_schema=schema,
+                        type=new_slot.get("type", "str"),
+                        slot_schema=new_slot["slot_schema"],
                         required=new_slot.get("required", False),
-                        repeatable=new_slot.get("repeatable", True),
+                        repeatable=new_slot.get("repeatable", False),
                         prompt=new_slot.get("prompt", ""),
                         description=new_slot.get("description", ""),
-                        value=[],
+                        value=new_slot.get("value", None),
                         valueSource=new_slot.get("valueSource", None),
                     ))
-
                 else:
                     self.slots.append(Slot.model_validate(new_slot))
 
@@ -547,6 +545,7 @@ class Tool:
             description=slot.description + " " + repeatable_prompt,
             required=slot.required,
             repeatable=getattr(slot, "repeatable", False),
+            slot_schema=getattr(slot, "slot_schema", None),
         )
 
     def _parse_and_validate_group_value(
