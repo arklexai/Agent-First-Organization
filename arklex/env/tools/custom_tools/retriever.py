@@ -4,7 +4,11 @@ from typing import Any, TypedDict
 
 from arklex.env.tools.RAG.retrievers.milvus_retriever import RetrieveEngine
 from arklex.env.tools.tools import register_tool
-from arklex.orchestrator.entities.orchestrator_state_entities import BotConfig
+from arklex.env.tools.utils import trace
+from arklex.orchestrator.entities.orchestrator_state_entities import (
+    BotConfig,
+    OrchestratorState,
+)
 from arklex.types.model_types import LLMConfig
 from arklex.utils.logging_utils import LogContext
 
@@ -33,7 +37,12 @@ slots = [
 
 
 @register_tool(description, slots)
-def retriever(query: str, auth: RetrieverParams, **kwargs: dict[str, Any]) -> str:
+def retriever(
+    query: str,
+    state: OrchestratorState,
+    auth: RetrieverParams,
+    **kwargs: dict[str, Any],
+) -> str:
     collection_name = auth.get("collection_name")
     bot_id = auth.get("bot_id")
     version = auth.get("version")
@@ -61,8 +70,11 @@ def retriever(query: str, auth: RetrieverParams, **kwargs: dict[str, Any]) -> st
     )
 
     # Perform retrieval
-    retrieved_text, _retriever_params = RetrieveEngine.milvus_retrieve(
+    retrieved_text, retriever_params = RetrieveEngine.milvus_retrieve(
         chat_history=query, bot_config=bot_config, tags=None
     )
+
+    state = trace(input=retriever_params, source="milvus_retrieve", state=state)
+    state.message_flow = retrieved_text
 
     return retrieved_text
