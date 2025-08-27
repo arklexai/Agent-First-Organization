@@ -10,9 +10,7 @@ from pydantic import BaseModel
 from arklex.env.agents.agent import BaseAgent, register_agent
 from arklex.env.prompts import load_prompts
 from arklex.env.tools.tools import TYPE_CONVERTERS
-from arklex.orchestrator.entities.orchestrator_state_entities import (
-    OrchestratorState,
-)
+from arklex.orchestrator.entities.orchestrator_state_entities import OrchestratorState
 from arklex.types.resource_types import ToolItem
 from arklex.types.stream_types import EventType, StreamType
 from arklex.utils.logging_utils import LogContext
@@ -66,9 +64,8 @@ class OpenAIAgent(BaseAgent):
         self.tools = tools.copy()
         self.http_tools = []
         all_nodes = successors + predecessors
-        
+
         for node in all_nodes:
-            
             if (
                 node.resource.get("id") not in tools
                 and node.resource.get("id") != ToolItem.HTTP_TOOL
@@ -98,12 +95,14 @@ class OpenAIAgent(BaseAgent):
                 f"Configuring tool: {tool_object.func.__name__} with slots: {tool_object.slots}"
             )
             tool_def = tool_object.to_openai_tool_def_v2()
-            
+
             # Sanitize tool name for OpenAI (only allow alphanumeric, underscore, hyphen)
-            sanitized_tool_id = tool_id.replace("/", "_").replace(" ", "_").replace("-", "_")
+            sanitized_tool_id = (
+                tool_id.replace("/", "_").replace(" ", "_").replace("-", "_")
+            )
             # Remove any other invalid characters
-            sanitized_tool_id = re.sub(r'[^a-zA-Z0-9_-]', '_', sanitized_tool_id)
-            
+            sanitized_tool_id = re.sub(r"[^a-zA-Z0-9_-]", "_", sanitized_tool_id)
+
             tool_def["function"]["name"] = sanitized_tool_id
             self.tool_defs.append(tool_def)
             self.tool_slots[sanitized_tool_id] = tool_object.slots.copy()
@@ -321,8 +320,16 @@ class OpenAIAgent(BaseAgent):
 
         # Check if this is an HTTP tool using the mapping
         original_tool_name = self.tool_name_mapping.get(tool_name)
-        is_http_tool = original_tool_name in self.http_tools if original_tool_name else False
-        
+        is_http_tool = (
+            original_tool_name in self.http_tools if original_tool_name else False
+        )
+
+        tool_args["auth"] = self.tools[original_tool_name]["tool_instance"].auth
+        tool_args["llm_provider"] = self.orch_state.bot_config.llm_config.llm_provider
+        tool_args["model_type_or_path"] = (
+            self.orch_state.bot_config.llm_config.model_type_or_path
+        )
+
         if is_http_tool:
             # This is an HTTP tool
             all_slots = self.tool_slots.get(tool_name, [])
