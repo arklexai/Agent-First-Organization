@@ -447,111 +447,10 @@ class OpenAIAgent(BaseAgent):
                 tool_args,
             )
             
-            # Apply fixed values to slots before calling HTTP tool
+            # Apply fixed/default values to slots before calling HTTP tool
             for slot in slots:
-                log_context.info(
-                    f"Processing slot for fixed value application: {slot.get('name')}, type: {slot.get('type')}, has slot_schema: {bool(slot.get('slot_schema'))}",
-                    extra={
-                        "slot_name": slot.get("name"),
-                        "slot_type": slot.get("type"),
-                        "has_slot_schema": bool(slot.get("slot_schema")),
-                        "operation": "http_tool_fixed_value_debug",
-                    },
-                )
-                if slot.get("type") in ["group", "object"] and slot.get("slot_schema"):
-                    slot_schema = slot.get("slot_schema")
-                    log_context.info(
-                        f"Slot schema structure: {slot_schema}",
-                        extra={
-                            "slot_name": slot.get("name"),
-                            "slot_schema": slot_schema,
-                            "operation": "http_tool_fixed_value_debug",
-                        },
-                    )
-                    if isinstance(slot_schema, dict) and "function" in slot_schema:
-                        # Parse the slot_schema to get field definitions
-                        function_block = slot_schema.get("function", {})
-                        parameters = function_block.get("parameters", {})
-                        properties = parameters.get("properties", {})
-                        group_prop = properties.get(slot.get("name"))
-                        log_context.info(
-                            f"Group property for {slot.get('name')}: {group_prop}",
-                            extra={
-                                "slot_name": slot.get("name"),
-                                "group_prop": group_prop,
-                                "operation": "http_tool_fixed_value_debug",
-                            },
-                        )
-                        if group_prop:
-                            items = group_prop.get("items", {}) if group_prop.get("type") == "array" else group_prop
-                            if items.get("type") == "object":
-                                inner_props = items.get("properties", {})
-                                log_context.info(
-                                    f"Inner properties: {inner_props}",
-                                    extra={
-                                        "slot_name": slot.get("name"),
-                                        "inner_props": inner_props,
-                                        "operation": "http_tool_fixed_value_debug",
-                                    },
-                                )
-                                # Apply fixed values to each item in the group
-                                slot_value = slot.get("value", [])
-                                log_context.info(
-                                    f"Slot value before fixed value application: {slot_value}",
-                                    extra={
-                                        "slot_name": slot.get("name"),
-                                        "slot_value": slot_value,
-                                        "operation": "http_tool_fixed_value_debug",
-                                    },
-                                )
-                                if isinstance(slot_value, list):
-                                    for item in slot_value:
-                                        log_context.info(
-                                            f"Processing item: {item}",
-                                            extra={
-                                                "slot_name": slot.get("name"),
-                                                "item": item,
-                                                "operation": "http_tool_fixed_value_debug",
-                                            },
-                                        )
-                                        for field_name, field_def in inner_props.items():
-                                            log_context.info(
-                                                f"Checking field {field_name}: {field_def}",
-                                                extra={
-                                                    "slot_name": slot.get("name"),
-                                                    "field_name": field_name,
-                                                    "field_def": field_def,
-                                                    "operation": "http_tool_fixed_value_debug",
-                                                },
-                                            )
-                                            if field_def.get("valueSource") == "fixed" and "value" in field_def:
-                                                fixed_value = field_def.get("value")
-                                                field_type = field_def.get("type", "string")
-                                                converted_value = TYPE_CONVERTERS.get({
-                                                    "string": "str",
-                                                    "integer": "int", 
-                                                    "number": "float",
-                                                    "boolean": "bool"
-                                                }.get(field_type, "str"), lambda x: x)(fixed_value)
-                                                item[field_name] = converted_value
-                                                log_context.info(
-                                                    f"Applied fixed value to HTTP tool slot '{slot.get('name')}.{field_name}': {fixed_value} -> {converted_value}",
-                                                    extra={
-                                                        "slot_name": slot.get("name"),
-                                                        "field_name": field_name,
-                                                        "original_value": fixed_value,
-                                                        "converted_value": converted_value,
-                                                        "operation": "http_tool_fixed_value_application",
-                                                    },
-                                                )
-                                log_context.info(
-                                    f"Slot value after fixed value application: {slot_value}",
-                                    extra={
-                                        "slot_name": slot.get("name"),
-                                        "slot_value": slot_value,
-                                        "operation": "http_tool_fixed_value_debug",
-                                    },
-                                )
+                if slot.get("slot_schema"):
+                    self._apply_fixed_default_values(slot)
             
             # Call http_tool with slots parameter, excluding slots from tool_args
             filtered_args = {k: v for k, v in tool_args.items() if k != "slots"}
@@ -625,3 +524,107 @@ class OpenAIAgent(BaseAgent):
             return self.generate_response(self.orch_state, stream=True, is_speech=True)
         else:
             return self.generate_response(self.orch_state, stream=False)
+
+    def _apply_fixed_default_values(self, slot: dict) -> None:
+        """Apply fixed and default values from slot_schema to slot values.
+        
+        Args:
+            slot: Slot dictionary with slot_schema and value
+        """
+        slot_schema = slot.get("slot_schema", {})
+        slot_value = slot.get("value")
+        
+        if not slot_schema or not slot_value:
+            return
+            
+        # Find all fixed/default fields recursively
+        fixed_default_fields = self._find_fixed_default_fields(slot_schema, slot.get("name"))
+        
+        # Apply to slot value
+        if isinstance(slot_value, list):
+            # Repeatable group - apply to each item
+            for item in slot_value:
+                self._apply_fields_to_item(item, fixed_default_fields)
+        elif isinstance(slot_value, dict):
+            # Non-repeatable group - apply to single object
+            self._apply_fields_to_item(slot_value, fixed_default_fields)
+    
+    def _find_fixed_default_fields(self, schema: dict, slot_name: str) -> dict:
+        """Recursively find all fields with valueSource='fixed' or 'default'.
+        
+        Args:
+            schema: Slot schema dictionary
+            slot_name: Name of the slot
+            
+        Returns:
+            Dictionary mapping field paths to their values and types
+        """
+        fields = {}
+        
+        if isinstance(schema, dict) and "function" in schema:
+            function_block = schema.get("function", {})
+            parameters = function_block.get("parameters", {})
+            properties = parameters.get("properties", {})
+            slot_prop = properties.get(slot_name)
+            
+            if slot_prop:
+                items = slot_prop.get("items", {}) if slot_prop.get("type") == "array" else slot_prop
+                if items.get("type") == "object":
+                    inner_props = items.get("properties", {})
+                    for field_name, field_def in inner_props.items():
+                        value_source = field_def.get("valueSource")
+                        if value_source in ["fixed", "default"] and "value" in field_def:
+                            fields[field_name] = {
+                                "value": field_def["value"],
+                                "type": field_def.get("type", "string"),
+                                "valueSource": value_source
+                            }
+        
+        return fields
+    
+    def _apply_fields_to_item(self, item: dict, fields: dict) -> None:
+        """Apply fixed/default fields to an item.
+        
+        Args:
+            item: Dictionary to apply values to
+            fields: Dictionary of field definitions with values
+        """
+        for field_name, field_info in fields.items():
+            value_source = field_info["valueSource"]
+            
+            if value_source == "fixed":
+                # Always override with fixed value
+                converted_value = TYPE_CONVERTERS.get({
+                    "string": "str",
+                    "integer": "int", 
+                    "number": "float",
+                    "boolean": "bool"
+                }.get(field_info["type"], "str"), lambda x: x)(field_info["value"])
+                item[field_name] = converted_value
+                log_context.info(
+                    f"Applied fixed value '{field_name}': {field_info['value']} -> {converted_value}",
+                    extra={
+                        "field_name": field_name,
+                        "original_value": field_info["value"],
+                        "converted_value": converted_value,
+                        "operation": "http_tool_fixed_value_application",
+                    },
+                )
+            elif value_source == "default" and item.get(field_name) in (None, "", False):
+                # Apply default only if value is missing/empty
+                converted_value = TYPE_CONVERTERS.get({
+                    "string": "str",
+                    "integer": "int", 
+                    "number": "float",
+                    "boolean": "bool"
+                }.get(field_info["type"], "str"), lambda x: x)(field_info["value"])
+                item[field_name] = converted_value
+                log_context.info(
+                    f"Applied default value '{field_name}': {field_info['value']} -> {converted_value}",
+                    extra={
+                        "field_name": field_name,
+                        "original_value": field_info["value"],
+                        "converted_value": converted_value,
+                        "operation": "http_tool_default_value_application",
+                    },
+                )
