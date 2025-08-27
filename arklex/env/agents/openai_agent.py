@@ -610,8 +610,8 @@ class OpenAIAgent(BaseAgent):
                         "operation": "http_tool_fixed_value_application",
                     },
                 )
-            elif value_source == "default" and item.get(field_name) in (None, "", False):
-                # Apply default only if value is missing/empty
+            elif value_source == "default" and item.get(field_name) in (None, "", False, "null"):
+                # Apply default only if value is missing/empty/null
                 converted_value = TYPE_CONVERTERS.get({
                     "string": "str",
                     "integer": "int", 

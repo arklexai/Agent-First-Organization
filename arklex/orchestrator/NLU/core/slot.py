@@ -188,7 +188,7 @@ class SlotFiller(BaseSlotFilling):
         """
         if isinstance(schema_obj, dict):
             # Fields to remove from all levels
-            fields_to_remove = ['valueSource', 'value', 'id', 'target', 'prompt']
+            fields_to_remove = ['valueSource', 'value', 'id', 'target', 'prompt', 'groupRef']
             
             # Remove non-OpenAI fields from current level
             for field in fields_to_remove:
