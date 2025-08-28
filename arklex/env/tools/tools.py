@@ -22,6 +22,11 @@ from arklex.orchestrator.NLU.entities.slot_entities import Slot
 from arklex.utils.exceptions import AuthenticationError, ToolExecutionError
 from arklex.utils.logging_utils import LogContext
 from arklex.utils.utils import PYTHON_TO_JSON_SCHEMA, format_chat_history
+from arklex.orchestrator.NLU.entities.slot_entities import (
+    extract_nested_fields_from_definition,
+    extract_fields_from_openai_schema,
+    extract_properties_recursively,
+)
 
 log_context = LogContext(__name__)
 
@@ -605,7 +610,6 @@ class Tool:
         for item in group_value:
             # Process top-level fields
             self._apply_valuesource_to_item_recursive(item, slot)
-        
         return group_value
 
     def _apply_valuesource_to_item_recursive(self, item: dict[str, Any], slot: Slot) -> None:
@@ -636,105 +640,15 @@ class Tool:
         # Handle list-style schema
         if hasattr(slot, 'slot_schema') and isinstance(slot.slot_schema, (list, tuple)):
             for field in slot.slot_schema:
-                self._extract_nested_fields_from_definition(field, fields)
+                extract_nested_fields_from_definition(field, fields)
         
         # Handle OpenAI function-style schema
         elif hasattr(slot, 'slot_schema') and isinstance(slot.slot_schema, dict):
-            self._extract_fields_from_openai_schema(slot.slot_schema, slot.name, fields)
+            extract_fields_from_openai_schema(slot.slot_schema, slot.name, fields)
         
         return fields
 
-    def _extract_nested_fields_from_definition(self, field_def: dict[str, Any], fields: dict[str, dict[str, Any]], path: str = "") -> None:
-        """Extract field definitions from a field definition, handling nested structures.
 
-        Args:
-            field_def: Field definition dictionary
-            fields: Dictionary to populate with field definitions
-            path: Current path for nested fields
-        """
-        field_name = field_def.get("name", "")
-        current_path = f"{path}.{field_name}" if path else field_name
-        
-        # Add current field if it has valueSource
-        value_source = field_def.get("valueSource")
-        if value_source in ["fixed", "default"] and "value" in field_def:
-            fields[current_path] = {
-                "name": field_name,
-                "type": field_def.get("type", "str"),
-                "valueSource": value_source,
-                "value": field_def.get("value"),
-                "repeatable": field_def.get("repeatable", False)
-            }
-        
-        # Handle nested objects and arrays
-        if field_def.get("type") == "group" and "schema" in field_def:
-            nested_schema = field_def["schema"]
-            if isinstance(nested_schema, (list, tuple)):
-                for nested_field in nested_schema:
-                    self._extract_nested_fields_from_definition(nested_field, fields, current_path)
-            elif isinstance(nested_schema, dict):
-                self._extract_fields_from_openai_schema(nested_schema, field_name, fields, current_path)
-
-    def _extract_fields_from_openai_schema(self, schema: dict, slot_name: str, fields: dict[str, dict[str, Any]], base_path: str = "") -> None:
-        """Extract field definitions from OpenAI function-style schema.
-
-        Args:
-            schema: OpenAI function schema dictionary
-            slot_name: Name of the slot
-            fields: Dictionary to populate with field definitions
-            base_path: Base path for nested fields
-        """
-        if "function" not in schema:
-            return
-            
-        function_block = schema.get("function", {})
-        parameters = function_block.get("parameters", {})
-        properties = parameters.get("properties", {})
-        slot_prop = properties.get(slot_name)
-        
-        if not slot_prop:
-            return
-            
-        # Handle array of objects
-        if slot_prop.get("type") == "array":
-            items = slot_prop.get("items", {})
-            if items.get("type") == "object":
-                self._extract_properties_recursively(items.get("properties", {}), fields, base_path)
-        # Handle single object
-        elif slot_prop.get("type") == "object":
-            self._extract_properties_recursively(slot_prop.get("properties", {}), fields, base_path)
-
-    def _extract_properties_recursively(self, properties: dict, fields: dict[str, dict[str, Any]], path: str = "") -> None:
-        """Recursively extract field definitions from properties.
-
-        Args:
-            properties: Properties dictionary
-            fields: Dictionary to populate with field definitions
-            path: Current path for nested fields
-        """
-        for field_name, field_def in properties.items():
-            current_path = f"{path}.{field_name}" if path else field_name
-            value_source = field_def.get("valueSource")
-            
-            if value_source in ["fixed", "default"] and "value" in field_def:
-                fields[current_path] = {
-                    "name": field_name,
-                    "type": field_def.get("type", "string"),
-                    "valueSource": value_source,
-                    "value": field_def.get("value"),
-                    "repeatable": field_def.get("type") == "array"
-                }
-            
-            # Handle nested objects
-            if field_def.get("type") == "object":
-                nested_props = field_def.get("properties", {})
-                self._extract_properties_recursively(nested_props, fields, current_path)
-            # Handle arrays of objects
-            elif field_def.get("type") == "array":
-                items = field_def.get("items", {})
-                if items.get("type") == "object":
-                    nested_props = items.get("properties", {})
-                    self._extract_properties_recursively(nested_props, fields, current_path)
 
     def _apply_field_valuesource(self, item: dict[str, Any], field_path: str, field_info: dict[str, Any]) -> None:
         """Apply valueSource logic to a specific field path.
@@ -1242,6 +1156,7 @@ class Tool:
 
         # if all required slots are filled and verified, then execute the function
         if not missing_required:
+            log_context.info("all required slots filled")
             # Get all slot values, including optional ones that have values
             kwargs: dict[str, Any] = {}
             for slot in slots:
@@ -1438,6 +1353,9 @@ class Tool:
                             )  # Verification needed
                         else:
                             slot.verified = True
+                            log_context.info(
+                                f"Slot '{slot.name}' verified successfully"
+                            )
                     # if there is no extracted slots values, then should prompt the user to fill the slot
                     if not slot.value and slot.required:
                         return slot.prompt, False  # Missing slot

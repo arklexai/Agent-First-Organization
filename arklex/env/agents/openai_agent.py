@@ -10,6 +10,13 @@ from pydantic import BaseModel
 from arklex.env.agents.agent import BaseAgent, register_agent
 from arklex.env.prompts import load_prompts
 from arklex.env.tools.tools import TYPE_CONVERTERS
+from arklex.orchestrator.NLU.entities.slot_entities import (
+    convert_value_for_type,
+    extract_fields_from_properties,
+    find_fixed_default_fields_recursive,
+    apply_fields_to_item_recursive,
+    apply_values_recursively,
+)
 from arklex.orchestrator.entities.orchestrator_state_entities import (
     OrchestratorState,
 )
@@ -56,6 +63,8 @@ class OpenAIAgent(BaseAgent):
         self._load_tools(successors=successors, predecessors=predecessors, tools=tools)
         self._configure_tools()
 
+        log_context.info(f"OpenAIAgent initialized with {len(self.tool_defs)} tools.")
+
     def _load_tools(self, successors: list, predecessors: list, tools: dict) -> None:
         """
         Load tools for the agent.
@@ -71,6 +80,9 @@ class OpenAIAgent(BaseAgent):
                 node.resource.get("id") not in tools
                 and node.resource.get("id") != ToolItem.HTTP_TOOL
             ):
+                log_context.warning(
+                    f"Tool {node.resource.get('id')} not found for openai agent"
+                )
                 continue
 
             if node.resource.get("id") == ToolItem.HTTP_TOOL:
@@ -160,6 +172,7 @@ class OpenAIAgent(BaseAgent):
         if not ai_message.tool_calls:
             return
 
+        log_context.info("Processing tool calls.")
         for tool_call in ai_message.tool_calls:
             tool_name = tool_call.get("name")
             if tool_name in self.tool_map:
@@ -197,6 +210,8 @@ class OpenAIAgent(BaseAgent):
                         tool_call_id=tool_call_id,
                     ).model_dump()
                 )
+            else:
+                log_context.warning(f"Tool {tool_name} not found in tool map.")
 
     def _stream_response(
         self, state: OrchestratorState, final_chain: BaseChatModel
@@ -412,6 +427,8 @@ class OpenAIAgent(BaseAgent):
         final_chain = self.llm
         ai_message: AIMessage = final_chain.invoke(state.function_calling_trajectory)
 
+        log_context.info(f"Generated answer: {ai_message}")
+
         # Process tool calls first
         self._process_tool_calls(state, ai_message)
 
@@ -468,156 +485,4 @@ class OpenAIAgent(BaseAgent):
             return
             
         # Apply fixed/default values recursively to the slot value
-        self._apply_values_recursively(slot_value, slot_schema, slot.get("name"))
-    
-    def _apply_values_recursively(self, value: Any, schema: dict, slot_name: str) -> None:
-        """Recursively apply fixed/default values to nested structures.
-        
-        Args:
-            value: The value to process (can be dict, list, or primitive)
-            schema: The schema containing field definitions
-            slot_name: Name of the current slot for context
-        """
-        if isinstance(value, list):
-            # Handle arrays - apply to each item
-            for item in value:
-                self._apply_values_recursively(item, schema, slot_name)
-        elif isinstance(value, dict):
-            # Handle objects - find and apply fixed/default values
-            fixed_default_fields = self._find_fixed_default_fields_recursive(schema, slot_name)
-            self._apply_fields_to_item_recursive(value, fixed_default_fields, schema, slot_name)
-    
-    def _find_fixed_default_fields_recursive(self, schema: dict, slot_name: str) -> dict:
-        """Recursively find all fields with valueSource='fixed' or 'default' at any nesting level.
-        
-        Args:
-            schema: Slot schema dictionary
-            slot_name: Name of the slot
-            
-        Returns:
-            Dictionary mapping field paths to their values and types
-        """
-        fields = {}
-        
-        if isinstance(schema, dict) and "function" in schema:
-            function_block = schema.get("function", {})
-            parameters = function_block.get("parameters", {})
-            properties = parameters.get("properties", {})
-            slot_prop = properties.get(slot_name)
-            
-            if slot_prop:
-                # Handle array of objects
-                if slot_prop.get("type") == "array":
-                    items = slot_prop.get("items", {})
-                    if items.get("type") == "object":
-                        self._extract_fields_from_properties(items.get("properties", {}), fields)
-                # Handle single object
-                elif slot_prop.get("type") == "object":
-                    self._extract_fields_from_properties(slot_prop.get("properties", {}), fields)
-        
-        return fields
-    
-    def _extract_fields_from_properties(self, properties: dict, fields: dict, path: str = "") -> None:
-        """Extract fixed/default fields from properties, handling nested structures.
-        
-        Args:
-            properties: Properties dictionary from schema
-            fields: Dictionary to populate with field definitions
-            path: Current path for nested fields
-        """
-        for field_name, field_def in properties.items():
-            current_path = f"{path}.{field_name}" if path else field_name
-            value_source = field_def.get("valueSource")
-            
-            if value_source in ["fixed", "default"] and "value" in field_def:
-                fields[current_path] = {
-                    "value": field_def["value"],
-                    "type": field_def.get("type", "string"),
-                    "valueSource": value_source,
-                    "field_name": field_name
-                }
-            
-            # Handle nested objects and arrays
-            if field_def.get("type") == "object":
-                nested_props = field_def.get("properties", {})
-                self._extract_fields_from_properties(nested_props, fields, current_path)
-            elif field_def.get("type") == "array":
-                items = field_def.get("items", {})
-                if items.get("type") == "object":
-                    nested_props = items.get("properties", {})
-                    self._extract_fields_from_properties(nested_props, fields, current_path)
-    
-    def _apply_fields_to_item_recursive(self, item: dict, fields: dict, schema: dict, slot_name: str) -> None:
-        """Apply fixed/default fields to an item, handling nested structures.
-        
-        Args:
-            item: Dictionary to apply values to
-            fields: Dictionary of field definitions with values
-            schema: Schema for recursive processing
-            slot_name: Name of the slot for context
-        """
-        for field_path, field_info in fields.items():
-            # Split path to handle nested fields
-            path_parts = field_path.split('.')
-            current_obj = item
-            
-            # Navigate to the parent object of the target field
-            for part in path_parts[:-1]:
-                if part in current_obj:
-                    current_obj = current_obj[part]
-                else:
-                    # If path doesn't exist, skip this field
-                    break
-            else:
-                # We found the parent object, now apply the value
-                field_name = path_parts[-1]
-                value_source = field_info["valueSource"]
-                
-                if value_source == "fixed":
-                    # Always override with fixed value
-                    converted_value = self._convert_value_for_type(field_info["value"], field_info["type"])
-                    
-                    # Handle arrays - apply to each item in the array
-                    if isinstance(current_obj, list):
-                        for array_item in current_obj:
-                            if isinstance(array_item, dict) and field_name in array_item:
-                                array_item[field_name] = converted_value
-                    elif isinstance(current_obj, dict):
-                        current_obj[field_name] = converted_value
-                elif value_source == "default":
-                    # Apply default only if value is missing/empty/null
-                    converted_value = self._convert_value_for_type(field_info["value"], field_info["type"])
-                    
-                    # Handle arrays - apply to each item in the array
-                    if isinstance(current_obj, list):
-                        for array_item in current_obj:
-                            if isinstance(array_item, dict) and field_name in array_item:
-                                if array_item.get(field_name) in (None, "", False, "null"):
-                                    array_item[field_name] = converted_value
-                    elif isinstance(current_obj, dict) and current_obj.get(field_name) in (None, "", False, "null"):
-                        current_obj[field_name] = converted_value
-    
-    def _convert_value_for_type(self, value: Any, type_str: str) -> Any:
-        """Convert value to the specified type.
-        
-        Args:
-            value: Value to convert
-            type_str: Target type string
-            
-        Returns:
-            Converted value
-        """
-        type_mapping = {
-            "string": "str",
-            "integer": "int", 
-            "number": "float",
-            "boolean": "bool"
-        }
-        
-        internal_type = type_mapping.get(type_str, "str")
-        converter = TYPE_CONVERTERS.get(internal_type, lambda x: x)
-        
-        try:
-            return converter(value)
-        except Exception:
-            return value
+        apply_values_recursively(slot_value, slot_schema, slot.get("name"))

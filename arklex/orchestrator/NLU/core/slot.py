@@ -522,7 +522,7 @@ class SlotFiller(BaseSlotFilling):
         )
 
         # Get model response
-        response = self.model_service.get_response(prompt, model_config)
+        response = self.model_service.get_response(prompt)
         log_context.info(
             "Model response received",
             extra={
@@ -568,14 +568,14 @@ class SlotFiller(BaseSlotFilling):
     @handle_exceptions()
     def verify_slot(
         self,
-        slot: dict[str, Any],
+        slot: Slot | dict[str, Any],
         chat_history_str: str,
         model_config: dict[str, Any],
     ) -> tuple[bool, str]:
-        """Verify slot value.
+        """Verify slot value using local model.
 
         Args:
-            slot: Slot to verify
+            slot: Slot to verify (can be Slot object or dict)
             chat_history_str: Formatted chat history
             model_config: Model configuration
 
@@ -587,10 +587,13 @@ class SlotFiller(BaseSlotFilling):
             ValidationError: If input validation fails
             APIError: If API request fails
         """
+        # Handle both Slot objects and dictionaries
+        slot_name = slot.name if hasattr(slot, 'name') else slot.get('name', 'unknown')
+        
         log_context.info(
             "Starting slot verification",
             extra={
-                "slot": slot.name,
+                "slot": slot_name,
                 "mode": "local",
                 "operation": "slot_verification",
             },
@@ -615,7 +618,7 @@ class SlotFiller(BaseSlotFilling):
                 "Slot verification failed",
                 extra={
                     "error": str(e),
-                    "slot": slot.name,
+                    "slot": slot_name,
                     "operation": "slot_verification",
                 },
             )
