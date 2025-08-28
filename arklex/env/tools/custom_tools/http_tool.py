@@ -234,6 +234,8 @@ def http_tool(
                     }
             # Recursively replace placeholders in body
             params.body = replace_placeholders(params.body, slot_map)
+            # Recursively replace placeholders in params
+            params.params = replace_placeholders(params.params, slot_map)
 
         # Clean and validate JSON data to prevent parsing errors
         if params.body:
