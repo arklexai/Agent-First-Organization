@@ -619,9 +619,8 @@ class TaskGraph(TaskGraphBase):
                 # If the prediction is the same as the current global intent and the current node is not a leaf node, continue the current global intent
                 if pred_intent == params.taskgraph.curr_global_intent and (
                     len(list(self.graph.successors(curr_node))) != 0
-                    or params.taskgraph.node_status.get(
-                        curr_node, StatusEnum.INCOMPLETE
-                    )
+                    or params.taskgraph.node_status.get(curr_node, StatusEnum.COMPLETE)
+                    == StatusEnum.INCOMPLETE
                 ):
                     return False, pred_intent, {}, params
                 next_node: str
