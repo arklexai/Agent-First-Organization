@@ -91,14 +91,14 @@ class SlotFiller(BaseSlotFilling):
             },
         )
 
-    def _slots_to_openai_schema(self, slots: list[Slot]) -> tuple[dict[str, Any], dict]:
+    def _slots_to_openai_schema(self, slots: list[Slot]) -> dict[str, Any]:
         """Convert list of Slot objects to OpenAI JSON schema format using the new slot_schema structure.
         
         Args:
             slots: List of Slot objects to convert
             
         Returns:
-            Tuple of (OpenAI JSON schema dictionary, fixed values mapping)
+            OpenAI JSON schema dictionary
         """
         import copy
         
@@ -111,12 +111,11 @@ class SlotFiller(BaseSlotFilling):
             # Remove non-OpenAI standard fields from the schema
             self._remove_non_openai_fields(schema_copy)
             
-            return schema_copy, {}
+            return schema_copy
         
         # Fallback to the original method for multiple slots or slots without slot_schema
         properties = {}
         required = []
-        fixed_values = {}
         
         for slot in slots:
             # Use the to_openai_schema method from the Slot class
@@ -136,49 +135,7 @@ class SlotFiller(BaseSlotFilling):
             "type": "object",
             "properties": properties,
             "required": required
-        }, fixed_values
-    
-    def _extract_fixed_values(self, schema_obj: dict) -> dict:
-        """Extract fixed values from schema before removing them.
-        
-        Args:
-            schema_obj: Schema object to extract fixed values from
-            
-        Returns:
-            Dictionary mapping field paths to their fixed values and types
-        """
-        fixed_values = {}
-        
-        def extract_from_object(obj, path=""):
-            if isinstance(obj, dict):
-                # Check if this is a properties object
-                if "properties" in obj:
-                    for field_name, field_schema in obj["properties"].items():
-                        full_path = f"{path}.{field_name}" if path else field_name
-                        
-                        # Check if this field has a fixed value
-                        if field_schema.get("valueSource") == "fixed" and "value" in field_schema:
-                            fixed_values[full_path] = {
-                                "value": field_schema["value"],
-                                "type": field_schema.get("type", "string")
-                            }
-                        
-                        # Recursively check nested properties
-                        if isinstance(field_schema, dict) and "properties" in field_schema:
-                            extract_from_object(field_schema, full_path)
-                
-                # Check if this is an items object (for arrays)
-                elif "items" in obj and isinstance(obj["items"], dict):
-                    extract_from_object(obj["items"], path)
-                
-                # Recursively process all nested dictionaries
-                for key, value in obj.items():
-                    if isinstance(value, dict):
-                        new_path = f"{path}.{key}" if path else key
-                        extract_from_object(value, new_path)
-        
-        extract_from_object(schema_obj)
-        return fixed_values
+        }
 
     def _remove_non_openai_fields(self, schema_obj):
         """Recursively remove non-OpenAI standard fields from schema objects.
@@ -252,7 +209,7 @@ class SlotFiller(BaseSlotFilling):
         )
 
         # Generate OpenAI schema from slots
-        schema, fixed_values = self._slots_to_openai_schema(slots)
+        schema = self._slots_to_openai_schema(slots)
         log_context.info(
             "OpenAI schema generated",
             extra={
