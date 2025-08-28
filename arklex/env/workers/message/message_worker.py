@@ -13,6 +13,7 @@ from langchain.prompts import PromptTemplate
 from langchain_core.output_parsers import StrOutputParser
 
 from arklex.env.prompts import load_prompts
+from arklex.env.tools.utils import trace
 from arklex.env.workers.base.base_worker import BaseWorker
 from arklex.env.workers.message.entities import (
     MessageWorkerData,
@@ -103,6 +104,9 @@ class MessageWorker(BaseWorker):
         return answer
 
     def _execute(self) -> MessageWorkerOutput:
+        self.orch_state = trace(
+            input=self.msg_worker_data.message, source="message", state=self.orch_state
+        )
         if self.msg_worker_data.directed:
             return MessageWorkerOutput(
                 response=self.msg_worker_data.message,

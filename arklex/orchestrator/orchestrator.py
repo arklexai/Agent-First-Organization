@@ -94,13 +94,6 @@ from arklex.utils.utils import format_chat_history
 load_dotenv()
 log_context = LogContext(__name__)
 
-INFO_WORKERS: list[str] = [
-    "planner",
-    "MessageWorker",
-    "RagMsgWorker",
-    "HITLWorkerChatFlag",
-]
-
 
 class AgentOrgKwargs(TypedDict, total=False):
     """Keyword arguments for AgentOrg constructor."""
@@ -178,10 +171,6 @@ class AgentOrg:
             temperature=0.0,
         )
 
-        # Update planner model info now that LLMConfig is defined
-        # if self.env.planner:
-        #     self.env.planner.set_llm_config_and_build_resource_library(self.llm_config)
-        # Extra configuration settings
         self.settings = self.task_graph.product_kwargs.get("settings", {}) or {}
         # HITL settings
         self.hitl_worker_available = any(
