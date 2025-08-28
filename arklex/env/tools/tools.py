@@ -652,7 +652,7 @@ class Tool:
     def _apply_valuesource_to_group_items(
         self, slot: Slot, group_value: list[dict[str, Any]]
     ) -> list[dict[str, Any]]:
-        """Apply valueSource logic to each item in a group.
+        """Apply valueSource logic to each item in a group, handling nested structures.
 
         Args:
             slot: The group slot
@@ -662,27 +662,200 @@ class Tool:
             Updated group value with valueSource logic applied
         """
         for item in group_value:
-
-            for field in (slot.slot_schema if hasattr(slot, 'slot_schema') and isinstance(slot.slot_schema, list | tuple) else []):
-                field_name = field["name"]
-                field_repeatable = field.get("repeatable", False)
-                val_source = field.get("valueSource", "Prompt User")
-                field_type = field.get("type", "str")
-                schema_value = field.get("value", "")
-                if val_source == "fixed":
-                    item[field_name] = self._apply_fixed_valuesource(
-                        field_repeatable, field_type, schema_value
-                    )
-                elif val_source == "default":
-                    item[field_name] = self._apply_default_valuesource(
-                        item.get(field_name), field_repeatable, field_type, schema_value
-                    )
-                else:  # Prompt User or missing
-                    item[field_name] = self._apply_prompt_user_valuesource(
-                        item.get(field_name), field_repeatable, field_type
-                    )
-
+            # Process top-level fields
+            self._apply_valuesource_to_item_recursive(item, slot)
         return group_value
+
+    def _apply_valuesource_to_item_recursive(self, item: dict[str, Any], slot: Slot) -> None:
+        """Recursively apply valueSource logic to an item and its nested structures.
+
+        Args:
+            item: The item dictionary to process
+            slot: The group slot containing schema information
+        """
+        # Get field definitions from slot schema
+        fields = self._get_nested_field_definitions(slot)
+        
+        # Apply valueSource logic to each field path
+        for field_path, field_info in fields.items():
+            self._apply_field_valuesource(item, field_path, field_info)
+
+    def _get_nested_field_definitions(self, slot: Slot) -> dict[str, dict[str, Any]]:
+        """Extract all field definitions from slot schema, including nested ones.
+
+        Args:
+            slot: The group slot
+
+        Returns:
+            Dictionary mapping field paths to field definitions
+        """
+        fields = {}
+        
+        # Handle list-style schema
+        if hasattr(slot, 'slot_schema') and isinstance(slot.slot_schema, (list, tuple)):
+            for field in slot.slot_schema:
+                self._extract_nested_fields_from_definition(field, fields)
+        
+        # Handle OpenAI function-style schema
+        elif hasattr(slot, 'slot_schema') and isinstance(slot.slot_schema, dict):
+            self._extract_fields_from_openai_schema(slot.slot_schema, slot.name, fields)
+        
+        return fields
+
+    def _extract_nested_fields_from_definition(self, field_def: dict[str, Any], fields: dict[str, dict[str, Any]], path: str = "") -> None:
+        """Extract field definitions from a field definition, handling nested structures.
+
+        Args:
+            field_def: Field definition dictionary
+            fields: Dictionary to populate with field definitions
+            path: Current path for nested fields
+        """
+        field_name = field_def.get("name", "")
+        current_path = f"{path}.{field_name}" if path else field_name
+        
+        # Add current field if it has valueSource
+        value_source = field_def.get("valueSource")
+        if value_source in ["fixed", "default"] and "value" in field_def:
+            fields[current_path] = {
+                "name": field_name,
+                "type": field_def.get("type", "str"),
+                "valueSource": value_source,
+                "value": field_def.get("value"),
+                "repeatable": field_def.get("repeatable", False)
+            }
+        
+        # Handle nested objects and arrays
+        if field_def.get("type") == "group" and "schema" in field_def:
+            nested_schema = field_def["schema"]
+            if isinstance(nested_schema, (list, tuple)):
+                for nested_field in nested_schema:
+                    self._extract_nested_fields_from_definition(nested_field, fields, current_path)
+            elif isinstance(nested_schema, dict):
+                self._extract_fields_from_openai_schema(nested_schema, field_name, fields, current_path)
+
+    def _extract_fields_from_openai_schema(self, schema: dict, slot_name: str, fields: dict[str, dict[str, Any]], base_path: str = "") -> None:
+        """Extract field definitions from OpenAI function-style schema.
+
+        Args:
+            schema: OpenAI function schema dictionary
+            slot_name: Name of the slot
+            fields: Dictionary to populate with field definitions
+            base_path: Base path for nested fields
+        """
+        if "function" not in schema:
+            return
+            
+        function_block = schema.get("function", {})
+        parameters = function_block.get("parameters", {})
+        properties = parameters.get("properties", {})
+        slot_prop = properties.get(slot_name)
+        
+        if not slot_prop:
+            return
+            
+        # Handle array of objects
+        if slot_prop.get("type") == "array":
+            items = slot_prop.get("items", {})
+            if items.get("type") == "object":
+                self._extract_properties_recursively(items.get("properties", {}), fields, base_path)
+        # Handle single object
+        elif slot_prop.get("type") == "object":
+            self._extract_properties_recursively(slot_prop.get("properties", {}), fields, base_path)
+
+    def _extract_properties_recursively(self, properties: dict, fields: dict[str, dict[str, Any]], path: str = "") -> None:
+        """Recursively extract field definitions from properties.
+
+        Args:
+            properties: Properties dictionary
+            fields: Dictionary to populate with field definitions
+            path: Current path for nested fields
+        """
+        for field_name, field_def in properties.items():
+            current_path = f"{path}.{field_name}" if path else field_name
+            value_source = field_def.get("valueSource")
+            
+            if value_source in ["fixed", "default"] and "value" in field_def:
+                fields[current_path] = {
+                    "name": field_name,
+                    "type": field_def.get("type", "string"),
+                    "valueSource": value_source,
+                    "value": field_def.get("value"),
+                    "repeatable": field_def.get("type") == "array"
+                }
+            
+            # Handle nested objects
+            if field_def.get("type") == "object":
+                nested_props = field_def.get("properties", {})
+                self._extract_properties_recursively(nested_props, fields, current_path)
+            # Handle arrays of objects
+            elif field_def.get("type") == "array":
+                items = field_def.get("items", {})
+                if items.get("type") == "object":
+                    nested_props = items.get("properties", {})
+                    self._extract_properties_recursively(nested_props, fields, current_path)
+
+    def _apply_field_valuesource(self, item: dict[str, Any], field_path: str, field_info: dict[str, Any]) -> None:
+        """Apply valueSource logic to a specific field path.
+
+        Args:
+            item: The item dictionary
+            field_path: Path to the field (e.g., "deep.hello")
+            field_info: Field definition information
+        """
+        path_parts = field_path.split('.')
+        current_obj = item
+        
+        # Navigate to the parent object of the target field
+        for part in path_parts[:-1]:
+            if part in current_obj:
+                current_obj = current_obj[part]
+            else:
+                # If path doesn't exist, skip this field
+                return
+        
+        # Apply valueSource logic to the target field
+        field_name = path_parts[-1]
+        value_source = field_info["valueSource"]
+        field_type = field_info["type"]
+        schema_value = field_info["value"]
+        field_repeatable = field_info.get("repeatable", False)
+        
+        if value_source == "fixed":
+            # Handle arrays - apply to each item in the array
+            if isinstance(current_obj, list):
+                for array_item in current_obj:
+                    if isinstance(array_item, dict) and field_name in array_item:
+                        array_item[field_name] = self._apply_fixed_valuesource(
+                            field_repeatable, field_type, schema_value
+                        )
+            elif isinstance(current_obj, dict):
+                current_obj[field_name] = self._apply_fixed_valuesource(
+                    field_repeatable, field_type, schema_value
+                )
+        elif value_source == "default":
+            # Handle arrays - apply to each item in the array
+            if isinstance(current_obj, list):
+                for array_item in current_obj:
+                    if isinstance(array_item, dict) and field_name in array_item:
+                        array_item[field_name] = self._apply_default_valuesource(
+                            array_item.get(field_name), field_repeatable, field_type, schema_value
+                        )
+            elif isinstance(current_obj, dict):
+                current_obj[field_name] = self._apply_default_valuesource(
+                    current_obj.get(field_name), field_repeatable, field_type, schema_value
+                )
+        else:  # Prompt User or missing
+            # Handle arrays - apply to each item in the array
+            if isinstance(current_obj, list):
+                for array_item in current_obj:
+                    if isinstance(array_item, dict) and field_name in array_item:
+                        array_item[field_name] = self._apply_prompt_user_valuesource(
+                            array_item.get(field_name), field_repeatable, field_type
+                        )
+            elif isinstance(current_obj, dict):
+                current_obj[field_name] = self._apply_prompt_user_valuesource(
+                    current_obj.get(field_name), field_repeatable, field_type
+                )
 
     def _apply_fixed_valuesource(
         self, field_repeatable: bool, field_type: str, schema_value: object
@@ -791,28 +964,10 @@ class Tool:
                     or len(slot.value) == 0
                 ):
                     return True
-                # For each item, check required fields
-
+                # For each item, check required fields recursively
                 for item in (slot.value or []):
-                    for field in (slot.slot_schema if hasattr(slot, 'slot_schema') and isinstance(slot.slot_schema, list | tuple) else []):
-                        field_repeatable = field.get("repeatable", False)
-                        if field.get("required", False):
-                            if field_repeatable:
-                                # For repeatable fields, check if array exists and has values
-                                if (
-                                    field["name"] not in item
-                                    or not isinstance(item[field["name"]], list)
-                                    or len(item[field["name"]]) == 0
-                                ):
-                                    return True
-                                # Check each value in the array
-                                for val in item[field["name"]]:
-                                    if val in [None, ""]:
-                                        return True
-                            else:
-                                # For non-repeatable fields, check single value
-                                if item.get(field["name"]) in [None, ""]:
-                                    return True
+                    if self._check_item_missing_required_recursive(item, slot):
+                        return True
             else:
                 # Handle regular slots (non-group)
                 if getattr(slot, "repeatable", False):
@@ -834,6 +989,71 @@ class Tool:
                         return True
         return False
 
+    def _check_item_missing_required_recursive(self, item: dict[str, Any], slot: Slot) -> bool:
+        """Recursively check if an item is missing required fields at any nesting level.
+
+        Args:
+            item: The item dictionary to check
+            slot: The group slot containing schema information
+
+        Returns:
+            True if any required field is missing, False otherwise
+        """
+        # Get all field definitions including nested ones
+        fields = self._get_nested_field_definitions(slot)
+        
+        for field_path, field_info in fields.items():
+            if not field_info.get("required", False):
+                continue
+                
+            # Check if the field value is missing
+            if self._is_field_value_missing(item, field_path, field_info):
+                return True
+                
+        return False
+
+    def _is_field_value_missing(self, item: dict[str, Any], field_path: str, field_info: dict[str, Any]) -> bool:
+        """Check if a specific field value is missing.
+
+        Args:
+            item: The item dictionary
+            field_path: Path to the field (e.g., "deep.hello")
+            field_info: Field definition information
+
+        Returns:
+            True if the field value is missing, False otherwise
+        """
+        path_parts = field_path.split('.')
+        current_obj = item
+        
+        # Navigate to the parent object of the target field
+        for part in path_parts[:-1]:
+            if part not in current_obj:
+                return True  # Path doesn't exist
+            current_obj = current_obj[part]
+        
+        field_name = path_parts[-1]
+        field_repeatable = field_info.get("repeatable", False)
+        
+        if field_repeatable:
+            # For repeatable fields, check if array exists and has values
+            if (
+                field_name not in current_obj
+                or not isinstance(current_obj[field_name], list)
+                or len(current_obj[field_name]) == 0
+            ):
+                return True
+            # Check each value in the array
+            for val in current_obj[field_name]:
+                if val in [None, ""]:
+                    return True
+        else:
+            # For non-repeatable fields, check single value
+            if current_obj.get(field_name) in [None, ""]:
+                return True
+                
+        return False
+
     def _missing_slots_recursive(self, slots: list[Slot]) -> list[str]:
         missing = []
         for slot in slots:
@@ -845,11 +1065,8 @@ class Tool:
                 ):
                     missing.append(slot.prompt)
                 for idx, item in enumerate(slot.value or []):
-                    for field in (slot.slot_schema if hasattr(slot, 'slot_schema') and isinstance(slot.slot_schema, list | tuple) else []):
-                        if field.get("required", False) and (item.get(field["name"]) in [None, ""]):
-                            missing.append(f"{field.get('prompt', field['name'])} (group '{slot.name}' item {idx+1})")
-
-
+                    missing_fields = self._get_missing_fields_recursive(item, slot, idx)
+                    missing.extend(missing_fields)
             else:
                 # Handle regular slots (non-group)
                 if getattr(slot, "repeatable", False):
@@ -869,6 +1086,30 @@ class Tool:
                     if slot.required and (not slot.value or not slot.verified):
                         missing.append(slot.prompt)
         return missing
+
+    def _get_missing_fields_recursive(self, item: dict[str, Any], slot: Slot, item_idx: int) -> list[str]:
+        """Get list of missing required fields for an item at any nesting level.
+
+        Args:
+            item: The item dictionary to check
+            slot: The group slot containing schema information
+            item_idx: Index of the item for error messages
+
+        Returns:
+            List of missing field descriptions
+        """
+        missing_fields = []
+        fields = self._get_nested_field_definitions(slot)
+        
+        for field_path, field_info in fields.items():
+            if not field_info.get("required", False):
+                continue
+                
+            if self._is_field_value_missing(item, field_path, field_info):
+                field_prompt = field_info.get("prompt", field_info.get("name", field_path))
+                missing_fields.append(f"{field_prompt} (group '{slot.name}' item {item_idx + 1})")
+                
+        return missing_fields
 
     def execute(
         self,
@@ -1312,33 +1553,7 @@ class Tool:
             return slot.prompt
 
         for idx, item in enumerate(slot.value):
-            missing_fields = []
-            for field in (
-                slot.slot_schema 
-                if hasattr(slot, 'slot_schema') and isinstance(slot.slot_schema, list | tuple) 
-                else []
-            ):
-                field_repeatable = field.get("repeatable", False)
-                if field.get("required", False):
-                    if field_repeatable:
-                        # For repeatable fields, check if array exists and has values
-                        if (
-                            field["name"] not in item
-                            or not isinstance(item[field["name"]], list)
-                            or len(item[field["name"]]) == 0
-                        ):
-                            missing_fields.append(f"{field['name']} (repeatable)")
-                        else:
-                            # Check each value in the array
-                            for val_idx, val in enumerate(item[field["name"]]):
-                                if val in [None, ""]:
-                                    missing_fields.append(
-                                        f"{field['name']} (value {val_idx + 1})"
-                                    )
-                    else:
-                        # For non-repeatable fields, check single value
-                        if item.get(field["name"]) in [None, ""]:
-                            missing_fields.append(field["name"])
+            missing_fields = self._get_missing_fields_recursive(item, slot, idx)
             if missing_fields:
                 return f"Please provide the following fields for group '{slot.name}' item {idx + 1}: {', '.join(missing_fields)}."
 

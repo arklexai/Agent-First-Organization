@@ -526,7 +526,7 @@ class OpenAIAgent(BaseAgent):
             return self.generate_response(self.orch_state, stream=False)
 
     def _apply_fixed_default_values(self, slot: dict) -> None:
-        """Apply fixed and default values from slot_schema to slot values.
+        """Apply fixed and default values from slot_schema to slot values recursively.
         
         Args:
             slot: Slot dictionary with slot_schema and value
@@ -537,20 +537,28 @@ class OpenAIAgent(BaseAgent):
         if not slot_schema or not slot_value:
             return
             
-        # Find all fixed/default fields recursively
-        fixed_default_fields = self._find_fixed_default_fields(slot_schema, slot.get("name"))
-        
-        # Apply to slot value
-        if isinstance(slot_value, list):
-            # Repeatable group - apply to each item
-            for item in slot_value:
-                self._apply_fields_to_item(item, fixed_default_fields)
-        elif isinstance(slot_value, dict):
-            # Non-repeatable group - apply to single object
-            self._apply_fields_to_item(slot_value, fixed_default_fields)
+        # Apply fixed/default values recursively to the slot value
+        self._apply_values_recursively(slot_value, slot_schema, slot.get("name"))
     
-    def _find_fixed_default_fields(self, schema: dict, slot_name: str) -> dict:
-        """Recursively find all fields with valueSource='fixed' or 'default'.
+    def _apply_values_recursively(self, value: Any, schema: dict, slot_name: str) -> None:
+        """Recursively apply fixed/default values to nested structures.
+        
+        Args:
+            value: The value to process (can be dict, list, or primitive)
+            schema: The schema containing field definitions
+            slot_name: Name of the current slot for context
+        """
+        if isinstance(value, list):
+            # Handle arrays - apply to each item
+            for item in value:
+                self._apply_values_recursively(item, schema, slot_name)
+        elif isinstance(value, dict):
+            # Handle objects - find and apply fixed/default values
+            fixed_default_fields = self._find_fixed_default_fields_recursive(schema, slot_name)
+            self._apply_fields_to_item_recursive(value, fixed_default_fields, schema, slot_name)
+    
+    def _find_fixed_default_fields_recursive(self, schema: dict, slot_name: str) -> dict:
+        """Recursively find all fields with valueSource='fixed' or 'default' at any nesting level.
         
         Args:
             schema: Slot schema dictionary
@@ -568,63 +576,154 @@ class OpenAIAgent(BaseAgent):
             slot_prop = properties.get(slot_name)
             
             if slot_prop:
-                items = slot_prop.get("items", {}) if slot_prop.get("type") == "array" else slot_prop
-                if items.get("type") == "object":
-                    inner_props = items.get("properties", {})
-                    for field_name, field_def in inner_props.items():
-                        value_source = field_def.get("valueSource")
-                        if value_source in ["fixed", "default"] and "value" in field_def:
-                            fields[field_name] = {
-                                "value": field_def["value"],
-                                "type": field_def.get("type", "string"),
-                                "valueSource": value_source
-                            }
+                # Handle array of objects
+                if slot_prop.get("type") == "array":
+                    items = slot_prop.get("items", {})
+                    if items.get("type") == "object":
+                        self._extract_fields_from_properties(items.get("properties", {}), fields)
+                # Handle single object
+                elif slot_prop.get("type") == "object":
+                    self._extract_fields_from_properties(slot_prop.get("properties", {}), fields)
         
         return fields
     
-    def _apply_fields_to_item(self, item: dict, fields: dict) -> None:
-        """Apply fixed/default fields to an item.
+    def _extract_fields_from_properties(self, properties: dict, fields: dict, path: str = "") -> None:
+        """Extract fixed/default fields from properties, handling nested structures.
+        
+        Args:
+            properties: Properties dictionary from schema
+            fields: Dictionary to populate with field definitions
+            path: Current path for nested fields
+        """
+        for field_name, field_def in properties.items():
+            current_path = f"{path}.{field_name}" if path else field_name
+            value_source = field_def.get("valueSource")
+            
+            if value_source in ["fixed", "default"] and "value" in field_def:
+                fields[current_path] = {
+                    "value": field_def["value"],
+                    "type": field_def.get("type", "string"),
+                    "valueSource": value_source,
+                    "field_name": field_name
+                }
+            
+            # Handle nested objects and arrays
+            if field_def.get("type") == "object":
+                nested_props = field_def.get("properties", {})
+                self._extract_fields_from_properties(nested_props, fields, current_path)
+            elif field_def.get("type") == "array":
+                items = field_def.get("items", {})
+                if items.get("type") == "object":
+                    nested_props = items.get("properties", {})
+                    self._extract_fields_from_properties(nested_props, fields, current_path)
+    
+    def _apply_fields_to_item_recursive(self, item: dict, fields: dict, schema: dict, slot_name: str) -> None:
+        """Apply fixed/default fields to an item, handling nested structures.
         
         Args:
             item: Dictionary to apply values to
             fields: Dictionary of field definitions with values
+            schema: Schema for recursive processing
+            slot_name: Name of the slot for context
         """
-        for field_name, field_info in fields.items():
-            value_source = field_info["valueSource"]
+        for field_path, field_info in fields.items():
+            # Split path to handle nested fields
+            path_parts = field_path.split('.')
+            current_obj = item
             
-            if value_source == "fixed":
-                # Always override with fixed value
-                converted_value = TYPE_CONVERTERS.get({
-                    "string": "str",
-                    "integer": "int", 
-                    "number": "float",
-                    "boolean": "bool"
-                }.get(field_info["type"], "str"), lambda x: x)(field_info["value"])
-                item[field_name] = converted_value
-                log_context.info(
-                    f"Applied fixed value '{field_name}': {field_info['value']} -> {converted_value}",
-                    extra={
-                        "field_name": field_name,
-                        "original_value": field_info["value"],
-                        "converted_value": converted_value,
-                        "operation": "http_tool_fixed_value_application",
-                    },
-                )
-            elif value_source == "default" and item.get(field_name) in (None, "", False, "null"):
-                # Apply default only if value is missing/empty/null
-                converted_value = TYPE_CONVERTERS.get({
-                    "string": "str",
-                    "integer": "int", 
-                    "number": "float",
-                    "boolean": "bool"
-                }.get(field_info["type"], "str"), lambda x: x)(field_info["value"])
-                item[field_name] = converted_value
-                log_context.info(
-                    f"Applied default value '{field_name}': {field_info['value']} -> {converted_value}",
-                    extra={
-                        "field_name": field_name,
-                        "original_value": field_info["value"],
-                        "converted_value": converted_value,
-                        "operation": "http_tool_default_value_application",
-                    },
-                )
+            # Navigate to the parent object of the target field
+            for part in path_parts[:-1]:
+                if part in current_obj:
+                    current_obj = current_obj[part]
+                else:
+                    # If path doesn't exist, skip this field
+                    break
+            else:
+                # We found the parent object, now apply the value
+                field_name = path_parts[-1]
+                value_source = field_info["valueSource"]
+                
+                if value_source == "fixed":
+                    # Always override with fixed value
+                    converted_value = self._convert_value_for_type(field_info["value"], field_info["type"])
+                    
+                    # Handle arrays - apply to each item in the array
+                    if isinstance(current_obj, list):
+                        for array_item in current_obj:
+                            if isinstance(array_item, dict) and field_name in array_item:
+                                array_item[field_name] = converted_value
+                                log_context.info(
+                                    f"Applied fixed value '{field_path}' to array item: {field_info['value']} -> {converted_value}",
+                                    extra={
+                                        "field_path": field_path,
+                                        "original_value": field_info["value"],
+                                        "converted_value": converted_value,
+                                        "operation": "http_tool_fixed_value_application",
+                                    },
+                                )
+                    elif isinstance(current_obj, dict):
+                        current_obj[field_name] = converted_value
+                        log_context.info(
+                            f"Applied fixed value '{field_path}': {field_info['value']} -> {converted_value}",
+                            extra={
+                                "field_path": field_path,
+                                "original_value": field_info["value"],
+                                "converted_value": converted_value,
+                                "operation": "http_tool_fixed_value_application",
+                            },
+                        )
+                elif value_source == "default":
+                    # Apply default only if value is missing/empty/null
+                    converted_value = self._convert_value_for_type(field_info["value"], field_info["type"])
+                    
+                    # Handle arrays - apply to each item in the array
+                    if isinstance(current_obj, list):
+                        for array_item in current_obj:
+                            if isinstance(array_item, dict) and field_name in array_item:
+                                if array_item.get(field_name) in (None, "", False, "null"):
+                                    array_item[field_name] = converted_value
+                                    log_context.info(
+                                        f"Applied default value '{field_path}' to array item: {field_info['value']} -> {converted_value}",
+                                        extra={
+                                            "field_path": field_path,
+                                            "original_value": field_info["value"],
+                                            "converted_value": converted_value,
+                                            "operation": "http_tool_default_value_application",
+                                        },
+                                    )
+                    elif isinstance(current_obj, dict) and current_obj.get(field_name) in (None, "", False, "null"):
+                        current_obj[field_name] = converted_value
+                        log_context.info(
+                            f"Applied default value '{field_path}': {field_info['value']} -> {converted_value}",
+                            extra={
+                                "field_path": field_path,
+                                "original_value": field_info["value"],
+                                "converted_value": converted_value,
+                                "operation": "http_tool_default_value_application",
+                            },
+                        )
+    
+    def _convert_value_for_type(self, value: Any, type_str: str) -> Any:
+        """Convert value to the specified type.
+        
+        Args:
+            value: Value to convert
+            type_str: Target type string
+            
+        Returns:
+            Converted value
+        """
+        type_mapping = {
+            "string": "str",
+            "integer": "int", 
+            "number": "float",
+            "boolean": "bool"
+        }
+        
+        internal_type = type_mapping.get(type_str, "str")
+        converter = TYPE_CONVERTERS.get(internal_type, lambda x: x)
+        
+        try:
+            return converter(value)
+        except Exception:
+            return value
