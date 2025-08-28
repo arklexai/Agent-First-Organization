@@ -133,39 +133,7 @@ class Tool:
             slots=[i.model_dump() for i in self.slots],
         )
 
-    def _format_slots(self, slots: list[dict[str, Any]]) -> list[dict[str, Any]]:
-        """Format slots for OpenAI tool definition.
-        
-        Args:
-            slots: List of slot definitions
-            
-        Returns:
-            List of formatted slot definitions for OpenAI
-        """
-        formatted_slots = []
-        for slot in slots:
-            formatted_slot = {
-                "name": slot["name"],
-                "type": slot["type"],
-                "description": slot.get("description", ""),
-                "required": slot.get("required", False),
-            }
-            
-            # Handle enum values
-            if "enum" in slot:
-                formatted_slot["enum"] = slot["enum"]
-                
-            # Handle items for array types
-            if "items" in slot:
-                formatted_slot["items"] = slot["items"]
-                
-            # Handle group schema
-            if slot.get("type") == "group" and "schema" in slot:
-                formatted_slot["slot_schema"] = slot["schema"]
-                
-            formatted_slots.append(formatted_slot)
-            
-        return formatted_slots
+
 
     def get_info(self, slots: list[dict[str, Any]]) -> dict[str, Any]:
         """Get tool information including parameters and requirements.
@@ -233,7 +201,6 @@ class Tool:
             state (MessageState): The current message state.
         """
         default_slots: list[Slot] = all_slots.get("default_slots", [])
-        log_context.info(f"Default slots are: {default_slots}")
         if not default_slots:
             return
         response: dict[str, Any] = self.init_default_slots(default_slots)
@@ -245,8 +212,6 @@ class Tool:
                 "content": json.dumps(response),
             }
         )
-
-        log_context.info(f"Slots after initialization are: {self.slots}")
 
     def load_slots(self, slots: list[dict[str, Any]]) -> None:
         """Load and merge slots with existing slots.
@@ -565,15 +530,9 @@ class Tool:
         """
         # If the value is a string, try to parse as JSON
         if isinstance(group_value, str):
-            log_context.debug(
-                f"Attempting to parse group_value as JSON for slot '{slot.name}': {group_value}"
-            )
             try:
                 group_value = json.loads(group_value)
             except Exception as e:
-                log_context.error(
-                    f"Failed to parse group_value as JSON for slot '{slot.name}': {group_value}. Error: {e}"
-                )
                 raise ValueError(
                     f"Slot group '{slot.name}' did not return a valid JSON list of objects: {group_value}"
                 ) from e
@@ -585,19 +544,10 @@ class Tool:
         ):
             # Handle case where group_value is None or not a list
             if group_value is None:
-                log_context.warning(
-                    f"Slot group '{slot.name}' returned None, converting to empty list"
-                )
                 group_value = []
             elif isinstance(group_value, dict):
-                log_context.warning(
-                    f"Slot group '{slot.name}' returned a single dict, converting to list"
-                )
                 group_value = [group_value]
             else:
-                log_context.error(
-                    f"Slot group '{slot.name}' returned invalid format: {type(group_value)} - {group_value}"
-                )
                 raise ValueError(
                     f"Slot group '{slot.name}' must be a list of dicts, got: {group_value}"
                 )
@@ -626,9 +576,6 @@ class Tool:
                 try:
                     slot_value = json.loads(slot_value)
                 except Exception as e:
-                    log_context.error(
-                        f"Failed to parse repeatable slot '{slot.name}' as JSON: {slot_value}. Error: {e}"
-                    )
                     raise ValueError(
                         f"Repeatable slot '{slot.name}' did not return a valid JSON array: {slot_value}"
                     ) from e
@@ -637,14 +584,8 @@ class Tool:
                 slot_value = [slot_value]
         if not isinstance(slot_value, list):
             if slot_value is None:
-                log_context.warning(
-                    f"Repeatable slot '{slot.name}' returned None, converting to empty list"
-                )
                 slot_value = []
             else:
-                log_context.warning(
-                    f"Repeatable slot '{slot.name}' returned single value, converting to list"
-                )
                 slot_value = [slot_value]
 
         return slot_value
@@ -664,6 +605,7 @@ class Tool:
         for item in group_value:
             # Process top-level fields
             self._apply_valuesource_to_item_recursive(item, slot)
+        
         return group_value
 
     def _apply_valuesource_to_item_recursive(self, item: dict[str, Any], slot: Slot) -> None:
@@ -821,29 +763,37 @@ class Tool:
         field_repeatable = field_info.get("repeatable", False)
         
         if value_source == "fixed":
+            # Convert value based on type
+            if field_type == "boolean":
+                converted_value = schema_value.lower() == "true" if isinstance(schema_value, str) else bool(schema_value)
+            elif field_type == "integer":
+                converted_value = int(schema_value)
+            elif field_type == "number":
+                converted_value = float(schema_value)
+            else:
+                converted_value = str(schema_value)
+            
             # Handle arrays - apply to each item in the array
             if isinstance(current_obj, list):
                 for array_item in current_obj:
                     if isinstance(array_item, dict) and field_name in array_item:
-                        array_item[field_name] = self._apply_fixed_valuesource(
-                            field_repeatable, field_type, schema_value
-                        )
+                        array_item[field_name] = converted_value
             elif isinstance(current_obj, dict):
-                current_obj[field_name] = self._apply_fixed_valuesource(
-                    field_repeatable, field_type, schema_value
-                )
+                current_obj[field_name] = converted_value
         elif value_source == "default":
             # Handle arrays - apply to each item in the array
             if isinstance(current_obj, list):
                 for array_item in current_obj:
                     if isinstance(array_item, dict) and field_name in array_item:
-                        array_item[field_name] = self._apply_default_valuesource(
-                            array_item.get(field_name), field_repeatable, field_type, schema_value
-                        )
+                        if array_item.get(field_name) in (None, "", False, "null"):
+                            array_item[field_name] = self._apply_default_valuesource(
+                                array_item.get(field_name), field_repeatable, field_type, schema_value
+                            )
             elif isinstance(current_obj, dict):
-                current_obj[field_name] = self._apply_default_valuesource(
-                    current_obj.get(field_name), field_repeatable, field_type, schema_value
-                )
+                if current_obj.get(field_name) in (None, "", False, "null"):
+                    current_obj[field_name] = self._apply_default_valuesource(
+                        current_obj.get(field_name), field_repeatable, field_type, schema_value
+                    )
         else:  # Prompt User or missing
             # Handle arrays - apply to each item in the array
             if isinstance(current_obj, list):
@@ -857,27 +807,7 @@ class Tool:
                     current_obj.get(field_name), field_repeatable, field_type
                 )
 
-    def _apply_fixed_valuesource(
-        self, field_repeatable: bool, field_type: str, schema_value: object
-    ) -> object:
-        """Apply fixed valueSource logic.
 
-        Args:
-            field_repeatable: Whether the field is repeatable
-            field_type: The field type
-            schema_value: The schema value
-
-        Returns:
-            Processed value
-        """
-        if field_repeatable:
-            # For repeatable fields, ensure it's an array
-            if isinstance(schema_value, list):
-                return [self._convert_value(val, field_type) for val in schema_value]
-            else:
-                return [self._convert_value(schema_value, field_type)]
-        else:
-            return self._convert_value(schema_value, field_type)
 
     def _apply_default_valuesource(
         self,
@@ -910,10 +840,8 @@ class Tool:
                 return [self._convert_value(val, field_type) for val in current_value]
         else:
             if current_value in [None, ""]:
-                log_context.info("Current value is None/empty, using schema_value")
                 return self._convert_value(schema_value, field_type)
             else:
-                log_context.info("Current value exists, converting it")
                 return self._convert_value(current_value, field_type)
 
     def _apply_prompt_user_valuesource(
@@ -1296,7 +1224,6 @@ class Tool:
         # do slotfilling (now with valueSource logic)
         chat_history_str: str = format_chat_history(state.function_calling_trajectory)
         slots: list[Slot] = self._fill_slots_recursive(self.slots, chat_history_str)
-        log_context.info(f"{slots=}")
 
         # Check if any required slots are missing or unverified (including groups)
         missing_required = self._is_missing_required(slots)
@@ -1315,7 +1242,6 @@ class Tool:
 
         # if all required slots are filled and verified, then execute the function
         if not missing_required:
-            log_context.info("all required slots filled")
             # Get all slot values, including optional ones that have values
             kwargs: dict[str, Any] = {}
             for slot in slots:
@@ -1365,7 +1291,6 @@ class Tool:
             except Exception as e:
                 log_context.error(traceback.format_exc())
                 tool_output.message_flow = str(e)
-            log_context.info(f"Tool {self.name} output: {tool_output}")
             call_id: str = str(uuid.uuid4())
             state.function_calling_trajectory.append(
                 {
@@ -1414,12 +1339,8 @@ class Tool:
         if tool_output.status == StatusEnum.INCOMPLETE:
             # Tool execution failed
             if slot_verification:
-                log_context.info("Tool execution INCOMPLETE due to slot verification")
                 tool_output.message_flow = f"Context from {self.name} tool execution: {str(tool_output.message_flow)}\n Focus on the '{reason}' to generate the verification request in response please and make sure the request appear in the response."
             else:
-                log_context.info(
-                    "Tool execution INCOMPLETE due to tool execution failure"
-                )
                 # Make it clear that the LLM should ask the user for missing information
                 missing_slots = self._missing_slots_recursive(slots)
                 if missing_slots:
@@ -1463,20 +1384,7 @@ class Tool:
             f"Return an empty array [] if no values are found."
         )
 
-    def _ensure_repeatable_field_value(
-        self, value: object, field_type: str
-    ) -> list[object]:
-        """
-        Ensures that the value for a repeatable field is always a list of the correct type.
-        If value is None or empty, returns [].
-        If value is already a list, converts each element to the correct type.
-        Otherwise, wraps the value in a list and converts it to the correct type.
-        """
-        if value is None or value == "":
-            return []
-        if isinstance(value, list):
-            return [self._convert_value(v, field_type) for v in value]
-        return [self._convert_value(value, field_type)]
+
 
     def _handle_missing_required_slots(
         self, slots: list[Slot], chat_history_str: str
@@ -1530,9 +1438,6 @@ class Tool:
                             )  # Verification needed
                         else:
                             slot.verified = True
-                            log_context.info(
-                                f"Slot '{slot.name}' verified successfully"
-                            )
                     # if there is no extracted slots values, then should prompt the user to fill the slot
                     if not slot.value and slot.required:
                         return slot.prompt, False  # Missing slot
@@ -1559,54 +1464,4 @@ class Tool:
 
         return ""
 
-    def _iter_group_fields(self, slot: Slot) -> list[dict[str, Any]]:
-        """Return inner field definitions for a group slot from either list-style or OpenAI function-style schema."""
-        # If already list or tuple of fields
-        if hasattr(slot, "schema") and isinstance(slot.schema, (list, tuple)):
-            return list(slot.schema)
-        # If OpenAI function-style schema dict
-        if hasattr(slot, "schema") and isinstance(slot.schema, dict):
-            try:
-                function_block = slot.schema.get("function", {})
-                parameters = function_block.get("parameters", {})
-                properties = parameters.get("properties", {})
-                group_prop = properties.get(slot.name)
-                if not group_prop:
-                    return []
-                # For array of objects, inner spec is under items
-                items = group_prop.get("items", {}) if group_prop.get("type") == "array" else group_prop
-                if items.get("type") != "object":
-                    return []
-                inner_props = items.get("properties", {})
-                required_fields = set(items.get("required", []))
-                fields: list[dict[str, Any]] = []
-                for field_name, field_def in inner_props.items():
-                    json_type = field_def.get("type", "string")
-                    if json_type == "array":
-                        item_type = (field_def.get("items", {}) or {}).get("type", "string")
-                        repeatable = True
-                    else:
-                        item_type = json_type
-                        repeatable = False
-                    internal_type = {
-                        "string": "str",
-                        "integer": "int",
-                        "number": "float",
-                        "boolean": "bool",
-                    }.get(item_type, "str")
-                    field_entry: dict[str, Any] = {
-                        "name": field_name,
-                        "type": internal_type,
-                        "description": field_def.get("description", ""),
-                        "prompt": field_def.get("prompt", ""),
-                        "required": field_name in required_fields,
-                        "repeatable": repeatable,
-                        "valueSource": field_def.get("valueSource"),
-                    }
-                    if "value" in field_def:
-                        field_entry["value"] = field_def.get("value")
-                    fields.append(field_entry)
-                return fields
-            except Exception:
-                return []
-        return []
+

@@ -56,8 +56,6 @@ class OpenAIAgent(BaseAgent):
         self._load_tools(successors=successors, predecessors=predecessors, tools=tools)
         self._configure_tools()
 
-        log_context.info(f"OpenAIAgent initialized with {len(self.tool_defs)} tools.")
-
     def _load_tools(self, successors: list, predecessors: list, tools: dict) -> None:
         """
         Load tools for the agent.
@@ -73,9 +71,6 @@ class OpenAIAgent(BaseAgent):
                 node.resource.get("id") not in tools
                 and node.resource.get("id") != ToolItem.HTTP_TOOL
             ):
-                log_context.warning(
-                    f"Tool {node.resource.get('id')} not found for openai agent"
-                )
                 continue
 
             if node.resource.get("id") == ToolItem.HTTP_TOOL:
@@ -94,9 +89,6 @@ class OpenAIAgent(BaseAgent):
         """
         for tool_id, tool in self.available_tools.items():
             tool_object = tool["tool_instance"]
-            log_context.info(
-                f"Configuring tool: {tool_object.func.__name__} with slots: {tool_object.slots}"
-            )
             tool_def = tool_object.to_openai_tool_def_v2()
             
             # Sanitize tool name for OpenAI (only allow alphanumeric, underscore, hyphen)
@@ -113,7 +105,6 @@ class OpenAIAgent(BaseAgent):
                 "node_specific_data": tool_object.node_specific_data,
             }
             self.tool_args[sanitized_tool_id] = combined_args
-        log_context.info(f"Tool Definitions: {self.tool_defs}")
 
     def init_agent_data(
         self, orch_state: OrchestratorState, node_specific_data: dict[str, Any]
@@ -158,7 +149,6 @@ class OpenAIAgent(BaseAgent):
             message.get("content") == input_prompt
             for message in state.function_calling_trajectory
         ):
-            log_context.info("Adding input prompt to the function calling trajectory.")
             state.function_calling_trajectory.append(
                 SystemMessage(content=input_prompt).model_dump()
             )
@@ -170,7 +160,6 @@ class OpenAIAgent(BaseAgent):
         if not ai_message.tool_calls:
             return
 
-        log_context.info("Processing tool calls.")
         for tool_call in ai_message.tool_calls:
             tool_name = tool_call.get("name")
             if tool_name in self.tool_map:
@@ -208,8 +197,6 @@ class OpenAIAgent(BaseAgent):
                         tool_call_id=tool_call_id,
                     ).model_dump()
                 )
-            else:
-                log_context.warning(f"Tool {tool_name} not found in tool map.")
 
     def _stream_response(
         self, state: OrchestratorState, final_chain: BaseChatModel
@@ -324,30 +311,10 @@ class OpenAIAgent(BaseAgent):
                         fixed_value = f.get("value")
                         converted_value = TYPE_CONVERTERS.get(f.get("type", "str"), lambda x: x)(fixed_value)
                         obj[name] = converted_value
-                        log_context.info(
-                            f"Applied fixed value for field '{name}': {fixed_value} -> {converted_value}",
-                            extra={
-                                "field_name": name,
-                                "original_value": fixed_value,
-                                "converted_value": converted_value,
-                                "field_type": f.get("type"),
-                                "operation": "http_tool_fixed_value_application",
-                            },
-                        )
                     elif vs == "default" and "value" in f and (obj.get(name) in (None, "")):
                         default_value = f.get("value")
                         converted_value = TYPE_CONVERTERS.get(f.get("type", "str"), lambda x: x)(default_value)
                         obj[name] = converted_value
-                        log_context.info(
-                            f"Applied default value for field '{name}': {default_value} -> {converted_value}",
-                            extra={
-                                "field_name": name,
-                                "original_value": default_value,
-                                "converted_value": converted_value,
-                                "field_type": f.get("type"),
-                                "operation": "http_tool_default_value_application",
-                            },
-                        )
                 return obj
 
             result = []
@@ -359,14 +326,6 @@ class OpenAIAgent(BaseAgent):
 
                 if slot_type == "group":
                     fields = iter_group_fields(slot)
-                    log_context.info(
-                        f"Parsed fields for group slot '{name}': {fields}",
-                        extra={
-                            "slot_name": name,
-                            "parsed_fields": fields,
-                            "operation": "http_tool_group_parsing",
-                        },
-                    )
                     if slot.get("repeatable", False):
                         group_values = tool_args.get(name, [])
                         if (
@@ -386,14 +345,6 @@ class OpenAIAgent(BaseAgent):
                         slot_value = flatten_group_items(slot_value)
                         # Reapply fixed/default at the group field level to override any user-provided values
                         slot_value = [reapply_group_fixed_default(fields, item) for item in slot_value]
-                        log_context.info(
-                            f"Final slot_value for repeatable group '{name}': {slot_value}",
-                            extra={
-                                "slot_name": name,
-                                "final_slot_value": slot_value,
-                                "operation": "http_tool_group_assembly",
-                            },
-                        )
                     else:
                         group_value = tool_args.get(name, {})
                         if (
@@ -410,14 +361,6 @@ class OpenAIAgent(BaseAgent):
                             for slot_dict in slot_list
                         }
                         slot_value = reapply_group_fixed_default(fields, slot_value)
-                        log_context.info(
-                            f"Final slot_value for non-repeatable group '{name}': {slot_value}",
-                            extra={
-                                "slot_name": name,
-                                "final_slot_value": slot_value,
-                                "operation": "http_tool_group_assembly",
-                            },
-                        )
                 else:
                     if value_source == "fixed":
                         slot_value = slot.get("value", "")
@@ -463,24 +406,11 @@ class OpenAIAgent(BaseAgent):
         self, state: OrchestratorState, stream: bool = False, is_speech: bool = False
     ) -> tuple[OrchestratorState, OpenAIAgentOutput]:
         """Unified response generation method with optional streaming."""
-        generation_type = (
-            "speech streaming"
-            if is_speech and stream
-            else "streaming"
-            if stream
-            else "standard"
-        )
-        log_context.info(f"\nGenerating {generation_type} response using the agent.")
-
         input_prompt = self._prepare_prompt(state, is_speech)
         self._add_prompt_to_trajectory(state, input_prompt)
 
-        log_context.info(f"\nagent messages: {state.function_calling_trajectory}")
-
         final_chain = self.llm
         ai_message: AIMessage = final_chain.invoke(state.function_calling_trajectory)
-
-        log_context.info(f"Generated answer: {ai_message}")
 
         # Process tool calls first
         self._process_tool_calls(state, ai_message)
@@ -652,26 +582,8 @@ class OpenAIAgent(BaseAgent):
                         for array_item in current_obj:
                             if isinstance(array_item, dict) and field_name in array_item:
                                 array_item[field_name] = converted_value
-                                log_context.info(
-                                    f"Applied fixed value '{field_path}' to array item: {field_info['value']} -> {converted_value}",
-                                    extra={
-                                        "field_path": field_path,
-                                        "original_value": field_info["value"],
-                                        "converted_value": converted_value,
-                                        "operation": "http_tool_fixed_value_application",
-                                    },
-                                )
                     elif isinstance(current_obj, dict):
                         current_obj[field_name] = converted_value
-                        log_context.info(
-                            f"Applied fixed value '{field_path}': {field_info['value']} -> {converted_value}",
-                            extra={
-                                "field_path": field_path,
-                                "original_value": field_info["value"],
-                                "converted_value": converted_value,
-                                "operation": "http_tool_fixed_value_application",
-                            },
-                        )
                 elif value_source == "default":
                     # Apply default only if value is missing/empty/null
                     converted_value = self._convert_value_for_type(field_info["value"], field_info["type"])
@@ -682,26 +594,8 @@ class OpenAIAgent(BaseAgent):
                             if isinstance(array_item, dict) and field_name in array_item:
                                 if array_item.get(field_name) in (None, "", False, "null"):
                                     array_item[field_name] = converted_value
-                                    log_context.info(
-                                        f"Applied default value '{field_path}' to array item: {field_info['value']} -> {converted_value}",
-                                        extra={
-                                            "field_path": field_path,
-                                            "original_value": field_info["value"],
-                                            "converted_value": converted_value,
-                                            "operation": "http_tool_default_value_application",
-                                        },
-                                    )
                     elif isinstance(current_obj, dict) and current_obj.get(field_name) in (None, "", False, "null"):
                         current_obj[field_name] = converted_value
-                        log_context.info(
-                            f"Applied default value '{field_path}': {field_info['value']} -> {converted_value}",
-                            extra={
-                                "field_path": field_path,
-                                "original_value": field_info["value"],
-                                "converted_value": converted_value,
-                                "operation": "http_tool_default_value_application",
-                            },
-                        )
     
     def _convert_value_for_type(self, value: Any, type_str: str) -> Any:
         """Convert value to the specified type.

@@ -377,27 +377,8 @@ class SlotFiller(BaseSlotFilling):
             items_schema = array_schema.get("items", {})
             properties = items_schema.get("properties", {})
             
-            # Apply fixed values directly to each field
-            updated_item = item.copy()
-            for field_name, field_schema in properties.items():
-                # Check if this field has a fixed value (direct access, no path navigation)
-                if field_schema.get("valueSource") == "fixed" and "value" in field_schema:
-                    # Convert and apply the fixed value
-                    fixed_value = self._convert_value_to_type(
-                        field_schema["value"], 
-                        field_schema.get("type", "string")
-                    )
-                    updated_item[field_name] = fixed_value
-                    log_context.info(
-                        f"Applied fixed value to field {field_name}",
-                        extra={
-                            "field_name": field_name,
-                            "fixed_value": fixed_value,
-                            "original_value": field_schema["value"],
-                            "type": field_schema.get("type", "string"),
-                            "operation": "slot_filling_evaluation",
-                        },
-                    )
+            # Apply fixed values recursively to the item
+            updated_item = self._apply_fixed_values_recursive(item, properties)
             
             return updated_item
             
@@ -411,6 +392,62 @@ class SlotFiller(BaseSlotFilling):
                 },
             )
             return item
+    
+    def _apply_fixed_values_recursive(self, item: dict, properties: dict, path: str = "") -> dict:
+        """Recursively apply fixed values to an item and its nested structures.
+        
+        Args:
+            item: Dictionary item to update
+            properties: Properties schema containing field definitions
+            path: Current path for nested fields
+            
+        Returns:
+            Updated item with fixed values applied
+        """
+        updated_item = item.copy()
+        
+        for field_name, field_schema in properties.items():
+            current_path = f"{path}.{field_name}" if path else field_name
+            
+            # Check if this field has a fixed value
+            if field_schema.get("valueSource") == "fixed" and "value" in field_schema:
+                # Convert and apply the fixed value
+                fixed_value = self._convert_value_to_type(
+                    field_schema["value"], 
+                    field_schema.get("type", "string")
+                )
+                updated_item[field_name] = fixed_value
+                log_context.info(
+                    f"Applied fixed value to field {current_path}",
+                    extra={
+                        "field_path": current_path,
+                        "fixed_value": fixed_value,
+                        "original_value": field_schema["value"],
+                        "type": field_schema.get("type", "string"),
+                        "operation": "slot_filling_evaluation",
+                    },
+                )
+            
+            # Handle nested objects
+            elif field_schema.get("type") == "object" and field_name in updated_item:
+                nested_props = field_schema.get("properties", {})
+                if nested_props and isinstance(updated_item[field_name], dict):
+                    updated_item[field_name] = self._apply_fixed_values_recursive(
+                        updated_item[field_name], nested_props, current_path
+                    )
+            
+            # Handle arrays of objects
+            elif field_schema.get("type") == "array" and field_name in updated_item:
+                items_schema = field_schema.get("items", {})
+                if items_schema.get("type") == "object" and isinstance(updated_item[field_name], list):
+                    nested_props = items_schema.get("properties", {})
+                    if nested_props:
+                        updated_item[field_name] = [
+                            self._apply_fixed_values_recursive(item, nested_props, current_path)
+                            for item in updated_item[field_name]
+                        ]
+        
+        return updated_item
     
     def _convert_value_to_type(self, value: Any, target_type: str) -> Any:
         """Convert a value to the specified type.
