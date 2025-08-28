@@ -8,21 +8,23 @@ from arklex.env.prompts import load_prompts
 from arklex.memory.entities.memory_entities import ResourceRecord
 from arklex.orchestrator.entities.orchestrator_param_entities import OrchestratorParams
 from arklex.orchestrator.entities.orchestrator_state_entities import OrchestratorState
+from arklex.types.resource_types import WorkerItem
 from arklex.utils.logging_utils import LogContext
 from arklex.utils.provider_utils import validate_and_get_model_class
 
 log_context = LogContext(__name__)
 
 RAG_NODES_STEPS = {
-    "FaissRAGWorker": "faiss_retrieve",
-    "milvus_rag_worker": "milvus_retrieve",
-    "rag_message_worker": "milvus_retrieve",
+    WorkerItem.MESSAGE_WORKER.value: "message",
+    WorkerItem.FAISS_RAG_WORKER.value: "faiss_retrieve",
+    WorkerItem.MILVUS_RAG_WORKER.value: "milvus_retrieve",
+    WorkerItem.RAG_MESSAGE_WORKER.value: "milvus_retrieve",
 }
 
 RAG_CONFIDENCE_THRESHOLD = {
-    "FaissRAGWorker": 0.35,
-    "milvus_rag_worker": 70.0,
-    "rag_message_worker": 70.0,
+    WorkerItem.FAISS_RAG_WORKER.value: 0.35,
+    WorkerItem.MILVUS_RAG_WORKER.value: 70.0,
+    WorkerItem.RAG_MESSAGE_WORKER.value: 70.0,
 }
 
 TRIGGER_LIVE_CHAT_PROMPT = "Sorry, I'm not certain about the answer, would you like to connect to a human assistant?"
@@ -79,7 +81,9 @@ def _build_context(sys_instruct: str, trajectory: list[list[ResourceRecord]]) ->
         for resource in resource_group:
             if _include_resource(resource):
                 context_links.update(_extract_links(resource.output))
-            rag_step_type = RAG_NODES_STEPS.get(resource.info.get("id"))
+            rag_step_type = RAG_NODES_STEPS.get(
+                resource.info.get("resource", {}).get("id")
+            )
             if rag_step_type:
                 for step in resource.steps:
                     try:
