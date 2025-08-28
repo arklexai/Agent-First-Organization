@@ -101,6 +101,9 @@ class OpenAIAgent(BaseAgent):
         """
         for tool_id, tool in self.available_tools.items():
             tool_object = tool["tool_instance"]
+            log_context.info(
+                f"Configuring tool: {tool_object.func.__name__} with slots: {tool_object.slots}"
+            )
             tool_def = tool_object.to_openai_tool_def_v2()
             
             # Sanitize tool name for OpenAI (only allow alphanumeric, underscore, hyphen)
@@ -117,6 +120,7 @@ class OpenAIAgent(BaseAgent):
                 "node_specific_data": tool_object.node_specific_data,
             }
             self.tool_args[sanitized_tool_id] = combined_args
+            log_context.info(f"Tool Definitions: {self.tool_defs}")
 
     def init_agent_data(
         self, orch_state: OrchestratorState, node_specific_data: dict[str, Any]
@@ -161,6 +165,7 @@ class OpenAIAgent(BaseAgent):
             message.get("content") == input_prompt
             for message in state.function_calling_trajectory
         ):
+            log_context.info("Adding input prompt to the function calling trajectory.")
             state.function_calling_trajectory.append(
                 SystemMessage(content=input_prompt).model_dump()
             )
@@ -421,9 +426,18 @@ class OpenAIAgent(BaseAgent):
         self, state: OrchestratorState, stream: bool = False, is_speech: bool = False
     ) -> tuple[OrchestratorState, OpenAIAgentOutput]:
         """Unified response generation method with optional streaming."""
+        generation_type = (
+            "speech streaming"
+            if is_speech and stream
+            else "streaming"
+            if stream
+            else "standard"
+        )
+        log_context.info(f"\nGenerating {generation_type} response using the agent.")
         input_prompt = self._prepare_prompt(state, is_speech)
         self._add_prompt_to_trajectory(state, input_prompt)
 
+        log_context.info(f"\nagent messages: {state.function_calling_trajectory}")
         final_chain = self.llm
         ai_message: AIMessage = final_chain.invoke(state.function_calling_trajectory)
 

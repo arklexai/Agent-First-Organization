@@ -535,9 +535,15 @@ class Tool:
         """
         # If the value is a string, try to parse as JSON
         if isinstance(group_value, str):
+            log_context.debug(
+                f"Attempting to parse group_value as JSON for slot '{slot.name}': {group_value}"
+            )
             try:
                 group_value = json.loads(group_value)
             except Exception as e:
+                log_context.error(
+                    f"Failed to parse group_value as JSON for slot '{slot.name}': {group_value}. Error: {e}"
+                )
                 raise ValueError(
                     f"Slot group '{slot.name}' did not return a valid JSON list of objects: {group_value}"
                 ) from e
@@ -549,10 +555,19 @@ class Tool:
         ):
             # Handle case where group_value is None or not a list
             if group_value is None:
+                log_context.warning(
+                    f"Slot group '{slot.name}' returned None, converting to empty list"
+                )
                 group_value = []
             elif isinstance(group_value, dict):
+                log_context.warning(
+                    f"Slot group '{slot.name}' returned a single dict, converting to list"
+                )
                 group_value = [group_value]
             else:
+                log_context.error(
+                    f"Slot group '{slot.name}' returned invalid format: {type(group_value)} - {group_value}"
+                )
                 raise ValueError(
                     f"Slot group '{slot.name}' must be a list of dicts, got: {group_value}"
                 )
@@ -581,6 +596,9 @@ class Tool:
                 try:
                     slot_value = json.loads(slot_value)
                 except Exception as e:
+                    log_context.error(
+                        f"Failed to parse repeatable slot '{slot.name}' as JSON: {slot_value}. Error: {e}"
+                    )
                     raise ValueError(
                         f"Repeatable slot '{slot.name}' did not return a valid JSON array: {slot_value}"
                     ) from e
@@ -589,8 +607,14 @@ class Tool:
                 slot_value = [slot_value]
         if not isinstance(slot_value, list):
             if slot_value is None:
+                log_context.warning(
+                    f"Repeatable slot '{slot.name}' returned None, converting to empty list"
+                )
                 slot_value = []
             else:
+                log_context.warning(
+                    f"Repeatable slot '{slot.name}' returned single value, converting to list"
+                )
                 slot_value = [slot_value]
 
         return slot_value
@@ -1138,7 +1162,7 @@ class Tool:
         # do slotfilling (now with valueSource logic)
         chat_history_str: str = format_chat_history(state.function_calling_trajectory)
         slots: list[Slot] = self._fill_slots_recursive(self.slots, chat_history_str)
-
+        log_context.info(f"slots: {slots}")
         # Check if any required slots are missing or unverified (including groups)
         missing_required = self._is_missing_required(slots)
         if missing_required:
@@ -1207,6 +1231,7 @@ class Tool:
                 log_context.error(traceback.format_exc())
                 tool_output.message_flow = str(e)
             call_id: str = str(uuid.uuid4())
+            log_context.info(f"call_id: {call_id}")
             state.function_calling_trajectory.append(
                 {
                     "content": None,
@@ -1254,9 +1279,13 @@ class Tool:
         if tool_output.status == StatusEnum.INCOMPLETE:
             # Tool execution failed
             if slot_verification:
+                log_context.info("Tool execution INCOMPLETE due to slot verification")
                 tool_output.message_flow = f"Context from {self.name} tool execution: {str(tool_output.message_flow)}\n Focus on the '{reason}' to generate the verification request in response please and make sure the request appear in the response."
             else:
                 # Make it clear that the LLM should ask the user for missing information
+                log_context.info(
+                    "Tool execution INCOMPLETE due to tool execution failure"
+                )
                 missing_slots = self._missing_slots_recursive(slots)
                 if missing_slots:
                     questions_text = " ".join(missing_slots)
