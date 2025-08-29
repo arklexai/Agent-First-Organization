@@ -10,16 +10,12 @@ from pydantic import BaseModel
 from arklex.env.agents.agent import BaseAgent, register_agent
 from arklex.env.prompts import load_prompts
 from arklex.env.tools.tools import TYPE_CONVERTERS
-<<<<<<< HEAD
 from arklex.orchestrator.entities.orchestrator_state_entities import (
     OrchestratorState,
 )
 from arklex.orchestrator.NLU.entities.slot_entities import (
     apply_values_recursively,
 )
-=======
-from arklex.orchestrator.entities.orchestrator_state_entities import OrchestratorState
->>>>>>> main
 from arklex.types.resource_types import ToolItem
 from arklex.types.stream_types import EventType, StreamType
 from arklex.utils.logging_utils import LogContext
