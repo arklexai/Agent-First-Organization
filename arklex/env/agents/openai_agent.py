@@ -11,10 +11,6 @@ from arklex.env.agents.agent import BaseAgent, register_agent
 from arklex.env.prompts import load_prompts
 from arklex.env.tools.tools import TYPE_CONVERTERS
 from arklex.orchestrator.NLU.entities.slot_entities import (
-    convert_value_for_type,
-    extract_fields_from_properties,
-    find_fixed_default_fields_recursive,
-    apply_fields_to_item_recursive,
     apply_values_recursively,
 )
 from arklex.orchestrator.entities.orchestrator_state_entities import (
@@ -272,71 +268,6 @@ class OpenAIAgent(BaseAgent):
                         result.append(item)
                 return result
 
-            def iter_group_fields(slot_def: dict[str, Any]) -> list[dict[str, Any]]:
-                # Expect new OpenAI-style slot_schema only
-                slot_schema = slot_def.get("slot_schema")
-                if isinstance(slot_schema, (list, tuple)):
-                    return list(slot_schema)
-                if not isinstance(slot_schema, dict) or "function" not in slot_schema:
-                    return []
-                try:
-                    function_block = slot_schema.get("function", {})
-                    parameters = function_block.get("parameters", {})
-                    properties = parameters.get("properties", {})
-                    group_prop = properties.get(slot_def.get("name"))
-                    if not group_prop:
-                        return []
-                    items = group_prop.get("items", {}) if group_prop.get("type") == "array" else group_prop
-                    if items.get("type") != "object":
-                        return []
-                    inner_props = items.get("properties", {})
-                    required_fields = set(items.get("required", []))
-                    fields: list[dict[str, Any]] = []
-                    for field_name, field_def in inner_props.items():
-                        json_type = field_def.get("type", "string")
-                        if json_type == "array":
-                            item_type = (field_def.get("items", {}) or {}).get("type", "string")
-                            repeatable = True
-                        else:
-                            item_type = json_type
-                            repeatable = False
-                        internal_type = {
-                            "string": "str",
-                            "integer": "int",
-                            "number": "float",
-                            "boolean": "bool",
-                        }.get(item_type, "str")
-                        field_entry: dict[str, Any] = {
-                            "name": field_name,
-                            "type": internal_type,
-                            "description": field_def.get("description", ""),
-                            "prompt": field_def.get("prompt", ""),
-                            "required": field_name in required_fields,
-                            "repeatable": repeatable,
-                            "valueSource": field_def.get("valueSource"),
-                        }
-                        if "value" in field_def:
-                            field_entry["value"] = field_def.get("value")
-                        fields.append(field_entry)
-                    return fields
-                except Exception:
-                    return []
-
-            def reapply_group_fixed_default(fields: list[dict[str, Any]], obj: dict[str, Any]) -> dict[str, Any]:
-                # Ensure fixed overrides; default applies only if missing
-                for f in fields:
-                    name = f.get("name")
-                    vs = f.get("valueSource")
-                    if vs == "fixed" and "value" in f:
-                        fixed_value = f.get("value")
-                        converted_value = TYPE_CONVERTERS.get(f.get("type", "str"), lambda x: x)(fixed_value)
-                        obj[name] = converted_value
-                    elif vs == "default" and "value" in f and (obj.get(name) in (None, "")):
-                        default_value = f.get("value")
-                        converted_value = TYPE_CONVERTERS.get(f.get("type", "str"), lambda x: x)(default_value)
-                        obj[name] = converted_value
-                return obj
-
             result = []
             for slot in schema:
                 name = slot["name"]
@@ -344,51 +275,13 @@ class OpenAIAgent(BaseAgent):
                 value_source = slot.get("valueSource", "prompt")
                 slot_value = None
 
-                if slot_type == "group":
-                    fields = iter_group_fields(slot)
-                    if slot.get("repeatable", False):
-                        group_values = tool_args.get(name, [])
-                        if (
-                            not group_values
-                            and value_source == "default"
-                            or not group_values
-                            and value_source == "fixed"
-                        ):
-                            group_values = [slot.get("value", "")]
-                        # TODO: temporary fix for slot group values (should be list of dicts instead of dict)
-                        if isinstance(group_values, dict):
-                            group_values = [group_values]
-                        slot_value = [
-                            build_slot_values(fields, item)
-                            for item in group_values
-                        ]
-                        slot_value = flatten_group_items(slot_value)
-                        # Reapply fixed/default at the group field level to override any user-provided values
-                        slot_value = [reapply_group_fixed_default(fields, item) for item in slot_value]
-                    else:
-                        group_value = tool_args.get(name, {})
-                        if (
-                            not group_value
-                            and value_source == "default"
-                            or not group_value
-                            and value_source == "fixed"
-                        ):
-                            group_value = slot.get("value", "")
-                        slot_list = build_slot_values(fields, group_value)
-                        # Convert list of slot dicts to single object for non-repeatable groups
-                        slot_value = {
-                            slot_dict["name"]: slot_dict["value"]
-                            for slot_dict in slot_list
-                        }
-                        slot_value = reapply_group_fixed_default(fields, slot_value)
-                else:
-                    if value_source == "fixed":
-                        slot_value = slot.get("value", "")
-                    elif value_source == "default":
-                        slot_value = tool_args.get(name, slot.get("value", ""))
-                    else:  # prompt or anything else
-                        slot_value = tool_args.get(name, "")
-                    slot_value = type_convert(slot_value, slot_type)
+                if value_source == "fixed":
+                    slot_value = slot.get("value", "")
+                elif value_source == "default":
+                    slot_value = tool_args.get(name, slot.get("value", ""))
+                else:  # prompt or anything else
+                    slot_value = tool_args.get(name, "")
+                slot_value = type_convert(slot_value, slot_type)
 
                 slot_dict = slot.copy()
                 slot_dict["value"] = slot_value

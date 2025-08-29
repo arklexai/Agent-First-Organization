@@ -106,16 +106,7 @@ def extract_nested_fields_from_definition(field_def: Dict[str, Any], fields: Dic
             "repeatable": field_def.get("repeatable", False)
         }
     
-    # Handle nested objects and arrays
-    if field_def.get("type") == "group" and "schema" in field_def:
-        nested_schema = field_def["schema"]
-        if isinstance(nested_schema, (list, tuple)):
-            for nested_field in nested_schema:
-                extract_nested_fields_from_definition(nested_field, fields, current_path)
-        elif isinstance(nested_schema, dict):
-            extract_fields_from_openai_schema(nested_schema, field_name, fields, current_path)
-
-
+    
 def extract_fields_from_openai_schema(schema: Dict, slot_name: str, fields: Dict[str, Dict[str, Any]], base_path: str = "") -> None:
     """Extract field definitions from OpenAI function-style schema.
 
@@ -364,28 +355,6 @@ class Slot(BaseModel):
                 # Fall back to synthesizing schema if extraction fails
                 pass
 
-        def _build_group_schema() -> dict:
-            """Build schema for group type fields."""
-            properties = {}
-            required = []
-            for field in self.slot_schema or []:
-                field_slot = field if isinstance(field, Slot) else Slot(**field)
-                field_property = field_slot.to_openai_schema()
-                # Include the property even if it's fixed; consumer logic can choose to ignore
-                if field_property is None:
-                    # None only when cannot be represented; skip
-                    continue
-                properties[field_slot.name] = field_property
-                if getattr(field_slot, "required", False):
-                    required.append(field_slot.name)
-
-            return {
-                "type": "object",
-                "properties": properties,
-                "required": required,
-                "description": getattr(self, "description", ""),
-            }
-
         def _build_primitive_schema() -> dict:
             """Build schema for primitive type fields."""
             type_map = _get_type_map()
@@ -406,32 +375,12 @@ class Slot(BaseModel):
 
         # Handle repeatable fields
         if getattr(self, "repeatable", False):
-            if self.type == "group":
-                # For repeatable group, each item is an object with the group's schema
-                # If self.schema already encodes a full array property, return it directly
-                if isinstance(self.schema, dict) and "function" in self.schema:
-                    extracted = self.to_openai_schema()  # attempt extraction again
-                    if extracted is not None:
-                        return extracted
-                return {
-                    "type": "array",
-                    "items": _build_group_schema(),
-                    "description": getattr(self, "description", ""),
-                }
-            else:
-                # For repeatable primitive types, define the item type
-                return {
-                    "type": "array",
-                    "items": _build_primitive_schema(),
-                    "description": getattr(self, "description", ""),
-                }
-        elif self.type == "group":
-            # Non-repeatable group returns the object schema
-            if isinstance(self.schema, dict) and "function" in self.schema:
-                extracted = self.to_openai_schema()  # attempt extraction again
-                if extracted is not None:
-                    return extracted
-            return _build_group_schema()
+            # For repeatable primitive types, define the item type
+            return {
+                "type": "array",
+                "items": _build_primitive_schema(),
+                "description": getattr(self, "description", ""),
+            }
         else:
             # Primitive type
             return _build_primitive_schema()

@@ -411,18 +411,7 @@ class OpenAIRealtimeAgent(BaseAgent):
         for slot in tool.slots:
             if slot.name in tool_args:
                 slot.value = tool_args[slot.name]
-            if slot.type == "group":
-                for schema_obj in slot.slot_schema:
-                    if schema_obj.get("valueSource", "") == "fixed":
-                        for filled_ob in tool_args[slot.name]:
-                            if schema_obj.get("type") == "bool":
-                                filled_ob[schema_obj.get("name")] = (
-                                    schema_obj.get("value", "").lower() == "true"
-                                )
-                            else:
-                                filled_ob[schema_obj.get("name")] = schema_obj.get(
-                                    "value"
-                                )
+
 
         if tool.func.__name__ == "http_tool":
             kwargs = {"slots": tool.slots}
