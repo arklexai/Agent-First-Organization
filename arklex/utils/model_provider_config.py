@@ -77,6 +77,19 @@ class DummyLLM:
             content = "Thank you for using our service. Goodbye!"
         return Response()
 
+    def __or__(self, other):
+        # Create a simple chain that returns a mock response
+        class DummyChain:
+            def __init__(self, llm, parser):
+                self.llm = llm
+                self.parser = parser
+            
+            def invoke(self, input_text):
+                # Return a simple response
+                return "test response"
+        
+        return DummyChain(self, other)
+
 
 # List of supported language model providers
 LLM_PROVIDERS: list[str] = [
