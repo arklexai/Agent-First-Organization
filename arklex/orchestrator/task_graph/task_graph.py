@@ -57,14 +57,11 @@ from arklex.env.env import DefaultResourceInitializer
 from arklex.env.nested_graph.nested_graph import NestedGraph
 from arklex.orchestrator.entities.orchestrator_param_entities import OrchestratorParams
 from arklex.orchestrator.entities.orchestrator_state_entities import (
-    LLMConfig,
     StatusEnum,
 )
 from arklex.orchestrator.entities.taskgraph_entities import NodeInfo, PathNode
 from arklex.orchestrator.NLU.core.intent import IntentDetector
-from arklex.orchestrator.NLU.core.slot import SlotFiller
 from arklex.orchestrator.NLU.services.model_service import (
-    DummyModelService,
     ModelService,
 )
 from arklex.types.resource_types import AgentItem, ResourceType, ToolItem
@@ -254,9 +251,7 @@ class TaskGraph(TaskGraphBase):
     Attributes:
         unsure_intent (Dict[str, Any]): Default intent for unknown inputs
         initial_node (Optional[str]): Initial node for conversation flow
-        llm_config (LLMConfig): Configuration for language model
         intent_detector (IntentDetector): Intent detection API
-        slotfillapi (SlotFiller): Slot filling API
 
     Methods:
         create_graph(): Creates the conversation graph
@@ -280,17 +275,13 @@ class TaskGraph(TaskGraphBase):
         self,
         name: str,
         product_kwargs: dict[str, Any],
-        llm_config: LLMConfig,
-        slotfillapi: str = "",
-        model_service: ModelService | None = None,
+        model_service: ModelService,
     ) -> None:
         """Initialize the task graph.
 
         Args:
             name: Name of the task graph
             product_kwargs: Configuration settings for the graph
-            llm_config: Configuration for language model
-            slotfillapi: API endpoint for slot filling
             model_service: Model service for intent detection (required)
         """
         super().__init__(name, product_kwargs)
@@ -306,24 +297,7 @@ class TaskGraph(TaskGraphBase):
             },
         }
         self.initial_node: str | None = self.get_initial_flow()
-        self.llm_config: LLMConfig = llm_config
-        if model_service is None:
-            raise ValueError(
-                "model_service is required for TaskGraph and cannot be None."
-            )
         self.intent_detector: IntentDetector = IntentDetector(model_service)
-        # Ensure slotfillapi is a valid model service for SlotFiller
-        if isinstance(slotfillapi, str) or not slotfillapi:
-            dummy_config = {
-                "model_name": "dummy",
-                "api_key": "dummy",
-                "endpoint": "http://dummy",
-                "model_type_or_path": "dummy-path",
-                "llm_provider": "dummy",
-            }
-            self.slotfillapi: SlotFiller = SlotFiller(DummyModelService(dummy_config))
-        else:
-            self.slotfillapi: SlotFiller = SlotFiller(slotfillapi)
 
     def get_initial_flow(self) -> str | None:
         services_nodes: dict[str, str] | None = self.product_kwargs.get(
@@ -359,17 +333,6 @@ class TaskGraph(TaskGraphBase):
 
     def _build_neighbor_node_info(self, node_id: str) -> NodeInfo:
         n = self.graph.nodes[node_id]
-        # Detect if node is 'openai_sdk_agent' and get predecessors(i.e. tools) if true
-        # TODO: From multi-agent PR
-        # include_predecessors = n["resource"]["id"] == "openai_sdk_agent"
-        # predecessors = (
-        #     [
-        #         self._build_neighbor_node_info(succ)
-        #         for succ in self.graph.predecessors(node_id)
-        #     ]
-        #     if include_predecessors
-        #     else []
-        # )
         return NodeInfo(
             node_id=node_id,
             resource=n["resource"],
@@ -635,10 +598,8 @@ class TaskGraph(TaskGraphBase):
             )
 
             pred_intent = self.intent_detector.execute(
-                self.text,
                 candidate_intents,
                 self.chat_history_str,
-                self.llm_config.model_dump(),
             )
             params.taskgraph.nlu_records.append(
                 {
@@ -656,12 +617,9 @@ class TaskGraph(TaskGraphBase):
             # if found prediction and prediction is not unsure intent and current intent
             if found_pred_in_avil and pred_intent != self.unsure_intent.get("intent"):
                 # If the prediction is the same as the current global intent and the current node is not a leaf node, continue the current global intent
-                if (
-                    pred_intent == params.taskgraph.curr_global_intent
-                    and len(list(self.graph.successors(curr_node))) != 0
-                    and params.taskgraph.node_status.get(
-                        curr_node, StatusEnum.INCOMPLETE
-                    )
+                if pred_intent == params.taskgraph.curr_global_intent and (
+                    len(list(self.graph.successors(curr_node))) != 0
+                    or params.taskgraph.node_status.get(curr_node, StatusEnum.COMPLETE)
                     == StatusEnum.INCOMPLETE
                 ):
                     return False, pred_intent, {}, params
@@ -759,10 +717,8 @@ class TaskGraph(TaskGraphBase):
             return False, pred_intent, params
 
         pred_intent: str = self.intent_detector.execute(
-            self.text,
             curr_local_intents_w_unsure,
             self.chat_history_str,
-            self.llm_config.model_dump(),
         )
         params.taskgraph.nlu_records.append(
             {
@@ -1018,12 +974,6 @@ class TaskGraph(TaskGraphBase):
         Raises:
             TaskGraphError: If node is invalid
         """
-        if not isinstance(node, dict):
-            log_context.error(
-                "Node must be a dictionary",
-                extra={"node": node},
-            )
-            raise TaskGraphError("Node must be a dictionary")
 
         if "id" not in node:
             log_context.error(

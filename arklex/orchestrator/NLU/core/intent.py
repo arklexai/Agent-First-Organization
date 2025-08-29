@@ -14,12 +14,13 @@ The module includes:
 from typing import Any
 
 from arklex.orchestrator.NLU.core.base import BaseNLU
-from arklex.orchestrator.NLU.services.api_service import APIClientService
 from arklex.orchestrator.NLU.services.model_service import ModelService
-from arklex.utils.exceptions import APIError, ArklexError, ValidationError
 from arklex.utils.logging_utils import LogContext
 
 log_context = LogContext(__name__)
+
+
+DEFAULT_INTENT_NAME = "others"
 
 
 class IntentDetector(BaseNLU):
@@ -38,66 +39,200 @@ class IntentDetector(BaseNLU):
 
     Attributes:
         model_service: Service for local model-based intent detection
-        api_service: Optional service for remote API-based intent detection
     """
 
     def __init__(
         self,
         model_service: ModelService,
-        api_service: APIClientService | None = None,
     ) -> None:
         """Initialize the intent detector.
 
         Args:
             model_service: Service for local model-based intent detection
-            api_service: Optional service for remote API-based intent detection
 
         Raises:
             ValidationError: If model_service is not provided
         """
-        if not model_service:
-            log_context.error(
-                "Model service is required",
-                extra={"operation": "initialization"},
-            )
-            raise ValidationError(
-                "Model service is required",
-                details={
-                    "service": "IntentDetector",
-                    "operation": "initialization",
-                },
-            )
         self.model_service = model_service
-        self.api_service = api_service
-        if not api_service:
-            log_context.warning(
-                "Using local model-based intent detection",
-                extra={"operation": "initialization"},
-            )
-        log_context.info(
-            "IntentDetector initialized successfully",
-            extra={
-                "mode": "remote" if api_service else "local",
-                "operation": "initialization",
-            },
-        )
 
-    def _detect_intent_local(
+    def _format_intent_input(
+        self, intents: dict[str, list[dict[str, Any]]], chat_history_str: str
+    ) -> tuple[str, dict[str, str]]:
+        """Format input for intent detection.
+
+        Creates a formatted prompt for intent detection based on the
+        provided intents and chat history. Also generates a mapping
+        from indices to intent names.
+
+        Args:
+            intents: Dictionary of intents containing:
+                - intent_name: List of intent definitions
+                - attribute: Intent attributes (definition, sample_utterances)
+            chat_history_str: Formatted chat history
+
+        Returns:
+            Tuple containing:
+                - formatted_prompt: Formatted prompt for intent detection
+                - idx2intents_mapping: Mapping from indices to intent names
+        """
+        definition_str = ""
+        exemplars_str = ""
+        intents_choice = ""
+        idx2intents_mapping: dict[str, str] = {}
+        count = 1
+
+        for intent_k, intent_v in intents.items():
+            def_str, ex_str, choice_str, new_count = self._process_intent(
+                intent_k, intent_v, count, idx2intents_mapping
+            )
+            definition_str += def_str
+            exemplars_str += ex_str
+            intents_choice += choice_str
+            count = new_count
+
+        prompt = f"""Given the following intents and their definitions, determine the most appropriate intent for the user's last input.
+
+Intent Definitions:
+{definition_str}
+
+Sample Utterances:
+{exemplars_str}
+
+Available Intents:
+{intents_choice}
+
+Chat History:
+{chat_history_str}
+
+Please choose the most appropriate intent by providing the corresponding intent number and intent name in the format of 'intent_number) intent_name'."""
+
+        return prompt, idx2intents_mapping
+
+    def _process_intent(
         self,
-        intents: dict[str, list[dict[str, Any]]],
-        chat_history_str: str,
-        model_config: dict[str, Any],
+        intent_k: str,
+        intent_v: list[dict[str, Any]],
+        count: int,
+        idx2intents_mapping: dict[str, str],
+    ) -> tuple[str, str, str, int]:
+        """Process a single intent and its variations.
+
+        Args:
+            intent_k: Intent key/name
+            intent_v: List of intent definitions
+            count: Current count for numbering
+            idx2intents_mapping: Mapping of indices to intent names
+
+        Returns:
+            Tuple containing:
+                - definition_str: Formatted definitions
+                - exemplars_str: Formatted exemplars
+                - intents_choice: Formatted choices
+                - new_count: Updated count
+        """
+        definition_str = ""
+        exemplars_str = ""
+        intents_choice = ""
+
+        if len(intent_v) == 1:
+            intent_name = intent_k
+            idx2intents_mapping[str(count)] = intent_name
+            definition = intent_v[0].get("attribute", {}).get("definition", "")
+            sample_utterances = (
+                intent_v[0].get("attribute", {}).get("sample_utterances", [])
+            )
+
+            if definition:
+                definition_str += self._process_intent_definition(
+                    intent_name, definition, count
+                )
+            if sample_utterances:
+                exemplars_str += self._process_intent_exemplars(
+                    intent_name, sample_utterances, count
+                )
+            intents_choice += f"{count}) {intent_name}\n"
+
+            count += 1
+        else:
+            for idx, intent in enumerate(intent_v):
+                intent_name = f"{intent_k}__<{idx}>"
+                idx2intents_mapping[str(count)] = intent_name
+                definition = intent.get("attribute", {}).get("definition", "")
+                sample_utterances = intent.get("attribute", {}).get(
+                    "sample_utterances", []
+                )
+
+                if definition:
+                    definition_str += self._process_intent_definition(
+                        intent_name, definition, count
+                    )
+                if sample_utterances:
+                    exemplars_str += self._process_intent_exemplars(
+                        intent_name, sample_utterances, count
+                    )
+                intents_choice += f"{count}) {intent_name}\n"
+
+                count += 1
+
+        return definition_str, exemplars_str, intents_choice, count
+
+    def _process_intent_definition(
+        self, intent_name: str, definition: str, count: int
     ) -> str:
-        log_context.info(
-            "Entered _detect_intent_local",
-            extra={"operation": "intent_detection_local"},
-        )
-        """Detect intent using local model.
+        """Format a single intent definition.
+
+        Args:
+            intent_name: Name of the intent
+            definition: Intent definition text
+            count: Intent number in sequence
+
+        Returns:
+            Formatted intent definition string
+        """
+        return f"{count}) {intent_name}: {definition}\n"
+
+    def _process_intent_exemplars(
+        self, intent_name: str, sample_utterances: list[str], count: int
+    ) -> str:
+        """Format sample utterances for an intent.
+
+        Args:
+            intent_name: Name of the intent
+            sample_utterances: List of example utterances
+            count: Intent number in sequence
+
+        Returns:
+            Formatted exemplars string
+        """
+        if not sample_utterances:
+            return ""
+        exemplars = "\n".join(sample_utterances)
+        return f"{count}) {intent_name}: \n{exemplars}\n"
+
+    def _intent_to_openai_schema(
+        self, idx2intents_mapping: dict[str, str]
+    ) -> dict[str, Any]:
+        """Convert intents to OpenAI schema for structured output."""
+        return {
+            "title": "IntentDetectionOutput",
+            "description": "Structured output for intent detection",
+            "type": "object",
+            "properties": {
+                "intent": {
+                    "type": "string",
+                    "description": "The detected intent name",
+                    "enum": list(idx2intents_mapping.values()),
+                },
+            },
+            "required": ["intent"],
+        }
+
+    def _detect_intent(self, prompt: str, idx2intents_mapping: dict[str, str]) -> str:
+        """Detect intent.
 
         Args:
             intents: Dictionary of available intents
             chat_history_str: Formatted chat history
-            model_config: Model configuration
 
         Returns:
             Predicted intent name
@@ -106,27 +241,6 @@ class IntentDetector(BaseNLU):
             ModelError: If intent detection fails
             ValidationError: If input validation fails
         """
-        log_context.info(
-            "Using local model for intent detection",
-            extra={"operation": "intent_detection_local"},
-        )
-
-        # Format input and get mapping
-        prompt, idx2intents_mapping = self.model_service.format_intent_input(
-            intents, chat_history_str
-        )
-        log_context.info(
-            f"Intent detection input prepared:\nPrompt: {prompt}\n\nMapping: {idx2intents_mapping}",
-            extra={
-                "prompt": prompt,
-                "mapping": idx2intents_mapping,
-                "operation": "intent_detection_local",
-            },
-        )
-        log_context.info(
-            "Calling get_response on model_service",
-            extra={"operation": "intent_detection_local"},
-        )
         # Get model response
         response = self.model_service.get_response(prompt)
         log_context.info(
@@ -134,138 +248,37 @@ class IntentDetector(BaseNLU):
             extra={
                 "prompt": prompt,
                 "raw_response": response,
-                "operation": "intent_detection_local",
+                "operation": "intent_detection",
             },
         )
+        _, pred_intent = [i.strip() for i in response.split(")", 1)]
+        return pred_intent
 
-        # Parse response
-        try:
-            pred_idx, pred_intent = [i.strip() for i in response.split(")", 1)]
-        except ValueError as e:
-            log_context.error(
-                "Invalid response format",
-                extra={
-                    "prompt": prompt,
-                    "raw_response": response,
-                    "error": str(e),
-                    "operation": "intent_detection_local",
-                },
-            )
-            raise ValidationError(
-                "Invalid response format",
-                details={
-                    "prompt": prompt,
-                    "raw_response": response,
-                    "error": str(e),
-                    "operation": "intent_detection_local",
-                },
-            ) from e
-
-        # Validate intent
-        if pred_intent not in idx2intents_mapping.values():
-            log_context.warning(
-                f"Predicted intent not in mapping:\nPredicted intent: {pred_intent}\n\nAvailable intents: {list(idx2intents_mapping.values())}",
-                extra={
-                    "prompt": prompt,
-                    "raw_response": response,
-                    "predicted_intent": pred_intent,
-                    "available_intents": list(idx2intents_mapping.values()),
-                    "operation": "intent_detection_local",
-                },
-            )
-            pred_intent = idx2intents_mapping.get(pred_idx, "others")
-
+    def _detect_intent_with_structured_output(
+        self,
+        prompt: str,
+        idx2intents_mapping: dict[str, str],
+    ) -> str:
+        """Detect intent with structured output."""
+        schema = self._intent_to_openai_schema(idx2intents_mapping)
+        response = self.model_service.get_response_with_structured_output(
+            prompt, schema
+        )
         log_context.info(
-            "Intent detection completed",
+            f"Model response received:\nResponse: {response}",
             extra={
                 "prompt": prompt,
                 "raw_response": response,
-                "final_predicted_intent": pred_intent,
-                "operation": "intent_detection_local",
+                "operation": "intent_detection",
             },
         )
+        pred_intent = response.get("intent", DEFAULT_INTENT_NAME)
         return pred_intent
-
-    def _detect_intent_remote(
-        self,
-        text: str,
-        intents: dict[str, list[dict[str, Any]]],
-        chat_history_str: str,
-        model_config: dict[str, Any],
-    ) -> str:
-        """Detect intent using remote API.
-
-        Args:
-            text: Input text to analyze
-            intents: Dictionary of available intents
-            chat_history_str: Formatted chat history
-            model_config: Model configuration
-
-        Returns:
-            Predicted intent name
-
-        Raises:
-            ModelError: If intent detection fails
-            ValidationError: If input validation fails
-            APIError: If API request fails
-        """
-        if not self.api_service:
-            log_context.error(
-                "API service not configured",
-                extra={"operation": "intent_detection_remote"},
-            )
-            raise ValidationError(
-                "API service not configured",
-                details={"operation": "intent_detection_remote"},
-            )
-
-        log_context.info(
-            "Using remote API for intent detection",
-            extra={
-                "text": text,
-                "operation": "intent_detection_remote",
-            },
-        )
-
-        try:
-            response = self.api_service.predict_intent(
-                text=text,
-                intents=intents,
-                chat_history_str=chat_history_str,
-                model_config=model_config,
-            )
-            log_context.info(
-                "Intent detection completed",
-                extra={
-                    "predicted_intent": response,
-                    "operation": "intent_detection_remote",
-                },
-            )
-            return response
-        except APIError as e:
-            log_context.error(
-                "Failed to detect intent via API",
-                extra={
-                    "error": str(e),
-                    "text": text,
-                    "operation": "intent_detection_remote",
-                },
-            )
-            raise APIError(
-                "Failed to detect intent via API",
-                details={
-                    "error": str(e),
-                    "text": text,
-                    "operation": "intent_detection_remote",
-                },
-            ) from e
 
     def predict_intent(
         self,
-        text: str,
         intents: dict[str, list[dict[str, Any]]],
         chat_history_str: str,
-        model_config: dict[str, Any],
     ) -> str:
         """Predict intent from input text.
 
@@ -274,7 +287,6 @@ class IntentDetector(BaseNLU):
         in either local model-based or remote API-based mode.
 
         Args:
-            text: Input text to analyze for intent detection
             intents: Dictionary mapping intent names to their definitions and attributes
             chat_history_str: Formatted chat history providing conversation context
             model_config: Configuration parameters for the language model
@@ -287,66 +299,45 @@ class IntentDetector(BaseNLU):
             ValidationError: If input validation fails
             APIError: If API request fails
         """
-        log_context.info(
-            "Starting intent prediction",
-            extra={
-                "text": text,
-                "mode": "remote" if self.api_service else "local",
-                "operation": "intent_prediction",
-            },
-        )
 
         try:
-            log_context.info(
-                "Calling intent detection method",
-                extra={"operation": "intent_prediction"},
+            # Format input and get mapping
+            prompt, idx2intents_mapping = self._format_intent_input(
+                intents, chat_history_str
             )
-            if self.api_service:
-                intent = self._detect_intent_remote(
-                    text, intents, chat_history_str, model_config
-                )
-            else:
-                intent = self._detect_intent_local(
-                    intents, chat_history_str, model_config
-                )
             log_context.info(
-                "Intent detection method returned",
-                extra={"operation": "intent_prediction"},
-            )
-
-            log_context.info(
-                "Intent prediction completed",
+                f"Intent detection input prepared:\nPrompt: {prompt}\n\nMapping: {idx2intents_mapping}",
                 extra={
-                    "predicted_intent": intent,
-                    "operation": "intent_prediction",
+                    "prompt": prompt,
+                    "mapping": idx2intents_mapping,
+                    "operation": "intent_detection",
                 },
             )
+            intent = self._detect_intent_with_structured_output(
+                prompt, idx2intents_mapping
+            )
+            if intent not in idx2intents_mapping.values():
+                log_context.warning(
+                    f"Predicted intent not in mapping:\nPredicted intent: {intent}\n\nAvailable intents: {list(idx2intents_mapping.values())}",
+                )
+                intent = DEFAULT_INTENT_NAME
+            log_context.info(f"Predicted intent: {intent}")
             return intent
         except Exception as e:
             log_context.error(
-                "Intent prediction failed",
-                extra={
-                    "error": str(e),
-                    "text": text,
-                    "operation": "intent_prediction",
-                },
-            )
-            raise ArklexError(
                 f"Intent prediction failed: {str(e)}",
                 details={
                     "original_error": str(e),
                     "error_type": type(e).__name__,
-                    "text": text,
                     "operation": "intent_prediction",
                 },
-            ) from e
+            )
+            return DEFAULT_INTENT_NAME
 
     def execute(
         self,
-        text: str,
         intents: dict[str, list[dict[str, Any]]],
         chat_history_str: str,
-        model_config: dict[str, Any],
     ) -> str:
         """Execute intent detection.
 
@@ -367,4 +358,4 @@ class IntentDetector(BaseNLU):
             ValidationError: If input validation fails
             APIError: If API request fails
         """
-        return self.predict_intent(text, intents, chat_history_str, model_config)
+        return self.predict_intent(intents, chat_history_str)

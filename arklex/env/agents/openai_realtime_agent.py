@@ -210,8 +210,23 @@ class OpenAIRealtimeAgent(BaseAgent):
             websockets.exceptions: If WebSocket connection fails
         """
         api_key = os.getenv("OPENAI_API_KEY")
+        
+        # Get the base URL from environment variable, default to OpenAI
+        openai_base_url = os.getenv("OPENAI_BASE_URL", "https://api.openai.com")
+        
+        # Convert http/https to ws/wss for WebSocket connection
+        if openai_base_url.startswith("http://"):
+            ws_url = openai_base_url.replace("http://", "ws://")
+        elif openai_base_url.startswith("https://"):
+            ws_url = openai_base_url.replace("https://", "wss://")
+        else:
+            ws_url = openai_base_url
+        
+        # Construct the WebSocket URL
+        websocket_url = f"{ws_url}/v1/realtime?model=gpt-4o-realtime-preview-2025-06-03"
+        
         self.ws = await websockets.connect(
-            "wss://api.openai.com/v1/realtime?model=gpt-4o-realtime-preview-2025-06-03",
+            websocket_url,
             extra_headers={
                 "Authorization": f"Bearer {api_key}",
                 "OpenAI-Beta": "realtime=v1",
