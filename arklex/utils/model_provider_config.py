@@ -77,14 +77,14 @@ class DummyLLM:
             content = "Thank you for using our service. Goodbye!"
         return Response()
 
-    def __or__(self, other):
+    def __or__(self, other: object) -> object:
         # Create a simple chain that returns a mock response
         class DummyChain:
-            def __init__(self, llm, parser):
+            def __init__(self, llm: object, parser: object) -> None:
                 self.llm = llm
                 self.parser = parser
             
-            def invoke(self, input_text):
+            def invoke(self, input_text: str) -> str:
                 # Return a simple response
                 return "test response"
         
