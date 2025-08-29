@@ -10,11 +10,11 @@ from pydantic import BaseModel
 from arklex.env.agents.agent import BaseAgent, register_agent
 from arklex.env.prompts import load_prompts
 from arklex.env.tools.tools import TYPE_CONVERTERS
-from arklex.orchestrator.NLU.entities.slot_entities import (
-    apply_values_recursively,
-)
 from arklex.orchestrator.entities.orchestrator_state_entities import (
     OrchestratorState,
+)
+from arklex.orchestrator.NLU.entities.slot_entities import (
+    apply_values_recursively,
 )
 from arklex.types.resource_types import ToolItem
 from arklex.types.stream_types import EventType, StreamType
@@ -116,7 +116,7 @@ class OpenAIAgent(BaseAgent):
                 "node_specific_data": tool_object.node_specific_data,
             }
             self.tool_args[sanitized_tool_id] = combined_args
-            log_context.info(f"Tool Definitions: {self.tool_defs}")
+        log_context.info(f"Tool Definitions: {self.tool_defs}")
 
     def init_agent_data(
         self, orch_state: OrchestratorState, node_specific_data: dict[str, Any]

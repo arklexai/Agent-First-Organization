@@ -137,29 +137,29 @@ class SlotFiller(BaseSlotFilling):
             "required": required
         }
 
-    def _remove_non_openai_fields(self, schema_obj):
+    def _remove_non_openai_fields(self, schema_obj: dict | list) -> None:
         """Recursively remove non-OpenAI standard fields from schema objects.
         
         Args:
-            schema_obj: Schema object to clean (dict, list, or primitive)
+            schema_obj: The schema object to clean (dict or list)
         """
         if isinstance(schema_obj, dict):
-            # Fields to remove from all levels
-            fields_to_remove = ['valueSource', 'value', 'id', 'target', 'prompt', 'groupRef']
-            
-            # Remove non-OpenAI fields from current level
+            # Remove non-OpenAI fields
+            fields_to_remove = [
+                "valueSource", "fixed", "default", "prompt", 
+                "verified", "required", "repeatable", "type"
+            ]
             for field in fields_to_remove:
                 schema_obj.pop(field, None)
             
             # Recursively clean nested objects
-            for key, value in list(schema_obj.items()):
-                if isinstance(value, (dict, list)):
+            for _key, value in list(schema_obj.items()):
+                if isinstance(value, dict | list):
                     self._remove_non_openai_fields(value)
-                    
         elif isinstance(schema_obj, list):
             # Recursively clean list items
             for item in schema_obj:
-                if isinstance(item, (dict, list)):
+                if isinstance(item, dict | list):
                     self._remove_non_openai_fields(item)
 
     @handle_exceptions()
@@ -341,7 +341,7 @@ class SlotFiller(BaseSlotFilling):
             
         except Exception as e:
             log_context.error(
-                f"Error applying fixed values to item",
+                "Error applying fixed values to item",
                 extra={
                     "error": str(e),
                     "item": item,
@@ -406,15 +406,15 @@ class SlotFiller(BaseSlotFilling):
         
         return updated_item
     
-    def _convert_value_to_type(self, value: Any, target_type: str) -> Any:
+    def _convert_value_to_type(self, value: str | int | float | bool | list | dict | None, target_type: str) -> str | int | float | bool | list | dict | None:
         """Convert a value to the specified type.
         
         Args:
             value: The value to convert
-            target_type: The target type (boolean, integer, number, string)
+            target_type: The target type string
             
         Returns:
-            Converted value
+            The converted value
         """
         try:
             if target_type == "boolean":

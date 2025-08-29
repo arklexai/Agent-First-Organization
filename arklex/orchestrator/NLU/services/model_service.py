@@ -597,16 +597,10 @@ Please choose the most appropriate intent by providing the corresponding intent 
             # Handle both dict and Pydantic model inputs
             if isinstance(slot, dict):
                 slot_name = slot.get("name", "")
-                if slot_name in extracted_values:
-                    slot["value"] = extracted_values[slot_name]
-                else:
-                    slot["value"] = None
+                slot["value"] = extracted_values.get(slot_name)
             else:
                 slot_name = getattr(slot, "name", "")
-                if slot_name in extracted_values:
-                    slot.value = extracted_values[slot_name]
-                else:
-                    slot.value = None
+                slot.value = extracted_values.get(slot_name)
 
         return slots
 

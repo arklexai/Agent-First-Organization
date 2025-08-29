@@ -11,10 +11,9 @@ Key Components:
 - Slot processing utilities: Common functions for slot processing and valueSource logic.
 """
 
-from typing import Any, Dict, List
+from typing import Any
 
 from pydantic import BaseModel, Field
-
 
 # Type conversion mapping for slot values
 TYPE_CONVERTERS = {
@@ -27,15 +26,15 @@ TYPE_CONVERTERS = {
 }
 
 
-def convert_value_for_type(value: Any, type_str: str) -> Any:
+def convert_value_for_type(value: str | int | float | bool | list | dict | None, type_str: str) -> str | int | float | bool | list | dict | None:
     """Convert value to the specified type.
     
     Args:
-        value: Value to convert
-        type_str: Target type string
+        value: The value to convert
+        type_str: The target type string
         
     Returns:
-        Converted value
+        The converted value
     """
     type_mapping = {
         "string": "str",
@@ -53,7 +52,7 @@ def convert_value_for_type(value: Any, type_str: str) -> Any:
         return value
 
 
-def extract_fields_from_properties(properties: Dict, fields: Dict, path: str = "") -> None:
+def extract_fields_from_properties(properties: dict, fields: dict, path: str = "") -> None:
     """Extract fixed/default fields from properties, handling nested structures.
     
     Args:
@@ -84,7 +83,7 @@ def extract_fields_from_properties(properties: Dict, fields: Dict, path: str = "
                 extract_fields_from_properties(nested_props, fields, current_path)
 
 
-def extract_nested_fields_from_definition(field_def: Dict[str, Any], fields: Dict[str, Dict[str, Any]], path: str = "") -> None:
+def extract_nested_fields_from_definition(field_def: dict[str, Any], fields: dict[str, dict[str, Any]], path: str = "") -> None:
     """Extract field definitions from a field definition, handling nested structures.
 
     Args:
@@ -107,7 +106,7 @@ def extract_nested_fields_from_definition(field_def: Dict[str, Any], fields: Dic
         }
     
     
-def extract_fields_from_openai_schema(schema: Dict, slot_name: str, fields: Dict[str, Dict[str, Any]], base_path: str = "") -> None:
+def extract_fields_from_openai_schema(schema: dict, slot_name: str, fields: dict[str, dict[str, Any]], base_path: str = "") -> None:
     """Extract field definitions from OpenAI function-style schema.
 
     Args:
@@ -137,7 +136,7 @@ def extract_fields_from_openai_schema(schema: Dict, slot_name: str, fields: Dict
         extract_properties_recursively(slot_prop.get("properties", {}), fields, base_path)
 
 
-def extract_properties_recursively(properties: Dict, fields: Dict[str, Dict[str, Any]], path: str = "") -> None:
+def extract_properties_recursively(properties: dict, fields: dict[str, dict[str, Any]], path: str = "") -> None:
     """Recursively extract field definitions from properties.
 
     Args:
@@ -170,7 +169,7 @@ def extract_properties_recursively(properties: Dict, fields: Dict[str, Dict[str,
                 extract_properties_recursively(nested_props, fields, current_path)
 
 
-def find_fixed_default_fields_recursive(schema: Dict, slot_name: str) -> Dict:
+def find_fixed_default_fields_recursive(schema: dict, slot_name: str) -> dict:
     """Recursively find all fields with valueSource='fixed' or 'default' at any nesting level.
     
     Args:
@@ -201,7 +200,7 @@ def find_fixed_default_fields_recursive(schema: Dict, slot_name: str) -> Dict:
     return fields
 
 
-def apply_fields_to_item_recursive(item: Dict, fields: Dict, schema: Dict, slot_name: str) -> None:
+def apply_fields_to_item_recursive(item: dict, fields: dict, schema: dict, slot_name: str) -> None:
     """Apply fixed/default fields to an item, handling nested structures.
     
     Args:
@@ -245,14 +244,13 @@ def apply_fields_to_item_recursive(item: Dict, fields: Dict, schema: Dict, slot_
                 # Handle arrays - apply to each item in the array
                 if isinstance(current_obj, list):
                     for array_item in current_obj:
-                        if isinstance(array_item, dict) and field_name in array_item:
-                            if array_item.get(field_name) in (None, "", False, "null"):
-                                array_item[field_name] = converted_value
+                        if isinstance(array_item, dict) and field_name in array_item and array_item.get(field_name) in (None, "", False, "null"):
+                            array_item[field_name] = converted_value
                 elif isinstance(current_obj, dict) and current_obj.get(field_name) in (None, "", False, "null"):
                     current_obj[field_name] = converted_value
 
 
-def apply_values_recursively(value: Any, schema: Dict, slot_name: str) -> None:
+def apply_values_recursively(value: str | int | float | bool | list | dict | None, schema: dict, slot_name: str) -> None:
     """Recursively apply fixed/default values to nested structures.
     
     Args:

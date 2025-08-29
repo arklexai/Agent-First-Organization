@@ -18,15 +18,12 @@ from arklex.orchestrator.entities.orchestrator_state_entities import (
     StatusEnum,
 )
 from arklex.orchestrator.NLU.core.slot import SlotFiller
-from arklex.orchestrator.NLU.entities.slot_entities import Slot
+from arklex.orchestrator.NLU.entities.slot_entities import (
+    Slot,
+)
 from arklex.utils.exceptions import AuthenticationError, ToolExecutionError
 from arklex.utils.logging_utils import LogContext
-from arklex.utils.utils import PYTHON_TO_JSON_SCHEMA, format_chat_history
-from arklex.orchestrator.NLU.entities.slot_entities import (
-    extract_nested_fields_from_definition,
-    extract_fields_from_openai_schema,
-    extract_properties_recursively,
-)
+from arklex.utils.utils import format_chat_history
 
 log_context = LogContext(__name__)
 
