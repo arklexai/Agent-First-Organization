@@ -3,36 +3,40 @@ import re
 from langchain.prompts import PromptTemplate
 from langchain_core.output_parsers import StrOutputParser
 
+from arklex.env.entities import NodeResponse
 from arklex.env.prompts import load_prompts
 from arklex.memory.entities.memory_entities import ResourceRecord
-from arklex.orchestrator.entities.msg_state_entities import MessageState
-from arklex.orchestrator.entities.orchestrator_params_entities import OrchestratorParams
+from arklex.orchestrator.entities.orchestrator_param_entities import OrchestratorParams
+from arklex.orchestrator.entities.orchestrator_state_entities import OrchestratorState
+from arklex.types.resource_types import WorkerItem
 from arklex.utils.logging_utils import LogContext
 from arklex.utils.provider_utils import validate_and_get_model_class
 
 log_context = LogContext(__name__)
 
 RAG_NODES_STEPS = {
-    "FaissRAGWorker": "faiss_retrieve",
-    "milvus_rag_worker": "milvus_retrieve",
-    "rag_message_worker": "milvus_retrieve",
+    WorkerItem.MESSAGE_WORKER.value: "message",
+    WorkerItem.FAISS_RAG_WORKER.value: "faiss_retrieve",
+    WorkerItem.MILVUS_RAG_WORKER.value: "milvus_retrieve",
+    WorkerItem.RAG_MESSAGE_WORKER.value: "milvus_retrieve",
 }
 
 RAG_CONFIDENCE_THRESHOLD = {
-    "FaissRAGWorker": 0.35,
-    "milvus_rag_worker": 70.0,
-    "rag_message_worker": 70.0,
+    WorkerItem.FAISS_RAG_WORKER.value: 0.35,
+    WorkerItem.MILVUS_RAG_WORKER.value: 70.0,
+    WorkerItem.RAG_MESSAGE_WORKER.value: 70.0,
 }
 
 TRIGGER_LIVE_CHAT_PROMPT = "Sorry, I'm not certain about the answer, would you like to connect to a human assistant?"
 
 
 def post_process_response(
-    message_state: MessageState,
+    orch_state: OrchestratorState,
+    node_response: NodeResponse,
     params: OrchestratorParams,
     hitl_worker_available: bool,
     hitl_proposal_enabled: bool,
-) -> MessageState:
+) -> OrchestratorParams:
     """
     Post-processes the chatbot's response to ensure content quality and determine whether human takeover is needed.
 
@@ -43,44 +47,43 @@ def post_process_response(
     whether to suggest a handoff to a human assistant based on confidence and relevance heuristics.
 
     Args:
-        message_state (MessageState): Current state of the conversation including response, context, and metadata.
+        orch_state (OrchestratorState): Current state of the conversation including response, context, and metadata.
+        node_response (NodeResponse): Response from the current node.
         params (OrchestratorParams): Additional configuration and NLU metadata.
         hitl_worker_available (bool): Flag indicating whether HITL worker is available
         hitl_proposal_enabled (bool): Flag indicating whether proactive HITL (human-in-the-loop) routing is allowed.
 
     Returns:
-        MessageState: The updated message state with potentially cleaned or rephrased response,
+        NodeResponse: The updated node response with potentially cleaned or rephrased response,
                     and possibly a human handoff suggestion.
     """
-    context_links = _build_context(message_state)
-    response_links = _extract_links(message_state.response)
+    context_links = _build_context(orch_state.sys_instruct, orch_state.trajectory)
+    response_links = _extract_links(node_response.response)
     missing_links = response_links - context_links
     if missing_links:
         log_context.info(
             f"Some answer links are NOT present in the context. Missing: {missing_links}"
         )
-        message_state.response = _remove_invalid_links(
-            message_state.response, missing_links
+        node_response.response = _remove_invalid_links(
+            node_response.response, missing_links
         )
-        message_state.response = _rephrase_answer(message_state)
+        node_response.response = _rephrase_answer(orch_state, node_response.response)
 
-    if (
-        hitl_worker_available
-        and hitl_proposal_enabled
-        and not message_state.metadata.hitl
-    ):
-        _live_chat_verifier(message_state, params)
+    if hitl_worker_available and hitl_proposal_enabled and not orch_state.metadata.hitl:
+        _live_chat_verifier(orch_state, node_response, params)
 
-    return message_state
+    return node_response
 
 
-def _build_context(message_state: MessageState) -> set:
-    context_links = _extract_links(message_state.sys_instruct)
-    for resource_group in message_state.trajectory:
+def _build_context(sys_instruct: str, trajectory: list[list[ResourceRecord]]) -> set:
+    context_links = _extract_links(sys_instruct)
+    for resource_group in trajectory:
         for resource in resource_group:
             if _include_resource(resource):
                 context_links.update(_extract_links(resource.output))
-            rag_step_type = RAG_NODES_STEPS.get(resource.info.get("id"))
+            rag_step_type = RAG_NODES_STEPS.get(
+                resource.info.get("resource", {}).get("id")
+            )
             if rag_step_type:
                 for step in resource.steps:
                     try:
@@ -136,20 +139,20 @@ def _remove_invalid_links(response: str, links: set) -> str:
     return re.sub(r"\s+", " ", cleaned_response).strip()
 
 
-def _rephrase_answer(state: MessageState) -> str:
+def _rephrase_answer(orch_state: OrchestratorState, response: str) -> str:
     """Rephrases the answer using an LLM after link removal."""
-    llm_config = state.bot_config.llm_config
+    llm_config = orch_state.bot_config.llm_config
     model_class = validate_and_get_model_class(llm_config)
 
     llm = model_class(model=llm_config.model_type_or_path, temperature=0.1)
     prompt: PromptTemplate = PromptTemplate.from_template(
-        load_prompts(state.bot_config)["regenerate_response"]
+        load_prompts(orch_state.bot_config)["regenerate_response"]
     )
     input_prompt = prompt.invoke(
         {
-            "sys_instruct": state.sys_instruct,
-            "original_answer": state.response,
-            "formatted_chat": state.user_message.history,
+            "sys_instruct": orch_state.sys_instruct,
+            "original_answer": response,
+            "formatted_chat": orch_state.user_message.history,
         }
     )
     final_chain = llm | StrOutputParser()
@@ -159,7 +162,9 @@ def _rephrase_answer(state: MessageState) -> str:
 
 
 def _live_chat_verifier(
-    message_state: MessageState, params: OrchestratorParams
+    orch_state: OrchestratorState,
+    node_response: NodeResponse,
+    params: OrchestratorParams,
 ) -> None:
     """
     Determines if a live chat takeover is needed.
@@ -168,7 +173,7 @@ def _live_chat_verifier(
     """
     # early detection of confident bot response
     # if response has valid, verified link
-    if _extract_links(message_state.response):
+    if _extract_links(node_response.response):
         return
 
     # check for relevance of the user's question
@@ -183,8 +188,8 @@ def _live_chat_verifier(
     num_of_docs = 0
     rag_confidence_threshold = 0.0
 
-    if len(message_state.trajectory) >= 2:
-        for resource in message_state.trajectory[-2]:
+    if len(orch_state.trajectory) >= 2:
+        for resource in orch_state.trajectory[-2]:
             rag_step_type = RAG_NODES_STEPS.get(resource.info.get("id"))
             if rag_step_type:
                 for step in resource.steps:
@@ -211,8 +216,8 @@ def _live_chat_verifier(
     if rag_avg_confidence >= rag_confidence_threshold:
         return
 
-    if should_trigger_handoff(message_state):
-        message_state.response = TRIGGER_LIVE_CHAT_PROMPT
+    if should_trigger_handoff(orch_state):
+        node_response.response = TRIGGER_LIVE_CHAT_PROMPT
 
 
 def _extract_confidence_from_nested_dict(step: dict | list | str) -> tuple[float, int]:
@@ -244,12 +249,12 @@ def _is_question_relevant(params: OrchestratorParams) -> bool:
     )
 
 
-def should_trigger_handoff(state: MessageState) -> bool:
+def should_trigger_handoff(orch_state: OrchestratorState) -> bool:
     input_prompt = f"""
     You are an AI assistant evaluating a chatbot's response to determine if human intervention is needed.
 
     Chatbot's Response to User:
-    \"\"\"{state.response}\"\"\"
+    \"\"\"{orch_state.response}\"\"\"
 
     Does this response indicate the chatbot:
     1.  **Does NOT know the answer** (e.g., it's generic, evasive, or explicitly states lack of information)?
@@ -260,7 +265,7 @@ def should_trigger_handoff(state: MessageState) -> bool:
     Your response must be "YES" or "NO" only.
     """
 
-    llm_config = state.bot_config.llm_config
+    llm_config = orch_state.bot_config.llm_config
     model_class = validate_and_get_model_class(llm_config)
 
     llm = model_class(model=llm_config.model_type_or_path, temperature=0.1)

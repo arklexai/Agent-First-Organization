@@ -48,7 +48,7 @@ class Slot(BaseModel):
     required: bool = Field(default=False)
     verified: bool = Field(default=False)
     repeatable: bool = Field(default=False)
-    schema: list[dict] | None = None
+    slot_schema: list[dict] | None = None
     items: dict | None = None
     target: str | None = None
     valueSource: str | None = Field(default=None)
@@ -68,7 +68,7 @@ class Slot(BaseModel):
             """Build schema for group type fields."""
             properties = {}
             required = []
-            for field in self.schema or []:
+            for field in self.slot_schema or []:
                 field_slot = field if isinstance(field, Slot) else Slot(**field)
                 if getattr(field_slot, "valueSource", None) == "fixed":
                     continue

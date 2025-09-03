@@ -1,0 +1,231 @@
+{
+    "nodes": [
+        [
+            "0",
+            {
+                "resource": {
+                    "id": "26bb6634-3bee-417d-ad75-23269ac17bc3",
+                    "name": "MessageWorker"
+                },
+                "attribute": {
+                    "value": "Hello! Welcome to our shop! We're so excited to have you here! Do you need any recommendations?",
+                    "task": "start message",
+                    "directed": false
+                },
+                "limit": 10,
+                "type": "start"
+            }
+        ],
+        [
+            "1",
+            {
+                "resource": {
+                    "id": "multi_agent",
+                    "name": "MultiAgent"
+                },
+                "attribute": {
+                    "value": "",
+                    "type": "agent", 
+                    "task": "Help users find products and account info.",
+                    "direct": false,
+                    "node_specific_data": {
+                        "type": "agents_as_tools", 
+                        "is_async":true
+                    }
+                }
+            }
+        ],
+         [
+            "2",
+            {
+                "resource": {
+                    "id": "openai_sdk_agent",
+                    "name": "OpenAISDKAgent"
+                },
+                "attribute": {
+                    "value": "",
+                    "type": "agent",
+                    "task": "Help the user search for products by keyword or category.",
+                    "direct": false,
+                    "node_specific_data":{
+                        "name": "ProductSearchAgent"
+                    }
+                }
+            }
+        ],
+          [
+            "3",
+            {
+                "resource": {
+                    "id": "shopify/search_products",
+                    "name": "search_products"
+                },
+                "attribute": {
+                    "value": "",
+                    "task": "Get information of products based on query",
+                    "direct": false
+                },
+                "limit": 10
+            }   
+          ],
+          [
+            "4",
+            {
+                "resource": {
+                    "id": "openai_sdk_agent",
+                    "name": "OpenAISDKAgent"
+                },
+                "attribute": {
+                    "value": "",
+                    "type": "agent",
+                    "task": "Help the user retrieve detailed information about a customer by their ID.",
+                    "direct": false,
+                    "node_specific_data":{
+                        "name": "UserInfoAgent"
+                    }
+                }
+            }
+        ],
+          [
+            "5",
+            {
+                "resource": {
+                    "id": "shopify/get_user_details_admin",
+                    "name": "get_user_details_admin"
+                },
+                "attribute": {
+                    "value": "",
+                    "task": "",
+                    "direct": false
+                },
+                "limit": 10
+            }   
+          ]
+        ],
+"edges": [
+        [
+            "0",
+            "1",
+            {
+                "intent": "Find products and account info",
+                "attribute": {
+                    "weight": 1,
+                    "pred": false,
+                    "definition": "",
+                    "sample_utterances": []
+                }
+            }
+        ],
+        [
+            "1",
+            "2",
+            {
+                "intent": "None",
+                "attribute": {
+                    "weight": 1,
+                    "pred": false,
+                    "definition": "",
+                    "sample_utterances": []
+                }
+            }
+        ],
+        [
+            "1",
+            "4",
+            {
+                "intent": "None",
+                "attribute": {
+                    "weight": 1,
+                    "pred": false,
+                    "definition": "",
+                    "sample_utterances": []
+                }
+            }
+        ],
+        [
+            "3",
+            "2",
+            {
+                "intent": "None",
+                "attribute": {
+                    "weight": 1,
+                    "pred": false,
+                    "definition": "",
+                    "sample_utterances": []
+                }
+            }
+        ],
+        [
+            "5",
+            "4",
+            {
+                "intent": "None",
+                "attribute": {
+                    "weight": 1,
+                    "pred": false,
+                    "definition": "",
+                    "sample_utterances": []
+                }
+            }
+        ]
+    ],
+    "role": "customer service assistant",
+    "user_objective": "Help the user search for products and manage their account in a Shopify store.",
+    "builder_objective": "Demonstrate how a multi-agent system can delegate product discovery and account management to separate sub-agents.",
+    "domain": "Shopify",
+    "intro": "You're an assistant for a Shopify store. Your goal is to help users find products and manage their account using multiple specialized agents.",
+    "task_docs": [],
+    "rag_docs": [],
+    "tasks": [],
+    "tools": [
+        {
+            "id": "shopify/search_products",
+            "name": "search_products",
+            "path": "shopify/search_products.py",
+            "fixed_args": {
+                "admin_token": "<shopify_admin_token>",
+                "shop_url": "<your-shopify-shop-url>",
+               "api_version": "2024-10",
+               "llm_provider":"openai",
+               "model_type_or_path":"gpt-4o-mini"
+           }
+        },
+        {
+            "id": "shopify/get_user_details_admin",
+            "name":"get_user_details_admin",
+            "path": "shopify/get_user_details_admin.py",
+            "fixed_args": {
+                "admin_token": "<shopify_admin_token>",
+                "shop_url": "<your-shopify-shop-url>",
+                "api_version": "2024-10"
+                }
+        }
+
+    ],
+    "workers": [
+      {
+        "id": "26bb6634-3bee-417d-ad75-23269ac17bc3",
+        "name": "MessageWorker",
+        "path": "message_worker.py"
+      }
+    ],
+    "agents": [
+        {
+            "id": "multi_agent",
+            "name": "MultiAgent",
+            "path": "multi_agent.py",
+            "tools":[]
+
+        },
+        {
+            "id": "openai_sdk_agent",
+            "name": "OpenAISDKAgent",
+            "path": null
+        }
+       
+        ],
+    "nluapi": "",
+    "slotfillapi": ""
+  }
+  
+  

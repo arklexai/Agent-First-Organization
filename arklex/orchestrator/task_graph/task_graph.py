@@ -42,10 +42,13 @@ Usage:
 
 import collections
 import copy
+import re
 from typing import Any
 
 import networkx as nx
 import numpy as np
+from agents.realtime import RealtimeAgent, realtime_handoff
+from jinja2 import Template
 
 from arklex.env.agents.agent import BaseAgent
 from arklex.env.agents.openai_realtime_agent import (
@@ -55,15 +58,17 @@ from arklex.env.agents.openai_realtime_agent import (
 )
 from arklex.env.env import DefaultResourceInitializer
 from arklex.env.nested_graph.nested_graph import NestedGraph
-from arklex.orchestrator.entities.msg_state_entities import LLMConfig, StatusEnum
-from arklex.orchestrator.entities.orchestrator_params_entities import OrchestratorParams
+from arklex.env.tools.tools import Tool
+from arklex.orchestrator.entities.orchestrator_param_entities import OrchestratorParams
+from arklex.orchestrator.entities.orchestrator_state_entities import (
+    StatusEnum,
+)
 from arklex.orchestrator.entities.taskgraph_entities import NodeInfo, PathNode
 from arklex.orchestrator.NLU.core.intent import IntentDetector
-from arklex.orchestrator.NLU.core.slot import SlotFiller
 from arklex.orchestrator.NLU.services.model_service import (
-    DummyModelService,
     ModelService,
 )
+from arklex.types.resource_types import AgentItem, ResourceType, ToolItem
 from arklex.utils.exceptions import TaskGraphError
 from arklex.utils.logging_utils import LogContext
 from arklex.utils.utils import normalize, str_similarity
@@ -115,9 +120,7 @@ class TaskGraphBase:
 
     def get_start_node(self) -> str | None:
         for node in self.graph.nodes.data():
-            if node[1].get("type", "") == "start" or node[1].get("attribute", {}).get(
-                "start", False
-            ):
+            if node[1].get("attribute", {}).get("start", False):
                 return node[0]
         return None
 
@@ -137,7 +140,10 @@ class AgentGraph(TaskGraphBase):
 
     def __init__(self, name: str, product_kwargs: dict[str, Any]) -> None:
         self.agents: dict[str, BaseAgent] = {}
+        self.agents_sdk_agents: dict[str, RealtimeAgent] = {}
         self.resources = {}
+        self.start_agent: OpenAIRealtimeAgent | None = None
+        self.prompt_variables: list[PromptVariable] = []
         super().__init__(name, product_kwargs)
 
     def create_graph(self) -> None:
@@ -158,43 +164,75 @@ class AgentGraph(TaskGraphBase):
         self.graph.add_nodes_from(formatted_nodes)
         self.graph.add_edges_from(edges)
 
-        resource_initializer = DefaultResourceInitializer()
-        for node in self.graph.nodes.data():
-            if node[1].get("type", "") == "agent":
-                node_specific_data = (
-                    node[1].get("attribute", {}).get("node_specific_data", {})
-                )
-                resource = node[1].get("resource", {})
+        all_resources: list[dict[str, Any]] = self.product_kwargs["tools"]
+        resource_map: dict[str, dict[str, Any]] = {}
+        for resource in all_resources:
+            resource_map[resource["id"]] = resource
 
+        resource_initializer = DefaultResourceInitializer()
+        agent_handovers: dict[str, list[str]] = collections.defaultdict(list)
+        start_agent_config: dict[str, Any] | None = None
+        start_agent_name: str | None = None
+        voicemail_tool: Tool | None = None
+        agent_node_specific_data: dict[str, Any] | None = {}
+        for node in self.graph.nodes.data():
+            if node[1].get("attribute", {}).get("type", "") == ResourceType.AGENT:
+                node_specific_data = node[1].get("data", {})
+                resource = node[1].get("resource", {})
+                if node_specific_data.get("start_agent", False):
+                    start_agent_name = node_specific_data["name"]
+                    start_agent_config = node_specific_data
                 # process successors and predecessors to get resources
-                resources = []
-                attributes = []
+                available_tools = []
+                available_nodes = []
                 for node_id in self.graph.successors(node[0]):
                     successor_node = self.graph.nodes[node_id]
                     if (
-                        successor_node.get("type", "") == "tool"
+                        successor_node.get("attribute", {}).get("type", "")
+                        == ResourceType.TOOL
                         and successor_node["resource"]["id"] != "planner"
                     ):
-                        resources.append(successor_node["resource"])
-                        attributes.append(successor_node["attribute"])
+                        available_tools.append(
+                            resource_map[successor_node["resource"]["id"]]
+                        )
+                        available_nodes.append([node_id, successor_node])
+                    elif (
+                        successor_node.get("attribute", {}).get("type", "")
+                        == ResourceType.AGENT
+                    ):
+                        agent_handovers[node_specific_data["name"]].append(
+                            successor_node["data"]["name"]
+                        )
 
                 for node_id in self.graph.predecessors(node[0]):
                     predecessor_node = self.graph.nodes[node_id]
                     if (
-                        predecessor_node.get("type", "") == "tool"
+                        predecessor_node.get("attribute", {}).get("type", "")
+                        == ResourceType.TOOL
                         and predecessor_node["resource"]["id"] != "planner"
                     ):
-                        resources.append(predecessor_node["resource"])
-                        attributes.append(predecessor_node["attribute"])
-
-                tool_registry = resource_initializer.init_tools(resources, attributes)
-                tool_map = {}
+                        available_tools.append(
+                            resource_map[predecessor_node["resource"]["id"]]
+                        )
+                        available_nodes.append([node_id, predecessor_node])
+                tool_registry = resource_initializer.init_tools(
+                    available_tools, available_nodes
+                )
+                agents_sdk_tools = []
                 for tool_id in tool_registry:
-                    tool_instance = tool_registry[tool_id]["tool_instance"]
-                    tool_instance.name = tool_instance.name.replace("http_tool_", "")
-                    tool_map[tool_instance.name] = tool_instance
+                    tool_registry[tool_id]["tool_instance"].name = re.sub(
+                        r"[^a-zA-Z0-9]", "_", tool_id
+                    )
+                    if tool_id == ToolItem.TWILIO_CALL_VOICEMAIL:
+                        voicemail_tool = tool_registry[tool_id]["tool_instance"]
+                    else:
+                        agents_sdk_tools.append(
+                            tool_registry[tool_id][
+                                "tool_instance"
+                            ].to_openai_agents_function_tool()
+                        )
                 self.resources.update(tool_registry)
-                if resource.get("id", "") == "openai_realtime_voice_agent":
+                if resource.get("id", "") == AgentItem.OPENAI_REALTIME_VOICE_AGENT:
                     prompt = node_specific_data.get("prompt", "")
                     # prompt_variables_test_values = node_specific_data.get("prompt_variables_test_values", None)
                     prompt_variables = []
@@ -207,24 +245,56 @@ class AgentGraph(TaskGraphBase):
                                 "prompt_variables_test_values", []
                             )
                         ]
-                    self.agents[node_specific_data["name"]] = OpenAIRealtimeAgent(
-                        prompt=prompt,
-                        prompt_variables=prompt_variables,
-                        tool_map=tool_map,
-                        voice=node_specific_data.get("voice", "alloy"),
-                        transcription_language=node_specific_data.get(
-                            "transcription_language", None
-                        ),
-                        speed=node_specific_data.get("speed", 1.0),
-                        turn_detection=TurnDetection.from_dict(
-                            node_specific_data.get("turn_detection", None)
-                        ),
+                    if prompt_variables:
+                        self.prompt_variables.extend(prompt_variables)
+                        template = Template(prompt)
+                        # convert prompt_variables to a dict
+                        prompt_variables_dict = {
+                            pv.name: pv.value for pv in self.prompt_variables
+                        }
+                        prompt = template.render(prompt_variables_dict)
+                    agent_node_specific_data[node_specific_data["name"]] = (
+                        node_specific_data
+                    )
+                    self.agents_sdk_agents[node_specific_data["name"]] = RealtimeAgent(
+                        name=node_specific_data["name"],
+                        instructions=prompt,
+                        tools=agents_sdk_tools,
+                        handoff_description=node[1]
+                        .get("attribute", {})
+                        .get("task", ""),
                     )
                 else:
                     log_context.warning(
                         f"Agent {resource.get('id', '')} not implemented yet in agent graph"
                     )
                     continue
+
+        for agent_name, handover_agents in agent_handovers.items():
+            self.agents_sdk_agents[agent_name].handoffs = [
+                realtime_handoff(self.agents_sdk_agents[handover_agent])
+                for handover_agent in handover_agents
+            ]
+
+        if start_agent_name is None:
+            start_agent_name = list(self.agents_sdk_agents.keys())[0]
+            start_agent_config = agent_node_specific_data[start_agent_name]
+        log_context.info(f"agent handovers: {agent_handovers}")
+        log_context.info(
+            f"start agent: {start_agent_name}, handovers: {self.agents_sdk_agents[start_agent_name].handoffs}"
+        )
+        self.start_agent = OpenAIRealtimeAgent(
+            realtime_agent=self.agents_sdk_agents[start_agent_name],
+            voice=start_agent_config.get("voice", "alloy"),
+            transcription_language=start_agent_config.get(
+                "transcription_language", None
+            ),
+            speed=start_agent_config.get("speed", 1.0),
+            turn_detection=TurnDetection.from_dict(
+                start_agent_config.get("turn_detection", None)
+            ),
+            voicemail_tool=voicemail_tool,
+        )
 
 
 class TaskGraph(TaskGraphBase):
@@ -236,9 +306,7 @@ class TaskGraph(TaskGraphBase):
     Attributes:
         unsure_intent (Dict[str, Any]): Default intent for unknown inputs
         initial_node (Optional[str]): Initial node for conversation flow
-        llm_config (LLMConfig): Configuration for language model
         intent_detector (IntentDetector): Intent detection API
-        slotfillapi (SlotFiller): Slot filling API
 
     Methods:
         create_graph(): Creates the conversation graph
@@ -262,17 +330,13 @@ class TaskGraph(TaskGraphBase):
         self,
         name: str,
         product_kwargs: dict[str, Any],
-        llm_config: LLMConfig,
-        slotfillapi: str = "",
-        model_service: ModelService | None = None,
+        model_service: ModelService,
     ) -> None:
         """Initialize the task graph.
 
         Args:
             name: Name of the task graph
             product_kwargs: Configuration settings for the graph
-            llm_config: Configuration for language model
-            slotfillapi: API endpoint for slot filling
             model_service: Model service for intent detection (required)
         """
         super().__init__(name, product_kwargs)
@@ -288,24 +352,7 @@ class TaskGraph(TaskGraphBase):
             },
         }
         self.initial_node: str | None = self.get_initial_flow()
-        self.llm_config: LLMConfig = llm_config
-        if model_service is None:
-            raise ValueError(
-                "model_service is required for TaskGraph and cannot be None."
-            )
         self.intent_detector: IntentDetector = IntentDetector(model_service)
-        # Ensure slotfillapi is a valid model service for SlotFiller
-        if isinstance(slotfillapi, str) or not slotfillapi:
-            dummy_config = {
-                "model_name": "dummy",
-                "api_key": "dummy",
-                "endpoint": "http://dummy",
-                "model_type_or_path": "dummy-path",
-                "llm_provider": "dummy",
-            }
-            self.slotfillapi: SlotFiller = SlotFiller(DummyModelService(dummy_config))
-        else:
-            self.slotfillapi: SlotFiller = SlotFiller(slotfillapi)
 
     def get_initial_flow(self) -> str | None:
         services_nodes: dict[str, str] | None = self.product_kwargs.get(
@@ -314,13 +361,7 @@ class TaskGraph(TaskGraphBase):
         node: str | None = None
         if services_nodes:
             candidates_nodes: list[str] = [v for k, v in services_nodes.items()]
-            candidates_nodes_weights: list[float] = [
-                list(self.graph.in_edges(n, data="attribute"))[0][2]["weight"]
-                for n in candidates_nodes
-            ]
-            node = np.random.choice(
-                candidates_nodes, p=normalize(candidates_nodes_weights)
-            )
+            node = np.random.choice(candidates_nodes)
         return node
 
     def jump_to_node(
@@ -334,12 +375,9 @@ class TaskGraph(TaskGraphBase):
             candidates_nodes: list[dict[str, Any]] = [
                 self.intents[pred_intent][intent_idx]
             ]
-            candidates_nodes_weights: list[float] = [
-                node["attribute"]["weight"] for node in candidates_nodes
-            ]
+            # Use equal weights instead of node attribute weights
             next_node: str = np.random.choice(
-                [node["target_node"] for node in candidates_nodes],
-                p=normalize(candidates_nodes_weights),
+                [node["target_node"] for node in candidates_nodes]
             )
             next_intent: str = pred_intent
         except Exception as e:
@@ -352,27 +390,11 @@ class TaskGraph(TaskGraphBase):
         n = self.graph.nodes[node_id]
         return NodeInfo(
             node_id=node_id,
-            type=n.get("type", ""),
-            resource_id=n["resource"]["id"],
-            resource_name=n["resource"]["name"],
-            can_skipped=True,
+            resource=n["resource"],
+            attribute=n["attribute"],
+            data=n["data"],
             is_leaf=len(list(self.graph.successors(node_id))) == 0,
-            attributes=n["attribute"],
             add_flow_stack=False,
-            additional_args={
-                "tags": n["attribute"].get("tags", {}),
-                **{
-                    k2: v2
-                    for k, v in n["attribute"].get("node_specific_data", {}).items()
-                    if isinstance(v, dict)
-                    for k2, v2 in v.items()
-                },
-                **{
-                    k: v
-                    for k, v in n["attribute"].get("node_specific_data", {}).items()
-                    if not isinstance(v, dict)
-                },
-            },
         )
 
     def _get_node(
@@ -386,11 +408,6 @@ class TaskGraph(TaskGraphBase):
         )
         log_context.info(f"intent in _get_node: {intent}")
         node_info: dict[str, Any] = self.graph.nodes[sample_node]
-        # Handle missing resource gracefully
-        resource_name: str = node_info.get("resource", {}).get(
-            "name", "default_resource"
-        )
-        resource_id: str = node_info.get("resource", {}).get("id", "default_id")
         if intent and intent in params.taskgraph.available_global_intents:
             # delete the corresponding node item from the intent list
             for item in params.taskgraph.available_global_intents.get(intent, []):
@@ -400,43 +417,21 @@ class TaskGraph(TaskGraphBase):
                 params.taskgraph.available_global_intents.pop(intent)
 
         params.taskgraph.curr_node = sample_node
-
         node_info = NodeInfo(
             node_id=sample_node,
-            type=node_info.get("type", ""),
-            resource_id=resource_id,
-            resource_name=resource_name,
-            can_skipped=node_info.get("attribute", {}).get("can_skipped", False),
+            resource=node_info["resource"],
+            attribute=node_info["attribute"],
+            data=node_info["data"],
+            successors=[
+                self._build_neighbor_node_info(succ)
+                for succ in self.graph.successors(sample_node)
+            ],
+            predecessors=[
+                self._build_neighbor_node_info(pred)
+                for pred in self.graph.predecessors(sample_node)
+            ],
             is_leaf=len(list(self.graph.successors(sample_node))) == 0,
-            attributes=node_info["attribute"],
             add_flow_stack=False,
-            additional_args={
-                "successors": [
-                    self._build_neighbor_node_info(succ)
-                    for succ in self.graph.successors(sample_node)
-                ],
-                "predecessors": [
-                    self._build_neighbor_node_info(pred)
-                    for pred in self.graph.predecessors(sample_node)
-                ],
-                "prompt": node_info["attribute"].get("prompt", ""),
-                "tags": node_info["attribute"].get("tags", {}),
-                **{
-                    k2: v2
-                    for k, v in node_info["attribute"]
-                    .get("node_specific_data", {})
-                    .items()
-                    if isinstance(v, dict)
-                    for k2, v2 in v.items()
-                },
-                **{
-                    k: v
-                    for k, v in node_info["attribute"]
-                    .get("node_specific_data", {})
-                    .items()
-                    if not isinstance(v, dict)
-                },
-            },
         )
 
         return node_info, params
@@ -578,46 +573,20 @@ class TaskGraph(TaskGraphBase):
         status: StatusEnum = node_status.get(curr_node, StatusEnum.COMPLETE)
         if status == StatusEnum.STAY:
             node_info: dict[str, Any] = self.graph.nodes[curr_node]
-            # Handle missing resource gracefully
-            resource_name: str = node_info.get("resource", {}).get(
-                "name", "default_resource"
-            )
-            resource_id: str = node_info.get("resource", {}).get("id", "default_id")
             node_info = NodeInfo(
-                type=node_info.get("type", ""),
                 node_id=curr_node,
-                resource_id=resource_id,
-                resource_name=resource_name,
-                can_skipped=node_info.get("attribute", {}).get("can_skipped", False),
+                resource=node_info["resource"],
+                attribute=node_info["attribute"],
+                data=node_info["data"],
+                successors=[
+                    self._build_neighbor_node_info(succ)
+                    for succ in self.graph.successors(curr_node)
+                ],
+                predecessors=[
+                    self._build_neighbor_node_info(pred)
+                    for pred in self.graph.predecessors(curr_node)
+                ],
                 is_leaf=len(list(self.graph.successors(curr_node))) == 0,
-                attributes=node_info["attribute"],
-                additional_args={
-                    "successors": [
-                        self._build_neighbor_node_info(succ)
-                        for succ in self.graph.successors(curr_node)
-                    ],
-                    "predecessors": [
-                        self._build_neighbor_node_info(pred)
-                        for pred in self.graph.predecessors(curr_node)
-                    ],
-                    "prompt": node_info["attribute"].get("prompt", ""),
-                    "tags": node_info["attribute"].get("tags", {}),
-                    **{
-                        k2: v2
-                        for k, v in node_info["attribute"]
-                        .get("node_specific_data", {})
-                        .items()
-                        if isinstance(v, dict)
-                        for k2, v2 in v.items()
-                    },
-                    **{
-                        k: v
-                        for k, v in node_info["attribute"]
-                        .get("node_specific_data", {})
-                        .items()
-                        if not isinstance(v, dict)
-                    },
-                },
             )
             return True, node_info, params
         return False, NodeInfo(), params
@@ -684,10 +653,8 @@ class TaskGraph(TaskGraphBase):
             )
 
             pred_intent = self.intent_detector.execute(
-                self.text,
                 candidate_intents,
                 self.chat_history_str,
-                self.llm_config.model_dump(),
             )
             params.taskgraph.nlu_records.append(
                 {
@@ -705,12 +672,9 @@ class TaskGraph(TaskGraphBase):
             # if found prediction and prediction is not unsure intent and current intent
             if found_pred_in_avil and pred_intent != self.unsure_intent.get("intent"):
                 # If the prediction is the same as the current global intent and the current node is not a leaf node, continue the current global intent
-                if (
-                    pred_intent == params.taskgraph.curr_global_intent
-                    and len(list(self.graph.successors(curr_node))) != 0
-                    and params.taskgraph.node_status.get(
-                        curr_node, StatusEnum.INCOMPLETE
-                    )
+                if pred_intent == params.taskgraph.curr_global_intent and (
+                    len(list(self.graph.successors(curr_node))) != 0
+                    or params.taskgraph.node_status.get(curr_node, StatusEnum.COMPLETE)
                     == StatusEnum.INCOMPLETE
                 ):
                     return False, pred_intent, {}, params
@@ -808,10 +772,8 @@ class TaskGraph(TaskGraphBase):
             return False, pred_intent, params
 
         pred_intent: str = self.intent_detector.execute(
-            self.text,
             curr_local_intents_w_unsure,
             self.chat_history_str,
-            self.llm_config.model_dump(),
         )
         params.taskgraph.nlu_records.append(
             {
@@ -854,7 +816,8 @@ class TaskGraph(TaskGraphBase):
         params.taskgraph.intent = self.unsure_intent.get("intent")
         params.taskgraph.curr_global_intent = self.unsure_intent.get("intent")
         if params.taskgraph.nlu_records:
-            params.taskgraph.nlu_records[-1]["no_intent"] = True  # no intent found
+            # no intent found
+            params.taskgraph.nlu_records[-1]["no_intent"] = True
         else:
             params.taskgraph.nlu_records.append(
                 {
@@ -866,14 +829,11 @@ class TaskGraph(TaskGraphBase):
             )
         params.taskgraph.curr_node = curr_node
         node_info: NodeInfo = NodeInfo(
-            node_id=None,
-            type="",
-            resource_id="planner",
-            resource_name="planner",
-            can_skipped=False,
+            node_id="",
+            resource={"id": "planner", "name": "planner"},
+            attribute={"value": "", "direct": False},
+            data={},
             is_leaf=len(list(self.graph.successors(curr_node))) == 0,
-            attributes={"value": "", "direct": False},
-            additional_args={"tags": {}},
         )
         return node_info, params
 
@@ -1069,12 +1029,6 @@ class TaskGraph(TaskGraphBase):
         Raises:
             TaskGraphError: If node is invalid
         """
-        if not isinstance(node, dict):
-            log_context.error(
-                "Node must be a dictionary",
-                extra={"node": node},
-            )
-            raise TaskGraphError("Node must be a dictionary")
 
         if "id" not in node:
             log_context.error(

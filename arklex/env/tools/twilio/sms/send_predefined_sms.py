@@ -5,6 +5,7 @@ from typing import TypedDict
 from twilio.rest import Client as TwilioClient
 
 from arklex.env.tools.tools import register_tool
+from arklex.env.tools.twilio.base.entities import TwilioAuth
 from arklex.utils.logging_utils import LogContext
 
 log_context = LogContext(__name__)
@@ -12,24 +13,20 @@ log_context = LogContext(__name__)
 description = "Send a predefined SMS message"
 
 slots = []
-outputs = []
-errors = []
 
 
 class SendPredefinedSmsKwargs(TypedDict, total=False):
     """Type definition for kwargs used in send_predefined_sms function."""
 
     twilio_client: TwilioClient
-    sid: str
-    auth_token: str
     phone_no_to: str
     phone_no_from: str
     predefined_message: str
     message: str
 
 
-@register_tool(description, slots, outputs, lambda x: x not in errors)
-def send_predefined_sms(**kwargs: SendPredefinedSmsKwargs) -> str:
+@register_tool(description, slots)
+def send_predefined_sms(auth: TwilioAuth, **kwargs: SendPredefinedSmsKwargs) -> str:
     """Send a predefined SMS message.
 
     Args:
@@ -38,7 +35,7 @@ def send_predefined_sms(**kwargs: SendPredefinedSmsKwargs) -> str:
     # Allow reuse of existing TwilioClient instance or create new one
     twilio_client = kwargs.get("twilio_client")
     if twilio_client is None:
-        twilio_client = TwilioClient(kwargs.get("sid"), kwargs.get("auth_token"))
+        twilio_client = TwilioClient(auth.get("sid"), auth.get("auth_token"))
 
     phone_no_to = kwargs.get("phone_no_to")
     phone_no_from = kwargs.get("phone_no_from")
