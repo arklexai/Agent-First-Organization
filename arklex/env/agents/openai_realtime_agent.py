@@ -18,6 +18,7 @@ from agents.realtime import (
     RealtimeModelSendRawMessage,
     RealtimeModelSendSessionUpdate,
     RealtimePlaybackTracker,
+    RealtimeRunConfig,
     RealtimeRunner,
     RealtimeSession,
     RealtimeSessionModelSettings,
@@ -224,10 +225,10 @@ class OpenAIRealtimeAgent(BaseAgent):
             Exception: If session initialization fails
         """
 
-        runner = RealtimeRunner(starting_agent=self.realtime_agent)
-        self.session_context = await runner.run(
-            model_config=RealtimeModelConfig(
-                initial_model_settings=RealtimeSessionModelSettings(
+        runner = RealtimeRunner(
+            starting_agent=self.realtime_agent,
+            config=RealtimeRunConfig(
+                model_settings=RealtimeSessionModelSettings(
                     model_name="gpt-4o-realtime-preview-2025-06-03",
                     input_audio_format=self.input_audio_format,
                     output_audio_format=self.output_audio_format,
@@ -241,6 +242,10 @@ class OpenAIRealtimeAgent(BaseAgent):
                     if self.turn_detection
                     else None,
                 ),
+            ),
+        )
+        self.session_context = await runner.run(
+            model_config=RealtimeModelConfig(
                 playback_tracker=self.playback_tracker,
             )
         )
@@ -379,9 +384,6 @@ class OpenAIRealtimeAgent(BaseAgent):
                 # Update playback tracker
                 self.playback_tracker.on_play_bytes(
                     item_id, item_content_index, audio_bytes
-                )
-                logger.info(
-                    f"Playback tracker updated: {item_id}, index {item_content_index}, {byte_count} bytes"
                 )
 
                 # Clean up the stored data
