@@ -86,6 +86,7 @@ class WorkerItem(Item):
     RAG_MESSAGE_WORKER = "rag-message-worker"
     SEARCH_WORKER = "search-worker"
     HUMAN_IN_THE_LOOP_WORKER = "human-in-the-loop-worker"
+    ANSWER_NODE_WORKER = "answer-node-worker"
 
 
 class AgentItem(Item):

@@ -295,7 +295,7 @@ class TaskGraphFormatter:
                     self.DEFAULT_MESSAGE_WORKER,
                     self.DEFAULT_RAG_WORKER,
                     self.DEFAULT_SEARCH_WORKER,
-                    "AnswerNodeWorker",
+                    self.DEFAULT_ANSWER_NODE_WORKER,
                 ]
                 and "workflow" in resource_name.lower()
             ):

@@ -214,7 +214,7 @@ resource_map: Mapping[type[Item], Mapping[str, ResourceType | ToolCategory | typ
         "module": "arklex.env.workers.multiple_choice.multiple_choice_worker",
         "item_cls": "MultipleChoiceWorker",
     },
-    "answer_node_worker": {
+    WorkerItem.ANSWER_NODE_WORKER: {
         "type": ResourceType.WORKER,
         "category": WorkerCategory.WORKER,
         "module": "arklex.env.workers.answer_node_worker",
