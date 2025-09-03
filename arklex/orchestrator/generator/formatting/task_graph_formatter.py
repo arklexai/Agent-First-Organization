@@ -33,6 +33,7 @@ class TaskGraphFormatter:
     DEFAULT_RAG_WORKER = "FaissRAGWorker"
     DEFAULT_SEARCH_WORKER = "SearchWorker"
     DEFAULT_NESTED_GRAPH = "NestedGraph"
+    DEFAULT_ANSWER_NODE_WORKER = "AnswerNodeWorker"
 
     def __init__(
         self,
@@ -354,7 +355,7 @@ class TaskGraphFormatter:
                         self.DEFAULT_MESSAGE_WORKER,
                         self.DEFAULT_RAG_WORKER,
                         self.DEFAULT_SEARCH_WORKER,
-                        "AnswerNodeWorker",
+                        self.DEFAULT_ANSWER_NODE_WORKER,
                     ]
                     and "workflow" in step_worker_name.lower()
                 ):
