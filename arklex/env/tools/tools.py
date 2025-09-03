@@ -4,6 +4,7 @@ This module provides functionality for managing tools, including
 initialization, execution, and slot filling integration.
 """
 
+import asyncio
 import inspect
 import json
 import traceback
@@ -11,7 +12,8 @@ import uuid
 from collections.abc import Callable
 from typing import Any
 
-from pydantic import BaseModel
+from agents import FunctionTool, RunContextWrapper
+from pydantic import BaseModel, Field, create_model
 
 from arklex.orchestrator.entities.orchestrator_state_entities import (
     OrchestratorState,
@@ -115,7 +117,7 @@ class Tool:
         self.node_specific_data: dict[str, Any] = {}
         self.fixed_args = {}
         self.properties: dict[str, dict[str, Any]] = {}
-        
+
         # Load initial slots
         if slots:
             self.load_slots(slots)
@@ -135,10 +137,10 @@ class Tool:
 
     def _format_slots(self, slots: list[dict[str, Any]]) -> list[dict[str, Any]]:
         """Format slots for OpenAI tool definition.
-        
+
         Args:
             slots: List of slot definitions
-            
+
         Returns:
             List of formatted slot definitions for OpenAI
         """
@@ -150,21 +152,21 @@ class Tool:
                 "description": slot.get("description", ""),
                 "required": slot.get("required", False),
             }
-            
+
             # Handle enum values
             if "enum" in slot:
                 formatted_slot["enum"] = slot["enum"]
-                
+
             # Handle items for array types
             if "items" in slot:
                 formatted_slot["items"] = slot["items"]
-                
+
             # Handle group schema
             if slot.get("type") == "group" and "schema" in slot:
                 formatted_slot["slot_schema"] = slot["schema"]
-                
+
             formatted_slots.append(formatted_slot)
-            
+
         return formatted_slots
 
     def get_info(self, slots: list[dict[str, Any]]) -> dict[str, Any]:
@@ -304,17 +306,19 @@ class Tool:
                 if new_slot.get("type") == "group":
                     # Handle both "schema" and "slot_schema" keys for backward compatibility
                     schema = new_slot.get("slot_schema") or new_slot.get("schema", [])
-                    self.slots.append(Slot(
-                        name=new_slot["name"],
-                        type="group",
-                        slot_schema=schema,
-                        required=new_slot.get("required", False),
-                        repeatable=new_slot.get("repeatable", True),
-                        prompt=new_slot.get("prompt", ""),
-                        description=new_slot.get("description", ""),
-                        value=[],
-                        valueSource=new_slot.get("valueSource", None),
-                    ))
+                    self.slots.append(
+                        Slot(
+                            name=new_slot["name"],
+                            type="group",
+                            slot_schema=schema,
+                            required=new_slot.get("required", False),
+                            repeatable=new_slot.get("repeatable", True),
+                            prompt=new_slot.get("prompt", ""),
+                            description=new_slot.get("description", ""),
+                            value=[],
+                            valueSource=new_slot.get("valueSource", None),
+                        )
+                    )
 
                 else:
                     self.slots.append(Slot.model_validate(new_slot))
@@ -372,7 +376,6 @@ class Tool:
         """
 
         temp_group_slot = self._create_temp_group_slot(slot)
-        
 
         # Use slotfiller to fill the group as a whole
         filled = self.slotfiller.fill_slots(
@@ -456,7 +459,12 @@ class Tool:
         example_fields = []
         schema_lines = []
 
-        for field in (slot.slot_schema if hasattr(slot, 'slot_schema') and isinstance(slot.slot_schema, list | tuple) else []):
+        for field in (
+            slot.slot_schema
+            if hasattr(slot, "slot_schema")
+            and isinstance(slot.slot_schema, list | tuple)
+            else []
+        ):
             field_type = field.get("type", "str")
             field_repeatable = field.get("repeatable", False)
             example_value = self._get_example_value_for_type(field_type)
@@ -509,7 +517,7 @@ class Tool:
         )
 
         return prompt
-    
+
     def _create_temp_group_slot(self, slot: Slot) -> Slot:
         """Create a temporary group slot for filling.
 
@@ -663,8 +671,12 @@ class Tool:
             Updated group value with valueSource logic applied
         """
         for item in group_value:
-
-            for field in (slot.slot_schema if hasattr(slot, 'slot_schema') and isinstance(slot.slot_schema, list | tuple) else []):
+            for field in (
+                slot.slot_schema
+                if hasattr(slot, "slot_schema")
+                and isinstance(slot.slot_schema, list | tuple)
+                else []
+            ):
                 field_name = field["name"]
                 field_repeatable = field.get("repeatable", False)
                 val_source = field.get("valueSource", "Prompt User")
@@ -794,8 +806,13 @@ class Tool:
                     return True
                 # For each item, check required fields
 
-                for item in (slot.value or []):
-                    for field in (slot.slot_schema if hasattr(slot, 'slot_schema') and isinstance(slot.slot_schema, list | tuple) else []):
+                for item in slot.value or []:
+                    for field in (
+                        slot.slot_schema
+                        if hasattr(slot, "slot_schema")
+                        and isinstance(slot.slot_schema, list | tuple)
+                        else []
+                    ):
                         field_repeatable = field.get("repeatable", False)
                         if field.get("required", False):
                             if field_repeatable:
@@ -846,10 +863,18 @@ class Tool:
                 ):
                     missing.append(slot.prompt)
                 for idx, item in enumerate(slot.value or []):
-                    for field in (slot.slot_schema if hasattr(slot, 'slot_schema') and isinstance(slot.slot_schema, list | tuple) else []):
-                        if field.get("required", False) and (item.get(field["name"]) in [None, ""]):
-                            missing.append(f"{field.get('prompt', field['name'])} (group '{slot.name}' item {idx+1})")
-
+                    for field in (
+                        slot.slot_schema
+                        if hasattr(slot, "slot_schema")
+                        and isinstance(slot.slot_schema, list | tuple)
+                        else []
+                    ):
+                        if field.get("required", False) and (
+                            item.get(field["name"]) in [None, ""]
+                        ):
+                            missing.append(
+                                f"{field.get('prompt', field['name'])} (group '{slot.name}' item {idx + 1})"
+                            )
 
             else:
                 # Handle regular slots (non-group)
@@ -916,8 +941,12 @@ class Tool:
                 # For group, define as array of objects with schema
                 group_properties = {}
                 group_required = []
-                for field in (slot.slot_schema if hasattr(slot, 'slot_schema') and isinstance(slot.slot_schema, list | tuple) else []):
-
+                for field in (
+                    slot.slot_schema
+                    if hasattr(slot, "slot_schema")
+                    and isinstance(slot.slot_schema, list | tuple)
+                    else []
+                ):
                     field_source = field.get("valueSource", "")
                     if field_source == "fixed":
                         continue
@@ -999,6 +1028,122 @@ class Tool:
                 "parameters": parameters,
             },
         }
+
+    def to_openai_agents_function_tool(self) -> "FunctionTool":
+        """Convert this Arklex tool to an OpenAI Agents FunctionTool.
+
+        This method creates a FunctionTool that can be used with the OpenAI Agents SDK.
+        It handles parameter conversion, schema generation, and function wrapping.
+
+        Args:
+            **fixed_args: Fixed arguments to be passed to the tool function.
+
+        Returns:
+            FunctionTool: An OpenAI Agents FunctionTool instance.
+
+        Raises:
+            ImportError: If OpenAI Agents SDK is not available.
+        """
+        # Create a Pydantic model for the tool parameters
+        fields = {}
+        for slot in self.slots:
+            # Skip slots with fixed valueSource
+            if getattr(slot, "valueSource", None) == "fixed":
+                continue
+
+            # Convert slot type to Python type
+            py_type = self._slot_type_to_python_type(slot.type)
+
+            # Set default value based on required status
+            default = None if getattr(slot, "required", False) else ...
+
+            # Create field metadata
+            metadata = {"description": getattr(slot, "description", "")}
+
+            # Add enum values if available
+            if hasattr(slot, "enum") and slot.enum:
+                metadata["enum"] = slot.enum
+
+            fields[slot.name] = (py_type, Field(default, **metadata))
+
+        # Create the Pydantic model class
+        model_cls = create_model(f"{self.name}_InputModel", **fields)
+
+        # Create the async wrapper function
+        async def on_invoke(ctx: RunContextWrapper[Any], raw_args: str) -> str:
+            log_context.info(f"on_invoke tool {self.name}, input: {raw_args}")
+
+            try:
+                # Parse the input arguments
+                user_args = model_cls.model_validate_json(raw_args).model_dump()
+                # Update slots with the parsed values
+                for slot in self.slots:
+                    if slot.name in user_args:
+                        slot.value = user_args[slot.name]
+                    if slot.type == "group":
+                        for schema_obj in slot.slot_schema:
+                            if (
+                                schema_obj.get("valueSource", "") == "fixed"
+                                and schema_obj.get("name") in user_args[slot.name]
+                            ):
+                                for filled_ob in user_args[slot.name]:
+                                    if schema_obj.get("type") == "bool":
+                                        filled_ob[schema_obj.get("name")] = (
+                                            schema_obj.get("value", "").lower()
+                                            == "true"
+                                        )
+                                    else:
+                                        filled_ob[schema_obj.get("name")] = (
+                                            schema_obj.get("value")
+                                        )
+
+                # Merge with fixed arguments
+                merged_args = {
+                    "slots": self.slots,
+                    "auth": self.auth,
+                    "node_specific_data": self.node_specific_data,
+                    **self.fixed_args,
+                    **user_args,
+                }
+
+                # Call the original function - handle both sync and async functions
+                if inspect.iscoroutinefunction(self.func):
+                    result = await self.func(**merged_args)
+                else:
+                    result = await asyncio.to_thread(self.func, **merged_args)
+                log_context.info(f"on_invoke result: {result}")
+                return result
+            except Exception as e:
+                log_context.error(f"Error executing tool {self.name}: {e}")
+                log_context.exception(e)
+                return f"Error: {str(e)}"
+
+        return FunctionTool(
+            name=self.name,
+            description=self.description,
+            params_json_schema=model_cls.model_json_schema(),
+            on_invoke_tool=on_invoke,
+            strict_json_schema=True,
+        )
+
+    def _slot_type_to_python_type(self, type_str: str) -> type:
+        """Convert slot type string to Python type.
+
+        Args:
+            type_str: The slot type string.
+
+        Returns:
+            The corresponding Python type.
+        """
+        mapping = {
+            "str": str,
+            "int": int,
+            "float": float,
+            "bool": bool,
+            "dict": dict,
+            "list": list,
+        }
+        return mapping.get(type_str, Any)
 
     def __str__(self) -> str:
         """Get a string representation of the tool.
@@ -1303,8 +1448,9 @@ class Tool:
         for idx, item in enumerate(slot.value):
             missing_fields = []
             for field in (
-                slot.slot_schema 
-                if hasattr(slot, 'slot_schema') and isinstance(slot.slot_schema, list | tuple) 
+                slot.slot_schema
+                if hasattr(slot, "slot_schema")
+                and isinstance(slot.slot_schema, list | tuple)
                 else []
             ):
                 field_repeatable = field.get("repeatable", False)
