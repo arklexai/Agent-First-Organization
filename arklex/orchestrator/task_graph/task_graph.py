@@ -277,6 +277,9 @@ class AgentGraph(TaskGraphBase):
             ]
 
         if start_agent_name is None:
+            if len(self.agents_sdk_agents) == 0:
+                log_context.info("No agents-sdk agents found in the graph")
+                return
             start_agent_name = list(self.agents_sdk_agents.keys())[0]
             start_agent_config = agent_node_specific_data[start_agent_name]
         log_context.info(f"agent handovers: {agent_handovers}")
