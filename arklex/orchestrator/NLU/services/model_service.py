@@ -383,13 +383,13 @@ class ModelService:
                     unmatched_fields.append((field_name, field_value))
             
             # Only set slot.value if we have unmatched fields and slot.value is not already set
-            if unmatched_fields and not hasattr(slot, 'value') or getattr(slot, 'value', None) is None:
+            if unmatched_fields and (not hasattr(slot, 'value') or getattr(slot, 'value', None) is None):
                 # Use the first unmatched field as the main value, or combine them
                 if len(unmatched_fields) == 1:
                     slot.value = unmatched_fields[0][1]
                 else:
                     # Combine multiple unmatched fields into a structured value
-                    slot.value = {name: value for name, value in unmatched_fields}
+                    slot.value = dict(unmatched_fields)
         
         return slots
 
