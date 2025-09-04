@@ -74,7 +74,7 @@ class DefaultResourceInitializer(BaseResourceInitializer):
     @staticmethod
     def init_tools(
         tools: list[dict[str, Any]], nodes: list[dict[str, Any]]
-    ) -> dict[str, dict[str, Any]]:
+    ) -> dict[str, dict[str, Tool]]:
         """Initialize tools from configuration.
 
         Args:
