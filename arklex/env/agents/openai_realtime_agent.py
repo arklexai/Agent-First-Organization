@@ -388,6 +388,9 @@ class OpenAIRealtimeAgent(BaseAgent):
 
                 # Clean up the stored data
                 del self._mark_data[mark_id]
+                if len(self._mark_data) == 0:
+                    logger.info("All mark data deleted. Setting response_played event.")
+                    self.response_played.set()
 
         except Exception as e:
             logger.error(f"Error handling mark event: {e}")

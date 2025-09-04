@@ -43,6 +43,7 @@ Usage:
 import collections
 import copy
 import re
+import threading
 from typing import Any
 
 import networkx as nx
@@ -174,6 +175,7 @@ class AgentGraph(TaskGraphBase):
         start_agent_config: dict[str, Any] | None = None
         start_agent_name: str | None = None
         voicemail_tool: Tool | None = None
+        response_played_event = threading.Event()
         agent_node_specific_data: dict[str, Any] | None = {}
         for node in self.graph.nodes.data():
             if node[1].get("attribute", {}).get("type", "") == ResourceType.AGENT:
@@ -222,6 +224,9 @@ class AgentGraph(TaskGraphBase):
                 for tool_id in tool_registry:
                     tool_registry[tool_id]["tool_instance"].name = re.sub(
                         r"[^a-zA-Z0-9]", "_", tool_id
+                    )
+                    tool_registry[tool_id]["tool_instance"].runtime_args.update(
+                        {"response_played_event": response_played_event}
                     )
                     if tool_id == ToolItem.TWILIO_CALL_VOICEMAIL:
                         voicemail_tool = tool_registry[tool_id]["tool_instance"]
@@ -298,6 +303,7 @@ class AgentGraph(TaskGraphBase):
             ),
             voicemail_tool=voicemail_tool,
         )
+        self.start_agent.response_played = response_played_event
 
 
 class TaskGraph(TaskGraphBase):
