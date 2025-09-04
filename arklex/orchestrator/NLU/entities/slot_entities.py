@@ -340,7 +340,7 @@ class Slot(BaseModel):
             except Exception:
                 # Fall back to synthesizing schema if extraction fails
                 pass
-        elif isinstance(self.schema, dict) and "function" in self.schema:
+        elif hasattr(self, 'schema') and isinstance(self.schema, dict) and "function" in self.schema:
             try:
                 properties = (
                     self.schema.get("function", {})

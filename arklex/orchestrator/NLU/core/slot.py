@@ -135,7 +135,7 @@ class SlotFiller(BaseSlotFilling):
             # Remove non-OpenAI fields
             fields_to_remove = [
                 "valueSource", "fixed", "default", "prompt", 
-                "verified", "required", "repeatable", "type"
+                "verified", "required", "repeatable"
             ]
             for field in fields_to_remove:
                 schema_obj.pop(field, None)
@@ -443,7 +443,7 @@ class SlotFiller(BaseSlotFilling):
         log_context.info(
             "Using local model for slot verification",
             extra={
-                "slot": slot.get("name"),
+                "slot": slot.get("name", "unknown"),
                 "operation": "slot_verification_local",
             },
         )
@@ -525,6 +525,24 @@ class SlotFiller(BaseSlotFilling):
         # Handle both Slot objects and dictionaries
         slot_name = slot.name if hasattr(slot, 'name') else slot.get('name', 'unknown')
         
+        # Convert Slot object to dictionary if needed
+        slot_dict = slot
+        if hasattr(slot, '__dict__'):
+            slot_dict = {
+                'name': slot.name,
+                'value': getattr(slot, 'value', None),
+                'type': getattr(slot, 'type', None),
+                'description': getattr(slot, 'description', None),
+                'enum': getattr(slot, 'enum', None),
+                'required': getattr(slot, 'required', False),
+                'repeatable': getattr(slot, 'repeatable', False),
+                'prompt': getattr(slot, 'prompt', None),
+                'valueSource': getattr(slot, 'valueSource', None),
+                'fixed': getattr(slot, 'fixed', None),
+                'default': getattr(slot, 'default', None),
+                'verified': getattr(slot, 'verified', False),
+            }
+        
         log_context.info(
             "Starting slot verification",
             extra={
@@ -536,7 +554,7 @@ class SlotFiller(BaseSlotFilling):
 
         try:
             is_valid, reason = self._verify_slot_local(
-                slot, chat_history_str, model_config
+                slot_dict, chat_history_str, model_config
             )
 
             log_context.info(
