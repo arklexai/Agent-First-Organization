@@ -371,14 +371,25 @@ class ModelService:
         if isinstance(extracted_values, dict):
             # For slot_schema, we need to extract values from the nested structure
             # The extracted_values should contain the actual data, not the schema
+            # Track unmatched fields to avoid overwriting slot.value multiple times
+            unmatched_fields = []
+            
             for field_name, field_value in extracted_values.items():
                 # Find the corresponding slot field and update its value
                 if hasattr(slot, field_name):
                     setattr(slot, field_name, field_value)
                 else:
-                    # If it's a nested field, we might need to handle it differently
-                    # For now, just set it as a value
-                    slot.value = field_value
+                    # Collect unmatched fields instead of immediately overwriting slot.value
+                    unmatched_fields.append((field_name, field_value))
+            
+            # Only set slot.value if we have unmatched fields and slot.value is not already set
+            if unmatched_fields and not hasattr(slot, 'value') or getattr(slot, 'value', None) is None:
+                # Use the first unmatched field as the main value, or combine them
+                if len(unmatched_fields) == 1:
+                    slot.value = unmatched_fields[0][1]
+                else:
+                    # Combine multiple unmatched fields into a structured value
+                    slot.value = {name: value for name, value in unmatched_fields}
         
         return slots
 

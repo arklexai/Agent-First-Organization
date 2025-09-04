@@ -244,10 +244,16 @@ def apply_fields_to_item_recursive(item: dict, fields: dict, schema: dict, slot_
                 # Handle arrays - apply to each item in the array
                 if isinstance(current_obj, list):
                     for array_item in current_obj:
-                        if isinstance(array_item, dict) and field_name in array_item and array_item.get(field_name) in (None, "", False, "null"):
-                            array_item[field_name] = converted_value
-                elif isinstance(current_obj, dict) and current_obj.get(field_name) in (None, "", False, "null"):
-                    current_obj[field_name] = converted_value
+                        if isinstance(array_item, dict) and field_name in array_item:
+                            current_value = array_item.get(field_name)
+                            # Only apply default if value is truly missing/empty/null, not False
+                            if current_value is None or current_value == "" or current_value == "null":
+                                array_item[field_name] = converted_value
+                elif isinstance(current_obj, dict):
+                    current_value = current_obj.get(field_name)
+                    # Only apply default if value is truly missing/empty/null, not False
+                    if current_value is None or current_value == "" or current_value == "null":
+                        current_obj[field_name] = converted_value
 
 
 def apply_values_recursively(value: str | int | float | bool | list | dict | None, schema: dict, slot_name: str) -> None:
