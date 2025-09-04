@@ -379,7 +379,6 @@ class ModelService:
                     # If it's a nested field, we might need to handle it differently
                     # For now, just set it as a value
                     slot.value = field_value
-                    break  # Assuming the main value is what we want
         
         return slots
 

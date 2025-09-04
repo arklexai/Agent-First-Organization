@@ -434,9 +434,10 @@ class Tool:
     def to_openai_tool_def_v2(self) -> dict:
         # If any slot provides a full OpenAI function schema, use it directly
         for slot in self.slots:
-            schema_obj = getattr(slot, "schema", None)
+            # Check for slot_schema first (new structure), then fall back to schema (legacy)
+            schema_obj = getattr(slot, "slot_schema", None) or getattr(slot, "schema", None)
             if isinstance(schema_obj, dict) and ("function" in schema_obj or schema_obj.get("type") == "function"):
-                function_block = schema_obj.get("function", schema_obj.get("function", {}))
+                function_block = schema_obj.get("function", {})
                 # Ensure minimal structure
                 if isinstance(function_block, dict) and function_block.get("parameters"):
                     return {
