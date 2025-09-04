@@ -119,6 +119,7 @@ class Tool:
         self.node_specific_data: dict[str, Any] = {}
         self.fixed_args = {}
         self.properties: dict[str, dict[str, Any]] = {}
+        self.runtime_args = {}
 
         # Load initial slots
         if slots:
@@ -539,6 +540,7 @@ class Tool:
                     "auth": self.auth,
                     "node_specific_data": self.node_specific_data,
                     **self.fixed_args,
+                    **self.runtime_args,
                     **user_args,
                 }
 
