@@ -1084,7 +1084,7 @@ class Tool:
                         for schema_obj in slot.slot_schema:
                             if (
                                 schema_obj.get("valueSource", "") == "fixed"
-                                and schema_obj.get("name") in user_args[slot.name]
+                                and slot.name in user_args
                             ):
                                 for filled_ob in user_args[slot.name]:
                                     if schema_obj.get("type") == "bool":
