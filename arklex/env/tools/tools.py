@@ -4,6 +4,7 @@ This module provides functionality for managing tools, including
 initialization, execution, and slot filling integration.
 """
 
+import asyncio
 import inspect
 import json
 import traceback
@@ -11,7 +12,8 @@ import uuid
 from collections.abc import Callable
 from typing import Any
 
-from pydantic import BaseModel
+from agents import FunctionTool, RunContextWrapper
+from pydantic import BaseModel, Field, create_model
 
 from arklex.orchestrator.entities.orchestrator_state_entities import (
     OrchestratorState,
@@ -117,7 +119,7 @@ class Tool:
         self.node_specific_data: dict[str, Any] = {}
         self.fixed_args = {}
         self.properties: dict[str, dict[str, Any]] = {}
-        
+
         # Load initial slots
         if slots:
             self.load_slots(slots)
@@ -135,7 +137,39 @@ class Tool:
             slots=[i.model_dump() for i in self.slots],
         )
 
+    def _format_slots(self, slots: list[dict[str, Any]]) -> list[dict[str, Any]]:
+        """Format slots for OpenAI tool definition.
 
+        Args:
+            slots: List of slot definitions
+
+        Returns:
+            List of formatted slot definitions for OpenAI
+        """
+        formatted_slots = []
+        for slot in slots:
+            formatted_slot = {
+                "name": slot["name"],
+                "type": slot["type"],
+                "description": slot.get("description", ""),
+                "required": slot.get("required", False),
+            }
+
+            # Handle enum values
+            if "enum" in slot:
+                formatted_slot["enum"] = slot["enum"]
+
+            # Handle items for array types
+            if "items" in slot:
+                formatted_slot["items"] = slot["items"]
+
+            # Handle group schema
+            if slot.get("type") == "group" and "schema" in slot:
+                formatted_slot["slot_schema"] = slot["schema"]
+
+            formatted_slots.append(formatted_slot)
+
+        return formatted_slots
 
     def get_info(self, slots: list[dict[str, Any]]) -> dict[str, Any]:
         """Get tool information including parameters and requirements.
@@ -382,7 +416,6 @@ class Tool:
             # If the default slots have been populated and verified, then don't show the slot in the tool definition
             if slot.verified and slot.value:
                 continue
-
             elif slot.items:
                 parameters["properties"][slot.name] = {
                     "type": "array",
@@ -430,6 +463,122 @@ class Tool:
                 "parameters": parameters,
             },
         }
+
+    def to_openai_agents_function_tool(self) -> "FunctionTool":
+        """Convert this Arklex tool to an OpenAI Agents FunctionTool.
+
+        This method creates a FunctionTool that can be used with the OpenAI Agents SDK.
+        It handles parameter conversion, schema generation, and function wrapping.
+
+        Args:
+            **fixed_args: Fixed arguments to be passed to the tool function.
+
+        Returns:
+            FunctionTool: An OpenAI Agents FunctionTool instance.
+
+        Raises:
+            ImportError: If OpenAI Agents SDK is not available.
+        """
+        # Create a Pydantic model for the tool parameters
+        fields = {}
+        for slot in self.slots:
+            # Skip slots with fixed valueSource
+            if getattr(slot, "valueSource", None) == "fixed":
+                continue
+
+            # Convert slot type to Python type
+            py_type = self._slot_type_to_python_type(slot.type)
+
+            # Set default value based on required status
+            default = None if getattr(slot, "required", False) else ...
+
+            # Create field metadata
+            metadata = {"description": getattr(slot, "description", "")}
+
+            # Add enum values if available
+            if hasattr(slot, "enum") and slot.enum:
+                metadata["enum"] = slot.enum
+
+            fields[slot.name] = (py_type, Field(default, **metadata))
+
+        # Create the Pydantic model class
+        model_cls = create_model(f"{self.name}_InputModel", **fields)
+
+        # Create the async wrapper function
+        async def on_invoke(ctx: RunContextWrapper[Any], raw_args: str) -> str:
+            log_context.info(f"on_invoke tool {self.name}, input: {raw_args}")
+
+            try:
+                # Parse the input arguments
+                user_args = model_cls.model_validate_json(raw_args).model_dump()
+                # Update slots with the parsed values
+                for slot in self.slots:
+                    if slot.name in user_args:
+                        slot.value = user_args[slot.name]
+                    if slot.type == "group":
+                        for schema_obj in slot.slot_schema:
+                            if (
+                                schema_obj.get("valueSource", "") == "fixed"
+                                and slot.name in user_args
+                            ):
+                                for filled_ob in user_args[slot.name]:
+                                    if schema_obj.get("type") == "bool":
+                                        filled_ob[schema_obj.get("name")] = (
+                                            schema_obj.get("value", "").lower()
+                                            == "true"
+                                        )
+                                    else:
+                                        filled_ob[schema_obj.get("name")] = (
+                                            schema_obj.get("value")
+                                        )
+
+                # Merge with fixed arguments
+                merged_args = {
+                    "slots": self.slots,
+                    "auth": self.auth,
+                    "node_specific_data": self.node_specific_data,
+                    **self.fixed_args,
+                    **user_args,
+                }
+
+                # Call the original function - handle both sync and async functions
+                if inspect.iscoroutinefunction(self.func):
+                    result = await self.func(**merged_args)
+                else:
+                    result = await asyncio.to_thread(self.func, **merged_args)
+                log_context.info(f"on_invoke result: {result}")
+                return result
+            except Exception as e:
+                log_context.error(f"Error executing tool {self.name}: {e}")
+                log_context.exception(e)
+                return f"Error: {str(e)}"
+
+        return FunctionTool(
+            name=self.name,
+            description=self.description,
+            params_json_schema=model_cls.model_json_schema(),
+            on_invoke_tool=on_invoke,
+            strict_json_schema=True,
+        )
+
+    def _slot_type_to_python_type(self, type_str: str) -> type:
+        """Convert slot type string to Python type.
+
+        Args:
+            type_str: The slot type string.
+
+        Returns:
+            The corresponding Python type.
+        """
+        mapping = {
+            "str": str,
+            "int": int,
+            "float": float,
+            "bool": bool,
+            "dict": dict,
+            "list": list,
+        }
+        return mapping.get(type_str, Any)
 
     def __str__(self) -> str:
         """Get a string representation of the tool.
@@ -654,7 +803,3 @@ class Tool:
                 return slot.prompt, False  # Missing slot
 
         return "", False
-
-
-
-

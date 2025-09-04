@@ -286,9 +286,7 @@ def http_tool(
                 "error": "JSON parsing failed",
             }
 
-        log_context.info(
-            f"Response from the {params.endpoint} for body: {params.body} and params: {params.params} is: {response_data}"
-        )
+        log_context.info(f"Response from http tool: {response_data}")
         return str(response_data)
 
     except requests.exceptions.RequestException as e:

@@ -42,10 +42,13 @@ Usage:
 
 import collections
 import copy
+import re
 from typing import Any
 
 import networkx as nx
 import numpy as np
+from agents.realtime import RealtimeAgent, realtime_handoff
+from jinja2 import Template
 
 from arklex.env.agents.agent import BaseAgent
 from arklex.env.agents.openai_realtime_agent import (
@@ -55,6 +58,7 @@ from arklex.env.agents.openai_realtime_agent import (
 )
 from arklex.env.env import DefaultResourceInitializer
 from arklex.env.nested_graph.nested_graph import NestedGraph
+from arklex.env.tools.tools import Tool
 from arklex.orchestrator.entities.orchestrator_param_entities import OrchestratorParams
 from arklex.orchestrator.entities.orchestrator_state_entities import (
     StatusEnum,
@@ -136,7 +140,10 @@ class AgentGraph(TaskGraphBase):
 
     def __init__(self, name: str, product_kwargs: dict[str, Any]) -> None:
         self.agents: dict[str, BaseAgent] = {}
+        self.agents_sdk_agents: dict[str, RealtimeAgent] = {}
         self.resources = {}
+        self.start_agent: OpenAIRealtimeAgent | None = None
+        self.prompt_variables: list[PromptVariable] = []
         super().__init__(name, product_kwargs)
 
     def create_graph(self) -> None:
@@ -163,11 +170,18 @@ class AgentGraph(TaskGraphBase):
             resource_map[resource["id"]] = resource
 
         resource_initializer = DefaultResourceInitializer()
+        agent_handovers: dict[str, list[str]] = collections.defaultdict(list)
+        start_agent_config: dict[str, Any] | None = None
+        start_agent_name: str | None = None
+        voicemail_tool: Tool | None = None
+        agent_node_specific_data: dict[str, Any] | None = {}
         for node in self.graph.nodes.data():
             if node[1].get("attribute", {}).get("type", "") == ResourceType.AGENT:
                 node_specific_data = node[1].get("data", {})
                 resource = node[1].get("resource", {})
-
+                if node_specific_data.get("start_agent", False):
+                    start_agent_name = node_specific_data["name"]
+                    start_agent_config = node_specific_data
                 # process successors and predecessors to get resources
                 available_tools = []
                 available_nodes = []
@@ -182,6 +196,13 @@ class AgentGraph(TaskGraphBase):
                             resource_map[successor_node["resource"]["id"]]
                         )
                         available_nodes.append([node_id, successor_node])
+                    elif (
+                        successor_node.get("attribute", {}).get("type", "")
+                        == ResourceType.AGENT
+                    ):
+                        agent_handovers[node_specific_data["name"]].append(
+                            successor_node["data"]["name"]
+                        )
 
                 for node_id in self.graph.predecessors(node[0]):
                     predecessor_node = self.graph.nodes[node_id]
@@ -197,17 +218,19 @@ class AgentGraph(TaskGraphBase):
                 tool_registry = resource_initializer.init_tools(
                     available_tools, available_nodes
                 )
-                tool_map = {}
+                agents_sdk_tools = []
                 for tool_id in tool_registry:
-                    if tool_id == ToolItem.HTTP_TOOL:
-                        for tool_name in tool_registry[tool_id]:
-                            tool_instance = tool_registry[tool_id][tool_name][
-                                "tool_instance"
-                            ]
-                            tool_map[tool_instance.name] = tool_instance
+                    tool_registry[tool_id]["tool_instance"].name = re.sub(
+                        r"[^a-zA-Z0-9]", "_", tool_id
+                    )
+                    if tool_id == ToolItem.TWILIO_CALL_VOICEMAIL:
+                        voicemail_tool = tool_registry[tool_id]["tool_instance"]
                     else:
-                        tool_instance = tool_registry[tool_id]["tool_instance"]
-                        tool_map[tool_instance.name] = tool_instance
+                        agents_sdk_tools.append(
+                            tool_registry[tool_id][
+                                "tool_instance"
+                            ].to_openai_agents_function_tool()
+                        )
                 self.resources.update(tool_registry)
                 if resource.get("id", "") == AgentItem.OPENAI_REALTIME_VOICE_AGENT:
                     prompt = node_specific_data.get("prompt", "")
@@ -222,24 +245,59 @@ class AgentGraph(TaskGraphBase):
                                 "prompt_variables_test_values", []
                             )
                         ]
-                    self.agents[node_specific_data["name"]] = OpenAIRealtimeAgent(
-                        prompt=prompt,
-                        prompt_variables=prompt_variables,
-                        tool_map=tool_map,
-                        voice=node_specific_data.get("voice", "alloy"),
-                        transcription_language=node_specific_data.get(
-                            "transcription_language", None
-                        ),
-                        speed=node_specific_data.get("speed", 1.0),
-                        turn_detection=TurnDetection.from_dict(
-                            node_specific_data.get("turn_detection", None)
-                        ),
+                    if prompt_variables:
+                        self.prompt_variables.extend(prompt_variables)
+                        template = Template(prompt)
+                        # convert prompt_variables to a dict
+                        prompt_variables_dict = {
+                            pv.name: pv.value for pv in self.prompt_variables
+                        }
+                        prompt = template.render(prompt_variables_dict)
+                    agent_node_specific_data[node_specific_data["name"]] = (
+                        node_specific_data
+                    )
+                    self.agents_sdk_agents[node_specific_data["name"]] = RealtimeAgent(
+                        name=node_specific_data["name"],
+                        instructions=prompt,
+                        tools=agents_sdk_tools,
+                        handoff_description=node[1]
+                        .get("attribute", {})
+                        .get("task", ""),
                     )
                 else:
                     log_context.warning(
                         f"Agent {resource.get('id', '')} not implemented yet in agent graph"
                     )
                     continue
+
+        for agent_name, handover_agents in agent_handovers.items():
+            self.agents_sdk_agents[agent_name].handoffs = [
+                realtime_handoff(self.agents_sdk_agents[handover_agent])
+                for handover_agent in handover_agents
+            ]
+
+        if start_agent_name is None:
+            if len(self.agents_sdk_agents) == 0:
+                log_context.info("No agents-sdk agents found in the graph")
+                return
+            start_agent_name = list(self.agents_sdk_agents.keys())[0]
+            start_agent_config = agent_node_specific_data[start_agent_name]
+        log_context.info(f"agent handovers: {agent_handovers}")
+        log_context.info(
+            f"start agent: {start_agent_name}, handovers: {self.agents_sdk_agents[start_agent_name].handoffs}"
+        )
+        self.start_agent = OpenAIRealtimeAgent(
+            realtime_agent=self.agents_sdk_agents[start_agent_name],
+            voice=start_agent_config.get("voice", "alloy"),
+            transcription_language=start_agent_config.get(
+                "transcription_language", None
+            ),
+            speed=start_agent_config.get("speed", 1.0),
+            turn_detection=TurnDetection.from_dict(
+                start_agent_config.get("turn_detection", None)
+            ),
+            voicemail_tool=voicemail_tool,
+        )
 
 
 class TaskGraph(TaskGraphBase):
