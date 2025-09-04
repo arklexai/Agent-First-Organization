@@ -22,7 +22,7 @@ Features:
 
 Usage:
     from arklex.orchestrator.task_graph import TaskGraph
-    from arklex.utils.graph_state import LLMConfig, Params
+    from arklex.utils.model_provider_config import LLMConfig
 
     # Initialize task graph
     config = {
@@ -71,6 +71,7 @@ from arklex.orchestrator.NLU.services.model_service import (
 )
 from arklex.types.resource_types import AgentItem, ResourceType, ToolItem
 from arklex.utils.exceptions import TaskGraphError
+from arklex.utils.llm_config import LLMConfig
 from arklex.utils.logging_utils import LogContext
 from arklex.utils.utils import normalize, str_similarity
 
@@ -339,14 +340,14 @@ class TaskGraph(TaskGraphBase):
         self,
         name: str,
         product_kwargs: dict[str, Any],
-        model_service: ModelService,
+        llm_config: LLMConfig,
     ) -> None:
         """Initialize the task graph.
 
         Args:
             name: Name of the task graph
             product_kwargs: Configuration settings for the graph
-            model_service: Model service for intent detection (required)
+            llm_config: Language model configuration
         """
         super().__init__(name, product_kwargs)
         self.unsure_intent: dict[str, Any] = {
@@ -361,6 +362,7 @@ class TaskGraph(TaskGraphBase):
             },
         }
         self.initial_node: str | None = self.get_initial_flow()
+        model_service = ModelService(llm_config)
         self.intent_detector: IntentDetector = IntentDetector(model_service)
 
     def get_initial_flow(self) -> str | None:

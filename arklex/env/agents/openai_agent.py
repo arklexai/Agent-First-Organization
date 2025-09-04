@@ -18,8 +18,8 @@ from arklex.orchestrator.NLU.entities.slot_entities import (
 )
 from arklex.types.resource_types import ToolItem
 from arklex.types.stream_types import EventType, StreamType
+from arklex.utils.llm_config import load_llm
 from arklex.utils.logging_utils import LogContext
-from arklex.utils.provider_utils import validate_and_get_model_class
 
 log_context = LogContext(__name__)
 
@@ -311,12 +311,12 @@ class OpenAIAgent(BaseAgent):
                 ],
                 tool_args,
             )
-            
+
             # Apply fixed/default values to slots before calling HTTP tool
             for slot in slots:
                 if slot.get("slot_schema"):
                     self._apply_fixed_default_values(slot)
-            
+
             # Call http_tool with slots parameter, excluding slots from tool_args
             filtered_args = {k: v for k, v in tool_args.items() if k != "slots"}
             return self.tool_map[tool_name](slots=slots, **filtered_args)
@@ -372,13 +372,7 @@ class OpenAIAgent(BaseAgent):
         return state, agent_output
 
     def _execute(self) -> tuple[OrchestratorState, OpenAIAgentOutput]:
-        model_class = validate_and_get_model_class(
-            self.orch_state.bot_config.llm_config
-        )
-
-        self.llm = model_class(
-            model=self.orch_state.bot_config.llm_config.model_type_or_path
-        )
+        self.llm = load_llm(self.orch_state.bot_config.llm_config)
         self.llm = self.llm.bind_tools(self.tool_defs)
         self.prompt: str = self.openai_agent_data.prompt
         if self.orch_state.stream_type == StreamType.TEXT:
@@ -390,15 +384,15 @@ class OpenAIAgent(BaseAgent):
 
     def _apply_fixed_default_values(self, slot: dict) -> None:
         """Apply fixed and default values from slot_schema to slot values recursively.
-        
+
         Args:
             slot: Slot dictionary with slot_schema and value
         """
         slot_schema = slot.get("slot_schema", {})
         slot_value = slot.get("value")
-        
+
         if not slot_schema or not slot_value:
             return
-            
+
         # Apply fixed/default values recursively to the slot value
         apply_values_recursively(slot_value, slot_schema, slot.get("name"))

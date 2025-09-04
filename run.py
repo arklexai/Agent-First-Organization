@@ -19,8 +19,8 @@ from dotenv import load_dotenv
 from arklex.env.env import Environment
 from arklex.orchestrator.NLU.services.model_service import ModelService
 from arklex.orchestrator.orchestrator import AgentOrg
+from arklex.utils.llm_config import LLM_PROVIDERS
 from arklex.utils.logging_utils import LogContext
-from arklex.utils.model_provider_config import LLM_PROVIDERS
 from arklex.utils.provider_utils import get_provider_config
 
 load_dotenv()

@@ -24,9 +24,9 @@ from arklex.env.tools.shopify.utils.utils_slots import (
 
 # Admin API
 from arklex.env.tools.tools import register_tool
+from arklex.orchestrator.NLU.services.model_service import ModelService
 from arklex.utils.exceptions import ToolExecutionError
 from arklex.utils.logging_utils import LogContext
-from arklex.utils.model_provider_config import PROVIDER_MAP
 
 log_context = LogContext(__name__)
 
@@ -128,18 +128,14 @@ def search_products(
                 if not kwargs.get("llm_provider"):
                     raise ValueError("llm_provider must be explicitly specified")
 
-                model_class = PROVIDER_MAP.get(kwargs["llm_provider"])
-                if not model_class:
-                    raise ValueError(f"Unsupported provider: {kwargs['llm_provider']}")
-
-                llm = model_class(model=kwargs["model_type_or_path"], temperature=0.7)
+                model_service: ModelService = ModelService(kwargs["llm_config"])
                 message = [
                     {
                         "role": "user",
                         "content": f"You are helping a customer search products based on the query and get results below and those results will be presented using product card format.\n\n{json.dumps(card_list)}\n\nGenerate a response to continue the conversation without explicitly mentioning contents of the search result. Include one or two questions about those products to know the user's preference. Keep the response within 50 words.\nDIRECTLY GIVE THE RESPONSE.",
                     },
                 ]
-                answer = llm.invoke(message).content
+                answer = model_service.get_response(message)
                 return SearchProductsOutput(
                     response=json.dumps({"answer": answer, "card_list": card_list})
                 )

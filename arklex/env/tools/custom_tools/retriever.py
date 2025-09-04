@@ -9,7 +9,7 @@ from arklex.orchestrator.entities.orchestrator_state_entities import (
     BotConfig,
     OrchestratorState,
 )
-from arklex.types.model_types import LLMConfig
+from arklex.utils.llm_config import LLMConfig
 from arklex.utils.logging_utils import LogContext
 
 log_context = LogContext(__name__)

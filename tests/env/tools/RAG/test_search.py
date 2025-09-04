@@ -20,8 +20,8 @@ from arklex.orchestrator.entities.orchestrator_state_entities import (
     ConvoMessage,
     OrchestratorState,
 )
-from arklex.types.model_types import LLMConfig
 from arklex.utils.exceptions import SearchError
+from arklex.utils.llm_config import LLMConfig
 
 
 @pytest.fixture

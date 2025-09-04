@@ -20,7 +20,6 @@ from multiprocessing.pool import Pool
 
 import numpy as np
 from langchain.prompts import PromptTemplate
-from langchain_core.output_parsers import StrOutputParser
 from pymilvus import Collection, DataType, MilvusClient, connections
 
 from arklex.env.prompts import load_prompts
@@ -31,9 +30,9 @@ from arklex.env.tools.RAG.retrievers.retriever_document import (
     embed,
     embed_retriever_document,
 )
+from arklex.orchestrator.NLU.services.model_service import ModelService
 from arklex.utils.logging_utils import LogContext
 from arklex.utils.mysql import mysql_pool
-from arklex.utils.provider_utils import validate_and_get_model_class
 
 EMBED_DIMENSION = 1536
 MAX_TEXT_LENGTH = 65535
@@ -760,9 +759,7 @@ class MilvusRetriever:
 class MilvusRetrieverExecutor:
     def __init__(self, bot_config: object) -> None:
         self.bot_config = bot_config
-        model_class = validate_and_get_model_class(bot_config.llm_config)
-
-        self.llm = model_class(model=bot_config.llm_config.model_type_or_path)
+        self.model_service = ModelService(bot_config.llm_config)
 
     def generate_thought(self, retriever_results: list[RetrieverResult]) -> str:
         # post process list of documents into str
@@ -808,8 +805,9 @@ class MilvusRetrieverExecutor:
         contextualize_q_prompt = PromptTemplate.from_template(
             prompts.get("retrieve_contextualize_q_prompt", "")
         )
-        ret_input_chain = contextualize_q_prompt | self.llm | StrOutputParser()
-        ret_input = ret_input_chain.invoke({"chat_history": chat_history_str})
+        ret_input = self.model_service.get_response(
+            contextualize_q_prompt.invoke({"chat_history": chat_history_str}).text
+        )
         rit = time.time() - st
 
         ret_results: list[RetrieverResult] = []
