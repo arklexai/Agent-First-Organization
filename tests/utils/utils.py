@@ -553,10 +553,6 @@ class MockOrchestrator(ABC):
                 "arklex.orchestrator.task_graph.task_graph.TaskGraph.__init__",
                 patched_taskgraph_init,
             ),
-            patch(
-                "arklex.env.planner.react_planner.ReactPlanner.__init__",
-                patched_react_planner_init,
-            ),
             patch("arklex.env.env.Environment.__init__", patched_env_init),
             patch(
                 "arklex.orchestrator.orchestrator.AgentOrg.__init__",
