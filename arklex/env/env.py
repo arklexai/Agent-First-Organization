@@ -105,36 +105,9 @@ class DefaultResourceInitializer(BaseResourceInitializer):
                         tool_instance: Tool = base_tool.copy()
                         tool_instance.auth.update(tool.get("auth", {}))
                         tool_instance.node_specific_data = node_data
-                        # --- Begin slot group merge logic ---
+                        # Load slots from node data
                         slots = node_data.get("slots", [])
-                        slot_groups = node_data.get("slot_groups", [])
-                        group_slots = []
-                        for group in slot_groups:
-                            # Generate prompt/description for the group
-                            required_fields = [
-                                s["name"]
-                                for s in group.get("schema", [])
-                                if s.get("required", False)
-                            ]
-                            prompt = (
-                                f"Please provide at least one set of the following fields: {', '.join(required_fields)}."
-                                if required_fields
-                                else f"Please provide a set of values for group '{group['name']}'."
-                            )
-                            description = f"Slot group '{group['name']}' with schema: {[s['name'] for s in group.get('schema', [])]}"
-                            group_slots.append(
-                                {
-                                    "name": group["name"],
-                                    "type": "group",
-                                    "schema": group.get("schema", []),
-                                    "required": group.get("required", False),
-                                    "repeatable": group.get("repeatable", True),
-                                    "prompt": prompt,
-                                    "description": description,
-                                }
-                            )
-                        all_slots = slots + group_slots
-                        tool_instance.load_slots(all_slots)
+                        tool_instance.load_slots(slots)
                         tool_instance.name = node_data.get("name", "")
                         tool_instance.description = node_info.get("attribute", {}).get(
                             "task", ""

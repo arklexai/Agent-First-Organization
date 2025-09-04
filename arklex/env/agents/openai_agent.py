@@ -10,7 +10,12 @@ from pydantic import BaseModel
 from arklex.env.agents.agent import BaseAgent, register_agent
 from arklex.env.prompts import load_prompts
 from arklex.env.tools.tools import TYPE_CONVERTERS
-from arklex.orchestrator.entities.orchestrator_state_entities import OrchestratorState
+from arklex.orchestrator.entities.orchestrator_state_entities import (
+    OrchestratorState,
+)
+from arklex.orchestrator.NLU.entities.slot_entities import (
+    apply_values_recursively,
+)
 from arklex.types.resource_types import ToolItem
 from arklex.types.stream_types import EventType, StreamType
 from arklex.utils.logging_utils import LogContext
@@ -271,47 +276,13 @@ class OpenAIAgent(BaseAgent):
                 value_source = slot.get("valueSource", "prompt")
                 slot_value = None
 
-                if slot_type == "group":
-                    if slot.get("repeatable", False):
-                        group_values = tool_args.get(name, [])
-                        if (
-                            not group_values
-                            and value_source == "default"
-                            or not group_values
-                            and value_source == "fixed"
-                        ):
-                            group_values = [slot.get("value", "")]
-                        # TODO: temporary fix for slot group values (should be list of dicts instead of dict)
-                        if isinstance(group_values, dict):
-                            group_values = [group_values]
-                        slot_value = [
-                            build_slot_values(slot["slot_schema"], item)
-                            for item in group_values
-                        ]
-                        slot_value = flatten_group_items(slot_value)
-                    else:
-                        group_value = tool_args.get(name, {})
-                        if (
-                            not group_value
-                            and value_source == "default"
-                            or not group_value
-                            and value_source == "fixed"
-                        ):
-                            group_value = slot.get("value", "")
-                        slot_list = build_slot_values(slot["slot_schema"], group_value)
-                        # Convert list of slot dicts to single object for non-repeatable groups
-                        slot_value = {
-                            slot_dict["name"]: slot_dict["value"]
-                            for slot_dict in slot_list
-                        }
-                else:
-                    if value_source == "fixed":
-                        slot_value = slot.get("value", "")
-                    elif value_source == "default":
-                        slot_value = tool_args.get(name, slot.get("value", ""))
-                    else:  # prompt or anything else
-                        slot_value = tool_args.get(name, "")
-                    slot_value = type_convert(slot_value, slot_type)
+                if value_source == "fixed":
+                    slot_value = slot.get("value", "")
+                elif value_source == "default":
+                    slot_value = tool_args.get(name, slot.get("value", ""))
+                else:  # prompt or anything else
+                    slot_value = tool_args.get(name, "")
+                slot_value = type_convert(slot_value, slot_type)
 
                 slot_dict = slot.copy()
                 slot_dict["value"] = slot_value
@@ -340,6 +311,12 @@ class OpenAIAgent(BaseAgent):
                 ],
                 tool_args,
             )
+            
+            # Apply fixed/default values to slots before calling HTTP tool
+            for slot in slots:
+                if slot.get("slot_schema"):
+                    self._apply_fixed_default_values(slot)
+            
             # Call http_tool with slots parameter, excluding slots from tool_args
             filtered_args = {k: v for k, v in tool_args.items() if k != "slots"}
             return self.tool_map[tool_name](slots=slots, **filtered_args)
@@ -359,12 +336,10 @@ class OpenAIAgent(BaseAgent):
             else "standard"
         )
         log_context.info(f"\nGenerating {generation_type} response using the agent.")
-
         input_prompt = self._prepare_prompt(state, is_speech)
         self._add_prompt_to_trajectory(state, input_prompt)
 
         log_context.info(f"\nagent messages: {state.function_calling_trajectory}")
-
         final_chain = self.llm
         ai_message: AIMessage = final_chain.invoke(state.function_calling_trajectory)
 
@@ -412,3 +387,18 @@ class OpenAIAgent(BaseAgent):
             return self.generate_response(self.orch_state, stream=True, is_speech=True)
         else:
             return self.generate_response(self.orch_state, stream=False)
+
+    def _apply_fixed_default_values(self, slot: dict) -> None:
+        """Apply fixed and default values from slot_schema to slot values recursively.
+        
+        Args:
+            slot: Slot dictionary with slot_schema and value
+        """
+        slot_schema = slot.get("slot_schema", {})
+        slot_value = slot.get("value")
+        
+        if not slot_schema or not slot_value:
+            return
+            
+        # Apply fixed/default values recursively to the slot value
+        apply_values_recursively(slot_value, slot_schema, slot.get("name"))

@@ -314,6 +314,7 @@ class ModelService:
         """Process the model's response for slot filling.
 
         Parses the model's response and updates the slot values accordingly.
+        Handles both traditional slot structures and new slot_schema structures.
 
         Args:
             response: Model's response containing extracted slot values (can be string or dict)
@@ -336,23 +337,14 @@ class ModelService:
             else:
                 raise ValueError(f"Unsupported response type: {type(response)}")
 
-            # Update slot values
-            for slot in slots:
-                # Handle both dict and Pydantic model inputs
-                if isinstance(slot, dict):
-                    slot_name = slot.get("name", "")
-                    if slot_name in extracted_values:
-                        slot["value"] = extracted_values[slot_name]
-                    else:
-                        slot["value"] = None
-                else:
-                    slot_name = getattr(slot, "name", "")
-                    if slot_name in extracted_values:
-                        slot.value = extracted_values[slot_name]
-                    else:
-                        slot.value = None
+            # Check if we're dealing with a slot_schema structure
+            if len(slots) == 1 and hasattr(slots[0], 'slot_schema') and slots[0].slot_schema:
+                # Handle new slot_schema structure
+                return self._process_slot_schema_response(extracted_values, slots)
+            else:
+                # Handle traditional slot structure
+                return self._process_traditional_slot_response(extracted_values, slots)
 
-            return slots
         except json.JSONDecodeError as e:
             log_context.error(f"Error parsing slot filling response: {str(e)}")
             raise ValueError(f"Failed to parse slot filling response: {str(e)}") from e
@@ -361,6 +353,56 @@ class ModelService:
             raise ValueError(
                 f"Failed to process slot filling response: {str(e)}"
             ) from e
+
+    def _process_slot_schema_response(self, extracted_values: dict, slots: list) -> list:
+        """Process response for slot_schema structure.
+        
+        Args:
+            extracted_values: Extracted values from model response
+            slots: Original slot definitions
+            
+        Returns:
+            Updated list of slots with extracted values
+        """
+        slot = slots[0]
+        
+        # Extract values from the nested schema structure
+        # The response should match the structure defined in slot_schema
+        if isinstance(extracted_values, dict):
+            # For slot_schema, we need to extract values from the nested structure
+            # The extracted_values should contain the actual data, not the schema
+            for field_name, field_value in extracted_values.items():
+                # Find the corresponding slot field and update its value
+                if hasattr(slot, field_name):
+                    setattr(slot, field_name, field_value)
+                else:
+                    # If it's a nested field, we might need to handle it differently
+                    # For now, just set it as a value
+                    slot.value = field_value
+        
+        return slots
+
+    def _process_traditional_slot_response(self, extracted_values: dict, slots: list) -> list:
+        """Process response for traditional slot structure.
+        
+        Args:
+            extracted_values: Extracted values from model response
+            slots: Original slot definitions
+            
+        Returns:
+            Updated list of slots with extracted values
+        """
+        # Update slot values
+        for slot in slots:
+            # Handle both dict and Pydantic model inputs
+            if isinstance(slot, dict):
+                slot_name = slot.get("name", "")
+                slot["value"] = extracted_values.get(slot_name)
+            else:
+                slot_name = getattr(slot, "name", "")
+                slot.value = extracted_values.get(slot_name)
+
+        return slots
 
     def format_verification_input(
         self, slot: dict[str, Any], chat_history_str: str
@@ -400,6 +442,39 @@ class ModelService:
             log_context.error(f"Error parsing verification response: {str(e)}")
             # Default to needing verification if JSON parsing fails
             return True, f"Failed to parse verification response: {str(e)}"
+
+    def format_slot_schema_input(
+        self, function_def: dict[str, Any], context: str
+    ) -> tuple[str, str]:
+        """Format input for slot extraction using an OpenAI-style function schema.
+
+        Args:
+            function_def: Dict with keys 'name','description','parameters' matching OpenAI function schema
+            context: Input context to extract values from
+
+        Returns:
+            Tuple of (user_prompt, system_prompt)
+        """
+        name = function_def.get("name", "tool")
+        description = function_def.get("description", "")
+        parameters = function_def.get("parameters", {})
+        # Provide the parameters JSON exactly to the model
+        schema_json = json.dumps(parameters, ensure_ascii=False)
+
+        system_prompt = (
+            "You are a precise information extraction assistant. "
+            "Given a JSON Schema for function parameters and a conversation context, "
+            "extract values strictly matching the schema. Return ONLY a JSON object that conforms to the 'parameters' schema. "
+            "Do not include Markdown or explanations."
+        )
+        user_prompt = (
+            f"Function: {name}\n"
+            f"Description: {description}\n"
+            f"Parameters JSON Schema:\n{schema_json}\n\n"
+            f"Context:\n{context}\n\n"
+            "Return a JSON object whose keys and value types exactly match the 'properties' under the parameters schema."
+        )
+        return user_prompt, system_prompt
 
 
 class DummyModelService(ModelService):

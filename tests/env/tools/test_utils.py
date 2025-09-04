@@ -92,8 +92,11 @@ class TestToolGenerator:
     @patch("arklex.env.tools.utils.get_prompt_template")
     @patch("arklex.env.tools.utils.log_context")
     @patch("arklex.utils.provider_utils.validate_and_get_model_class")
+    @patch("arklex.env.tools.utils.StrOutputParser")
+    @pytest.mark.no_llm_mock
     def test_generate(
         self,
+        mock_str_output_parser: Mock,
         mock_validate_model: Mock,
         mock_log_context: Mock,
         mock_get_prompt: Mock,
@@ -104,37 +107,42 @@ class TestToolGenerator:
         state = Mock(spec=OrchestratorState)
         state.bot_config = Mock()
         state.bot_config.llm_config = Mock()
-        state.bot_config.llm_config.llm_provider = "openai"
-        state.bot_config.llm_config.model_type_or_path = "gpt-3.5-turbo"
+        state.bot_config.llm_config.llm_provider = "dummy"  # Use dummy provider
+        state.bot_config.llm_config.model_type_or_path = "dummy-model"
         state.user_message = Mock()
         state.user_message.history = "test history"
         state.sys_instruct = "test instruction"
 
-        mock_llm = Mock()
-        mock_validate_model.return_value = Mock(return_value=mock_llm)
+        # Import the DummyLLM class
+        from arklex.utils.model_provider_config import DummyLLM
+        
+        # Mock the validate_and_get_model_class to return DummyLLM
+        mock_validate_model.return_value = DummyLLM
 
         mock_prompt = Mock()
         mock_prompt.invoke.return_value.text = "test prompt"
         mock_get_prompt.return_value = mock_prompt
 
-        # Create a proper mock chain that returns the expected string
+        # Mock the StrOutputParser to return a callable that creates our mock chain
         mock_chain = Mock()
         mock_chain.invoke.return_value = "test response"
-        # Mock the __or__ method to return the chain
-        mock_llm.__or__ = Mock(return_value=mock_chain)
+        mock_str_output_parser.return_value = lambda: mock_chain
 
         # Execute
         result = ToolGenerator.generate(state)
 
         # Assert
-        assert result == '{"result": "dummy response"}'
+        assert result == "test response"
 
     @patch("arklex.utils.model_provider_config.PROVIDER_MAP")
     @patch("arklex.env.tools.utils.get_prompt_template")
     @patch("arklex.env.tools.utils.log_context")
     @patch("arklex.utils.provider_utils.validate_and_get_model_class")
+    @patch("arklex.env.tools.utils.StrOutputParser")
+    @pytest.mark.no_llm_mock
     def test_context_generate_with_dict_steps(
         self,
+        mock_str_output_parser: Mock,
         mock_validate_model: Mock,
         mock_log_context: Mock,
         mock_get_prompt: Mock,
@@ -145,8 +153,8 @@ class TestToolGenerator:
         state = Mock(spec=OrchestratorState)
         state.bot_config = Mock()
         state.bot_config.llm_config = Mock()
-        state.bot_config.llm_config.llm_provider = "openai"
-        state.bot_config.llm_config.model_type_or_path = "gpt-3.5-turbo"
+        state.bot_config.llm_config.llm_provider = "dummy"  # Use dummy provider
+        state.bot_config.llm_config.model_type_or_path = "dummy-model"
         state.user_message = Mock()
         state.user_message.history = "test history"
         state.sys_instruct = "test instruction"
@@ -164,32 +172,37 @@ class TestToolGenerator:
         mock_trajectory_item.steps = []
         state.trajectory = [[mock_trajectory_item]]
 
-        mock_llm = Mock()
-        mock_validate_model.return_value = Mock(return_value=mock_llm)
+        # Import the DummyLLM class
+        from arklex.utils.model_provider_config import DummyLLM
+        
+        # Mock the validate_and_get_model_class to return DummyLLM
+        mock_validate_model.return_value = DummyLLM
 
         mock_prompt = Mock()
         mock_prompt.invoke.return_value.text = "test prompt"
         mock_get_prompt.return_value = mock_prompt
 
-        # Create a proper mock chain that returns the expected string
+        # Mock the StrOutputParser to return a callable that creates our mock chain
         mock_chain = Mock()
         mock_chain.invoke.return_value = "test response"
-        # Mock the __or__ method to return the chain
-        mock_llm.__or__ = Mock(return_value=mock_chain)
+        mock_str_output_parser.return_value = lambda: mock_chain
 
         # Execute
         result = ToolGenerator.context_generate(state)
 
         # Assert
-        assert result == '{"result": "dummy response"}'
+        assert result == "test response"
         assert state.message_flow == ""
 
     @patch("arklex.utils.model_provider_config.PROVIDER_MAP")
     @patch("arklex.env.tools.utils.get_prompt_template")
     @patch("arklex.env.tools.utils.log_context")
     @patch("arklex.utils.provider_utils.validate_and_get_model_class")
+    @patch("arklex.env.tools.utils.StrOutputParser")
+    @pytest.mark.no_llm_mock
     def test_context_generate_without_relevant_records(
         self,
+        mock_str_output_parser: Mock,
         mock_validate_model: Mock,
         mock_log_context: Mock,
         mock_get_prompt: Mock,
@@ -200,8 +213,8 @@ class TestToolGenerator:
         state = Mock(spec=OrchestratorState)
         state.bot_config = Mock()
         state.bot_config.llm_config = Mock()
-        state.bot_config.llm_config.llm_provider = "openai"
-        state.bot_config.llm_config.model_type_or_path = "gpt-3.5-turbo"
+        state.bot_config.llm_config.llm_provider = "dummy"  # Use dummy provider
+        state.bot_config.llm_config.model_type_or_path = "dummy-model"
         state.user_message = Mock()
         state.user_message.history = "test history"
         state.sys_instruct = "test instruction"
@@ -212,24 +225,26 @@ class TestToolGenerator:
         mock_trajectory_item.steps = []
         state.trajectory = [[mock_trajectory_item]]
 
-        mock_llm = Mock()
-        mock_validate_model.return_value = Mock(return_value=mock_llm)
+        # Import the DummyLLM class
+        from arklex.utils.model_provider_config import DummyLLM
+        
+        # Mock the validate_and_get_model_class to return DummyLLM
+        mock_validate_model.return_value = DummyLLM
 
         mock_prompt = Mock()
         mock_prompt.invoke.return_value.text = "test prompt"
         mock_get_prompt.return_value = mock_prompt
 
-        # Create a proper mock chain that returns the expected string
+        # Mock the StrOutputParser to return a callable that creates our mock chain
         mock_chain = Mock()
         mock_chain.invoke.return_value = "test response"
-        # Mock the __or__ method to return the chain
-        mock_llm.__or__ = Mock(return_value=mock_chain)
+        mock_str_output_parser.return_value = lambda: mock_chain
 
         # Execute
         result = ToolGenerator.context_generate(state)
 
         # Assert
-        assert isinstance(result, str)
+        assert result == "test response"
         assert state.message_flow == ""
 
     @patch("arklex.utils.model_provider_config.PROVIDER_MAP")
