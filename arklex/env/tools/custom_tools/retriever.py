@@ -17,7 +17,7 @@ class RetrieverParams(TypedDict, total=False):
     version: str
 
 
-description = "Retrieve relevant inforamtion required to answer an user's question. example: product price, product details, things for sale, company information, etc."
+description = "Retrieve relevant information required to answer an user's question. example: product price, product details, things for sale, company information, etc."
 
 slots = [
     {
