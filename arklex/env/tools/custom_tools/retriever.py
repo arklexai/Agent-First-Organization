@@ -2,14 +2,8 @@
 
 from typing import Any, TypedDict
 
-from arklex.env.tools.RAG.retrievers.milvus_retriever import RetrieveEngine
+from arklex.env.tools.RAG.retrievers.milvus_retriever import MilvusRetriever
 from arklex.env.tools.tools import register_tool
-from arklex.env.tools.utils import trace
-from arklex.orchestrator.entities.orchestrator_state_entities import (
-    BotConfig,
-    OrchestratorState,
-)
-from arklex.utils.llm_config import LLMConfig
 from arklex.utils.logging_utils import LogContext
 
 log_context = LogContext(__name__)
@@ -23,7 +17,7 @@ class RetrieverParams(TypedDict, total=False):
     version: str
 
 
-description = "Retrieve relevant information required to answer a user's question. example: product price, product details, things for sale, company information, etc."
+description = "Retrieve relevant information required to answer an user's question. example: product price, product details, things for sale, company information, etc."
 
 slots = [
     {
@@ -37,44 +31,22 @@ slots = [
 
 
 @register_tool(description, slots)
-def retriever(
-    query: str,
-    state: OrchestratorState,
-    auth: RetrieverParams,
-    **kwargs: dict[str, Any],
-) -> str:
+def retriever(query: str, auth: RetrieverParams, **kwargs: dict[str, Any]) -> str:
     collection_name = auth.get("collection_name")
     bot_id = auth.get("bot_id")
     version = auth.get("version")
-
     log_context.info(
         f"Retrieving from collection {collection_name} for bot {bot_id} version {version} with query {query}"
     )
+    with MilvusRetriever() as retriever:
+        retriever_results = retriever.search(collection_name, bot_id, version, query)
 
-    # Build LLMConfig from provided model settings
-    model_type_or_path = kwargs.get("model_type_or_path")
-    llm_provider = kwargs.get("llm_provider")
-    if not model_type_or_path or not llm_provider:
-        raise ValueError(
-            "model_type_or_path and llm_provider must be provided via llm_config"
-        )
+    retrieved_str = ""
+    for doc in retriever_results:
+        if doc.metadata.get("title"):
+            retrieved_str += "title: " + doc.metadata["title"] + "\n"
+        if doc.metadata.get("source"):
+            retrieved_str += "source: " + doc.metadata["source"] + "\n"
+        retrieved_str += "content: " + doc.text + "\n\n"
 
-    if not bot_id or not version:
-        raise ValueError("bot_id and version must be provided in auth")
-
-    llm_config = LLMConfig(
-        model_type_or_path=str(model_type_or_path), llm_provider=str(llm_provider)
-    )
-    bot_config = BotConfig(
-        bot_id=str(bot_id), version=str(version), language="en", llm_config=llm_config
-    )
-
-    # Perform retrieval
-    retrieved_text, retriever_params = RetrieveEngine.milvus_retrieve(
-        chat_history=query, bot_config=bot_config, tags=None
-    )
-
-    state = trace(input=retriever_params, source="milvus_retrieve", state=state)
-    state.message_flow = retrieved_text
-
-    return retrieved_text
+    return retrieved_str
