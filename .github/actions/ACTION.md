@@ -22,7 +22,7 @@ Composite action to display coverage results as a comment on PRs.
 
 - `github-token`: GitHub token for authentication (required)
 - `minimum-green`: Minimum coverage percentage for green status (default: 45.0)
-- `minimum-orange`: Minimum coverage percentage for orange status (default: 70)
+- `minimum-orange`: Minimum coverage percentage for orange status (default: 30.0)
 
 ### 3. `upload-coverage-report/`
 
@@ -76,7 +76,7 @@ jobs:
         with:
           github-token: ${{ github.token }}
           minimum-green: '45.0'
-          minimum-orange: '70'
+          minimum-orange: '30.0'
 ```
 
 ## Differences from Reusable Workflows

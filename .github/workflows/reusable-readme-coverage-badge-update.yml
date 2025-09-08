@@ -75,9 +75,9 @@ jobs:
           
           python -c "
           coverage = float('$COVERAGE')
-          if coverage < 90:
+          if coverage < 30.0:
               print('color=red')
-          elif coverage < 99:
+          elif coverage < 45.0:
               print('color=orange')
           else:
               print('color=green')

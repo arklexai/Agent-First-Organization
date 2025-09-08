@@ -12,7 +12,7 @@ inputs:
   minimum-orange:
     description: "Minimum coverage percentage for orange status"
     required: false
-    default: "70"
+    default: "30.0"
 
 runs:
   using: "composite"

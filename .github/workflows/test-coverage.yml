@@ -87,7 +87,7 @@ jobs:
         with:
           GITHUB_TOKEN: ${{ github.token }}
           MINIMUM_GREEN: 45.0
-          MINIMUM_ORANGE: 70
+          MINIMUM_ORANGE: 30.0
 
       - name: Update README badge
         run: |
