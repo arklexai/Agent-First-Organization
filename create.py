@@ -269,12 +269,16 @@ def main() -> None:
     log_context.info(
         f"🤖 Initializing language model (provider: {args.llm_provider}, model: {args.model})..."
     )
+    config["model"] = {
+        "llm_provider": args.llm_provider,
+        "model_type_or_path": args.model,
+    }
 
     # Provider configuration already obtained during validation
 
     # Initialize model using the provider map with proper API key
     # Create a temporary config object for validation
-    model = load_llm(LLMConfig(llm_provider=args.llm_provider, model=args.model))
+    model = load_llm(LLMConfig.model_validate(config["model"]))
 
     # Determine output directory
     output_dir = args.output_dir or os.path.dirname(args.config)

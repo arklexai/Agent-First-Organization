@@ -4,7 +4,7 @@ from unittest.mock import MagicMock, Mock, patch
 
 import pytest
 
-from arklex.env.tools.utils import ToolGenerator, execute_tool, trace
+from arklex.env.tools.utils import ToolGenerator, trace
 from arklex.orchestrator.entities.orchestrator_state_entities import OrchestratorState
 
 
@@ -115,7 +115,7 @@ class TestToolGenerator:
 
         # Import the DummyLLM class
         from arklex.utils.model_provider_config import DummyLLM
-        
+
         # Mock the validate_and_get_model_class to return DummyLLM
         mock_validate_model.return_value = DummyLLM
 
@@ -174,7 +174,7 @@ class TestToolGenerator:
 
         # Import the DummyLLM class
         from arklex.utils.model_provider_config import DummyLLM
-        
+
         # Mock the validate_and_get_model_class to return DummyLLM
         mock_validate_model.return_value = DummyLLM
 
@@ -227,7 +227,7 @@ class TestToolGenerator:
 
         # Import the DummyLLM class
         from arklex.utils.model_provider_config import DummyLLM
-        
+
         # Mock the validate_and_get_model_class to return DummyLLM
         mock_validate_model.return_value = DummyLLM
 
@@ -447,49 +447,3 @@ class TestTrace:
         assert result is state  # trace returns the modified state object
         assert len(state.trajectory[-1][-1].steps) == 1
         assert state.trajectory[-1][-1].steps[0] == {"test_function": "test input"}
-
-
-class TestExecuteTool:
-    """Test cases for execute_tool function."""
-
-    @patch("arklex.env.tools.utils.log_context")
-    def test_execute_tool_success(self, mock_log_context: Mock) -> None:
-        """Test execute_tool function with successful execution."""
-        # Setup
-        mock_self = Mock()
-        mock_self.tools = {"test_tool": Mock()}
-        mock_self.tools["test_tool"].execute.return_value = "test result"
-
-        # Execute
-        result = execute_tool(mock_self, "test_tool")
-
-        # Assert
-        assert result == "test result"
-        mock_self.tools["test_tool"].execute.assert_called_once()
-
-    @patch("arklex.env.tools.utils.log_context")
-    def test_execute_tool_failure(self, mock_log_context: Mock) -> None:
-        """Test execute_tool function with execution failure."""
-        # Setup
-        mock_self = Mock()
-        mock_self.tools = {"test_tool": Mock()}
-        mock_self.tools["test_tool"].execute.side_effect = Exception("test error")
-
-        # Execute and Assert
-        from arklex.utils.exceptions import ToolError
-
-        with pytest.raises(ToolError):
-            execute_tool(mock_self, "test_tool")
-
-    @patch("arklex.env.tools.utils.log_context")
-    def test_execute_tool_missing_tool(self, mock_log_context: Mock) -> None:
-        """Test execute_tool function with missing tool."""
-        # Setup
-        mock_self = Mock()
-        mock_self.tools = {}
-
-        # Execute and Assert
-        from arklex.utils.exceptions import ToolError
-
-        with pytest.raises(ToolError):
-            execute_tool(mock_self, "missing_tool")
