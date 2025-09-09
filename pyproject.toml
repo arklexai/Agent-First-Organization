@@ -62,9 +62,11 @@ license = "MIT"
 
 [project.optional-dependencies]
 milvus = [
-  "sentence-transformers>=2.2.2,<3.0.0",
   "pymilvus>=2.4.7,<3.0.0",
   "mysql-connector-python>=8.3.0,<9.0.0",
+]
+faiss = [
+  "sentence-transformers>=2.2.2,<3.0.0",
 ]
 llm = [
   "langchain-anthropic>=0.3.5,<1.0.0",

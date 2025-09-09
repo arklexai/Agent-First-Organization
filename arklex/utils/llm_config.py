@@ -1,5 +1,5 @@
 from langchain_openai import ChatOpenAI
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 # List of supported language model providers
 LLM_PROVIDERS: list[str] = [
@@ -11,8 +11,8 @@ LLM_PROVIDERS: list[str] = [
 
 
 class LLMConfig(BaseModel):
-    llm_provider: str
-    model_type_or_path: str
+    llm_provider: str = Field(default="openai")
+    model_type_or_path: str = Field(default="gpt-4o")
 
 
 def get_huggingface_llm(model: str, **kwargs: object) -> any:

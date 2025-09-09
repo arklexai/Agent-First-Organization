@@ -53,10 +53,10 @@ class BotConfig(BaseModel):
         llm_config (LLMConfig): Language model configuration for the bot.
     """
 
-    bot_id: str
-    version: str
-    language: str
-    llm_config: LLMConfig
+    bot_id: str = Field(default="")
+    version: str = Field(default="")
+    language: str = Field(default="EN")
+    llm_config: LLMConfig = Field(default_factory=LLMConfig)
 
 
 ### Message-related classes
