@@ -827,7 +827,7 @@ class Tool:
             
             # Create a simple Pydantic model that returns our custom schema
             model_cls = create_model(f"{self.name}_InputModel", **{})
-            def custom_schema():
+            def custom_schema() -> dict[str, Any]:
                 return parameters_schema
             model_cls.model_json_schema = custom_schema
             return model_cls
@@ -873,7 +873,9 @@ class Tool:
             for slot_data in processed_slots:
                 if slot_data.get("slot_schema"):
                     try:
-                        from arklex.orchestrator.NLU.entities.slot_entities import apply_values_recursively
+                        from arklex.orchestrator.NLU.entities.slot_entities import (
+                            apply_values_recursively,
+                        )
                         apply_values_recursively(slot_data["value"], slot_data["slot_schema"], slot_data.get("name"))
                     except Exception as e:
                         log_context.warning(f"Failed to apply fixed values from schema for slot {slot_data.get('name')}: {e}")
