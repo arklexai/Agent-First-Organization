@@ -472,67 +472,31 @@ class Tool:
         This method creates a FunctionTool that can be used with the OpenAI Agents SDK.
         It handles parameter conversion, schema generation, and function wrapping.
 
-        Args:
-            **fixed_args: Fixed arguments to be passed to the tool function.
-
         Returns:
             FunctionTool: An OpenAI Agents FunctionTool instance.
 
         Raises:
             ImportError: If OpenAI Agents SDK is not available.
         """
-        # Create a Pydantic model for the tool parameters
-        fields = {}
-        for slot in self.slots:
-            # Skip slots with fixed valueSource
-            if getattr(slot, "valueSource", None) == "fixed":
-                continue
-
-            # Convert slot type to Python type
-            py_type = self._slot_type_to_python_type(slot.type)
-
-            # Set default value based on required status
-            default = None if getattr(slot, "required", False) else ...
-
-            # Create field metadata
-            metadata = {"description": getattr(slot, "description", "")}
-
-            # Add enum values if available
-            if hasattr(slot, "enum") and slot.enum:
-                metadata["enum"] = slot.enum
-
-            fields[slot.name] = (py_type, Field(default, **metadata))
-
-        # Create the Pydantic model class
-        model_cls = create_model(f"{self.name}_InputModel", **fields)
+        # Build Pydantic model fields from slots
+        fields = self._build_pydantic_fields()
+        
+        # Create the Pydantic model class or use custom schema if available
+        model_cls = self._create_model_class(fields)
 
         # Create the async wrapper function
         async def on_invoke(ctx: RunContextWrapper[Any], raw_args: str) -> str:
             log_context.info(f"on_invoke tool {self.name}, input: {raw_args}")
 
             try:
-                # Parse the input arguments
-                user_args = model_cls.model_validate_json(raw_args).model_dump()
-                # Update slots with the parsed values
-                for slot in self.slots:
-                    if slot.name in user_args:
-                        slot.value = user_args[slot.name]
-                    if slot.type == "group":
-                        for schema_obj in slot.slot_schema:
-                            if (
-                                schema_obj.get("valueSource", "") == "fixed"
-                                and slot.name in user_args
-                            ):
-                                for filled_ob in user_args[slot.name]:
-                                    if schema_obj.get("type") == "bool":
-                                        filled_ob[schema_obj.get("name")] = (
-                                            schema_obj.get("value", "").lower()
-                                            == "true"
-                                        )
-                                    else:
-                                        filled_ob[schema_obj.get("name")] = (
-                                            schema_obj.get("value")
-                                        )
+                # Parse input arguments
+                user_args = self._parse_input_args(raw_args, model_cls)
+                
+                # Update slots with parsed values
+                self._update_slots_with_args(user_args)
+                
+                # Apply fixed values from schemas
+                self._apply_schema_fixed_values()
 
                 # Merge with fixed arguments
                 merged_args = {
@@ -549,8 +513,10 @@ class Tool:
                     result = await self.func(**merged_args)
                 else:
                     result = await asyncio.to_thread(self.func, **merged_args)
+                    
                 log_context.info(f"on_invoke result: {result}")
                 return result
+                
             except Exception as e:
                 log_context.error(f"Error executing tool {self.name}: {e}")
                 log_context.exception(e)
@@ -806,3 +772,150 @@ class Tool:
                 return slot.prompt, False  # Missing slot
 
         return "", False
+
+    def _build_pydantic_fields(self) -> dict[str, tuple[type, Field]]:
+        """Build Pydantic model fields from slots.
+        
+        Returns:
+            Dictionary mapping field names to (type, Field) tuples.
+        """
+        fields = {}
+        for slot in self.slots:
+            # Convert slot type to Python type
+            py_type = self._slot_type_to_python_type(slot.type)
+
+            # Set default value based on valueSource and required status
+            value_source = getattr(slot, "valueSource", "prompt")
+            if value_source == "fixed":
+                default = getattr(slot, "value", "")
+            elif getattr(slot, "required", False):
+                default = None
+            else:
+                default = ...
+
+            # Create field metadata
+            metadata = {"description": getattr(slot, "description", "")}
+
+            # Add enum values if available
+            if hasattr(slot, "enum") and slot.enum:
+                metadata["enum"] = slot.enum
+
+            fields[slot.name] = (py_type, Field(default, **metadata))
+            
+        return fields
+
+    def _create_model_class(self, fields: dict[str, tuple[type, Field]]) -> type:
+        """Create Pydantic model class, using custom schema if available.
+        
+        Args:
+            fields: Dictionary of field definitions.
+            
+        Returns:
+            Pydantic model class.
+        """
+        # Use slot_schema directly if available (this is what the LLM needs to see)
+        if len(self.slots) == 1 and hasattr(self.slots[0], "slot_schema") and self.slots[0].slot_schema:
+            # The slot_schema contains the complete nested structure with correct field names
+            import copy
+            schema_copy = copy.deepcopy(self.slots[0].slot_schema)
+            
+            # Extract just the parameters part - OpenAI expects parameters, not the full function wrapper
+            if 'function' in schema_copy and 'parameters' in schema_copy['function']:
+                parameters_schema = schema_copy['function']['parameters']
+            else:
+                parameters_schema = schema_copy
+            
+            # Create a simple Pydantic model that returns our custom schema
+            model_cls = create_model(f"{self.name}_InputModel", **{})
+            def custom_schema():
+                return parameters_schema
+            model_cls.model_json_schema = custom_schema
+            return model_cls
+        else:
+            # Create the Pydantic model class from fields
+            return create_model(f"{self.name}_InputModel", **fields)
+
+    def _parse_input_args(self, raw_args: str, model_cls: type) -> dict[str, Any]:
+        """Parse input arguments from JSON string.
+        
+        Args:
+            raw_args: Raw JSON string arguments.
+            model_cls: Pydantic model class for parsing.
+            
+        Returns:
+            Parsed arguments dictionary.
+        """
+        # If we're using custom schema from slot_schema, parse JSON directly
+        if len(self.slots) == 1 and hasattr(self.slots[0], "slot_schema") and self.slots[0].slot_schema:
+            import json
+            return json.loads(raw_args)
+        else:
+            return model_cls.model_validate_json(raw_args).model_dump()
+
+    def _update_slots_with_args(self, user_args: dict[str, Any]) -> None:
+        """Update slots with parsed argument values.
+        
+        Args:
+            user_args: Dictionary of parsed arguments.
+        """
+        for slot in self.slots:
+            if slot.name in user_args:
+                slot.value = user_args[slot.name]
+
+    def _apply_schema_fixed_values(self) -> None:
+        """Apply fixed values from slot schemas using the new format processing."""
+        try:
+            # Build slot values using the same logic as the main execution path
+            all_slots = [slot.model_dump() if hasattr(slot, "model_dump") else slot for slot in self.slots]
+            processed_slots = self._build_slot_values(all_slots, {slot.name: slot.value for slot in self.slots})
+            
+            # Apply fixed/default values to slots with schema
+            for slot_data in processed_slots:
+                if slot_data.get("slot_schema"):
+                    try:
+                        from arklex.orchestrator.NLU.entities.slot_entities import apply_values_recursively
+                        apply_values_recursively(slot_data["value"], slot_data["slot_schema"], slot_data.get("name"))
+                    except Exception as e:
+                        log_context.warning(f"Failed to apply fixed values from schema for slot {slot_data.get('name')}: {e}")
+
+            # Update self.slots with processed values
+            for i, processed_slot in enumerate(processed_slots):
+                if i < len(self.slots):
+                    self.slots[i].value = processed_slot["value"]
+                    
+        except Exception as e:
+            log_context.warning(f"Failed to apply schema fixed values: {e}")
+
+    def _build_slot_values(self, schema: list[dict], tool_args: dict[str, Any]) -> list[dict]:
+        """Build slot values from schema using type conversion and valueSource logic.
+        
+        Args:
+            schema: List of slot schema dictionaries.
+            tool_args: Dictionary of tool arguments.
+            
+        Returns:
+            List of processed slot dictionaries.
+        """
+        result = []
+        for slot in schema:
+            name = slot["name"]
+            slot_type = slot["type"]
+            value_source = slot.get("valueSource", "prompt")
+            
+            # Determine slot value based on valueSource
+            if value_source == "fixed":
+                slot_value = slot.get("value", "")
+            elif value_source == "default":
+                slot_value = tool_args.get(name, slot.get("value", ""))
+            else:  # prompt or anything else
+                slot_value = tool_args.get(name, "")
+                
+            # Apply type conversion
+            slot_value = self._convert_value(slot_value, slot_type)
+
+            # Create result slot dictionary
+            slot_dict = slot.copy()
+            slot_dict["value"] = slot_value
+            result.append(slot_dict)
+            
+        return result
