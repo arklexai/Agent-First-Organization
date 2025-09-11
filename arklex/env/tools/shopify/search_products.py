@@ -129,12 +129,7 @@ def search_products(
                     raise ValueError("llm_provider must be explicitly specified")
 
                 model_service: ModelService = ModelService(kwargs["llm_config"])
-                message = [
-                    {
-                        "role": "user",
-                        "content": f"You are helping a customer search products based on the query and get results below and those results will be presented using product card format.\n\n{json.dumps(card_list)}\n\nGenerate a response to continue the conversation without explicitly mentioning contents of the search result. Include one or two questions about those products to know the user's preference. Keep the response within 50 words.\nDIRECTLY GIVE THE RESPONSE.",
-                    },
-                ]
+                message = f"You are helping a customer search products based on the query and get results below and those results will be presented using product card format.\n\n{json.dumps(card_list)}\n\nGenerate a response to continue the conversation without explicitly mentioning contents of the search result. Include one or two questions about those products to know the user's preference. Keep the response within 50 words.\nDIRECTLY GIVE THE RESPONSE."
                 answer = model_service.get_response(message)
                 return SearchProductsOutput(
                     response=json.dumps({"answer": answer, "card_list": card_list})
