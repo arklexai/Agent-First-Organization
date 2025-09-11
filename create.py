@@ -10,7 +10,6 @@ import argparse
 import json
 import logging
 import os
-import sys
 import tempfile
 import time
 import zipfile
@@ -20,13 +19,9 @@ from dotenv import load_dotenv
 
 from arklex.env.tools.RAG.build_rag import build_rag
 from arklex.orchestrator.generator.generator import Generator
+from arklex.utils.llm_config import LLM_PROVIDERS, LLMConfig, load_llm
 from arklex.utils.loader import Loader
 from arklex.utils.logging_utils import LogContext
-from arklex.utils.model_provider_config import LLM_PROVIDERS
-from arklex.utils.provider_utils import (
-    get_provider_config,
-    validate_and_get_model_class,
-)
 
 log_context = LogContext(__name__)
 load_dotenv()
@@ -41,41 +36,7 @@ def generate_taskgraph(args: argparse.Namespace) -> None:
     Args:
         args (argparse.Namespace): Command-line arguments containing configuration and output settings.
     """
-    # Validate API key before proceeding
-    try:
-        provider_config = get_provider_config(args.llm_provider, args.model)
-        log_context.info(f"✅ API key for {args.llm_provider} provider is configured")
-    except ValueError as e:
-        log_context.error(f"❌ API key validation failed: {e}")
-        log_context.error(
-            "💡 Please ensure your .env file contains the correct API key."
-        )
-        log_context.error(
-            f"   Required environment variable: {args.llm_provider.upper()}_API_KEY"
-        )
-        return
-    except Exception as e:
-        log_context.error(f"❌ Unexpected error during API key validation: {e}")
-        return
-
-    # Create a temporary config object for validation
-    temp_config = type("TempConfig", (), {"llm_provider": args.llm_provider})()
-    model_class = validate_and_get_model_class(temp_config)
-
-    # Initialize model with proper API key validation
-    if args.llm_provider == "huggingface":
-        model = model_class(model=args.model, timeout=30000)
-    elif args.llm_provider == "google":
-        # Google models use google_api_key parameter
-        model = model_class(
-            model=args.model, google_api_key=provider_config["api_key"], timeout=30000
-        )
-    else:
-        # Other providers use api_key parameter
-        model = model_class(
-            model=args.model, api_key=provider_config["api_key"], timeout=30000
-        )
-
+    model = load_llm(LLMConfig(llm_provider=args.llm_provider, model=args.model))
     with open(args.config) as f:
         config: dict[str, Any] = json.load(f)
     generator = Generator(config, model, args.output_dir)
@@ -291,25 +252,6 @@ def main() -> None:
     # Set up logging
     log_context.setLevel(getattr(logging, args.log_level.upper()))
 
-    # Early API key validation - terminate if API key is not provided
-    log_context.info("🔑 Validating API key configuration...")
-    try:
-        # This will raise ValueError if API key is missing or empty
-        provider_config = get_provider_config(args.llm_provider, args.model)
-        log_context.info(f"✅ API key for {args.llm_provider} provider is configured")
-    except ValueError as e:
-        log_context.error(f"❌ API key validation failed: {e}")
-        log_context.error(
-            "💡 Please ensure your .env file contains the correct API key."
-        )
-        log_context.error(
-            f"   Required environment variable: {args.llm_provider.upper()}_API_KEY"
-        )
-        sys.exit(1)
-    except Exception as e:
-        log_context.error(f"❌ Unexpected error during API key validation: {e}")
-        sys.exit(1)
-
     log_context.info("🚀 Starting task graph generation...")
     start_time = time.time()
 
@@ -327,26 +269,16 @@ def main() -> None:
     log_context.info(
         f"🤖 Initializing language model (provider: {args.llm_provider}, model: {args.model})..."
     )
+    config["model"] = {
+        "llm_provider": args.llm_provider,
+        "model_type_or_path": args.model,
+    }
 
     # Provider configuration already obtained during validation
 
     # Initialize model using the provider map with proper API key
     # Create a temporary config object for validation
-    temp_config = type("TempConfig", (), {"llm_provider": args.llm_provider})()
-    model_class = validate_and_get_model_class(temp_config)
-
-    if args.llm_provider == "huggingface":
-        model = model_class(model=args.model, timeout=30000)
-    elif args.llm_provider == "google":
-        # Google models use google_api_key parameter
-        model = model_class(
-            model=args.model, google_api_key=provider_config["api_key"], timeout=30000
-        )
-    else:
-        # Other providers use api_key parameter
-        model = model_class(
-            model=args.model, api_key=provider_config["api_key"], timeout=30000
-        )
+    model = load_llm(LLMConfig.model_validate(config["model"]))
 
     # Determine output directory
     output_dir = args.output_dir or os.path.dirname(args.config)

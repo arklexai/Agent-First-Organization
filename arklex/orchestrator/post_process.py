@@ -1,16 +1,15 @@
 import re
 
 from langchain.prompts import PromptTemplate
-from langchain_core.output_parsers import StrOutputParser
 
 from arklex.env.entities import NodeResponse
 from arklex.env.prompts import load_prompts
 from arklex.memory.entities.memory_entities import ResourceRecord
 from arklex.orchestrator.entities.orchestrator_param_entities import OrchestratorParams
 from arklex.orchestrator.entities.orchestrator_state_entities import OrchestratorState
+from arklex.orchestrator.NLU.services.model_service import ModelService
 from arklex.types.resource_types import WorkerItem
 from arklex.utils.logging_utils import LogContext
-from arklex.utils.provider_utils import validate_and_get_model_class
 
 log_context = LogContext(__name__)
 
@@ -141,10 +140,7 @@ def _remove_invalid_links(response: str, links: set) -> str:
 
 def _rephrase_answer(orch_state: OrchestratorState, response: str) -> str:
     """Rephrases the answer using an LLM after link removal."""
-    llm_config = orch_state.bot_config.llm_config
-    model_class = validate_and_get_model_class(llm_config)
-
-    llm = model_class(model=llm_config.model_type_or_path, temperature=0.1)
+    model_service = ModelService(orch_state.bot_config.llm_config)
     prompt: PromptTemplate = PromptTemplate.from_template(
         load_prompts(orch_state.bot_config)["regenerate_response"]
     )
@@ -155,9 +151,8 @@ def _rephrase_answer(orch_state: OrchestratorState, response: str) -> str:
             "formatted_chat": orch_state.user_message.history,
         }
     )
-    final_chain = llm | StrOutputParser()
     log_context.info(f"Prompt: {input_prompt.text}")
-    answer: str = final_chain.invoke(input_prompt.text)
+    answer: str = model_service.get_response(input_prompt.text)
     return answer
 
 
@@ -265,12 +260,7 @@ def should_trigger_handoff(orch_state: OrchestratorState) -> bool:
     Your response must be "YES" or "NO" only.
     """
 
-    llm_config = orch_state.bot_config.llm_config
-    model_class = validate_and_get_model_class(llm_config)
-
-    llm = model_class(model=llm_config.model_type_or_path, temperature=0.1)
-
-    final_chain = llm | StrOutputParser()
-    result: str = final_chain.invoke(input_prompt)
+    model_service = ModelService(orch_state.bot_config.llm_config)
+    result: str = model_service.get_response(input_prompt)
 
     return result.strip().lower() == "yes"

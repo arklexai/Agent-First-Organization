@@ -18,8 +18,8 @@ from arklex.orchestrator.entities.orchestrator_state_entities import (
     LLMConfig,
 )
 from arklex.utils.exceptions import SearchError
+from arklex.utils.llm_config import load_llm
 from arklex.utils.logging_utils import LogContext
-from arklex.utils.provider_utils import validate_and_get_model_class
 
 log_context = LogContext(__name__)
 
@@ -50,9 +50,7 @@ class TavilySearchExecutor:
         llm_config: LLMConfig,
         **kwargs: SearchConfig,
     ) -> None:
-        model_class = validate_and_get_model_class(llm_config)
-
-        self.llm: Any = model_class(model=llm_config.model_type_or_path)
+        self.llm: Any = load_llm(llm_config)
         self.search_tool: TavilySearchResults = TavilySearchResults(
             max_results=kwargs.get("max_results", 5),
             search_depth=kwargs.get("search_depth", "advanced"),

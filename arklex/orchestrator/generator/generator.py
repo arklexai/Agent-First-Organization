@@ -30,9 +30,8 @@ from langchain_openai import ChatOpenAI
 from arklex.orchestrator.generator.core.generator import (
     Generator as CoreGenerator,
 )
+from arklex.utils.llm_config import LLMConfig, load_llm
 from arklex.utils.logging_utils import LogContext
-from arklex.utils.model_config import MODEL
-from arklex.utils.model_provider_config import PROVIDER_MAP
 
 # Import the main classes from the new modular structure
 from .core import Generator
@@ -93,19 +92,8 @@ def main() -> None:
         config = load_config(args.file_path)
 
         log_context.info("Initializing language model...")
-        provider = MODEL.get("llm_provider")
-        if not provider:
-            raise ValueError(
-                "llm_provider must be explicitly specified in MODEL configuration"
-            )
 
-        model_class = PROVIDER_MAP.get(provider)
-        if not model_class:
-            raise ValueError(f"Unsupported provider: {provider}")
-
-        model = model_class(
-            model=MODEL.get("model_type_or_path", "gpt-4"), timeout=30000
-        )
+        model = load_llm(LLMConfig.model_validate(config.get("model")))
 
         log_context.info("Initializing task graph generator...")
         generator = CoreGenerator(config=config, model=model)
