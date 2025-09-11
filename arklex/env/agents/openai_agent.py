@@ -2,12 +2,14 @@ import json
 import re
 from typing import Any
 
+from jinja2 import Template
 from langchain.prompts import PromptTemplate
 from langchain_core.language_models import BaseChatModel
 from langchain_core.messages import AIMessage, SystemMessage, ToolMessage
 from pydantic import BaseModel
 
 from arklex.env.agents.agent import BaseAgent, register_agent
+from arklex.env.agents.entities import PromptVariable
 from arklex.env.prompts import load_prompts
 from arklex.env.tools.tools import TYPE_CONVERTERS
 from arklex.orchestrator.entities.orchestrator_state_entities import (
@@ -28,6 +30,7 @@ class OpenAIAgentData(BaseModel):
     """Data for the OpenAIAgent."""
 
     prompt: str
+    prompt_variables: list[PromptVariable] = []
 
 
 class OpenAIAgentOutput(BaseModel):
@@ -311,12 +314,12 @@ class OpenAIAgent(BaseAgent):
                 ],
                 tool_args,
             )
-            
+
             # Apply fixed/default values to slots before calling HTTP tool
             for slot in slots:
                 if slot.get("slot_schema"):
                     self._apply_fixed_default_values(slot)
-            
+
             # Call http_tool with slots parameter, excluding slots from tool_args
             filtered_args = {k: v for k, v in tool_args.items() if k != "slots"}
             return self.tool_map[tool_name](slots=slots, **filtered_args)
@@ -380,7 +383,18 @@ class OpenAIAgent(BaseAgent):
             model=self.orch_state.bot_config.llm_config.model_type_or_path
         )
         self.llm = self.llm.bind_tools(self.tool_defs)
-        self.prompt: str = self.openai_agent_data.prompt
+        if (
+            self.openai_agent_data.prompt_variables
+            and len(self.openai_agent_data.prompt_variables) > 0
+        ):
+            template = Template(self.openai_agent_data.prompt)
+            # convert prompt_variables to a dict
+            prompt_variables_dict = {
+                pv.name: pv.value for pv in self.openai_agent_data.prompt_variables
+            }
+            self.prompt = template.render(prompt_variables_dict)
+        else:
+            self.prompt = self.openai_agent_data.prompt
         if self.orch_state.stream_type == StreamType.TEXT:
             return self.generate_response(self.orch_state, stream=True, is_speech=False)
         elif self.orch_state.stream_type == StreamType.SPEECH:
@@ -390,15 +404,15 @@ class OpenAIAgent(BaseAgent):
 
     def _apply_fixed_default_values(self, slot: dict) -> None:
         """Apply fixed and default values from slot_schema to slot values recursively.
-        
+
         Args:
             slot: Slot dictionary with slot_schema and value
         """
         slot_schema = slot.get("slot_schema", {})
         slot_value = slot.get("value")
-        
+
         if not slot_schema or not slot_value:
             return
-            
+
         # Apply fixed/default values recursively to the slot value
         apply_values_recursively(slot_value, slot_schema, slot.get("name"))
