@@ -60,7 +60,7 @@ The Orchestrator is the central component of the Arklex framework, responsible f
 
 ```python
 from arklex.orchestrator.task_graph import TaskGraph
-from arklex.utils.graph_state import LLMConfig, Params
+from arklex.utils.model_provider_config import LLMConfig
 
 # Initialize task graph
 config = {
@@ -74,7 +74,6 @@ llm_config = LLMConfig(...)
 task_graph = TaskGraph("conversation", config, llm_config)
 
 # Process input
-params = Params(...)
 node_info, updated_params = task_graph.get_node({"input": "user message"})
 ```
 

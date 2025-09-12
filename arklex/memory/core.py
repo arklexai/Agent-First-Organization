@@ -13,18 +13,13 @@ import asyncio
 import re
 
 import numpy as np
-from langchain_openai import OpenAIEmbeddings
 from Levenshtein import ratio
 from sklearn.metrics.pairwise import cosine_similarity
 
 from arklex.memory.entities.memory_entities import ResourceRecord
 from arklex.memory.prompts import final_examples, intro, output_instructions
-from arklex.types.model_types import LLMConfig
-from arklex.utils.model_provider_config import (
-    PROVIDER_EMBEDDING_MODELS,
-    PROVIDER_EMBEDDINGS,
-)
-from arklex.utils.provider_utils import validate_and_get_model_class
+from arklex.utils.embedding_config import EmbeddingConfig, load_embedding
+from arklex.utils.llm_config import LLMConfig, load_llm
 
 
 class ShortTermMemory:
@@ -70,16 +65,10 @@ class ShortTermMemory:
         self.chat_history = "\n".join(turns[-5:])
 
         # Initialize embedding model with caching
-        self.embedding_model = PROVIDER_EMBEDDINGS.get(
-            llm_config.llm_provider, OpenAIEmbeddings
-        )(
-            **{"model": PROVIDER_EMBEDDING_MODELS[llm_config.llm_provider]}
-            if llm_config.llm_provider != "anthropic"
-            else {"model_name": PROVIDER_EMBEDDING_MODELS[llm_config.llm_provider]}
+        self.llm = load_llm(llm_config)
+        self.embedding_model = load_embedding(
+            EmbeddingConfig(embedding_provider=llm_config.llm_provider)
         )
-        model_class = validate_and_get_model_class(llm_config)
-
-        self.llm = model_class(model=llm_config.model_type_or_path)
 
         # Initialize embedding cache
         self._embedding_cache = {}

@@ -20,8 +20,8 @@ from arklex.orchestrator.NLU.entities.slot_entities import (
 )
 from arklex.types.resource_types import ToolItem
 from arklex.types.stream_types import EventType, StreamType
+from arklex.utils.llm_config import load_llm
 from arklex.utils.logging_utils import LogContext
-from arklex.utils.provider_utils import validate_and_get_model_class
 
 log_context = LogContext(__name__)
 
@@ -375,13 +375,7 @@ class OpenAIAgent(BaseAgent):
         return state, agent_output
 
     def _execute(self) -> tuple[OrchestratorState, OpenAIAgentOutput]:
-        model_class = validate_and_get_model_class(
-            self.orch_state.bot_config.llm_config
-        )
-
-        self.llm = model_class(
-            model=self.orch_state.bot_config.llm_config.model_type_or_path
-        )
+        self.llm = load_llm(self.orch_state.bot_config.llm_config)
         self.llm = self.llm.bind_tools(self.tool_defs)
         if (
             self.openai_agent_data.prompt_variables
