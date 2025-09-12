@@ -26,20 +26,12 @@ from agents.realtime import (
 from pydantic import BaseModel
 
 from arklex.env.agents.agent import BaseAgent, register_agent
+from arklex.env.agents.entities import PromptVariable
 from arklex.env.tools.tools import Tool
 from arklex.env.tools.types import ChatRole, Transcript
 from arklex.orchestrator.entities.orchestrator_state_entities import OrchestratorState
 
 logger = logging.getLogger(__name__)
-
-
-class PromptVariable(BaseModel):
-    """
-    Prompt variable is a variable that is used in the prompt. e.g. Say hello {{name}}
-    """
-
-    name: str
-    value: str = ""
 
 
 class TurnDetection(BaseModel):
@@ -58,38 +50,6 @@ class TurnDetection(BaseModel):
     silence_duration_ms: int | None = 750
     threshold: float | None = 0.5
     eagerness: str | None = None
-
-    @classmethod
-    def from_dict(cls, data: dict | None) -> "TurnDetection":
-        """
-        Convert a dictionary to a TurnDetection object.
-
-        Args:
-            data: Dictionary containing turn detection configuration
-
-        Returns:
-            TurnDetection: Configured turn detection object
-
-        Note:
-            If data is None, returns default configuration.
-            If type is "server_vad", eagerness is set to None.
-            Valid types are "server_vad" or "semantic_vad".
-        """
-        if data is None:
-            return cls()
-        elif data.get("type") == "server_vad":
-            return cls(
-                type="server_vad",
-                eagerness=None,
-                **{k: v for k, v in data.items() if k != "type"},
-            )
-        elif data.get("type") == "semantic_vad":
-            return cls(
-                type="semantic_vad", **{k: v for k, v in data.items() if k != "type"}
-            )
-        else:
-            # If no valid type is specified, return default configuration
-            return cls()
 
     def model_dump(self) -> dict:
         """
@@ -111,6 +71,19 @@ class TurnDetection(BaseModel):
             del data["silence_duration_ms"]
             del data["threshold"]
         return data
+
+
+class OpenAIRealtimeAgentData(BaseModel):
+    """Data for the OpenAIAgent."""
+
+    name: str
+    prompt: str
+    prompt_variables: list[PromptVariable] = []
+    start_agent: bool = False
+    voice: str = "alloy"
+    transcription_language: str | None = None
+    speed: float = 1.0
+    turn_detection: TurnDetection | None = None
 
 
 @register_agent
