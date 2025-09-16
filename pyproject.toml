@@ -75,6 +75,7 @@ llm = [
 ]
 shopify = ["ShopifyAPI>=12.7.0,<13.0.0"]
 hubspot = ["hubspot-api-client>=11.1.0,<12.0.0"]
+twilio = ["twilio>=9.4.1,<10.0.0"]
 strict-versions = [
   "email_validator==2.2.0",
   "fastapi==0.116.1",
@@ -119,6 +120,7 @@ strict-versions = [
   "hubspot-api-client==11.1.0",
   "google-generativeai==0.8.0",
   "redis==6.2.0",
+  "twilio==9.4.1",
 ]
 
 [tool.hatch.version]
