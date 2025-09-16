@@ -275,7 +275,7 @@ class AgentGraph(TaskGraphBase):
                 log_context.info("No agents-sdk agents found in the graph")
                 return
             start_agent_name = list(self.agents_sdk_agents.keys())[0]
-            start_agent_data: OpenAIRealtimeAgentData = agent_data_map[start_agent_name]
+        start_agent_data: OpenAIRealtimeAgentData = agent_data_map[start_agent_name]
         log_context.info(f"agent handovers: {agent_handovers}")
         log_context.info(
             f"start agent: {start_agent_name}, handovers: {self.agents_sdk_agents[start_agent_name].handoffs}"
