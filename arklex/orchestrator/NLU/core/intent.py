@@ -103,8 +103,7 @@ Available Intents:
 
 Chat History:
 {chat_history_str}
-
-Please choose the most appropriate intent by providing the corresponding intent number and intent name in the format of 'intent_number) intent_name'."""
+"""
 
         return prompt, idx2intents_mapping
 
