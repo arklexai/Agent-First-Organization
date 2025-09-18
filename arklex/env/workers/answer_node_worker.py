@@ -19,8 +19,8 @@ from arklex.orchestrator.entities.orchestrator_state_entities import (
     StatusEnum,
 )
 from arklex.types.stream_types import EventType, StreamType
-from arklex.utils.logging_utils import LogContext
 from arklex.utils.llm_config import load_llm
+from arklex.utils.logging_utils import LogContext
 
 log_context = LogContext(__name__)
 
