@@ -243,16 +243,7 @@ class ModelService:
         # Extract values from the nested schema structure
         # The response should match the structure defined in slot_schema
         if isinstance(extracted_values, dict):
-            # For slot_schema, we need to extract values from the nested structure
-            # The extracted_values should contain the actual data, not the schema
-            for field_name, field_value in extracted_values.items():
-                # Find the corresponding slot field and update its value
-                if hasattr(slot, field_name):
-                    setattr(slot, field_name, field_value)
-                else:
-                    # If it's a nested field, we might need to handle it differently
-                    # For now, just set it as a value
-                    slot.value = field_value
+            slot.value = extracted_values.get(slot.name, None)
 
         return slots
 
