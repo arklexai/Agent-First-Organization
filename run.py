@@ -19,9 +19,8 @@ from dotenv import load_dotenv
 from arklex.env.env import Environment
 from arklex.orchestrator.NLU.services.model_service import ModelService
 from arklex.orchestrator.orchestrator import AgentOrg
+from arklex.utils.llm_config import LLM_PROVIDERS, LLMConfig
 from arklex.utils.logging_utils import LogContext
-from arklex.utils.model_provider_config import LLM_PROVIDERS
-from arklex.utils.provider_utils import get_provider_config
 
 load_dotenv()
 
@@ -102,7 +101,10 @@ if __name__ == "__main__":
     os.environ["DATA_DIR"] = input_dir_abs
 
     # Get complete provider configuration
-    model = get_provider_config(args.llm_provider, args.model)
+    model = {
+        "llm_provider": args.llm_provider,
+        "model_type_or_path": args.model,
+    }
 
     # Load task graph configuration and initialize environment
     with open(os.path.join(input_dir_abs, "taskgraph.json")) as f:
@@ -110,7 +112,7 @@ if __name__ == "__main__":
     config["model"] = model
 
     # Initialize model service
-    model_service = ModelService(model)
+    model_service = ModelService(LLMConfig.model_validate(model))
 
     # Initialize environment with model service
     env = Environment(
@@ -118,9 +120,7 @@ if __name__ == "__main__":
         workers=config.get("workers", []),
         agents=config.get("agents", []),
         nodes=config.get("nodes", []),
-        slot_fill_api=config["slotfillapi"],
-        planner_enabled=True,
-        model_service=model_service,  # Pass model service to environment
+        llm_config=LLMConfig.model_validate(model),
     )
 
     # Initialize chat history and parameters

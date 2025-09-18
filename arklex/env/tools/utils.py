@@ -7,26 +7,17 @@ states. The module integrates with various language models and prompt templates 
 provide flexible response generation capabilities.
 """
 
-from typing import Any, Protocol, TypedDict
+from typing import Any, Protocol
 
 from langchain.prompts import PromptTemplate
-from langchain_core.output_parsers import StrOutputParser
 
 from arklex.env.prompts import load_prompts
 from arklex.orchestrator.entities.orchestrator_state_entities import OrchestratorState
+from arklex.orchestrator.NLU.services.model_service import ModelService
 from arklex.types.stream_types import EventType, StreamType
-from arklex.utils.exceptions import ToolError
 from arklex.utils.logging_utils import LogContext
-from arklex.utils.provider_utils import validate_and_get_model_class
 
 log_context = LogContext(__name__)
-
-
-class ExecuteToolKwargs(TypedDict, total=False):
-    """Type definition for kwargs used in execute_tool function."""
-
-    # Add specific tool parameters as needed
-    pass
 
 
 class ToolExecutor(Protocol):
@@ -56,16 +47,13 @@ class ToolGenerator:
         llm_config: dict[str, Any] = state.bot_config.llm_config
         user_message: Any = state.user_message
 
-        model_class = validate_and_get_model_class(llm_config)
-
-        llm: Any = model_class(model=llm_config.model_type_or_path, temperature=0.1)
+        model_service: ModelService = ModelService(llm_config)
         prompt: PromptTemplate = get_prompt_template(state, "generator_prompt")
         input_prompt: Any = prompt.invoke(
             {"sys_instruct": state.sys_instruct, "formatted_chat": user_message.history}
         )
         log_context.info(f"Prompt: {input_prompt.text}")
-        final_chain: Any = llm | StrOutputParser()
-        answer: str = final_chain.invoke(input_prompt.text)
+        answer: str = model_service.get_response(input_prompt.text)
 
         return answer
 
@@ -73,9 +61,7 @@ class ToolGenerator:
     def context_generate(state: OrchestratorState) -> str:
         llm_config: dict[str, Any] = state.bot_config.llm_config
 
-        model_class = validate_and_get_model_class(llm_config)
-
-        llm: Any = model_class(model=llm_config.model_type_or_path, temperature=0.1)
+        model_service: ModelService = ModelService(llm_config)
         # get the input message
         user_message: Any = state.user_message
         message_flow: str = state.message_flow
@@ -117,9 +103,8 @@ class ToolGenerator:
                 "context": message_flow,
             }
         )
-        final_chain: Any = llm | StrOutputParser()
         log_context.info(f"Prompt: {input_prompt.text}")
-        answer: str = final_chain.invoke(input_prompt.text)
+        answer: str = model_service.get_response(input_prompt.text)
         state.message_flow = ""
         # state = trace(input=answer, state=state)
         return answer
@@ -128,9 +113,7 @@ class ToolGenerator:
     def stream_context_generate(state: OrchestratorState) -> str:
         llm_config: dict[str, Any] = state.bot_config.llm_config
 
-        model_class = validate_and_get_model_class(llm_config)
-
-        llm: Any = model_class(model=llm_config.model_type_or_path, temperature=0.1)
+        model_service: ModelService = ModelService(llm_config)
         # get the input message
         user_message: Any = state.user_message
         message_flow: str = state.message_flow
@@ -171,13 +154,12 @@ class ToolGenerator:
                 "context": message_flow,
             }
         )
-        final_chain: Any = llm | StrOutputParser()
         log_context.info(f"Prompt: {input_prompt.text}")
         answer: str = ""
-        for chunk in final_chain.stream(input_prompt.text):
-            answer += chunk
+        for chunk in model_service.model.stream(input_prompt.text):
+            answer += chunk.content
             state.message_queue.put(
-                {"event": EventType.CHUNK.value, "message_chunk": chunk}
+                {"event": EventType.CHUNK.value, "message_chunk": chunk.content}
             )
 
         state.message_flow = ""
@@ -189,20 +171,17 @@ class ToolGenerator:
         user_message: Any = state.user_message
 
         llm_config: dict[str, Any] = state.bot_config.llm_config
+        model_service: ModelService = ModelService(llm_config)
 
-        model_class = validate_and_get_model_class(llm_config)
-
-        llm: Any = model_class(model=llm_config.model_type_or_path, temperature=0.1)
         prompt: PromptTemplate = get_prompt_template(state, "generator_prompt")
         input_prompt: Any = prompt.invoke(
             {"sys_instruct": state.sys_instruct, "formatted_chat": user_message.history}
         )
-        final_chain: Any = llm | StrOutputParser()
         answer: str = ""
-        for chunk in final_chain.stream(input_prompt.text):
-            answer += chunk
+        for chunk in model_service.model.stream(input_prompt.text):
+            answer += chunk.content
             state.message_queue.put(
-                {"event": EventType.CHUNK.value, "message_chunk": chunk}
+                {"event": EventType.CHUNK.value, "message_chunk": chunk.content}
             )
 
         return answer
@@ -212,30 +191,3 @@ def trace(input: str, source: str, state: OrchestratorState) -> OrchestratorStat
     response_meta: dict[str, str] = {source: input}
     state.trajectory[-1][-1].steps.append(response_meta)
     return state
-
-
-def execute_tool(
-    self: ToolExecutor, tool_name: str, **kwargs: ExecuteToolKwargs
-) -> str:
-    """Execute a tool.
-
-    Args:
-        self: The object instance containing tools
-        tool_name: Name of the tool to execute
-        **kwargs: Additional arguments for the tool
-
-    Returns:
-        Tool execution result
-
-    Raises:
-        ToolError: If tool execution fails
-    """
-    try:
-        tool = self.tools[tool_name]
-        log_context.info(f"Executing tool: {tool_name}")
-        result = tool.execute(**kwargs)
-        log_context.info(f"Tool execution completed: {tool_name}")
-        return result
-    except Exception as e:
-        log_context.error(f"Tool execution failed: {tool_name}, error: {e}")
-        raise ToolError(f"Tool execution failed: {tool_name}") from e

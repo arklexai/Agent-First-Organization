@@ -15,12 +15,9 @@ from arklex.env.workers.base.base_worker import BaseWorker
 from arklex.orchestrator.entities.orchestrator_state_entities import OrchestratorState
 from arklex.orchestrator.entities.taskgraph_entities import NodeInfo, StatusEnum
 from arklex.orchestrator.NLU.core.slot import Slot, SlotFiller
-from arklex.orchestrator.NLU.services.api_service import APIClientService
-from arklex.orchestrator.NLU.services.model_service import (
-    DummyModelService,
-    ModelService,
-)
+from arklex.orchestrator.NLU.services.model_service import ModelService
 from arklex.types.resource_types import ToolItem, WorkerItem
+from arklex.utils.llm_config import LLMConfig
 from arklex.utils.logging_utils import LogContext
 
 log_context = LogContext(__name__)
@@ -74,7 +71,7 @@ class DefaultResourceInitializer(BaseResourceInitializer):
     @staticmethod
     def init_tools(
         tools: list[dict[str, Any]], nodes: list[dict[str, Any]]
-    ) -> dict[str, dict[str, Any]]:
+    ) -> dict[str, dict[str, Tool]]:
         """Initialize tools from configuration.
 
         Args:
@@ -105,36 +102,9 @@ class DefaultResourceInitializer(BaseResourceInitializer):
                         tool_instance: Tool = base_tool.copy()
                         tool_instance.auth.update(tool.get("auth", {}))
                         tool_instance.node_specific_data = node_data
-                        # --- Begin slot group merge logic ---
+                        # Load slots from node data
                         slots = node_data.get("slots", [])
-                        slot_groups = node_data.get("slot_groups", [])
-                        group_slots = []
-                        for group in slot_groups:
-                            # Generate prompt/description for the group
-                            required_fields = [
-                                s["name"]
-                                for s in group.get("schema", [])
-                                if s.get("required", False)
-                            ]
-                            prompt = (
-                                f"Please provide at least one set of the following fields: {', '.join(required_fields)}."
-                                if required_fields
-                                else f"Please provide a set of values for group '{group['name']}'."
-                            )
-                            description = f"Slot group '{group['name']}' with schema: {[s['name'] for s in group.get('schema', [])]}"
-                            group_slots.append(
-                                {
-                                    "name": group["name"],
-                                    "type": "group",
-                                    "schema": group.get("schema", []),
-                                    "required": group.get("required", False),
-                                    "repeatable": group.get("repeatable", True),
-                                    "prompt": prompt,
-                                    "description": description,
-                                }
-                            )
-                        all_slots = slots + group_slots
-                        tool_instance.load_slots(all_slots)
+                        tool_instance.load_slots(slots)
                         tool_instance.name = node_data.get("name", "")
                         tool_instance.description = node_info.get("attribute", {}).get(
                             "task", ""
@@ -225,10 +195,8 @@ class Environment:
         workers: list[dict[str, Any]],
         agents: list[dict[str, Any]],
         nodes: list[dict[str, Any]],
-        slotsfillapi: str = "",
+        llm_config: LLMConfig,
         resource_initializer: BaseResourceInitializer | None = None,
-        model_service: ModelService | None = None,
-        **kwargs: str | int | float | bool | None,
     ) -> None:
         """Initialize the environment.
 
@@ -238,11 +206,8 @@ class Environment:
             slotsfillapi: API endpoint for slot filling
             resource_initializer: Resource initializer instance
             planner_enabled: Whether planning is enabled
-            model_service: Model service for intent detection and slot filling
+            llm_config: Language model configuration
         """
-        # Accept slot_fill_api as an alias for slotsfillapi for compatibility with tests
-        if "slot_fill_api" in kwargs and not slotsfillapi:
-            slotsfillapi = kwargs["slot_fill_api"]
         resource_initializer = DefaultResourceInitializer()
         self.tools: dict[str, dict[str, Any]] = resource_initializer.init_tools(
             tools, nodes
@@ -253,32 +218,8 @@ class Environment:
         self.agents: dict[str, dict[str, Any]] = resource_initializer.init_agents(
             agents
         )
-        self.model_service = model_service or DummyModelService(
-            {
-                "model_name": "dummy",
-                "api_key": "dummy",
-                "endpoint": "http://dummy",
-                "model_type_or_path": "dummy-path",
-                "llm_provider": "dummy",
-            }
-        )
-        self.slotfillapi: SlotFiller = self.initialize_slotfillapi(slotsfillapi)
-
-    def initialize_slotfillapi(self, slotsfillapi: str) -> SlotFiller:
-        """Initialize the slot filling API.
-
-        Args:
-            slotsfillapi: API endpoint for slot filling. If not a string or empty,
-                         falls back to local model-based slot filling.
-
-        Returns:
-            SlotFiller: Initialized slot filler instance, either API-based or local model-based.
-        """
-        if isinstance(slotsfillapi, str) and slotsfillapi:
-            api_service = APIClientService(base_url=slotsfillapi)
-            return SlotFiller(model_service=self.model_service, api_service=api_service)
-        else:
-            return SlotFiller(model_service=self.model_service)
+        self.model_service = ModelService(llm_config)
+        self.slotfillapi: SlotFiller = SlotFiller(model_service=self.model_service)
 
     def step(
         self,

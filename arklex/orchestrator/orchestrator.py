@@ -83,12 +83,12 @@ from arklex.orchestrator.entities.taskgraph_entities import (
     NodeInfo,
     PathNode,
 )
+from arklex.orchestrator.NLU.services.model_service import ModelService
 from arklex.orchestrator.post_process import post_process_response
 from arklex.orchestrator.task_graph.task_graph import TaskGraph
+from arklex.types.resource_types import WorkerItem
 from arklex.types.stream_types import StreamType
 from arklex.utils.logging_utils import LogContext
-from arklex.utils.model_config import MODEL
-from arklex.utils.provider_utils import validate_and_get_model_class
 from arklex.utils.utils import format_chat_history
 
 load_dotenv()
@@ -142,39 +142,27 @@ class AgentOrg:
         self.worker_prefix: str = kwargs.get("worker_prefix", "assistant")
         self.environment_prefix: str = kwargs.get("environment_prefix", "tool")
         self.__eos_token: str = kwargs.get("eos_token", "\n")
+
         if isinstance(config, dict):
             self.product_kwargs: dict[str, Any] = config
         else:
             with open(config) as f:
                 self.product_kwargs: dict[str, Any] = json.load(f)
-        self.llm_config: LLMConfig = LLMConfig(
-            **self.product_kwargs.get("model", MODEL)
+        self.llm_config: LLMConfig = LLMConfig.model_validate(
+            self.product_kwargs.get("model")
         )
-        self.env: Environment = env or Environment(
-            tools=self.product_kwargs.get("tools", []),
-            workers=self.product_kwargs.get("workers", []),
-            agents=self.product_kwargs.get("agents", []),
-            slot_fill_api=self.product_kwargs.get("slot_fill_api", ""),
-            planner_enabled=False,
-        )
+        self.model_service: ModelService = ModelService(self.llm_config)
+        self.env: Environment = env
         self.task_graph: TaskGraph = TaskGraph(
             "taskgraph",
             self.product_kwargs,
-            model_service=self.env.model_service,
+            llm_config=self.llm_config,
         )
 
-        # Initialize LLM directly
-        model_class = validate_and_get_model_class(self.llm_config)
-
-        self.llm = model_class(
-            model=self.llm_config.model_type_or_path,
-            temperature=0.0,
-        )
-
-        self.settings = self.task_graph.product_kwargs.get("settings", {}) or {}
         # HITL settings
+        self.settings = self.task_graph.product_kwargs.get("settings", {}) or {}
         self.hitl_worker_available = any(
-            worker.get("name") == "HITLWorkerChatFlag"
+            worker.get("id") == WorkerItem.HUMAN_IN_THE_LOOP_WORKER
             for worker in self.task_graph.product_kwargs.get("workers", [])
         )
         self.hitl_proposal_enabled = (

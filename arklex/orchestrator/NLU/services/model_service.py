@@ -15,11 +15,8 @@ from langchain_core.messages import HumanMessage, SystemMessage
 from arklex.orchestrator.NLU.utils.formatters import (
     format_verification_input as format_verification_input_formatter,
 )
-from arklex.utils.exceptions import ModelError, ValidationError
-from arklex.utils.logging_utils import LOG_MESSAGES, LogContext, handle_exceptions
-from arklex.utils.model_config import MODEL
-
-from .model_config import ModelConfig
+from arklex.utils.llm_config import LLMConfig, load_llm
+from arklex.utils.logging_utils import LogContext
 
 log_context = LogContext(__name__)
 
@@ -41,141 +38,22 @@ class ModelService:
         model: Initialized model instance
     """
 
-    def __init__(self, model_config: dict[str, Any]) -> None:
+    def __init__(self, llm_config: LLMConfig) -> None:
         """Initialize the model service.
 
         Args:
-            model_config: Configuration for the language model
+            llm_config: Configuration for the language model
 
         Raises:
             ModelError: If initialization fails
-            ValidationError: If configuration is invalid
         """
-        self.model_config = model_config
-        self._validate_config()
-        try:
-            self.model = self._initialize_model()
-        except Exception as e:
-            log_context.error(
-                LOG_MESSAGES["ERROR"]["INITIALIZATION_ERROR"].format(
-                    service="ModelService", error=str(e)
-                ),
-                extra={
-                    "error": str(e),
-                    "service": "ModelService",
-                    "operation": "initialization",
-                },
-            )
-            raise ModelError(
-                "Failed to initialize model service",
-                details={
-                    "error": str(e),
-                    "service": "ModelService",
-                    "operation": "initialization",
-                },
-            ) from e
-
-    def _validate_config(self) -> None:
-        """Validate the model configuration.
-
-        Raises:
-            ValidationError: If the configuration is invalid
-        """
-        required_fields = ["model_name", "model_type_or_path"]
-        missing_fields = [
-            field for field in required_fields if field not in self.model_config
-        ]
-        if missing_fields:
-            log_context.error(
-                "Missing required field",
-                extra={
-                    "missing_fields": missing_fields,
-                    "operation": "config_validation",
-                },
-            )
-            raise ValidationError(
-                "Missing required field",
-                details={
-                    "missing_fields": missing_fields,
-                    "operation": "config_validation",
-                },
-            )
-
-        # Ensure API key is provided and not set to None or empty
-        if "api_key" not in self.model_config or not self.model_config["api_key"]:
-            # Don't set a default value - require explicit API key
-            log_context.error(
-                "API key is missing or empty",
-                extra={
-                    "operation": "config_validation",
-                },
-            )
-            raise ValidationError(
-                "API key is missing or empty",
-                details={
-                    "operation": "config_validation",
-                },
-            )
-
-        # Set endpoint if not provided
-        if "endpoint" not in self.model_config:
-            self.model_config["endpoint"] = MODEL["endpoint"]
-
-        # Validate API key presence
-        from arklex.utils.provider_utils import validate_api_key_presence
-
-        try:
-            validate_api_key_presence(
-                self.model_config.get("llm_provider", ""),
-                self.model_config.get("api_key", ""),
-            )
-        except ValueError as e:
-            log_context.error(
-                "API key validation failed",
-                extra={
-                    "error": str(e),
-                    "operation": "config_validation",
-                },
-            )
-            raise ValidationError(
-                "API key validation failed",
-                details={
-                    "error": str(e),
-                    "operation": "config_validation",
-                },
-            ) from e
-
-    @handle_exceptions()
-    def _initialize_model(self) -> BaseChatModel:
-        """Initialize the language model.
-
-        Creates and configures a new model instance based on the service
-        configuration.
-
-        Returns:
-            Initialized model instance
-
-        Raises:
-            ModelError: If model initialization fails
-        """
-        try:
-            model = ModelConfig.get_model_instance(self.model_config)
-            return ModelConfig.configure_response_format(model, self.model_config)
-        except Exception as e:
-            raise ModelError(
-                "Failed to initialize model",
-                details={
-                    "error": str(e),
-                    "model_config": self.model_config,
-                    "operation": "model_initialization",
-                },
-            ) from e
+        self.llm_config = llm_config
+        self.model: BaseChatModel = load_llm(llm_config)
 
     def get_response(
         self,
         prompt: str,
         system_prompt: str | None = None,
-        note: str | None = None,
     ) -> str:
         """Get response from the model.
 
@@ -184,11 +62,7 @@ class ModelService:
 
         Args:
             prompt: User prompt to send to the model
-            model_config: Optional model configuration parameters. If not provided,
-                         uses the instance's model_config.
             system_prompt: Optional system prompt for model context
-            response_format: Optional format specification for the response
-            note: Optional note for logging purposes
 
         Returns:
             Model response as string
@@ -202,16 +76,10 @@ class ModelService:
             if system_prompt:
                 messages.append(SystemMessage(content=system_prompt))
             messages.append(HumanMessage(content=prompt))
-
             # Get response from model
             response = self.model.invoke(messages)
-
             if not response or not response.content:
                 raise ValueError("Empty response from model")
-
-            if note:
-                log_context.info(f"Model response for {note}: {response.content}")
-
             return response.content
         except Exception as e:
             log_context.error(f"Error getting model response: {str(e)}")
@@ -226,7 +94,7 @@ class ModelService:
         """Get response from the model with structured output."""
         # Check if the model is an OpenAI model by checking the model_config
         is_openai_model = (
-            self.model_config.get("llm_provider", "").lower() == "openai"
+            self.llm_config.llm_provider.lower() == "openai"
             or "openai" in str(self.model).lower()
         )
 
@@ -314,6 +182,7 @@ class ModelService:
         """Process the model's response for slot filling.
 
         Parses the model's response and updates the slot values accordingly.
+        Handles both traditional slot structures and new slot_schema structures.
 
         Args:
             response: Model's response containing extracted slot values (can be string or dict)
@@ -336,23 +205,18 @@ class ModelService:
             else:
                 raise ValueError(f"Unsupported response type: {type(response)}")
 
-            # Update slot values
-            for slot in slots:
-                # Handle both dict and Pydantic model inputs
-                if isinstance(slot, dict):
-                    slot_name = slot.get("name", "")
-                    if slot_name in extracted_values:
-                        slot["value"] = extracted_values[slot_name]
-                    else:
-                        slot["value"] = None
-                else:
-                    slot_name = getattr(slot, "name", "")
-                    if slot_name in extracted_values:
-                        slot.value = extracted_values[slot_name]
-                    else:
-                        slot.value = None
+            # Check if we're dealing with a slot_schema structure
+            if (
+                len(slots) == 1
+                and hasattr(slots[0], "slot_schema")
+                and slots[0].slot_schema
+            ):
+                # Handle new slot_schema structure
+                return self._process_slot_schema_response(extracted_values, slots)
+            else:
+                # Handle traditional slot structure
+                return self._process_traditional_slot_response(extracted_values, slots)
 
-            return slots
         except json.JSONDecodeError as e:
             log_context.error(f"Error parsing slot filling response: {str(e)}")
             raise ValueError(f"Failed to parse slot filling response: {str(e)}") from e
@@ -361,6 +225,51 @@ class ModelService:
             raise ValueError(
                 f"Failed to process slot filling response: {str(e)}"
             ) from e
+
+    def _process_slot_schema_response(
+        self, extracted_values: dict, slots: list
+    ) -> list:
+        """Process response for slot_schema structure.
+
+        Args:
+            extracted_values: Extracted values from model response
+            slots: Original slot definitions
+
+        Returns:
+            Updated list of slots with extracted values
+        """
+        slot = slots[0]
+
+        # Extract values from the nested schema structure
+        # The response should match the structure defined in slot_schema
+        if isinstance(extracted_values, dict):
+            slot.value = extracted_values.get(slot.name, None)
+
+        return slots
+
+    def _process_traditional_slot_response(
+        self, extracted_values: dict, slots: list
+    ) -> list:
+        """Process response for traditional slot structure.
+
+        Args:
+            extracted_values: Extracted values from model response
+            slots: Original slot definitions
+
+        Returns:
+            Updated list of slots with extracted values
+        """
+        # Update slot values
+        for slot in slots:
+            # Handle both dict and Pydantic model inputs
+            if isinstance(slot, dict):
+                slot_name = slot.get("name", "")
+                slot["value"] = extracted_values.get(slot_name)
+            else:
+                slot_name = getattr(slot, "name", "")
+                slot.value = extracted_values.get(slot_name)
+
+        return slots
 
     def format_verification_input(
         self, slot: dict[str, Any], chat_history_str: str
@@ -400,6 +309,39 @@ class ModelService:
             log_context.error(f"Error parsing verification response: {str(e)}")
             # Default to needing verification if JSON parsing fails
             return True, f"Failed to parse verification response: {str(e)}"
+
+    def format_slot_schema_input(
+        self, function_def: dict[str, Any], context: str
+    ) -> tuple[str, str]:
+        """Format input for slot extraction using an OpenAI-style function schema.
+
+        Args:
+            function_def: Dict with keys 'name','description','parameters' matching OpenAI function schema
+            context: Input context to extract values from
+
+        Returns:
+            Tuple of (user_prompt, system_prompt)
+        """
+        name = function_def.get("name", "tool")
+        description = function_def.get("description", "")
+        parameters = function_def.get("parameters", {})
+        # Provide the parameters JSON exactly to the model
+        schema_json = json.dumps(parameters, ensure_ascii=False)
+
+        system_prompt = (
+            "You are a precise information extraction assistant. "
+            "Given a JSON Schema for function parameters and a conversation context, "
+            "extract values strictly matching the schema. Return ONLY a JSON object that conforms to the 'parameters' schema. "
+            "Do not include Markdown or explanations."
+        )
+        user_prompt = (
+            f"Function: {name}\n"
+            f"Description: {description}\n"
+            f"Parameters JSON Schema:\n{schema_json}\n\n"
+            f"Context:\n{context}\n\n"
+            "Return a JSON object whose keys and value types exactly match the 'properties' under the parameters schema."
+        )
+        return user_prompt, system_prompt
 
 
 class DummyModelService(ModelService):

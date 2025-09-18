@@ -22,7 +22,7 @@ Features:
 
 Usage:
     from arklex.orchestrator.task_graph import TaskGraph
-    from arklex.utils.graph_state import LLMConfig, Params
+    from arklex.utils.model_provider_config import LLMConfig
 
     # Initialize task graph
     config = {
@@ -43,6 +43,7 @@ Usage:
 import collections
 import copy
 import re
+import threading
 from typing import Any
 
 import networkx as nx
@@ -51,10 +52,10 @@ from agents.realtime import RealtimeAgent, realtime_handoff
 from jinja2 import Template
 
 from arklex.env.agents.agent import BaseAgent
+from arklex.env.agents.entities import PromptVariable
 from arklex.env.agents.openai_realtime_agent import (
     OpenAIRealtimeAgent,
-    PromptVariable,
-    TurnDetection,
+    OpenAIRealtimeAgentData,
 )
 from arklex.env.env import DefaultResourceInitializer
 from arklex.env.nested_graph.nested_graph import NestedGraph
@@ -70,6 +71,7 @@ from arklex.orchestrator.NLU.services.model_service import (
 )
 from arklex.types.resource_types import AgentItem, ResourceType, ToolItem
 from arklex.utils.exceptions import TaskGraphError
+from arklex.utils.llm_config import LLMConfig
 from arklex.utils.logging_utils import LogContext
 from arklex.utils.utils import normalize, str_similarity
 
@@ -171,17 +173,17 @@ class AgentGraph(TaskGraphBase):
 
         resource_initializer = DefaultResourceInitializer()
         agent_handovers: dict[str, list[str]] = collections.defaultdict(list)
-        start_agent_config: dict[str, Any] | None = None
+        start_agent_data: dict[str, Any] | None = None
         start_agent_name: str | None = None
         voicemail_tool: Tool | None = None
-        agent_node_specific_data: dict[str, Any] | None = {}
+        response_played_event = threading.Event()
+        agent_data_map: dict[str, OpenAIRealtimeAgentData] | None = {}
         for node in self.graph.nodes.data():
             if node[1].get("attribute", {}).get("type", "") == ResourceType.AGENT:
                 node_specific_data = node[1].get("data", {})
                 resource = node[1].get("resource", {})
                 if node_specific_data.get("start_agent", False):
                     start_agent_name = node_specific_data["name"]
-                    start_agent_config = node_specific_data
                 # process successors and predecessors to get resources
                 available_tools = []
                 available_nodes = []
@@ -223,6 +225,9 @@ class AgentGraph(TaskGraphBase):
                     tool_registry[tool_id]["tool_instance"].name = re.sub(
                         r"[^a-zA-Z0-9]", "_", tool_id
                     )
+                    tool_registry[tool_id]["tool_instance"].runtime_args.update(
+                        {"response_played_event": response_played_event}
+                    )
                     if tool_id == ToolItem.TWILIO_CALL_VOICEMAIL:
                         voicemail_tool = tool_registry[tool_id]["tool_instance"]
                     else:
@@ -233,31 +238,20 @@ class AgentGraph(TaskGraphBase):
                         )
                 self.resources.update(tool_registry)
                 if resource.get("id", "") == AgentItem.OPENAI_REALTIME_VOICE_AGENT:
-                    prompt = node_specific_data.get("prompt", "")
+                    agent_data = OpenAIRealtimeAgentData(**node_specific_data)
+                    prompt = agent_data.prompt
                     # prompt_variables_test_values = node_specific_data.get("prompt_variables_test_values", None)
-                    prompt_variables = []
-                    if self.product_kwargs.get("prompt_variables", None):
-                        prompt_variables = self.product_kwargs.get("prompt_variables")
-                    else:
-                        prompt_variables = [
-                            PromptVariable(**v)
-                            for v in node_specific_data.get(
-                                "prompt_variables_test_values", []
-                            )
-                        ]
-                    if prompt_variables:
-                        self.prompt_variables.extend(prompt_variables)
+                    if agent_data.prompt_variables:
+                        self.prompt_variables.extend(agent_data.prompt_variables)
                         template = Template(prompt)
                         # convert prompt_variables to a dict
                         prompt_variables_dict = {
                             pv.name: pv.value for pv in self.prompt_variables
                         }
                         prompt = template.render(prompt_variables_dict)
-                    agent_node_specific_data[node_specific_data["name"]] = (
-                        node_specific_data
-                    )
-                    self.agents_sdk_agents[node_specific_data["name"]] = RealtimeAgent(
-                        name=node_specific_data["name"],
+                    agent_data_map[agent_data.name] = agent_data
+                    self.agents_sdk_agents[agent_data.name] = RealtimeAgent(
+                        name=agent_data.name,
                         instructions=prompt,
                         tools=agents_sdk_tools,
                         handoff_description=node[1]
@@ -281,23 +275,20 @@ class AgentGraph(TaskGraphBase):
                 log_context.info("No agents-sdk agents found in the graph")
                 return
             start_agent_name = list(self.agents_sdk_agents.keys())[0]
-            start_agent_config = agent_node_specific_data[start_agent_name]
+        start_agent_data: OpenAIRealtimeAgentData = agent_data_map[start_agent_name]
         log_context.info(f"agent handovers: {agent_handovers}")
         log_context.info(
             f"start agent: {start_agent_name}, handovers: {self.agents_sdk_agents[start_agent_name].handoffs}"
         )
         self.start_agent = OpenAIRealtimeAgent(
             realtime_agent=self.agents_sdk_agents[start_agent_name],
-            voice=start_agent_config.get("voice", "alloy"),
-            transcription_language=start_agent_config.get(
-                "transcription_language", None
-            ),
-            speed=start_agent_config.get("speed", 1.0),
-            turn_detection=TurnDetection.from_dict(
-                start_agent_config.get("turn_detection", None)
-            ),
+            voice=start_agent_data.voice,
+            transcription_language=start_agent_data.transcription_language,
+            speed=start_agent_data.speed,
+            turn_detection=start_agent_data.turn_detection,
             voicemail_tool=voicemail_tool,
         )
+        self.start_agent.response_played = response_played_event
 
 
 class TaskGraph(TaskGraphBase):
@@ -333,14 +324,14 @@ class TaskGraph(TaskGraphBase):
         self,
         name: str,
         product_kwargs: dict[str, Any],
-        model_service: ModelService,
+        llm_config: LLMConfig,
     ) -> None:
         """Initialize the task graph.
 
         Args:
             name: Name of the task graph
             product_kwargs: Configuration settings for the graph
-            model_service: Model service for intent detection (required)
+            llm_config: Language model configuration
         """
         super().__init__(name, product_kwargs)
         self.unsure_intent: dict[str, Any] = {
@@ -355,6 +346,7 @@ class TaskGraph(TaskGraphBase):
             },
         }
         self.initial_node: str | None = self.get_initial_flow()
+        model_service = ModelService(llm_config)
         self.intent_detector: IntentDetector = IntentDetector(model_service)
 
     def get_initial_flow(self) -> str | None:
