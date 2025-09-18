@@ -20,7 +20,7 @@ from arklex.orchestrator.entities.orchestrator_state_entities import (
 )
 from arklex.types.stream_types import EventType, StreamType
 from arklex.utils.logging_utils import LogContext
-from arklex.utils.provider_utils import validate_and_get_model_class
+from arklex.utils.llm_config import load_llm
 
 log_context = LogContext(__name__)
 
@@ -151,13 +151,7 @@ Response:"""
         input_prompt = self._format_prompt()
         
         # Initialize the LLM
-        model_class = validate_and_get_model_class(
-            self.orch_state.bot_config.llm_config
-        )
-        self.llm = model_class(
-            model=self.orch_state.bot_config.llm_config.model_type_or_path,
-            temperature=0.1,
-        )
+        self.llm = load_llm(self.orch_state.bot_config.llm_config)
         
         # Generate response based on stream type
         if (
