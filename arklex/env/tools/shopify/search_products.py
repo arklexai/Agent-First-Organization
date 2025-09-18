@@ -26,6 +26,7 @@ from arklex.env.tools.shopify.utils.utils_slots import (
 from arklex.env.tools.tools import register_tool
 from arklex.orchestrator.NLU.services.model_service import ModelService
 from arklex.utils.exceptions import ToolExecutionError
+from arklex.utils.llm_config import LLMConfig
 from arklex.utils.logging_utils import LogContext
 
 log_context = LogContext(__name__)
@@ -125,10 +126,9 @@ def search_products(
                 }
                 card_list.append(product_dict)
             if card_list:
-                if not kwargs.get("llm_provider"):
-                    raise ValueError("llm_provider must be explicitly specified")
-
-                model_service: ModelService = ModelService(kwargs["llm_config"])
+                model_service: ModelService = ModelService(
+                    LLMConfig.model_validate(kwargs)
+                )
                 message = f"You are helping a customer search products based on the query and get results below and those results will be presented using product card format.\n\n{json.dumps(card_list)}\n\nGenerate a response to continue the conversation without explicitly mentioning contents of the search result. Include one or two questions about those products to know the user's preference. Keep the response within 50 words.\nDIRECTLY GIVE THE RESPONSE."
                 answer = model_service.get_response(message)
                 return SearchProductsOutput(
