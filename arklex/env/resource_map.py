@@ -217,7 +217,7 @@ resource_map: Mapping[type[Item], Mapping[str, ResourceType | ToolCategory | typ
     WorkerItem.ANSWER_NODE_WORKER: {
         "type": ResourceType.WORKER,
         "category": WorkerCategory.WORKER,
-        "module": "arklex.env.workers.answer_node_worker",
+        "module": "arklex.env.workers.answer_node",
         "item_cls": "AnswerNodeWorker",
     },
     AgentItem.OPENAI_AGENT: {

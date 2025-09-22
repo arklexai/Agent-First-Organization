@@ -10,10 +10,13 @@ from typing import Any
 
 from langchain.prompts import PromptTemplate
 from langchain_core.output_parsers import StrOutputParser
-from pydantic import BaseModel
 
+from arklex.env.prompts import load_prompts
+from arklex.env.workers.answer_node.entities import (
+    AnswerNodeWorkerData,
+    AnswerNodeWorkerOutput,
+)
 from arklex.env.workers.base.base_worker import BaseWorker
-from arklex.env.workers.base.entities import WorkerOutput
 from arklex.orchestrator.entities.orchestrator_state_entities import (
     OrchestratorState,
     StatusEnum,
@@ -23,20 +26,6 @@ from arklex.utils.llm_config import load_llm
 from arklex.utils.logging_utils import LogContext
 
 log_context = LogContext(__name__)
-
-
-class AnswerNodeWorkerData(BaseModel):
-    """Data for the answer node worker."""
-    
-    task: str = ""
-    prompt: str = ""
-
-
-class AnswerNodeWorkerOutput(WorkerOutput):
-    """Response for the answer node worker."""
-    
-    response: str
-    status: StatusEnum
 
 
 class AnswerNodeWorker(BaseWorker):
@@ -68,25 +57,14 @@ class AnswerNodeWorker(BaseWorker):
             log_context.warning("No task or prompt provided in worker data")
             return "I don't have a specific task to perform."
         
+        # Load prompts based on bot configuration
+        prompts = load_prompts(self.orch_state.bot_config)
+        
         # Create a focused, efficient prompt template
         if message_flow and message_flow.strip():
             # Use template with context from previous nodes
             prompt_template = PromptTemplate.from_template(
-                """{sys_instruct}
-
-Your specific task: {task}
-
-{prompt}
-
-IMPORTANT: Respond directly to the user's question based on the task and context provided. Do not give generic responses.
-
-Conversation history:
-{history}
-
-Context from previous operations:
-{context}
-
-Response:"""
+                prompts["answer_node_prompt_with_context"]
             )
             
             input_prompt = prompt_template.invoke(
@@ -101,18 +79,7 @@ Response:"""
         else:
             # Use template without context
             prompt_template = PromptTemplate.from_template(
-                """{sys_instruct}
-
-Your specific task: {task}
-
-{prompt}
-
-IMPORTANT: Respond directly to the user's question based on the task provided. Do not give generic responses.
-
-Conversation history:
-{history}
-
-Response:"""
+                prompts["answer_node_prompt_without_context"]
             )
             
             input_prompt = prompt_template.invoke(
@@ -168,4 +135,4 @@ Response:"""
         return AnswerNodeWorkerOutput(
             response=answer,
             status=StatusEnum.COMPLETE,
-        ) 
+        )
