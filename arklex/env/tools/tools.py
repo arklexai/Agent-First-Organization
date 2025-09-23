@@ -352,11 +352,13 @@ class Tool:
             List of filled slots
         """
         filled_slots = []
-        for slot in slots:
+        # for slot in slots:
             # Use slotfiller directly with the slot - it handles the slot_schema internally
-            filled = self.slotfiller.fill_slots([slot], chat_history_str, self.llm_config)
-            slot.value = self._convert_value(filled[0].value, slot.type)
-            filled_slots.append(slot)
+        if slots:
+            filled = self.slotfiller.fill_slots(slots, chat_history_str, self.llm_config) # filled is a list of slots
+            for i, slot in enumerate(slots):
+                slot.value = self._convert_value(filled[i].value, slot.type) # we need to handle the case where all indexes are filled
+                filled_slots.append(slot)
         return filled_slots
     
 

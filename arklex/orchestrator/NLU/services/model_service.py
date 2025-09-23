@@ -195,6 +195,9 @@ class ModelService:
             ValueError: If response parsing fails
         """
         try:
+            # If there are no slots to process, return empty list early
+            if not slots:
+                return []
             # Handle both string and dict responses
             if isinstance(response, str):
                 # Parse the JSON response if it's a string
@@ -205,12 +208,11 @@ class ModelService:
             else:
                 raise ValueError(f"Unsupported response type: {type(response)}")
 
-            # Check if we're dealing with a slot_schema structure
-            if (
-                len(slots) == 1
-                and hasattr(slots[0], "slot_schema")
-                and slots[0].slot_schema
-            ):
+            # Route to slot_schema handler if ANY slot provides a slot_schema
+            has_any_slot_schema = any(
+                getattr(s, "slot_schema", None) for s in slots
+            )
+            if has_any_slot_schema:
                 # Handle new slot_schema structure
                 return self._process_slot_schema_response(extracted_values, slots)
             else:
@@ -238,12 +240,27 @@ class ModelService:
         Returns:
             Updated list of slots with extracted values
         """
-        slot = slots[0]
+        # If we received a merged object and have one or more slots, set each
+        # slot object's value to {slot_name: value} and return the original
+        # list of slots. This preserves downstream expectations of slot objects.
+        if isinstance(extracted_values, dict) and len(slots) >= 1:
+            for s in slots:
+                slot_name = s.get("name") if isinstance(s, dict) else getattr(s, "name", None)
+                if not slot_name:
+                    continue
+                value = extracted_values.get(slot_name)
+                if isinstance(s, dict):
+                    s["value"] = value.get(slot_name)
+                else:
+                    setattr(s, "value", value.get(slot_name))
+            return slots
 
-        # Extract values from the nested schema structure
-        # The response should match the structure defined in slot_schema
+        # Single-slot case: assign value back to the slot object for compatibility
+        slot = slots[0]
         if isinstance(extracted_values, dict):
             slot.value = extracted_values.get(slot.name, None)
+        else:
+            slot.value = extracted_values
 
         return slots
 
