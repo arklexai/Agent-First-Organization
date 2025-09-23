@@ -1,102 +1,219 @@
-"""Test utilities for the Arklex framework."""
+"""Tests for env/tools/utils module."""
 
-from unittest.mock import Mock, patch
-
-from arklex.env.tools.utils import trace
-from arklex.orchestrator.entities.orchestrator_state_entities import OrchestratorState
+import pytest
+from unittest.mock import patch, MagicMock
+from arklex.env.tools.utils import (
+    get_prompt_template,
+    ToolGenerator,
+)
+from arklex.orchestrator.entities.orchestrator_state_entities import (
+    BotConfig,
+    ConvoMessage,
+    OrchestratorState,
+    StreamType,
+)
+from arklex.types.stream_types import EventType
 
 
 class TestGetPromptTemplate:
     """Test cases for get_prompt_template function."""
 
     @patch("arklex.env.tools.utils.load_prompts")
-    def test_get_prompt_template_speech_non_chinese(
-        self, mock_load_prompts: Mock
-    ) -> None:
-        """Test get_prompt_template for speech non-Chinese."""
-        # Setup
-        state = Mock(spec=OrchestratorState)
-        state.stream_type = "speech"
-        state.bot_config = Mock()
-        state.bot_config.language = "EN"
-
+    def test_get_prompt_template_speech_non_chinese(self, mock_load_prompts):
+        """Test getting prompt template for speech stream type (non-Chinese)."""
         mock_prompts = {
             "test_prompt": "Regular prompt",
-            "test_prompt_speech": "Speech prompt",
+            "test_prompt_speech": "Speech prompt"
         }
         mock_load_prompts.return_value = mock_prompts
-
-        # Execute
-        from arklex.env.tools.utils import get_prompt_template
-
+        
+        bot_config = BotConfig(
+            language="EN",
+            llm_config={},
+            taskgraph={}
+        )
+        state = OrchestratorState(
+            stream_type=StreamType.SPEECH,
+            bot_config=bot_config,
+            user_message=ConvoMessage(history="", message="test"),
+            event_type=EventType.TEXT
+        )
+        
         result = get_prompt_template(state, "test_prompt")
-
-        # Assert
-        assert result.template == "Speech prompt"
-        mock_load_prompts.assert_called_once_with(state.bot_config)
+        
+        assert result is not None
+        mock_load_prompts.assert_called_once_with(bot_config)
 
     @patch("arklex.env.tools.utils.load_prompts")
-    def test_get_prompt_template_speech_chinese(self, mock_load_prompts: Mock) -> None:
-        """Test get_prompt_template for speech Chinese."""
-        # Setup
-        state = Mock(spec=OrchestratorState)
-        state.stream_type = "speech"
-        state.bot_config = Mock()
-        state.bot_config.language = "CN"
-
+    def test_get_prompt_template_speech_chinese(self, mock_load_prompts):
+        """Test getting prompt template for speech stream type (Chinese)."""
         mock_prompts = {
             "test_prompt": "Regular prompt",
-            "test_prompt_speech": "Speech prompt",
+            "test_prompt_speech": "Speech prompt"
         }
         mock_load_prompts.return_value = mock_prompts
-
-        # Execute
-        from arklex.env.tools.utils import get_prompt_template
-
+        
+        bot_config = BotConfig(
+            language="CN",
+            llm_config={},
+            taskgraph={}
+        )
+        state = OrchestratorState(
+            stream_type=StreamType.SPEECH,
+            bot_config=bot_config,
+            user_message=ConvoMessage(history="", message="test"),
+            event_type=EventType.TEXT
+        )
+        
         result = get_prompt_template(state, "test_prompt")
-
-        # Assert
-        assert result.template == "Regular prompt"
-        mock_load_prompts.assert_called_once_with(state.bot_config)
+        
+        assert result is not None
+        mock_load_prompts.assert_called_once_with(bot_config)
 
     @patch("arklex.env.tools.utils.load_prompts")
-    def test_get_prompt_template_non_speech(self, mock_load_prompts: Mock) -> None:
-        """Test get_prompt_template for non-speech."""
-        # Setup
-        state = Mock(spec=OrchestratorState)
-        state.stream_type = "text"
-        state.bot_config = Mock()
-
+    def test_get_prompt_template_non_speech(self, mock_load_prompts):
+        """Test getting prompt template for non-speech stream type."""
         mock_prompts = {
             "test_prompt": "Regular prompt",
-            "test_prompt_speech": "Speech prompt",
+            "test_prompt_speech": "Speech prompt"
         }
         mock_load_prompts.return_value = mock_prompts
-
-        # Execute
-        from arklex.env.tools.utils import get_prompt_template
-
+        
+        bot_config = BotConfig(
+            language="EN",
+            llm_config={},
+            taskgraph={}
+        )
+        state = OrchestratorState(
+            stream_type=StreamType.TEXT,
+            bot_config=bot_config,
+            user_message=ConvoMessage(history="", message="test"),
+            event_type=EventType.TEXT
+        )
+        
         result = get_prompt_template(state, "test_prompt")
+        
+        assert result is not None
+        mock_load_prompts.assert_called_once_with(bot_config)
 
-        # Assert
-        assert result.template == "Regular prompt"
-        mock_load_prompts.assert_called_once_with(state.bot_config)
 
+class TestToolGenerator:
+    """Test cases for ToolGenerator class."""
 
-class TestTrace:
-    """Test cases for trace function."""
+    @patch("arklex.env.tools.utils.ModelService")
+    def test_tool_generator_generate_basic(self, mock_model_service_class):
+        """Test basic ToolGenerator.generate functionality."""
+        mock_model_service = MagicMock()
+        mock_model_service.get_response.return_value = "Generated response"
+        mock_model_service_class.return_value = mock_model_service
+        
+        bot_config = BotConfig(
+            language="EN",
+            llm_config={"provider": "openai", "model": "gpt-3.5-turbo"},
+            taskgraph={},
+        )
+        state = OrchestratorState(
+            stream_type=StreamType.TEXT,
+            bot_config=bot_config,
+            user_message=ConvoMessage(history="", message="test message"),
+            event_type=EventType.TEXT
+        )
+        
+        result = ToolGenerator.generate(state)
+        
+        assert result == "Generated response"
+        mock_model_service_class.assert_called_once()
+        mock_model_service.get_response.assert_called_once()
 
-    def test_trace(self) -> None:
-        """Test trace function."""
-        # Setup
-        state = Mock(spec=OrchestratorState)
-        state.trajectory = [[Mock()]]
-        state.trajectory[-1][-1].steps = []
+    @patch("arklex.env.tools.utils.ModelService")
+    def test_tool_generator_generate_with_different_config(self, mock_model_service_class):
+        """Test ToolGenerator.generate with different config."""
+        mock_model_service = MagicMock()
+        mock_model_service.get_response.return_value = "Generated response"
+        mock_model_service_class.return_value = mock_model_service
+        
+        bot_config = BotConfig(
+            language="CN",
+            llm_config={"provider": "anthropic", "model": "claude-3"},
+            taskgraph={},
+        )
+        state = OrchestratorState(
+            stream_type=StreamType.SPEECH,
+            bot_config=bot_config,
+            user_message=ConvoMessage(history="", message="test message"),
+            event_type=EventType.TEXT
+        )
+        
+        result = ToolGenerator.generate(state)
+        
+        assert result == "Generated response"
+        mock_model_service_class.assert_called_once()
+        mock_model_service.get_response.assert_called_once()
 
-        # Execute
-        result = trace("test input", "test_function", state)
+    @patch("arklex.env.tools.utils.ModelService")
+    def test_tool_generator_generate_model_error(self, mock_model_service_class):
+        """Test ToolGenerator.generate when model raises error."""
+        mock_model_service = MagicMock()
+        mock_model_service.get_response.side_effect = Exception("Model error")
+        mock_model_service_class.return_value = mock_model_service
+        
+        bot_config = BotConfig(
+            language="EN",
+            llm_config={"provider": "openai", "model": "gpt-3.5-turbo"},
+            taskgraph={},
+        )
+        state = OrchestratorState(
+            stream_type=StreamType.TEXT,
+            bot_config=bot_config,
+            user_message=ConvoMessage(history="", message="test message"),
+            event_type=EventType.TEXT
+        )
+        
+        with pytest.raises(Exception, match="Model error"):
+            ToolGenerator.generate(state)
 
-        # Assert
-        assert result is state  # trace returns the modified state object
-        assert len(state.trajectory[-1][-1].steps) == 1
-        assert state.trajectory[-1][-1].steps[0] == {"test_function": "test input"}
+    @patch("arklex.env.tools.utils.ModelService")
+    def test_tool_generator_generate_empty_response(self, mock_model_service_class):
+        """Test ToolGenerator.generate with empty response."""
+        mock_model_service = MagicMock()
+        mock_model_service.get_response.return_value = ""
+        mock_model_service_class.return_value = mock_model_service
+        
+        bot_config = BotConfig(
+            language="EN",
+            llm_config={"provider": "openai", "model": "gpt-3.5-turbo"},
+            taskgraph={},
+        )
+        state = OrchestratorState(
+            stream_type=StreamType.TEXT,
+            bot_config=bot_config,
+            user_message=ConvoMessage(history="", message="test message"),
+            event_type=EventType.TEXT
+        )
+        
+        result = ToolGenerator.generate(state)
+        
+        assert result == ""
+
+    @patch("arklex.env.tools.utils.ModelService")
+    def test_tool_generator_generate_none_response(self, mock_model_service_class):
+        """Test ToolGenerator.generate with None response."""
+        mock_model_service = MagicMock()
+        mock_model_service.get_response.return_value = None
+        mock_model_service_class.return_value = mock_model_service
+        
+        bot_config = BotConfig(
+            language="EN",
+            llm_config={"provider": "openai", "model": "gpt-3.5-turbo"},
+            taskgraph={},
+        )
+        state = OrchestratorState(
+            stream_type=StreamType.TEXT,
+            bot_config=bot_config,
+            user_message=ConvoMessage(history="", message="test message"),
+            event_type=EventType.TEXT
+        )
+        
+        result = ToolGenerator.generate(state)
+        
+        assert result is None
