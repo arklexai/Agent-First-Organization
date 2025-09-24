@@ -255,13 +255,6 @@ class ModelService:
                     setattr(s, "value", value.get(slot_name))
             return slots
 
-        # Single-slot case: assign value back to the slot object for compatibility
-        slot = slots[0]
-        if isinstance(extracted_values, dict):
-            slot.value = extracted_values.get(slot.name, None)
-        else:
-            slot.value = extracted_values
-
         return slots
 
     def _process_traditional_slot_response(
