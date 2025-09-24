@@ -6,15 +6,15 @@ from arklex.env.workers.base.entities import WorkerOutput
 from arklex.orchestrator.entities.orchestrator_state_entities import StatusEnum
 
 
-class AnswerNodeWorkerData(BaseModel):
+class OutputProcessWorkerData(BaseModel):
     """Data for the answer node worker."""
-    
+
     task: str = ""
     prompt: str = ""
 
 
-class AnswerNodeWorkerOutput(WorkerOutput):
+class OutputProcessWorkerOutput(WorkerOutput):
     """Response for the answer node worker."""
-    
+
     response: str
     status: StatusEnum

@@ -33,7 +33,6 @@ class TaskGraphFormatter:
     DEFAULT_RAG_WORKER = "FaissRAGWorker"
     DEFAULT_SEARCH_WORKER = "SearchWorker"
     DEFAULT_NESTED_GRAPH = "NestedGraph"
-    DEFAULT_ANSWER_NODE_WORKER = "AnswerNodeWorker"
 
     def __init__(
         self,
@@ -182,7 +181,7 @@ class TaskGraphFormatter:
                         nid
                         for nid, ndata in all_nodes
                         if ndata.get("resource", {}).get("name")
-                        in ["MessageWorker", "FaissRAGWorker", "SearchWorker", "AnswerNodeWorker"]
+                        in ["MessageWorker", "FaissRAGWorker", "SearchWorker"]
                         and nid != "0"
                     ]
                     if task_node_ids:
