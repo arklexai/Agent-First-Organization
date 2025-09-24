@@ -214,11 +214,11 @@ resource_map: Mapping[type[Item], Mapping[str, ResourceType | ToolCategory | typ
         "module": "arklex.env.workers.multiple_choice.multiple_choice_worker",
         "item_cls": "MultipleChoiceWorker",
     },
-    WorkerItem.ANSWER_NODE_WORKER: {
+    WorkerItem.OUTPUT_PROCESS_WORKER: {
         "type": ResourceType.WORKER,
         "category": WorkerCategory.WORKER,
-        "module": "arklex.env.workers.answer_node",
-        "item_cls": "AnswerNodeWorker",
+        "module": "arklex.env.workers.output_process.output_process_worker",
+        "item_cls": "OutputProcessWorker",
     },
     AgentItem.OPENAI_AGENT: {
         "type": ResourceType.AGENT,
