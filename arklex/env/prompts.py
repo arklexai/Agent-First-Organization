@@ -227,6 +227,34 @@ Rephrase the Original Answer only to fix fluency or coherence issues caused by r
 ----------------
 Revised Answer:
 """,
+            ### ================================== Answer Node Worker Prompts ================================== ###
+            "answer_node_prompt_with_context": """{sys_instruct}
+
+Your specific task: {task}
+
+{prompt}
+
+IMPORTANT: Respond directly to the user's question based on the task and context provided. Do not give generic responses.
+
+Conversation history:
+{history}
+
+Context from previous operations:
+{context}
+
+Response:""",
+            "answer_node_prompt_without_context": """{sys_instruct}
+
+Your specific task: {task}
+
+{prompt}
+
+IMPORTANT: Respond directly to the user's question based on the task provided. Do not give generic responses.
+
+Conversation history:
+{history}
+
+Response:""",
         }
     elif bot_config.language.upper() == "CN":
         ### ================================== Generator Prompts ================================== ###
@@ -299,6 +327,34 @@ The answer has to be in English and should only be yes or no.
 ----------------
 Answer:
 """,
+            ### ================================== Answer Node Worker Prompts ================================== ###
+            "answer_node_prompt_with_context": """{sys_instruct}
+
+您的具体任务：{task}
+
+{prompt}
+
+重要提示：请根据提供的任务和上下文直接回答用户的问题。不要给出通用回复。
+
+对话历史：
+{history}
+
+之前操作的上下文：
+{context}
+
+回复：""",
+            "answer_node_prompt_without_context": """{sys_instruct}
+
+您的具体任务：{task}
+
+{prompt}
+
+重要提示：请根据提供的任务直接回答用户的问题。不要给出通用回复。
+
+对话历史：
+{history}
+
+回复：""",
         }
     else:
         raise ValueError(f"Unsupported language: {bot_config.language}")
