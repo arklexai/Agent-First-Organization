@@ -240,9 +240,7 @@ class ModelService:
         Returns:
             Updated list of slots with extracted values
         """
-        # If we received a merged object and have one or more slots, set each
-        # slot object's value to {slot_name: value} and return the original
-        # list of slots. This preserves downstream expectations of slot objects.
+
         if isinstance(extracted_values, dict) and len(slots) >= 1:
             for s in slots:
                 slot_name = s.get("name") if isinstance(s, dict) else getattr(s, "name", None)
