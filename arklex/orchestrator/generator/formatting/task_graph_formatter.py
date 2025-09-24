@@ -33,6 +33,7 @@ class TaskGraphFormatter:
     DEFAULT_RAG_WORKER = "FaissRAGWorker"
     DEFAULT_SEARCH_WORKER = "SearchWorker"
     DEFAULT_NESTED_GRAPH = "NestedGraph"
+    DEFAULT_OUTPUT_PROCESS_WORKER = "OutputProcessWorker"
 
     def __init__(
         self,
@@ -133,6 +134,10 @@ class TaskGraphFormatter:
                 "id": "9c15af81-04b3-443e-be04-a3522124b905",
                 "name": "SearchWorker",
             },
+            "OutputProcessWorker": {
+                "id": "OutputProcessWorker",
+                "name": "OutputProcessWorker",
+            },
         }
         return fallback_workers.get(
             worker_name, {"id": worker_name.lower(), "name": worker_name}
@@ -180,7 +185,12 @@ class TaskGraphFormatter:
                         nid
                         for nid, ndata in all_nodes
                         if ndata.get("resource", {}).get("name")
-                        in ["MessageWorker", "FaissRAGWorker", "SearchWorker"]
+                        in [
+                            "MessageWorker",
+                            "FaissRAGWorker",
+                            "SearchWorker",
+                            "OutputProcessWorker",
+                        ]
                         and nid != "0"
                     ]
                     if task_node_ids:
@@ -293,6 +303,7 @@ class TaskGraphFormatter:
                     self.DEFAULT_MESSAGE_WORKER,
                     self.DEFAULT_RAG_WORKER,
                     self.DEFAULT_SEARCH_WORKER,
+                    self.DEFAULT_OUTPUT_PROCESS_WORKER,
                 ]
                 and "workflow" in resource_name.lower()
             ):
@@ -352,6 +363,7 @@ class TaskGraphFormatter:
                         self.DEFAULT_MESSAGE_WORKER,
                         self.DEFAULT_RAG_WORKER,
                         self.DEFAULT_SEARCH_WORKER,
+                        self.DEFAULT_OUTPUT_PROCESS_WORKER,
                     ]
                     and "workflow" in step_worker_name.lower()
                 ):
