@@ -250,7 +250,7 @@ class ModelService:
                 if isinstance(s, dict):
                     s["value"] = value.get(slot_name)
                 else:
-                    setattr(s, "value", value.get(slot_name))
+                    s.value = value.get(slot_name)
             return slots
 
         return slots
