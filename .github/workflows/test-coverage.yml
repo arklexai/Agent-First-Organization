@@ -8,7 +8,7 @@ jobs:
   test:
     name: run tests and display coverage
 
-    if: false # Disabled - only runs with 'run-coverage-tests' label
+    if: github.base_ref == 'main' && github.event.label.name == 'run-coverage-tests'
 
     runs-on: ubuntu-latest
 

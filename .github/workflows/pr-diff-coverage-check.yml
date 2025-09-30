@@ -11,7 +11,7 @@ permissions:
 jobs:
   coverage-check:
     name: Check Coverage on New Lines
-    if: false  # Disabled - only runs with 'run-diff-coverage-tests' label
+    if: github.base_ref == 'main' && github.event.label.name == 'run-diff-coverage-tests'
     uses: ./.github/workflows/reusable-diff-based-test-coverage.yml
     with:
       python-version: '3.10'
