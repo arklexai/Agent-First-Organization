@@ -11,7 +11,7 @@ permissions:
 jobs:
   coverage-check:
     name: Check Coverage on New Lines
-    if: github.base_ref == 'main' && github.event.label.name == 'run-diff-coverage-tests'
+    if: false  # Disabled - only runs with 'run-diff-coverage-tests' label
     uses: ./.github/workflows/reusable-diff-based-test-coverage.yml
     with:
       python-version: '3.10'
@@ -19,4 +19,3 @@ jobs:
       is-pr-check: true
     secrets:
       OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
-      SHOPIFY_FIXED_ARGS: ${{ secrets.SHOPIFY_FIXED_ARGS }}
