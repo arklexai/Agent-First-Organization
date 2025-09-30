@@ -161,7 +161,7 @@
             "0",
             "1",
             {
-                "intent": null,
+                "intent": "None",
                 "attribute": {
                     "weight": 1,
                     "pred": true,
@@ -174,7 +174,7 @@
             "1",
             "2",
             {
-                "intent": null,
+                "intent": "None",
                 "attribute": {
                     "weight": 1,
                     "pred": true,
@@ -187,7 +187,7 @@
             "1",
             "3",
             {
-                "intent": null,
+                "intent": "None",
                 "attribute": {
                     "weight": 1,
                     "pred": true,

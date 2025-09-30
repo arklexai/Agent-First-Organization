@@ -79,7 +79,7 @@ If you provide specific details in the response, it should be based on the conve
 Conversation:
 {formatted_chat}
 ----------------
-assistant: 
+assistant:
 """,
             "generator_prompt_speech": """{sys_instruct}
 ----------------
@@ -134,7 +134,7 @@ Conversation:
 In addition to replying to the user, also incorporate the following message into the response naturally if it is not None and doesn't conflict with the original response, the response should be natural and human-like: 
 {message}
 ----------------
-assistant: 
+assistant:
 """,
             "message_generator_prompt_speech": """{sys_instruct}
 ----------------

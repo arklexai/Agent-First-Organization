@@ -1,4 +1,4 @@
-from integration_tests.base import BaseTestOrchestrator, ChatRole
+from integration_tests.utils.base import BaseTestOrchestrator, ChatRole
 
 
 def test_workers() -> None:

@@ -4,7 +4,7 @@ from unittest.mock import Mock, patch
 
 import requests
 
-from integration_tests.base import BaseTestOrchestrator, ChatRole
+from integration_tests.utils.base import BaseTestOrchestrator, ChatRole
 
 
 def create_mock_response(url: str, method: str, **kwargs: dict[str, Any]) -> Mock:
