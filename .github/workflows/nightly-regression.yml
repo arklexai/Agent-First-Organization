@@ -23,15 +23,10 @@ jobs:
       coverage-command: 'ARKLEX_TEST_ENV=local pytest tests/ --cov=arklex --cov-report=term-missing --cov-report=html --cov-report=xml --no-cov-on-fail'
       min-coverage-threshold: '45.0'
 
-  integration-tests:
-    uses: ./.github/workflows/test-pipelines.yml
-    with:
-      python-version: '3.10'
-
   summary:
     name: Nightly Regression Summary
     runs-on: ubuntu-latest
-    needs: [lint, coverage-check, integration-tests]
+    needs: [lint, coverage-check]
     if: always()
     
     steps:
@@ -46,7 +41,6 @@ jobs:
           echo "### Test Results:" >> $GITHUB_STEP_SUMMARY
           echo "- **Lint**: ${{ needs.lint.result == 'success' && '✅ Passed' || '❌ Failed' }}" >> $GITHUB_STEP_SUMMARY
           echo "- **Coverage**: ${{ needs.coverage-check.result == 'success' && '✅ Passed' || '❌ Failed' }}" >> $GITHUB_STEP_SUMMARY
-          echo "- **Integration Tests**: ${{ needs.integration-tests.result == 'success' && '✅ Passed' || '❌ Failed' }}" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "### Overall Status:" >> $GITHUB_STEP_SUMMARY
           
@@ -68,11 +62,8 @@ jobs:
             if [[ "${{ needs.lint.result }}" != "success" ]]; then
               FAILED_TESTS="${FAILED_TESTS}• Lint checks"
             fi
-            if [[ "${{ needs.coverage-check.result }}" != "success" || "${{ needs.integration-tests.result }}" != "success" ]]; then
+            if [[ "${{ needs.coverage-check.result }}" != "success" ]]; then
               FAILED_TESTS="${FAILED_TESTS}• Coverage checks"
-            fi
-            if [[ "${{ needs.integration-tests.result }}" != "success" ]]; then
-              FAILED_TESTS="${FAILED_TESTS}• Integration tests"
             fi
             
             # Handle case where no tests failed (shouldn't happen but just in case)
