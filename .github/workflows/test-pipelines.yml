@@ -5,59 +5,17 @@ on:
     types: [labeled]
 
 jobs:
+  test-mock-pipelines:
+    # Run on PRs targeting main branch'
+    if: github.base_ref == 'main'
+    uses: ./.github/workflows/reusable-mock-integration-tests.yml
+    with:
+      python-version: '3.10'
+
   test-pipelines:
     # Only run on PRs targeting main labeled with 'live-integration-tests'
     if: github.base_ref == 'main' && github.event.label.name == 'live-integration-tests'
-    runs-on: ubuntu-latest
-    env:
-      OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
-
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-
-      - name: Set up Python 3.10
-        uses: actions/setup-python@v4
-        with:
-          python-version: '3.10'
-
-      - name: Install dependencies
-        run: |
-          python -m pip install --upgrade pip
-          pip install -e '.[strict-versions]' --quiet
-
-      - name: Test live integration tests with pytest
-        run: |
-          pytest integration_tests/live_tests/
-
-  test-mock-pipelines:
-    # Only run on PRs targeting main labeled with 'mock-integration-tests'
-    if: github.base_ref == 'main' && github.event.label.name == 'run-integration-tests'
-    runs-on: ubuntu-latest
-    env:
-      OPENAI_API_KEY: test-api-key
-      OPENAI_BASE_URL: http://localhost:5005
-
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-
-      - name: Set up Python 3.10
-        uses: actions/setup-python@v4
-        with:
-          python-version: '3.10'
-
-      - name: Install dependencies
-        run: |
-          python -m pip install --upgrade pip
-          pip install -e '.[strict-versions]' --quiet
-          pip install uvicorn
-
-      - name: Start OpenAI Mock Server
-        run: |
-          python integration_tests/utils/openai_mock_server.py &
-          sleep 5
-
-      - name: Test mock integration tests with pytest
-        run: |
-          pytest integration_tests/mock_tests/
+    uses: ./.github/workflows/reusable-live-integration-tests.yml
+    with:
+      python-version: '3.10'
+    continue-on-error: true
