@@ -17,24 +17,21 @@ jobs:
       python-version: '3.10'
       run-on-all-files: true
 
-  taskgraph:
-    uses: ./.github/workflows/reusable-taskgraph-generation-validation.yml
-    with:
-      python-version: '3.10'
-      config-path: './examples/test/config.json'
-    secrets:
-      OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
-
   coverage-check:
     uses: ./.github/workflows/reusable-run-coverage-tests.yml
     with:
       coverage-command: 'ARKLEX_TEST_ENV=local pytest tests/ --cov=arklex --cov-report=term-missing --cov-report=html --cov-report=xml --no-cov-on-fail'
       min-coverage-threshold: '45.0'
 
+  integration-tests:
+    uses: ./.github/workflows/test-pipelines.yml
+    with:
+      python-version: '3.10'
+
   summary:
     name: Nightly Regression Summary
     runs-on: ubuntu-latest
-    needs: [lint, taskgraph, coverage-check]
+    needs: [lint, coverage-check, integration-tests]
     if: always()
     
     steps:
@@ -48,13 +45,13 @@ jobs:
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "### Test Results:" >> $GITHUB_STEP_SUMMARY
           echo "- **Lint**: ${{ needs.lint.result == 'success' && '✅ Passed' || '❌ Failed' }}" >> $GITHUB_STEP_SUMMARY
-          echo "- **TaskGraph**: ${{ needs.taskgraph.result == 'success' && '✅ Passed' || '❌ Failed' }}" >> $GITHUB_STEP_SUMMARY
           echo "- **Coverage**: ${{ needs.coverage-check.result == 'success' && '✅ Passed' || '❌ Failed' }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **Integration Tests**: ${{ needs.integration-tests.result == 'success' && '✅ Passed' || '❌ Failed' }}" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "### Overall Status:" >> $GITHUB_STEP_SUMMARY
           
           # Determine overall status
-          if [[ "${{ needs.lint.result }}" == "success" && "${{ needs.taskgraph.result }}" == "success" && "${{ needs.coverage-check.result }}" == "success" ]]; then
+          if [[ "${{ needs.lint.result }}" == "success" && "${{ needs.coverage-check.result }}" == "success" && "${{ needs.integration-tests.result }}" == "success" ]]; then
             echo "🎉 **All tests passed!**" >> $GITHUB_STEP_SUMMARY
             echo "overall_status=success" >> $GITHUB_OUTPUT
             echo "notification_type=success" >> $GITHUB_OUTPUT
@@ -71,11 +68,11 @@ jobs:
             if [[ "${{ needs.lint.result }}" != "success" ]]; then
               FAILED_TESTS="${FAILED_TESTS}• Lint checks"
             fi
-            if [[ "${{ needs.taskgraph.result }}" != "success" ]]; then
-              FAILED_TESTS="${FAILED_TESTS}• TaskGraph generation/validation"
-            fi
-            if [[ "${{ needs.coverage-check.result }}" != "success" ]]; then
+            if [[ "${{ needs.coverage-check.result }}" != "success" || "${{ needs.integration-tests.result }}" != "success" ]]; then
               FAILED_TESTS="${FAILED_TESTS}• Coverage checks"
+            fi
+            if [[ "${{ needs.integration-tests.result }}" != "success" ]]; then
+              FAILED_TESTS="${FAILED_TESTS}• Integration tests"
             fi
             
             # Handle case where no tests failed (shouldn't happen but just in case)
