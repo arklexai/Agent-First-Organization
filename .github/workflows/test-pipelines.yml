@@ -2,7 +2,7 @@ name: Integration Tests (workers, tools, agents, etc.)
 
 on:
   pull_request:
-    types: [labeled]
+    types: [opened, edited, synchronize, labeled]
 
 jobs:
   test-mock-pipelines:
