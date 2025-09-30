@@ -1,4 +1,4 @@
-name: Mock Integration Tests
+name: Test Mock Pipeline
 
 on:
   pull_request:
