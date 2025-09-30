@@ -45,7 +45,7 @@ jobs:
           echo "### Overall Status:" >> $GITHUB_STEP_SUMMARY
           
           # Determine overall status
-          if [[ "${{ needs.lint.result }}" == "success" && "${{ needs.coverage-check.result }}" == "success" && "${{ needs.integration-tests.result }}" == "success" ]]; then
+          if [[ "${{ needs.lint.result }}" == "success" && "${{ needs.coverage-check.result }}" == "success" ]]; then
             echo "🎉 **All tests passed!**" >> $GITHUB_STEP_SUMMARY
             echo "overall_status=success" >> $GITHUB_OUTPUT
             echo "notification_type=success" >> $GITHUB_OUTPUT

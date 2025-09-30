@@ -10,7 +10,7 @@ def test_workers() -> None:
 
     # start message (direct message)
     text = "<start>"
-    output = orchestrator.get_resopnse(text, chat_history, params)
+    output = orchestrator.get_response(text, chat_history, params)
     chat_history.append({"role": ChatRole.USER, "content": text})
     chat_history.append({"role": ChatRole.ASSISTANT, "content": output["answer"]})
     params = output["parameters"]
@@ -21,7 +21,7 @@ def test_workers() -> None:
 
     # message worker (undirected message)
     text = "How is the weather?"
-    output = orchestrator.get_resopnse(text, chat_history, params)
+    output = orchestrator.get_response(text, chat_history, params)
     chat_history.append({"role": ChatRole.USER, "content": text})
     chat_history.append({"role": ChatRole.ASSISTANT, "content": output["answer"]})
     params = output["parameters"]
@@ -29,7 +29,7 @@ def test_workers() -> None:
 
     # multiple choice worker
     text = "Which car would you like to buy?"
-    output = orchestrator.get_resopnse(text, chat_history, params)
+    output = orchestrator.get_response(text, chat_history, params)
     chat_history.append({"role": ChatRole.USER, "content": text})
     chat_history.append({"role": ChatRole.ASSISTANT, "content": output["answer"]})
     params = output["parameters"]
@@ -42,7 +42,7 @@ def test_workers() -> None:
 
     # Human in the loop worker
     text = "Connect me with a human agent"
-    output = orchestrator.get_resopnse(text, chat_history, params)
+    output = orchestrator.get_response(text, chat_history, params)
     chat_history.append({"role": ChatRole.USER, "content": text})
     chat_history.append({"role": ChatRole.ASSISTANT, "content": output["answer"]})
     params = output["parameters"]

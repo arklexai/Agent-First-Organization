@@ -72,7 +72,7 @@ def test_http_tool_agent(mock_request: Mock) -> None:
 
     # start message (direct message)
     text = "<start>"
-    output = orchestrator.get_resopnse(text, chat_history, params)
+    output = orchestrator.get_response(text, chat_history, params)
     chat_history.append({"role": ChatRole.USER, "content": text})
     chat_history.append({"role": ChatRole.ASSISTANT, "content": output["answer"]})
     params = output["parameters"]
@@ -84,7 +84,7 @@ def test_http_tool_agent(mock_request: Mock) -> None:
     # Test case 1: HTTP tool (queryService)
     mock_request.side_effect = create_mock_response
     text = "What services does your company provide?"
-    output = orchestrator.get_resopnse(text, chat_history, params)
+    output = orchestrator.get_response(text, chat_history, params)
     chat_history.append({"role": ChatRole.USER, "content": text})
     chat_history.append({"role": ChatRole.ASSISTANT, "content": output["answer"]})
     params = output["parameters"]
@@ -108,7 +108,7 @@ def test_http_tool_agent(mock_request: Mock) -> None:
     # Test Case 2: HTTP tool (contactTeam)
     mock_request.side_effect = create_mock_response
     text = "I'm interested in user simulator with a budget of 1000"
-    output = orchestrator.get_resopnse(text, chat_history, params)
+    output = orchestrator.get_response(text, chat_history, params)
     chat_history.append({"role": ChatRole.USER, "content": text})
     chat_history.append({"role": ChatRole.ASSISTANT, "content": output["answer"]})
     params = output["parameters"]

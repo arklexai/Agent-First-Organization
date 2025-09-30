@@ -25,7 +25,7 @@ class BaseTestOrchestrator:
         )
         self.orchestrator = AgentOrg(config=config, env=self.env)
 
-    def get_resopnse(
+    def get_response(
         self, text: str, chat_history: list[dict[str, str]], parameters: dict[str, Any]
     ) -> None:
         data: dict[str, Any] = {
