@@ -36,9 +36,9 @@ def test_workers() -> None:
     assert output["answer"] == "Which car would you like to buy?"
     assert output["choice_list"] == ["Car A", "Car B", "Car C"]
 
-    # Milvus RAG worker
+    # TODO: Milvus RAG worker
 
-    # RAG message worker
+    # TODO: RAG message worker
 
     # Human in the loop worker
     text = "Connect me with a human agent"
