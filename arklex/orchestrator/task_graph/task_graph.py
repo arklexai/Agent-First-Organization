@@ -48,7 +48,7 @@ from typing import Any
 
 import networkx as nx
 import numpy as np
-from agents import Agent
+from agents import Agent, handoff
 from agents.realtime import RealtimeAgent, realtime_handoff
 from jinja2 import Template
 
@@ -284,12 +284,73 @@ class AgentGraph(TaskGraphBase):
                     continue
 
         for agent_name, handover_agents in agent_handovers.items():
-            # Only set handoffs for RealtimeAgent instances
+            # Set handoffs for both RealtimeAgent and text Agent instances
             if hasattr(self.agents_sdk_agents[agent_name], 'handoffs'):
-                self.agents_sdk_agents[agent_name].handoffs = [
-                    realtime_handoff(self.agents_sdk_agents[handover_agent])
-                    for handover_agent in handover_agents
-                ]
+                # Check if this is a RealtimeAgent (has realtime_handoff) or text Agent
+                agent_instance = self.agents_sdk_agents[agent_name]
+                if hasattr(agent_instance, 'voice'):  # RealtimeAgent has voice attribute
+                    # This is a RealtimeAgent - use realtime_handoff
+                    self.agents_sdk_agents[agent_name].handoffs = [
+                        realtime_handoff(self.agents_sdk_agents[handover_agent])
+                        for handover_agent in handover_agents
+                    ]
+                    log_context.info(f"Configured realtime handoffs for {agent_name}: {handover_agents}")
+                else:
+                    # This is a text Agent - use handoff() function
+                    handoff_objects = [
+                        handoff(self.agents_sdk_agents[handover_agent])
+                        for handover_agent in handover_agents
+                    ]
+                    self.agents_sdk_agents[agent_name].handoffs = handoff_objects
+                    log_context.info(f"Configured text handoffs for {agent_name}: {handover_agents}")
+                    log_context.info(f"Handoff objects: {self.agents_sdk_agents[agent_name].handoffs}")
+                    
+                    # Store handoffs in the task graph for later use
+                    # Store handoffs in the agent's node-specific data for later retrieval
+                    agent_node = None
+                    log_context.info(f"Looking for node data for agent: {agent_name}")
+                    log_context.info(f"Nodes structure: {type(self.product_kwargs['nodes'])}")
+                    
+                    # Debug: Check what's actually in product_kwargs
+                    log_context.info(f"product_kwargs keys: {list(self.product_kwargs.keys())}")
+                    log_context.info(f"product_kwargs type: {type(self.product_kwargs)}")
+                    
+                    # Look for agent data in the nodes array
+                    if "nodes" in self.product_kwargs:
+                        log_context.info(f"Looking in nodes array for agent: {agent_name}")
+                        for i, node in enumerate(self.product_kwargs["nodes"]):
+                            if isinstance(node, list) and len(node) >= 2:
+                                node_id = node[0]
+                                node_data = node[1] if len(node) > 1 else {}
+                                if isinstance(node_data, dict) and "data" in node_data:
+                                    agent_data = node_data["data"]
+                                    if isinstance(agent_data, dict) and agent_data.get("name") == agent_name:
+                                        agent_node = node_data
+                                        log_context.info(f"Found matching agent node for {agent_name} at index {i}")
+                                        break
+                    else:
+                        log_context.warning("No 'nodes' array found in product_kwargs")
+                    
+                    if agent_node:
+                        # Store handoffs directly in the agent's data
+                        if "handoffs" not in agent_node["data"]:
+                            agent_node["data"]["handoffs"] = []
+                        agent_node["data"]["handoffs"] = handoff_objects
+                        log_context.info(f"Stored handoffs in agent data for {agent_name}: {handoff_objects}")
+                    else:
+                        log_context.warning(f"Could not find node data for agent {agent_name}")
+                        # Get available agent names from nodes
+                        available_names = []
+                        if "nodes" in self.product_kwargs:
+                            for node in self.product_kwargs["nodes"]:
+                                if isinstance(node, list) and len(node) >= 2:
+                                    node_data = node[1] if len(node) > 1 else {}
+                                    if isinstance(node_data, dict) and "data" in node_data:
+                                        agent_data = node_data["data"]
+                                        if isinstance(agent_data, dict) and "name" in agent_data:
+                                            name = agent_data.get("name", "unknown")
+                                            available_names.append(name)
+                        log_context.info(f"Available agents: {available_names}")
 
         if start_agent_name is None:
             if len(self.agents_sdk_agents) == 0:
@@ -313,11 +374,15 @@ class AgentGraph(TaskGraphBase):
                 voicemail_tool=voicemail_tool,
             )
             self.start_agent.response_played = response_played_event
+        elif isinstance(start_agent_data, OpenAIAgentData):
+            # For text agents, we can use them as start agents
+            log_context.info(f"Text agent {start_agent_name} configured as start agent")
+            # The actual agent execution will be handled by the orchestrator
+            # We don't need to create a special start agent for text agents
+            self.start_agent = None
         else:
-            # For regular agents, we need to handle them differently
-            # This is a placeholder - you may need to implement proper handling
-            # for regular agents based on your requirements
-            log_context.warning(f"Regular agent {start_agent_name} not fully supported as start agent yet")
+            # For other agent types, we need to handle them differently
+            log_context.warning(f"Agent type {type(start_agent_data)} not fully supported as start agent yet")
             self.start_agent = None
 
 

@@ -1,17 +1,20 @@
 import json
 import re
+import traceback
 from typing import Any
 
 from jinja2 import Template
 from pydantic import BaseModel
 from agents import Agent, Runner, ItemHelpers
 
-from arklex.env.agents.agent import BaseAgent, register_agent
+from arklex.env.agents.agent import BaseAgent, register_agent, AgentOutput
 from arklex.env.agents.entities import PromptVariable
 from arklex.env.prompts import load_prompts
 from arklex.orchestrator.entities.orchestrator_state_entities import (
     OrchestratorState,
+    StatusEnum,
 )
+from arklex.orchestrator.entities.taskgraph_entities import StatusEnum as TaskGraphStatusEnum
 from arklex.orchestrator.NLU.entities.slot_entities import (
     apply_values_recursively,
 )
@@ -54,6 +57,8 @@ class OpenAIAgent(BaseAgent):
         self.tool_args: dict[str, Any] = {}
         self.tool_slots: dict[str, Any] = {}
         self.tool_name_mapping: dict[str, str] = {}  # sanitized_name -> original_name
+        self.handoffs = []  # Store handoffs for later use
+        self._handoff_detected = False  # Updated per turn based on SDK result
 
         self._load_tools(successors=successors, predecessors=predecessors, tools=tools)
         self._configure_tools()
@@ -128,6 +133,13 @@ class OpenAIAgent(BaseAgent):
         self.openai_agent_data: OpenAIAgentData = OpenAIAgentData(
             **node_specific_data,
         )
+        
+        # Retrieve handoffs from node-specific data if available
+        if "handoffs" in node_specific_data:
+            self.handoffs = node_specific_data["handoffs"]
+            log_context.info(f"Retrieved handoffs from node data: {self.handoffs}")
+        else:
+            log_context.warning("No handoffs found in node-specific data")
 
     def _prepare_prompt(self, state: OrchestratorState, is_speech: bool = False) -> str:
         """Prepare the input prompt for generation."""
@@ -187,7 +199,7 @@ class OpenAIAgent(BaseAgent):
         """
         if not state.function_calling_trajectory:
             return
-            
+
         log_context.info("=== ENSURING TOOL OUTPUTS IN TRAJECTORY ===")
         log_context.info(f"Current trajectory length: {len(state.function_calling_trajectory)}")
         
@@ -228,6 +240,16 @@ class OpenAIAgent(BaseAgent):
                 })
         
         log_context.info("=== END ENSURING TOOL OUTPUTS ===")
+
+    def set_handoffs(self, handoffs: list) -> None:
+        """Set handoffs for the text agent."""
+        self.handoffs = handoffs
+        log_context.info(f"Set handoffs for agent: {handoffs}")
+        
+        # If text agent already exists, update it
+        if hasattr(self, "text_agent"):
+            self.text_agent.handoffs = handoffs
+            log_context.info(f"Updated existing text agent with handoffs: {handoffs}")
 
     def _append_tool_outputs_to_trajectory(self, state: OrchestratorState, result: Any) -> None:  # noqa: ANN401
         """Append tool outputs from the Agents SDK result to the trajectory.
@@ -419,32 +441,41 @@ class OpenAIAgent(BaseAgent):
 
         # Ensure text agent is created
         if not hasattr(self, "text_agent"):
+            # Use stored handoffs if available
+            handoffs = getattr(self, 'handoffs', [])
             self.text_agent = Agent(
                 name="OpenAIAgent",
                 instructions=self.prompt,
                 tools=self.agents_sdk_tools,
+                handoffs=handoffs,
                 model=self.orch_state.bot_config.llm_config.model_type_or_path,
             )
             log_context.info(f"Created new text agent with {len(self.agents_sdk_tools)} tools")
+            log_context.info(f"Available tools: {[tool.name for tool in self.agents_sdk_tools]}")
+            if handoffs:
+                log_context.info(f"Agent handoffs configured: {handoffs}")
+            else:
+                log_context.warning("No handoffs configured for this agent")
 
-        if stream:
-            answer = await self._run_agent_and_stream(state)
-        else:
-            result = await Runner.run(self.text_agent, state.function_calling_trajectory)
-            # Emit best-effort incremental content even in non-stream mode for responsiveness
-            try:
-                incremental_text = ItemHelpers.text_message_outputs(result.new_items)
-            except Exception:
-                incremental_text = ""
-            if incremental_text and state.message_queue is not None:
-                state.message_queue.put(
-                    {"event": EventType.CHUNK.value, "message_chunk": incremental_text}
-                )
-            answer = getattr(result, "final_output", "") or incremental_text
+            if stream:
+                answer = await self._run_agent_and_stream(state)
+            else:
+                result = await Runner.run(self.text_agent, state.function_calling_trajectory)
+                # Emit best-effort incremental content even in non-stream mode for responsiveness
+                try:
+                    incremental_text = ItemHelpers.text_message_outputs(result.new_items)
+                except Exception:
+                    incremental_text = ""
+                if incremental_text and state.message_queue is not None:
+                    state.message_queue.put(
+                        {"event": EventType.CHUNK.value, "message_chunk": incremental_text}
+                    )
+                answer = getattr(result, "final_output", "") or incremental_text
 
         # Log the result from Agents SDK
         log_context.info("=== AGENTS SDK RESULT DEBUG ===")
         log_context.info(f"Result type: {type(result)}")
+        handoff_detected_local = False
         if hasattr(result, "new_items"):
             log_context.info(f"New items count: {len(result.new_items)}")
             for i, item in enumerate(result.new_items):
@@ -453,9 +484,17 @@ class OpenAIAgent(BaseAgent):
                     log_context.info(f"    Name: {item.name}")
                 if hasattr(item, "output"):
                     log_context.info(f"    Output: {str(item.output)[:200]}{'...' if len(str(item.output)) > 200 else ''}")
+                # Detect handoff by class name or item name
+                item_cls_name = type(item).__name__.lower()
+                if "handoff" in item_cls_name or (hasattr(item, "name") and isinstance(item.name, str) and "handoff" in item.name.lower()):
+                    handoff_detected_local = True
+                    log_context.info("    *** HANDOFF EVENT DETECTED ***")
         if hasattr(result, "final_output"):
             log_context.info(f"Final output: {result.final_output}")
         log_context.info("=== END AGENTS SDK RESULT DEBUG ===")
+
+        # Persist handoff detection for this turn
+        self._handoff_detected = handoff_detected_local
 
         # Append any new tool outputs to the trajectory for future context
         try:
@@ -466,6 +505,32 @@ class OpenAIAgent(BaseAgent):
         state.message_flow = ""
         agent_output = OpenAIAgentOutput(response=answer)
         return state, agent_output
+
+    # Override execute to mark node COMPLETE on handoff so orchestrator advances
+    def execute(
+        self, orch_state: OrchestratorState, node_specific_data: dict[str, Any]
+    ) -> tuple[OrchestratorState, Any]:  # noqa: ANN401
+        try:
+            self.init_agent_data(orch_state, node_specific_data)
+            response_state, output = self._execute()
+            if response_state.trajectory and response_state.trajectory[-1]:
+                response_state.trajectory[-1][-1].output = output.response
+            from arklex.orchestrator.entities.orchestrator_state_entities import StatusEnum as _StatusEnum
+            from arklex.env.agents.agent import AgentOutput as _AgentOutput
+            status = _StatusEnum.COMPLETE if getattr(self, "_handoff_detected", False) else _StatusEnum.INCOMPLETE
+            agent_output: _AgentOutput = _AgentOutput(
+                response=output.response,
+                status=status,
+            )
+        except Exception:
+            log_context.error(traceback.format_exc())
+            from arklex.orchestrator.entities.orchestrator_state_entities import StatusEnum as _StatusEnum
+            from arklex.env.agents.agent import AgentOutput as _AgentOutput
+            agent_output: _AgentOutput = _AgentOutput(
+                response="",
+                status=_StatusEnum.INCOMPLETE,
+            )
+        return orch_state, agent_output
 
     def _execute(self) -> tuple[OrchestratorState, OpenAIAgentOutput]:
         if (
@@ -492,6 +557,7 @@ class OpenAIAgent(BaseAgent):
                 return await self.generate_response(self.orch_state, stream=False)
         
         return asyncio.run(_async_execute())
+
 
     def _apply_fixed_default_values(self, slot: dict) -> None:
         """Apply fixed and default values from slot_schema to slot values recursively.
