@@ -286,71 +286,38 @@ class AgentGraph(TaskGraphBase):
         for agent_name, handover_agents in agent_handovers.items():
             # Set handoffs for both RealtimeAgent and text Agent instances
             if hasattr(self.agents_sdk_agents[agent_name], 'handoffs'):
-                # Check if this is a RealtimeAgent (has realtime_handoff) or text Agent
                 agent_instance = self.agents_sdk_agents[agent_name]
-                if hasattr(agent_instance, 'voice'):  # RealtimeAgent has voice attribute
-                    # This is a RealtimeAgent - use realtime_handoff
+                if hasattr(agent_instance, 'voice'):
+                    # RealtimeAgent
                     self.agents_sdk_agents[agent_name].handoffs = [
                         realtime_handoff(self.agents_sdk_agents[handover_agent])
                         for handover_agent in handover_agents
                     ]
-                    log_context.info(f"Configured realtime handoffs for {agent_name}: {handover_agents}")
+                    log_context.info(f"Realtime handoffs configured for {agent_name}: {handover_agents}")
                 else:
-                    # This is a text Agent - use handoff() function
+                    # Text Agent
                     handoff_objects = [
                         handoff(self.agents_sdk_agents[handover_agent])
                         for handover_agent in handover_agents
                     ]
                     self.agents_sdk_agents[agent_name].handoffs = handoff_objects
-                    log_context.info(f"Configured text handoffs for {agent_name}: {handover_agents}")
-                    log_context.info(f"Handoff objects: {self.agents_sdk_agents[agent_name].handoffs}")
-                    
-                    # Store handoffs in the task graph for later use
-                    # Store handoffs in the agent's node-specific data for later retrieval
+
+                    # Store handoffs on node data so text agent can read them at runtime
                     agent_node = None
-                    log_context.info(f"Looking for node data for agent: {agent_name}")
-                    log_context.info(f"Nodes structure: {type(self.product_kwargs['nodes'])}")
-                    
-                    # Debug: Check what's actually in product_kwargs
-                    log_context.info(f"product_kwargs keys: {list(self.product_kwargs.keys())}")
-                    log_context.info(f"product_kwargs type: {type(self.product_kwargs)}")
-                    
-                    # Look for agent data in the nodes array
                     if "nodes" in self.product_kwargs:
-                        log_context.info(f"Looking in nodes array for agent: {agent_name}")
-                        for i, node in enumerate(self.product_kwargs["nodes"]):
+                        for node in self.product_kwargs["nodes"]:
                             if isinstance(node, list) and len(node) >= 2:
-                                node_id = node[0]
-                                node_data = node[1] if len(node) > 1 else {}
+                                node_data = node[1]
                                 if isinstance(node_data, dict) and "data" in node_data:
                                     agent_data = node_data["data"]
                                     if isinstance(agent_data, dict) and agent_data.get("name") == agent_name:
                                         agent_node = node_data
-                                        log_context.info(f"Found matching agent node for {agent_name} at index {i}")
                                         break
-                    else:
-                        log_context.warning("No 'nodes' array found in product_kwargs")
-                    
                     if agent_node:
-                        # Store handoffs directly in the agent's data
-                        if "handoffs" not in agent_node["data"]:
-                            agent_node["data"]["handoffs"] = []
                         agent_node["data"]["handoffs"] = handoff_objects
-                        log_context.info(f"Stored handoffs in agent data for {agent_name}: {handoff_objects}")
+                        log_context.info(f"Text handoffs configured for {agent_name}: {handover_agents}")
                     else:
-                        log_context.warning(f"Could not find node data for agent {agent_name}")
-                        # Get available agent names from nodes
-                        available_names = []
-                        if "nodes" in self.product_kwargs:
-                            for node in self.product_kwargs["nodes"]:
-                                if isinstance(node, list) and len(node) >= 2:
-                                    node_data = node[1] if len(node) > 1 else {}
-                                    if isinstance(node_data, dict) and "data" in node_data:
-                                        agent_data = node_data["data"]
-                                        if isinstance(agent_data, dict) and "name" in agent_data:
-                                            name = agent_data.get("name", "unknown")
-                                            available_names.append(name)
-                        log_context.info(f"Available agents: {available_names}")
+                        log_context.warning(f"No node data found to store handoffs for {agent_name}")
 
         if start_agent_name is None:
             if len(self.agents_sdk_agents) == 0:
@@ -358,10 +325,7 @@ class AgentGraph(TaskGraphBase):
                 return
             start_agent_name = list(self.agents_sdk_agents.keys())[0]
         start_agent_data = agent_data_map[start_agent_name]
-        log_context.info(f"agent handovers: {agent_handovers}")
-        log_context.info(
-            f"start agent: {start_agent_name}, handovers: {getattr(self.agents_sdk_agents[start_agent_name], 'handoffs', [])}"
-        )
+        log_context.info(f"Start agent: {start_agent_name}")
         
         # Check if the start agent is a realtime agent
         if isinstance(start_agent_data, OpenAIRealtimeAgentData):
