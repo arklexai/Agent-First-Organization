@@ -30,6 +30,7 @@ jobs:
 
   test-live-integration:
     uses: ./.github/workflows/reusable-live-integration-tests.yml
+    secrets: inherit
     with:
       python-version: '3.10'
 
