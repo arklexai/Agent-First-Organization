@@ -189,8 +189,6 @@ class OpenAIAgent(BaseAgent):
         final_text = getattr(result, "final_output", "") or incremental_text
         return final_text
 
-    # Removed _ensure_tool_outputs_in_trajectory and _inject_context_from_tool_outputs to keep minimal logic
-
     def set_handoffs(self, handoffs: list) -> None:
         """Set handoffs for the text agent."""
         self.handoffs = handoffs
@@ -254,9 +252,6 @@ class OpenAIAgent(BaseAgent):
         input_prompt = self._prepare_prompt(state, is_speech)
         self._add_prompt_to_trajectory(state, input_prompt)
 
-        # Trajectory prepared; SDK will decide tools and handoffs
-
-        # Remove previous agents' instruction blocks to avoid leaking prior agent cues
         try:
             cleaned_messages: list[dict[str, Any]] = []
             for msg in state.function_calling_trajectory:
@@ -302,7 +297,6 @@ class OpenAIAgent(BaseAgent):
                     )
                 answer = getattr(result, "final_output", "") or incremental_text
 
-        # Minimal result logging
         log_context.info(f"Agents SDK result type: {type(result)}")
         handoff_detected_local = False
         if hasattr(result, "new_items"):
