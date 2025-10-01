@@ -254,13 +254,11 @@ Answer with only 'yes' or 'no'"""
         log_context.info(f"prompt for check skip node: {prompt}")
 
         try:
-            response = self.llm.invoke(prompt)
-            log_context.info(f"LLM response for task verification: {response}")
-            response_text = (
-                response.content.lower().strip()
-                if hasattr(response, "content")
-                else str(response).lower().strip()
+            response_text = self.model_service.get_response(prompt)
+            log_context.info(
+                f"LLM response for task verification: {response_text}"
             )
+            response_text = str(response_text).lower().strip()
             return response_text == "yes"
         except Exception as e:
             log_context.error(f"Error in LLM task verification: {str(e)}")
