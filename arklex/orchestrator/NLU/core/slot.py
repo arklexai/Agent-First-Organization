@@ -80,37 +80,38 @@ class SlotFiller(BaseSlotFilling):
         )
 
     def _slots_to_openai_schema(self, slots: list[Slot]) -> dict[str, Any]:
-        """Convert list of Slot objects to OpenAI JSON schema format using the new slot_schema structure.
-        
-        Args:
-            slots: List of Slot objects to convert
+        """Convert a list of Slot objects into a single OpenAI JSON schema.
 
-        Returns:
-            OpenAI JSON schema dictionary
+        The returned schema is always a top-level object where each slot is a
+        property whose value is that slot's own schema definition.
+
+        Preference order per slot:
+        1) slot.slot_schema (deep-copied and sanitized), else
+        2) slot.to_openai_schema().
         """
         import copy
-        
-        # If we have a single slot with slot_schema, use it directly
-        if len(slots) == 1 and slots[0].slot_schema:
-            slot = slots[0]
-            # Deep copy the slot_schema to avoid modifying the original
-            schema_copy = copy.deepcopy(slot.slot_schema)
-            
-            # Remove non-OpenAI standard fields from the schema
-            self._remove_non_openai_fields(schema_copy)
-            
-            return schema_copy
-        
-        # Fallback to the original method for multiple slots or slots without slot_schema
-        properties = {}
-        required = []
+
+        properties: dict[str, Any] = {}
+        required: list[str] = []
 
         for slot in slots:
-            # Use the to_openai_schema method from the Slot class
-            slot_schema = slot.to_openai_schema()
+            # Prefer explicit slot_schema if provided
+            if getattr(slot, "slot_schema", None):
+                slot_schema = copy.deepcopy(slot.slot_schema)
+                # Unwrap legacy function wrapper to plain JSON Schema parameters if present
+                if isinstance(slot_schema, dict) and "function" in slot_schema:
+                    params = slot_schema.get("function", {}).get("parameters")
+                    if isinstance(params, dict):
+                        slot_schema = params
+                # Sanitize custom fields to adhere to OpenAI JSON schema
+                self._remove_non_openai_fields(slot_schema)
+            else:
+                # Fall back to the legacy per-slot schema generator
+                slot_schema = slot.to_openai_schema()
 
             if slot_schema is None:
-                continue  # Skip slots that return None (like fixed value slots)
+                # Skip slots that explicitly indicate no schema (e.g., fixed values)
+                continue
 
             properties[slot.name] = slot_schema
 
@@ -186,7 +187,7 @@ class SlotFiller(BaseSlotFilling):
             },
         )
 
-        # Generate OpenAI schema from slots
+        # Generate OpenAI schema from slots (let LLM handle descriptions/prompts)
         schema = self._slots_to_openai_schema(slots)
         log_context.info(
             "OpenAI schema generated",
@@ -213,10 +214,14 @@ class SlotFiller(BaseSlotFilling):
         # Process response
         try:
             filled_slots = self.model_service.process_slot_response(response, slots)
-            
-            # If we used the new slot_schema structure, evaluate and fill back default/fixed values
-            if len(slots) == 1 and slots[0].slot_schema:
-                filled_slots = self._evaluate_and_fill_slot_values(filled_slots, slots[0])
+
+            # Apply default/fixed values for any slots that use slot_schema
+            if slots:
+                schema_slots = [s for s in slots if getattr(s, "slot_schema", None)]
+                for schema_slot in schema_slots:
+                    filled_slots = self._evaluate_and_fill_slot_values(
+                        filled_slots, schema_slot
+                    )
             
             log_context.info(
                 "Slot filling completed",
