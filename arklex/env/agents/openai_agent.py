@@ -428,6 +428,21 @@ class OpenAIAgent(BaseAgent):
         # Inject concise, structured context derived from prior tool outputs (e.g., IDs)
         self._inject_context_from_tool_outputs(state)
 
+        # Remove previous agents' instruction blocks to avoid leaking prior agent cues
+        try:
+            cleaned_messages: list[dict[str, Any]] = []
+            for msg in state.function_calling_trajectory:
+                role = msg.get("role")
+                content = str(msg.get("content", ""))
+                # Keep non-system, keep tool outputs, keep only the current agent's prompt
+                if role != "system" or content.startswith("[TOOL_OUTPUT") or content == input_prompt:
+                    cleaned_messages.append(msg)
+            if len(cleaned_messages) != len(state.function_calling_trajectory):
+                log_context.info("Pruned prior system prompts from other agents to keep the conversation natural.")
+                state.function_calling_trajectory = cleaned_messages
+        except Exception:
+            pass
+
         log_context.info(f"\nagent messages: {state.function_calling_trajectory}")
         
         # Log detailed trajectory analysis
@@ -441,7 +456,6 @@ class OpenAIAgent(BaseAgent):
 
         # Ensure text agent is created
         if not hasattr(self, "text_agent"):
-            # Use stored handoffs if available
             handoffs = getattr(self, 'handoffs', [])
             self.text_agent = Agent(
                 name="OpenAIAgent",
@@ -495,6 +509,10 @@ class OpenAIAgent(BaseAgent):
 
         # Persist handoff detection for this turn
         self._handoff_detected = handoff_detected_local
+
+        # If a handoff occurred, suppress this agent's surface output so the next agent speaks
+        if self._handoff_detected:
+            answer = ""
 
         # Append any new tool outputs to the trajectory for future context
         try:
