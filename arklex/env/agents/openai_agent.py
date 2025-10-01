@@ -1,20 +1,18 @@
-import json
+import contextlib
 import re
 import traceback
 from typing import Any
 
+from agents import Agent, ItemHelpers, Runner
 from jinja2 import Template
 from pydantic import BaseModel
-from agents import Agent, Runner, ItemHelpers
 
-from arklex.env.agents.agent import BaseAgent, register_agent, AgentOutput
+from arklex.env.agents.agent import BaseAgent, register_agent
 from arklex.env.agents.entities import PromptVariable
 from arklex.env.prompts import load_prompts
 from arklex.orchestrator.entities.orchestrator_state_entities import (
     OrchestratorState,
-    StatusEnum,
 )
-from arklex.orchestrator.entities.taskgraph_entities import StatusEnum as TaskGraphStatusEnum
 from arklex.orchestrator.NLU.entities.slot_entities import (
     apply_values_recursively,
 )
@@ -326,10 +324,8 @@ class OpenAIAgent(BaseAgent):
             answer = ""
 
         # Append any new tool outputs to the trajectory for future context
-        try:
+        with contextlib.suppress(Exception):
             self._append_tool_outputs_to_trajectory(state, result)
-        except Exception:
-            pass
 
         state.message_flow = ""
         agent_output = OpenAIAgentOutput(response=answer)
@@ -344,8 +340,10 @@ class OpenAIAgent(BaseAgent):
             response_state, output = self._execute()
             if response_state.trajectory and response_state.trajectory[-1]:
                 response_state.trajectory[-1][-1].output = output.response
-            from arklex.orchestrator.entities.orchestrator_state_entities import StatusEnum as _StatusEnum
             from arklex.env.agents.agent import AgentOutput as _AgentOutput
+            from arklex.orchestrator.entities.orchestrator_state_entities import (
+                StatusEnum as _StatusEnum,
+            )
             status = _StatusEnum.COMPLETE if getattr(self, "_handoff_detected", False) else _StatusEnum.INCOMPLETE
             agent_output: _AgentOutput = _AgentOutput(
                 response=output.response,
@@ -353,8 +351,10 @@ class OpenAIAgent(BaseAgent):
             )
         except Exception:
             log_context.error(traceback.format_exc())
-            from arklex.orchestrator.entities.orchestrator_state_entities import StatusEnum as _StatusEnum
             from arklex.env.agents.agent import AgentOutput as _AgentOutput
+            from arklex.orchestrator.entities.orchestrator_state_entities import (
+                StatusEnum as _StatusEnum,
+            )
             agent_output: _AgentOutput = _AgentOutput(
                 response="",
                 status=_StatusEnum.INCOMPLETE,
@@ -377,7 +377,7 @@ class OpenAIAgent(BaseAgent):
         # Use asyncio.run() to create a new event loop for async execution
         import asyncio
         
-        async def _async_execute():
+        async def _async_execute() -> tuple[OrchestratorState, OpenAIAgentOutput]:
             if self.orch_state.stream_type == StreamType.TEXT:
                 return await self.generate_response(self.orch_state, stream=True, is_speech=False)
             elif self.orch_state.stream_type == StreamType.SPEECH:
