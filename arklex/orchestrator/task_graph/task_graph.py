@@ -71,7 +71,6 @@ from arklex.orchestrator.NLU.services.model_service import (
     ModelService,
 )
 from arklex.types.resource_types import AgentItem, ResourceType, ToolItem
-from arklex.utils.exceptions import TaskGraphError
 from arklex.utils.llm_config import LLMConfig
 from arklex.utils.logging_utils import LogContext
 from arklex.utils.utils import normalize, str_similarity
@@ -79,7 +78,7 @@ from arklex.utils.utils import normalize, str_similarity
 log_context = LogContext(__name__)
 
 
-class TaskGraphBase:
+class GraphBase:
     """Base class for task graph functionality.
 
     This class provides the fundamental structure and methods for managing task graphs.
@@ -128,7 +127,7 @@ class TaskGraphBase:
         return None
 
 
-class AgentGraph(TaskGraphBase):
+class AgentGraph(GraphBase):
     """
     AgentGraph is a task graph that contains agents and tools that the agent can use.
     It is used to create a task graph that contains agents and tools that the agent can use.
@@ -325,7 +324,7 @@ class AgentGraph(TaskGraphBase):
         self.start_agent.response_played = response_played_event
 
 
-class TaskGraph(TaskGraphBase):
+class TaskGraph(GraphBase):
     """Task graph management and execution.
 
     This class manages the execution of task graphs, including node management,
@@ -473,23 +472,6 @@ class TaskGraph(TaskGraphBase):
         found_pred_in_avil: bool = False
         real_intent: str = pred_intent
         idx: int = 0
-
-        # Handle format like "1) test_intent" from IntentDetector
-        if ") " in pred_intent:
-            try:
-                parts = pred_intent.split(") ", 1)
-                if len(parts) == 2:
-                    idx = int(parts[0])
-                    real_intent = parts[1].strip()
-            except (ValueError, IndexError):
-                # If parsing fails, use the original pred_intent
-                pass
-
-        # check whether there are __<{idx}> in the pred_intent
-        elif "__<" in pred_intent:
-            real_intent = pred_intent.split("__<")[0]
-            # get the idx
-            idx = int(pred_intent.split("__<")[1].split(">")[0])
 
         # Convert dict to list of keys if needed
         intent_list = available_global_intents
@@ -1048,37 +1030,6 @@ class TaskGraph(TaskGraphBase):
         params: OrchestratorParams = node[1]
         # TODO: future node postprocessing
         return node_info, params
-
-    def _validate_node(self, node: dict[str, Any]) -> None:
-        """Validate a node in the task graph.
-
-        Args:
-            node: Node to validate
-
-        Raises:
-            TaskGraphError: If node is invalid
-        """
-
-        if "id" not in node:
-            log_context.error(
-                "Node must have an id",
-                extra={"node": node},
-            )
-            raise TaskGraphError("Node must have an id")
-
-        if "type" not in node:
-            log_context.error(
-                "Node must have a type",
-                extra={"node": node},
-            )
-            raise TaskGraphError("Node must have a type")
-
-        if "next" in node and not isinstance(node["next"], list):
-            log_context.error(
-                "Node next must be a list",
-                extra={"node": node},
-            )
-            raise TaskGraphError("Node next must be a list")
 
     def create_graph(self) -> None:
         nodes: list[dict[str, Any]] = self.product_kwargs["nodes"]

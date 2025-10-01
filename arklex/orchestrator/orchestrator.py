@@ -54,12 +54,7 @@ Usage:
 import copy
 import json
 import time
-from typing import Any, TypedDict
-
-try:
-    from typing import Unpack
-except ImportError:
-    from typing_extensions import Unpack
+from typing import Any
 
 import janus
 from dotenv import load_dotenv
@@ -68,6 +63,7 @@ from langchain_core.runnables import RunnableLambda
 from arklex.env.entities import NodeResponse
 from arklex.env.env import Environment
 from arklex.env.nested_graph.nested_graph import NESTED_GRAPH_ID, NestedGraph
+from arklex.env.prompts import load_prompts
 from arklex.env.tools.utils import ToolGenerator
 from arklex.memory.entities.memory_entities import ResourceRecord
 from arklex.orchestrator.entities.orchestrator_param_entities import OrchestratorParams
@@ -86,22 +82,12 @@ from arklex.orchestrator.entities.taskgraph_entities import (
 from arklex.orchestrator.NLU.services.model_service import ModelService
 from arklex.orchestrator.post_process import post_process_response
 from arklex.orchestrator.task_graph.task_graph import TaskGraph
-from arklex.types.resource_types import WorkerItem
 from arklex.types.stream_types import StreamType
 from arklex.utils.logging_utils import LogContext
 from arklex.utils.utils import format_chat_history
 
 load_dotenv()
 log_context = LogContext(__name__)
-
-
-class AgentOrgKwargs(TypedDict, total=False):
-    """Keyword arguments for AgentOrg constructor."""
-
-    user_prefix: str
-    worker_prefix: str
-    environment_prefix: str
-    eos_token: str
 
 
 class AgentOrg:
@@ -125,7 +111,6 @@ class AgentOrg:
         self,
         config: str | dict[str, Any],
         env: Environment | None,
-        **kwargs: Unpack[AgentOrgKwargs],
     ) -> None:
         """Initialize the AgentOrg orchestrator.
 
@@ -138,10 +123,7 @@ class AgentOrg:
             env (Environment): Environment object containing tools, workers, and other resources.
             **kwargs (Any): Additional keyword arguments for customization.
         """
-        self.user_prefix: str = kwargs.get("user_prefix", "user")
-        self.worker_prefix: str = kwargs.get("worker_prefix", "assistant")
-        self.environment_prefix: str = kwargs.get("environment_prefix", "tool")
-        self.__eos_token: str = kwargs.get("eos_token", "\n")
+        self.user_prefix: str = "user"
 
         if isinstance(config, dict):
             self.product_kwargs: dict[str, Any] = config
@@ -158,18 +140,9 @@ class AgentOrg:
             self.product_kwargs,
             llm_config=self.llm_config,
         )
-
-        # HITL settings
-        self.settings = self.task_graph.product_kwargs.get("settings", {}) or {}
-        self.hitl_worker_available = any(
-            worker.get("id") == WorkerItem.HUMAN_IN_THE_LOOP_WORKER
-            for worker in self.task_graph.product_kwargs.get("workers", [])
-        )
-        self.hitl_proposal_enabled = (
-            self.settings.get("hitl_proposal") is True
-            if self.settings and isinstance(self.settings, dict)
-            else False
-        )
+        # Load prompts based on bot config
+        bot_config = BotConfig.model_validate(self.product_kwargs.get("bot_config", {}))
+        self.prompts = load_prompts(bot_config)
 
     def init_params(
         self, inputs: dict[str, Any]
@@ -241,16 +214,9 @@ class AgentOrg:
         if not task:
             return False
 
-        prompt = f"""Given the following conversation history:
-{chat_history_str}
-
-And the task: "{task}"
-
-Your job is to decide whether the user has already provided the information needed for this task.
-The information may hide in the user's messages or assistant's responses.
-Check for synonyms and variations of phrasing in both the user's messages and assistant's responses.
-Reply with 'yes' only if either of these conditions are met (user provided info), otherwise 'no'.
-Answer with only 'yes' or 'no'"""
+        prompt = self.prompts["check_skip_node_prompt"].format(
+            chat_history_str=chat_history_str, task=task
+        )
         log_context.info(f"prompt for check skip node: {prompt}")
 
         try:
@@ -496,9 +462,6 @@ Answer with only 'yes' or 'no'"""
         node_response = post_process_response(
             orch_state,
             node_response,
-            params,
-            self.hitl_worker_available,
-            self.hitl_proposal_enabled,
         )
 
         return OrchestratorResp(
