@@ -355,7 +355,19 @@ class Tool:
         if slots:
             filled = self.slotfiller.fill_slots(slots, chat_history_str, self.llm_config) # filled is a list of slots
             for i, slot in enumerate(slots):
-                slot.value = self._convert_value(filled[i].value, slot.type) # we need to handle the case where all indexes are filled
+                # propagate filled value and provenance
+                slot.value = self._convert_value(filled[i].value, slot.type)
+                try:
+                    # carry over valueSource from filler result if present
+                    if hasattr(filled[i], "valueSource"):
+                        slot.valueSource = filled[i].valueSource
+                    # mark verified if the filler marked it, or if value comes from fixed/default
+                    if getattr(filled[i], "verified", False):
+                        slot.verified = True
+                    elif getattr(slot, "valueSource", None) in ("fixed", "default") and slot.value not in (None, "", []):
+                        slot.verified = True
+                except Exception:
+                    pass
                 filled_slots.append(slot)
         return filled_slots
     
@@ -363,16 +375,23 @@ class Tool:
     def _is_missing_required(self, slots: list[Slot]) -> bool:
         for slot in slots:
             # Check if required slot is missing or unverified
-            if slot.required and (not slot.value or not slot.verified):
-                return True
+            if slot.required:
+                # treat fixed/default with value as implicitly verified
+                if getattr(slot, "valueSource", None) in ("fixed", "default") and slot.value:
+                    continue
+                if (not slot.value) or (not slot.verified):
+                    return True
         return False
 
     def _missing_slots_recursive(self, slots: list[Slot]) -> list[str]:
         missing = []
         for slot in slots:
             # Check if required slot is missing or unverified
-            if slot.required and (not slot.value or not slot.verified):
-                missing.append(slot.prompt)
+            if slot.required:
+                if getattr(slot, "valueSource", None) in ("fixed", "default") and slot.value:
+                    continue
+                if (not slot.value) or (not slot.verified):
+                    missing.append(slot.prompt)
         return missing
 
 
