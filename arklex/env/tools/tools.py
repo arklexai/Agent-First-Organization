@@ -511,11 +511,11 @@ class Tool:
                 # Parse input arguments
                 user_args = self._parse_input_args(raw_args, model_cls)
                 
-                # Update slots with parsed values
-                self._update_slots_with_args(user_args)
-                
-                # Apply fixed values from schemas
+                # Apply fixed values from schemas FIRST (so they can't be overridden)
                 self._apply_schema_fixed_values()
+                
+                # Update slots with parsed values (but don't override fixed values)
+                self._update_slots_with_args(user_args)
 
                 # Merge with fixed arguments
                 merged_args = {
@@ -879,30 +879,44 @@ class Tool:
         """
         for slot in self.slots:
             if slot.name in user_args:
+                # Don't override fixed values - they should take precedence
+                value_source = getattr(slot, "valueSource", "prompt")
+                if value_source == "fixed":
+                    log_context.info(f"Skipping user arg for fixed slot '{slot.name}' (keeping fixed value)")
+                    continue
                 slot.value = user_args[slot.name]
 
     def _apply_schema_fixed_values(self) -> None:
         """Apply fixed values from slot schemas using the new format processing."""
         try:
-            # Build slot values using the same logic as the main execution path
-            all_slots = [slot.model_dump() if hasattr(slot, "model_dump") else slot for slot in self.slots]
-            processed_slots = self._build_slot_values(all_slots, {slot.name: slot.value for slot in self.slots})
+            # Apply fixed values directly to slots based on valueSource
+            for slot in self.slots:
+                value_source = getattr(slot, "valueSource", "prompt")
+                
+                # For fixed values, always use the fixed value regardless of current value
+                if value_source == "fixed":
+                    fixed_value = getattr(slot, "value", None)
+                    if fixed_value is not None:
+                        slot.value = fixed_value
+                        log_context.info(f"Applied fixed value '{fixed_value}' to slot '{slot.name}'")
+                
+                # For default values, only use if current value is empty/None
+                elif value_source == "default":
+                    default_value = getattr(slot, "value", None)
+                    if default_value is not None and (not slot.value or slot.value == ""):
+                        slot.value = default_value
+                        log_context.info(f"Applied default value '{default_value}' to slot '{slot.name}'")
             
-            # Apply fixed/default values to slots with schema
-            for slot_data in processed_slots:
-                if slot_data.get("slot_schema"):
+            # Apply fixed/default values to slots with schema (for nested slots)
+            for slot in self.slots:
+                if hasattr(slot, "slot_schema") and slot.slot_schema:
                     try:
                         from arklex.orchestrator.NLU.entities.slot_entities import (
                             apply_values_recursively,
                         )
-                        apply_values_recursively(slot_data["value"], slot_data["slot_schema"], slot_data.get("name"))
+                        apply_values_recursively(slot.value, slot.slot_schema, slot.name)
                     except Exception as e:
-                        log_context.warning(f"Failed to apply fixed values from schema for slot {slot_data.get('name')}: {e}")
-
-            # Update self.slots with processed values
-            for i, processed_slot in enumerate(processed_slots):
-                if i < len(self.slots):
-                    self.slots[i].value = processed_slot["value"]
+                        log_context.warning(f"Failed to apply fixed values from schema for slot {slot.name}: {e}")
                     
         except Exception as e:
             log_context.warning(f"Failed to apply schema fixed values: {e}")

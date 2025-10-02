@@ -128,6 +128,10 @@ class OpenAIAgent(BaseAgent):
             node_specific_data (dict[str, Any]): Additional keyword arguments for the execution.
         """
         self.orch_state = orch_state
+        # Ensure required 'name' is present for OpenAIAgentData
+        if "name" not in node_specific_data or not node_specific_data.get("name"):
+            # Use a sensible default for name
+            node_specific_data = {**node_specific_data, "name": "openai-agent"}
         self.openai_agent_data: OpenAIAgentData = OpenAIAgentData(
             **node_specific_data,
         )

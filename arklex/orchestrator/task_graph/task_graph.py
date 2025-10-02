@@ -261,6 +261,9 @@ class AgentGraph(TaskGraphBase):
                         .get("task", ""),
                     )
                 elif resource.get("id", "") == AgentItem.OPENAI_AGENT:
+                    # Ensure required 'name' is present for OpenAIAgentData
+                    if "name" not in node_specific_data or not node_specific_data.get("name"):
+                        node_specific_data = {**node_specific_data, "name": resource.get("id", "openai-agent")}
                     agent_data = OpenAIAgentData(**node_specific_data)
                     prompt = agent_data.prompt
                     if agent_data.prompt_variables:
