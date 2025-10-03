@@ -3,9 +3,16 @@ import re
 import traceback
 from typing import Any
 
-from agents import Agent, ItemHelpers, Runner, ToolCallOutputItem, RunResult, HandoffOutputItem
-from openai.types.responses import ResponseTextDeltaEvent
+from agents import (
+    Agent,
+    HandoffOutputItem,
+    ItemHelpers,
+    Runner,
+    RunResult,
+    ToolCallOutputItem,
+)
 from jinja2 import Template
+from openai.types.responses import ResponseTextDeltaEvent
 from pydantic import BaseModel
 
 from arklex.env.agents.agent import BaseAgent, register_agent
