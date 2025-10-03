@@ -362,9 +362,7 @@ class Tool:
                     if hasattr(filled[i], "valueSource"):
                         slot.valueSource = filled[i].valueSource
                     # mark verified if the filler marked it, or if value comes from fixed/default
-                    if getattr(filled[i], "verified", False):
-                        slot.verified = True
-                    elif getattr(slot, "valueSource", None) in ("fixed", "default") and slot.value not in (None, "", []):
+                    if getattr(filled[i], "verified", False) or getattr(slot, "valueSource", None) in ("fixed", "default") and slot.value not in (None, "", []):
                         slot.verified = True
                 except Exception:
                     pass

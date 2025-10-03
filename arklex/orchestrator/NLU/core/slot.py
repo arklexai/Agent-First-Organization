@@ -168,8 +168,8 @@ class SlotFiller(BaseSlotFilling):
                     field_schema["value"], field_schema.get("type", "string")
                 )
                 try:
-                    setattr(slot, "valueSource", "fixed")
-                    setattr(slot, "verified", True)
+                    slot.valueSource = "fixed"
+                    slot.verified = True
                 except Exception:
                     pass
                 return
@@ -186,8 +186,8 @@ class SlotFiller(BaseSlotFilling):
                     default_value, field_schema.get("type", "string")
                 )
                 try:
-                    setattr(slot, "valueSource", "default")
-                    setattr(slot, "verified", True)
+                    slot.valueSource = "default"
+                    slot.verified = True
                 except Exception:
                     pass
         except Exception as e:
@@ -254,7 +254,7 @@ class SlotFiller(BaseSlotFilling):
             )
 
             # Start from the input slots and fill fixed values for simple slots
-            filled_slots = [s for s in slots]
+            filled_slots = list(slots)
             simple_fixed_slots = [
                 s for s in slots if not getattr(s, "slot_schema", None) and getattr(s, "valueSource", None) == "fixed"
             ]
@@ -267,8 +267,8 @@ class SlotFiller(BaseSlotFilling):
                             target = name_to_slot[fixed_slot.name]
                             target.value = fixed_value
                             try:
-                                setattr(target, "valueSource", "fixed")
-                                setattr(target, "verified", True)
+                                target.valueSource = "fixed"
+                                target.verified = True
                             except Exception:
                                 pass
 
@@ -305,7 +305,7 @@ class SlotFiller(BaseSlotFilling):
                         "operation": "slot_filling_local",
                     },
                 )
-                filled_slots = [s for s in slots]
+                filled_slots = list(slots)
             else:
                 filled_slots = self.model_service.process_slot_response(response, slots)
 
@@ -333,8 +333,8 @@ class SlotFiller(BaseSlotFilling):
                                 target.value = fixed_value
                                 # Mark provenance to avoid verification later
                                 try:
-                                    setattr(target, "valueSource", "fixed")
-                                    setattr(target, "verified", True)
+                                    target.valueSource = "fixed"
+                                    target.verified = True
                                 except Exception:
                                     pass
 
@@ -351,8 +351,8 @@ class SlotFiller(BaseSlotFilling):
                                 target.value = default_slot.default
                                 # Mark provenance for defaults; verification not needed
                                 try:
-                                    setattr(target, "valueSource", "default")
-                                    setattr(target, "verified", True)
+                                    target.valueSource = "default"
+                                    target.verified = True
                                 except Exception:
                                     pass
             
