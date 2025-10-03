@@ -3,7 +3,8 @@ import re
 import traceback
 from typing import Any
 
-from agents import Agent, ItemHelpers, Runner
+from agents import Agent, ItemHelpers, Runner, ToolCallOutputItem, RunResult, HandoffOutputItem
+from openai.types.responses import ResponseTextDeltaEvent
 from jinja2 import Template
 from pydantic import BaseModel
 
@@ -105,10 +106,7 @@ class OpenAIAgent(BaseAgent):
                 sdk_tool = tool_object.to_openai_agents_function_tool()
                 self.agents_sdk_tools.append(sdk_tool)
                 # Keep slots metadata for potential HTTP special handling
-                sanitized_tool_id = (
-                    tool_id.replace("/", "_").replace(" ", "_").replace("-", "_")
-                )
-                sanitized_tool_id = re.sub(r"[^a-zA-Z0-9_-]", "_", sanitized_tool_id)
+                sanitized_tool_id = re.sub(r"[^a-zA-Z0-9_-]", "_", tool_id)
                 self.tool_slots[sanitized_tool_id] = tool_object.slots.copy()
                 self.tool_name_mapping[sanitized_tool_id] = tool_id
             except Exception as e:
@@ -159,35 +157,57 @@ class OpenAIAgent(BaseAgent):
     def _add_prompt_to_trajectory(
         self, state: OrchestratorState, input_prompt: str
     ) -> None:
-        """Add the input prompt to the function calling trajectory if not already present."""
-        if not any(
-            message.get("content") == input_prompt
-            for message in state.function_calling_trajectory
-        ):
-            log_context.info("Adding input prompt to the function calling trajectory.")
-            state.function_calling_trajectory.append(
-                {"role": "system", "content": input_prompt}
-            )
+        """Add the input prompt to both trajectories if not already present."""
+        # Legacy trajectory
+        try:
+            if state.function_calling_trajectory is None:
+                state.function_calling_trajectory = []
+            if not any(
+                message.get("content") == input_prompt
+                for message in state.function_calling_trajectory
+            ):
+                state.function_calling_trajectory.append(
+                    {"role": "system", "content": input_prompt}
+                )
+        except Exception:
+            pass
+        # SDK trajectory
+        try:
+            if state.openai_sdk_trajectory is None:
+                state.openai_sdk_trajectory = []
+            if not any(
+                message.get("content") == input_prompt
+                for message in state.openai_sdk_trajectory
+            ):
+                state.openai_sdk_trajectory.append(
+                    {"role": "system", "content": input_prompt}
+                )
+        except Exception:
+            pass
 
     # Tool calls are handled natively by the Agents SDK via provided Tool wrappers.
-
     async def _run_agent_and_stream(self, state: OrchestratorState) -> str:
-        """Run the Agents SDK text agent and forward outputs incrementally when possible."""
-        result = await Runner.run(self.text_agent, state.function_calling_trajectory)
+        """Run the Agents SDK text agent with streaming and forward deltas."""
+        sdk_traj = state.openai_sdk_trajectory or state.function_calling_trajectory or []
+        streamed = Runner.run_streamed(self.text_agent, sdk_traj)
 
-        # Emit incremental text from newly produced items (best-effort streaming feel)
+        buffer: list[str] = []
         try:
-            incremental_text = ItemHelpers.text_message_outputs(result.new_items)
+            async for event in streamed.stream_events():
+                # Match the reference pattern exactly
+                if event.type == "raw_response_event" and isinstance(event.data, ResponseTextDeltaEvent):
+                    delta = event.data.delta
+                    if delta:
+                        buffer.append(delta)
+                        if state.message_queue is not None:
+                            state.message_queue.put(
+                                {"event": EventType.CHUNK.value, "message_chunk": delta}
+                            )
         except Exception:
-            incremental_text = ""
+            # Fall back to best-effort partial output
+            pass
 
-        if incremental_text and state.message_queue is not None:
-            state.message_queue.put(
-                {"event": EventType.CHUNK.value, "message_chunk": incremental_text}
-            )
-
-        final_text = getattr(result, "final_output", "") or incremental_text
-        return final_text
+        return "".join(buffer)
 
     def set_handoffs(self, handoffs: list) -> None:
         """Set handoffs for the text agent."""
@@ -199,39 +219,33 @@ class OpenAIAgent(BaseAgent):
             self.text_agent.handoffs = handoffs
             log_context.info(f"Updated existing text agent with handoffs: {handoffs}")
 
-    def _append_tool_outputs_to_trajectory(self, state: OrchestratorState, result: Any) -> None:  # noqa: ANN401
+    def _append_tool_outputs_to_trajectory(self, state: OrchestratorState, result: RunResult) -> None:
         """Append tool outputs from the Agents SDK result to the trajectory.
         
         This ensures that all tool outputs are available for future context.
         """
         try:
-            # Try to extract tool outputs from the result
-            if hasattr(result, "new_items"):
-                for item in result.new_items:
-                    # Look for tool output items - check both item_type and class name
-                    is_tool_output = (
-                        (hasattr(item, "item_type") and "tool" in str(item.item_type).lower()) or
-                        "ToolCallOutputItem" in str(type(item))
-                    )
-                    if is_tool_output:
-                        try:
-                            # Extract tool output data
-                            tool_name = getattr(item, "name", "unknown_tool")
-                            tool_output = getattr(item, "output", "")
-                            # Try alternative attribute names if the above don't work
-                            if not tool_name or tool_name == "unknown_tool":
-                                tool_name = getattr(item, "tool_name", getattr(item, "function_name", "unknown_tool"))
-                            if not tool_output:
-                                tool_output = getattr(item, "content", getattr(item, "result", ""))
-                            if tool_output:
-                                # Add to trajectory as system message to remain API-compliant
-                                tool_message = {
-                                    "role": "system",
-                                    "content": f"[TOOL_OUTPUT name={tool_name}] {str(tool_output)}"
-                                }
-                                state.function_calling_trajectory.append(tool_message)
-                        except Exception:
-                            continue
+            # Process new items from the result
+            for item in result.new_items:
+                # Handle ToolCallOutputItem specifically
+                if isinstance(item, ToolCallOutputItem):
+                    tool_name = getattr(item, "name", "unknown_tool")
+                    tool_output = getattr(item, "output", "")
+                    
+                    if tool_output:
+                        # Add to both trajectories for consistency
+                        tool_message = {
+                            "role": "system",
+                            "content": f"[TOOL_OUTPUT name={tool_name}] {str(tool_output)}"
+                        }
+                        
+                        # Legacy trajectory
+                        if state.function_calling_trajectory is not None:
+                            state.function_calling_trajectory.append(tool_message)
+                        
+                        # SDK trajectory
+                        if state.openai_sdk_trajectory is not None:
+                            state.openai_sdk_trajectory.append(tool_message)
         except Exception:
             pass
 
@@ -254,23 +268,24 @@ class OpenAIAgent(BaseAgent):
 
         try:
             cleaned_messages: list[dict[str, Any]] = []
-            for msg in state.function_calling_trajectory:
+            sdk_traj = state.openai_sdk_trajectory or []
+            for msg in sdk_traj:
                 role = msg.get("role")
                 content = str(msg.get("content", ""))
                 # Keep non-system, keep tool outputs, keep only the current agent's prompt
                 if role != "system" or content.startswith("[TOOL_OUTPUT") or content == input_prompt:
                     cleaned_messages.append(msg)
-            if len(cleaned_messages) != len(state.function_calling_trajectory):
+            if len(cleaned_messages) != len(sdk_traj):
                 log_context.info("Pruned prior system prompts from other agents to keep the conversation natural.")
-                state.function_calling_trajectory = cleaned_messages
+                state.openai_sdk_trajectory = cleaned_messages
         except Exception:
             pass
 
         log_context.info("Prepared trajectory for Agents SDK run")
-        
+
         # Ensure text agent is created
         if not hasattr(self, "text_agent"):
-            handoffs = getattr(self, 'handoffs', [])
+            handoffs = getattr(self, "handoffs", [])
             self.text_agent = Agent(
                 name="OpenAIAgent",
                 instructions=self.prompt,
@@ -278,37 +293,43 @@ class OpenAIAgent(BaseAgent):
                 handoffs=handoffs,
                 model=self.orch_state.bot_config.llm_config.model_type_or_path,
             )
-            log_context.info(f"Created new text agent with {len(self.agents_sdk_tools)} tools")
+            log_context.info(
+                f"Created new text agent with {len(self.agents_sdk_tools)} tools"
+            )
             if handoffs:
                 log_context.info(f"Agent handoffs configured: {handoffs}")
 
-            if stream:
-                answer = await self._run_agent_and_stream(state)
-            else:
-                result = await Runner.run(self.text_agent, state.function_calling_trajectory)
-                # Emit best-effort incremental content even in non-stream mode for responsiveness
-                try:
-                    incremental_text = ItemHelpers.text_message_outputs(result.new_items)
-                except Exception:
-                    incremental_text = ""
-                if incremental_text and state.message_queue is not None:
-                    state.message_queue.put(
-                        {"event": EventType.CHUNK.value, "message_chunk": incremental_text}
-                    )
-                answer = getattr(result, "final_output", "") or incremental_text
+        # Run based on streaming mode
+        result = None
+        if stream:
+            answer = await self._run_agent_and_stream(state)
+        else:
+            sdk_traj = state.openai_sdk_trajectory or state.function_calling_trajectory or []
+            result = await Runner.run(self.text_agent, sdk_traj)
+            # Emit best-effort incremental content even in non-stream mode for responsiveness
+            try:
+                incremental_text = ItemHelpers.text_message_outputs(result.new_items)
+            except Exception:
+                incremental_text = ""
+            if incremental_text and state.message_queue is not None:
+                state.message_queue.put(
+                    {"event": EventType.CHUNK.value, "message_chunk": incremental_text}
+                )
+            answer = getattr(result, "final_output", "") or incremental_text
 
-        log_context.info(f"Agents SDK result type: {type(result)}")
+        # After non-stream run, log and detect handoffs from result if available
         handoff_detected_local = False
-        if hasattr(result, "new_items"):
-            log_context.info(f"New items: {len(result.new_items)}")
-            for item in result.new_items:
-                # Detect handoff by class name or item name
-                item_cls_name = type(item).__name__.lower()
-                if "handoff" in item_cls_name or (hasattr(item, "name") and isinstance(item.name, str) and "handoff" in item.name.lower()):
-                    handoff_detected_local = True
-                    log_context.info("Handoff event detected")
-        if hasattr(result, "final_output") and result.final_output:
-            log_context.info("Agents SDK produced final output")
+        if result is not None:
+            log_context.info(f"Agents SDK result type: {type(result)}")
+            if hasattr(result, "new_items"):
+                log_context.info(f"New items: {len(result.new_items)}")
+                for item in result.new_items:
+                    # Use simple type checking like the reference code
+                    if isinstance(item, HandoffOutputItem):
+                        handoff_detected_local = True
+                        log_context.info(f"Handoff detected: {item.source_agent.name} to {item.target_agent.name}")
+            if hasattr(result, "final_output") and result.final_output:
+                log_context.info("Agents SDK produced final output")
 
         # Persist handoff detection for this turn
         self._handoff_detected = handoff_detected_local

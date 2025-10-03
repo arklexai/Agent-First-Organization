@@ -249,6 +249,20 @@ class Tool:
                 "content": json.dumps(response),
             }
         )
+        # Mirror to SDK trajectory
+        try:
+            if state.openai_sdk_trajectory is None:
+                state.openai_sdk_trajectory = []
+            state.openai_sdk_trajectory.append(
+                {
+                    "role": "tool",
+                    "tool_call_id": str(uuid.uuid4()),
+                    "name": "default_slots",
+                    "content": json.dumps(response),
+                }
+            )
+        except Exception:
+            pass
 
     def load_slots(self, slots: list[dict[str, Any]]) -> None:
         """Load and merge slots with existing slots.
@@ -690,6 +704,39 @@ class Tool:
                     else tool_output.response,
                 }
             )
+        # Mirror tool call records to SDK trajectory
+        try:
+            if state.openai_sdk_trajectory is None:
+                state.openai_sdk_trajectory = []
+            state.openai_sdk_trajectory.append(
+                {
+                    "content": None,
+                    "role": "assistant",
+                    "tool_calls": [
+                        {
+                            "function": {
+                                "arguments": json.dumps(kwargs),
+                                "name": self.name,
+                            },
+                            "id": call_id,
+                            "type": "function",
+                        }
+                    ],
+                    "function_call": None,
+                }
+            )
+            state.openai_sdk_trajectory.append(
+                {
+                    "role": "tool",
+                    "tool_call_id": call_id,
+                    "name": self.name,
+                    "content": tool_output.message_flow
+                    if tool_output.message_flow
+                    else tool_output.response,
+                }
+            )
+        except Exception:
+            pass
             # Trajectory for multi-agent
             # state.function_calling_trajectory.append({
             #     'type': 'function_call',

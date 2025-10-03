@@ -218,6 +218,13 @@ class AgentOrg:
                 self.product_kwargs.get("bot_config", {})
             ),
         )
+        # Seed the SDK trajectory to mirror the chat history for Agents SDK usage
+        try:
+            orch_state.openai_sdk_trajectory = copy.deepcopy(
+                params.memory.function_calling_trajectory
+            )
+        except Exception:
+            orch_state.openai_sdk_trajectory = []
         return text, chat_history_str, params, orch_state
 
     def check_skip_node(self, node_info: NodeInfo, chat_history_str: str) -> bool:
@@ -353,6 +360,14 @@ Answer with only 'yes' or 'no'"""
         orch_state.function_calling_trajectory = (
             params.memory.function_calling_trajectory
         )
+        # Keep SDK trajectory in sync by default
+        if orch_state.openai_sdk_trajectory is None:
+            try:
+                orch_state.openai_sdk_trajectory = copy.deepcopy(
+                    params.memory.function_calling_trajectory
+                )
+            except Exception:
+                orch_state.openai_sdk_trajectory = []
         orch_state.trajectory = params.memory.trajectory
         orch_state.metadata = params.metadata
         orch_state.stream_type = stream_type

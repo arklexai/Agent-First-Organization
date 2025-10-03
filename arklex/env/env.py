@@ -312,6 +312,34 @@ class Environment:
                         "id": id,
                     }
                 )
+                # Mirror to SDK trajectory
+                try:
+                    if orch_state.openai_sdk_trajectory is None:
+                        orch_state.openai_sdk_trajectory = []
+                    orch_state.openai_sdk_trajectory.append(
+                        {
+                            "role": "assistant",
+                            "content": None,
+                            "tool_calls": [
+                                {
+                                    "function": {"arguments": "{}", "name": id},
+                                    "id": call_id,
+                                    "type": "function",
+                                }
+                            ],
+                            "function_call": None,
+                        }
+                    )
+                    orch_state.openai_sdk_trajectory.append(
+                        {
+                            "role": "tool",
+                            "content": content,
+                            "tool_call_id": call_id,
+                            "id": id,
+                        }
+                    )
+                except Exception:
+                    pass
             except Exception as e:
                 log_context.error(f"Error in worker {id}: {e}")
                 node_response = NodeResponse(
