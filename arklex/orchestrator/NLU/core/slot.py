@@ -95,6 +95,9 @@ class SlotFiller(BaseSlotFilling):
         required: list[str] = []
 
         for slot in slots:
+
+            if getattr(slot, "valueSource", None) == "fixed":
+                continue
             # Prefer explicit slot_schema if provided
             if getattr(slot, "slot_schema", None):
                 slot_schema = copy.deepcopy(slot.slot_schema)
@@ -151,6 +154,49 @@ class SlotFiller(BaseSlotFilling):
                 if isinstance(item, dict | list):
                     self._remove_non_openai_fields(item)
 
+    def _apply_fixed_or_default_for_simple(self, slot: Slot, schema_props: dict[str, Any]) -> None:
+        """Apply fixed or default value for a simple (non-array) slot using schema properties.
+        This preserves current behavior: fixed overrides; default fills only when empty; marks provenance and verified.
+        """
+        try:
+            field_schema = schema_props.get(slot.name)
+            if not isinstance(field_schema, dict):
+                return
+            # Fixed overrides model output
+            if field_schema.get("valueSource") == "fixed" and "value" in field_schema:
+                slot.value = self._convert_value_to_type(
+                    field_schema["value"], field_schema.get("type", "string")
+                )
+                try:
+                    setattr(slot, "valueSource", "fixed")
+                    setattr(slot, "verified", True)
+                except Exception:
+                    pass
+                return
+
+            # Default applies only if no model value
+            default_value = None
+            if "default" in field_schema:
+                default_value = field_schema["default"]
+            elif field_schema.get("valueSource") == "default" and "value" in field_schema:
+                default_value = field_schema["value"]
+
+            if default_value is not None and (slot.value in (None, "", [])):
+                slot.value = self._convert_value_to_type(
+                    default_value, field_schema.get("type", "string")
+                )
+                try:
+                    setattr(slot, "valueSource", "default")
+                    setattr(slot, "verified", True)
+                except Exception:
+                    pass
+        except Exception as e:
+            log_context.warning(
+                f"Failed to apply schema defaults for simple slot {slot.name}: {e}",
+                extra={"operation": "slot_filling_evaluation"},
+            )
+
+    
     @handle_exceptions()
     def _fill_slots(
         self,
@@ -197,7 +243,45 @@ class SlotFiller(BaseSlotFilling):
             },
         )
 
-        # Get model response
+        # If there are no properties to extract (all slots are fixed or none require LLM),
+        # skip calling the model and only apply fixed values. Defaults must be sent to LLM first.
+        if not schema.get("properties"):
+            log_context.info(
+                "No variable slots to extract; skipping LLM call and applying fixed values only",
+                extra={
+                    "operation": "slot_filling_local",
+                },
+            )
+
+            # Start from the input slots and fill fixed values for simple slots
+            filled_slots = [s for s in slots]
+            simple_fixed_slots = [
+                s for s in slots if not getattr(s, "slot_schema", None) and getattr(s, "valueSource", None) == "fixed"
+            ]
+            if simple_fixed_slots:
+                name_to_slot = {s.name: s for s in filled_slots}
+                for fixed_slot in simple_fixed_slots:
+                    if fixed_slot.name in name_to_slot:
+                        fixed_value = getattr(fixed_slot, "fixed", None)
+                        if fixed_value is not None:
+                            target = name_to_slot[fixed_slot.name]
+                            target.value = fixed_value
+                            try:
+                                setattr(target, "valueSource", "fixed")
+                                setattr(target, "verified", True)
+                            except Exception:
+                                pass
+
+            log_context.info(
+                "Slot filling completed without LLM (fixed only)",
+                extra={
+                    "filled_slots": [slot.name for slot in filled_slots],
+                    "operation": "slot_filling_local",
+                },
+            )
+            return filled_slots
+
+        # Get model response (guard against None)
         response = self.model_service.get_response_with_structured_output(
             prompt, schema, system_prompt
         )
@@ -213,7 +297,17 @@ class SlotFiller(BaseSlotFilling):
 
         # Process response
         try:
-            filled_slots = self.model_service.process_slot_response(response, slots)
+            # If model produced no structured output, skip processing and just apply fixed/defaults
+            if response is None:
+                log_context.warning(
+                    "Model returned None; skipping response processing and applying fixed/default values",
+                    extra={
+                        "operation": "slot_filling_local",
+                    },
+                )
+                filled_slots = [s for s in slots]
+            else:
+                filled_slots = self.model_service.process_slot_response(response, slots)
 
             # Apply default/fixed values for any slots that use slot_schema
             if slots:
@@ -222,6 +316,45 @@ class SlotFiller(BaseSlotFilling):
                     filled_slots = self._evaluate_and_fill_slot_values(
                         filled_slots, schema_slot
                     )
+                # Also apply fixed/default values for simple, non-nested slots that were skipped
+                simple_fixed_slots = [
+                    s for s in slots if not getattr(s, "slot_schema", None) and getattr(s, "valueSource", None) == "fixed"
+                ]
+                if simple_fixed_slots:
+                    name_to_slot = {s.name: s for s in filled_slots}
+                    for fixed_slot in simple_fixed_slots:
+                        if fixed_slot.name in name_to_slot:
+                            # Prefer explicit fixed value, else default
+                            fixed_value = getattr(fixed_slot, "fixed", None)
+                            if fixed_value is None:
+                                fixed_value = getattr(fixed_slot, "default", None)
+                            if fixed_value is not None:
+                                target = name_to_slot[fixed_slot.name]
+                                target.value = fixed_value
+                                # Mark provenance to avoid verification later
+                                try:
+                                    setattr(target, "valueSource", "fixed")
+                                    setattr(target, "verified", True)
+                                except Exception:
+                                    pass
+
+                # Apply defaults for simple non-fixed slots if model didn't provide values
+                defaultable_slots = [
+                    s for s in slots if getattr(s, "valueSource", None) != "fixed" and getattr(s, "default", None) is not None
+                ]
+                if defaultable_slots:
+                    name_to_slot = {s.name: s for s in filled_slots}
+                    for default_slot in defaultable_slots:
+                        if default_slot.name in name_to_slot:
+                            target = name_to_slot[default_slot.name]
+                            if getattr(target, "value", None) in (None, "", []):
+                                target.value = default_slot.default
+                                # Mark provenance for defaults; verification not needed
+                                try:
+                                    setattr(target, "valueSource", "default")
+                                    setattr(target, "verified", True)
+                                except Exception:
+                                    pass
             
             log_context.info(
                 "Slot filling completed",
@@ -291,6 +424,14 @@ class SlotFiller(BaseSlotFilling):
                         "operation": "slot_filling_evaluation",
                     },
                 )
+            elif slot.name == original_slot.name and (slot.value in (None, "", [])):
+                # Simple (non-array) slot: apply fixed/default from schema via helper
+                props = (
+                    original_slot.slot_schema.get("function", {})
+                    .get("parameters", {})
+                    .get("properties", {})
+                )
+                self._apply_fixed_or_default_for_simple(slot, props)
         
         return filled_slots
     
@@ -351,7 +492,7 @@ class SlotFiller(BaseSlotFilling):
         for field_name, field_schema in properties.items():
             current_path = f"{path}.{field_name}" if path else field_name
             
-            # Check if this field has a fixed value
+            # Check if this field has a fixed or default
             if field_schema.get("valueSource") == "fixed" and "value" in field_schema:
                 # Convert and apply the fixed value
                 fixed_value = self._convert_value_to_type(
@@ -370,6 +511,23 @@ class SlotFiller(BaseSlotFilling):
                     },
                 )
             
+            elif "default" in field_schema:
+                # Default only applies if the model didn't provide a value
+                if field_name not in updated_item or updated_item[field_name] in (None, "", []):
+                    default_value = self._convert_value_to_type(
+                        field_schema["default"],
+                        field_schema.get("type", "string")
+                    )
+                    updated_item[field_name] = default_value
+                    log_context.info(
+                        f"Applied default value to field {current_path}",
+                        extra={
+                            "field_path": current_path,
+                            "default_value": default_value,
+                            "operation": "slot_filling_evaluation",
+                        },
+                    )
+
             # Handle nested objects
             elif field_schema.get("type") == "object" and field_name in updated_item:
                 nested_props = field_schema.get("properties", {})
@@ -527,6 +685,20 @@ class SlotFiller(BaseSlotFilling):
             ValidationError: If input validation fails
             APIError: If API request fails
         """
+
+        # Short-circuit verification for fixed or default-provisioned slots
+        try:
+            if hasattr(slot, "valueSource"):
+                vs = getattr(slot, "valueSource", None)
+                if vs in ("fixed", "default"):
+                    return True, f"{vs.capitalize()} value; no verification required"
+            if isinstance(slot, dict):
+                vs = slot.get("valueSource")
+                if vs in ("fixed", "default"):
+                    return True, f"{vs.capitalize()} value; no verification required"
+        except Exception:
+            pass
+        
         # Handle both Slot objects and dictionaries
         slot_name = slot.name if hasattr(slot, 'name') else slot.get('name', 'unknown')
         
