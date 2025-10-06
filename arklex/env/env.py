@@ -152,6 +152,7 @@ class DefaultResourceInitializer(BaseResourceInitializer):
             try:
                 worker_registry[worker_id] = {
                     "item_cls": RESOURCE_MAP[worker["id"]]["item_cls"],
+                    "auth": worker.get("auth", {}),
                 }
             except Exception as e:
                 log_context.error(f"Worker {worker_id} is not registered, error: {e}")
@@ -269,7 +270,8 @@ class Environment:
             try:
                 worker: BaseWorker = self.workers[id]["item_cls"]()
                 orch_state, worker_output = worker.execute(
-                    orch_state, node_specific_data=node_info.data
+                    orch_state,
+                    node_specific_data={**node_info.data, **self.workers[id]["auth"]},
                 )
                 content = ""
                 if id == WorkerItem.MULTIPLE_CHOICE_WORKER:
