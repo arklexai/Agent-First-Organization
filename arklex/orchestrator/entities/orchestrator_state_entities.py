@@ -37,24 +37,17 @@ from arklex.utils.llm_config import LLMConfig
 class BotConfig(BaseModel):
     """Configuration for bot settings.
 
-    This class defines the overall configuration for a bot instance, including its
-    identity, version, language settings, and language model configuration.
+    This class defines the overall configuration for a bot instance, including its language settings and language model configuration.
 
     The class provides:
-    1. Bot identity and versioning
-    2. Language and settings
-    3. LLM configuration integration
-    4. Type-safe configuration management
+    1. Language
+    2. LLM configuration
 
     Attributes:
-        bot_id (str): Unique identifier for the bot.
-        version (str): Version number of the bot.
         language (str): Primary language of the bot.
         llm_config (LLMConfig): Language model configuration for the bot.
     """
 
-    bot_id: str = Field(default="")
-    version: str = Field(default="")
     language: str = Field(default="EN")
     llm_config: LLMConfig = Field(default_factory=LLMConfig)
 

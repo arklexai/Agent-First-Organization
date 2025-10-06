@@ -12,7 +12,7 @@ from typing import Any
 from langchain.prompts import PromptTemplate
 
 from arklex.env.prompts import load_prompts
-from arklex.env.tools.RAG.retrievers.milvus_retriever import RetrieveEngine
+from arklex.env.tools.RAG.retrievers.milvus_retriever import MilvusRetrieverExecutor
 from arklex.env.tools.utils import trace
 from arklex.env.workers.base.base_worker import BaseWorker
 from arklex.env.workers.rag_message.entities import (
@@ -117,9 +117,14 @@ class RagMsgWorker(BaseWorker):
         self.prompts: dict[str, str] = load_prompts(self.orch_state.bot_config)
         retrieve_text = ""
         if self._need_retriever():
-            retrieve_text, retriever_params = RetrieveEngine.milvus_retrieve(
+            milvus_retriever_executor = MilvusRetrieverExecutor(
+                self.orch_state.bot_config
+            )
+            retrieve_text, retriever_params = milvus_retriever_executor.retrieve(
                 self.orch_state.user_message.history,
-                self.orch_state.bot_config,
+                self.rag_message_worker_data.bot_id,
+                self.rag_message_worker_data.version,
+                self.rag_message_worker_data.collection_name,
                 self.rag_message_worker_data.tags,
             )
             self.orch_state = trace(

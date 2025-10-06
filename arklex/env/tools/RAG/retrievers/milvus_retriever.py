@@ -32,26 +32,12 @@ from arklex.env.tools.RAG.retrievers.retriever_document import (
 )
 from arklex.orchestrator.NLU.services.model_service import ModelService
 from arklex.utils.logging_utils import LogContext
-from arklex.utils.mysql import mysql_pool
 
 EMBED_DIMENSION = 1536
 MAX_TEXT_LENGTH = 65535
 CHUNK_NEIGHBOURS = 3
 
 log_context = LogContext(__name__)
-
-
-class RetrieveEngine:
-    @staticmethod
-    def milvus_retrieve(
-        chat_history: str, bot_config: object, tags: dict[str, object] | None = None
-    ) -> tuple[str, dict[str, object]]:
-        # Search for the relevant documents
-        milvus_retriever = MilvusRetrieverExecutor(bot_config)
-        if tags is None:
-            tags = {}
-        retrieved_text, retriever_params = milvus_retriever.retrieve(chat_history, tags)
-        return retrieved_text, retriever_params
 
 
 class MilvusRetriever:
@@ -795,7 +781,12 @@ class MilvusRetrieverExecutor:
         return {"source": retriever_returns}
 
     def retrieve(
-        self, chat_history_str: str, tags: dict[str, object] | None = None
+        self,
+        chat_history_str: str,
+        bot_id: str,
+        version: str,
+        collection_name: str,
+        tags: dict[str, object] | None = None,
     ) -> tuple[str, dict[str, object]]:
         """Given a chat history, retrieve relevant information from the database."""
         if tags is None:
@@ -812,15 +803,11 @@ class MilvusRetrieverExecutor:
 
         ret_results: list[RetrieverResult] = []
         st = time.time()
-        milvus_db = mysql_pool.fetchone(
-            "SELECT collection_name FROM qa_bot WHERE id=%s AND version=%s",
-            (self.bot_config.bot_id, self.bot_config.version),
-        )
         with MilvusRetriever() as retriever:
             ret_results = retriever.search(
-                milvus_db["collection_name"],
-                self.bot_config.bot_id,
-                self.bot_config.version,
+                collection_name,
+                bot_id,
+                version,
                 ret_input,
                 tags,
             )

@@ -9,7 +9,9 @@ retrieval of relevant documents.
 
 from typing import Any
 
-from arklex.env.tools.RAG.retrievers.milvus_retriever import RetrieveEngine
+from arklex.env.tools.RAG.retrievers.milvus_retriever import (
+    MilvusRetrieverExecutor,
+)
 from arklex.env.tools.utils import ToolGenerator, trace
 from arklex.env.workers.base.base_worker import BaseWorker
 from arklex.env.workers.milvus_rag.entities import (
@@ -43,9 +45,12 @@ class MilvusRAGWorker(BaseWorker):
         )
 
     def _execute(self) -> MilvusRAGWorkerOutput:
-        retrieved_text, retriever_params = RetrieveEngine.milvus_retrieve(
+        milvus_retriever_executor = MilvusRetrieverExecutor(self.orch_state.bot_config)
+        retrieved_text, retriever_params = milvus_retriever_executor.retrieve(
             self.orch_state.user_message.history,
-            self.orch_state.bot_config,
+            self.milvus_rag_worker_data.bot_id,
+            self.milvus_rag_worker_data.version,
+            self.milvus_rag_worker_data.collection_name,
             self.milvus_rag_worker_data.tags,
         )
         self.orch_state = trace(

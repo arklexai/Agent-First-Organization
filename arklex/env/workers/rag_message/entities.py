@@ -10,6 +10,9 @@ class RAGMessageWorkerData(BaseModel):
     """Data for the RAG message worker."""
 
     message: str
+    bot_id: str
+    version: str
+    collection_name: str
     tags: dict[str, Any]
 
 
