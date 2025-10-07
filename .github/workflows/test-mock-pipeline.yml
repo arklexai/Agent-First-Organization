@@ -9,5 +9,6 @@ jobs:
     # Run on PRs targeting main branch'
     if: github.base_ref == 'main'
     uses: ./.github/workflows/reusable-mock-integration-tests.yml
+    secrets: inherit
     with:
       python-version: '3.10'
