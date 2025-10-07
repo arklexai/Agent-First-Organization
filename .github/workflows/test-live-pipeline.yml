@@ -3,11 +3,13 @@ name: Test Live Pipeline
 on:
   pull_request:
     types: [labeled]
+    branches:
+      - main
 
 jobs:
   test-live-pipeline:
     # Run on PRs targeting main labeled with 'live-integration-tests'
-    if: github.base_ref == 'main' && github.event.label.name == 'live-integration-tests'
+    if: github.event.label.name == 'live-integration-tests'
     uses: ./.github/workflows/reusable-live-integration-tests.yml
     secrets: inherit
     with:

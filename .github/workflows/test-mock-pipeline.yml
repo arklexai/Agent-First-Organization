@@ -3,11 +3,14 @@ name: Test Mock Pipeline
 on:
   pull_request:
     types: [opened, edited, synchronize]
+    branches:
+      - main
+  push:
+    branches:
+      - main
 
 jobs:
   test-mock-pipeline:
-    # Run on PRs targeting main branch'
-    if: github.base_ref == 'main'
     uses: ./.github/workflows/reusable-mock-integration-tests.yml
     secrets: inherit
     with:
