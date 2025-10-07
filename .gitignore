@@ -27,7 +27,6 @@
 *.log
 *.sql
 *.sqlite
-*.json
 
 # OS generated files #
 ######################
@@ -48,6 +47,7 @@ temp_files
 
 .coverage
 test_logs/*
+local/*
 
 # Test artifacts and generated files #
 #####################################

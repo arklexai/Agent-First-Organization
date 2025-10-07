@@ -5,6 +5,7 @@ on:
     types: [opened, edited, synchronize]
 
 jobs:
+  if: false # Disabled - only runs with 'run-taskgraph-validation' label
   taskgraph:
     uses: ./.github/workflows/reusable-taskgraph-generation-validation.yml
     with:
