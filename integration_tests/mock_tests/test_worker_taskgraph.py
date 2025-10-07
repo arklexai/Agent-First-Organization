@@ -127,7 +127,7 @@ def test_workers(mock_load_llm: MagicMock) -> None:
     chat_history.append({"role": ChatRole.ASSISTANT, "content": output["answer"]})
     params = output["parameters"]
     last_trajectory = params["memory"]["trajectory"][-1][0]
-    assert last_trajectory["info"]["resource"]["id"] == WorkerItem.MILVUS_RAG_WORKER
+    assert last_trajectory["info"]["resource"]["id"] == WorkerItem.RAG_MESSAGE_WORKER
     assert last_trajectory["steps"] is not None
 
     # Human in the loop worker
