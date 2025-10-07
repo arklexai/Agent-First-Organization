@@ -11,6 +11,9 @@ from arklex.orchestrator.entities.orchestrator_state_entities import (
 class MilvusRAGWorkerData(BaseModel):
     """Data for the Milvus RAG worker."""
 
+    bot_id: str
+    version: str
+    collection_name: str
     tags: dict[str, Any]
 
 

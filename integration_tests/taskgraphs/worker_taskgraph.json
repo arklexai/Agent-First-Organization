@@ -1,0 +1,212 @@
+{
+    "sys_instruct": "Help the user with their inquiries.",
+    "model": {
+        "model_type_or_path": "gpt-4o",
+        "llm_provider": "openai"
+    },
+    "bot_config": {
+        "language": "EN",
+        "llm_config": {
+            "model_type_or_path": "gpt-4o",
+            "llm_provider": "openai"
+        }
+    },
+    "nodes": [
+        [
+            "0",
+            {
+                "resource": {
+                    "id": "message-worker"
+                },
+                "attribute": {
+                    "start": true,
+                    "can_skipped": false,
+                    "limit": 1
+                },
+                "data": {
+                    "message": "Hello! I'm here to assist you with any customer service inquiries.",
+                    "directed": true
+                }
+            }
+        ],
+        [
+            "1",
+            {
+                "resource": {
+                    "id": "message-worker"
+                },
+                "attribute": {
+                    "start": false,
+                    "can_skipped": false,
+                    "limit": 1
+                },
+                "data": {
+                    "message": "The weather is pretty good today.",
+                    "directed": false
+                }
+            }
+        ],
+        [
+            "2",
+            {
+                "resource": {
+                    "id": "multiple-choice-worker"
+                },
+                "attribute": {
+                    "start": false,
+                    "can_skipped": false,
+                    "limit": 1
+                },
+                "data": {
+                    "question": "Which car would you like to buy?",
+                    "choices": [
+                        "Car A",
+                        "Car B",
+                        "Car C"
+                    ]
+                }
+            }
+        ],
+        [
+            "3",
+            {
+                "resource": {
+                    "id": "milvus-rag-worker"
+                },
+                "attribute": {
+                    "start": false,
+                    "can_skipped": false,
+                    "limit": 1
+                },
+                "data": {
+                    "tags": {}
+                }
+            }
+        ],
+        [
+            "4",
+            {
+                "resource": {
+                    "id": "rag-message-worker"
+                },
+                "attribute": {
+                    "start": false,
+                    "can_skipped": false,
+                    "limit": 1
+                },
+                "data": {
+                    "message": "People here move fast, stay curious, and build with purpose.",
+                    "tags": {}
+                }
+            }
+        ],
+        [
+            "5",
+            {
+                "resource": {
+                    "id": "human-in-the-loop-worker"
+                },
+                "attribute": {
+                    "start": false,
+                    "can_skipped": false,
+                    "limit": 1
+                },
+                "data": {}
+            }
+        ]
+    ],
+    "edges": [
+        [
+            "0",
+            "1",
+            {
+                "intent": "ask about weather",
+                "attribute": {
+                    "weight": 1,
+                    "pred": true,
+                    "definition": "",
+                    "sample_utterances": []
+                }
+            }
+        ],
+        [
+            "0",
+            "2",
+            {
+                "intent": "ask about car options",
+                "attribute": {
+                    "weight": 1,
+                    "pred": true,
+                    "definition": "",
+                    "sample_utterances": []
+                }
+            }
+        ],
+        [
+            "0",
+            "3",
+            {
+                "intent": "ask about company products",
+                "attribute": {
+                    "weight": 1,
+                    "pred": true,
+                    "definition": "",
+                    "sample_utterances": []
+                }
+            }
+        ],
+        [
+            "0",
+            "4",
+            {
+                "intent": "ask about company culture",
+                "attribute": {
+                    "weight": 1,
+                    "pred": true,
+                    "definition": "",
+                    "sample_utterances": []
+                }
+            }
+        ],
+        [
+            "0",
+            "5",
+            {
+                "intent": "user want to connect with a human agent",
+                "attribute": {
+                    "weight": 1,
+                    "pred": true,
+                    "definition": "",
+                    "sample_utterances": []
+                }
+            }
+        ]
+    ],
+    "workers": [
+        {
+            "id": "message-worker"
+        },
+        {
+            "id": "multiple-choice-worker"
+        },
+        {
+            "id": "milvus-rag-worker",
+            "auth": {
+                "bot_id": "arklex",
+                "version": "v1",
+                "collection_name": "test_collection"
+            }
+        },
+        {
+            "id": "rag-message-worker",
+            "auth": {
+                "bot_id": "arklex",
+                "version": "v1",
+                "collection_name": "test_collection"
+            }
+        },
+        {
+            "id": "human-in-the-loop-worker"
+        }
+    ]
+}

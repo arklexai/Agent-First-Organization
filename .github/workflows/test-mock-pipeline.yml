@@ -1,0 +1,13 @@
+name: Test Mock Pipeline
+
+on:
+  pull_request:
+    types: [opened, edited, synchronize]
+
+jobs:
+  test-mock-pipeline:
+    # Run on PRs targeting main branch'
+    if: github.base_ref == 'main'
+    uses: ./.github/workflows/reusable-mock-integration-tests.yml
+    with:
+      python-version: '3.10'
