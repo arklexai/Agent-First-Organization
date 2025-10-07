@@ -118,7 +118,7 @@ def test_workers(mock_load_llm: MagicMock) -> None:
     params = output["parameters"]
     last_trajectory = params["memory"]["trajectory"][-1][0]
     assert last_trajectory["info"]["resource"]["id"] == WorkerItem.MILVUS_RAG_WORKER
-    assert last_trajectory["steps"] is not None
+    assert len(last_trajectory["steps"]) > 0
 
     # RAG message worker
     text = "What is your company's culture?"
@@ -128,7 +128,7 @@ def test_workers(mock_load_llm: MagicMock) -> None:
     params = output["parameters"]
     last_trajectory = params["memory"]["trajectory"][-1][0]
     assert last_trajectory["info"]["resource"]["id"] == WorkerItem.RAG_MESSAGE_WORKER
-    assert last_trajectory["steps"] is not None
+    assert len(last_trajectory["steps"]) > 0
 
     # Human in the loop worker
     text = "Connect me with a human agent"
