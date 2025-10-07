@@ -9,7 +9,7 @@ if [[ "$TEST_TYPE" != "mock" && "$TEST_TYPE" != "live" ]]; then
     exit 1
 fi
 
-echo "Running $TEST_TYPE integration tests..."
+echo "Running $TEST_TYPE integration tests"
 
 # Start Milvus
 echo "Starting Milvus..."
