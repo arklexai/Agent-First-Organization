@@ -5,8 +5,6 @@
         "llm_provider": "openai"
     },
     "bot_config": {
-        "bot_id": "test-bot",
-        "version": "v1",
         "language": "EN",
         "llm_config": {
             "model_type_or_path": "gpt-4o",
@@ -80,7 +78,9 @@
                     "can_skipped": false,
                     "limit": 1
                 },
-                "data": {}
+                "data": {
+                    "tags": {}
+                }
             }
         ],
         [
@@ -95,7 +95,7 @@
                     "limit": 1
                 },
                 "data": {
-                    "message": "",
+                    "message": "People here move fast, stay curious, and build with purpose.",
                     "tags": {}
                 }
             }
@@ -146,7 +146,7 @@
             "0",
             "3",
             {
-                "intent": "ask about company history",
+                "intent": "ask about company products",
                 "attribute": {
                     "weight": 1,
                     "pred": true,
@@ -190,10 +190,20 @@
             "id": "multiple-choice-worker"
         },
         {
-            "id": "milvus-rag-worker"
+            "id": "milvus-rag-worker",
+            "auth": {
+                "bot_id": "arklex",
+                "version": "v1",
+                "collection_name": "test_collection"
+            }
         },
         {
-            "id": "rag-message-worker"
+            "id": "rag-message-worker",
+            "auth": {
+                "bot_id": "arklex",
+                "version": "v1",
+                "collection_name": "test_collection"
+            }
         },
         {
             "id": "human-in-the-loop-worker"

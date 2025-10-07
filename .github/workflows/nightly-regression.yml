@@ -25,6 +25,7 @@ jobs:
 
   test-mock-integration:
     uses: ./.github/workflows/reusable-mock-integration-tests.yml
+    secrets: inherit
     with:
       python-version: '3.10'
 

@@ -18,8 +18,9 @@ jobs:
     name: Mock Integration Tests
     runs-on: ubuntu-latest
     env:
-      OPENAI_API_KEY: test-api-key
-      OPENAI_BASE_URL: http://localhost:5005
+      OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+      MYSQL_LAZY_LOAD: true
+      MILVUS_URI: http://localhost:19530
 
     outputs:
       result: ${{ job.status }}
@@ -37,13 +38,7 @@ jobs:
         run: |
           python -m pip install --upgrade pip
           pip install -e '.[strict-versions]' --quiet
-          pip install uvicorn
-
-      - name: Start OpenAI Mock Server
-        run: |
-          python integration_tests/utils/openai_mock_server.py &
-          sleep 5
 
       - name: Test mock integration tests with pytest
         run: |
-          pytest integration_tests/mock_tests/
+          bash integration_tests/run.sh mock

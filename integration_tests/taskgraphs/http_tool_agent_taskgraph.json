@@ -5,8 +5,6 @@
         "llm_provider": "openai"
     },
     "bot_config": {
-        "bot_id": "http-agent-test-bot",
-        "version": "v1",
         "language": "EN",
         "llm_config": {
             "model_type_or_path": "gpt-4o",

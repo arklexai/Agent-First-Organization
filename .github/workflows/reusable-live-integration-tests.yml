@@ -19,6 +19,8 @@ jobs:
     runs-on: ubuntu-latest
     env:
       OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+      MYSQL_LAZY_LOAD: true
+      MILVUS_URI: http://localhost:19530
 
     outputs:
       result: ${{ job.status }}
@@ -39,4 +41,4 @@ jobs:
 
       - name: Test live integration tests with pytest
         run: |
-          pytest integration_tests/live_tests/
+          bash integration_tests/run.sh live
