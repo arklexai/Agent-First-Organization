@@ -57,9 +57,7 @@ const sidebars = {
         'Workers/Workers',
         'Workers/MessageWorker',
         'Workers/RAGWorker',
-        'Workers/DatabaseWorker',
-        'Workers/SearchWorker',
-        'Workers/DefaultWorker'
+        'Workers/SearchWorker'
       ],
     },
     'Tools',
