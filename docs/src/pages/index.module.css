@@ -20,30 +20,25 @@
   text-align: center;
   position: relative;
   overflow: hidden;
-  background: linear-gradient(
-    135deg,
-    var(--primary) 0%,
-    var(--primary-dark) 100%
-  );
+  background: rgba(65, 115, 235, 0.95);
   color: white;
 }
 
 .heroBanner::before {
   content: "";
   position: absolute;
-  top: auto;
-  left: auto;
+  top: 0;
+  left: 0;
   right: 0;
   bottom: 0;
-  width: 280px;
-  height: 280px;
+  width: 100%;
+  height: 100%;
   background-image: url("/img/banner-logo.svg");
-  background-position: right bottom;
+  background-position: right center;
   background-repeat: no-repeat;
   background-size: contain;
   opacity: 0.3;
   pointer-events: none;
-  transform: translate(10px, 45px);
 }
 
 .heroBanner::after {
@@ -62,18 +57,17 @@
 }
 
 .heroTitle {
-  font-size: 3.5rem;
+  font-size: 3rem;
   font-weight: 800;
-  background: linear-gradient(to right, #fff, rgba(255, 255, 255, 0.8));
-  background-clip: text;
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
+  font-family: "Arial Black", sans-serif;
+  color: #fff;
   margin-bottom: 1.5rem;
 }
 
 .heroSubtitle {
-  font-size: 1.5rem;
+  font-size: 1.6rem;
   line-height: 1.5;
+  font-family: "Roboto", sans-serif;
   opacity: 0.9;
   max-width: 800px;
   margin: 0 auto 2rem;
@@ -165,8 +159,7 @@
   overflow: hidden;
   background: #ffffff;
   padding: 24px;
-  box-shadow: 0 0 0 1px rgba(79, 70, 229, 0.1),
-    0 20px 40px -12px rgba(0, 0, 0, 0.1);
+  box-shadow: 0px 2px 3px -1px rgba(0,0,0,0.1), 0px 1px 0px 0px rgba(25,28,33,0.02), 0px 0px 0px 1px rgba(25,28,33,0.08);
   width: 100%;
 }
 
@@ -212,8 +205,7 @@
   overflow: hidden;
   background: #ffffff;
   padding: 30px 24px 24px;
-  box-shadow: 0 0 0 1px rgba(79, 70, 229, 0.1),
-    0 20px 40px -12px rgba(0, 0, 0, 0.1);
+  box-shadow: 0px 2px 3px -1px rgba(0,0,0,0.1), 0px 1px 0px 0px rgba(25,28,33,0.02), 0px 0px 0px 1px rgba(25,28,33,0.08);
   width: 100%;
 }
 
@@ -253,7 +245,6 @@
   border-radius: 10px;
   overflow: hidden;
   background: #000;
-  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.1);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -289,7 +280,7 @@
   text-align: left;
   font-size: 1.25rem;
   line-height: 1.7;
-  color: var(--text-secondary);
+  color: rgb(75, 85, 99);
   max-width: 900px;
   margin: 0 auto;
   padding: 2rem;
@@ -311,8 +302,8 @@
   background: linear-gradient(
     to right,
     transparent,
-    rgba(79, 70, 229, 0.2) 20%,
-    rgba(79, 70, 229, 0.2) 80%,
+    rgb(65, 115, 235, 0.2) 20%,
+    rgb(65, 115, 235, 0.2) 80%,
     transparent
   );
   position: relative;
@@ -329,17 +320,17 @@
   padding: 0.75rem 2rem;
   font-size: 0.875rem;
   font-weight: 500;
-  color: var(--text-primary);
+  color: rgb(31, 41, 55);
   background: white;
-  border: 1px solid rgba(79, 70, 229, 0.2);
+  border: 1px solid rgb(65, 115, 235, 0.2);
   border-radius: 100px;
   transition: all 0.3s ease;
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
 }
 
 .ctaButton:hover {
-  color: var(--primary);
-  border-color: var(--primary-light);
+  color: rgb(65, 115, 235);
+  border-color: rgb(65, 115, 235);
   background: white;
   transform: translate(-50%, -50%) translateY(-1px);
   box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
@@ -390,6 +381,7 @@
   .heroSubtitle {
     font-size: 1.2rem;
   }
+
 
   .contentSection {
     padding: 4rem 1.5rem;
@@ -455,6 +447,7 @@
 }
 
 @media screen and (max-width: 480px) {
+
   .contentSection {
     padding: 3rem 1rem;
   }
