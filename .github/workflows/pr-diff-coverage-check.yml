@@ -19,4 +19,3 @@ jobs:
       is-pr-check: true
     secrets:
       OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
-      SHOPIFY_FIXED_ARGS: ${{ secrets.SHOPIFY_FIXED_ARGS }}

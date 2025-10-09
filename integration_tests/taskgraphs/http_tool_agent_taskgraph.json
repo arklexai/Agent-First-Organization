@@ -1,0 +1,213 @@
+{
+    "sys_instruct": "You are a helpful assistant.",
+    "model": {
+        "model_type_or_path": "gpt-4o",
+        "llm_provider": "openai"
+    },
+    "bot_config": {
+        "language": "EN",
+        "llm_config": {
+            "model_type_or_path": "gpt-4o",
+            "llm_provider": "openai"
+        }
+    },
+    "nodes": [
+        [
+            "0",
+            {
+                "resource": {
+                    "id": "message-worker"
+                },
+                "attribute": {
+                    "start": true,
+                    "can_skipped": false,
+                    "limit": 1
+                },
+                "data": {
+                    "message": "This is agent developed by Arklex, how can I assist you today?",
+                    "directed": true
+                }
+            }
+        ],
+        [
+            "1",
+            {
+                "resource": {
+                    "id": "openai-agent"
+                },
+                "attribute": {
+                    "task": "",
+                    "type": "agent",
+                    "limit": 1,
+                    "start": false,
+                    "can_skipped": false
+                },
+                "data": {
+                    "prompt": "You are an agent developed by Arklex. Follow these steps carefully:\n\n- Use queryService to get all services provided by Arklex.\n- Use contactTeam to submit service requests."
+                }
+            }
+        ],
+        [
+            "2",
+            {
+                "resource": {
+                    "id": "custom/http-tool"
+                },
+                "attribute": {
+                    "task": "Retrieves all services that Arklex provides.",
+                    "type": "tool",
+                    "limit": 1,
+                    "start": false,
+                    "can_skipped": false
+                },
+                "data": {
+                    "body": {},
+                    "name": "queryService",
+                    "slots": [],
+                    "method": "GET",
+                    "params": {},
+                    "headers": {
+                        "Content-Type": "application/json",
+                        "Authorization": "Bearer test-token"
+                    },
+                    "endpoint": "https://api.arklex.test/service"
+                }
+            }
+        ],
+        [
+            "3",
+            {
+                "resource": {
+                    "id": "custom/http-tool"
+                },
+                "attribute": {
+                    "task": "Submit all service requests with budget to the support team.",
+                    "type": "tool",
+                    "limit": 1,
+                    "start": false,
+                    "can_skipped": false
+                },
+                "data": {
+                    "body": {
+                        "service": "{{ServiceInfo}}"
+                    },
+                    "name": "contactTeam",
+                    "slots": [
+                        {
+                            "name": "ServiceInfo",
+                            "type": "object",
+                            "schema": {
+                                "type": "function",
+                                "function": {
+                                    "name": "tool",
+                                    "parameters": {
+                                        "type": "object",
+                                        "required": [
+                                            "ServiceInfo"
+                                        ],
+                                        "properties": {
+                                            "ServiceInfo": {
+                                                "type": "array",
+                                                "items": {
+                                                    "type": "object",
+                                                    "required": [
+                                                        "service",
+                                                        "budget"
+                                                    ],
+                                                    "properties": {
+                                                        "budget": {
+                                                            "type": "integer",
+                                                            "prompt": "What is your budget for the service",
+                                                            "description": "user budget",
+                                                            "valueSource": "prompt"
+                                                        },
+                                                        "service": {
+                                                            "type": "string",
+                                                            "prompt": "What is the service that you are interested in?",
+                                                            "description": "service name",
+                                                            "valueSource": "prompt"
+                                                        }
+                                                    }
+                                                },
+                                                "valueSource": "prompt"
+                                            }
+                                        }
+                                    },
+                                    "description": "Tool function"
+                                }
+                            },
+                            "target": "body",
+                            "required": true,
+                            "repeatable": true,
+                            "description": "",
+                            "valueSource": "prompt"
+                        }
+                    ],
+                    "method": "POST",
+                    "params": {},
+                    "headers": {
+                        "Content-Type": "application/json",
+                        "Authorization": "Bearer test-token"
+                    },
+                    "endpoint": "https://api.arklex.test/service"
+                }
+            }
+        ]
+    ],
+    "edges": [
+        [
+            "0",
+            "1",
+            {
+                "intent": "None",
+                "attribute": {
+                    "weight": 1,
+                    "pred": true,
+                    "definition": "",
+                    "sample_utterances": []
+                }
+            }
+        ],
+        [
+            "1",
+            "2",
+            {
+                "intent": "None",
+                "attribute": {
+                    "weight": 1,
+                    "pred": true,
+                    "definition": "",
+                    "sample_utterances": []
+                }
+            }
+        ],
+        [
+            "1",
+            "3",
+            {
+                "intent": "None",
+                "attribute": {
+                    "weight": 1,
+                    "pred": true,
+                    "definition": "",
+                    "sample_utterances": []
+                }
+            }
+        ]
+    ],
+    "workers": [
+        {
+            "id": "message-worker"
+        }
+    ],
+    "tools": [
+        {
+            "id": "custom/http-tool"
+        }
+    ],
+    "agents": [
+        {
+            "id": "openai-agent"
+        }
+    ]
+}

@@ -1,0 +1,17 @@
+name: Test Mock Pipeline
+
+on:
+  pull_request:
+    types: [opened, edited, synchronize]
+    branches:
+      - main
+  push:
+    branches:
+      - main
+
+jobs:
+  test-mock-pipeline:
+    uses: ./.github/workflows/reusable-mock-integration-tests.yml
+    secrets: inherit
+    with:
+      python-version: '3.10'
