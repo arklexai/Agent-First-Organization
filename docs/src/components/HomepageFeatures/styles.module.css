@@ -1,433 +1,228 @@
-:root {
-  --hub-size: 100px;
-  --connection-color: rgba(var(--ifm-color-primary-rgb), 0.3);
-  --orbit-time: 20s;
-  --particle-count: 20;
-  --title-color: #744ff7;
-}
-
-.features {
-  position: relative;
+/* Modern, clean, minimal design for Core Features */
+.container {
   width: 100%;
-  margin-top: -2.5rem;
-  overflow: visible;
-  padding: 1rem;
+  max-width: 1500px;
+  margin: 0 auto;
+  padding: 0 2rem;
 }
 
 .sectionTitle {
   text-align: center;
-  margin: 3.4rem 0;
-  position: relative;
-  z-index: 2;
+  margin: 2rem 0 3rem 2rem;
 }
 
 .sectionTitle h2 {
   font-size: 2.8rem;
   font-weight: 700;
-  margin-top: -3.5rem;
-  background: linear-gradient(135deg,
-      var(--title-color),
-      var(--ifm-color-primary));
-  background-clip: text;
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
+  margin: 0;
+  color: #3B414E;
+  font-family: "Arial Black", sans-serif;
   letter-spacing: -0.02em;
 }
 
-.gridContainer {
-  position: relative;
+.features {
   width: 100%;
-  max-width: 1400px;
-  min-height: 100%;
+  margin-bottom: 1rem;
+}
+
+.featuresGrid {
   display: grid;
   grid-template-columns: repeat(2, 1fr);
-  grid-template-rows: repeat(2, 1fr);
-  gap: 3rem;
-  padding: 1rem 0;
-  margin: 0 auto;
-}
-
-@keyframes rotate {
-  from {
-    transform: rotate(0deg);
-  }
-
-  to {
-    transform: rotate(360deg);
-  }
-}
-
-/* Update feature cards to include connection paths */
-.featureCard {
-  position: relative;
-  background: #ffffff;
-  backdrop-filter: blur(10px);
-  border-radius: 24px;
-  padding-bottom: 1.5rem;
-  border: 1px solid rgba(var(--ifm-color-primary-rgb), 0.1);
-  box-shadow: rgba(3, 102, 214, 0.3) 0px 0px 0px 3px;
-  transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
-  overflow: visible;
-  /* Changed from hidden to show animations */
-  max-width: 540px;
-  margin: 0 auto;
+  gap: 2rem;
   width: 100%;
+  max-width: 1400px;
+  margin: 0 auto;
 }
 
-/* Position-specific movement variables */
-.top-left {
-  --move-x: -200px;
-  --move-y: -200px;
-}
-
-.top-right {
-  --move-x: 200px;
-  --move-y: -200px;
-}
-
-.bottom-left {
-  --move-x: -200px;
-  --move-y: 200px;
-}
-
-.bottom-right {
-  --move-x: 200px;
-  --move-y: 200px;
-}
-
-/* Add glowing dots at connection points */
-.featureCard::before {
-  content: "";
-  position: absolute;
-  width: 12px;
-  height: 12px;
-  background: var(--ifm-color-primary);
-  border-radius: 50%;
-  z-index: 2;
-  animation: glow 2s ease-in-out infinite;
-  box-shadow: 0 0 10px rgba(var(--ifm-color-primary-rgb), 0.5);
-}
-
-.top-left::before {
-  bottom: 0;
-  right: 0;
-}
-
-.top-right::before {
-  bottom: 0;
-  left: 0;
-}
-
-.bottom-left::before {
-  top: 0;
-  right: 0;
-}
-
-.bottom-right::before {
-  top: 0;
-  left: 0;
-}
-
-.top-left:hover::before,
-.top-right:hover::before,
-.bottom-left:hover::before,
-.bottom-right:hover::before {
-  background: var(--title-color);
-}
-
-@keyframes glow {
-
-  0%,
-  100% {
-    transform: scale(1);
-    opacity: 0.5;
-  }
-
-  50% {
-    transform: scale(1.5);
-    opacity: 1;
-  }
-}
+.featureCard {
+  background: #ffffff;
+  border-radius: 20px;
+  padding: 2.5rem;
+  border: 1px solid #f1f5f9;
+  transition: all 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+  position: relative;
+  overflow: hidden;
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  text-align: left;
+  min-height: 200px;
+  width: 100%;
+  box-shadow: 0px 2px 3px -1px rgba(0,0,0,0.1), 0px 1px 0px 0px rgba(25,28,33,0.02), 0px 0px 0px 1px rgba(25,28,33,0.08);}
 
 .featureCard:hover {
-  transform: translateY(-5px);
-  border-color: var(--ifm-color-primary);
-  box-shadow: rgb(116, 79, 247, 0.3) 0px 0px 0px 3px;
+  transform: translateY(-2px);
+  background: linear-gradient(135deg, #ffffff, #fafbff);
+  box-shadow: 0px 2px 3px -1px rgb(78, 119, 237,0.1), 0px 1px 0px 0px rgb(78, 119, 237,0.02), 0px 0px 0px 1px rgb(78, 119, 237,0.08);
 }
 
 .svgWrapper {
-  width: 150px;
-  height: 120px;
-  margin: 1.6rem auto 0.5rem;
+  width: 125px;
+  height: 125px;
+  margin-right: 2rem;
+  margin-bottom: 0;
   display: flex;
   align-items: center;
   justify-content: center;
-  background: rgba(var(--ifm-color-primary-rgb), 0.05);
-  border-radius: 40px;
-  transition: all 0.3s ease;
+  background: linear-gradient(135deg, #f8fafc, #f1f5f9);
+  border-radius: 28px;
+  transition: all 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+  flex-shrink: 0;
+}
+
+.featureCard:hover .svgWrapper {
+  background: linear-gradient(135deg, #f0f4ff, #e0e7ff);
+  transform: scale(1.02);
 }
 
 .featureSvg {
-  width: 120px;
-  height: 120px;
-  transition: all 0.3s ease;
+  width: 100%;
+  height: 100%;
+  transition: all 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+}
+
+.featureCard:hover .featureSvg {
+  transform: scale(1.05);
 }
 
 .textContent {
-  text-align: center;
-  padding: 0 1rem;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
 }
 
 .textContent h3 {
-  color: var(--title-color);
-  margin-bottom: 1rem;
+  color: #1f2937;
+  margin: 0 0 1rem 0;
   font-size: 1.25rem;
   font-weight: 600;
+  line-height: 1.3;
+  transition: color 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+}
+
+.featureCard:hover .textContent h3 {
+  color: #4173eb;
 }
 
 .textContent p {
-  color: var(--ifm-color-emphasis-700);
-  font-size: 1rem;
-  line-height: 1.5;
+  color: #6b7280;
+  font-size: 0.95rem;
+  line-height: 1.6;
   margin: 0;
+  flex: 1;
+  transition: color 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94);
 }
 
-.connectorHorizontal,
-.connectorVertical {
-  position: absolute;
-  background: var(--ifm-color-primary);
-  opacity: 0.2;
-  transition: opacity 0.3s ease;
+.featureCard:hover .textContent p {
+  color: #4b5563;
 }
 
-.featureCard:hover .connectorHorizontal,
-.featureCard:hover .connectorVertical {
-  opacity: 0.4;
-}
-
-/* Position-specific styles */
-.top-left {
-  grid-area: 1 / 1 / 2 / 2;
-}
-
-.top-right {
-  grid-area: 1 / 2 / 2 / 3;
-}
-
-.bottom-left {
-  grid-area: 2 / 1 / 3 / 2;
-}
-
-.bottom-right {
-  grid-area: 2 / 2 / 3 / 3;
-}
-
-/* Connector positions */
-.top-left .connectorHorizontal {
-  right: -4rem;
-  top: 50%;
-  width: 4rem;
-  height: 2px;
-}
-
-.top-left .connectorVertical {
-  bottom: -3rem;
-  right: 50%;
-  width: 2px;
-  height: 3rem;
-}
-
-.top-right .connectorHorizontal {
-  left: -4rem;
-  top: 50%;
-  width: 4rem;
-  height: 2px;
-}
-
-.top-right .connectorVertical {
-  bottom: -3rem;
-  left: 50%;
-  width: 2px;
-  height: 3rem;
-}
-
-.bottom-left .connectorHorizontal {
-  right: -4rem;
-  top: 50%;
-  width: 4rem;
-  height: 2px;
-}
-
-.bottom-left .connectorVertical {
-  top: -3rem;
-  right: 50%;
-  width: 2px;
-  height: 3rem;
-}
-
-.bottom-right .connectorHorizontal {
-  left: -4rem;
-  top: 50%;
-  width: 4rem;
-  height: 2px;
-}
-
-.bottom-right .connectorVertical {
-  top: -3rem;
-  left: 50%;
-  width: 2px;
-  height: 3rem;
-}
-
-/* Add connecting lines */
-.centerCircle::after {
-  content: "";
-  position: absolute;
-  inset: -20px;
-  border-radius: 50%;
-  border: 2px dashed var(--ifm-color-primary);
-  opacity: 0.2;
-  animation: rotate 20s linear infinite;
-}
-
-/* Horizontal line */
-.gridContainer::before {
-  transform: translateX(-50%) translateY(-1px);
-}
-
-/* Vertical line */
-.gridContainer::after {
-  transform: translateX(-50%) translateY(-50%) rotate(90deg);
-}
-
-@media (min-width: 1526px) {
-  .gridContainer {
-    gap: 4rem;
+/* Responsive Design */
+@media (max-width: 1024px) {
+  .container {
+    padding: 0 1.5rem;
   }
-
-  .featureCard {
-    max-width: 700px;
-    padding-bottom: 3rem;
-  }
-
-  .svgWrapper {
-    width: 180px;
-    height: 140px;
-  }
-
-  .featureSvg {
-    width: 140px;
-    height: 140px;
-  }
-
-  .textContent h3 {
-    font-size: 1.4rem;
-  }
-
-  .textContent p {
-    font-size: 1.1rem;
-  }
-}
-
-@media (min-width: 1200px) and (max-width: 1525px) {
-  .gridContainer {
-    max-width: 1500px;
-    gap: 3.5rem;
-  }
-
-  .featureCard {
-    max-width: 570px;
-  }
-
-  .svgWrapper {
-    width: 165px;
-    height: 130px;
-  }
-
-  .featureSvg {
-    width: 130px;
-    height: 130px;
-  }
-
-  .textContent h3 {
-    font-size: 1.3rem;
-  }
-
-  .textContent p {
-    font-size: 1.05rem;
-  }
-}
-
-@media (max-width: 996px) {
-  .features {
-    padding: 1rem 1rem 4rem;
-  }
-
-  .sectionTitle {
-    margin-top: 0;
-  }
-
-  .gridContainer {
+  
+  .featuresGrid {
     grid-template-columns: 1fr;
-    grid-template-rows: auto;
-    gap: 1.5rem;
-    padding: 1rem;
-    width: 100%;
-    height: auto;
+    gap: 2rem;
+    max-width: 800px;
   }
-
+  
   .featureCard {
-    grid-area: auto !important;
-    min-width: 100%;
-    padding: 1rem 1rem 3.6rem;
-    height: auto;
+    min-height: 180px;
+    padding: 2rem;
   }
-
-  .cardInner {
-    padding: 1.5rem;
-  }
-
-  .centerCircle::before,
-  .centerCircle::after,
-  .featureCard::before {
-    left: 0;
-    top: 0;
-  }
-
-  .gridContainer::before,
-  .gridContainer::after,
-  .connectionLine {
-    display: none;
-  }
-
-  .sectionTitle {
-    margin-bottom: 3rem;
-  }
-
+  
   .sectionTitle h2 {
-    font-size: 2.5rem;
-    margin-top: 0;
+    font-size: 2.25rem;
   }
+}
 
-  .sectionTitle p {
+@media (max-width: 768px) {
+  .container {
+    padding: 0 1rem;
+  }
+  
+  .sectionTitle {
+    margin: 3rem 0 2rem 0;
+  }
+  
+  .sectionTitle h2 {
+    font-size: 2rem;
+  }
+  
+  .featuresGrid {
+    grid-template-columns: 1fr;
+    gap: 1.5rem;
+    max-width: 100%;
+  }
+  
+  .featureCard {
+    min-height: auto;
+    padding: 1.5rem;
+    flex-direction: row;
+    text-align: left;
+    align-items: center;
+  }
+  
+  .svgWrapper {
+    width: 80px;
+    height: 80px;
+    margin-right: 1.5rem;
+    margin-bottom: 0;
+    flex-shrink: 0;
+  }
+  
+  .featureSvg {
+    width: 50px;
+    height: 50px;
+  }
+  
+  .textContent {
+    flex: 1;
+  }
+  
+  .textContent h3 {
     font-size: 1.125rem;
+    margin-bottom: 0.75rem;
+  }
+  
+  .textContent p {
+    font-size: 0.9rem;
   }
 }
 
 @media (max-width: 480px) {
-  .features {
-    padding: 1rem 1rem 3rem;
+  .container {
+    padding: 0 0.75rem;
   }
-
-  .gridContainer {
-    margin-bottom: 1.5rem;
-  }
-
+  
   .sectionTitle h2 {
-    font-size: 2rem;
+    font-size: 1.75rem;
   }
-
-  .sectionTitle p {
+  
+  .featureCard {
+    padding: 1.25rem;
+  }
+  
+  .svgWrapper {
+    width: 70px;
+    height: 70px;
+    margin-right: 1rem;
+  }
+  
+  .featureSvg {
+    width: 40px;
+    height: 40px;
+  }
+  
+  .textContent h3 {
     font-size: 1rem;
+  }
+  
+  .textContent p {
+    font-size: 0.85rem;
   }
 }

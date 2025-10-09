@@ -11,7 +11,7 @@ import { themes as prismThemes } from 'prism-react-renderer';
 /** @type {import('@docusaurus/types').Config} */
 const config = {
   title: 'Arklex AI Agent Framework',
-  tagline: `Getting Smarter with Every Interaction`,
+  tagline: `Build Production-Ready AI Agents That Scale`,
   favicon: 'img/articulateai.png',
 
   // Set the production url of your site here
