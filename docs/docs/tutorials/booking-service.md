@@ -10,7 +10,7 @@ By the end of this tutorial, you'll know how to use external tooling workers spe
 
 ## Setting up the Config File
 
-[Previously](./customer-service.md), we had nodes that were able to read from various files and sources to compose an answer. Here, we will take it a step further. Instead of just reading, we will also be interacting with database and writing record into database. This could be done through the built-in [DatabaseWorker](../Workers/DatabaseWorker.md).
+[Previously](./customer-service.md), we had nodes that were able to read from various files and sources to compose an answer. Here, we will take it a step further. Instead of just reading, we will also be interacting with database and writing record into database. This could be done through database integration workers.
 
 As a refresher, here is the structure for a *Config* JSON file:
 
@@ -74,7 +74,7 @@ It will first enter into a *task planning* interactive panel where you can see t
 
 TaskGraph provides the graph that the bot will traverse through during the conversation. It provides a guideline for the conversation to make it more controllable and reliable. The details can be viewed at [here](../Taskgraph/Generation.md).
 
-It will also prepare the database for the bot. The details can be viewed at [DatabaseWorker](../Workers/DatabaseWorker.md).
+It will also prepare the database for the bot. The details can be viewed in the [Workers documentation](../Workers/Workers.md).
 >**Notice**: The database content we used in this tutorial is a fake database for demonstration purposes. You can replace it with your own database content.
 
 ## Running the Bot

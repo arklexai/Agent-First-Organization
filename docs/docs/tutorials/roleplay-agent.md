@@ -12,7 +12,7 @@ By the end of this tutorial, you'll know how to set up the config file, build a 
 
 In its core, bot is powered through a [TaskGraph](../Taskgraph/intro.md) which is the structure that links various tasks together to fulfill the overall role of the bot. Every "node" represents a task which has an [Worker](../Workers/Workers.md) that is selected to complete task, and would engages the user for their response. With the user response, the TaskGraph will decide which next node to travel to.
 
-While there are a lot of pre-built workers (and the ability to write custom workers too!), for this simple task, we will only be using two of the most basic workers. [MessageWorker](../Workers/MessageWorker.mdx) and [DefaultWorker](../Workers/DefaultWorker.mdx). Message Worker is the base worker in handling message responses and DefaultWorker is there in case MessageWorker is not deemed suitable.
+While there are a lot of pre-built workers (and the ability to write custom workers too!), for this simple task, we will only be using the most basic worker. [MessageWorker](../Workers/MessageWorker.mdx) is the base worker in handling message responses.
 
 Here is the simple structure for a [Config](../Config/intro.md) JSON file:
 
