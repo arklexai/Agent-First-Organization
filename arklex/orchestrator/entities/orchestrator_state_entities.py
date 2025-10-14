@@ -207,7 +207,6 @@ class OrchestratorState(BaseModel):
     message_flow: str = Field(default="")
     # record history
     function_calling_trajectory: list[dict[str, Any]] | None = Field(default=None)
-    # OpenAI Agents SDK specific trajectory (user/assistant/messages and tool records)
     openai_sdk_trajectory: list[dict[str, Any]] | None = Field(default=None)
     trajectory: list[list[ResourceRecord]] | None = Field(default=None)
     relevant_records: list[ResourceRecord] | None = Field(default=None)

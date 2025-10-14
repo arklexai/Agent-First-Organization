@@ -48,13 +48,12 @@ from typing import Any
 
 import networkx as nx
 import numpy as np
-from agents import Agent, handoff
+from agents import handoff
 from agents.realtime import RealtimeAgent, realtime_handoff
 from jinja2 import Template
 
 from arklex.env.agents.agent import BaseAgent
 from arklex.env.agents.entities import PromptVariable
-from arklex.env.agents.openai_agent import OpenAIAgentData
 from arklex.env.agents.openai_realtime_agent import (
     OpenAIRealtimeAgent,
     OpenAIRealtimeAgentData,
@@ -133,6 +132,7 @@ class AgentGraph(TaskGraphBase):
     """
     AgentGraph is a task graph that contains agents and tools that the agent can use.
     It is used to create a task graph that contains agents and tools that the agent can use.
+    It is only used for realtime voice agents for now.
 
     Attributes:
         agents: Dictionary mapping agent names to agent objects
@@ -175,7 +175,6 @@ class AgentGraph(TaskGraphBase):
 
         resource_initializer = DefaultResourceInitializer()
         agent_handovers: dict[str, list[str]] = collections.defaultdict(list)
-        start_agent_data: dict[str, Any] | None = None
         start_agent_name: str | None = None
         voicemail_tool: Tool | None = None
         response_played_event = threading.Event()
@@ -194,7 +193,6 @@ class AgentGraph(TaskGraphBase):
                     if (
                         successor_node.get("attribute", {}).get("type", "")
                         == ResourceType.TOOL
-                        and successor_node["resource"]["id"] != "planner"
                     ):
                         available_tools.append(
                             resource_map[successor_node["resource"]["id"]]
@@ -213,7 +211,6 @@ class AgentGraph(TaskGraphBase):
                     if (
                         predecessor_node.get("attribute", {}).get("type", "")
                         == ResourceType.TOOL
-                        and predecessor_node["resource"]["id"] != "planner"
                     ):
                         available_tools.append(
                             resource_map[predecessor_node["resource"]["id"]]
@@ -242,7 +239,6 @@ class AgentGraph(TaskGraphBase):
                 if resource.get("id", "") == AgentItem.OPENAI_REALTIME_VOICE_AGENT:
                     agent_data = OpenAIRealtimeAgentData(**node_specific_data)
                     prompt = agent_data.prompt
-                    # prompt_variables_test_values = node_specific_data.get("prompt_variables_test_values", None)
                     if agent_data.prompt_variables:
                         self.prompt_variables.extend(agent_data.prompt_variables)
                         template = Template(prompt)
@@ -260,23 +256,6 @@ class AgentGraph(TaskGraphBase):
                         .get("attribute", {})
                         .get("task", ""),
                     )
-                elif resource.get("id", "") == AgentItem.OPENAI_AGENT:
-                    agent_data = OpenAIAgentData(**node_specific_data)
-                    prompt = agent_data.prompt
-                    if agent_data.prompt_variables:
-                        self.prompt_variables.extend(agent_data.prompt_variables)
-                        template = Template(prompt)
-                        # convert prompt_variables to a dict
-                        prompt_variables_dict = {
-                            pv.name: pv.value for pv in self.prompt_variables
-                        }
-                        prompt = template.render(prompt_variables_dict)
-                    agent_data_map[agent_data.name] = agent_data
-                    self.agents_sdk_agents[agent_data.name] = Agent(
-                        name=agent_data.name,
-                        instructions=prompt,
-                        tools=agents_sdk_tools,
-                    )
                 else:
                     log_context.warning(
                         f"Agent {resource.get('id', '')} not implemented yet in agent graph"
@@ -285,15 +264,17 @@ class AgentGraph(TaskGraphBase):
 
         for agent_name, handover_agents in agent_handovers.items():
             # Set handoffs for both RealtimeAgent and text Agent instances
-            if hasattr(self.agents_sdk_agents[agent_name], 'handoffs'):
+            if hasattr(self.agents_sdk_agents[agent_name], "handoffs"):
                 agent_instance = self.agents_sdk_agents[agent_name]
-                if hasattr(agent_instance, 'voice'):
+                if hasattr(agent_instance, "voice"):
                     # RealtimeAgent
                     self.agents_sdk_agents[agent_name].handoffs = [
                         realtime_handoff(self.agents_sdk_agents[handover_agent])
                         for handover_agent in handover_agents
                     ]
-                    log_context.info(f"Realtime handoffs configured for {agent_name}: {handover_agents}")
+                    log_context.info(
+                        f"Realtime handoffs configured for {agent_name}: {handover_agents}"
+                    )
                 else:
                     # Text Agent
                     handoff_objects = [
@@ -310,44 +291,38 @@ class AgentGraph(TaskGraphBase):
                                 node_data = node[1]
                                 if isinstance(node_data, dict) and "data" in node_data:
                                     agent_data = node_data["data"]
-                                    if isinstance(agent_data, dict) and agent_data.get("name") == agent_name:
+                                    if (
+                                        isinstance(agent_data, dict)
+                                        and agent_data.get("name") == agent_name
+                                    ):
                                         agent_node = node_data
                                         break
                     if agent_node:
                         agent_node["data"]["handoffs"] = handoff_objects
-                        log_context.info(f"Text handoffs configured for {agent_name}: {handover_agents}")
+                        log_context.info(
+                            f"Text handoffs configured for {agent_name}: {handover_agents}"
+                        )
                     else:
-                        log_context.warning(f"No node data found to store handoffs for {agent_name}")
+                        log_context.warning(
+                            f"No node data found to store handoffs for {agent_name}"
+                        )
 
         if start_agent_name is None:
-            if len(self.agents_sdk_agents) == 0:
-                log_context.info("No agents-sdk agents found in the graph")
-                return
-            start_agent_name = list(self.agents_sdk_agents.keys())[0]
-        start_agent_data = agent_data_map[start_agent_name]
-        log_context.info(f"Start agent: {start_agent_name}")
-        
-        # Check if the start agent is a realtime agent
-        if isinstance(start_agent_data, OpenAIRealtimeAgentData):
-            self.start_agent = OpenAIRealtimeAgent(
-                realtime_agent=self.agents_sdk_agents[start_agent_name],
-                voice=start_agent_data.voice,
-                transcription_language=start_agent_data.transcription_language,
-                speed=start_agent_data.speed,
-                turn_detection=start_agent_data.turn_detection,
-                voicemail_tool=voicemail_tool,
-            )
-            self.start_agent.response_played = response_played_event
-        elif isinstance(start_agent_data, OpenAIAgentData):
-            # For text agents, we can use them as start agents
-            log_context.info(f"Text agent {start_agent_name} configured as start agent")
-            # The actual agent execution will be handled by the orchestrator
-            # We don't need to create a special start agent for text agents
-            self.start_agent = None
-        else:
-            # For other agent types, we need to handle them differently
-            log_context.warning(f"Agent type {type(start_agent_data)} not fully supported as start agent yet")
-            self.start_agent = None
+            return
+        start_agent_data: OpenAIRealtimeAgentData = agent_data_map[start_agent_name]
+        log_context.info(f"agent handovers: {agent_handovers}")
+        log_context.info(
+            f"start agent: {start_agent_name}, handovers: {self.agents_sdk_agents[start_agent_name].handoffs}"
+        )
+        self.start_agent = OpenAIRealtimeAgent(
+            realtime_agent=self.agents_sdk_agents[start_agent_name],
+            voice=start_agent_data.voice,
+            transcription_language=start_agent_data.transcription_language,
+            speed=start_agent_data.speed,
+            turn_detection=start_agent_data.turn_detection,
+            voicemail_tool=voicemail_tool,
+        )
+        self.start_agent.response_played = response_played_event
 
 
 class TaskGraph(TaskGraphBase):

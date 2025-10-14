@@ -28,17 +28,6 @@ def test_register_tool_decorator_creates_tool() -> None:
     assert any(slot.name == "a" for slot in tool_instance.slots)
 
 
-def test_tool_initialization_and_get_info() -> None:
-    """Test Tool initialization and get_info method."""
-    slots = [{"name": "a", "type": "str", "description": "A", "required": True}]
-    tool = Tool(dummy_func, "toolname", "desc", slots)
-    info = tool.get_info(slots)
-    assert info["function"]["name"] == "toolname"
-    assert info["function"]["description"] == "desc"
-    assert "a" in info["function"]["parameters"]["properties"]
-    assert info["function"]["parameters"]["required"] == ["a"]
-
-
 def test_tool_init_slotfiller() -> None:
     """Test Tool.init_slotfiller sets the slotfiller attribute."""
     tool = Tool(dummy_func, "toolname", "desc", [])
@@ -222,22 +211,6 @@ def test_tool_execute_authentication_error() -> None:
     tool.slotfiller.fill_slots.return_value = [slot]
     result_state, result_output = tool.execute(state, {}, {})
     assert result_output.status == StatusEnum.INCOMPLETE
-
-
-def test_tool_to_openai_tool_def() -> None:
-    """Test Tool.to_openai_tool_def returns correct schema."""
-    slots = [
-        Slot(name="a", type="str", description="A", required=True),
-        Slot(name="b", type="int", description="B", required=False),
-    ]
-    tool = Tool(dummy_func, "toolname", "desc", [])
-    tool.slots = slots
-    schema = tool.to_openai_tool_def()
-    assert schema["type"] == "function"
-    assert schema["name"] == "toolname"
-    assert schema["parameters"]["required"] == ["a"]
-    assert schema["parameters"]["properties"]["a"]["type"] == "string"
-    assert schema["parameters"]["properties"]["b"]["type"] == "integer"
 
 
 def test_tool_str_and_repr() -> None:
