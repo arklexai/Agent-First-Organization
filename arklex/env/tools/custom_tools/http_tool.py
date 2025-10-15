@@ -11,6 +11,9 @@ import requests
 from pydantic import BaseModel, Field
 
 from arklex.env.tools.tools import register_tool
+from arklex.orchestrator.NLU.entities.slot_entities import (
+    Slot,
+)
 from arklex.utils.exceptions import ToolExecutionError, ValidationError
 from arklex.utils.logging_utils import LogContext
 
@@ -48,78 +51,57 @@ class HTTPParams(BaseModel):
     params: dict[str, Any] | None = Field(default=None)
 
 
-def validate_required_slots(slots: list[dict[str, Any]]) -> None:
+def validate_required_slots(slots: list[Slot]) -> None:
     """
     Validate if all required slots are filled, including nested required fields.
     """
-    for slot in slots:
-        # Handle both object attributes and dictionary keys
-        if (
-            hasattr(slot, "name")
-            and hasattr(slot, "value")
-            and hasattr(slot, "required")
-        ):
+    try:
+        for slot in slots:
+            # Handle both object attributes and dictionary keys
             slot_name = slot.name
             slot_value = slot.value
             slot_required = slot.required
-            slot_schema = getattr(slot, "slot_schema", None)
-        elif isinstance(slot, dict):
-            slot_name = slot.get("name")
-            slot_value = slot.get("value")
-            slot_required = slot.get("required", False)
-            slot_schema = slot.get("slot_schema")
-        else:
-            continue  # Skip invalid slot formats
+            slot_repeatable = slot.repeatable
+            slot_schema = slot.slot_schema
 
-        print(
-            f"slot_name: {slot_name}, slot_value: {slot_value}, slot_required: {slot_required}"
-        )
-
-        # Check if the main slot is required and missing
-        if slot_required and not slot_value:
-            slot_name = slot_name or "unknown"
-            log_context.error(f"Required slot {slot_name} is missing")
-            raise ValidationError(
-                f"Required slot '{slot_name}' is missing",
-                details={"slot_name": slot_name, "value": slot_value},
+            log_context.info(
+                f"slot_name: {slot_name}, slot_value: {slot_value}, slot_value_type: {type(slot_value)}, slot_repeatable: {slot_repeatable}, slot_required: {slot_required}"
             )
 
-        # Check nested required fields if slot has value and schema (only for list/dict types)
-        try:
-            if (
-                slot_value is not None
-                and slot_schema
-                and isinstance(slot_value, (list | dict))
-            ):
-                _validate_nested_fields(slot_name, slot_value, slot_schema)
-        except ValidationError as e:
-            log_context.warning(
-                f"Required nested slot values for '{slot_name}' are missing: {str(e)}"
-            )
-            raise e
+            # Check if the slot is required and missing (can be an array, object, string, etc.)
+            if slot_required and not slot_value:
+                log_context.warning(
+                    f"Validation error: Required slot '{slot_name}' is missing"
+                )
+                raise ValidationError(f"Required slot '{slot_name}' is missing")
 
+            # Check for nested fields, navigate to the actual field schema
+            function_schema = slot_schema.get("function", {})
+            parameters = function_schema.get("parameters", {})
+            properties = parameters.get("properties", {})
 
-def _validate_nested_fields(
-    slot_name: str, slot_value: list | dict, slot_schema: dict[str, Any]
-) -> None:
-    """
-    Validate nested required fields based on slot schema.
-    """
-    try:
-        # Navigate to the actual field schema
-        function_schema = slot_schema.get("function", {})
-        parameters = function_schema.get("parameters", {})
-        properties = parameters.get("properties", {})
-
-        # Get the schema for this specific slot
-        field_schema = properties.get(slot_name, {})
-
-        if field_schema.get("type") == "array":
-            _validate_array_items(slot_name, slot_value, field_schema)
-        elif field_schema.get("type") == "object":
-            _validate_object_fields(slot_name, slot_value, field_schema)
+            # Get the properties for this specific slot
+            slot_properties = properties.get(slot_name, {})
+            if slot_value is not None and slot_repeatable:
+                if not isinstance(slot_value, list):
+                    log_context.warning(
+                        f"Validation error: Required array slot '{slot_name}' is not a list"
+                    )
+                    raise ValidationError(
+                        f"Required array slot '{slot_name}' is not a list"
+                    )
+                # validate array items if slot has value and is a repeatable field
+                _validate_array_items(slot_name, slot_value, slot_properties)
+            elif slot_value is not None and isinstance(slot_value, dict):
+                # validate object field if slot has value and is a dict
+                required_fields = slot_properties.get("required", [])
+                _validate_object_fields(slot_name, slot_value, required_fields)
 
     except ValidationError as e:
+        log_context.warning(f"Validation error: {str(e)}")
+        raise e
+    except Exception as e:
+        log_context.warning(f"Error validating required slots: {str(e)}")
         raise e
 
 
@@ -129,58 +111,32 @@ def _validate_array_items(
     """
     Validate required fields in array items.
     """
-    if not isinstance(slot_value, list):
-        return
 
     items_schema = field_schema.get("items", {})
     if items_schema.get("type") == "object":
         required_fields = items_schema.get("required", [])
-        properties = items_schema.get("properties", {})
-
-        for index, item in enumerate(slot_value):
-            if isinstance(item, dict):
-                for required_field in required_fields:
-                    field_value = item.get(required_field)
-                    if field_value is None or field_value == "":
-                        field_description = properties.get(required_field, {}).get(
-                            "description", required_field
-                        )
-                        raise ValidationError(
-                            f"Required field '{required_field}' is missing in {slot_name}[{index}] ({field_description})",
-                            details={
-                                "slot_name": slot_name,
-                                "field_name": required_field,
-                                "array_index": index,
-                                "value": item,
-                            },
-                        )
+        for item in slot_value:
+            _validate_object_fields(slot_name, item, required_fields)
+    else:
+        for item in slot_value:
+            if item is None or item == "":
+                raise ValidationError(
+                    f"Required array slot '{slot_name}' has empty item"
+                )
 
 
 def _validate_object_fields(
-    slot_name: str, slot_value: dict, field_schema: dict[str, Any]
+    slot_name: str, slot_value: dict, required_fields: list[str]
 ) -> None:
     """
     Validate required fields in object.
     """
-    if not isinstance(slot_value, dict):
-        return
-
-    required_fields = field_schema.get("required", [])
-    properties = field_schema.get("properties", {})
 
     for required_field in required_fields:
         field_value = slot_value.get(required_field)
         if field_value is None or field_value == "":
-            field_description = properties.get(required_field, {}).get(
-                "description", required_field
-            )
             raise ValidationError(
-                f"Required field '{required_field}' is missing in {slot_name} ({field_description})",
-                details={
-                    "slot_name": slot_name,
-                    "field_name": required_field,
-                    "value": slot_value,
-                },
+                f"Required slot field '{slot_name}.{required_field}' is missing"
             )
 
 
@@ -312,7 +268,7 @@ def replace_placeholders(
     slots=[],
 )
 def http_tool(
-    slots: list[dict[str, Any]] | None = None,
+    slots: list[Slot] | None = None,
     node_specific_data: dict[str, Any] | None = None,
     **kwargs: dict[str, Any],
 ) -> str:
@@ -428,14 +384,10 @@ def http_tool(
         return str(response_data)
 
     except ValidationError as e:
-        # Handle missing required slots gracefully - skip tool execution
-        missing_field = (
-            e.details.get("slot_name", "unknown") if e.details else "unknown"
-        )
-        value = e.details.get("value", None) if e.details else None
-        skip_message = f"Required field or nested values in the field '{missing_field}' is missing, skipping the http_tool call. The value is: {value}"
-        log_context.info(skip_message)
-        return skip_message
+        log_context.warning(f"Validation error: {str(e)}")
+        raise ToolExecutionError(
+            func_name, f"Validation error in HTTPTool: {str(e)}"
+        ) from e
     except requests.exceptions.RequestException as e:
         log_context.error(f"Error making HTTP request: {str(e)}")
         raise ToolExecutionError(

@@ -653,10 +653,7 @@ class Tool:
 
             # Only include the slots list if the target function accepts it
             if "slots" in sig.parameters:
-                kwargs["slots"] = [
-                    slot.model_dump() if hasattr(slot, "model_dump") else slot
-                    for slot in slots
-                ]
+                kwargs["slots"] = slots
 
             combined_kwargs: dict[str, Any] = {
                 **kwargs,
@@ -693,6 +690,11 @@ class Tool:
                 tool_output.message_flow = str(e)
             call_id: str = str(uuid.uuid4())
             log_context.info(f"call_id: {call_id}")
+            # update the slots to dict so the kwargs can be serialized
+            kwargs["slots"] = [
+                slot.model_dump() if hasattr(slot, "model_dump") else slot
+                for slot in slots
+            ]
             state.function_calling_trajectory.append(
                 {
                     "content": None,
