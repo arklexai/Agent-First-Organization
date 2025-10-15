@@ -1,7 +1,7 @@
 """Task graph formatter for Arklex framework.
 
 Formats task definitions into graph structure with nodes, edges, and metadata.
-Handles LLM-based intent generation and nested graph connectivity.
+Handles LLM-based intent generation.
 """
 
 from typing import Any
@@ -32,7 +32,6 @@ class TaskGraphFormatter:
     DEFAULT_MESSAGE_WORKER = "MessageWorker"
     DEFAULT_RAG_WORKER = "FaissRAGWorker"
     DEFAULT_SEARCH_WORKER = "SearchWorker"
-    DEFAULT_NESTED_GRAPH = "NestedGraph"
     DEFAULT_OUTPUT_PROCESS_WORKER = "OutputProcessWorker"
 
     def __init__(
@@ -55,7 +54,6 @@ class TaskGraphFormatter:
         default_sample_utterances: list[str] | None = None,
         nodes: list[Any] | None = None,
         edges: list[Any] | None = None,
-        allow_nested_graph: bool = True,
         model: object | None = None,
         settings: dict[str, Any] | None = None,
     ) -> None:
@@ -80,7 +78,6 @@ class TaskGraphFormatter:
             default_sample_utterances (Optional[List[str]]): Default sample utterances for edge attributes
             nodes (Optional[List[Any]]): List of nodes
             edges (Optional[List[Any]]): List of edges
-            allow_nested_graph (bool): Whether to allow nested graph generation
             model (Optional[Any]): Language model for intent generation
             settings (Optional[Dict[str, Any]]): Additional configuration settings
         """
@@ -102,7 +99,6 @@ class TaskGraphFormatter:
         self._default_sample_utterances = default_sample_utterances or []
         self._nodes = nodes
         self._edges = edges
-        self._allow_nested_graph = allow_nested_graph
         self._model = model
         self._settings = settings
 
@@ -158,61 +154,21 @@ class TaskGraphFormatter:
         # Format nodes and edges
         nodes, node_lookup, all_task_node_ids = self._format_nodes(tasks)
         start_node_id = "0"  # Start node is always "0" in our current implementation
-        edges, nested_graph_nodes = self._format_edges(
-            tasks, node_lookup, all_task_node_ids, start_node_id
-        )
+        edges = self._format_edges(tasks, node_lookup, all_task_node_ids, start_node_id)
 
-        # Update NestedGraph node values with their target node IDs
-        all_nodes = nodes + nested_graph_nodes
-        for node_id, node_data in all_nodes:
-            if node_data.get("resource", {}).get("name") == "NestedGraph":
-                # Find the target node this NestedGraph connects to by looking at edges
-                target_node_id = None
-                for edge in edges:
-                    if edge[0] == node_id:  # This edge starts from the NestedGraph node
-                        # The target is the second element
-                        potential_target = edge[1]
-                        # Don't point to node "0" (start node)
-                        if potential_target != "0":
-                            target_node_id = potential_target
-                            break
-
-                if target_node_id:
-                    node_data["attribute"]["value"] = target_node_id
+        # Process node values
+        for _, node_data in nodes:
+            # If the value is a dict, replace with its description
+            value = node_data.get("attribute", {}).get("value")
+            if isinstance(value, dict):
+                desc = value.get("description")
+                if desc:
+                    node_data["attribute"]["value"] = desc
                 else:
-                    # If no valid target found, point to the first non-start task node
-                    task_node_ids = [
-                        nid
-                        for nid, ndata in all_nodes
-                        if ndata.get("resource", {}).get("name")
-                        in [
-                            "MessageWorker",
-                            "FaissRAGWorker",
-                            "SearchWorker",
-                            "OutputProcessWorker",
-                        ]
-                        and nid != "0"
-                    ]
-                    if task_node_ids:
-                        node_data["attribute"]["value"] = task_node_ids[0]
-                    else:
-                        # Fallback: point to node "1" if it exists
-                        node_data["attribute"]["value"] = "1"
-            else:
-                # If the value is a dict, replace with its description
-                value = node_data.get("attribute", {}).get("value")
-                if isinstance(value, dict):
-                    desc = value.get("description")
-                    if desc:
-                        node_data["attribute"]["value"] = desc
-                    else:
-                        node_data["attribute"]["value"] = str(value)
-                # If the value is a list or nested, flatten to string
-                elif isinstance(value, list):
-                    node_data["attribute"]["value"] = ", ".join(str(v) for v in value)
-
-        # Add nested graph nodes to the main nodes list
-        nodes.extend(nested_graph_nodes)
+                    node_data["attribute"]["value"] = str(value)
+            # If the value is a list or nested, flatten to string
+            elif isinstance(value, list):
+                node_data["attribute"]["value"] = ", ".join(str(v) for v in value)
 
         reusable_tasks = {}  # Define reusable_tasks, can be passed in later
 
@@ -235,8 +191,7 @@ class TaskGraphFormatter:
             "settings": self._settings,
         }
 
-        # Ensure nested graphs are connected correctly as sequential steps
-        return self.ensure_nested_graph_connectivity(graph)
+        return graph
 
     def _format_nodes(self, tasks: list[dict]) -> tuple[list, dict, list]:
         """Create nodes for start, tasks, and steps with worker assignments.
@@ -296,20 +251,7 @@ class TaskGraphFormatter:
             elif task.get("resource"):
                 resource_name = str(task["resource"])
 
-            # Handle nested graph resources with specific names
-            if resource_name == self.DEFAULT_NESTED_GRAPH or (
-                resource_name
-                not in [
-                    self.DEFAULT_MESSAGE_WORKER,
-                    self.DEFAULT_RAG_WORKER,
-                    self.DEFAULT_SEARCH_WORKER,
-                    self.DEFAULT_OUTPUT_PROCESS_WORKER,
-                ]
-                and "workflow" in resource_name.lower()
-            ):
-                resource_info = {"id": "nested_graph", "name": "NestedGraph"}
-            else:
-                resource_info = self._find_worker_by_name(resource_name)
+            resource_info = self._find_worker_by_name(resource_name)
 
             task_node_id = str(node_id_counter)
             node_data = {
@@ -356,20 +298,7 @@ class TaskGraphFormatter:
                 elif isinstance(step, dict) and step.get("resource"):
                     step_worker_name = str(step["resource"])
 
-                # Handle nested graph resources with specific names
-                if step_worker_name == self.DEFAULT_NESTED_GRAPH or (
-                    step_worker_name
-                    not in [
-                        self.DEFAULT_MESSAGE_WORKER,
-                        self.DEFAULT_RAG_WORKER,
-                        self.DEFAULT_SEARCH_WORKER,
-                        self.DEFAULT_OUTPUT_PROCESS_WORKER,
-                    ]
-                    and "workflow" in step_worker_name.lower()
-                ):
-                    step_worker_info = {"id": "nested_graph", "name": "NestedGraph"}
-                else:
-                    step_worker_info = self._find_worker_by_name(step_worker_name)
+                step_worker_info = self._find_worker_by_name(step_worker_name)
 
                 # Simplify step value to use simple string instead of complex nested structure
                 if isinstance(step, dict):
@@ -442,7 +371,7 @@ class TaskGraphFormatter:
         node_lookup: dict[str, str],
         all_task_node_ids: list[str],
         start_node_id: str,
-    ) -> tuple[list[Any], list[Any]]:
+    ) -> list[Any]:
         """Create edges between nodes with LLM-generated intents.
 
         Args:
@@ -452,12 +381,9 @@ class TaskGraphFormatter:
             start_node_id (str): ID of the start node
 
         Returns:
-            Tuple[List[Any], List[Any]]: (edges, nested_graph_nodes)
-                - edges: List of formatted edge data
-                - nested_graph_nodes: List of nested graph nodes
+            List[Any]: List of formatted edge data
         """
         edges = []
-        nested_graph_nodes = []
 
         # Generate descriptive intents for main task edges using LLM
         for task in tasks:
@@ -615,75 +541,4 @@ class TaskGraphFormatter:
                                     ]
                                 )
 
-        return edges, nested_graph_nodes
-
-    def ensure_nested_graph_connectivity(self, graph: dict[str, Any]) -> dict[str, Any]:
-        """Ensures that all nested graph nodes are properly connected as sequential steps.
-
-        This method finds all 'NestedGraph' nodes and connects them to the
-        next step within their own task, preventing incorrect fan-out connections
-        to leaf nodes.
-
-        Args:
-            graph (Dict[str, Any]): The graph structure.
-
-        Returns:
-            Dict[str, Any]: The graph with corrected nested graph connectivity.
-        """
-        nodes = graph.get("nodes", [])
-        edges = graph.get("edges", [])
-        tasks = graph.get("tasks", [])
-        node_lookup = {node_data[0]: node_data[1] for node_data in nodes}
-        # Create a reverse lookup from node ID to task_id
-        node_to_task_map = {}
-        for task in tasks:
-            task_id = task.get("id")
-            for i in range(len(task.get("steps", []))):
-                step_node_id = f"{task_id}_step{i}"
-                node_to_task_map[step_node_id] = task_id
-
-        nested_graph_nodes = [
-            (node_id, node_data)
-            for node_id, node_data in node_lookup.items()
-            if node_data.get("resource", {}).get("name") == self.DEFAULT_NESTED_GRAPH
-        ]
-
-        for ng_node_id, ng_node_data in nested_graph_nodes:
-            # Find which task this nested_graph node belongs to
-            task_id = node_to_task_map.get(ng_node_id)
-            if not task_id:
-                continue
-
-            # Find the corresponding task and the index of the nested_graph step
-            task = next((t for t in tasks if t.get("id") == task_id), None)
-            if not task:
-                continue
-
-            steps = task.get("steps", [])
-            step_index = -1
-            for i, _step in enumerate(steps):
-                step_node_id = f"{task_id}_step{i}"
-                if step_node_id == ng_node_id:
-                    step_index = i
-                    break
-
-            # If it's not the last step, connect it to the next one
-            if 0 <= step_index < len(steps) - 1:
-                next_step_node_id = f"{task_id}_step{step_index + 1}"
-
-                # Set the value attribute - create attribute dict if it doesn't exist
-                ng_node_data.setdefault("attribute", {})["value"] = next_step_node_id
-
-                # Create the edge
-                edges.append(
-                    [
-                        ng_node_id,
-                        next_step_node_id,
-                        self._create_edge_attributes(
-                            definition="Continue to next step from nested graph"
-                        ),
-                    ]
-                )
-
-        graph["edges"] = edges
-        return graph
+        return edges

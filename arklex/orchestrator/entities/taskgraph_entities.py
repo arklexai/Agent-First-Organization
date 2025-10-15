@@ -84,24 +84,19 @@ class PathNode(BaseModel):
     1. Node identification
     2. State tracking
     3. Flow stack management
-    4. Nested graph handling
-    5. Intent tracking
-    6. Type-safe node management
+    4. Intent tracking
+    5. Type-safe node management
 
     Attributes:
         node_id (str): Unique identifier for the node.
         is_skipped (bool): Whether the node was skipped.
         in_flow_stack (bool): Whether the node is in the flow stack.
-        nested_graph_node_value (Optional[str]): Value for nested graph nodes.
-        nested_graph_leaf_jump (Optional[int]): Jump value for nested graph leaves.
         global_intent (str): Global intent associated with the node.
     """
 
     node_id: str
     is_skipped: bool = False
     in_flow_stack: bool = False
-    nested_graph_node_value: str | None = None
-    nested_graph_leaf_jump: int | None = None
     global_intent: str = Field(default="")
 
 

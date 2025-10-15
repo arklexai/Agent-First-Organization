@@ -213,17 +213,6 @@ def main() -> None:
         help="Output directory for cache and results",
     )
     parser.add_argument(
-        "--allow-nested-graph",
-        action="store_true",
-        default=True,
-        help="Whether to allow nested graph generation (default: True)",
-    )
-    parser.add_argument(
-        "--no-nested-graph",
-        action="store_true",
-        help="Disable nested graph generation (equivalent to --allow-nested-graph=False)",
-    )
-    parser.add_argument(
         "--no-ui",
         action="store_true",
         help="Disable interactive task editor (task editor is enabled by default)",
@@ -242,9 +231,6 @@ def main() -> None:
         help="LLM provider to use (openai, anthropic, google, huggingface)",
     )
     args = parser.parse_args()
-
-    # Handle nested graph flag
-    allow_nested_graph = args.allow_nested_graph and not args.no_nested_graph
 
     # Handle UI flag
     interactable_with_user = not args.no_ui
@@ -300,7 +286,6 @@ def main() -> None:
         config,
         model,
         output_dir,
-        allow_nested_graph=allow_nested_graph,
         interactable_with_user=interactable_with_user,
     )
 

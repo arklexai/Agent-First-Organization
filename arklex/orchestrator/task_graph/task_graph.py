@@ -59,7 +59,6 @@ from arklex.env.agents.openai_realtime_agent import (
     OpenAIRealtimeAgentData,
 )
 from arklex.env.env import DefaultResourceInitializer
-from arklex.env.nested_graph.nested_graph import NestedGraph
 from arklex.env.tools.tools import Tool
 from arklex.orchestrator.entities.orchestrator_param_entities import OrchestratorParams
 from arklex.orchestrator.entities.orchestrator_state_entities import (
@@ -864,16 +863,6 @@ class TaskGraph(GraphBase):
         # if not leaf, return directly current node
         if not is_leaf(curr_node):
             return curr_node, params
-
-        nested_graph_next_node: NodeInfo | None
-        nested_graph_next_node, params = NestedGraph.get_nested_graph_component_node(
-            params, is_leaf
-        )
-        if nested_graph_next_node is not None:
-            curr_node = nested_graph_next_node.node_id
-            params.taskgraph.curr_node = curr_node
-            if not is_leaf(nested_graph_next_node.node_id):
-                return curr_node, params
 
         last_flow_stack_node: PathNode | None = self.get_last_flow_stack_node(params)
         if last_flow_stack_node:

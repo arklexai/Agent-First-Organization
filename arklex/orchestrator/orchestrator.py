@@ -19,7 +19,6 @@ Features:
 - Resource management and cleanup
 - Error handling and recovery
 - State persistence and restoration
-- Nested graph support
 - Streaming response handling
 - Memory management
 - Tool integration
@@ -62,7 +61,6 @@ from langchain_core.runnables import RunnableLambda
 
 from arklex.env.entities import NodeResponse
 from arklex.env.env import Environment
-from arklex.env.nested_graph.nested_graph import NESTED_GRAPH_ID, NestedGraph
 from arklex.env.prompts import load_prompts
 from arklex.env.tools.utils import ToolGenerator
 from arklex.memory.entities.memory_entities import ResourceRecord
@@ -256,8 +254,6 @@ class AgentOrg:
             node_id=curr_node,
             is_skipped=update_info.get("is_skipped", False),
             in_flow_stack=node_info.add_flow_stack,
-            nested_graph_node_value=None,
-            nested_graph_leaf_jump=None,
             global_intent=params.taskgraph.curr_global_intent,
         )
 
@@ -296,9 +292,6 @@ class AgentOrg:
             Tuple[NodeInfo, MessageState, OrchestratorParams]: A tuple containing updated node information,
                 message state, and parameters.
         """
-        # Tool/Worker
-        node_info, params = self.handle_nested_graph_node(node_info, params)
-
         # Create initial resource record with common info and output from trajectory
         resource_record: ResourceRecord = ResourceRecord(
             info={
@@ -334,46 +327,6 @@ class AgentOrg:
         if node_response.slots:
             params.taskgraph.dialog_states = node_response.slots
         return node_info, response_state, params, node_response
-
-    def handle_nested_graph_node(
-        self, node_info: NodeInfo, params: OrchestratorParams
-    ) -> tuple[NodeInfo, OrchestratorParams]:
-        """Handle a nested graph node in the task graph.
-
-        This function processes nodes that represent nested graphs, updating the current node
-        to the start of the nested graph and managing the path and status of the nested graph
-        execution.
-
-        Args:
-            node_info (NodeInfo): Information about the current node.
-            params (OrchestratorParams): Current parameters and state of the conversation.
-
-        Returns:
-            Tuple[NodeInfo, OrchestratorParams]: A tuple containing updated node information and parameters.
-        """
-        if node_info.resource.get("id") != NESTED_GRAPH_ID:
-            return node_info, params
-        # if current node is a nested graph resource, change current node to the start of the nested graph
-        nested_graph: NestedGraph = NestedGraph(node_info=node_info)
-        next_node_id: str = nested_graph.get_nested_graph_start_node_id()
-        nested_graph_node: str = params.taskgraph.curr_node
-        node: PathNode = PathNode(
-            node_id=nested_graph_node,
-            is_skipped=False,
-            in_flow_stack=False,
-            nested_graph_node_value=node_info.attributes["value"],
-            nested_graph_leaf_jump=None,
-            global_intent=params.taskgraph.curr_global_intent,
-        )
-        # add nested graph resource node to path
-        # start node of the nested graph will be added to the path after performed
-        params.taskgraph.path.append(node)
-        params.taskgraph.curr_node = next_node_id
-        # use incomplete status at the beginning, status will be changed when whole nested graph is traversed
-        params.taskgraph.node_status[node_info.node_id] = StatusEnum.INCOMPLETE
-        node_info, params = self.task_graph._get_node(next_node_id, params)
-
-        return node_info, params
 
     def _get_response(
         self,
