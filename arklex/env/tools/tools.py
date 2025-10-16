@@ -386,6 +386,7 @@ class Tool:
 
     def _missing_slots_recursive(self, slots: list[Slot]) -> list[str]:
         missing = []
+
         for slot in slots:
             # Check if required slot is missing or unverified
             if slot.required:
@@ -395,8 +396,14 @@ class Tool:
                 ):
                     continue
                 if (not slot.value) or (not slot.verified):
-                    missing.append(slot.prompt)
-        return missing
+                    # Prefer nested prompts when available
+                    nested_prompts = self._collect_nested_required_prompts(slot)
+                    if nested_prompts:
+                        missing.extend(nested_prompts)
+                    else:
+                        missing.append(slot.prompt)
+        # Filter out empty strings
+        return [m for m in missing if m]
 
     def execute(
         self,
@@ -780,6 +787,9 @@ class Tool:
             Tuple of (response_message, is_verification) where is_verification indicates
             if this is a verification request (True) or missing slot request (False)
         """
+        def _collect_missing_prompts(slot: Slot) -> list[str]:
+            return self._collect_nested_required_prompts(slot)
+
         for slot in slots:
             # if there is extracted slots values but haven't been verified
             if slot.value and not slot.verified:
@@ -799,6 +809,10 @@ class Tool:
                     log_context.info(f"Slot '{slot.name}' verified successfully")
             # if there is no extracted slots values, then should prompt the user to fill the slot
             if not slot.value and slot.required:
+                # Try to surface nested required prompts from schema; fall back to top-level prompt
+                nested_prompts = _collect_missing_prompts(slot)
+                if nested_prompts:
+                    return " ".join(nested_prompts), False
                 return slot.prompt, False  # Missing slot
 
         return "", False
@@ -874,6 +888,66 @@ class Tool:
         else:
             # Create the Pydantic model class from fields
             return create_model(f"{self.name}_InputModel", **fields)
+
+    def _collect_nested_required_prompts(self, slot: Slot) -> list[str]:
+        """Collect prompts/descriptions for required nested fields within slot.slot_schema.
+
+        Handles both object slots and arrays of objects. Falls back to field path when prompt/description missing.
+        """
+        def _collect_from_field(field_name: str, field_def: dict, path: str = "") -> list[str]:
+            prompts: list[str] = []
+            current_path = f"{path}.{field_name}" if path else field_name
+            text = field_def.get("prompt") or field_def.get("description") or current_path
+            prompts.append(text)
+            if field_def.get("type") == "object":
+                nested_props = field_def.get("properties", {}) or {}
+                nested_required = field_def.get("required", []) or []
+                for nested_name in nested_required:
+                    nested_def = nested_props.get(nested_name, {})
+                    prompts.extend(_collect_from_field(nested_name, nested_def, current_path))
+            elif field_def.get("type") == "array":
+                items = field_def.get("items", {}) or {}
+                if items.get("type") == "object":
+                    nested_props = items.get("properties", {}) or {}
+                    nested_required = items.get("required", []) or []
+                    for nested_name in nested_required:
+                        nested_def = nested_props.get(nested_name, {})
+                        prompts.extend(_collect_from_field(nested_name, nested_def, current_path + "[]"))
+            return prompts
+
+        try:
+            schema_obj = getattr(slot, "slot_schema", None)
+            if not isinstance(schema_obj, dict):
+                return []
+            function_block = schema_obj.get("function", {})
+            parameters = function_block.get("parameters", {})
+            properties = parameters.get("properties", {}) or {}
+            slot_def = properties.get(slot.name, {})
+            if not slot_def:
+                return []
+            # Object slot
+            if slot_def.get("type") == "object":
+                req = slot_def.get("required", []) or []
+                props = slot_def.get("properties", {}) or {}
+                prompts: list[str] = []
+                for fname in req:
+                    fdef = props.get(fname, {})
+                    prompts.extend(_collect_from_field(fname, fdef, slot.name))
+                return prompts
+            # Array of objects slot
+            if slot_def.get("type") == "array":
+                items = slot_def.get("items", {}) or {}
+                if items.get("type") == "object":
+                    req = items.get("required", []) or []
+                    props = items.get("properties", {}) or {}
+                    prompts: list[str] = []
+                    for fname in req:
+                        fdef = props.get(fname, {})
+                        prompts.extend(_collect_from_field(fname, fdef, slot.name + "[]"))
+                    return prompts
+        except Exception:
+            return []
+        return []
 
     def _parse_input_args(self, raw_args: str, model_cls: type) -> dict[str, Any]:
         """Parse input arguments from JSON string.

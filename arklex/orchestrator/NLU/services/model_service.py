@@ -247,10 +247,11 @@ class ModelService:
                 if not slot_name:
                     continue
                 value = extracted_values.get(slot_name)
-                if isinstance(s, dict):
-                    s["value"] = value.get(slot_name)
-                else:
-                    s.value = value.get(slot_name)
+                if value is not None:
+                    if isinstance(s, dict):
+                        s["value"] = value
+                    else:
+                        s.value = value
             return slots
 
         return slots
