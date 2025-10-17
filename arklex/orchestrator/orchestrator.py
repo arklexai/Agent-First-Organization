@@ -446,7 +446,9 @@ class AgentOrg:
         # agent instance initialization
         agent_cls = self.env.agents[AgentItem.OPENAI_AGENT]["agent_instance"]
         agent_instance = agent_cls(
-            agent=self.agent_graph.agents[agent_name], state=orch_state
+            agent=self.agent_graph.agents[agent_name],
+            state=orch_state,
+            start_message=self.agent_graph.start_message,
         )
         # agent execution
         orch_state, agent_output = await agent_instance.execute()

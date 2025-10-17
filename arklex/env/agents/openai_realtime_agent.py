@@ -78,6 +78,7 @@ class OpenAIRealtimeAgentData(BaseModel):
     name: str
     prompt: str
     prompt_variables: list[PromptVariable] = []
+    handoff_description: str | None = None
     start_agent: bool = False
     voice: str = "alloy"
     transcription_language: str | None = None

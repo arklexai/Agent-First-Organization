@@ -29,6 +29,9 @@ class OpenAIAgentData(BaseModel):
     name: str
     prompt: str
     prompt_variables: list[PromptVariable] = []
+    start_agent: bool = False
+    agent_start_message: str | None = None
+    handoff_description: str | None = None
 
 
 class OpenAIAgentOutput(BaseModel):
@@ -42,12 +45,11 @@ class OpenAIAgent(BaseAgent):
     description: str = "General-purpose Arklex agent for chat or voice."
 
     def __init__(
-        self,
-        agent: Agent,
-        state: OrchestratorState,
+        self, agent: Agent, state: OrchestratorState, start_message: str | None = None
     ) -> None:
         self.agent = agent
         self.state = state
+        self.start_message = start_message
 
     async def response(
         self, trajectory: list[dict[str, Any]]
@@ -110,7 +112,15 @@ class OpenAIAgent(BaseAgent):
     async def execute(self) -> tuple[OrchestratorState, OpenAIAgentOutput]:
         user_message = self.state.user_message.message
         trajectory = self.state.openai_agents_trajectory.copy() or []
+
+        if user_message == "<start>":
+            if self.start_message.strip():
+                trajectory.append({"role": "assistant", "content": self.start_message})
+                self.state.openai_agents_trajectory = trajectory
+                return self.state, OpenAIAgentOutput(response=self.start_message)
+            log_context.info("No start message configured for agent")
         trajectory.append({"role": "user", "content": user_message})
+
         if self.state.stream_type == StreamType.NON_STREAM:
             response, new_traj = await self.response(trajectory)
         else:

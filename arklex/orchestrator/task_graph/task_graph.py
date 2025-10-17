@@ -116,6 +116,7 @@ class AgentGraph(GraphBase):
         self.agents: dict[str, Agent] = {}
         self.resources = {}
         self.prompt_variables: list[PromptVariable] = []
+        self.start_message: str = ""
         self.current_agent: str = product_kwargs.get("current_agent", "")
         super().__init__(name, product_kwargs)
 
@@ -137,11 +138,12 @@ class AgentGraph(GraphBase):
             resource = node[1].get("resource", {})
             if resource["id"] == AgentItem.OPENAI_AGENT:
                 node_specific_data = node[1].get("data", {})
-                if (
-                    node_specific_data.get("start_agent", False)
-                    and not self.current_agent
-                ):
-                    self.current_agent = node_specific_data["name"]
+                if node_specific_data.get("start_agent", False):
+                    self.start_message = node_specific_data.get(
+                        "agent_start_message", ""
+                    )
+                    if not self.current_agent:
+                        self.current_agent = node_specific_data["name"]
                 # process successors and predecessors to get resources
                 available_tools = []
                 available_nodes = []
@@ -199,6 +201,7 @@ class AgentGraph(GraphBase):
                     name=agent_data.name,
                     instructions=prompt,
                     tools=agents_tools,
+                    handoff_description=agent_data.handoff_description,
                 )
 
         if len(self.agents) == 0:
@@ -243,6 +246,7 @@ class RealtimeAgentGraph(GraphBase):
 
         resource_initializer = DefaultResourceInitializer()
         agent_handovers: dict[str, list[str]] = collections.defaultdict(list)
+        start_agent_data: dict[str, Any] | None = None
         start_agent_name: str | None = None
         voicemail_tool: Tool | None = None
         response_played_event = threading.Event()
@@ -319,9 +323,11 @@ class RealtimeAgentGraph(GraphBase):
                     name=agent_data.name,
                     instructions=prompt,
                     tools=agents_tools,
+                    handoff_description=agent_data.handoff_description,
                 )
 
         if len(self.agents) == 0:
+            log_context.info("No realtimeagents found in the graph")
             return
         for agent_name, handover_agents in agent_handovers.items():
             # Set handoffs for RealtimeAgent
