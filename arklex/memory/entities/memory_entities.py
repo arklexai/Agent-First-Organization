@@ -61,3 +61,4 @@ class Memory(BaseModel):
 
     trajectory: list[list[ResourceRecord]] = Field(default_factory=list)
     function_calling_trajectory: list[dict[str, Any]] = Field(default_factory=list)
+    openai_agents_trajectory: list[dict[str, Any]] = Field(default_factory=list)

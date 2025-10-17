@@ -79,7 +79,8 @@ from arklex.orchestrator.entities.taskgraph_entities import (
 )
 from arklex.orchestrator.NLU.services.model_service import ModelService
 from arklex.orchestrator.post_process import post_process_response
-from arklex.orchestrator.task_graph.task_graph import TaskGraph
+from arklex.orchestrator.task_graph.task_graph import AgentGraph, TaskGraph
+from arklex.types.resource_types import AgentItem
 from arklex.types.stream_types import StreamType
 from arklex.utils.logging_utils import LogContext
 from arklex.utils.utils import format_chat_history
@@ -137,6 +138,10 @@ class AgentOrg:
             "taskgraph",
             self.product_kwargs,
             llm_config=self.llm_config,
+        )
+        self.agent_graph: AgentGraph = AgentGraph(
+            "agentgraph",
+            self.product_kwargs,
         )
         # Load prompts based on bot config
         bot_config = BotConfig.model_validate(self.product_kwargs.get("bot_config", {}))
@@ -235,8 +240,7 @@ class AgentOrg:
         """Process a node after its execution.
 
         This function updates the task graph path with the current node's information,
-        including whether it was skipped and its flow stack. It also updates the node's
-        execution limit if applicable.
+        including whether it was skipped and its flow stack.
 
         Args:
             node_info (NodeInfo): Information about the current node.
@@ -258,9 +262,6 @@ class AgentOrg:
         )
 
         params.taskgraph.path.append(node)
-
-        if curr_node in params.taskgraph.node_limit:
-            params.taskgraph.node_limit[curr_node] -= 1
         return params
 
     def perform_node(
@@ -424,7 +425,41 @@ class AgentOrg:
             human_in_the_loop=params.metadata.hitl,
         )
 
-    def get_response(
+    async def _get_agent_response(
+        self,
+        inputs: dict[str, Any],
+        stream_type: StreamType | None = None,
+        message_queue: janus.SyncQueue | None = None,
+    ) -> OrchestratorResp:
+        # params initialization
+        user_message = inputs["text"]
+        orch_state_params = OrchestratorParams.model_validate(
+            inputs.get("parameters", {})
+        )
+        agent_name = self.agent_graph.current_agent
+        orch_state: OrchestratorState = OrchestratorState(
+            stream_type=stream_type,
+            message_queue=message_queue,
+            user_message=ConvoMessage(message=user_message),
+            openai_agents_trajectory=orch_state_params.memory.openai_agents_trajectory.copy(),
+        )
+        # agent instance initialization
+        agent_cls = self.env.agents[AgentItem.OPENAI_AGENT]["agent_instance"]
+        agent_instance = agent_cls(
+            agent=self.agent_graph.agents[agent_name], state=orch_state
+        )
+        # agent execution
+        orch_state, agent_output = await agent_instance.execute()
+        orch_state_params.memory.openai_agents_trajectory = (
+            orch_state.openai_agents_trajectory
+        )
+        log_context.info(f"agent trajectory: {orch_state.openai_agents_trajectory}")
+        return OrchestratorResp(
+            answer=agent_output.response,
+            parameters=orch_state_params.model_dump(),
+        )
+
+    async def get_response(
         self,
         inputs: dict[str, Any],
         stream_type: StreamType | None = None,
@@ -445,5 +480,12 @@ class AgentOrg:
         """
         if not stream_type:
             stream_type = StreamType.NON_STREAM
-        orchestrator_response = self._get_response(inputs, stream_type, message_queue)
-        return orchestrator_response.model_dump()
+
+        log_context.info(f"current agent: {self.agent_graph.current_agent}")
+        if self.agent_graph.current_agent:
+            response = await self._get_agent_response(
+                inputs, stream_type, message_queue
+            )
+        else:
+            response = self._get_response(inputs, stream_type, message_queue)
+        return response.model_dump()

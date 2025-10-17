@@ -69,8 +69,10 @@ class ConvoMessage(BaseModel):
         message (str): The current message content.
     """
 
-    history: str  # it could be the whole original message or the summarization of the previous conversation from memory module
     message: str
+    history: str = Field(
+        default=""
+    )  # it could be the whole original message or the summarization of the previous conversation from memory module
 
 
 ### Task status-related classes
@@ -207,7 +209,7 @@ class OrchestratorState(BaseModel):
     message_flow: str = Field(default="")
     # record history
     function_calling_trajectory: list[dict[str, Any]] | None = Field(default=None)
-    openai_sdk_trajectory: list[dict[str, Any]] | None = Field(default=None)
+    openai_agents_trajectory: list[dict[str, Any]] | None = Field(default=None)
     trajectory: list[list[ResourceRecord]] | None = Field(default=None)
     relevant_records: list[ResourceRecord] | None = Field(default=None)
     # streaming

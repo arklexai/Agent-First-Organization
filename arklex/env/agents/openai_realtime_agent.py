@@ -29,7 +29,6 @@ from arklex.env.agents.agent import BaseAgent, register_agent
 from arklex.env.agents.entities import PromptVariable
 from arklex.env.tools.tools import Tool
 from arklex.env.tools.types import ChatRole, Transcript
-from arklex.orchestrator.entities.orchestrator_state_entities import OrchestratorState
 
 logger = logging.getLogger(__name__)
 
@@ -150,14 +149,6 @@ class OpenAIRealtimeAgent(BaseAgent):
         self._mark_data: dict[
             str, tuple[str, int, int]
         ] = {}  # mark_id -> (item_id, content_index, byte_count)
-
-    def _execute(self) -> object:
-        pass
-
-    def init_agent_data(
-        self, orch_state: OrchestratorState, node_specific_data: dict[str, Any]
-    ) -> None:
-        pass
 
     def set_telephone_mode(self) -> None:
         """
