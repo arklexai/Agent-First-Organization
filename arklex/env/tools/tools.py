@@ -373,6 +373,8 @@ class Tool:
             description=self.description,
             params_json_schema=model_cls.model_json_schema(),
             on_invoke_tool=on_invoke,
+            # mark this as False to allow the optional json fields, which is not recommended by openai (https://github.com/openai/openai-agents-python/blob/9078e29c0c4134d1b850dcaf936a4ef8975d6fcb/src/agents/function_schema.py#L39)
+            # If we keep it as True, the optional fields will still appear in the required fields list, and we need to use description to prompt the agent to fill the optional fields. (https://github.com/openai/openai-agents-python/issues/43#issuecomment-2722829809)
             strict_json_schema=True,
         )
 
@@ -469,10 +471,7 @@ class Tool:
 
             # Only include the slots list if the target function accepts it
             if "slots" in sig.parameters:
-                kwargs["slots"] = [
-                    slot.model_dump() if hasattr(slot, "model_dump") else slot
-                    for slot in slots
-                ]
+                kwargs["slots"] = slots
 
             combined_kwargs: dict[str, Any] = {
                 **kwargs,
@@ -509,6 +508,11 @@ class Tool:
                 tool_output.message_flow = str(e)
             call_id: str = str(uuid.uuid4())
             log_context.info(f"call_id: {call_id}")
+            # update the slots to dict so the kwargs can be serialized
+            kwargs["slots"] = [
+                slot.model_dump() if hasattr(slot, "model_dump") else slot
+                for slot in slots
+            ]
             state.function_calling_trajectory.append(
                 {
                     "content": None,
@@ -619,8 +623,11 @@ class Tool:
             value_source = getattr(slot, "valueSource", "prompt")
             if value_source == "fixed":
                 default = getattr(slot, "value", "")
-            elif getattr(slot, "required", False):
+            elif not getattr(
+                slot, "required", False
+            ):  # set default to None if slot is not required
                 default = None
+                py_type = py_type | None
             else:
                 default = ...
 
