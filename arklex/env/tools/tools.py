@@ -828,6 +828,10 @@ class Tool:
             # Convert slot type to Python type
             py_type = self._slot_type_to_python_type(slot.type)
 
+            # Use slot_schema if available to get the correct type
+            if hasattr(slot, "slot_schema") and slot.slot_schema:
+                py_type = self._extract_type_from_slot_schema(slot)
+
             # Set default value based on valueSource and required status
             value_source = getattr(slot, "valueSource", "prompt")
             if value_source == "fixed":
@@ -851,6 +855,60 @@ class Tool:
 
         return fields
 
+    def _extract_type_from_slot_schema(self, slot) -> type:
+        """Extract Python type from slot_schema.
+        
+        Args:
+            slot: Slot object with slot_schema
+            
+        Returns:
+            Python type for the slot
+        """
+        from typing import List, Optional
+        
+        slot_schema = slot.slot_schema
+        
+        # Handle function-style schema
+        if isinstance(slot_schema, dict) and "function" in slot_schema:
+            params = slot_schema.get("function", {}).get("parameters", {})
+            props = params.get("properties", {})
+            if slot.name in props:
+                prop_schema = props[slot.name]
+            else:
+                prop_schema = params
+        else:
+            prop_schema = slot_schema
+            
+        # Extract type from schema
+        schema_type = prop_schema.get("type", "string")
+        
+        if schema_type == "array":
+            items_schema = prop_schema.get("items", {})
+            items_type = items_schema.get("type", "string")
+            
+            # Map to Python types
+            if items_type == "string":
+                return List[str]
+            elif items_type == "integer":
+                return List[int]
+            elif items_type == "number":
+                return List[float]
+            elif items_type == "boolean":
+                return List[bool]
+            else:
+                return List[str]  # Default fallback
+        elif schema_type == "object":
+            return dict
+        else:
+            # Primitive types - map JSON schema types to Python types
+            type_mapping = {
+                "string": str,
+                "integer": int,
+                "number": float,
+                "boolean": bool,
+            }
+            return type_mapping.get(schema_type, str)
+
     def _create_model_class(self, fields: dict[str, tuple[type, Field]]) -> type:
         """Create Pydantic model class, using custom schema if available.
 
@@ -861,33 +919,93 @@ class Tool:
             Pydantic model class.
         """
         # Use slot_schema directly if available (this is what the LLM needs to see)
-        if (
-            len(self.slots) == 1
-            and hasattr(self.slots[0], "slot_schema")
-            and self.slots[0].slot_schema
-        ):
-            # The slot_schema contains the complete nested structure with correct field names
+        # Check if all slots have slot_schema
+        all_slots_have_schema = all(
+            hasattr(slot, "slot_schema") and slot.slot_schema 
+            for slot in self.slots
+        )
+        
+        if all_slots_have_schema:
+            # Combine all slot schemas into a single parameters schema
             import copy
-
-            schema_copy = copy.deepcopy(self.slots[0].slot_schema)
-
-            # Extract just the parameters part - OpenAI expects parameters, not the full function wrapper
-            if "function" in schema_copy and "parameters" in schema_copy["function"]:
-                parameters_schema = schema_copy["function"]["parameters"]
-            else:
-                parameters_schema = schema_copy
+            
+            # Start with a base schema structure
+            combined_schema = {
+                "type": "object",
+                "properties": {},
+                "required": []
+            }
+            
+            # Extract properties from each slot's schema
+            for slot in self.slots:
+                slot_schema = slot.slot_schema
+                
+                # Extract the parameters part
+                if isinstance(slot_schema, dict) and "function" in slot_schema:
+                    params = slot_schema.get("function", {}).get("parameters", {})
+                else:
+                    params = slot_schema
+                    
+                # Get the specific property for this slot
+                props = params.get("properties", {})
+                if slot.name in props:
+                    # Deep copy the property to avoid modifying the original
+                    import copy
+                    slot_prop = copy.deepcopy(props[slot.name])
+                    
+                    # Pre-populate fixed/default values in the schema
+                    self._prepopulate_fixed_values_in_schema(slot_prop)
+                    
+                    combined_schema["properties"][slot.name] = slot_prop
+                    if slot.required:
+                        combined_schema["required"].append(slot.name)
 
             # Create a simple Pydantic model that returns our custom schema
             model_cls = create_model(f"{self.name}_InputModel", **{})
 
             def custom_schema() -> dict[str, Any]:
-                return parameters_schema
+                return combined_schema
 
             model_cls.model_json_schema = custom_schema
             return model_cls
         else:
             # Create the Pydantic model class from fields
             return create_model(f"{self.name}_InputModel", **fields)
+
+    def _prepopulate_fixed_values_in_schema(self, schema_part: dict) -> None:
+        """Pre-populate fixed and default values in schema to prevent LLM from asking for them.
+        
+        Args:
+            schema_part: Part of the schema to process (can be nested)
+        """
+        if not isinstance(schema_part, dict):
+            return
+            
+        # Handle array items
+        if schema_part.get("type") == "array" and "items" in schema_part:
+            self._prepopulate_fixed_values_in_schema(schema_part["items"])
+            
+        # Handle object properties
+        elif schema_part.get("type") == "object" and "properties" in schema_part:
+            properties = schema_part["properties"]
+            for field_name, field_def in properties.items():
+                if isinstance(field_def, dict):
+                    value_source = field_def.get("valueSource")
+                    if value_source == "fixed" and "value" in field_def:
+                        # Pre-populate the field with the fixed value
+                        field_def["default"] = field_def["value"]
+                        # Remove from required since they can't be changed
+                        required_fields = schema_part.get("required", [])
+                        if field_name in required_fields:
+                            required_fields.remove(field_name)
+                    elif value_source == "default" and "value" in field_def:
+                        # For default values, don't set as default in schema
+                        # The default will be applied during execution if user doesn't provide a value
+                        # Keep in required array so LLM will ask for it
+                        pass
+                    else:
+                        # Recursively process nested structures
+                        self._prepopulate_fixed_values_in_schema(field_def)
 
     def _collect_nested_required_prompts(self, slot: Slot) -> list[str]:
         """Collect prompts/descriptions for required nested fields within slot.slot_schema.
