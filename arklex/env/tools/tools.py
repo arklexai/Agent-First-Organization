@@ -10,7 +10,7 @@ import json
 import traceback
 import uuid
 from collections.abc import Callable
-from typing import Any
+from typing import Any, List, Optional
 
 from agents import FunctionTool, RunContextWrapper
 from pydantic import BaseModel, Field, create_model
@@ -28,6 +28,14 @@ from arklex.utils.logging_utils import LogContext
 from arklex.utils.utils import format_chat_history
 
 log_context = LogContext(__name__)
+
+# Shared type mapping for JSON schema to Python types
+JSON_SCHEMA_TO_PYTHON_TYPE = {
+    "string": str,
+    "integer": int,
+    "number": float,
+    "boolean": bool,
+}
 
 
 class ToolOutput(BaseModel):
@@ -864,7 +872,6 @@ class Tool:
         Returns:
             Python type for the slot
         """
-        from typing import List, Optional
         
         slot_schema = slot.slot_schema
         
@@ -886,28 +893,14 @@ class Tool:
             items_schema = prop_schema.get("items", {})
             items_type = items_schema.get("type", "string")
             
-            # Map to Python types
-            if items_type == "string":
-                return List[str]
-            elif items_type == "integer":
-                return List[int]
-            elif items_type == "number":
-                return List[float]
-            elif items_type == "boolean":
-                return List[bool]
-            else:
-                return List[str]  # Default fallback
+            # Map to Python types using shared mapping
+            base_type = JSON_SCHEMA_TO_PYTHON_TYPE.get(items_type, str)
+            return List[base_type]
         elif schema_type == "object":
             return dict
         else:
-            # Primitive types - map JSON schema types to Python types
-            type_mapping = {
-                "string": str,
-                "integer": int,
-                "number": float,
-                "boolean": bool,
-            }
-            return type_mapping.get(schema_type, str)
+            # Primitive types - use shared mapping
+            return JSON_SCHEMA_TO_PYTHON_TYPE.get(schema_type, str)
 
     def _create_model_class(self, fields: dict[str, tuple[type, Field]]) -> type:
         """Create Pydantic model class, using custom schema if available.
