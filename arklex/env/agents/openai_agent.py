@@ -17,11 +17,6 @@ from arklex.env.agents.entities import PromptVariable
 from arklex.orchestrator.entities.orchestrator_state_entities import (
     OrchestratorState,
 )
-from arklex.orchestrator.NLU.entities.slot_entities import (
-    apply_values_recursively,
-    Slot,
-)
-from arklex.types.resource_types import ToolItem
 from arklex.types.stream_types import EventType, StreamType
 from arklex.utils.logging_utils import LogContext
 
