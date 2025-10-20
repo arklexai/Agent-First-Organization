@@ -117,7 +117,7 @@ class OpenAIAgent(BaseAgent):
         trajectory = self.state.openai_agents_trajectory.copy() or []
 
         if user_message == "<start>":
-            if self.start_message.strip():
+            if self.start_message and self.start_message.strip():
                 trajectory.append({"role": "assistant", "content": self.start_message})
                 self.state.openai_agents_trajectory = trajectory
                 return self.state, OpenAIAgentOutput(

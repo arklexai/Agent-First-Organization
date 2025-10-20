@@ -10,7 +10,7 @@ import json
 import traceback
 import uuid
 from collections.abc import Callable
-from typing import Any, List, Optional
+from typing import Any
 
 from agents import FunctionTool, RunContextWrapper
 from pydantic import BaseModel, Field, create_model
@@ -600,6 +600,7 @@ class Tool:
             Tuple of (response_message, is_verification) where is_verification indicates
             if this is a verification request (True) or missing slot request (False)
         """
+
         def _collect_missing_prompts(slot: Slot) -> list[str]:
             return self._collect_nested_required_prompts(slot)
 
@@ -668,39 +669,36 @@ class Tool:
 
         return fields
 
-    def _extract_type_from_slot_schema(self, slot) -> type:
+    def _extract_type_from_slot_schema(self, slot: Slot) -> type:
         """Extract Python type from slot_schema.
-        
+
         Args:
             slot: Slot object with slot_schema
-            
+
         Returns:
             Python type for the slot
         """
-        
+
         slot_schema = slot.slot_schema
-        
+
         # Handle function-style schema
         if isinstance(slot_schema, dict) and "function" in slot_schema:
             params = slot_schema.get("function", {}).get("parameters", {})
             props = params.get("properties", {})
-            if slot.name in props:
-                prop_schema = props[slot.name]
-            else:
-                prop_schema = params
+            prop_schema = props.get(slot.name, params)
         else:
             prop_schema = slot_schema
-            
+
         # Extract type from schema
         schema_type = prop_schema.get("type", "string")
-        
+
         if schema_type == "array":
             items_schema = prop_schema.get("items", {})
             items_type = items_schema.get("type", "string")
-            
+
             # Map to Python types using shared mapping
             base_type = JSON_SCHEMA_TO_PYTHON_TYPE.get(items_type, str)
-            return List[base_type]
+            return list[base_type]
         elif schema_type == "object":
             return dict
         else:
@@ -719,41 +717,37 @@ class Tool:
         # Use slot_schema directly if available (this is what the LLM needs to see)
         # Check if all slots have slot_schema
         all_slots_have_schema = all(
-            hasattr(slot, "slot_schema") and slot.slot_schema 
-            for slot in self.slots
+            hasattr(slot, "slot_schema") and slot.slot_schema for slot in self.slots
         )
-        
+
         if all_slots_have_schema:
             # Combine all slot schemas into a single parameters schema
             import copy
-            
+
             # Start with a base schema structure
-            combined_schema = {
-                "type": "object",
-                "properties": {},
-                "required": []
-            }
-            
+            combined_schema = {"type": "object", "properties": {}, "required": []}
+
             # Extract properties from each slot's schema
             for slot in self.slots:
                 slot_schema = slot.slot_schema
-                
+
                 # Extract the parameters part
                 if isinstance(slot_schema, dict) and "function" in slot_schema:
                     params = slot_schema.get("function", {}).get("parameters", {})
                 else:
                     params = slot_schema
-                    
+
                 # Get the specific property for this slot
                 props = params.get("properties", {})
                 if slot.name in props:
                     # Deep copy the property to avoid modifying the original
                     import copy
+
                     slot_prop = copy.deepcopy(props[slot.name])
-                    
+
                     # Pre-populate fixed/default values in the schema
                     self._prepopulate_fixed_values_in_schema(slot_prop)
-                    
+
                     combined_schema["properties"][slot.name] = slot_prop
                     if slot.required:
                         combined_schema["required"].append(slot.name)
@@ -772,17 +766,17 @@ class Tool:
 
     def _prepopulate_fixed_values_in_schema(self, schema_part: dict) -> None:
         """Pre-populate fixed and default values in schema to prevent LLM from asking for them.
-        
+
         Args:
             schema_part: Part of the schema to process (can be nested)
         """
         if not isinstance(schema_part, dict):
             return
-            
+
         # Handle array items
         if schema_part.get("type") == "array" and "items" in schema_part:
             self._prepopulate_fixed_values_in_schema(schema_part["items"])
-            
+
         # Handle object properties
         elif schema_part.get("type") == "object" and "properties" in schema_part:
             properties = schema_part["properties"]
@@ -810,17 +804,24 @@ class Tool:
 
         Handles both object slots and arrays of objects. Falls back to field path when prompt/description missing.
         """
-        def _collect_from_field(field_name: str, field_def: dict, path: str = "") -> list[str]:
+
+        def _collect_from_field(
+            field_name: str, field_def: dict, path: str = ""
+        ) -> list[str]:
             prompts: list[str] = []
             current_path = f"{path}.{field_name}" if path else field_name
-            text = field_def.get("prompt") or field_def.get("description") or current_path
+            text = (
+                field_def.get("prompt") or field_def.get("description") or current_path
+            )
             prompts.append(text)
             if field_def.get("type") == "object":
                 nested_props = field_def.get("properties", {}) or {}
                 nested_required = field_def.get("required", []) or []
                 for nested_name in nested_required:
                     nested_def = nested_props.get(nested_name, {})
-                    prompts.extend(_collect_from_field(nested_name, nested_def, current_path))
+                    prompts.extend(
+                        _collect_from_field(nested_name, nested_def, current_path)
+                    )
             elif field_def.get("type") == "array":
                 items = field_def.get("items", {}) or {}
                 if items.get("type") == "object":
@@ -828,7 +829,11 @@ class Tool:
                     nested_required = items.get("required", []) or []
                     for nested_name in nested_required:
                         nested_def = nested_props.get(nested_name, {})
-                        prompts.extend(_collect_from_field(nested_name, nested_def, current_path + "[]"))
+                        prompts.extend(
+                            _collect_from_field(
+                                nested_name, nested_def, current_path + "[]"
+                            )
+                        )
             return prompts
 
         try:
@@ -859,7 +864,9 @@ class Tool:
                     prompts: list[str] = []
                     for fname in req:
                         fdef = props.get(fname, {})
-                        prompts.extend(_collect_from_field(fname, fdef, slot.name + "[]"))
+                        prompts.extend(
+                            _collect_from_field(fname, fdef, slot.name + "[]")
+                        )
                     return prompts
         except Exception:
             return []
