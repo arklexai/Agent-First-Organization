@@ -208,5 +208,7 @@
         {
             "id": "human-in-the-loop-worker"
         }
-    ]
+    ],
+    "tools": [],
+    "agents": []
 }

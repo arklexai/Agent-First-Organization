@@ -320,22 +320,6 @@ class Environment:
                     status=StatusEnum.INCOMPLETE,
                 )
 
-        elif id in self.agents:
-            log_context.info(f"Agent {id} selected")
-            agent: BaseAgent = self.agents[id]["agent_instance"](
-                successors=node_info.successors,
-                predecessors=node_info.predecessors,
-                tools=self.tools,
-            )
-            orch_state, agent_output = agent.execute(
-                orch_state,
-                node_specific_data=node_info.data,
-            )
-            node_response = NodeResponse(
-                status=agent_output.status,
-                response=agent_output.response,
-            )
-
         else:
             # Resource not found in any registry, use planner as fallback
             log_context.info(

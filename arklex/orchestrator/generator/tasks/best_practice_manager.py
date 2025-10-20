@@ -64,7 +64,7 @@ class BestPracticeManager:
         _practice_categories (Dict[str, List[str]]): Practice categorization
         _workers (List[Dict[str, Any]]): List of available workers from config
         _tools (List[Dict[str, Any]]): List of available tools from config
-        _all_resources (List[Dict[str, Any]]): List of all available resources including nested_graph
+        _all_resources (List[Dict[str, Any]]): List of all available resources
         prompt_manager: Instance of PromptManager for prompt generation
 
     Methods:
@@ -93,7 +93,7 @@ class BestPracticeManager:
             user_objective (str): User's objective for the task graph
             workers (Optional[List[Dict[str, Any]]]): List of available workers from config
             tools (Optional[List[Dict[str, Any]]]): List of available tools from config
-            all_resources (Optional[List[Dict[str, Any]]]): List of all available resources including nested_graph
+            all_resources (Optional[List[Dict[str, Any]]]): List of all available resources
         """
         self.model = model
         self.role = role
@@ -150,7 +150,7 @@ class BestPracticeManager:
         """Refine a best practice based on feedback and task information.
 
         This method takes a practice and a task, and refines the practice by
-        pairing the steps with available resources (workers, tools, nested_graph) from the config.
+        pairing the steps with available resources (workers, tools) from the config.
 
         Args:
             practice (Dict[str, Any]): The practice to refine
@@ -196,15 +196,6 @@ class BestPracticeManager:
                                 "type": "tool",
                             }
                         )
-
-            # Add nested_graph if available in all_resources
-            if self._all_resources:
-                for resource in self._all_resources:
-                    if (
-                        isinstance(resource, dict)
-                        and resource.get("type") == "nested_graph"
-                    ):
-                        available_resources.append(resource)
 
             # If no resources from config, use default ones
             if not available_resources:

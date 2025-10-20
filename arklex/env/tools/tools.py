@@ -146,75 +146,6 @@ class Tool:
             slots=[i.model_dump() for i in self.slots],
         )
 
-    def _format_slots(self, slots: list[dict[str, Any]]) -> list[dict[str, Any]]:
-        """Format slots for OpenAI tool definition.
-
-        Args:
-            slots: List of slot definitions
-
-        Returns:
-            List of formatted slot definitions for OpenAI
-        """
-        formatted_slots = []
-        for slot in slots:
-            formatted_slot = {
-                "name": slot["name"],
-                "type": slot["type"],
-                "description": slot.get("description", ""),
-                "required": slot.get("required", False),
-            }
-
-            # Handle enum values
-            if "enum" in slot:
-                formatted_slot["enum"] = slot["enum"]
-
-            # Handle items for array types
-            if "items" in slot:
-                formatted_slot["items"] = slot["items"]
-
-            # Handle group schema
-            if slot.get("type") == "group" and "schema" in slot:
-                formatted_slot["slot_schema"] = slot["schema"]
-
-            formatted_slots.append(formatted_slot)
-
-        return formatted_slots
-
-    def get_info(self, slots: list[dict[str, Any]]) -> dict[str, Any]:
-        """Get tool information including parameters and requirements.
-
-        This method processes the slot definitions to create a structured
-        representation of the tool's parameters and requirements.
-
-        Args:
-            slots (List[Dict[str, Any]]): List of slot definitions.
-
-        Returns:
-            Dict[str, Any]: Tool information including parameters and requirements.
-        """
-        self.properties = {}
-        for slot in slots:
-            self.properties[slot["name"]] = {
-                k: v
-                for k, v in slot.items()
-                if k in ["type", "description", "prompt", "items"]
-            }
-        required: list[str] = [
-            slot["name"] for slot in slots if slot.get("required", False)
-        ]
-        return {
-            "type": "function",
-            "function": {
-                "name": self.name,
-                "description": self.description,
-                "parameters": {
-                    "type": "object",
-                    "properties": self.properties,
-                    "required": required,
-                },
-            },
-        }
-
     def init_slotfiller(self, slotfiller_api: SlotFiller) -> None:
         """Initialize the slot filler for this tool.
 
@@ -282,55 +213,23 @@ class Tool:
                  Slot(name="param2", type="int", required=False),  # Preserved
                  Slot(name="param3", type="bool", required=True)]  # Added
         """
-        if not slots:
-            return
-
-        # Process slots to handle schema/slot_schema mapping for all slot types
-        processed_slots = []
         for slot in slots:
             if "schema" in slot:
-                # Create a copy with slot_schema instead of schema for all slot types
-                processed_slot = slot.copy()
-                processed_slot["slot_schema"] = processed_slot.pop("schema")
-                processed_slots.append(processed_slot)
-            else:
-                processed_slots.append(slot)
-
-        # Create a dictionary of existing slots for easy lookup
-        existing_slots_dict = {slot.name: slot for slot in self.slots}
-
-        # Process new slots
-        for new_slot in processed_slots:
-            slot_name = new_slot["name"]
-            if slot_name in existing_slots_dict:
-                existing_slot = existing_slots_dict[slot_name]
-                for key, value in new_slot.items():
-                    # Handle schema/slot_schema mapping for all slot types
-                    if key == "schema":
-                        existing_slot.slot_schema = value
-                    else:
-                        setattr(existing_slot, key, value)
-            else:
-                if new_slot.get("slot_schema"):
-                    # Handle slots with slot_schema for all types
-                    self.slots.append(
-                        Slot(
-                            name=new_slot["name"],
-                            type=new_slot.get("type", "str"),
-                            slot_schema=new_slot["slot_schema"],
-                            required=new_slot.get("required", False),
-                            repeatable=new_slot.get("repeatable", False),
-                            prompt=new_slot.get("prompt", ""),
-                            description=new_slot.get("description", ""),
-                            value=new_slot.get("value", None),
-                            valueSource=new_slot.get("valueSource", None),
-                        )
+                self.slots.append(
+                    Slot(
+                        name=slot["name"],
+                        type=slot.get("type", "str"),
+                        slot_schema=slot["schema"],
+                        required=slot.get("required", False),
+                        repeatable=slot.get("repeatable", False),
+                        prompt=slot.get("prompt", ""),
+                        description=slot.get("description", ""),
+                        value=slot.get("value", None),
+                        valueSource=slot.get("valueSource", None),
                     )
-                else:
-                    self.slots.append(Slot.model_validate(new_slot))
-
-        # Update tool info with merged slots
-        self.info = self.get_info([slot.model_dump() for slot in self.slots])
+                )
+            else:
+                self.slots.append(Slot.model_validate(slot))
 
     def _convert_value(self, value: Any, type_str: str) -> Any:  # noqa: ANN401
         if value is None:
@@ -423,91 +322,10 @@ class Tool:
 
         This method is a wrapper around _execute that handles the execution flow
         and state management.
-
-        Args:
-            state (MessageState): The current message state.
-            **fixed_args (FixedArgs): Additional fixed arguments for the tool.
-
-        Returns:
-            MessageState: The updated message state after tool execution.
         """
         self.llm_config = state.bot_config.llm_config.model_dump()
         state, tool_output = self._execute(state, all_slots, auth)
         return state, tool_output
-
-    def to_openai_tool_def(self) -> dict:
-        """Convert the tool to an OpenAI tool definition.
-
-        Returns:
-            dict: The OpenAI tool definition.
-        """
-        parameters = {
-            "type": "object",
-            "properties": {},
-            "required": [
-                slot.name
-                for slot in self.slots
-                if slot.required and not (slot.verified and slot.value)
-            ],
-        }
-        for slot in self.slots:
-            # If the default slots have been populated and verified, then don't show the slot in the tool definition
-            if slot.verified and slot.value:
-                continue
-            elif slot.items:
-                parameters["properties"][slot.name] = {
-                    "type": "array",
-                    "items": slot.items,
-                }
-            else:
-                # Use the slot's to_openai_schema method which handles all the complexity
-                parameters["properties"][slot.name] = slot.to_openai_schema()
-        return {
-            "type": "function",
-            "name": self.name,
-            "description": self.description,
-            "parameters": parameters,
-        }
-
-    def to_openai_tool_def_v2(self) -> dict:
-        # If any slot provides a full OpenAI function schema, use it directly
-        for slot in self.slots:
-            # Check for slot_schema first (new structure), then fall back to schema (legacy)
-            schema_obj = getattr(slot, "slot_schema", None) or getattr(
-                slot, "schema", None
-            )
-            if isinstance(schema_obj, dict) and (
-                "function" in schema_obj or schema_obj.get("type") == "function"
-            ):
-                function_block = schema_obj.get("function", {})
-                # Ensure minimal structure
-                if isinstance(function_block, dict) and function_block.get(
-                    "parameters"
-                ):
-                    return {
-                        "type": "function",
-                        "function": function_block,
-                    }
-        # Fallback: build schema from slots
-        parameters = {
-            "type": "object",
-            "properties": {},
-            "required": [
-                slot.name for slot in self.slots if getattr(slot, "required", False)
-            ],
-        }
-        for slot in self.slots:
-            if getattr(slot, "valueSource", None) == "fixed":
-                continue
-            parameters["properties"][slot.name] = slot.to_openai_schema()
-        return {
-            "type": "function",
-            "function": {
-                "name": self.name,
-                "description": self.description,
-                "parameters": parameters,
-            },
-        }
 
     def to_openai_agents_function_tool(self) -> "FunctionTool":
         """Convert this Arklex tool to an OpenAI Agents FunctionTool.
@@ -737,19 +555,6 @@ class Tool:
                     else tool_output.response,
                 }
             )
-            # Trajectory for multi-agent
-            # state.function_calling_trajectory.append({
-            #     'type': 'function_call',
-            #     'id': "fc_" + call_id,
-            #     'call_id': "call_" + call_id,
-            #     'name': self.name,
-            #     'arguments': json.dumps(kwargs)
-            # })
-            # state.function_calling_trajectory.append({
-            #     "type": "function_call_output",
-            #     "call_id": "call_" + call_id,
-            #     "output": response
-            # })
 
         state.trajectory[-1][-1].input = slots
         state.trajectory[-1][-1].output = str(tool_output)
