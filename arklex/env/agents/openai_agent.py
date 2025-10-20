@@ -17,6 +17,7 @@ from arklex.orchestrator.entities.orchestrator_state_entities import (
 )
 from arklex.orchestrator.NLU.entities.slot_entities import (
     apply_values_recursively,
+    Slot,
 )
 from arklex.types.resource_types import ToolItem
 from arklex.types.stream_types import EventType, StreamType
@@ -320,9 +321,12 @@ class OpenAIAgent(BaseAgent):
                 if slot.get("slot_schema"):
                     self._apply_fixed_default_values(slot)
 
+            # Convert dict slots to Slot objects before calling HTTP tool
+            slot_objects = [Slot.model_validate(s) for s in slots]
+
             # Call http_tool with slots parameter, excluding slots from tool_args
             filtered_args = {k: v for k, v in tool_args.items() if k != "slots"}
-            return self.tool_map[tool_name](slots=slots, **filtered_args)
+            return self.tool_map[tool_name](slots=slot_objects, **filtered_args)
         else:
             # Call other tools with state parameter
             return self.tool_map[tool_name](state=state, **tool_args)
@@ -358,9 +362,8 @@ class OpenAIAgent(BaseAgent):
             if stream:
                 answer = self._stream_response(state, final_chain)
             else:
-                # Generate final response after tool execution is complete
-                final_ai_message = final_chain.invoke(state.function_calling_trajectory)
-                answer = final_ai_message.content
+                ai_message = final_chain.invoke(state.function_calling_trajectory)
+                answer = ai_message.content
         else:
             # No tool calls
             if stream:
