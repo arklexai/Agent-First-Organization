@@ -354,11 +354,13 @@ class OpenAIAgent(BaseAgent):
         # Generate final response
         if ai_message.tool_calls:
             # After tool execution, get final response
+            # The tool responses have been added to trajectory, now generate final response
             if stream:
                 answer = self._stream_response(state, final_chain)
             else:
-                ai_message = final_chain.invoke(state.function_calling_trajectory)
-                answer = ai_message.content
+                # Generate final response after tool execution is complete
+                final_ai_message = final_chain.invoke(state.function_calling_trajectory)
+                answer = final_ai_message.content
         else:
             # No tool calls
             if stream:

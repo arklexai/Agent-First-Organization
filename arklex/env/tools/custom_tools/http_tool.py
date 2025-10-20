@@ -58,11 +58,20 @@ def validate_required_slots(slots: list[Slot]) -> None:
     try:
         for slot in slots:
             # Handle both object attributes and dictionary keys
-            slot_name = slot.name
-            slot_value = slot.value
-            slot_required = slot.required
-            slot_repeatable = slot.repeatable
-            slot_schema = slot.slot_schema
+            if hasattr(slot, 'name'):
+                # Object format
+                slot_name = slot.name
+                slot_value = slot.value
+                slot_required = slot.required
+                slot_repeatable = slot.repeatable
+                slot_schema = slot.slot_schema
+            else:
+                # Dictionary format
+                slot_name = slot.get('name')
+                slot_value = slot.get('value')
+                slot_required = slot.get('required', False)
+                slot_repeatable = slot.get('repeatable', False)
+                slot_schema = slot.get('slot_schema', {})
 
             log_context.info(
                 f"slot_name: {slot_name}, slot_value: {slot_value}, slot_value_type: {type(slot_value)}, slot_repeatable: {slot_repeatable}, slot_required: {slot_required}"
