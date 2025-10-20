@@ -117,7 +117,8 @@ class AgentGraph(GraphBase):
         self.resources = {}
         self.prompt_variables: list[PromptVariable] = []
         self.start_message: str = ""
-        self.current_agent: str = product_kwargs.get("current_agent", "")
+        self.start_agent_name: str = ""
+        self.enabled = False
         super().__init__(name, product_kwargs)
 
     def create_graph(self) -> None:
@@ -139,11 +140,10 @@ class AgentGraph(GraphBase):
             if resource["id"] == AgentItem.OPENAI_AGENT:
                 node_specific_data = node[1].get("data", {})
                 if node_specific_data.get("start_agent", False):
+                    self.start_agent_name = node_specific_data["name"]
                     self.start_message = node_specific_data.get(
                         "agent_start_message", ""
                     )
-                    if not self.current_agent:
-                        self.current_agent = node_specific_data["name"]
                 # process successors and predecessors to get resources
                 available_tools = []
                 available_nodes = []
@@ -207,8 +207,9 @@ class AgentGraph(GraphBase):
         if len(self.agents) == 0:
             log_context.info("No agents found in the graph")
             return
-        if not self.current_agent:
-            self.current_agent = list(self.agents.keys())[0]
+        self.enabled = True
+        if not self.start_agent_name:
+            self.start_agent_name = list(self.agents.keys())[0]
 
         for agent_name, handover_agents in agent_handovers.items():
             # Set handoffs for OpenAIAgent

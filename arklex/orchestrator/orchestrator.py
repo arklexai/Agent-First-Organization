@@ -50,6 +50,7 @@ Usage:
     })
 """
 
+import asyncio
 import copy
 import json
 import time
@@ -436,7 +437,6 @@ class AgentOrg:
         orch_state_params = OrchestratorParams.model_validate(
             inputs.get("parameters", {})
         )
-        agent_name = self.agent_graph.current_agent
         orch_state: OrchestratorState = OrchestratorState(
             stream_type=stream_type,
             message_queue=message_queue,
@@ -445,6 +445,10 @@ class AgentOrg:
         )
         # agent instance initialization
         agent_cls = self.env.agents[AgentItem.OPENAI_AGENT]["agent_instance"]
+        if not orch_state_params.agentgraph.current_agent:
+            agent_name = self.agent_graph.start_agent_name
+        else:
+            agent_name = orch_state_params.agentgraph.current_agent
         agent_instance = agent_cls(
             agent=self.agent_graph.agents[agent_name],
             state=orch_state,
@@ -454,6 +458,10 @@ class AgentOrg:
         orch_state, agent_output = await agent_instance.execute()
         orch_state_params.memory.openai_agents_trajectory = (
             orch_state.openai_agents_trajectory
+        )
+        orch_state_params.agentgraph.current_agent = agent_output.last_agent_name
+        log_context.info(
+            f"Agent after execution: {orch_state_params.agentgraph.current_agent}"
         )
         log_context.info(f"agent trajectory: {orch_state.openai_agents_trajectory}")
         return OrchestratorResp(
@@ -483,11 +491,12 @@ class AgentOrg:
         if not stream_type:
             stream_type = StreamType.NON_STREAM
 
-        log_context.info(f"current agent: {self.agent_graph.current_agent}")
-        if self.agent_graph.current_agent:
+        if self.agent_graph.enabled:
             response = await self._get_agent_response(
                 inputs, stream_type, message_queue
             )
         else:
-            response = self._get_response(inputs, stream_type, message_queue)
+            response = await asyncio.to_thread(
+                self._get_response, inputs, stream_type, message_queue
+            )
         return response.model_dump()

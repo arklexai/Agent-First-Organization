@@ -137,3 +137,7 @@ class Taskgraph(BaseModel):
     nlu_records: list[Any] = Field(default_factory=list)
     node_status: dict[str, StatusEnum] = Field(default_factory=dict)
     available_global_intents: list[str] = Field(default_factory=list)
+
+
+class Agentgraph(BaseModel):
+    current_agent: str = Field(default="")

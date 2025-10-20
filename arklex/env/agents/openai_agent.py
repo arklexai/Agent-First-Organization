@@ -38,6 +38,7 @@ class OpenAIAgentOutput(BaseModel):
     """Output for the OpenAIAgent."""
 
     response: str
+    last_agent_name: str
 
 
 @register_agent
@@ -50,6 +51,7 @@ class OpenAIAgent(BaseAgent):
         self.agent = agent
         self.state = state
         self.start_message = start_message
+        self.last_agent_name = ""
 
     async def response(
         self, trajectory: list[dict[str, Any]]
@@ -57,29 +59,29 @@ class OpenAIAgent(BaseAgent):
         final_response = ""
         result = await Runner.run(self.agent, trajectory)
         for new_item in result.new_items:
+            agent_name = new_item.agent.name
             if isinstance(new_item, MessageOutputItem):
                 final_response = ItemHelpers.text_message_output(new_item)
-                log_context.info(f"{self.agent.name}: {final_response}")
+                log_context.info(f"{agent_name}: {final_response}")
             elif isinstance(new_item, HandoffOutputItem):
                 log_context.info(
-                    f"Handed off from {new_item.source_agent.name} to {new_item.target_agent.name}"
+                    f"Handed off from {agent_name} to {new_item.target_agent.name}"
                 )
             elif isinstance(new_item, ToolCallItem):
-                log_context.info(f"{self.agent.name}: Calling a tool")
+                log_context.info(f"{agent_name}: Calling a tool")
             elif isinstance(new_item, ToolCallOutputItem):
-                log_context.info(
-                    f"{self.agent.name} tool call output: {new_item.output}"
-                )
+                log_context.info(f"{agent_name} tool call output: {new_item.output}")
             else:
-                log_context.info(f"{self.agent.name} unknown item: {new_item}")
+                log_context.info(f"{agent_name} unknown item: {new_item}")
         new_traj = result.to_input_list()
+        self.last_agent_name = agent_name
         return final_response, new_traj
 
     async def stream_response(
         self, trajectory: list[dict[str, Any]]
     ) -> tuple[str, list[dict[str, Any]]]:
         final_response = ""
-        result = Runner.run_streamed(self.agent, trajectory)
+        result = await Runner.run_streamed(self.agent, trajectory)
         async for event in result.stream_events():
             # raw final response for streaming
             if event.type == "raw_response_event" and isinstance(
@@ -107,6 +109,7 @@ class OpenAIAgent(BaseAgent):
                 else:
                     log_context.info(f"{agent_name} unknown item: {new_item}")
         new_traj = result.to_input_list()
+        self.last_agent_name = agent_name
         return final_response, new_traj
 
     async def execute(self) -> tuple[OrchestratorState, OpenAIAgentOutput]:
@@ -117,7 +120,9 @@ class OpenAIAgent(BaseAgent):
             if self.start_message.strip():
                 trajectory.append({"role": "assistant", "content": self.start_message})
                 self.state.openai_agents_trajectory = trajectory
-                return self.state, OpenAIAgentOutput(response=self.start_message)
+                return self.state, OpenAIAgentOutput(
+                    response=self.start_message, last_agent_name=""
+                )
             log_context.info("No start message configured for agent")
         trajectory.append({"role": "user", "content": user_message})
 
@@ -126,4 +131,6 @@ class OpenAIAgent(BaseAgent):
         else:
             response, new_traj = await self.stream_response(trajectory)
         self.state.openai_agents_trajectory = new_traj
-        return self.state, OpenAIAgentOutput(response=response)
+        return self.state, OpenAIAgentOutput(
+            response=response, last_agent_name=self.last_agent_name
+        )
