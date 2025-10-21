@@ -68,7 +68,8 @@ def validate_required_slots(slots: list[Slot]) -> None:
             )
 
             # Check if the slot is required and missing (can be an array, object, string, etc.)
-            if slot_required and not slot_value:
+            # Last check if for the case where the slot is boolean and is False
+            if slot_required and not slot_value and slot_value is not False:
                 log_context.warning(
                     f"Validation error: Required slot '{slot_name}' is missing"
                 )

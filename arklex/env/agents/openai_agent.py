@@ -81,7 +81,7 @@ class OpenAIAgent(BaseAgent):
         self, trajectory: list[dict[str, Any]]
     ) -> tuple[str, list[dict[str, Any]]]:
         final_response = ""
-        result = await Runner.run_streamed(self.agent, trajectory)
+        result = Runner.run_streamed(self.agent, trajectory)
         async for event in result.stream_events():
             # raw final response for streaming
             if event.type == "raw_response_event" and isinstance(

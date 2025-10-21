@@ -72,7 +72,7 @@ def create_mock_llm() -> MagicMock:
 
 
 @patch("arklex.orchestrator.NLU.services.model_service.load_llm")
-def test_workers(mock_load_llm: MagicMock) -> None:
+async def test_workers(mock_load_llm: MagicMock) -> None:
     # Configure load_llm to return our mock LLM
     mock_load_llm.return_value = create_mock_llm()
 
@@ -84,7 +84,7 @@ def test_workers(mock_load_llm: MagicMock) -> None:
 
     # start message (direct message)
     text = "<start>"
-    output = orchestrator.get_response(text, chat_history, params)
+    output = await orchestrator.get_response(text, chat_history, params)
     chat_history.append({"role": ChatRole.USER, "content": text})
     chat_history.append({"role": ChatRole.ASSISTANT, "content": output["answer"]})
     params = output["parameters"]
@@ -95,7 +95,7 @@ def test_workers(mock_load_llm: MagicMock) -> None:
 
     # message worker (undirected message)
     text = "How is the weather?"
-    output = orchestrator.get_response(text, chat_history, params)
+    output = await orchestrator.get_response(text, chat_history, params)
     chat_history.append({"role": ChatRole.USER, "content": text})
     chat_history.append({"role": ChatRole.ASSISTANT, "content": output["answer"]})
     params = output["parameters"]
@@ -103,7 +103,7 @@ def test_workers(mock_load_llm: MagicMock) -> None:
 
     # multiple choice worker
     text = "Which car would you like to buy?"
-    output = orchestrator.get_response(text, chat_history, params)
+    output = await orchestrator.get_response(text, chat_history, params)
     chat_history.append({"role": ChatRole.USER, "content": text})
     chat_history.append({"role": ChatRole.ASSISTANT, "content": output["answer"]})
     params = output["parameters"]
@@ -112,7 +112,7 @@ def test_workers(mock_load_llm: MagicMock) -> None:
 
     # Milvus RAG worker
     text = "What products do you offer?"
-    output = orchestrator.get_response(text, chat_history, params)
+    output = await orchestrator.get_response(text, chat_history, params)
     chat_history.append({"role": ChatRole.USER, "content": text})
     chat_history.append({"role": ChatRole.ASSISTANT, "content": output["answer"]})
     params = output["parameters"]
@@ -122,7 +122,7 @@ def test_workers(mock_load_llm: MagicMock) -> None:
 
     # RAG message worker
     text = "What is your company's culture?"
-    output = orchestrator.get_response(text, chat_history, params)
+    output = await orchestrator.get_response(text, chat_history, params)
     chat_history.append({"role": ChatRole.USER, "content": text})
     chat_history.append({"role": ChatRole.ASSISTANT, "content": output["answer"]})
     params = output["parameters"]
@@ -132,7 +132,7 @@ def test_workers(mock_load_llm: MagicMock) -> None:
 
     # Human in the loop worker
     text = "Connect me with a human agent"
-    output = orchestrator.get_response(text, chat_history, params)
+    output = await orchestrator.get_response(text, chat_history, params)
     chat_history.append({"role": ChatRole.USER, "content": text})
     chat_history.append({"role": ChatRole.ASSISTANT, "content": output["answer"]})
     params = output["parameters"]

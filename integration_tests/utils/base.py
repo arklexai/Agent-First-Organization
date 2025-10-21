@@ -25,15 +25,15 @@ class BaseTestOrchestrator:
         )
         self.orchestrator = AgentOrg(config=config, env=self.env)
 
-    def get_response(
+    async def get_response(
         self, text: str, chat_history: list[dict[str, str]], parameters: dict[str, Any]
-    ) -> None:
+    ) -> dict[str, Any]:
         data: dict[str, Any] = {
             "text": text,
             "chat_history": chat_history,
             "parameters": parameters,
         }
-        return self.orchestrator.get_response(data)
+        return await self.orchestrator.get_response(data)
 
     @classmethod
     def init_params(cls) -> dict[str, Any]:
