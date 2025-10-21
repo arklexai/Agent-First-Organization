@@ -29,6 +29,14 @@ from arklex.utils.utils import format_chat_history
 
 log_context = LogContext(__name__)
 
+# Shared type mapping for JSON schema to Python types
+JSON_SCHEMA_TO_PYTHON_TYPE = {
+    "string": str,
+    "integer": int,
+    "number": float,
+    "boolean": bool,
+}
+
 
 class ToolOutput(BaseModel):
     status: StatusEnum
@@ -138,75 +146,6 @@ class Tool:
             slots=[i.model_dump() for i in self.slots],
         )
 
-    def _format_slots(self, slots: list[dict[str, Any]]) -> list[dict[str, Any]]:
-        """Format slots for OpenAI tool definition.
-
-        Args:
-            slots: List of slot definitions
-
-        Returns:
-            List of formatted slot definitions for OpenAI
-        """
-        formatted_slots = []
-        for slot in slots:
-            formatted_slot = {
-                "name": slot["name"],
-                "type": slot["type"],
-                "description": slot.get("description", ""),
-                "required": slot.get("required", False),
-            }
-
-            # Handle enum values
-            if "enum" in slot:
-                formatted_slot["enum"] = slot["enum"]
-
-            # Handle items for array types
-            if "items" in slot:
-                formatted_slot["items"] = slot["items"]
-
-            # Handle group schema
-            if slot.get("type") == "group" and "schema" in slot:
-                formatted_slot["slot_schema"] = slot["schema"]
-
-            formatted_slots.append(formatted_slot)
-
-        return formatted_slots
-
-    def get_info(self, slots: list[dict[str, Any]]) -> dict[str, Any]:
-        """Get tool information including parameters and requirements.
-
-        This method processes the slot definitions to create a structured
-        representation of the tool's parameters and requirements.
-
-        Args:
-            slots (List[Dict[str, Any]]): List of slot definitions.
-
-        Returns:
-            Dict[str, Any]: Tool information including parameters and requirements.
-        """
-        self.properties = {}
-        for slot in slots:
-            self.properties[slot["name"]] = {
-                k: v
-                for k, v in slot.items()
-                if k in ["type", "description", "prompt", "items"]
-            }
-        required: list[str] = [
-            slot["name"] for slot in slots if slot.get("required", False)
-        ]
-        return {
-            "type": "function",
-            "function": {
-                "name": self.name,
-                "description": self.description,
-                "parameters": {
-                    "type": "object",
-                    "properties": self.properties,
-                    "required": required,
-                },
-            },
-        }
-
     def init_slotfiller(self, slotfiller_api: SlotFiller) -> None:
         """Initialize the slot filler for this tool.
 
@@ -274,55 +213,23 @@ class Tool:
                  Slot(name="param2", type="int", required=False),  # Preserved
                  Slot(name="param3", type="bool", required=True)]  # Added
         """
-        if not slots:
-            return
-
-        # Process slots to handle schema/slot_schema mapping for all slot types
-        processed_slots = []
         for slot in slots:
             if "schema" in slot:
-                # Create a copy with slot_schema instead of schema for all slot types
-                processed_slot = slot.copy()
-                processed_slot["slot_schema"] = processed_slot.pop("schema")
-                processed_slots.append(processed_slot)
-            else:
-                processed_slots.append(slot)
-
-        # Create a dictionary of existing slots for easy lookup
-        existing_slots_dict = {slot.name: slot for slot in self.slots}
-
-        # Process new slots
-        for new_slot in processed_slots:
-            slot_name = new_slot["name"]
-            if slot_name in existing_slots_dict:
-                existing_slot = existing_slots_dict[slot_name]
-                for key, value in new_slot.items():
-                    # Handle schema/slot_schema mapping for all slot types
-                    if key == "schema":
-                        existing_slot.slot_schema = value
-                    else:
-                        setattr(existing_slot, key, value)
-            else:
-                if new_slot.get("slot_schema"):
-                    # Handle slots with slot_schema for all types
-                    self.slots.append(
-                        Slot(
-                            name=new_slot["name"],
-                            type=new_slot.get("type", "str"),
-                            slot_schema=new_slot["slot_schema"],
-                            required=new_slot.get("required", False),
-                            repeatable=new_slot.get("repeatable", False),
-                            prompt=new_slot.get("prompt", ""),
-                            description=new_slot.get("description", ""),
-                            value=new_slot.get("value", None),
-                            valueSource=new_slot.get("valueSource", None),
-                        )
+                self.slots.append(
+                    Slot(
+                        name=slot["name"],
+                        type=slot.get("type", "str"),
+                        slot_schema=slot["schema"],
+                        required=slot.get("required", False),
+                        repeatable=slot.get("repeatable", False),
+                        prompt=slot.get("prompt", ""),
+                        description=slot.get("description", ""),
+                        value=slot.get("value", None),
+                        valueSource=slot.get("valueSource", None),
                     )
-                else:
-                    self.slots.append(Slot.model_validate(new_slot))
-
-        # Update tool info with merged slots
-        self.info = self.get_info([slot.model_dump() for slot in self.slots])
+                )
+            else:
+                self.slots.append(Slot.model_validate(slot))
 
     def _convert_value(self, value: Any, type_str: str) -> Any:  # noqa: ANN401
         if value is None:
@@ -386,6 +293,7 @@ class Tool:
 
     def _missing_slots_recursive(self, slots: list[Slot]) -> list[str]:
         missing = []
+
         for slot in slots:
             # Check if required slot is missing or unverified
             if slot.required:
@@ -395,8 +303,14 @@ class Tool:
                 ):
                     continue
                 if (not slot.value) or (not slot.verified):
-                    missing.append(slot.prompt)
-        return missing
+                    # Prefer nested prompts when available
+                    nested_prompts = self._collect_nested_required_prompts(slot)
+                    if nested_prompts:
+                        missing.extend(nested_prompts)
+                    else:
+                        missing.append(slot.prompt)
+        # Filter out empty strings
+        return [m for m in missing if m]
 
     def execute(
         self,
@@ -408,91 +322,10 @@ class Tool:
 
         This method is a wrapper around _execute that handles the execution flow
         and state management.
-
-        Args:
-            state (MessageState): The current message state.
-            **fixed_args (FixedArgs): Additional fixed arguments for the tool.
-
-        Returns:
-            MessageState: The updated message state after tool execution.
         """
         self.llm_config = state.bot_config.llm_config.model_dump()
         state, tool_output = self._execute(state, all_slots, auth)
         return state, tool_output
-
-    def to_openai_tool_def(self) -> dict:
-        """Convert the tool to an OpenAI tool definition.
-
-        Returns:
-            dict: The OpenAI tool definition.
-        """
-        parameters = {
-            "type": "object",
-            "properties": {},
-            "required": [
-                slot.name
-                for slot in self.slots
-                if slot.required and not (slot.verified and slot.value)
-            ],
-        }
-        for slot in self.slots:
-            # If the default slots have been populated and verified, then don't show the slot in the tool definition
-            if slot.verified and slot.value:
-                continue
-            elif slot.items:
-                parameters["properties"][slot.name] = {
-                    "type": "array",
-                    "items": slot.items,
-                }
-            else:
-                # Use the slot's to_openai_schema method which handles all the complexity
-                parameters["properties"][slot.name] = slot.to_openai_schema()
-        return {
-            "type": "function",
-            "name": self.name,
-            "description": self.description,
-            "parameters": parameters,
-        }
-
-    def to_openai_tool_def_v2(self) -> dict:
-        # If any slot provides a full OpenAI function schema, use it directly
-        for slot in self.slots:
-            # Check for slot_schema first (new structure), then fall back to schema (legacy)
-            schema_obj = getattr(slot, "slot_schema", None) or getattr(
-                slot, "schema", None
-            )
-            if isinstance(schema_obj, dict) and (
-                "function" in schema_obj or schema_obj.get("type") == "function"
-            ):
-                function_block = schema_obj.get("function", {})
-                # Ensure minimal structure
-                if isinstance(function_block, dict) and function_block.get(
-                    "parameters"
-                ):
-                    return {
-                        "type": "function",
-                        "function": function_block,
-                    }
-        # Fallback: build schema from slots
-        parameters = {
-            "type": "object",
-            "properties": {},
-            "required": [
-                slot.name for slot in self.slots if getattr(slot, "required", False)
-            ],
-        }
-        for slot in self.slots:
-            if getattr(slot, "valueSource", None) == "fixed":
-                continue
-            parameters["properties"][slot.name] = slot.to_openai_schema()
-        return {
-            "type": "function",
-            "function": {
-                "name": self.name,
-                "description": self.description,
-                "parameters": parameters,
-            },
-        }
 
     def to_openai_agents_function_tool(self) -> "FunctionTool":
         """Convert this Arklex tool to an OpenAI Agents FunctionTool.
@@ -518,7 +351,8 @@ class Tool:
 
             try:
                 # Parse input arguments
-                user_args = self._parse_input_args(raw_args, model_cls)
+                user_args = json.loads(raw_args)
+                log_context.info(f"Parsed user_args: {user_args}")
 
                 # Apply fixed values from schemas
                 self._apply_schema_fixed_values()
@@ -722,19 +556,6 @@ class Tool:
                     else tool_output.response,
                 }
             )
-            # Trajectory for multi-agent
-            # state.function_calling_trajectory.append({
-            #     'type': 'function_call',
-            #     'id': "fc_" + call_id,
-            #     'call_id': "call_" + call_id,
-            #     'name': self.name,
-            #     'arguments': json.dumps(kwargs)
-            # })
-            # state.function_calling_trajectory.append({
-            #     "type": "function_call_output",
-            #     "call_id": "call_" + call_id,
-            #     "output": response
-            # })
 
         state.trajectory[-1][-1].input = slots
         state.trajectory[-1][-1].output = str(tool_output)
@@ -780,6 +601,10 @@ class Tool:
             Tuple of (response_message, is_verification) where is_verification indicates
             if this is a verification request (True) or missing slot request (False)
         """
+
+        def _collect_missing_prompts(slot: Slot) -> list[str]:
+            return self._collect_nested_required_prompts(slot)
+
         for slot in slots:
             # if there is extracted slots values but haven't been verified
             if slot.value and not slot.verified:
@@ -799,6 +624,10 @@ class Tool:
                     log_context.info(f"Slot '{slot.name}' verified successfully")
             # if there is no extracted slots values, then should prompt the user to fill the slot
             if not slot.value and slot.required:
+                # Try to surface nested required prompts from schema; fall back to top-level prompt
+                nested_prompts = _collect_missing_prompts(slot)
+                if nested_prompts:
+                    return " ".join(nested_prompts), False
                 return slot.prompt, False  # Missing slot
 
         return "", False
@@ -813,6 +642,10 @@ class Tool:
         for slot in self.slots:
             # Convert slot type to Python type
             py_type = self._slot_type_to_python_type(slot.type)
+
+            # Use slot_schema if available to get the correct type
+            if hasattr(slot, "slot_schema") and slot.slot_schema:
+                py_type = self._extract_type_from_slot_schema(slot)
 
             # Set default value based on valueSource and required status
             value_source = getattr(slot, "valueSource", "prompt")
@@ -837,6 +670,42 @@ class Tool:
 
         return fields
 
+    def _extract_type_from_slot_schema(self, slot: Slot) -> type:
+        """Extract Python type from slot_schema.
+
+        Args:
+            slot: Slot object with slot_schema
+
+        Returns:
+            Python type for the slot
+        """
+
+        slot_schema = slot.slot_schema
+
+        # Handle function-style schema
+        if isinstance(slot_schema, dict) and "function" in slot_schema:
+            params = slot_schema.get("function", {}).get("parameters", {})
+            props = params.get("properties", {})
+            prop_schema = props.get(slot.name, params)
+        else:
+            prop_schema = slot_schema
+
+        # Extract type from schema
+        schema_type = prop_schema.get("type", "string")
+
+        if schema_type == "array":
+            items_schema = prop_schema.get("items", {})
+            items_type = items_schema.get("type", "string")
+
+            # Map to Python types using shared mapping
+            base_type = JSON_SCHEMA_TO_PYTHON_TYPE.get(items_type, str)
+            return list[base_type]
+        elif schema_type == "object":
+            return dict
+        else:
+            # Primitive types - use shared mapping
+            return JSON_SCHEMA_TO_PYTHON_TYPE.get(schema_type, str)
+
     def _create_model_class(self, fields: dict[str, tuple[type, Field]]) -> type:
         """Create Pydantic model class, using custom schema if available.
 
@@ -847,27 +716,48 @@ class Tool:
             Pydantic model class.
         """
         # Use slot_schema directly if available (this is what the LLM needs to see)
-        if (
-            len(self.slots) == 1
-            and hasattr(self.slots[0], "slot_schema")
-            and self.slots[0].slot_schema
-        ):
-            # The slot_schema contains the complete nested structure with correct field names
+        # Check if all slots have slot_schema
+        all_slots_have_schema = all(
+            hasattr(slot, "slot_schema") and slot.slot_schema for slot in self.slots
+        )
+
+        if all_slots_have_schema:
+            # Combine all slot schemas into a single parameters schema
             import copy
 
-            schema_copy = copy.deepcopy(self.slots[0].slot_schema)
+            # Start with a base schema structure
+            combined_schema = {"type": "object", "properties": {}, "required": []}
 
-            # Extract just the parameters part - OpenAI expects parameters, not the full function wrapper
-            if "function" in schema_copy and "parameters" in schema_copy["function"]:
-                parameters_schema = schema_copy["function"]["parameters"]
-            else:
-                parameters_schema = schema_copy
+            # Extract properties from each slot's schema
+            for slot in self.slots:
+                slot_schema = slot.slot_schema
+
+                # Extract the parameters part
+                if isinstance(slot_schema, dict) and "function" in slot_schema:
+                    params = slot_schema.get("function", {}).get("parameters", {})
+                else:
+                    params = slot_schema
+
+                # Get the specific property for this slot
+                props = params.get("properties", {})
+                if slot.name in props:
+                    # Deep copy the property to avoid modifying the original
+                    import copy
+
+                    slot_prop = copy.deepcopy(props[slot.name])
+
+                    # Pre-populate fixed/default values in the schema
+                    self._prepopulate_fixed_values_in_schema(slot_prop)
+
+                    combined_schema["properties"][slot.name] = slot_prop
+                    if slot.required:
+                        combined_schema["required"].append(slot.name)
 
             # Create a simple Pydantic model that returns our custom schema
             model_cls = create_model(f"{self.name}_InputModel", **{})
 
             def custom_schema() -> dict[str, Any]:
-                return parameters_schema
+                return combined_schema
 
             model_cls.model_json_schema = custom_schema
             return model_cls
@@ -875,27 +765,113 @@ class Tool:
             # Create the Pydantic model class from fields
             return create_model(f"{self.name}_InputModel", **fields)
 
-    def _parse_input_args(self, raw_args: str, model_cls: type) -> dict[str, Any]:
-        """Parse input arguments from JSON string.
+    def _prepopulate_fixed_values_in_schema(self, schema_part: dict) -> None:
+        """Pre-populate fixed and default values in schema to prevent LLM from asking for them.
 
         Args:
-            raw_args: Raw JSON string arguments.
-            model_cls: Pydantic model class for parsing.
-
-        Returns:
-            Parsed arguments dictionary.
+            schema_part: Part of the schema to process (can be nested)
         """
-        # If we're using custom schema from slot_schema, parse JSON directly
-        if (
-            len(self.slots) == 1
-            and hasattr(self.slots[0], "slot_schema")
-            and self.slots[0].slot_schema
-        ):
-            import json
+        if not isinstance(schema_part, dict):
+            return
 
-            return json.loads(raw_args)
-        else:
-            return model_cls.model_validate_json(raw_args).model_dump()
+        # Handle array items
+        if schema_part.get("type") == "array" and "items" in schema_part:
+            self._prepopulate_fixed_values_in_schema(schema_part["items"])
+
+        # Handle object properties
+        elif schema_part.get("type") == "object" and "properties" in schema_part:
+            properties = schema_part["properties"]
+            for field_name, field_def in properties.items():
+                if isinstance(field_def, dict):
+                    value_source = field_def.get("valueSource")
+                    if value_source == "fixed" and "value" in field_def:
+                        # Pre-populate the field with the fixed value
+                        field_def["default"] = field_def["value"]
+                        # Remove from required since they can't be changed
+                        required_fields = schema_part.get("required", [])
+                        if field_name in required_fields:
+                            required_fields.remove(field_name)
+                    elif value_source == "default" and "value" in field_def:
+                        # For default values, don't set as default in schema
+                        # The default will be applied during execution if user doesn't provide a value
+                        # Keep in required array so LLM will ask for it
+                        pass
+                    else:
+                        # Recursively process nested structures
+                        self._prepopulate_fixed_values_in_schema(field_def)
+
+    def _collect_nested_required_prompts(self, slot: Slot) -> list[str]:
+        """Collect prompts/descriptions for required nested fields within slot.slot_schema.
+
+        Handles both object slots and arrays of objects. Falls back to field path when prompt/description missing.
+        """
+
+        def _collect_from_field(
+            field_name: str, field_def: dict, path: str = ""
+        ) -> list[str]:
+            prompts: list[str] = []
+            current_path = f"{path}.{field_name}" if path else field_name
+            text = (
+                field_def.get("prompt") or field_def.get("description") or current_path
+            )
+            prompts.append(text)
+            if field_def.get("type") == "object":
+                nested_props = field_def.get("properties", {}) or {}
+                nested_required = field_def.get("required", []) or []
+                for nested_name in nested_required:
+                    nested_def = nested_props.get(nested_name, {})
+                    prompts.extend(
+                        _collect_from_field(nested_name, nested_def, current_path)
+                    )
+            elif field_def.get("type") == "array":
+                items = field_def.get("items", {}) or {}
+                if items.get("type") == "object":
+                    nested_props = items.get("properties", {}) or {}
+                    nested_required = items.get("required", []) or []
+                    for nested_name in nested_required:
+                        nested_def = nested_props.get(nested_name, {})
+                        prompts.extend(
+                            _collect_from_field(
+                                nested_name, nested_def, current_path + "[]"
+                            )
+                        )
+            return prompts
+
+        try:
+            schema_obj = getattr(slot, "slot_schema", None)
+            if not isinstance(schema_obj, dict):
+                return []
+            function_block = schema_obj.get("function", {})
+            parameters = function_block.get("parameters", {})
+            properties = parameters.get("properties", {}) or {}
+            slot_def = properties.get(slot.name, {})
+            if not slot_def:
+                return []
+            # Object slot
+            if slot_def.get("type") == "object":
+                req = slot_def.get("required", []) or []
+                props = slot_def.get("properties", {}) or {}
+                prompts: list[str] = []
+                for fname in req:
+                    fdef = props.get(fname, {})
+                    prompts.extend(_collect_from_field(fname, fdef, slot.name))
+                return prompts
+            # Array of objects slot
+            if slot_def.get("type") == "array":
+                items = slot_def.get("items", {}) or {}
+                if items.get("type") == "object":
+                    req = items.get("required", []) or []
+                    props = items.get("properties", {}) or {}
+                    prompts: list[str] = []
+                    for fname in req:
+                        fdef = props.get(fname, {})
+                        prompts.extend(
+                            _collect_from_field(fname, fdef, slot.name + "[]")
+                        )
+                    return prompts
+        except Exception:
+            return []
+        return []
 
     def _update_slots_with_args(self, user_args: dict[str, Any]) -> None:
         """Update slots with parsed argument values.
@@ -912,7 +888,10 @@ class Tool:
                         f"Skipping user arg for fixed slot '{slot.name}' (keeping fixed value)"
                     )
                     continue
+                log_context.info(f"Updating slot '{slot.name}' with value: {user_args[slot.name]}")
                 slot.value = user_args[slot.name]
+            else:
+                log_context.info(f"Slot '{slot.name}' not found in user_args")
 
     def _apply_schema_fixed_values(self) -> None:
         """Apply fixed values from slot schemas using the new format processing."""

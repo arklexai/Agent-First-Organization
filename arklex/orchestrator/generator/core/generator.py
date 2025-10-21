@@ -95,7 +95,6 @@ class Generator:
         workers (Dict[str, Any]): Available workers for task execution
         tools (Dict[str, Any]): Available tools for task execution
         interactable_with_user (bool): Whether to allow user interaction
-        allow_nested_graph (bool): Whether to allow nested graph generation
         model: The language model for task generation
         timestamp (str): Timestamp for output files
         output_dir (str): Directory for saving generated files
@@ -127,7 +126,6 @@ class Generator:
         output_dir: str | None = None,
         resource_initializer: BaseResourceInitializer | None = None,
         interactable_with_user: bool = True,
-        allow_nested_graph: bool = True,
     ) -> None:
         """Initialize the Generator with configuration and resources.
 
@@ -139,7 +137,6 @@ class Generator:
             resource_initializer (Optional[BaseResourceInitializer]): Resource initializer
                 for setting up workers and tools
             interactable_with_user (bool): Whether to allow user interaction
-            allow_nested_graph (bool): Whether to allow nested graph generation
         """
         # Extract configuration values
         self.product_kwargs = config
@@ -181,7 +178,6 @@ class Generator:
 
         # Set configuration flags
         self.interactable_with_user = interactable_with_user
-        self.allow_nested_graph = allow_nested_graph
         self.model = model
         self.timestamp = datetime.now().strftime("%Y%m%d%H%M%S")
         self.output_dir = output_dir
@@ -241,7 +237,7 @@ class Generator:
             BestPracticeManager: Initialized best practice manager instance
         """
         if self._best_practice_manager is None:
-            # Create a list of all available resources including nested_graph
+            # Create a list of all available resources
             all_resources = []
 
             # Add workers
@@ -275,23 +271,13 @@ class Generator:
                         }
                     )
 
-            # Add nested_graph if enabled
-            if self.allow_nested_graph:
-                all_resources.append(
-                    {
-                        "name": "NestedGraph",
-                        "description": "A reusable task graph component that can be instantiated with different parameters",
-                        "type": "nested_graph",
-                    }
-                )
-
             self._best_practice_manager = BestPracticeManager(
                 model=self.model,
                 role=self.role,
                 user_objective=self.user_objective,
                 workers=self.workers,
                 tools=self.tools,
-                all_resources=all_resources,  # Pass all resources including nested_graph
+                all_resources=all_resources,
             )
         return self._best_practice_manager
 
@@ -328,7 +314,6 @@ class Generator:
                 tools=self.tools,
                 nluapi=self.nluapi,
                 slotfillapi=self.slotfillapi,
-                allow_nested_graph=self.allow_nested_graph,
                 model=self.model,
                 settings=self.settings,
             )
@@ -455,18 +440,7 @@ class Generator:
         log_context.info(f"✅ Generated {len(generated_tasks)} additional tasks")
         log_context.info(f"📊 Total tasks: {len(self.tasks)}")
 
-        # Step 3: Generate reusable tasks if enabled
-        if self.allow_nested_graph:
-            log_context.info("🔄 Generating reusable tasks...")
-            log_context.info("  🔧 Initializing reusable task manager...")
-            reusable_task_manager = self._initialize_reusable_task_manager()
-            log_context.info("  🧠 Analyzing task patterns for reusability...")
-            self.reusable_tasks = reusable_task_manager.generate_reusable_tasks(
-                self.tasks
-            )
-            log_context.info(f"✅ Generated {len(self.reusable_tasks)} reusable tasks")
-
-        # Step 4: Generate best practices (but don't apply resource pairing yet)
+        # Step 3: Generate best practices (but don't apply resource pairing yet)
         log_context.info("📖 Generating best practices for task execution...")
         log_context.info("  🔧 Initializing best practice manager...")
         best_practice_manager = self._initialize_best_practice_manager()
@@ -662,24 +636,7 @@ class Generator:
         # Format the final task graph with finetuned tasks (including resource mappings)
         task_graph = task_graph_formatter.format_task_graph(finetuned_tasks)
 
-        # Ensure nested graph connectivity if enabled
-        if self.allow_nested_graph:
-            log_context.info("🔗 Ensuring nested graph connectivity...")
-            task_graph = task_graph_formatter.ensure_nested_graph_connectivity(
-                task_graph
-            )
-            log_context.info("✅ Nested graph connectivity ensured")
-
         # Add reusable tasks to the task graph output
-        if self.allow_nested_graph:
-            nested_graph_reusable = {
-                "resource": {"id": "nested_graph", "name": "NestedGraph"},
-                "limit": 1,
-            }
-            if not self.reusable_tasks:
-                self.reusable_tasks = {}
-            self.reusable_tasks["nested_graph"] = nested_graph_reusable
-
         if self.reusable_tasks:
             log_context.info("  📦 Adding reusable tasks to graph...")
             task_graph["reusable_tasks"] = self.reusable_tasks

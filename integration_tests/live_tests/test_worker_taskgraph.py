@@ -2,7 +2,7 @@ from arklex.types.resource_types import WorkerItem
 from integration_tests.utils.base import BaseTestOrchestrator, ChatRole
 
 
-def test_workers() -> None:
+async def test_workers() -> None:
     orchestrator = BaseTestOrchestrator(
         "integration_tests/taskgraphs/worker_taskgraph.json"
     )
@@ -11,7 +11,7 @@ def test_workers() -> None:
 
     # start message (direct message)
     text = "<start>"
-    output = orchestrator.get_response(text, chat_history, params)
+    output = await orchestrator.get_response(text, chat_history, params)
     chat_history.append({"role": ChatRole.USER, "content": text})
     chat_history.append({"role": ChatRole.ASSISTANT, "content": output["answer"]})
     params = output["parameters"]
@@ -22,7 +22,7 @@ def test_workers() -> None:
 
     # message worker (undirected message)
     text = "How is the weather?"
-    output = orchestrator.get_response(text, chat_history, params)
+    output = await orchestrator.get_response(text, chat_history, params)
     chat_history.append({"role": ChatRole.USER, "content": text})
     chat_history.append({"role": ChatRole.ASSISTANT, "content": output["answer"]})
     params = output["parameters"]
@@ -30,7 +30,7 @@ def test_workers() -> None:
 
     # multiple choice worker
     text = "Which car would you like to buy?"
-    output = orchestrator.get_response(text, chat_history, params)
+    output = await orchestrator.get_response(text, chat_history, params)
     chat_history.append({"role": ChatRole.USER, "content": text})
     chat_history.append({"role": ChatRole.ASSISTANT, "content": output["answer"]})
     params = output["parameters"]
@@ -39,7 +39,7 @@ def test_workers() -> None:
 
     # Milvus RAG worker
     text = "What products do you offer?"
-    output = orchestrator.get_response(text, chat_history, params)
+    output = await orchestrator.get_response(text, chat_history, params)
     chat_history.append({"role": ChatRole.USER, "content": text})
     chat_history.append({"role": ChatRole.ASSISTANT, "content": output["answer"]})
     params = output["parameters"]
@@ -52,7 +52,7 @@ def test_workers() -> None:
 
     # RAG message worker
     text = "What is your company's culture?"
-    output = orchestrator.get_response(text, chat_history, params)
+    output = await orchestrator.get_response(text, chat_history, params)
     chat_history.append({"role": ChatRole.USER, "content": text})
     chat_history.append({"role": ChatRole.ASSISTANT, "content": output["answer"]})
     params = output["parameters"]
@@ -66,7 +66,7 @@ def test_workers() -> None:
 
     # Human in the loop worker
     text = "Connect me with a human agent"
-    output = orchestrator.get_response(text, chat_history, params)
+    output = await orchestrator.get_response(text, chat_history, params)
     chat_history.append({"role": ChatRole.USER, "content": text})
     chat_history.append({"role": ChatRole.ASSISTANT, "content": output["answer"]})
     params = output["parameters"]

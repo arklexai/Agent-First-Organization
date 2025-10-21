@@ -105,7 +105,13 @@ class SlotFiller(BaseSlotFilling):
                 if isinstance(slot_schema, dict) and "function" in slot_schema:
                     params = slot_schema.get("function", {}).get("parameters")
                     if isinstance(params, dict):
-                        slot_schema = params
+                        # Extract the specific property's schema for this slot
+                        props = params.get("properties", {}) if isinstance(params.get("properties"), dict) else {}
+                        if slot.name in props and isinstance(props.get(slot.name), dict):
+                            slot_schema = props.get(slot.name)
+                        else:
+                            # Fallback to the parameters block (best-effort) if property missing
+                            slot_schema = params
                 # Sanitize custom fields to adhere to OpenAI JSON schema
                 self._remove_non_openai_fields(slot_schema)
             else:
