@@ -533,7 +533,8 @@ class Tool:
 
             try:
                 # Parse input arguments
-                user_args = self._parse_input_args(raw_args, model_cls)
+                user_args = json.loads(raw_args)
+                log_context.info(f"Parsed user_args: {user_args}")
 
                 # Apply fixed values from schemas
                 self._apply_schema_fixed_values()
@@ -1060,28 +1061,6 @@ class Tool:
             return []
         return []
 
-    def _parse_input_args(self, raw_args: str, model_cls: type) -> dict[str, Any]:
-        """Parse input arguments from JSON string.
-
-        Args:
-            raw_args: Raw JSON string arguments.
-            model_cls: Pydantic model class for parsing.
-
-        Returns:
-            Parsed arguments dictionary.
-        """
-        # If we're using custom schema from slot_schema, parse JSON directly
-        if (
-            len(self.slots) == 1
-            and hasattr(self.slots[0], "slot_schema")
-            and self.slots[0].slot_schema
-        ):
-            import json
-
-            return json.loads(raw_args)
-        else:
-            return model_cls.model_validate_json(raw_args).model_dump()
-
     def _update_slots_with_args(self, user_args: dict[str, Any]) -> None:
         """Update slots with parsed argument values.
 
@@ -1097,7 +1076,10 @@ class Tool:
                         f"Skipping user arg for fixed slot '{slot.name}' (keeping fixed value)"
                     )
                     continue
+                log_context.info(f"Updating slot '{slot.name}' with value: {user_args[slot.name]}")
                 slot.value = user_args[slot.name]
+            else:
+                log_context.info(f"Slot '{slot.name}' not found in user_args")
 
     def _apply_schema_fixed_values(self) -> None:
         """Apply fixed values from slot schemas using the new format processing."""
