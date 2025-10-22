@@ -75,6 +75,9 @@ def validate_required_slots(slots: list[Slot]) -> None:
                 )
                 raise ValidationError(f"Required slot '{slot_name}' is missing")
 
+            if not slot_schema:
+                continue
+
             # Check for nested fields, navigate to the actual field schema
             function_schema = slot_schema.get("function", {})
             parameters = function_schema.get("parameters", {})
