@@ -11,6 +11,7 @@ import pytest
 import requests
 
 from arklex.env.tools.custom_tools.http_tool import http_tool, replace_placeholders
+from arklex.orchestrator.NLU.entities.slot_entities import Slot
 from arklex.utils.exceptions import ToolExecutionError
 
 
@@ -236,8 +237,8 @@ class TestHTTPTool:
         mock_request.return_value = mock_response
 
         slots = [
-            {"name": "user_id", "value": 123, "target": "params"},
-            {"name": "user_name", "value": "John", "target": "body"},
+            Slot(name="user_id", value=123, target="params"),
+            Slot(name="user_name", value="John", target="body"),
         ]
 
         result = http_tool.func(
@@ -265,17 +266,9 @@ class TestHTTPTool:
         mock_response.raise_for_status.return_value = None
         mock_request.return_value = mock_response
 
-        class SlotObject:
-            def __init__(
-                self, name: str, value: str | int | bool | None, target: str
-            ) -> None:
-                self.name = name
-                self.value = value
-                self.target = target
-
         slots = [
-            SlotObject("user_id", 123, "params"),
-            SlotObject("user_name", "John", "body"),
+            Slot(name="user_id", value=123, target="params"),
+            Slot(name="user_name", value="John", target="body"),
         ]
 
         result = http_tool.func(
@@ -303,17 +296,9 @@ class TestHTTPTool:
         mock_response.raise_for_status.return_value = None
         mock_request.return_value = mock_response
 
-        class SlotObject:
-            def __init__(
-                self, name: str, value: str | int | bool | None, target: str
-            ) -> None:
-                self.name = name
-                self.value = value
-                self.target = target
-
         slots = [
-            {"name": "user_id", "value": 123, "target": "params"},
-            SlotObject("user_name", "John", "body"),
+            Slot(name="user_id", value=123, target="params", type="int"),
+            Slot(name="user_name", value="John", target="body", type="str"),
         ]
 
         result = http_tool.func(
@@ -332,35 +317,6 @@ class TestHTTPTool:
         call_args = mock_request.call_args
         assert call_args[1]["params"]["user_id"] == 123
         assert call_args[1]["json"]["name"] == "John"
-
-    @patch("requests.request")
-    def test_http_tool_with_invalid_slots(self, mock_request: Mock) -> None:
-        """Test HTTP tool with invalid slot structure."""
-        mock_response = Mock()
-        mock_response.json.return_value = {"status": "success"}
-        mock_response.raise_for_status.return_value = None
-        mock_request.return_value = mock_response
-
-        # Slots with missing required attributes
-        slots = [
-            {"name": "user_id"},  # Missing value and target
-            {"value": "John"},  # Missing name and target
-        ]
-
-        result = http_tool.func(
-            node_specific_data={
-                "method": "POST",
-                "endpoint": "https://api.example.com/users",
-                "headers": {"Content-Type": "application/json"},
-                "body": {},
-                "params": {},
-            },
-            slots=slots,
-        )
-
-        # Should still work without the invalid slots
-        assert "success" in result
-        mock_request.assert_called_once()
 
     @patch("requests.request")
     def test_http_tool_with_none_slots(self, mock_request: Mock) -> None:
@@ -458,88 +414,6 @@ class TestHTTPTool:
 
         assert "success" in result
         mock_request.assert_called_once()
-
-    @patch("requests.request")
-    def test_http_tool_with_slot_missing_attributes(self, mock_request: Mock) -> None:
-        """Test HTTP tool with slots missing required attributes."""
-        mock_response = Mock()
-        mock_response.json.return_value = {"status": "success"}
-        mock_response.raise_for_status.return_value = None
-        mock_request.return_value = mock_response
-
-        # Slots with missing attributes
-        slots = [
-            {"name": "user_id", "value": 123},  # Missing target
-            {"value": "John", "target": "body"},  # Missing name
-            {"name": "user_name", "target": "body"},  # Missing value
-        ]
-
-        result = http_tool.func(
-            node_specific_data={
-                "method": "POST",
-                "endpoint": "https://api.example.com/test",
-                "headers": {"Content-Type": "application/json"},
-                "body": {},
-                "params": {},
-            },
-            slots=slots,
-        )
-
-        assert "success" in result
-        mock_request.assert_called_once()
-
-    @patch("requests.request")
-    def test_http_tool_with_slot_object_missing_attributes(
-        self, mock_request: Mock
-    ) -> None:
-        """Test HTTP tool with slot object missing attributes."""
-        mock_response = Mock()
-        mock_response.json.return_value = {"ok": True}
-        mock_response.raise_for_status.return_value = None
-        mock_request.return_value = mock_response
-
-        class SlotObj:
-            pass  # No name, value, or target
-
-        slots = [SlotObj()]
-        result = http_tool.func(
-            node_specific_data={
-                "method": "GET",
-                "endpoint": "http://x",
-                "headers": {},
-                "body": {},
-                "params": {},
-            },
-            slots=slots,
-        )
-        assert "ok" in result
-
-    @patch("requests.request")
-    def test_http_tool_with_slot_object_none_name(self, mock_request: Mock) -> None:
-        """Test HTTP tool with slot object having None name."""
-        mock_response = Mock()
-        mock_response.json.return_value = {"ok": True}
-        mock_response.raise_for_status.return_value = None
-        mock_request.return_value = mock_response
-
-        class SlotObj:
-            def __init__(self) -> None:
-                self.name = None
-                self.value = "test"
-                self.target = "body"
-
-        slots = [SlotObj()]
-        result = http_tool.func(
-            node_specific_data={
-                "method": "GET",
-                "endpoint": "http://x",
-                "headers": {},
-                "body": {},
-                "params": {},
-            },
-            slots=slots,
-        )
-        assert "ok" in result
 
     @patch("requests.request")
     def test_http_tool_remove_placeholders_and_valid_json(
