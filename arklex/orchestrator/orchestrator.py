@@ -273,7 +273,7 @@ class AgentOrg:
         text: str,
         chat_history_str: str,
         stream_type: StreamType | None,
-        message_queue: janus.SyncQueue | None,
+        message_queue: janus.Queue | None,
     ) -> tuple[NodeInfo, OrchestratorState, OrchestratorParams, NodeResponse]:
         """Execute a node in the task graph.
 
@@ -288,7 +288,7 @@ class AgentOrg:
             text (str): The current user message.
             chat_history_str (str): Formatted chat history.
             stream_type (Optional[StreamType]): Type of stream for the response.
-            message_queue (Optional[janus.SyncQueue]): Queue for streaming messages.
+            message_queue (Optional[janus.Queue]): Queue for streaming messages.
 
         Returns:
             Tuple[NodeInfo, MessageState, OrchestratorParams]: A tuple containing updated node information,
@@ -334,7 +334,7 @@ class AgentOrg:
         self,
         inputs: dict[str, Any],
         stream_type: StreamType | None = None,
-        message_queue: janus.SyncQueue | None = None,
+        message_queue: janus.Queue | None = None,
     ) -> OrchestratorResp:
         """Get a response from the orchestrator.
 
@@ -430,7 +430,7 @@ class AgentOrg:
         self,
         inputs: dict[str, Any],
         stream_type: StreamType | None = None,
-        message_queue: janus.SyncQueue | None = None,
+        message_queue: janus.Queue | None = None,
     ) -> OrchestratorResp:
         # params initialization
         user_message = inputs["text"]
@@ -473,7 +473,7 @@ class AgentOrg:
         self,
         inputs: dict[str, Any],
         stream_type: StreamType | None = None,
-        message_queue: janus.SyncQueue | None = None,
+        message_queue: janus.Queue | None = None,
     ) -> dict[str, Any]:
         """Get a response from the orchestrator with additional metadata.
 
@@ -483,7 +483,7 @@ class AgentOrg:
         Args:
             inputs (Dict[str, Any]): Dictionary containing text, chat history, and parameters.
             stream_type (Optional[StreamType]): Type of stream for the response.
-            message_queue (Optional[janus.SyncQueue]): Queue for streaming messages.
+            message_queue (Optional[janus.Queue]): Queue for streaming messages.
 
         Returns:
             Dict[str, Any]: A dictionary containing the response, parameters, and metadata.
@@ -493,10 +493,13 @@ class AgentOrg:
 
         if self.agent_graph.enabled:
             response = await self._get_agent_response(
-                inputs, stream_type, message_queue
+                inputs, stream_type, message_queue.async_q if message_queue else None
             )
         else:
             response = await asyncio.to_thread(
-                self._get_response, inputs, stream_type, message_queue
+                self._get_response,
+                inputs,
+                stream_type,
+                message_queue.sync_q if message_queue else None,
             )
         return response.model_dump()

@@ -87,7 +87,7 @@ class OpenAIAgent(BaseAgent):
             if event.type == "raw_response_event" and isinstance(
                 event.data, ResponseTextDeltaEvent
             ):
-                self.state.message_queue.put(
+                await self.state.message_queue.put(
                     {"event": EventType.CHUNK.value, "message_chunk": event.data.delta}
                 )
             elif event.type == "run_item_stream_event":
