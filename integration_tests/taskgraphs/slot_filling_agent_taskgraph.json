@@ -1,0 +1,435 @@
+{
+    "sys_instruct": "You are a helpful assistant.",
+    "model": {
+        "model_type_or_path": "gpt-4o",
+        "llm_provider": "openai"
+    },
+    "bot_config": {
+        "language": "EN",
+        "llm_config": {
+            "model_type_or_path": "gpt-4o",
+            "llm_provider": "openai"
+        }
+    },
+    "nodes": [
+        [
+            "0",
+            {
+                "resource": {
+                    "id": "openai-agent"
+                },
+                "attribute": {
+                    "task": "",
+                    "type": "agent",
+                    "limit": 1,
+                    "start": false,
+                    "can_skipped": false
+                },
+                "data": {
+                    "name": "Arklex Agent",
+                    "prompt": "You are available to the following tools: orderProduct, searchProducts, createProductItems, createDocument.\n1. Use orderProduct to order a product from a supplier.\n2. Use searchProducts to search for a product by category.\n3. Use createProductItems to create a list of product items.\n4. Use createDocument to create a document with tags.",
+                    "start_agent": true,
+                    "agent_start_message": "Hello, how can I assist you today?"
+                }
+            }
+        ],
+        [
+            "1",
+            {
+                "resource": {
+                    "id": "custom/http-tool"
+                },
+                "attribute": {
+                    "task": "Order a product from a supplier",
+                    "type": "tool",
+                    "limit": 1,
+                    "start": false,
+                    "can_skipped": false
+                },
+                "data": {
+                    "body": {
+                        "order": "{{OrderData}}"
+                    },
+                    "name": "orderProduct",
+                    "method": "POST",
+                    "params": {},
+                    "headers": {
+                        "Content-Type": "application/json",
+                        "Authorization": "Bearer test-token"
+                    },
+                    "endpoint": "https://api.test.com/order",
+                    "slots": [
+                        {
+                            "name": "OrderData",
+                            "type": "object",
+                            "schema": {
+                                "type": "function",
+                                "function": {
+                                    "name": "tool",
+                                    "parameters": {
+                                        "type": "object",
+                                        "required": [
+                                            "OrderData"
+                                        ],
+                                        "properties": {
+                                            "OrderData": {
+                                                "type": "object",
+                                                "required": [
+                                                    "product",
+                                                    "quantity",
+                                                    "supplier"
+                                                ],
+                                                "properties": {
+                                                    "product": {
+                                                        "type": "string",
+                                                        "prompt": "What product are you ordering?",
+                                                        "description": "Product name",
+                                                        "valueSource": "prompt"
+                                                    },
+                                                    "quantity": {
+                                                        "type": "integer",
+                                                        "prompt": "What quantity do you need?",
+                                                        "description": "Quantity of the product",
+                                                        "valueSource": "prompt"
+                                                    },
+                                                    "supplier": {
+                                                        "type": "string",
+                                                        "value": "alsfk4kslglskekdo238g5",
+                                                        "valueSource": "fixed"
+                                                    }
+                                                },
+                                                "valueSource": "prompt"
+                                            }
+                                        }
+                                    },
+                                    "description": "Tool function"
+                                }
+                            },
+                            "target": "body",
+                            "required": true,
+                            "description": "Order data with fixed supplier value",
+                            "valueSource": "prompt"
+                        }
+                    ]
+                }
+            }
+        ],
+        [
+            "2",
+            {
+                "resource": {
+                    "id": "custom/http-tool"
+                },
+                "attribute": {
+                    "task": "Search for a product by category",
+                    "type": "tool",
+                    "limit": 1,
+                    "start": false,
+                    "can_skipped": false
+                },
+                "data": {
+                    "body": {
+                        "query": "{{query}}",
+                        "category": "{{category}}"
+                    },
+                    "name": "searchProducts",
+                    "method": "GET",
+                    "params": {},
+                    "headers": {
+                        "Content-Type": "application/json",
+                        "Authorization": "Bearer test-token"
+                    },
+                    "endpoint": "https://api.test.com/search",
+                    "slots": [
+                        {
+                            "name": "query",
+                            "type": "str",
+                            "prompt": "What are you searching for?",
+                            "schema": {
+                                "type": "function",
+                                "function": {
+                                    "name": "tool",
+                                    "parameters": {
+                                        "type": "object",
+                                        "properties": {
+                                            "query": {
+                                                "type": "string",
+                                                "prompt": "What are you searching for?",
+                                                "description": "Search query"
+                                            }
+                                        }
+                                    },
+                                    "description": "Tool function"
+                                }
+                            },
+                            "target": "body",
+                            "required": true,
+                            "description": "Search query"
+                        },
+                        {
+                            "name": "category",
+                            "type": "str",
+                            "value": "electronics",
+                            "valueSource": "fixed",
+                            "schema": {
+                                "type": "function",
+                                "function": {
+                                    "name": "tool",
+                                    "parameters": {
+                                        "type": "object",
+                                        "properties": {
+                                            "category": {
+                                                "type": "string",
+                                                "description": "Product category"
+                                            }
+                                        }
+                                    },
+                                    "description": "Tool function"
+                                }
+                            },
+                            "target": "body",
+                            "required": true,
+                            "description": "Product category with fixed value"
+                        }
+                    ]
+                }
+            }
+        ],
+        [
+            "3",
+            {
+                "resource": {
+                    "id": "custom/http-tool"
+                },
+                "attribute": {
+                    "task": "Create a list of product items",
+                    "type": "tool",
+                    "limit": 1,
+                    "start": false,
+                    "can_skipped": false
+                },
+                "data": {
+                    "body": {
+                        "items": "{{ItemData}}"
+                    },
+                    "name": "createProductItems",
+                    "method": "POST",
+                    "params": {},
+                    "headers": {
+                        "Content-Type": "application/json",
+                        "Authorization": "Bearer test-token"
+                    },
+                    "endpoint": "https://api.test.com/items",
+                    "slots": [
+                        {
+                            "name": "ItemData",
+                            "type": "object",
+                            "schema": {
+                                "type": "function",
+                                "function": {
+                                    "name": "tool",
+                                    "parameters": {
+                                        "type": "object",
+                                        "required": [
+                                            "ItemData"
+                                        ],
+                                        "properties": {
+                                            "ItemData": {
+                                                "type": "array",
+                                                "items": {
+                                                    "type": "object",
+                                                    "required": [
+                                                        "productName",
+                                                        "quantity",
+                                                        "unitPrice"
+                                                    ],
+                                                    "properties": {
+                                                        "productName": {
+                                                            "type": "string",
+                                                            "prompt": "What is the product name?",
+                                                            "description": "Product name",
+                                                            "valueSource": "prompt"
+                                                        },
+                                                        "quantity": {
+                                                            "type": "integer",
+                                                            "prompt": "What is the quantity?",
+                                                            "description": "Quantity of the product",
+                                                            "valueSource": "prompt"
+                                                        },
+                                                        "unitPrice": {
+                                                            "type": "number",
+                                                            "prompt": "What is the unit price?",
+                                                            "description": "Price per unit",
+                                                            "valueSource": "prompt"
+                                                        }
+                                                    }
+                                                },
+                                                "valueSource": "prompt"
+                                            }
+                                        }
+                                    },
+                                    "description": "Tool function"
+                                }
+                            },
+                            "target": "body",
+                            "required": true,
+                            "repeatable": true,
+                            "description": "List of items with required fields",
+                            "valueSource": "prompt"
+                        }
+                    ]
+                }
+            }
+        ],
+        [
+            "4",
+            {
+                "resource": {
+                    "id": "custom/http-tool"
+                },
+                "attribute": {
+                    "task": "Create a document with tags",
+                    "type": "tool",
+                    "limit": 1,
+                    "start": false,
+                    "can_skipped": false
+                },
+                "data": {
+                    "body": {
+                        "title": "{{title}}",
+                        "tags": "{{tags}}"
+                    },
+                    "name": "createDocument",
+                    "method": "POST",
+                    "params": {},
+                    "headers": {
+                        "Content-Type": "application/json",
+                        "Authorization": "Bearer test-token"
+                    },
+                    "endpoint": "https://api.test.com/document",
+                    "slots": [
+                        {
+                            "name": "title",
+                            "type": "str",
+                            "prompt": "What is the title?",
+                            "schema": {
+                                "type": "function",
+                                "function": {
+                                    "name": "tool",
+                                    "parameters": {
+                                        "type": "object",
+                                        "properties": {
+                                            "title": {
+                                                "type": "string",
+                                                "prompt": "What is the title?",
+                                                "description": "Document title"
+                                            }
+                                        }
+                                    },
+                                    "description": "Tool function"
+                                }
+                            },
+                            "target": "body",
+                            "required": true,
+                            "description": "Document title"
+                        },
+                        {
+                            "name": "tags",
+                            "type": "str",
+                            "prompt": "What tags do you want to add?",
+                            "schema": {
+                                "type": "function",
+                                "function": {
+                                    "name": "tool",
+                                    "parameters": {
+                                        "type": "object",
+                                        "properties": {
+                                            "tags": {
+                                                "type": "array",
+                                                "items": {
+                                                    "type": "string"
+                                                },
+                                                "prompt": "What tags do you want to add?",
+                                                "description": "Document tags"
+                                            }
+                                        }
+                                    },
+                                    "description": "Tool function"
+                                }
+                            },
+                            "target": "body",
+                            "required": true,
+                            "repeatable": true,
+                            "description": "Document tags"
+                        }
+                    ]
+                }
+            }
+        ]
+    ],
+    "edges": [
+        [
+            "0",
+            "1",
+            {
+                "intent": "None",
+                "attribute": {
+                    "weight": 1,
+                    "pred": true,
+                    "definition": "",
+                    "sample_utterances": []
+                }
+            }
+        ],
+        [
+            "0",
+            "2",
+            {
+                "intent": "None",
+                "attribute": {
+                    "weight": 1,
+                    "pred": true,
+                    "definition": "",
+                    "sample_utterances": []
+                }
+            }
+        ],
+        [
+            "0",
+            "3",
+            {
+                "intent": "None",
+                "attribute": {
+                    "weight": 1,
+                    "pred": true,
+                    "definition": "",
+                    "sample_utterances": []
+                }
+            }
+        ],
+        [
+            "0",
+            "4",
+            {
+                "intent": "None",
+                "attribute": {
+                    "weight": 1,
+                    "pred": true,
+                    "definition": "",
+                    "sample_utterances": []
+                }
+            }
+        ]
+    ],
+    "workers": [],
+    "tools": [
+        {
+            "id": "custom/http-tool"
+        }
+    ],
+    "agents": [
+        {
+            "id": "openai-agent"
+        }
+    ]
+}
