@@ -13,6 +13,7 @@ from arklex.orchestrator.entities.orchestrator_state_entities import (
     OrchestratorState,
     StatusEnum,
 )
+from arklex.orchestrator.types.stream_types import StreamType
 from arklex.resources.tools.rag.retrievers.faiss_retriever import RetrieveEngine
 from arklex.resources.tools.utils import ToolGenerator
 from arklex.resources.workers.base.base_worker import BaseWorker
@@ -20,7 +21,6 @@ from arklex.resources.workers.faiss_rag.entities import (
     FaissRAGWorkerData,
     FaissRAGWorkerOutput,
 )
-from arklex.types.stream_types import StreamType
 from arklex.utils.logging.logging_utils import LogContext
 
 log_context = LogContext(__name__)

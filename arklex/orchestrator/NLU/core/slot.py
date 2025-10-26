@@ -14,7 +14,7 @@ The module includes:
 import json
 from typing import Any
 
-from arklex.modelss.model_service import ModelService
+from arklex.models.model_service import ModelService
 from arklex.orchestrator.nlu.entities.slot_entities import Slot
 from arklex.orchestrator.nlu.utils.formatters import (
     format_verification_input as format_verification_input_formatter,

@@ -9,7 +9,7 @@ import json
 import os
 from typing import Any
 
-from arklex.modelss.model_service import DummyModelService
+from arklex.models.model_service import DummyModelService
 from arklex.orchestrator.nlu.core.slot import SlotFiller
 from arklex.utils.logging.logging_utils import LogContext
 from tests.utils.utils import MockOrchestrator, MockResourceInitializer

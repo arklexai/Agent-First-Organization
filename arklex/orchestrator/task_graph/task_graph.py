@@ -53,7 +53,7 @@ from agents.realtime import RealtimeAgent, realtime_handoff
 from jinja2 import Template
 
 from arklex.models.llm_config import LLMConfig
-from arklex.modelss.model_service import (
+from arklex.models.model_service import (
     ModelService,
 )
 from arklex.orchestrator.entities.orchestrator_param_entities import OrchestratorParams
@@ -61,14 +61,14 @@ from arklex.orchestrator.entities.orchestrator_state_entities import (
     StatusEnum,
 )
 from arklex.orchestrator.entities.taskgraph_entities import NodeInfo, PathNode
-from arklex.orchestrator.executor.executor import DefaultResourceInitializer
 from arklex.orchestrator.nlu.core.intent import IntentDetector
-from arklex.resources.agents.entities import PromptVariable
-from arklex.resources.agents.openai_agent import OpenAIAgentData
-from arklex.resources.agents.openai_realtime_agent import (
+from arklex.resources.agents.agent.openai_agent import OpenAIAgentData
+from arklex.resources.agents.base.entities import PromptVariable
+from arklex.resources.agents.realtime_agent.openai_realtime_agent import (
     OpenAIRealtimeAgent,
     OpenAIRealtimeAgentData,
 )
+from arklex.resources.resource_loader import ResourceLoader
 from arklex.resources.resource_types import AgentItem, ResourceType, ToolItem
 from arklex.resources.tools.tools import Tool
 from arklex.utils.logging.logging_utils import LogContext
@@ -132,7 +132,7 @@ class AgentGraph(GraphBase):
         for resource in all_resources:
             resource_map[resource["id"]] = resource
 
-        resource_initializer = DefaultResourceInitializer()
+        resource_loader = ResourceLoader()
         agent_handovers: dict[str, list[str]] = collections.defaultdict(list)
         agent_data_map: dict[str, OpenAIAgentData] | None = {}
         for node in self.graph.nodes.data():
@@ -171,7 +171,7 @@ class AgentGraph(GraphBase):
                             resource_map[predecessor_node["resource"]["id"]]
                         )
                         available_nodes.append([node_id, predecessor_node])
-                tool_registry = resource_initializer.init_tools(
+                tool_registry = resource_loader.init_tools(
                     available_tools, available_nodes
                 )
                 # load resource instances
@@ -245,7 +245,7 @@ class RealtimeAgentGraph(GraphBase):
         for resource in all_resources:
             resource_map[resource["id"]] = resource
 
-        resource_initializer = DefaultResourceInitializer()
+        resource_loader = ResourceLoader()
         agent_handovers: dict[str, list[str]] = collections.defaultdict(list)
         start_agent_data: dict[str, Any] | None = None
         start_agent_name: str | None = None
@@ -288,7 +288,7 @@ class RealtimeAgentGraph(GraphBase):
                             resource_map[predecessor_node["resource"]["id"]]
                         )
                         available_nodes.append([node_id, predecessor_node])
-                tool_registry = resource_initializer.init_tools(
+                tool_registry = resource_loader.init_tools(
                     available_tools, available_nodes
                 )
                 # load resource instances

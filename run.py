@@ -17,7 +17,7 @@ from typing import Any
 from dotenv import load_dotenv
 
 from arklex.models.llm_config import LLM_PROVIDERS, LLMConfig
-from arklex.modelss.model_service import ModelService
+from arklex.models.model_service import ModelService
 from arklex.orchestrator.executor.executor import Environment
 from arklex.orchestrator.orchestrator import AgentOrg
 from arklex.utils.logging.logging_utils import LogContext

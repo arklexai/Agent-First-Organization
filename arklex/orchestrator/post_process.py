@@ -3,7 +3,7 @@ import re
 from langchain.prompts import PromptTemplate
 
 from arklex.memory.entities.memory_entities import ResourceRecord
-from arklex.modelss.model_service import ModelService
+from arklex.models.model_service import ModelService
 from arklex.orchestrator.entities.orchestrator_state_entities import OrchestratorState
 from arklex.orchestrator.executor.entities import NodeResponse
 from arklex.resources.resource_types import WorkerItem

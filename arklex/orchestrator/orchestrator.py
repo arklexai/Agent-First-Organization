@@ -9,7 +9,7 @@ from dotenv import load_dotenv
 from langchain_core.runnables import RunnableLambda
 
 from arklex.memory.entities.memory_entities import ResourceRecord
-from arklex.modelss.model_service import ModelService
+from arklex.models.model_service import ModelService
 from arklex.orchestrator.entities.orchestrator_param_entities import OrchestratorParams
 from arklex.orchestrator.entities.orchestrator_state_entities import (
     BotConfig,
@@ -27,9 +27,9 @@ from arklex.orchestrator.executor.entities import NodeResponse
 from arklex.orchestrator.executor.executor import Environment
 from arklex.orchestrator.post_process import post_process_response
 from arklex.orchestrator.task_graph.task_graph import AgentGraph, TaskGraph
+from arklex.orchestrator.types.stream_types import StreamType
 from arklex.resources.resource_types import AgentItem
 from arklex.resources.tools.utils import ToolGenerator
-from arklex.types.stream_types import StreamType
 from arklex.utils.logging.logging_utils import LogContext
 from arklex.utils.prompts import load_prompts
 from arklex.utils.utils import format_chat_history

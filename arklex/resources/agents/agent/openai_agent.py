@@ -15,9 +15,9 @@ from pydantic import BaseModel
 from arklex.orchestrator.entities.orchestrator_state_entities import (
     OrchestratorState,
 )
+from arklex.orchestrator.types.stream_types import EventType, StreamType
 from arklex.resources.agents.base.agent import BaseAgent, register_agent
 from arklex.resources.agents.base.entities import PromptVariable
-from arklex.types.stream_types import EventType, StreamType
 from arklex.utils.logging.logging_utils import LogContext
 
 log_context = LogContext(__name__)

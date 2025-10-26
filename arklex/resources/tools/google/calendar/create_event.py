@@ -6,12 +6,12 @@ from typing import Any
 from google.oauth2 import service_account
 from googleapiclient.discovery import build
 
+from arklex.orchestrator.types.stream_types import StreamType
 from arklex.resources.tools.google.calendar._exception_prompt import (
     GoogleCalendarExceptionPrompt,
 )
 from arklex.resources.tools.google.calendar.utils import AUTH_ERROR
 from arklex.resources.tools.tools import register_tool
-from arklex.types.stream_types import StreamType
 from arklex.utils.logging.exceptions import AuthenticationError, ToolExecutionError
 from arklex.utils.logging.logging_utils import LogContext
 

@@ -8,7 +8,7 @@ import uuid
 from typing import Any
 
 from arklex.models.llm_config import LLMConfig
-from arklex.modelss.model_service import ModelService
+from arklex.models.model_service import ModelService
 from arklex.orchestrator.entities.orchestrator_state_entities import OrchestratorState
 from arklex.orchestrator.entities.taskgraph_entities import NodeInfo, StatusEnum
 from arklex.orchestrator.executor.entities import NodeResponse

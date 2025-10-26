@@ -4,8 +4,8 @@ from unittest.mock import MagicMock, Mock, patch
 from arklex.resources.tools.shopify.search_products import search_products
 
 
-@patch("arklex.env.tools.shopify.search_products.shopify.Session.temp")
-@patch("arklex.env.tools.shopify.search_products.shopify.GraphQL")
+@patch("arklex.resources.tools.shopify.search_products.shopify.Session.temp")
+@patch("arklex.resources.tools.shopify.search_products.shopify.GraphQL")
 def test_search_products(mock_graphql: Mock, mock_session_temp: Mock) -> None:
     mock_session = MagicMock()
     mock_session_temp.return_value.__enter__.return_value = mock_session

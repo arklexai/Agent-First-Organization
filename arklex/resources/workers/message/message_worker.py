@@ -11,18 +11,18 @@ from typing import Any
 
 from langchain.prompts import PromptTemplate
 
-from arklex.modelss.model_service import ModelService
+from arklex.models.model_service import ModelService
 from arklex.orchestrator.entities.orchestrator_state_entities import (
     OrchestratorState,
     StatusEnum,
 )
+from arklex.orchestrator.types.stream_types import EventType, StreamType
 from arklex.resources.tools.utils import trace
 from arklex.resources.workers.base.base_worker import BaseWorker
 from arklex.resources.workers.message.entities import (
     MessageWorkerData,
     MessageWorkerOutput,
 )
-from arklex.types.stream_types import EventType, StreamType
 from arklex.utils.logging.logging_utils import LogContext
 from arklex.utils.prompts import load_prompts
 

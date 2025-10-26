@@ -13,7 +13,7 @@ The module includes:
 
 from typing import Any
 
-from arklex.modelss.model_service import ModelService
+from arklex.models.model_service import ModelService
 from arklex.utils.logging.logging_utils import LogContext
 
 log_context = LogContext(__name__)

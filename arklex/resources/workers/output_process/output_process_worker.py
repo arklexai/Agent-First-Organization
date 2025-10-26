@@ -16,12 +16,12 @@ from arklex.orchestrator.entities.orchestrator_state_entities import (
     OrchestratorState,
     StatusEnum,
 )
+from arklex.orchestrator.types.stream_types import EventType, StreamType
 from arklex.resources.workers.base.base_worker import BaseWorker
 from arklex.resources.workers.output_process.entities import (
     OutputProcessWorkerData,
     OutputProcessWorkerOutput,
 )
-from arklex.types.stream_types import EventType, StreamType
 from arklex.utils.logging.logging_utils import LogContext
 from arklex.utils.prompts import load_prompts
 

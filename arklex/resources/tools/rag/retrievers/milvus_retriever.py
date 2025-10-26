@@ -22,7 +22,7 @@ import numpy as np
 from langchain.prompts import PromptTemplate
 from pymilvus import Collection, DataType, MilvusClient, connections
 
-from arklex.modelss.model_service import ModelService
+from arklex.models.model_service import ModelService
 from arklex.resources.tools.rag.retrievers.retriever_document import (
     RetrieverDocument,
     RetrieverDocumentType,

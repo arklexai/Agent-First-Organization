@@ -12,9 +12,9 @@ import requests
 
 from arklex.resources.tools.hubspot.base.entities import HubspotAuthTokens
 from arklex.resources.tools.types import ResourceAuthGroup
+from arklex.utils.database.mysql import mysql_pool
 from arklex.utils.logging.exceptions import AuthenticationError
 from arklex.utils.logging.logging_utils import LogContext
-from arklex.utils.mysql import mysql_pool
 
 log_context = LogContext(__name__)
 # Error message for missing HubSpot authentication parameters

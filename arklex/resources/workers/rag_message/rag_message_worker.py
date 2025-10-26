@@ -11,11 +11,12 @@ from typing import Any
 
 from langchain.prompts import PromptTemplate
 
-from arklex.modelss.model_service import ModelService
+from arklex.models.model_service import ModelService
 from arklex.orchestrator.entities.orchestrator_state_entities import (
     OrchestratorState,
     StatusEnum,
 )
+from arklex.orchestrator.types.stream_types import EventType, StreamType
 from arklex.resources.tools.rag.retrievers.milvus_retriever import (
     MilvusRetrieverExecutor,
 )
@@ -25,7 +26,6 @@ from arklex.resources.workers.rag_message.entities import (
     RAGMessageWorkerData,
     RAGMessageWorkerOutput,
 )
-from arklex.types.stream_types import EventType, StreamType
 from arklex.utils.logging.logging_utils import LogContext
 from arklex.utils.prompts import load_prompts
 

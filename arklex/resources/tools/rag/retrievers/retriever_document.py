@@ -18,9 +18,9 @@ import tiktoken
 from langchain.text_splitter import RecursiveCharacterTextSplitter
 from openai import OpenAI
 
+from arklex.utils.database.mysql import mysql_pool
 from arklex.utils.database.redis import redis_pool
 from arklex.utils.logging.logging_utils import LogContext
-from arklex.utils.mysql import mysql_pool
 
 DEFAULT_CHUNK_ENCODING = "cl100k_base"
 EMBEDDING_CACHE_TTL = int(

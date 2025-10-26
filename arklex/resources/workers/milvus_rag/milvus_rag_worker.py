@@ -13,6 +13,7 @@ from arklex.orchestrator.entities.orchestrator_state_entities import (
     OrchestratorState,
     StatusEnum,
 )
+from arklex.orchestrator.types.stream_types import StreamType
 from arklex.resources.tools.rag.retrievers.milvus_retriever import (
     MilvusRetrieverExecutor,
 )
@@ -22,7 +23,6 @@ from arklex.resources.workers.milvus_rag.entities import (
     MilvusRAGWorkerData,
     MilvusRAGWorkerOutput,
 )
-from arklex.types.stream_types import StreamType
 from arklex.utils.logging.logging_utils import LogContext
 
 log_context = LogContext(__name__)

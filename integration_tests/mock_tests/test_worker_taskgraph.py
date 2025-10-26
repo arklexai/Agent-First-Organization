@@ -71,7 +71,7 @@ def create_mock_llm() -> MagicMock:
     return mock_llm
 
 
-@patch("arklex.orchestrator.NLU.services.model_service.load_llm")
+@patch("arklex.models.model_service.load_llm")
 async def test_workers(mock_load_llm: MagicMock) -> None:
     # Configure load_llm to return our mock LLM
     mock_load_llm.return_value = create_mock_llm()

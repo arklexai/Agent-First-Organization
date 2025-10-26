@@ -15,7 +15,7 @@ import shopify
 from pydantic import BaseModel
 
 from arklex.models.llm_config import LLMConfig
-from arklex.modelss.model_service import ModelService
+from arklex.models.model_service import ModelService
 from arklex.resources.tools.shopify._exception_prompt import ShopifyExceptionPrompt
 from arklex.resources.tools.shopify.base.entities import ShopifyAdminAuth
 from arklex.resources.tools.shopify.legacy.utils_nav import cursorify
