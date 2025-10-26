@@ -14,7 +14,7 @@ from os.path import abspath, dirname
 from typing import Any
 
 sys.path.insert(0, dirname(dirname(abspath(__file__))))
-from arklex.resources.RAG.loader import CrawledObject, Loader, SourceType
+from arklex.resources.tools.rag.loader import CrawledObject, Loader, SourceType
 
 
 def get_domain_info(documents: list[dict[str, str]]) -> str | None:

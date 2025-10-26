@@ -22,7 +22,7 @@ from arklex.utils.logging.logging_utils import LogContext
 log_context = LogContext(__name__)
 
 
-class Environment:
+class Executor:
     """Environment management for workers and tools.
 
     This class manages the environment for workers and tools, including

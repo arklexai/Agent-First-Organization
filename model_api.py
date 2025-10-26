@@ -16,7 +16,7 @@ import uvicorn
 from fastapi import FastAPI
 
 from arklex.models.llm_config import LLM_PROVIDERS
-from arklex.orchestrator.executor.executor import Environment
+from arklex.orchestrator.executor.executor import Executor
 from arklex.orchestrator.orchestrator import AgentOrg
 from arklex.utils.logging.logging_utils import LogContext
 from arklex.utils.model_config import MODEL
@@ -37,7 +37,7 @@ def get_api_bot_response(
     history: list[dict[str, str]],
     user_text: str,
     parameters: dict[str, Any],
-    env: Environment,
+    env: Executor,
 ) -> tuple[str, dict[str, Any]]:
     """Get a response from the bot based on the provided input.
 
@@ -105,8 +105,17 @@ def predict(data: dict[str, Any]) -> dict[str, Any]:
     user_text: str = history[-1]["content"]
 
     # Initialize environment with provided workers and tools
-    env: Environment = Environment(
-        tools=tools, workers=workers, agents=[], slotsfillapi=""
+    # Note: This endpoint uses a simplified initialization
+    # In a real scenario, you may need to pass proper nodes and llm_config
+    from arklex.models.llm_config import LLMConfig
+    from arklex.utils.model_config import MODEL
+
+    env: Executor = Executor(
+        tools=tools,
+        workers=workers,
+        agents=[],
+        nodes=[],
+        llm_config=LLMConfig.model_validate(MODEL),
     )
 
     # Get bot response using the orchestrator

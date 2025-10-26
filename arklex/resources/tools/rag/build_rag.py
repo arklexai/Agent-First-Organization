@@ -6,7 +6,7 @@ import zipfile
 from pathlib import Path
 from typing import Any
 
-from arklex.resources.RAG.loader import Loader
+from arklex.resources.tools.rag.loader import Loader
 from arklex.utils.logging.logging_utils import LogContext
 
 log_context = LogContext(__name__)

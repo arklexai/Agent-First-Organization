@@ -460,21 +460,18 @@ class MockOrchestrator(ABC):
             # Store the mocked LLM
             self.llm = MockLLM()
 
-        # Patch Environment to use mocked ReactPlanner
-        from arklex.orchestrator.executor.executor import Environment
+        # Patch Executor to use mocked ReactPlanner
+        from arklex.orchestrator.executor.executor import Executor
 
-        orig_env_init = Environment.__init__
+        orig_env_init = Executor.__init__
 
         def patched_env_init(
             self: object,
             tools: list[dict[str, Any]],
             workers: list[dict[str, Any]],
-            agents: list[dict[str, Any]] | None = None,
-            slotsfillapi: str = "",
-            resource_initializer: object | None = None,
-            planner_enabled: bool = False,
-            model_service: object | None = None,
-            **kwargs: str | int | float | bool | None,
+            agents: list[dict[str, Any]],
+            nodes: list[dict[str, Any]],
+            llm_config: object,
         ) -> None:
             # Call the original init
             orig_env_init(
@@ -482,34 +479,9 @@ class MockOrchestrator(ABC):
                 tools,
                 workers,
                 agents,
-                slotsfillapi,
-                resource_initializer,
-                planner_enabled,
-                model_service,
-                **kwargs,
+                nodes,
+                llm_config,
             )
-
-            # If planner is enabled, create a mock planner
-            if planner_enabled:
-                # Create a mock planner that doesn't make API calls
-                class MockPlanner:
-                    def __init__(self, *args: object, **kwargs: object) -> None:
-                        pass
-
-                    def set_llm_config_and_build_resource_library(
-                        self, llm_config: object
-                    ) -> None:
-                        # Mock implementation - just store the config
-                        self.llm_config = llm_config
-
-                    def execute(self, msg_state: object, msg_history: object) -> object:
-                        # Return a mock action
-                        return (
-                            "mock_action",
-                            {"status": "complete", "response": "Mock planner response"},
-                        )
-
-                self.planner = MockPlanner()
 
         # Patch AgentOrg to mock the LLM initialization
         from arklex.orchestrator.orchestrator import AgentOrg
@@ -553,7 +525,10 @@ class MockOrchestrator(ABC):
                 "arklex.orchestrator.task_graph.task_graph.TaskGraph.__init__",
                 patched_taskgraph_init,
             ),
-            patch("arklex.env.env.Environment.__init__", patched_env_init),
+            patch(
+                "arklex.orchestrator.executor.executor.Executor.__init__",
+                patched_env_init,
+            ),
             patch(
                 "arklex.orchestrator.orchestrator.AgentOrg.__init__",
                 patched_agentorg_init,

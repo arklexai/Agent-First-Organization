@@ -19,8 +19,8 @@ from dotenv import load_dotenv
 
 from arklex.models.llm_config import LLM_PROVIDERS, LLMConfig, load_llm
 from arklex.orchestrator.generator.generator import Generator
-from arklex.resources.RAG.loader import Loader
 from arklex.resources.tools.rag.build_rag import build_rag
+from arklex.resources.tools.rag.loader import Loader
 from arklex.utils.logging.logging_utils import LogContext
 
 log_context = LogContext(__name__)

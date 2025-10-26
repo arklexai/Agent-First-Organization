@@ -24,7 +24,7 @@ from arklex.orchestrator.entities.taskgraph_entities import (
     PathNode,
 )
 from arklex.orchestrator.executor.entities import NodeResponse
-from arklex.orchestrator.executor.executor import Environment
+from arklex.orchestrator.executor.executor import Executor
 from arklex.orchestrator.post_process import post_process_response
 from arklex.orchestrator.task_graph.task_graph import AgentGraph, TaskGraph
 from arklex.orchestrator.types.stream_types import StreamType
@@ -50,13 +50,13 @@ class AgentOrg:
         product_kwargs (Dict[str, Any]): Configuration settings
         llm_config (LLMConfig): Language model configuration
         task_graph (TaskGraph): Task graph for conversation flow
-        env (Environment): Environment with tools and workers
+        executor (Executor): Executor with tools and workers
     """
 
     def __init__(
         self,
         config: str | dict[str, Any],
-        env: Environment | None,
+        executor: Executor | None,
     ) -> None:
         """Initialize the AgentOrg orchestrator.
 
@@ -66,7 +66,7 @@ class AgentOrg:
         Args:
             config (Union[str, Dict[str, Any]]): Configuration file path or dictionary containing
                 product settings, model configuration, and other parameters.
-            env (Environment): Environment object containing tools, workers, and other resources.
+            executor (Executor): Executor object containing tools, workers, and other resources.
             **kwargs (Any): Additional keyword arguments for customization.
         """
         self.user_prefix: str = "user"
@@ -80,7 +80,7 @@ class AgentOrg:
             self.product_kwargs.get("model")
         )
         self.model_service: ModelService = ModelService(self.llm_config)
-        self.env: Environment = env
+        self.executor: Executor = executor
         self.task_graph: TaskGraph = TaskGraph(
             "taskgraph",
             self.product_kwargs,
@@ -264,7 +264,7 @@ class AgentOrg:
         orch_state.message_queue = message_queue
         # Execute the node
         response_state: OrchestratorState
-        response_state, node_response = self.env.step(
+        response_state, node_response = self.executor.step(
             node_info.resource["id"],
             orch_state,
             node_info,
@@ -390,7 +390,7 @@ class AgentOrg:
             openai_agents_trajectory=orch_state_params.memory.openai_agents_trajectory.copy(),
         )
         # agent instance initialization
-        agent_cls = self.env.agents[AgentItem.OPENAI_AGENT]["agent_instance"]
+        agent_cls = self.executor.agents[AgentItem.OPENAI_AGENT]["agent_instance"]
         if not orch_state_params.agentgraph.current_agent:
             agent_name = self.agent_graph.start_agent_name
         else:

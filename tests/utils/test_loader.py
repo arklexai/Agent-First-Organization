@@ -12,7 +12,7 @@ from unittest.mock import Mock, PropertyMock, mock_open, patch
 
 import requests
 
-from arklex.resources.RAG.loader import (
+from arklex.resources.tools.rag.loader import (
     CrawledObject,
     DocObject,
     Loader,
@@ -698,7 +698,7 @@ class TestLoader:
         mock_path.suffix = ".unsupported"
         mock_path.name = "test.unsupported"
 
-        with patch("arklex.utils.loader.Path", return_value=mock_path):
+        with patch("arklex.resources.tools.rag.loader.Path", return_value=mock_path):
             result = loader.crawl_file(local_obj)
             # Should return CrawledObject with error for unsupported file type
             assert isinstance(result, CrawledObject)
@@ -717,7 +717,7 @@ class TestLoader:
         mock_path.suffix = ""
         mock_path.name = "test"
 
-        with patch("arklex.utils.loader.Path", return_value=mock_path):
+        with patch("arklex.resources.tools.rag.loader.Path", return_value=mock_path):
             result = loader.crawl_file(local_obj)
             # Should return CrawledObject with error for missing file type
             assert isinstance(result, CrawledObject)
@@ -727,7 +727,7 @@ class TestLoader:
     def test_crawl_file_with_unsupported_file_type(self) -> None:
         loader = Loader()
 
-        with patch("arklex.utils.loader.Path") as mock_path:
+        with patch("arklex.resources.tools.rag.loader.Path") as mock_path:
             # Mock the Path class itself to have _flavour attribute
             mock_path._flavour = Mock()
             mock_path_instance = Mock()
@@ -737,7 +737,7 @@ class TestLoader:
             mock_path_instance._flavour = Mock()
             mock_path.return_value = mock_path_instance
 
-            with patch("arklex.utils.loader.MISTRAL_API_KEY", None):
+            with patch("arklex.resources.tools.rag.loader.MISTRAL_API_KEY", None):
                 result = loader.crawl_file(DocObject("test_id", "testfile.xyz"))
 
                 assert result.is_error is True
@@ -746,7 +746,7 @@ class TestLoader:
     def test_crawl_file_with_mistral_api_key_not_set(self) -> None:
         loader = Loader()
 
-        with patch("arklex.utils.loader.Path") as mock_path:
+        with patch("arklex.resources.tools.rag.loader.Path") as mock_path:
             # Mock the Path class itself to have _flavour attribute
             mock_path._flavour = Mock()
             mock_path_instance = Mock()
@@ -757,7 +757,7 @@ class TestLoader:
             mock_path_instance._flavour = Mock()
             mock_path.return_value = mock_path_instance
 
-            with patch("arklex.utils.loader.MISTRAL_API_KEY", None):
+            with patch("arklex.resources.tools.rag.loader.MISTRAL_API_KEY", None):
                 result = loader.crawl_file(DocObject("test_id", "testfile.pdf"))
 
                 assert result.is_error is True
@@ -767,7 +767,7 @@ class TestLoader:
     def test_crawl_file_with_mistral_api_key_default_value(self) -> None:
         loader = Loader()
 
-        with patch("arklex.utils.loader.Path") as mock_path:
+        with patch("arklex.resources.tools.rag.loader.Path") as mock_path:
             # Mock the Path class itself to have _flavour attribute
             mock_path._flavour = Mock()
             mock_path_instance = Mock()
@@ -778,7 +778,10 @@ class TestLoader:
             mock_path_instance._flavour = Mock()
             mock_path.return_value = mock_path_instance
 
-            with patch("arklex.utils.loader.MISTRAL_API_KEY", "<your-mistral-api-key>"):
+            with patch(
+                "arklex.resources.tools.rag.loader.MISTRAL_API_KEY",
+                "<your-mistral-api-key>",
+            ):
                 result = loader.crawl_file(DocObject("test_id", "testfile.pdf"))
 
                 assert result.is_error is True
@@ -947,9 +950,12 @@ class TestLoader:
             mock_ocr_response.pages = [mock_page]
             with (
                 patch.dict(os.environ, {"MISTRAL_API_KEY": "test-key"}),
-                patch("arklex.utils.loader.Mistral", return_value=mock_client),
                 patch(
-                    "arklex.utils.loader.MISTRAL_API_KEY", "test-key"
+                    "arklex.resources.tools.rag.loader.Mistral",
+                    return_value=mock_client,
+                ),
+                patch(
+                    "arklex.resources.tools.rag.loader.MISTRAL_API_KEY", "test-key"
                 ),  # Patch the global
             ):
                 mock_client.files.upload.return_value = mock_file
@@ -979,10 +985,16 @@ class TestLoader:
             mock_ocr_response.pages = [mock_page]
             with (
                 patch.dict(os.environ, {"MISTRAL_API_KEY": "test-key"}),
-                patch("arklex.utils.loader.Mistral", return_value=mock_client),
-                patch("arklex.utils.loader.encode_image", return_value="base64data"),
                 patch(
-                    "arklex.utils.loader.MISTRAL_API_KEY", "test-key"
+                    "arklex.resources.tools.rag.loader.Mistral",
+                    return_value=mock_client,
+                ),
+                patch(
+                    "arklex.resources.tools.rag.loader.encode_image",
+                    return_value="base64data",
+                ),
+                patch(
+                    "arklex.resources.tools.rag.loader.MISTRAL_API_KEY", "test-key"
                 ),  # Patch the global
             ):
                 mock_client.ocr.process.return_value = mock_ocr_response
@@ -1011,8 +1023,13 @@ class TestLoader:
             mock_loader.load.return_value = [mock_document]
             with (
                 patch.dict(os.environ, {"MISTRAL_API_KEY": ""}),  # Must be a string
-                patch("arklex.utils.loader.PyPDFLoader", return_value=mock_loader),
-                patch("arklex.utils.loader.MISTRAL_API_KEY", None),  # Patch the global
+                patch(
+                    "arklex.resources.tools.rag.loader.PyPDFLoader",
+                    return_value=mock_loader,
+                ),
+                patch(
+                    "arklex.resources.tools.rag.loader.MISTRAL_API_KEY", None
+                ),  # Patch the global
             ):
                 result = loader.crawl_file(local_obj)
                 # If the patching works, this should succeed
@@ -1299,7 +1316,7 @@ class TestLoader:
             mock_time.side_effect = [100 + i for i in range(50)]
 
             # Mock selenium webdriver
-            with patch("arklex.utils.loader.webdriver") as mock_webdriver:
+            with patch("arklex.resources.tools.rag.loader.webdriver") as mock_webdriver:
                 mock_driver = Mock()
                 mock_webdriver.Chrome.return_value = mock_driver
 
@@ -1310,7 +1327,9 @@ class TestLoader:
                 type(mock_driver).page_source = page_source_prop
 
                 # Mock BeautifulSoup to return a simple soup object
-                with patch("arklex.utils.loader.BeautifulSoup") as mock_bs:
+                with patch(
+                    "arklex.resources.tools.rag.loader.BeautifulSoup"
+                ) as mock_bs:
                     mock_soup = Mock()
                     mock_soup.get_text.return_value = "Test content"
                     mock_bs.return_value = mock_soup
@@ -1336,7 +1355,7 @@ class TestLoader:
             mock_time.side_effect = [100 + i for i in range(50)]
 
             # Mock selenium webdriver
-            with patch("arklex.utils.loader.webdriver") as mock_webdriver:
+            with patch("arklex.resources.tools.rag.loader.webdriver") as mock_webdriver:
                 mock_driver = Mock()
                 mock_webdriver.Chrome.return_value = mock_driver
 
@@ -1350,7 +1369,9 @@ class TestLoader:
                 type(mock_driver).page_source = page_source_prop
 
                 # Mock BeautifulSoup to properly handle iteration
-                with patch("arklex.utils.loader.BeautifulSoup") as mock_bs:
+                with patch(
+                    "arklex.resources.tools.rag.loader.BeautifulSoup"
+                ) as mock_bs:
                     mock_soup = Mock()
                     # Create mock string objects that have find_parent method
                     mock_string = Mock()
@@ -1390,13 +1411,15 @@ class TestLoader:
             ]
 
             # Mock selenium webdriver
-            with patch("arklex.utils.loader.webdriver") as mock_webdriver:
+            with patch("arklex.resources.tools.rag.loader.webdriver") as mock_webdriver:
                 mock_driver = Mock()
                 mock_webdriver.Chrome.return_value = mock_driver
                 mock_driver.page_source = "<html><body>Test content</body></html>"
 
                 # Mock BeautifulSoup
-                with patch("arklex.utils.loader.BeautifulSoup") as mock_bs:
+                with patch(
+                    "arklex.resources.tools.rag.loader.BeautifulSoup"
+                ) as mock_bs:
                     mock_soup = Mock()
                     mock_soup.get_text.return_value = "Test content"
                     mock_bs.return_value = mock_soup
@@ -1417,7 +1440,7 @@ class TestLoader:
 
         with (
             patch("requests.get") as mock_get,
-            patch("arklex.utils.loader.log_context"),
+            patch("arklex.resources.tools.rag.loader.log_context"),
         ):
             mock_response = Mock()
             mock_response.status_code = 200
@@ -1471,12 +1494,12 @@ class TestLoader:
         local_obj = DocObject("test_id", "test_image.jpg")
 
         with (
-            patch("arklex.utils.loader.Path") as mock_path_class,
+            patch("arklex.resources.tools.rag.loader.Path") as mock_path_class,
             patch("builtins.open", mock_open(read_data=b"fake image data")),
-            patch("arklex.utils.loader.encode_image") as mock_encode,
-            patch("arklex.utils.loader.MISTRAL_API_KEY", "test_key"),
-            patch("arklex.utils.loader.Mistral") as mock_mistral,
-            patch("arklex.utils.loader.log_context"),
+            patch("arklex.resources.tools.rag.loader.encode_image") as mock_encode,
+            patch("arklex.resources.tools.rag.loader.MISTRAL_API_KEY", "test_key"),
+            patch("arklex.resources.tools.rag.loader.Mistral") as mock_mistral,
+            patch("arklex.resources.tools.rag.loader.log_context"),
         ):
             mock_path_instance = Mock()
             mock_path_instance.suffix = ".jpg"
@@ -1505,11 +1528,11 @@ class TestLoader:
         local_obj = DocObject("test_id", "test_doc.pdf")
 
         with (
-            patch("arklex.utils.loader.Path") as mock_path_class,
+            patch("arklex.resources.tools.rag.loader.Path") as mock_path_class,
             patch("builtins.open", mock_open(read_data=b"fake pdf data")),
-            patch("arklex.utils.loader.MISTRAL_API_KEY", "test_key"),
-            patch("arklex.utils.loader.Mistral") as mock_mistral,
-            patch("arklex.utils.loader.log_context"),
+            patch("arklex.resources.tools.rag.loader.MISTRAL_API_KEY", "test_key"),
+            patch("arklex.resources.tools.rag.loader.Mistral") as mock_mistral,
+            patch("arklex.resources.tools.rag.loader.log_context"),
         ):
             mock_path_instance = Mock()
             mock_path_instance.suffix = ".pdf"
@@ -1543,7 +1566,7 @@ class TestLoader:
         loader = Loader()
         local_obj = DocObject("test_id", "test.html")
 
-        with patch("arklex.utils.loader.Path") as mock_path_class:
+        with patch("arklex.resources.tools.rag.loader.Path") as mock_path_class:
             mock_path_instance = Mock()
             mock_path_instance.suffix = ".html"
             mock_path_instance.name = "test.html"
@@ -1564,7 +1587,9 @@ class TestLoader:
                 from bs4 import BeautifulSoup
 
                 soup = BeautifulSoup(html_content, "html.parser")
-                with patch("arklex.utils.loader.BeautifulSoup", return_value=soup):
+                with patch(
+                    "arklex.resources.tools.rag.loader.BeautifulSoup", return_value=soup
+                ):
                     result = loader.crawl_file(local_obj)
                     assert result.id == "test_id"
                     assert (
@@ -1592,9 +1617,9 @@ class TestLoader:
 
         with (
             patch(
-                "arklex.utils.loader.RecursiveCharacterTextSplitter"
+                "arklex.resources.tools.rag.loader.RecursiveCharacterTextSplitter"
             ) as mock_splitter,
-            patch("arklex.utils.loader.log_context"),
+            patch("arklex.resources.tools.rag.loader.log_context"),
         ):
             mock_splitter_instance = Mock()
             mock_splitter.from_tiktoken_encoder.return_value = mock_splitter_instance
@@ -1622,9 +1647,9 @@ class TestLoader:
 
         with (
             patch(
-                "arklex.utils.loader.RecursiveCharacterTextSplitter"
+                "arklex.resources.tools.rag.loader.RecursiveCharacterTextSplitter"
             ) as mock_splitter,
-            patch("arklex.utils.loader.log_context"),
+            patch("arklex.resources.tools.rag.loader.log_context"),
         ):
             mock_splitter_instance = Mock()
             mock_splitter.from_tiktoken_encoder.return_value = mock_splitter_instance
@@ -1649,8 +1674,8 @@ class TestLoader:
         local_obj = DocObject("test_id", "testfile")
 
         with (
-            patch("arklex.utils.loader.Path") as mock_path_class,
-            patch("arklex.utils.loader.log_context"),
+            patch("arklex.resources.tools.rag.loader.Path") as mock_path_class,
+            patch("arklex.resources.tools.rag.loader.log_context"),
         ):
             mock_path_instance = Mock()
             mock_path_instance.suffix = ""
@@ -1667,10 +1692,13 @@ class TestLoader:
         local_obj = DocObject("test_id", "test.pdf")
 
         with (
-            patch("arklex.utils.loader.Path") as mock_path_class,
-            patch("arklex.utils.loader.MISTRAL_API_KEY", "<your-mistral-api-key>"),
-            patch("arklex.utils.loader.PyPDFLoader") as mock_pdf_loader,
-            patch("arklex.utils.loader.log_context"),
+            patch("arklex.resources.tools.rag.loader.Path") as mock_path_class,
+            patch(
+                "arklex.resources.tools.rag.loader.MISTRAL_API_KEY",
+                "<your-mistral-api-key>",
+            ),
+            patch("arklex.resources.tools.rag.loader.PyPDFLoader") as mock_pdf_loader,
+            patch("arklex.resources.tools.rag.loader.log_context"),
         ):
             mock_path_instance = Mock()
             mock_path_instance.suffix = ".pdf"
@@ -1705,10 +1733,12 @@ class TestLoader:
             local_obj = DocObject("test_id", filename)
 
             with (
-                patch("arklex.utils.loader.Path") as mock_path_class,
-                patch(f"arklex.utils.loader.{loader_class}") as mock_loader_class,
-                patch("arklex.utils.loader.MISTRAL_API_KEY", None),
-                patch("arklex.utils.loader.log_context"),
+                patch("arklex.resources.tools.rag.loader.Path") as mock_path_class,
+                patch(
+                    f"arklex.resources.tools.rag.loader.{loader_class}"
+                ) as mock_loader_class,
+                patch("arklex.resources.tools.rag.loader.MISTRAL_API_KEY", None),
+                patch("arklex.resources.tools.rag.loader.log_context"),
             ):
                 mock_path_instance = Mock()
                 mock_path_instance.suffix = "." + filename.split(".")[1]
@@ -1734,10 +1764,10 @@ class TestLoader:
         local_obj = DocObject("test_id", "test.txt")
 
         with (
-            patch("arklex.utils.loader.Path") as mock_path_class,
-            patch("arklex.utils.loader.MISTRAL_API_KEY", None),
-            patch("arklex.utils.loader.TextLoader") as mock_loader_class,
-            patch("arklex.utils.loader.log_context"),
+            patch("arklex.resources.tools.rag.loader.Path") as mock_path_class,
+            patch("arklex.resources.tools.rag.loader.MISTRAL_API_KEY", None),
+            patch("arklex.resources.tools.rag.loader.TextLoader") as mock_loader_class,
+            patch("arklex.resources.tools.rag.loader.log_context"),
         ):
             mock_path_instance = Mock()
             mock_path_instance.suffix = ".txt"
@@ -1996,7 +2026,7 @@ class TestLoader:
 
             # Mock urljoin to raise an exception when processing links
             with patch(
-                "arklex.utils.loader.urljoin",
+                "arklex.resources.tools.rag.loader.urljoin",
                 side_effect=Exception("Link processing error"),
             ):
                 # Execute the method - should handle the exception gracefully

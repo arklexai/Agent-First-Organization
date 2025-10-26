@@ -282,7 +282,7 @@ def test_json_formatter_without_exception() -> None:
 def test_json_formatter_socket_error() -> None:
     """Test JSONFormatter when socket.gethostname() fails."""
     with patch(
-        "arklex.utils.logging_config.socket.gethostname",
+        "arklex.utils.logging.logging_config.socket.gethostname",
         side_effect=OSError("Network error"),
     ):
         formatter = JSONFormatter()

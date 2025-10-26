@@ -1,4 +1,4 @@
-"""Tests for arklex.env.tools.shopify.get_cart module."""
+"""Tests for arklex.resources.tools.shopify.get_cart module."""
 
 import os
 from unittest.mock import MagicMock, Mock, patch
@@ -26,7 +26,7 @@ class TestGetCart:
         if "ARKLEX_TEST_ENV" in os.environ:
             del os.environ["ARKLEX_TEST_ENV"]
 
-    @patch("arklex.env.tools.shopify.get_cart.requests.post")
+    @patch("arklex.resources.tools.shopify.get_cart.requests.post")
     def test_get_cart_success(self, mock_post: Mock) -> None:
         """Test successful cart retrieval."""
         # Setup mock response
@@ -71,7 +71,7 @@ class TestGetCart:
         # Verify result
         assert "Test Product" in result.message_flow
 
-    @patch("arklex.env.tools.shopify.get_cart.requests.post")
+    @patch("arklex.resources.tools.shopify.get_cart.requests.post")
     def test_get_cart_not_found(self, mock_post: Mock) -> None:
         """Test cart retrieval when cart is not found."""
         # Setup mock response for cart not found
@@ -93,7 +93,7 @@ class TestGetCart:
 
         assert "Tool get_cart execution failed" in str(exc_info.value)
 
-    @patch("arklex.env.tools.shopify.get_cart.requests.post")
+    @patch("arklex.resources.tools.shopify.get_cart.requests.post")
     def test_get_cart_with_http_error(self, mock_post: Mock) -> None:
         """Test cart retrieval when HTTP request fails."""
         # Setup mock response with non-200 status code
@@ -115,7 +115,7 @@ class TestGetCart:
 
         assert "Tool get_cart execution failed" in str(exc_info.value)
 
-    @patch("arklex.env.tools.shopify.get_cart.requests.post")
+    @patch("arklex.resources.tools.shopify.get_cart.requests.post")
     def test_get_cart_with_request_exception(self, mock_post: Mock) -> None:
         """Test cart retrieval when requests.post raises an exception."""
         # Setup mock to raise exception
@@ -134,7 +134,7 @@ class TestGetCart:
 
         assert "Tool get_cart execution failed" in str(exc_info.value)
 
-    @patch("arklex.env.tools.shopify.get_cart.requests.post")
+    @patch("arklex.resources.tools.shopify.get_cart.requests.post")
     def test_get_cart_with_empty_cart(self, mock_post: Mock) -> None:
         """Test cart retrieval with empty cart (no line items)."""
         # Setup mock response with empty cart lines
@@ -177,7 +177,7 @@ class TestGetCart:
         assert "Product ID:" not in result.message_flow
         assert "Product Title:" not in result.message_flow
 
-    @patch("arklex.env.tools.shopify.get_cart.requests.post")
+    @patch("arklex.resources.tools.shopify.get_cart.requests.post")
     def test_get_cart_with_missing_product_info(self, mock_post: Mock) -> None:
         """Test cart retrieval when line items are missing product information."""
         # Setup mock response with missing product info
@@ -230,7 +230,7 @@ class TestGetCart:
         assert "Product ID:" not in result.message_flow
         assert "Product Title:" not in result.message_flow
 
-    @patch("arklex.env.tools.shopify.get_cart.requests.post")
+    @patch("arklex.resources.tools.shopify.get_cart.requests.post")
     def test_get_cart_with_missing_data_key(self, mock_post: Mock) -> None:
         """Test cart retrieval when response is missing 'data' key."""
         # Setup mock response with missing data key
@@ -257,7 +257,7 @@ class TestGetCart:
 
         assert "Tool get_cart execution failed" in str(exc_info.value)
 
-    @patch("arklex.env.tools.shopify.get_cart.requests.post")
+    @patch("arklex.resources.tools.shopify.get_cart.requests.post")
     def test_get_cart_with_missing_cart_key(self, mock_post: Mock) -> None:
         """Test cart retrieval when response is missing 'cart' key."""
         # Setup mock response with missing cart key
@@ -281,7 +281,7 @@ class TestGetCart:
 
         assert "Tool get_cart execution failed" in str(exc_info.value)
 
-    @patch("arklex.env.tools.shopify.get_cart.requests.post")
+    @patch("arklex.resources.tools.shopify.get_cart.requests.post")
     def test_get_cart_with_pagination_parameters(self, mock_post: Mock) -> None:
         """Test cart retrieval with pagination parameters."""
         # Setup mock response
@@ -369,7 +369,7 @@ class TestGetCart:
         assert "cart_id" in sig.parameters
         assert "kwargs" in sig.parameters
 
-    @patch("arklex.env.tools.shopify.get_cart.requests.post")
+    @patch("arklex.resources.tools.shopify.get_cart.requests.post")
     def test_get_cart_with_malformed_lines_data(self, mock_post: Mock) -> None:
         """Test cart retrieval when lines data is malformed."""
         # Setup mock response with malformed lines data
@@ -399,7 +399,7 @@ class TestGetCart:
 
         assert "Tool get_cart execution failed" in str(exc_info.value)
 
-    @patch("arklex.env.tools.shopify.get_cart.requests.post")
+    @patch("arklex.resources.tools.shopify.get_cart.requests.post")
     def test_get_cart_with_missing_lines_key(self, mock_post: Mock) -> None:
         """Test cart retrieval when cart is missing 'lines' key."""
         # Setup mock response with missing lines key
@@ -429,7 +429,7 @@ class TestGetCart:
 
         assert "Tool get_cart execution failed" in str(exc_info.value)
 
-    @patch("arklex.env.tools.shopify.get_cart.requests.post")
+    @patch("arklex.resources.tools.shopify.get_cart.requests.post")
     def test_get_cart_with_json_parsing_error(self, mock_post: Mock) -> None:
         """Test cart retrieval when JSON parsing fails."""
         # Setup mock response that raises exception on json() call
@@ -451,7 +451,7 @@ class TestGetCart:
 
         assert "Tool get_cart execution failed" in str(exc_info.value)
 
-    @patch("arklex.env.tools.shopify.get_cart.requests.post")
+    @patch("arklex.resources.tools.shopify.get_cart.requests.post")
     def test_get_cart_with_lines_not_dict(self, mock_post: Mock) -> None:
         """Test cart retrieval when lines is not a dictionary."""
         # Setup mock response with lines as a string instead of dict
@@ -481,7 +481,7 @@ class TestGetCart:
 
         assert "Tool get_cart execution failed" in str(exc_info.value)
 
-    @patch("arklex.env.tools.shopify.get_cart.requests.post")
+    @patch("arklex.resources.tools.shopify.get_cart.requests.post")
     def test_get_cart_with_lines_missing_nodes(self, mock_post: Mock) -> None:
         """Test cart retrieval when lines dict is missing 'nodes' key."""
         # Setup mock response with lines dict missing nodes
@@ -519,7 +519,7 @@ class TestGetCart:
 
         assert "Tool get_cart execution failed" in str(exc_info.value)
 
-    @patch("arklex.env.tools.shopify.get_cart.requests.post")
+    @patch("arklex.resources.tools.shopify.get_cart.requests.post")
     def test_get_cart_with_partial_product_info(self, mock_post: Mock) -> None:
         """Test cart retrieval when product info is partially missing."""
         # Setup mock response with partial product info
@@ -582,7 +582,7 @@ class TestGetCart:
 
         assert "title" in str(exc_info.value)
 
-    @patch("arklex.env.tools.shopify.get_cart.requests.post")
+    @patch("arklex.resources.tools.shopify.get_cart.requests.post")
     def test_get_cart_with_prev_navigation(self, mock_post: Mock) -> None:
         """Test cart retrieval with previous navigation."""
         # Setup mock response
@@ -648,7 +648,7 @@ class TestGetCart:
         assert "last: 5" in query
         assert 'before: "cursor1"' in query
 
-    @patch("arklex.env.tools.shopify.get_cart.requests.post")
+    @patch("arklex.resources.tools.shopify.get_cart.requests.post")
     def test_get_cart_with_stay_navigation(self, mock_post: Mock) -> None:
         """Test cart retrieval with stay navigation (default)."""
         # Setup mock response
@@ -714,7 +714,7 @@ class TestGetCart:
 
     def test_get_cart_module_imports(self) -> None:
         """Test that all required modules are properly imported."""
-        import arklex.env.tools.shopify.get_cart as get_cart_module
+        import arklex.resources.tools.shopify.get_cart as get_cart_module
 
         # Verify all required imports are available
         assert hasattr(get_cart_module, "inspect")
