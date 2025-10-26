@@ -20,7 +20,7 @@ Features:
 - Integration with LangChain document format
 
 Usage:
-    from arklex.utils.loaders.base import Loader
+    from arklex.resources.RAG.loaders.base import Loader
 
     class CustomLoader(Loader):
         def load(self, filepath: str) -> List[Document]:

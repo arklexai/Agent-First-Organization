@@ -60,7 +60,7 @@ class TestMainApplication:
     @pytest.mark.asyncio
     async def test_arklex_exception_handler_authentication_error(self) -> None:
         """Test arklex exception handler with authentication error."""
-        from arklex.utils.exceptions import AuthenticationError
+        from arklex.utils.logging.exceptions import AuthenticationError
 
         mock_request = Mock()
         mock_request.state.request_id = "test-request-id"
@@ -79,7 +79,7 @@ class TestMainApplication:
     @pytest.mark.asyncio
     async def test_arklex_exception_handler_resource_not_found_error(self) -> None:
         """Test arklex exception handler with resource not found error."""
-        from arklex.utils.exceptions import ResourceNotFoundError
+        from arklex.utils.logging.exceptions import ResourceNotFoundError
 
         mock_request = Mock()
         mock_request.state.request_id = "test-request-id"
@@ -97,7 +97,7 @@ class TestMainApplication:
     @pytest.mark.asyncio
     async def test_arklex_exception_handler_rate_limit_error(self) -> None:
         """Test arklex exception handler with rate limit error."""
-        from arklex.utils.exceptions import RateLimitError
+        from arklex.utils.logging.exceptions import RateLimitError
 
         mock_request = Mock()
         mock_request.state.request_id = "test-request-id"
@@ -115,7 +115,7 @@ class TestMainApplication:
     @pytest.mark.asyncio
     async def test_arklex_exception_handler_retryable_error(self) -> None:
         """Test arklex exception handler with retryable error."""
-        from arklex.utils.exceptions import RetryableError
+        from arklex.utils.logging.exceptions import RetryableError
 
         mock_request = Mock()
         mock_request.state.request_id = "test-request-id"
@@ -133,7 +133,7 @@ class TestMainApplication:
     @pytest.mark.asyncio
     async def test_arklex_exception_handler_generic_error(self) -> None:
         """Test arklex exception handler with generic error."""
-        from arklex.utils.exceptions import ArklexError
+        from arklex.utils.logging.exceptions import ArklexError
 
         mock_request = Mock()
         mock_request.state.request_id = "test-request-id"
@@ -151,7 +151,7 @@ class TestMainApplication:
     @pytest.mark.asyncio
     async def test_arklex_exception_handler_with_extra_message(self) -> None:
         """Test arklex exception handler with extra message."""
-        from arklex.utils.exceptions import UserFacingError
+        from arklex.utils.logging.exceptions import UserFacingError
 
         mock_request = Mock()
         mock_request.state.request_id = "test-request-id"
@@ -180,7 +180,7 @@ class TestMainApplication:
         self,
     ) -> None:
         """Test arklex exception handler with extra message included in response (line 98)."""
-        from arklex.utils.exceptions import UserFacingError
+        from arklex.utils.logging.exceptions import UserFacingError
 
         mock_request = Mock()
         mock_request.state.request_id = "test-request-id"
@@ -206,7 +206,7 @@ class TestMainApplication:
     @pytest.mark.asyncio
     async def test_arklex_exception_handler_missing_request_id(self) -> None:
         """Test arklex exception handler with missing request ID."""
-        from arklex.utils.exceptions import ArklexError
+        from arklex.utils.logging.exceptions import ArklexError
 
         mock_request = Mock()
         mock_request.state = Mock()
@@ -225,7 +225,7 @@ class TestMainApplication:
     @pytest.mark.asyncio
     async def test_arklex_exception_handler_none_request_state(self) -> None:
         """Test arklex exception handler with None request.state."""
-        from arklex.utils.exceptions import ArklexError
+        from arklex.utils.logging.exceptions import ArklexError
 
         mock_request = Mock()
         mock_request.state = None
@@ -416,7 +416,7 @@ class TestMainApplication:
 
     def test_error_response_structure(self) -> None:
         """Test that error responses have the correct structure."""
-        from arklex.utils.exceptions import ArklexError
+        from arklex.utils.logging.exceptions import ArklexError
 
         mock_request = Mock()
         mock_request.state.request_id = "test-request-id"
@@ -438,6 +438,6 @@ class TestMainApplication:
 
 
 def test_import_nlu_router_trivial() -> None:
-    from arklex.orchestrator.NLU.api.routes import router as nlu_router
+    from arklex.orchestrator.nlu.api.routes import router as nlu_router
 
     assert nlu_router is not None

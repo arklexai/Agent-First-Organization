@@ -16,7 +16,7 @@ from typing import Any
 from pydantic import BaseModel, Field
 
 from arklex.orchestrator.entities.orchestrator_state_entities import StatusEnum
-from arklex.orchestrator.NLU.entities.slot_entities import Slot
+from arklex.orchestrator.nlu.entities.slot_entities import Slot
 
 
 class NodeTypeEnum(str, Enum):

@@ -8,7 +8,7 @@ from unittest.mock import Mock, patch
 import pytest
 from _pytest.logging import LogCaptureFixture
 
-from arklex.env.tools.RAG.build_rag import build_rag
+from arklex.resources.tools.rag.build_rag import build_rag
 
 # Set test environment
 os.environ["ARKLEX_TEST_ENV"] = "local"

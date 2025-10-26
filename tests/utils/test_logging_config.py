@@ -9,7 +9,7 @@ from unittest.mock import patch
 
 import pytest
 
-from arklex.utils.logging_config import (
+from arklex.utils.logging.logging_config import (
     DEFAULT_LOG_LEVEL,
     LOG_LEVELS,
     MODULE_LOG_LEVELS,

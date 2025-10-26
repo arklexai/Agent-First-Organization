@@ -17,11 +17,11 @@ from typing import Any
 
 from dotenv import load_dotenv
 
-from arklex.env.tools.RAG.build_rag import build_rag
+from arklex.models.llm_config import LLM_PROVIDERS, LLMConfig, load_llm
 from arklex.orchestrator.generator.generator import Generator
-from arklex.utils.llm_config import LLM_PROVIDERS, LLMConfig, load_llm
-from arklex.utils.loader import Loader
-from arklex.utils.logging_utils import LogContext
+from arklex.resources.RAG.loader import Loader
+from arklex.resources.tools.rag.build_rag import build_rag
+from arklex.utils.logging.logging_utils import LogContext
 
 log_context = LogContext(__name__)
 load_dotenv()

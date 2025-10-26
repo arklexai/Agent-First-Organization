@@ -11,7 +11,7 @@ from unittest.mock import AsyncMock, Mock, patch
 
 import pytest
 
-from arklex.env.workers.utils.chat_client import ChatClient
+from arklex.resources.workers.utils.chat_client import ChatClient
 
 # =============================================================================
 # FIXTURES - Core Test Data

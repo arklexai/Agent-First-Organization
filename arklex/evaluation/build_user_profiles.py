@@ -12,12 +12,12 @@ import anthropic
 import requests
 from openai import OpenAI
 
-from arklex.env.env import Environment
-from arklex.env.tools.tools import Tool
 from arklex.evaluation.chatgpt_utils import chatgpt_chatbot
 from arklex.evaluation.get_documents import load_docs
-from arklex.orchestrator.NLU.core.slot import SlotFiller
-from arklex.utils.logging_utils import LogContext
+from arklex.orchestrator.executor.executor import Environment
+from arklex.orchestrator.nlu.core.slot import SlotFiller
+from arklex.resources.tools.tools import Tool
+from arklex.utils.logging.logging_utils import LogContext
 
 # Type aliases for better readability
 StrategyType = Literal["react", "llm_based", "random"]

@@ -13,7 +13,7 @@ import pytest
 from fastapi.testclient import TestClient
 
 from arklex.main import app
-from arklex.utils.logging_config import setup_logging
+from arklex.utils.logging.logging_config import setup_logging
 
 # Mock the mysql module BEFORE any other imports to prevent connection issues
 # This prevents actual database connections during testing
@@ -202,7 +202,7 @@ def mock_intent_detector_execute(
     ):
         from unittest.mock import patch
 
-        from arklex.orchestrator.NLU.core.intent import IntentDetector
+        from arklex.orchestrator.nlu.core.intent import IntentDetector
 
         def mock_predict_intent(
             self: object,

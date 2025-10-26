@@ -3,7 +3,7 @@ from unittest.mock import MagicMock, patch
 
 from langchain_core.messages import AIMessage
 
-from arklex.types.resource_types import WorkerItem
+from arklex.resources.resource_types import WorkerItem
 from integration_tests.utils.base import BaseTestOrchestrator, ChatRole
 
 

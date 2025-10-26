@@ -5,7 +5,7 @@ import sys
 import unittest
 from typing import Any
 
-from arklex.env.env import Env
+from arklex.orchestrator.executor.executor import Env
 from arklex.orchestrator.orchestrator import AgentOrg
 
 # May not need after pip install agentorg

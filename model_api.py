@@ -15,10 +15,10 @@ from typing import Any
 import uvicorn
 from fastapi import FastAPI
 
-from arklex.env.env import Environment
+from arklex.models.llm_config import LLM_PROVIDERS
+from arklex.orchestrator.executor.executor import Environment
 from arklex.orchestrator.orchestrator import AgentOrg
-from arklex.utils.llm_config import LLM_PROVIDERS
-from arklex.utils.logging_utils import LogContext
+from arklex.utils.logging.logging_utils import LogContext
 from arklex.utils.model_config import MODEL
 from arklex.utils.provider_utils import (
     get_api_key_for_provider,

@@ -40,7 +40,10 @@ from datetime import datetime
 from pathlib import Path
 from typing import Any
 
-from arklex.env.env import BaseResourceInitializer, DefaultResourceInitializer
+from arklex.orchestrator.executor.executor import (
+    BaseResourceInitializer,
+    DefaultResourceInitializer,
+)
 from arklex.orchestrator.generator.docs import DocumentLoader
 from arklex.orchestrator.generator.formatting import TaskGraphFormatter
 from arklex.orchestrator.generator.prompts import PromptManager
@@ -49,7 +52,7 @@ from arklex.orchestrator.generator.tasks import (
     ReusableTaskManager,
     TaskGenerator,
 )
-from arklex.utils.logging_utils import LogContext
+from arklex.utils.logging.logging_utils import LogContext
 
 # Make UI components optional to avoid dependency issues
 try:

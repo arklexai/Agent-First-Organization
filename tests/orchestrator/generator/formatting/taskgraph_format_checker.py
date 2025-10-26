@@ -18,7 +18,7 @@ import json
 import os
 from typing import Any
 
-from arklex.utils.logging_utils import LogContext
+from arklex.utils.logging.logging_utils import LogContext
 
 log_context = LogContext(__name__)
 

@@ -20,7 +20,7 @@ Features:
 - Support for product descriptions and titles
 
 Usage:
-    from arklex.utils.loaders.shopify import ShopifyLoader
+    from arklex.resources.RAG.loaders.shopify import ShopifyLoader
 
     # Initialize the loader
     loader = ShopifyLoader()
@@ -38,7 +38,7 @@ import shopify
 from langchain.text_splitter import RecursiveCharacterTextSplitter
 from langchain_core.documents import Document
 
-from arklex.utils.loaders.base import Loader
+from arklex.resources.RAG.loaders.base import Loader
 
 
 class ShopifyLoader(Loader):

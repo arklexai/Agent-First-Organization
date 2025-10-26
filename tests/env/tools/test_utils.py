@@ -2,8 +2,8 @@
 
 from unittest.mock import Mock, patch
 
-from arklex.env.tools.utils import trace
 from arklex.orchestrator.entities.orchestrator_state_entities import OrchestratorState
+from arklex.resources.tools.utils import trace
 
 
 class TestGetPromptTemplate:
@@ -27,7 +27,7 @@ class TestGetPromptTemplate:
         mock_load_prompts.return_value = mock_prompts
 
         # Execute
-        from arklex.env.tools.utils import get_prompt_template
+        from arklex.resources.tools.utils import get_prompt_template
 
         result = get_prompt_template(state, "test_prompt")
 
@@ -51,7 +51,7 @@ class TestGetPromptTemplate:
         mock_load_prompts.return_value = mock_prompts
 
         # Execute
-        from arklex.env.tools.utils import get_prompt_template
+        from arklex.resources.tools.utils import get_prompt_template
 
         result = get_prompt_template(state, "test_prompt")
 
@@ -74,7 +74,7 @@ class TestGetPromptTemplate:
         mock_load_prompts.return_value = mock_prompts
 
         # Execute
-        from arklex.env.tools.utils import get_prompt_template
+        from arklex.resources.tools.utils import get_prompt_template
 
         result = get_prompt_template(state, "test_prompt")
 

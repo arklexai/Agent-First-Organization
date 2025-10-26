@@ -5,8 +5,8 @@ from unittest.mock import MagicMock, Mock, patch
 
 import pytest
 
-from arklex.env.tools.shopify.cart_add_items import cart_add_items
-from arklex.utils.exceptions import ToolExecutionError
+from arklex.resources.tools.shopify.cart_add_items import cart_add_items
+from arklex.utils.logging.exceptions import ToolExecutionError
 
 
 class TestCartAddItems:
@@ -287,7 +287,7 @@ class TestCartAddItems:
         """Test that the cart_add_items function is properly registered as a tool."""
         # Verify the function returns a Tool instance when called
         tool_instance = cart_add_items
-        from arklex.env.tools.tools import Tool
+        from arklex.resources.tools.tools import Tool
 
         assert isinstance(tool_instance, Tool)
 

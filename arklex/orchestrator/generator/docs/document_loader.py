@@ -21,7 +21,7 @@ import requests
 from bs4 import BeautifulSoup
 
 from arklex.orchestrator.generator.docs.document_validator import DocumentValidator
-from arklex.utils.logging_utils import LogContext
+from arklex.utils.logging.logging_utils import LogContext
 
 log_context = LogContext(__name__)
 

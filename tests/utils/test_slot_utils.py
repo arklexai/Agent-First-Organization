@@ -8,13 +8,13 @@ from unittest.mock import MagicMock
 
 import pytest
 
-from arklex.orchestrator.NLU.entities.slot_entities import (
+from arklex.orchestrator.nlu.entities.slot_entities import (
     Slot,
     SlotInput,
     SlotInputList,
     Verification,
 )
-from arklex.orchestrator.NLU.utils.slot import (
+from arklex.orchestrator.nlu.utils.slot import (
     TypeMapping,
     convert_slot_values,
     format_slot_output,

@@ -2,9 +2,9 @@ import json
 from enum import Enum
 from typing import Any
 
-from arklex.env.env import Environment
+from arklex.models.llm_config import LLMConfig
+from arklex.orchestrator.executor.executor import Environment
 from arklex.orchestrator.orchestrator import AgentOrg
-from arklex.utils.llm_config import LLMConfig
 
 
 class ChatRole(str, Enum):

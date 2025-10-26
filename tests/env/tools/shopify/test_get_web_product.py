@@ -6,8 +6,8 @@ from unittest.mock import MagicMock, Mock, patch
 
 import pytest
 
-from arklex.env.tools.shopify.get_web_product import get_web_product
-from arklex.utils.exceptions import ToolExecutionError
+from arklex.resources.tools.shopify.get_web_product import get_web_product
+from arklex.utils.logging.exceptions import ToolExecutionError
 
 
 class TestGetWebProduct:
@@ -466,7 +466,7 @@ class TestGetWebProduct:
         """Test that the get_web_product function is properly registered as a tool."""
         # Verify the function returns a Tool instance when called
         tool_instance = get_web_product
-        from arklex.env.tools.tools import Tool
+        from arklex.resources.tools.tools import Tool
 
         assert isinstance(tool_instance, Tool)
 

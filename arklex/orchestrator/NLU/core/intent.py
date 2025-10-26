@@ -13,9 +13,8 @@ The module includes:
 
 from typing import Any
 
-from arklex.orchestrator.NLU.core.base import BaseNLU
-from arklex.orchestrator.NLU.services.model_service import ModelService
-from arklex.utils.logging_utils import LogContext
+from arklex.modelss.model_service import ModelService
+from arklex.utils.logging.logging_utils import LogContext
 
 log_context = LogContext(__name__)
 
@@ -23,7 +22,7 @@ log_context = LogContext(__name__)
 DEFAULT_INTENT_NAME = "others"
 
 
-class IntentDetector(BaseNLU):
+class IntentDetector:
     """Intent detection implementation.
 
     This class provides functionality for detecting intents from user input,

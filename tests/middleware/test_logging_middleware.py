@@ -6,8 +6,12 @@ from pytest import LogCaptureFixture
 from starlette.testclient import TestClient
 
 from arklex.middleware.logging_middleware import RequestLoggingMiddleware
-from arklex.utils.exceptions import NetworkError, ServiceUnavailableError, TimeoutError
-from arklex.utils.logging_utils import LogContext
+from arklex.utils.logging.exceptions import (
+    NetworkError,
+    ServiceUnavailableError,
+    TimeoutError,
+)
+from arklex.utils.logging.logging_utils import LogContext
 
 log_context = LogContext(__name__)
 

@@ -5,9 +5,9 @@ import sys
 import unittest
 from typing import Any
 
-from arklex.env.env import Env
+from arklex.orchestrator.executor.executor import Env
 from arklex.orchestrator.orchestrator import AgentOrg
-from arklex.utils.logging_utils import LogContext
+from arklex.utils.logging.logging_utils import LogContext
 
 # May not need after pip install agentorg
 sys.path.insert(0, os.path.abspath("../../"))

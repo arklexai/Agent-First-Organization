@@ -29,8 +29,8 @@ from typing import Any
 from pydantic import BaseModel, Field
 
 from arklex.memory.entities.memory_entities import ResourceRecord
+from arklex.models.llm_config import LLMConfig
 from arklex.types.stream_types import StreamType
-from arklex.utils.llm_config import LLMConfig
 
 
 # Bot-related classes

@@ -52,27 +52,27 @@ from agents import Agent, handoff
 from agents.realtime import RealtimeAgent, realtime_handoff
 from jinja2 import Template
 
-from arklex.env.agents.entities import PromptVariable
-from arklex.env.agents.openai_agent import OpenAIAgentData
-from arklex.env.agents.openai_realtime_agent import (
-    OpenAIRealtimeAgent,
-    OpenAIRealtimeAgentData,
+from arklex.models.llm_config import LLMConfig
+from arklex.modelss.model_service import (
+    ModelService,
 )
-from arklex.env.env import DefaultResourceInitializer
-from arklex.env.tools.tools import Tool
 from arklex.orchestrator.entities.orchestrator_param_entities import OrchestratorParams
 from arklex.orchestrator.entities.orchestrator_state_entities import (
     StatusEnum,
 )
 from arklex.orchestrator.entities.taskgraph_entities import NodeInfo, PathNode
-from arklex.orchestrator.NLU.core.intent import IntentDetector
-from arklex.orchestrator.NLU.services.model_service import (
-    ModelService,
+from arklex.orchestrator.executor.executor import DefaultResourceInitializer
+from arklex.orchestrator.nlu.core.intent import IntentDetector
+from arklex.resources.agents.entities import PromptVariable
+from arklex.resources.agents.openai_agent import OpenAIAgentData
+from arklex.resources.agents.openai_realtime_agent import (
+    OpenAIRealtimeAgent,
+    OpenAIRealtimeAgentData,
 )
-from arklex.types.resource_types import AgentItem, ResourceType, ToolItem
-from arklex.utils.llm_config import LLMConfig
-from arklex.utils.logging_utils import LogContext
-from arklex.utils.utils import normalize, str_similarity
+from arklex.resources.resource_types import AgentItem, ResourceType, ToolItem
+from arklex.resources.tools.tools import Tool
+from arklex.utils.logging.logging_utils import LogContext
+from arklex.utils.utils import str_similarity
 
 log_context = LogContext(__name__)
 
@@ -763,16 +763,12 @@ class TaskGraph(GraphBase):
         self, curr_node: str, params: OrchestratorParams
     ) -> tuple[bool, dict[str, Any], OrchestratorParams]:
         candidate_samples: list[str] = []
-        candidates_nodes_weights: list[float] = []
         for out_edge in self.graph.out_edges(curr_node, data=True):
             if out_edge[2]["intent"] == "none":
                 candidate_samples.append(out_edge[1])
-                candidates_nodes_weights.append(out_edge[2]["attribute"]["weight"])
         if candidate_samples:
             # randomly choose one sample from candidate samples
-            next_node: str = np.random.choice(
-                candidate_samples, p=normalize(candidates_nodes_weights)
-            )
+            next_node: str = np.random.choice(candidate_samples)
         else:  # leaf node + the node without None intents
             next_node: str = curr_node
 

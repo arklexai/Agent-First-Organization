@@ -461,7 +461,7 @@ class MockOrchestrator(ABC):
             self.llm = MockLLM()
 
         # Patch Environment to use mocked ReactPlanner
-        from arklex.env.env import Environment
+        from arklex.orchestrator.executor.executor import Environment
 
         orig_env_init = Environment.__init__
 

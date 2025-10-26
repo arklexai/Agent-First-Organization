@@ -8,7 +8,7 @@ content.
 
 from typing import Any
 
-from arklex.utils.logging_utils import LogContext
+from arklex.utils.logging.logging_utils import LogContext
 from tests.utils.utils import MockOrchestrator, MockResourceInitializer
 
 log_context = LogContext(__name__)

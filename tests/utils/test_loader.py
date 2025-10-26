@@ -12,7 +12,7 @@ from unittest.mock import Mock, PropertyMock, mock_open, patch
 
 import requests
 
-from arklex.utils.loader import (
+from arklex.resources.RAG.loader import (
     CrawledObject,
     DocObject,
     Loader,

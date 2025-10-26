@@ -6,8 +6,8 @@ from unittest.mock import MagicMock, Mock, patch
 
 import pytest
 
-from arklex.env.tools.shopify.cancel_order import cancel_order
-from arklex.utils.exceptions import ShopifyError
+from arklex.resources.tools.shopify.cancel_order import cancel_order
+from arklex.utils.logging.exceptions import ShopifyError
 
 
 class TestCancelOrder:
@@ -321,7 +321,7 @@ class TestCancelOrder:
 
         # Verify the function returns a Tool instance when called
         tool_instance = cancel_order
-        from arklex.env.tools.tools import Tool
+        from arklex.resources.tools.tools import Tool
 
         assert isinstance(tool_instance, Tool)
 

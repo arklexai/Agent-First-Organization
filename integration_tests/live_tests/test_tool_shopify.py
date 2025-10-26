@@ -1,7 +1,7 @@
 import json
 from unittest.mock import MagicMock, Mock, patch
 
-from arklex.env.tools.shopify.search_products import search_products
+from arklex.resources.tools.shopify.search_products import search_products
 
 
 @patch("arklex.env.tools.shopify.search_products.shopify.Session.temp")
