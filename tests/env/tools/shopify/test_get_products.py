@@ -1,4 +1,4 @@
-"""Tests for arklex.env.tools.shopify.get_products module."""
+"""Tests for arklex.resources.tools.shopify.get_products module."""
 
 import json
 import os
@@ -6,8 +6,8 @@ from unittest.mock import MagicMock, Mock, patch
 
 import pytest
 
-from arklex.env.tools.shopify.get_products import get_products
-from arklex.utils.exceptions import ToolExecutionError
+from arklex.resources.tools.shopify.get_products import get_products
+from arklex.utils.logging.exceptions import ToolExecutionError
 
 
 class TestGetProducts:
@@ -27,8 +27,8 @@ class TestGetProducts:
         if "ARKLEX_TEST_ENV" in os.environ:
             del os.environ["ARKLEX_TEST_ENV"]
 
-    @patch("arklex.env.tools.shopify.get_products.shopify.Session.temp")
-    @patch("arklex.env.tools.shopify.get_products.shopify.GraphQL")
+    @patch("arklex.resources.tools.shopify.get_products.shopify.Session.temp")
+    @patch("arklex.resources.tools.shopify.get_products.shopify.GraphQL")
     def test_get_products_success(
         self, mock_graphql: Mock, mock_session_temp: Mock
     ) -> None:
@@ -80,8 +80,8 @@ class TestGetProducts:
         assert "Test Product" in result.message_flow
         assert "Test Description" in result.message_flow
 
-    @patch("arklex.env.tools.shopify.get_products.shopify.Session.temp")
-    @patch("arklex.env.tools.shopify.get_products.shopify.GraphQL")
+    @patch("arklex.resources.tools.shopify.get_products.shopify.Session.temp")
+    @patch("arklex.resources.tools.shopify.get_products.shopify.GraphQL")
     def test_get_products_no_products_found(
         self, mock_graphql: Mock, mock_session_temp: Mock
     ) -> None:
@@ -108,8 +108,8 @@ class TestGetProducts:
 
         assert "Tool get_products execution failed" in str(exc_info.value)
 
-    @patch("arklex.env.tools.shopify.get_products.shopify.Session.temp")
-    @patch("arklex.env.tools.shopify.get_products.shopify.GraphQL")
+    @patch("arklex.resources.tools.shopify.get_products.shopify.Session.temp")
+    @patch("arklex.resources.tools.shopify.get_products.shopify.GraphQL")
     def test_get_products_graphql_exception(
         self, mock_graphql: Mock, mock_session_temp: Mock
     ) -> None:
@@ -135,8 +135,8 @@ class TestGetProducts:
 
         assert "Tool get_products execution failed" in str(exc_info.value)
 
-    @patch("arklex.env.tools.shopify.get_products.shopify.Session.temp")
-    @patch("arklex.env.tools.shopify.get_products.shopify.GraphQL")
+    @patch("arklex.resources.tools.shopify.get_products.shopify.Session.temp")
+    @patch("arklex.resources.tools.shopify.get_products.shopify.GraphQL")
     def test_get_products_session_exception(
         self, mock_graphql: Mock, mock_session_temp: Mock
     ) -> None:
@@ -157,8 +157,8 @@ class TestGetProducts:
 
         assert "Tool get_products execution failed" in str(exc_info.value)
 
-    @patch("arklex.env.tools.shopify.get_products.shopify.Session.temp")
-    @patch("arklex.env.tools.shopify.get_products.shopify.GraphQL")
+    @patch("arklex.resources.tools.shopify.get_products.shopify.Session.temp")
+    @patch("arklex.resources.tools.shopify.get_products.shopify.GraphQL")
     def test_get_products_with_multiple_ids(
         self, mock_graphql: Mock, mock_session_temp: Mock
     ) -> None:
@@ -240,8 +240,8 @@ class TestGetProducts:
         call_args = mock_graphql_instance.execute.call_args[0][0]
         assert "id:12345 OR id:12346" in call_args
 
-    @patch("arklex.env.tools.shopify.get_products.shopify.Session.temp")
-    @patch("arklex.env.tools.shopify.get_products.shopify.GraphQL")
+    @patch("arklex.resources.tools.shopify.get_products.shopify.Session.temp")
+    @patch("arklex.resources.tools.shopify.get_products.shopify.GraphQL")
     def test_get_products_with_pagination_parameters(
         self, mock_graphql: Mock, mock_session_temp: Mock
     ) -> None:
@@ -308,8 +308,8 @@ class TestGetProducts:
         assert "first: 10" in call_args
         assert 'after: "cursor1"' in call_args
 
-    @patch("arklex.env.tools.shopify.get_products.shopify.Session.temp")
-    @patch("arklex.env.tools.shopify.get_products.shopify.GraphQL")
+    @patch("arklex.resources.tools.shopify.get_products.shopify.Session.temp")
+    @patch("arklex.resources.tools.shopify.get_products.shopify.GraphQL")
     def test_get_products_with_missing_fields(
         self, mock_graphql: Mock, mock_session_temp: Mock
     ) -> None:
@@ -368,8 +368,8 @@ class TestGetProducts:
         assert "Total Inventory: None" in result.message_flow
         assert "Options: None" in result.message_flow
 
-    @patch("arklex.env.tools.shopify.get_products.shopify.Session.temp")
-    @patch("arklex.env.tools.shopify.get_products.shopify.GraphQL")
+    @patch("arklex.resources.tools.shopify.get_products.shopify.Session.temp")
+    @patch("arklex.resources.tools.shopify.get_products.shopify.GraphQL")
     def test_get_products_with_empty_variants(
         self, mock_graphql: Mock, mock_session_temp: Mock
     ) -> None:
@@ -421,8 +421,8 @@ class TestGetProducts:
             "The following are several variants of the product:" in result.message_flow
         )
 
-    @patch("arklex.env.tools.shopify.get_products.shopify.Session.temp")
-    @patch("arklex.env.tools.shopify.get_products.shopify.GraphQL")
+    @patch("arklex.resources.tools.shopify.get_products.shopify.Session.temp")
+    @patch("arklex.resources.tools.shopify.get_products.shopify.GraphQL")
     def test_get_products_with_missing_variants_key(
         self, mock_graphql: Mock, mock_session_temp: Mock
     ) -> None:
@@ -478,7 +478,7 @@ class TestGetProducts:
         """Test that the get_products function is properly registered as a tool."""
         # Verify the function returns a Tool instance when called
         tool_instance = get_products
-        from arklex.env.tools.tools import Tool
+        from arklex.resources.tools.tools import Tool
 
         assert isinstance(tool_instance, Tool)
 
@@ -491,8 +491,8 @@ class TestGetProducts:
             "inventory information and description details" in tool_instance.description
         )
 
-    @patch("arklex.env.tools.shopify.get_products.shopify.Session.temp")
-    @patch("arklex.env.tools.shopify.get_products.shopify.GraphQL")
+    @patch("arklex.resources.tools.shopify.get_products.shopify.Session.temp")
+    @patch("arklex.resources.tools.shopify.get_products.shopify.GraphQL")
     def test_get_products_with_json_decode_error(
         self, mock_graphql: Mock, mock_session_temp: Mock
     ) -> None:
@@ -518,8 +518,8 @@ class TestGetProducts:
 
         assert "Tool get_products execution failed" in str(exc_info.value)
 
-    @patch("arklex.env.tools.shopify.get_products.shopify.Session.temp")
-    @patch("arklex.env.tools.shopify.get_products.shopify.GraphQL")
+    @patch("arklex.resources.tools.shopify.get_products.shopify.Session.temp")
+    @patch("arklex.resources.tools.shopify.get_products.shopify.GraphQL")
     def test_get_products_with_missing_data_key(
         self, mock_graphql: Mock, mock_session_temp: Mock
     ) -> None:

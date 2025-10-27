@@ -4,7 +4,7 @@ from typing import Any
 
 import pytest
 
-from arklex.utils.exceptions import (
+from arklex.utils.logging.exceptions import (
     APIError,
     ArklexError,
     AuthenticationError,

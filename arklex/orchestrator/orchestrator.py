@@ -1,55 +1,3 @@
-"""Orchestrator for the Arklex framework.
-
-This module implements the core orchestrator functionality that manages the flow of
-conversation and task execution in the Arklex framework. It coordinates between
-different components of the system, including NLU processing, task graph execution,
-and response generation.
-
-Key Components:
-- AgentOrg: Main orchestrator class for managing conversation flow
-- Task Execution: Methods for executing tasks and managing task states
-- Message Processing: Methods for handling user messages and generating responses
-- State Management: Methods for maintaining conversation and task states
-- Resource Management: Methods for handling system resources and connections
-
-Features:
-- Comprehensive conversation flow management
-- Task graph execution and state tracking
-- Message processing and response generation
-- Resource management and cleanup
-- Error handling and recovery
-- State persistence and restoration
-- Streaming response handling
-- Memory management
-- Tool integration
-
-Usage:
-    from arklex.orchestrator import AgentOrg
-    from arklex.env.env import Env
-
-    # Initialize environment
-    env = Env()
-
-    # Load configuration
-    config = {
-        "role": "customer_service",
-        "user_objective": "Handle customer inquiries",
-        "model": {...},
-        "workers": [...],
-        "tools": [...]
-    }
-
-    # Create orchestrator
-    orchestrator = AgentOrg(config, env)
-
-    # Process message
-    response = orchestrator.get_response({
-        "text": "user message",
-        "chat_history": [...],
-        "parameters": {...}
-    })
-"""
-
 import asyncio
 import copy
 import json
@@ -60,11 +8,8 @@ import janus
 from dotenv import load_dotenv
 from langchain_core.runnables import RunnableLambda
 
-from arklex.env.entities import NodeResponse
-from arklex.env.env import Environment
-from arklex.env.prompts import load_prompts
-from arklex.env.tools.utils import ToolGenerator
 from arklex.memory.entities.memory_entities import ResourceRecord
+from arklex.models.model_service import ModelService
 from arklex.orchestrator.entities.orchestrator_param_entities import OrchestratorParams
 from arklex.orchestrator.entities.orchestrator_state_entities import (
     BotConfig,
@@ -78,12 +23,15 @@ from arklex.orchestrator.entities.taskgraph_entities import (
     NodeInfo,
     PathNode,
 )
-from arklex.orchestrator.NLU.services.model_service import ModelService
+from arklex.orchestrator.executor.entities import NodeResponse
+from arklex.orchestrator.executor.executor import Executor
 from arklex.orchestrator.post_process import post_process_response
 from arklex.orchestrator.task_graph.task_graph import AgentGraph, TaskGraph
-from arklex.types.resource_types import AgentItem
-from arklex.types.stream_types import StreamType
-from arklex.utils.logging_utils import LogContext
+from arklex.orchestrator.types.stream_types import StreamType
+from arklex.resources.resource_types import AgentItem
+from arklex.resources.tools.utils import ToolGenerator
+from arklex.utils.logging.logging_utils import LogContext
+from arklex.utils.prompts import load_prompts
 from arklex.utils.utils import format_chat_history
 
 load_dotenv()
@@ -99,18 +47,16 @@ class AgentOrg:
 
     Attributes:
         user_prefix (str): Prefix for user messages
-        worker_prefix (str): Prefix for worker messages
-        environment_prefix (str): Prefix for environment messages
         product_kwargs (Dict[str, Any]): Configuration settings
         llm_config (LLMConfig): Language model configuration
         task_graph (TaskGraph): Task graph for conversation flow
-        env (Environment): Environment with tools and workers
+        executor (Executor): Executor with tools and workers
     """
 
     def __init__(
         self,
         config: str | dict[str, Any],
-        env: Environment | None,
+        executor: Executor | None,
     ) -> None:
         """Initialize the AgentOrg orchestrator.
 
@@ -120,7 +66,7 @@ class AgentOrg:
         Args:
             config (Union[str, Dict[str, Any]]): Configuration file path or dictionary containing
                 product settings, model configuration, and other parameters.
-            env (Environment): Environment object containing tools, workers, and other resources.
+            executor (Executor): Executor object containing tools, workers, and other resources.
             **kwargs (Any): Additional keyword arguments for customization.
         """
         self.user_prefix: str = "user"
@@ -134,7 +80,7 @@ class AgentOrg:
             self.product_kwargs.get("model")
         )
         self.model_service: ModelService = ModelService(self.llm_config)
-        self.env: Environment = env
+        self.executor: Executor = executor
         self.task_graph: TaskGraph = TaskGraph(
             "taskgraph",
             self.product_kwargs,
@@ -318,7 +264,7 @@ class AgentOrg:
         orch_state.message_queue = message_queue
         # Execute the node
         response_state: OrchestratorState
-        response_state, node_response = self.env.step(
+        response_state, node_response = self.executor.step(
             node_info.resource["id"],
             orch_state,
             node_info,
@@ -444,7 +390,7 @@ class AgentOrg:
             openai_agents_trajectory=orch_state_params.memory.openai_agents_trajectory.copy(),
         )
         # agent instance initialization
-        agent_cls = self.env.agents[AgentItem.OPENAI_AGENT]["agent_instance"]
+        agent_cls = self.executor.agents[AgentItem.OPENAI_AGENT]["agent_instance"]
         if not orch_state_params.agentgraph.current_agent:
             agent_name = self.agent_graph.start_agent_name
         else:

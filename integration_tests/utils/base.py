@@ -2,9 +2,9 @@ import json
 from enum import Enum
 from typing import Any
 
-from arklex.env.env import Environment
+from arklex.models.llm_config import LLMConfig
+from arklex.orchestrator.executor.executor import Executor
 from arklex.orchestrator.orchestrator import AgentOrg
-from arklex.utils.llm_config import LLMConfig
 
 
 class ChatRole(str, Enum):
@@ -16,14 +16,14 @@ class BaseTestOrchestrator:
     def __init__(self, config_file_path: str) -> None:
         with open(config_file_path) as f:
             config: dict[str, Any] = json.load(f)
-        self.env: Environment = Environment(
+        self.executor: Executor = Executor(
             tools=config.get("tools", []),
             workers=config.get("workers", []),
             agents=config.get("agents", []),
             nodes=config.get("nodes", []),
             llm_config=LLMConfig.model_validate(config.get("model")),
         )
-        self.orchestrator = AgentOrg(config=config, env=self.env)
+        self.orchestrator = AgentOrg(config=config, executor=self.executor)
 
     async def get_response(
         self, text: str, chat_history: list[dict[str, str]], parameters: dict[str, Any]

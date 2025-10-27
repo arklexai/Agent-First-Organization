@@ -1,6 +1,6 @@
 from datetime import datetime
 
-from arklex.env.tools.types import ResourceAuthGroup, Transcript
+from arklex.resources.tools.types import ResourceAuthGroup, Transcript
 
 
 class TestTranscript:

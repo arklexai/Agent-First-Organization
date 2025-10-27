@@ -12,7 +12,7 @@ from textual.events import Key
 from textual.widgets import Label, Tree
 from textual.widgets.tree import TreeNode
 
-from arklex.utils.logging_utils import LogContext
+from arklex.utils.logging.logging_utils import LogContext
 
 from .data_manager import TaskDataManager
 from .input_modal import InputModal

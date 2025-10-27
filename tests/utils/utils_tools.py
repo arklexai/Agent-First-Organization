@@ -9,9 +9,9 @@ import json
 import os
 from typing import Any
 
-from arklex.orchestrator.NLU.core.slot import SlotFiller
-from arklex.orchestrator.NLU.services.model_service import DummyModelService
-from arklex.utils.logging_utils import LogContext
+from arklex.models.model_service import DummyModelService
+from arklex.orchestrator.nlu.core.slot import SlotFiller
+from arklex.utils.logging.logging_utils import LogContext
 from tests.utils.utils import MockOrchestrator, MockResourceInitializer
 
 log_context = LogContext(__name__)

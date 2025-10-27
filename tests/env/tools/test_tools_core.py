@@ -3,15 +3,14 @@
 from typing import NoReturn
 from unittest.mock import Mock
 
-from arklex.env.tools import tools
-from arklex.env.tools.tools import Tool, register_tool
-
 # Mocks for dependencies
 from arklex.orchestrator.entities.orchestrator_state_entities import (
     OrchestratorState,
     StatusEnum,
 )
-from arklex.orchestrator.NLU.entities.slot_entities import Slot
+from arklex.orchestrator.nlu.entities.slot_entities import Slot
+from arklex.resources.tools import tools
+from arklex.resources.tools.tools import Tool, register_tool
 
 
 def dummy_func(a: object = None, b: object = None, **kwargs: object) -> str:

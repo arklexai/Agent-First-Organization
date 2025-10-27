@@ -12,12 +12,12 @@ import anthropic
 import requests
 from openai import OpenAI
 
-from arklex.env.env import Environment
-from arklex.env.tools.tools import Tool
 from arklex.evaluation.chatgpt_utils import chatgpt_chatbot
 from arklex.evaluation.get_documents import load_docs
-from arklex.orchestrator.NLU.core.slot import SlotFiller
-from arklex.utils.logging_utils import LogContext
+from arklex.orchestrator.executor.executor import Executor
+from arklex.orchestrator.nlu.core.slot import SlotFiller
+from arklex.resources.tools.tools import Tool
+from arklex.utils.logging.logging_utils import LogContext
 
 # Type aliases for better readability
 StrategyType = Literal["react", "llm_based", "random"]
@@ -780,12 +780,21 @@ def _build_tool_list(config: ConfigDict) -> tuple[list[dict[str, Any]], Any]:
     Returns:
         Tuple containing:
         - List of tool dictionaries with tool_id, description, input, and output
-        - Environment object for tool execution
+        - Executor object for tool execution
     """
-    env = Environment(
+    from arklex.models.llm_config import LLMConfig
+
+    # Create a default LLM config for the evaluation environment
+    default_llm_config = LLMConfig(
+        llm_provider="openai", model_type_or_path="gpt-4o-mini"
+    )
+
+    env = Executor(
         tools=config["tools"],
         workers=config["workers"],
         agents=config.get("agents", []),
+        nodes=config.get("nodes", []),
+        llm_config=default_llm_config,
     )
     tool_list: list[dict[str, Any]] = []
 

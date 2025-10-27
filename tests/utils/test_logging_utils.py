@@ -8,8 +8,8 @@ from unittest.mock import Mock, patch
 import pytest
 import tenacity
 
-from arklex.utils.exceptions import ArklexError, RetryableError
-from arklex.utils.logging_utils import (
+from arklex.utils.logging.exceptions import ArklexError, RetryableError
+from arklex.utils.logging.logging_utils import (
     LOG_MESSAGES,
     ContextFilter,
     LogContext,

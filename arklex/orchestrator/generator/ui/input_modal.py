@@ -15,7 +15,7 @@ from textual.screen import Screen
 from textual.widgets import Button, Input, Static
 from textual.widgets.tree import TreeNode
 
-from arklex.utils.logging_utils import LogContext
+from arklex.utils.logging.logging_utils import LogContext
 
 log_context = LogContext(__name__)
 

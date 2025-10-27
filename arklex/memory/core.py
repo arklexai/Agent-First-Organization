@@ -18,8 +18,8 @@ from sklearn.metrics.pairwise import cosine_similarity
 
 from arklex.memory.entities.memory_entities import ResourceRecord
 from arklex.memory.prompts import final_examples, intro, output_instructions
-from arklex.utils.embedding_config import EmbeddingConfig, load_embedding
-from arklex.utils.llm_config import LLMConfig, load_llm
+from arklex.models.embedding_config import EmbeddingConfig, load_embedding
+from arklex.models.llm_config import LLMConfig, load_llm
 
 
 class ShortTermMemory:

@@ -27,11 +27,11 @@ from typing import Any
 
 from langchain_openai import ChatOpenAI
 
+from arklex.models.llm_config import LLMConfig, load_llm
 from arklex.orchestrator.generator.core.generator import (
     Generator as CoreGenerator,
 )
-from arklex.utils.llm_config import LLMConfig, load_llm
-from arklex.utils.logging_utils import LogContext
+from arklex.utils.logging.logging_utils import LogContext
 
 # Import the main classes from the new modular structure
 from .core import Generator

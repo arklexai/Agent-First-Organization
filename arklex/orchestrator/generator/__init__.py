@@ -26,7 +26,7 @@ Features:
 
 Usage:
     from arklex.orchestrator.generator import Generator
-    from arklex.env.env import DefaultResourceInitializer
+    from arklex.orchestrator.executor.executor import DefaultResourceInitializer
 
     # Initialize generator
     config = {

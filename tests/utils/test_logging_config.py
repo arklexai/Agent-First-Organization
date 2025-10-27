@@ -9,7 +9,7 @@ from unittest.mock import patch
 
 import pytest
 
-from arklex.utils.logging_config import (
+from arklex.utils.logging.logging_config import (
     DEFAULT_LOG_LEVEL,
     LOG_LEVELS,
     MODULE_LOG_LEVELS,
@@ -282,7 +282,7 @@ def test_json_formatter_without_exception() -> None:
 def test_json_formatter_socket_error() -> None:
     """Test JSONFormatter when socket.gethostname() fails."""
     with patch(
-        "arklex.utils.logging_config.socket.gethostname",
+        "arklex.utils.logging.logging_config.socket.gethostname",
         side_effect=OSError("Network error"),
     ):
         formatter = JSONFormatter()

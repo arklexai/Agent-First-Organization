@@ -3,8 +3,8 @@ import uuid
 
 import tiktoken
 
-from arklex.env.tools.RAG.retrievers.milvus_retriever import MilvusRetriever
-from arklex.env.tools.RAG.retrievers.retriever_document import (
+from arklex.resources.tools.rag.retrievers.milvus_retriever import MilvusRetriever
+from arklex.resources.tools.rag.retrievers.retriever_document import (
     DEFAULT_CHUNK_ENCODING,
     RetrieverDocument,
     get_bot_uid,

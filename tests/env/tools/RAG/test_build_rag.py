@@ -8,7 +8,7 @@ from unittest.mock import Mock, patch
 import pytest
 from _pytest.logging import LogCaptureFixture
 
-from arklex.env.tools.RAG.build_rag import build_rag
+from arklex.resources.tools.rag.build_rag import build_rag
 
 # Set test environment
 os.environ["ARKLEX_TEST_ENV"] = "local"
@@ -77,7 +77,7 @@ class TestBuildRAG:
         assert len(loaded_docs) == 1
         assert loaded_docs[0].content == "test content"
 
-    @patch("arklex.env.tools.RAG.build_rag.Loader")
+    @patch("arklex.resources.tools.rag.build_rag.Loader")
     def test_build_rag_processes_url_documents(self, mock_loader_class: Mock) -> None:
         """Test that build_rag processes URL type documents correctly."""
         # Arrange
@@ -99,7 +99,7 @@ class TestBuildRAG:
         mock_loader.get_all_urls.assert_called_once_with("http://example.com", 5)
         mock_loader.to_crawled_url_objs.assert_called_once()
 
-    @patch("arklex.env.tools.RAG.build_rag.Loader")
+    @patch("arklex.resources.tools.rag.build_rag.Loader")
     def test_build_rag_processes_url_documents_with_default_num(
         self, mock_loader_class: Mock
     ) -> None:
@@ -121,7 +121,7 @@ class TestBuildRAG:
         # Assert
         mock_loader.get_all_urls.assert_called_once_with("http://example.com", 1)
 
-    @patch("arklex.env.tools.RAG.build_rag.Loader")
+    @patch("arklex.resources.tools.rag.build_rag.Loader")
     def test_build_rag_processes_file_documents_single_file(
         self, mock_loader_class: Mock
     ) -> None:
@@ -147,7 +147,7 @@ class TestBuildRAG:
         # Assert
         mock_loader.to_crawled_local_objs.assert_called_once_with([test_file])
 
-    @patch("arklex.env.tools.RAG.build_rag.Loader")
+    @patch("arklex.resources.tools.rag.build_rag.Loader")
     def test_build_rag_processes_file_documents_directory(
         self, mock_loader_class: Mock
     ) -> None:
@@ -184,7 +184,7 @@ class TestBuildRAG:
         actual_call_args = mock_loader.to_crawled_local_objs.call_args[0][0]
         assert sorted(actual_call_args) == expected_files
 
-    @patch("arklex.env.tools.RAG.build_rag.Loader")
+    @patch("arklex.resources.tools.rag.build_rag.Loader")
     def test_build_rag_processes_zip_file(self, mock_loader_class: Mock) -> None:
         """Test that build_rag processes zip files correctly."""
         # Arrange
@@ -215,7 +215,7 @@ class TestBuildRAG:
         assert any("file1.txt" in arg for arg in call_args)
         assert any("file2.txt" in arg for arg in call_args)
 
-    @patch("arklex.env.tools.RAG.build_rag.Loader")
+    @patch("arklex.resources.tools.rag.build_rag.Loader")
     def test_build_rag_processes_text_documents(self, mock_loader_class: Mock) -> None:
         """Test that build_rag processes text type documents correctly."""
         # Arrange
@@ -270,7 +270,7 @@ class TestBuildRAG:
         ):
             build_rag(self.test_folder_path, rag_docs)
 
-    @patch("arklex.env.tools.RAG.build_rag.Loader")
+    @patch("arklex.resources.tools.rag.build_rag.Loader")
     def test_build_rag_saves_documents_and_chunks(
         self, mock_loader_class: Mock
     ) -> None:
@@ -302,7 +302,7 @@ class TestBuildRAG:
         assert any("documents.pkl" in path for path in file_paths)
         assert any("chunked_documents.pkl" in path for path in file_paths)
 
-    @patch("arklex.env.tools.RAG.build_rag.Loader")
+    @patch("arklex.resources.tools.rag.build_rag.Loader")
     def test_build_rag_logs_crawled_sources(
         self, mock_loader_class: Mock, caplog: LogCaptureFixture
     ) -> None:
@@ -326,7 +326,7 @@ class TestBuildRAG:
         # Assert
         assert "crawled sources: ['test source']" in caplog.text
 
-    @patch("arklex.env.tools.RAG.build_rag.Loader")
+    @patch("arklex.resources.tools.rag.build_rag.Loader")
     def test_build_rag_logs_content_for_new_documents(
         self, mock_loader_class: Mock, caplog: LogCaptureFixture
     ) -> None:
@@ -350,7 +350,7 @@ class TestBuildRAG:
         # Assert
         assert "Content: ['text content']" in caplog.text
 
-    @patch("arklex.env.tools.RAG.build_rag.Loader")
+    @patch("arklex.resources.tools.rag.build_rag.Loader")
     def test_build_rag_warns_when_loading_existing_documents(
         self, mock_loader_class: Mock, caplog: LogCaptureFixture
     ) -> None:
@@ -372,7 +372,7 @@ class TestBuildRAG:
         assert "Loading existing documents" in caplog.text
         assert "If you want to recrawl" in caplog.text
 
-    @patch("arklex.env.tools.RAG.build_rag.Loader")
+    @patch("arklex.resources.tools.rag.build_rag.Loader")
     def test_build_rag_logs_crawling_info_for_urls(
         self, mock_loader_class: Mock, caplog: LogCaptureFixture
     ) -> None:
@@ -510,7 +510,7 @@ class TestBuildRAGCLI:
         if os.path.exists(self.temp_dir):
             shutil.rmtree(self.temp_dir)
 
-    @patch("arklex.env.tools.RAG.build_rag.build_rag")
+    @patch("arklex.resources.tools.rag.build_rag.build_rag")
     @patch(
         "sys.argv",
         [
@@ -526,7 +526,7 @@ class TestBuildRAGCLI:
     def test_main_cli_with_all_arguments(self, mock_build_rag: Mock) -> None:
         """Test the CLI entry point with all arguments."""
         # Import the module
-        import arklex.env.tools.RAG.build_rag as build_rag_module
+        import arklex.resources.tools.rag.build_rag as build_rag_module
 
         # Execute the main block by calling the function that would be called
         # This simulates what happens in the if __name__ == "__main__": block
@@ -541,7 +541,7 @@ class TestBuildRAGCLI:
             docs=[{"source": "http://example.com", "num": 5}],
         )
 
-    @patch("arklex.env.tools.RAG.build_rag.build_rag")
+    @patch("arklex.resources.tools.rag.build_rag.build_rag")
     @patch(
         "sys.argv",
         [
@@ -554,7 +554,7 @@ class TestBuildRAGCLI:
     )
     def test_main_cli_without_max_num(self, mock_build_rag: Mock) -> None:
         """Test the CLI entry point without max_num (should use default)."""
-        import arklex.env.tools.RAG.build_rag as build_rag_module
+        import arklex.resources.tools.rag.build_rag as build_rag_module
 
         # Execute the main block by calling the function that would be called
         build_rag_module.build_rag(
@@ -568,7 +568,7 @@ class TestBuildRAGCLI:
             docs=[{"source": "http://example.com", "num": 10}],
         )
 
-    @patch("arklex.env.tools.RAG.build_rag.build_rag")
+    @patch("arklex.resources.tools.rag.build_rag.build_rag")
     @patch(
         "sys.argv",
         [
@@ -583,7 +583,7 @@ class TestBuildRAGCLI:
     )
     def test_main_cli_with_custom_max_num(self, mock_build_rag: Mock) -> None:
         """Test the CLI entry point with custom max_num."""
-        import arklex.env.tools.RAG.build_rag as build_rag_module
+        import arklex.resources.tools.rag.build_rag as build_rag_module
 
         # Execute the main block by calling the function that would be called
         build_rag_module.build_rag(
@@ -597,7 +597,7 @@ class TestBuildRAGCLI:
             docs=[{"source": "http://example.com", "num": 1}],
         )
 
-    @patch("arklex.env.tools.RAG.build_rag.build_rag")
+    @patch("arklex.resources.tools.rag.build_rag.build_rag")
     @patch(
         "sys.argv",
         [
@@ -612,7 +612,7 @@ class TestBuildRAGCLI:
     )
     def test_main_cli_with_large_max_num(self, mock_build_rag: Mock) -> None:
         """Test the CLI entry point with large max_num."""
-        import arklex.env.tools.RAG.build_rag as build_rag_module
+        import arklex.resources.tools.rag.build_rag as build_rag_module
 
         # Execute the main block by calling the function that would be called
         build_rag_module.build_rag(
@@ -626,7 +626,7 @@ class TestBuildRAGCLI:
             docs=[{"source": "http://example.com", "num": 100}],
         )
 
-    @patch("arklex.env.tools.RAG.build_rag.build_rag")
+    @patch("arklex.resources.tools.rag.build_rag.build_rag")
     @patch(
         "sys.argv",
         [
@@ -641,7 +641,7 @@ class TestBuildRAGCLI:
     )
     def test_main_cli_with_https_url(self, mock_build_rag: Mock) -> None:
         """Test the CLI entry point with HTTPS URL."""
-        import arklex.env.tools.RAG.build_rag as build_rag_module
+        import arklex.resources.tools.rag.build_rag as build_rag_module
 
         # Execute the main block by calling the function that would be called
         build_rag_module.build_rag(
@@ -655,7 +655,7 @@ class TestBuildRAGCLI:
             docs=[{"source": "https://api.example.com", "num": 3}],
         )
 
-    @patch("arklex.env.tools.RAG.build_rag.build_rag")
+    @patch("arklex.resources.tools.rag.build_rag.build_rag")
     @patch(
         "sys.argv",
         [
@@ -670,7 +670,7 @@ class TestBuildRAGCLI:
     )
     def test_main_cli_with_zero_max_num(self, mock_build_rag: Mock) -> None:
         """Test the CLI entry point with zero max_num."""
-        import arklex.env.tools.RAG.build_rag as build_rag_module
+        import arklex.resources.tools.rag.build_rag as build_rag_module
 
         # Execute the main block by calling the function that would be called
         build_rag_module.build_rag(
@@ -686,7 +686,7 @@ class TestBuildRAGCLI:
 
     def test_main_cli_argument_parsing(self) -> None:
         """Test that the argument parser works correctly."""
-        import arklex.env.tools.RAG.build_rag as build_rag_module
+        import arklex.resources.tools.rag.build_rag as build_rag_module
 
         # Test argument parser creation and argument addition
         parser = build_rag_module.argparse.ArgumentParser()
@@ -721,7 +721,7 @@ class TestBuildRAGCLI:
 
     def test_main_cli_argument_parsing_default_max_num(self) -> None:
         """Test that the argument parser uses default max_num when not provided."""
-        import arklex.env.tools.RAG.build_rag as build_rag_module
+        import arklex.resources.tools.rag.build_rag as build_rag_module
 
         parser = build_rag_module.argparse.ArgumentParser()
         parser.add_argument(
@@ -753,7 +753,7 @@ class TestBuildRAGCLI:
 
     def test_main_cli_argument_parsing_zero_max_num(self) -> None:
         """Test that the argument parser accepts zero max_num."""
-        import arklex.env.tools.RAG.build_rag as build_rag_module
+        import arklex.resources.tools.rag.build_rag as build_rag_module
 
         parser = build_rag_module.argparse.ArgumentParser()
         parser.add_argument(
@@ -785,10 +785,10 @@ class TestBuildRAGCLI:
             assert args.folder_path == "/tmp/test"
             assert args.max_num == 0
 
-    @patch("arklex.env.tools.RAG.build_rag.build_rag")
+    @patch("arklex.resources.tools.rag.build_rag.build_rag")
     def test_main_cli_execution(self, mock_build_rag: Mock) -> None:
         """Test that the CLI code actually executes when run as main."""
-        import arklex.env.tools.RAG.build_rag as build_rag_module
+        import arklex.resources.tools.rag.build_rag as build_rag_module
 
         # Mock sys.argv to simulate command line arguments
         with patch(
@@ -836,10 +836,10 @@ class TestBuildRAGCLI:
             rag_docs=[{"source": "http://example.com", "type": "url", "num": 5}],
         )
 
-    @patch("arklex.env.tools.RAG.build_rag.build_rag")
+    @patch("arklex.resources.tools.rag.build_rag.build_rag")
     def test_main_cli_execution_default_max_num(self, mock_build_rag: Mock) -> None:
         """Test that the CLI code executes with default max_num when not provided."""
-        import arklex.env.tools.RAG.build_rag as build_rag_module
+        import arklex.resources.tools.rag.build_rag as build_rag_module
 
         # Mock sys.argv to simulate command line arguments without max_num
         with patch(
@@ -889,7 +889,7 @@ class TestBuildRAGCLI:
 
     def test_main_cli_execution_direct(self) -> None:
         """Test the CLI code by directly executing the main block logic."""
-        import arklex.env.tools.RAG.build_rag as build_rag_module
+        import arklex.resources.tools.rag.build_rag as build_rag_module
 
         # Mock sys.argv to simulate command line arguments
         with patch(
@@ -938,7 +938,7 @@ class TestBuildRAGCLI:
 
     def test_main_cli_execution_direct_default_max_num(self) -> None:
         """Test the CLI code by directly executing the main block logic with default max_num."""
-        import arklex.env.tools.RAG.build_rag as build_rag_module
+        import arklex.resources.tools.rag.build_rag as build_rag_module
 
         # Mock sys.argv to simulate command line arguments without max_num
         with patch(
@@ -983,12 +983,12 @@ class TestBuildRAGCLI:
         assert args.folder_path == "/tmp/test"
         assert args.max_num == 10  # default value
 
-    @patch("arklex.env.tools.RAG.build_rag.build_rag")
+    @patch("arklex.resources.tools.rag.build_rag.build_rag")
     def test_main_function_execution(self, mock_build_rag: Mock) -> None:
         """Test that the main function executes correctly."""
         import sys
 
-        import arklex.env.tools.RAG.build_rag as build_rag_module
+        import arklex.resources.tools.rag.build_rag as build_rag_module
 
         # Mock sys.argv to simulate command line arguments
         original_argv = sys.argv
@@ -1015,14 +1015,14 @@ class TestBuildRAGCLI:
             rag_docs=[{"source": "http://example.com", "type": "url", "num": 5}],
         )
 
-    @patch("arklex.env.tools.RAG.build_rag.build_rag")
+    @patch("arklex.resources.tools.rag.build_rag.build_rag")
     def test_main_function_execution_default_max_num(
         self, mock_build_rag: Mock
     ) -> None:
         """Test that the main function executes correctly with default max_num."""
         import sys
 
-        import arklex.env.tools.RAG.build_rag as build_rag_module
+        import arklex.resources.tools.rag.build_rag as build_rag_module
 
         # Mock sys.argv to simulate command line arguments without max_num
         original_argv = sys.argv
@@ -1051,7 +1051,7 @@ class TestBuildRAGCLI:
         """Test that the main block executes when __name__ == '__main__'."""
         import sys
 
-        import arklex.env.tools.RAG.build_rag as build_rag_module
+        import arklex.resources.tools.rag.build_rag as build_rag_module
 
         # Mock sys.argv to simulate command line arguments
         original_argv = sys.argv
@@ -1080,7 +1080,7 @@ class TestBuildRAGCLI:
         """Test that the main block condition is covered by executing it directly."""
         import sys
 
-        import arklex.env.tools.RAG.build_rag as build_rag_module
+        import arklex.resources.tools.rag.build_rag as build_rag_module
 
         # Mock sys.argv to simulate command line arguments
         original_argv = sys.argv

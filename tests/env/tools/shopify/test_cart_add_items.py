@@ -1,12 +1,12 @@
-"""Tests for arklex.env.tools.shopify.cart_add_items module."""
+"""Tests for arklex.resources.tools.shopify.cart_add_items module."""
 
 import os
 from unittest.mock import MagicMock, Mock, patch
 
 import pytest
 
-from arklex.env.tools.shopify.cart_add_items import cart_add_items
-from arklex.utils.exceptions import ToolExecutionError
+from arklex.resources.tools.shopify.cart_add_items import cart_add_items
+from arklex.utils.logging.exceptions import ToolExecutionError
 
 
 class TestCartAddItems:
@@ -26,7 +26,7 @@ class TestCartAddItems:
         if "ARKLEX_TEST_ENV" in os.environ:
             del os.environ["ARKLEX_TEST_ENV"]
 
-    @patch("arklex.env.tools.shopify.cart_add_items.requests.post")
+    @patch("arklex.resources.tools.shopify.cart_add_items.requests.post")
     def test_cart_add_items_success(self, mock_post: Mock) -> None:
         """Test successful addition of items to cart."""
         # Setup mock response
@@ -61,7 +61,7 @@ class TestCartAddItems:
         # Verify the post request was made correctly
         mock_post.assert_called_once()
 
-    @patch("arklex.env.tools.shopify.cart_add_items.requests.post")
+    @patch("arklex.resources.tools.shopify.cart_add_items.requests.post")
     def test_cart_add_items_with_graphql_errors(self, mock_post: Mock) -> None:
         """Test cart addition when GraphQL returns errors."""
         # Setup mock response with errors
@@ -86,7 +86,7 @@ class TestCartAddItems:
 
         assert "Tool cart_add_items execution failed" in str(exc_info.value)
 
-    @patch("arklex.env.tools.shopify.cart_add_items.requests.post")
+    @patch("arklex.resources.tools.shopify.cart_add_items.requests.post")
     def test_cart_add_items_with_http_error(self, mock_post: Mock) -> None:
         """Test cart addition when HTTP request fails."""
         # Setup mock to raise HTTP error
@@ -109,7 +109,7 @@ class TestCartAddItems:
 
         assert "Tool cart_add_items execution failed" in str(exc_info.value)
 
-    @patch("arklex.env.tools.shopify.cart_add_items.requests.post")
+    @patch("arklex.resources.tools.shopify.cart_add_items.requests.post")
     def test_cart_add_items_with_request_exception(self, mock_post: Mock) -> None:
         """Test cart addition when request raises exception."""
         # Setup mock to raise exception
@@ -129,7 +129,7 @@ class TestCartAddItems:
 
         assert "Tool cart_add_items execution failed" in str(exc_info.value)
 
-    @patch("arklex.env.tools.shopify.cart_add_items.requests.post")
+    @patch("arklex.resources.tools.shopify.cart_add_items.requests.post")
     def test_cart_add_items_with_empty_variant_list(self, mock_post: Mock) -> None:
         """Test cart addition with empty variant list."""
         # Setup mock response
@@ -158,7 +158,7 @@ class TestCartAddItems:
         # Verify result
         assert "successfully added to the shopping cart" in result.message_flow
 
-    @patch("arklex.env.tools.shopify.cart_add_items.requests.post")
+    @patch("arklex.resources.tools.shopify.cart_add_items.requests.post")
     def test_cart_add_items_with_single_variant(self, mock_post: Mock) -> None:
         """Test cart addition with single variant."""
         # Setup mock response
@@ -187,7 +187,7 @@ class TestCartAddItems:
         # Verify result
         assert "successfully added to the shopping cart" in result.message_flow
 
-    @patch("arklex.env.tools.shopify.cart_add_items.requests.post")
+    @patch("arklex.resources.tools.shopify.cart_add_items.requests.post")
     def test_cart_add_items_with_malformed_response(self, mock_post: Mock) -> None:
         """Test cart addition with malformed JSON response."""
         # Setup mock response with malformed JSON
@@ -210,7 +210,7 @@ class TestCartAddItems:
 
         assert "Tool cart_add_items execution failed" in str(exc_info.value)
 
-    @patch("arklex.env.tools.shopify.cart_add_items.requests.post")
+    @patch("arklex.resources.tools.shopify.cart_add_items.requests.post")
     def test_cart_add_items_with_missing_cart_data(self, mock_post: Mock) -> None:
         """Test cart addition when response is missing cart data."""
         # Setup mock response without cart data
@@ -233,7 +233,7 @@ class TestCartAddItems:
 
         assert "Tool cart_add_items execution failed" in str(exc_info.value)
 
-    @patch("arklex.env.tools.shopify.cart_add_items.requests.post")
+    @patch("arklex.resources.tools.shopify.cart_add_items.requests.post")
     def test_cart_add_items_with_missing_data_key(self, mock_post: Mock) -> None:
         """Test cart addition when response is missing 'data' key."""
         # Setup mock response without data key
@@ -258,7 +258,7 @@ class TestCartAddItems:
 
         assert "Tool cart_add_items execution failed" in str(exc_info.value)
 
-    @patch("arklex.env.tools.shopify.cart_add_items.requests.post")
+    @patch("arklex.resources.tools.shopify.cart_add_items.requests.post")
     def test_cart_add_items_with_missing_cart_lines_add_key(
         self, mock_post: Mock
     ) -> None:
@@ -287,7 +287,7 @@ class TestCartAddItems:
         """Test that the cart_add_items function is properly registered as a tool."""
         # Verify the function returns a Tool instance when called
         tool_instance = cart_add_items
-        from arklex.env.tools.tools import Tool
+        from arklex.resources.tools.tools import Tool
 
         assert isinstance(tool_instance, Tool)
 
@@ -298,7 +298,7 @@ class TestCartAddItems:
         # Verify the description matches expected value
         assert "Add items to user's shopping cart" in tool_instance.description
 
-    @patch("arklex.env.tools.shopify.cart_add_items.requests.post")
+    @patch("arklex.resources.tools.shopify.cart_add_items.requests.post")
     def test_cart_add_items_with_large_variant_list(self, mock_post: Mock) -> None:
         """Test cart addition with large number of variants."""
         # Setup mock response

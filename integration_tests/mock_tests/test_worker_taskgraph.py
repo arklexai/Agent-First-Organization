@@ -3,7 +3,7 @@ from unittest.mock import MagicMock, patch
 
 from langchain_core.messages import AIMessage
 
-from arklex.types.resource_types import WorkerItem
+from arklex.resources.resource_types import WorkerItem
 from integration_tests.utils.base import BaseTestOrchestrator, ChatRole
 
 
@@ -71,7 +71,7 @@ def create_mock_llm() -> MagicMock:
     return mock_llm
 
 
-@patch("arklex.orchestrator.NLU.services.model_service.load_llm")
+@patch("arklex.models.model_service.load_llm")
 async def test_workers(mock_load_llm: MagicMock) -> None:
     # Configure load_llm to return our mock LLM
     mock_load_llm.return_value = create_mock_llm()

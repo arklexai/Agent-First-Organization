@@ -16,11 +16,11 @@ from typing import Any
 
 from dotenv import load_dotenv
 
-from arklex.env.env import Environment
-from arklex.orchestrator.NLU.services.model_service import ModelService
+from arklex.models.llm_config import LLM_PROVIDERS, LLMConfig
+from arklex.models.model_service import ModelService
+from arklex.orchestrator.executor.executor import Executor
 from arklex.orchestrator.orchestrator import AgentOrg
-from arklex.utils.llm_config import LLM_PROVIDERS, LLMConfig
-from arklex.utils.logging_utils import LogContext
+from arklex.utils.logging.logging_utils import LogContext
 
 load_dotenv()
 
@@ -48,7 +48,7 @@ def get_api_bot_response(
     history: list[dict[str, str]],
     user_text: str,
     parameters: dict[str, Any],
-    env: Environment,
+    env: Executor,
 ) -> dict[str, Any]:
     """Get a response from the bot based on the provided input.
 
@@ -115,7 +115,7 @@ if __name__ == "__main__":
     model_service = ModelService(LLMConfig.model_validate(model))
 
     # Initialize environment with model service
-    env = Environment(
+    env = Executor(
         tools=config.get("tools", []),
         workers=config.get("workers", []),
         agents=config.get("agents", []),

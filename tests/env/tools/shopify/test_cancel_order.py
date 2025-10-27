@@ -1,4 +1,4 @@
-"""Tests for arklex.env.tools.shopify.cancel_order module."""
+"""Tests for arklex.resources.tools.shopify.cancel_order module."""
 
 import json
 import os
@@ -6,8 +6,8 @@ from unittest.mock import MagicMock, Mock, patch
 
 import pytest
 
-from arklex.env.tools.shopify.cancel_order import cancel_order
-from arklex.utils.exceptions import ShopifyError
+from arklex.resources.tools.shopify.cancel_order import cancel_order
+from arklex.utils.logging.exceptions import ShopifyError
 
 
 class TestCancelOrder:
@@ -27,8 +27,8 @@ class TestCancelOrder:
         if "ARKLEX_TEST_ENV" in os.environ:
             del os.environ["ARKLEX_TEST_ENV"]
 
-    @patch("arklex.env.tools.shopify.cancel_order.shopify.Session.temp")
-    @patch("arklex.env.tools.shopify.cancel_order.shopify.GraphQL")
+    @patch("arklex.resources.tools.shopify.cancel_order.shopify.Session.temp")
+    @patch("arklex.resources.tools.shopify.cancel_order.shopify.GraphQL")
     def test_cancel_order_success(
         self, mock_graphql: Mock, mock_session_temp: Mock
     ) -> None:
@@ -65,8 +65,8 @@ class TestCancelOrder:
         assert "restock: true" in call_args
         assert "refund: true" in call_args
 
-    @patch("arklex.env.tools.shopify.cancel_order.shopify.Session.temp")
-    @patch("arklex.env.tools.shopify.cancel_order.shopify.GraphQL")
+    @patch("arklex.resources.tools.shopify.cancel_order.shopify.Session.temp")
+    @patch("arklex.resources.tools.shopify.cancel_order.shopify.GraphQL")
     def test_cancel_order_with_user_errors(
         self, mock_graphql: Mock, mock_session_temp: Mock
     ) -> None:
@@ -99,8 +99,8 @@ class TestCancelOrder:
 
         assert "Order cancellation failed" in str(exc_info.value)
 
-    @patch("arklex.env.tools.shopify.cancel_order.shopify.Session.temp")
-    @patch("arklex.env.tools.shopify.cancel_order.shopify.GraphQL")
+    @patch("arklex.resources.tools.shopify.cancel_order.shopify.Session.temp")
+    @patch("arklex.resources.tools.shopify.cancel_order.shopify.GraphQL")
     def test_cancel_order_graphql_exception(
         self, mock_graphql: Mock, mock_session_temp: Mock
     ) -> None:
@@ -126,8 +126,8 @@ class TestCancelOrder:
 
         assert "Order cancellation failed" in str(exc_info.value)
 
-    @patch("arklex.env.tools.shopify.cancel_order.shopify.Session.temp")
-    @patch("arklex.env.tools.shopify.cancel_order.shopify.GraphQL")
+    @patch("arklex.resources.tools.shopify.cancel_order.shopify.Session.temp")
+    @patch("arklex.resources.tools.shopify.cancel_order.shopify.GraphQL")
     def test_cancel_order_json_decode_error(
         self, mock_graphql: Mock, mock_session_temp: Mock
     ) -> None:
@@ -153,8 +153,8 @@ class TestCancelOrder:
 
         assert "Order cancellation failed" in str(exc_info.value)
 
-    @patch("arklex.env.tools.shopify.cancel_order.shopify.Session.temp")
-    @patch("arklex.env.tools.shopify.cancel_order.shopify.GraphQL")
+    @patch("arklex.resources.tools.shopify.cancel_order.shopify.Session.temp")
+    @patch("arklex.resources.tools.shopify.cancel_order.shopify.GraphQL")
     def test_cancel_order_missing_data_key(
         self, mock_graphql: Mock, mock_session_temp: Mock
     ) -> None:
@@ -181,8 +181,8 @@ class TestCancelOrder:
 
         assert "Order cancellation failed" in str(exc_info.value)
 
-    @patch("arklex.env.tools.shopify.cancel_order.shopify.Session.temp")
-    @patch("arklex.env.tools.shopify.cancel_order.shopify.GraphQL")
+    @patch("arklex.resources.tools.shopify.cancel_order.shopify.Session.temp")
+    @patch("arklex.resources.tools.shopify.cancel_order.shopify.GraphQL")
     def test_cancel_order_missing_order_cancel_key(
         self, mock_graphql: Mock, mock_session_temp: Mock
     ) -> None:
@@ -209,8 +209,8 @@ class TestCancelOrder:
 
         assert "Order cancellation failed" in str(exc_info.value)
 
-    @patch("arklex.env.tools.shopify.cancel_order.shopify.Session.temp")
-    @patch("arklex.env.tools.shopify.cancel_order.shopify.GraphQL")
+    @patch("arklex.resources.tools.shopify.cancel_order.shopify.Session.temp")
+    @patch("arklex.resources.tools.shopify.cancel_order.shopify.GraphQL")
     def test_cancel_order_session_exception(
         self, mock_graphql: Mock, mock_session_temp: Mock
     ) -> None:
@@ -231,8 +231,8 @@ class TestCancelOrder:
 
         assert "Order cancellation failed" in str(exc_info.value)
 
-    @patch("arklex.env.tools.shopify.cancel_order.shopify.Session.temp")
-    @patch("arklex.env.tools.shopify.cancel_order.shopify.GraphQL")
+    @patch("arklex.resources.tools.shopify.cancel_order.shopify.Session.temp")
+    @patch("arklex.resources.tools.shopify.cancel_order.shopify.GraphQL")
     def test_cancel_order_with_empty_user_errors(
         self, mock_graphql: Mock, mock_session_temp: Mock
     ) -> None:
@@ -259,8 +259,8 @@ class TestCancelOrder:
         # Verify result
         assert "successfully cancelled" in result.message_flow
 
-    @patch("arklex.env.tools.shopify.cancel_order.shopify.Session.temp")
-    @patch("arklex.env.tools.shopify.cancel_order.shopify.GraphQL")
+    @patch("arklex.resources.tools.shopify.cancel_order.shopify.Session.temp")
+    @patch("arklex.resources.tools.shopify.cancel_order.shopify.GraphQL")
     def test_cancel_order_with_none_user_errors(
         self, mock_graphql: Mock, mock_session_temp: Mock
     ) -> None:
@@ -287,8 +287,8 @@ class TestCancelOrder:
         # Verify result
         assert "successfully cancelled" in result.message_flow
 
-    @patch("arklex.env.tools.shopify.cancel_order.shopify.Session.temp")
-    @patch("arklex.env.tools.shopify.cancel_order.shopify.GraphQL")
+    @patch("arklex.resources.tools.shopify.cancel_order.shopify.Session.temp")
+    @patch("arklex.resources.tools.shopify.cancel_order.shopify.GraphQL")
     def test_cancel_order_with_missing_user_errors_key(
         self, mock_graphql: Mock, mock_session_temp: Mock
     ) -> None:
@@ -321,7 +321,7 @@ class TestCancelOrder:
 
         # Verify the function returns a Tool instance when called
         tool_instance = cancel_order
-        from arklex.env.tools.tools import Tool
+        from arklex.resources.tools.tools import Tool
 
         assert isinstance(tool_instance, Tool)
 

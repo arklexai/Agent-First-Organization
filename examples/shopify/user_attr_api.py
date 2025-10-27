@@ -6,8 +6,8 @@ import shopify
 import uvicorn
 from fastapi import FastAPI
 
-from arklex.env.tools.shopify.utils.utils import authorify_admin
-from arklex.utils.exceptions import AuthenticationError
+from arklex.resources.tools.shopify.utils.utils import authorify_admin
+from arklex.utils.logging.exceptions import AuthenticationError
 
 USER_NOT_FOUND_ERROR: str = "error: No user found"
 PRODUCTS_NOT_FOUND: str = "error: No products found"

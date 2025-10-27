@@ -11,7 +11,7 @@ import pytest
 
 # Mock the entire mysql module to avoid connection issues
 with patch.dict("sys.modules", {"arklex.utils.mysql": Mock()}):
-    from arklex.env.tools.RAG.retrievers.retriever_document import (
+    from arklex.resources.tools.rag.retrievers.retriever_document import (
         DEFAULT_CHUNK_ENCODING,
         RetrieverDocument,
         RetrieverDocumentType,

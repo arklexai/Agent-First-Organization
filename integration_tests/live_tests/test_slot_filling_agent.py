@@ -102,7 +102,7 @@ def create_mock_response(url: str, method: str, **kwargs: dict[str, Any]) -> Moc
     return mock_response
 
 
-@patch("arklex.env.tools.custom_tools.http_tool.requests.request")
+@patch("arklex.resources.tools.custom_tools.http_tool.requests.request")
 async def test_slot_filling_agent_comprehensive(mock_request: Mock) -> None:
     orchestrator = BaseTestOrchestrator(
         "integration_tests/taskgraphs/slot_filling_agent_taskgraph.json"

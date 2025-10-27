@@ -10,9 +10,12 @@ from unittest.mock import Mock, patch
 import pytest
 import requests
 
-from arklex.env.tools.custom_tools.http_tool import http_tool, replace_placeholders
-from arklex.orchestrator.NLU.entities.slot_entities import Slot
-from arklex.utils.exceptions import ToolExecutionError
+from arklex.orchestrator.nlu.entities.slot_entities import Slot
+from arklex.resources.tools.custom_tools.http_tool import (
+    http_tool,
+    replace_placeholders,
+)
+from arklex.utils.logging.exceptions import ToolExecutionError
 
 
 class TestReplacePlaceholders:
@@ -575,7 +578,7 @@ class TestHTTPToolDataCleaning:
 
     def test_clean_json_data_nested_dict(self) -> None:
         """Test cleaning nested dictionary data."""
-        from arklex.env.tools.custom_tools.http_tool import clean_json_data
+        from arklex.resources.tools.custom_tools.http_tool import clean_json_data
 
         data = {
             "level1": {
@@ -598,7 +601,7 @@ class TestHTTPToolDataCleaning:
 
     def test_clean_json_data_non_dict_input(self) -> None:
         """Test clean_json_data with non-dict input."""
-        from arklex.env.tools.custom_tools.http_tool import clean_json_data
+        from arklex.resources.tools.custom_tools.http_tool import clean_json_data
 
         # Should return input as-is for non-dict types
         assert clean_json_data("string") == "string"
@@ -608,14 +611,14 @@ class TestHTTPToolDataCleaning:
 
     def test_clean_json_data_empty_dict(self) -> None:
         """Test clean_json_data with empty dictionary."""
-        from arklex.env.tools.custom_tools.http_tool import clean_json_data
+        from arklex.resources.tools.custom_tools.http_tool import clean_json_data
 
         result = clean_json_data({})
         assert result == {}
 
     def test_clean_json_data_with_list_values(self) -> None:
         """Test clean_json_data with list values containing placeholders."""
-        from arklex.env.tools.custom_tools.http_tool import clean_json_data
+        from arklex.resources.tools.custom_tools.http_tool import clean_json_data
 
         data = {
             "items": [
@@ -632,7 +635,7 @@ class TestHTTPToolDataCleaning:
 
     def test_validate_request_body_success(self) -> None:
         """Test validate_request_body with valid data."""
-        from arklex.env.tools.custom_tools.http_tool import validate_request_body
+        from arklex.resources.tools.custom_tools.http_tool import validate_request_body
 
         body = {"name": "test", "age": 30, "active": True}
 
@@ -641,7 +644,7 @@ class TestHTTPToolDataCleaning:
 
     def test_validate_request_body_with_placeholders(self) -> None:
         """Test validate_request_body with placeholders."""
-        from arklex.env.tools.custom_tools.http_tool import validate_request_body
+        from arklex.resources.tools.custom_tools.http_tool import validate_request_body
 
         body = {"name": "{{user_name}}", "age": "{{user_age}}", "normal": "value"}
 
@@ -652,14 +655,14 @@ class TestHTTPToolDataCleaning:
 
     def test_validate_request_body_none_input(self) -> None:
         """Test validate_request_body with None input."""
-        from arklex.env.tools.custom_tools.http_tool import validate_request_body
+        from arklex.resources.tools.custom_tools.http_tool import validate_request_body
 
         result = validate_request_body(None)
         assert result is None
 
     def test_validate_request_body_invalid_json(self) -> None:
         """Test validate_request_body with data that can't be JSON serialized."""
-        from arklex.env.tools.custom_tools.http_tool import validate_request_body
+        from arklex.resources.tools.custom_tools.http_tool import validate_request_body
 
         # Create an object that can't be JSON serialized
         class NonSerializable:

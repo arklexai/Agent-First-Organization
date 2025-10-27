@@ -1,4 +1,4 @@
-"""Tests for arklex.env.tools.shopify.get_user_details_admin module."""
+"""Tests for arklex.resources.tools.shopify.get_user_details_admin module."""
 
 import json
 import os
@@ -6,8 +6,8 @@ from unittest.mock import MagicMock, Mock, patch
 
 import pytest
 
-from arklex.env.tools.shopify.get_user_details_admin import get_user_details_admin
-from arklex.utils.exceptions import ToolExecutionError
+from arklex.resources.tools.shopify.get_user_details_admin import get_user_details_admin
+from arklex.utils.logging.exceptions import ToolExecutionError
 
 
 class TestGetUserDetailsAdmin:
@@ -27,8 +27,8 @@ class TestGetUserDetailsAdmin:
         if "ARKLEX_TEST_ENV" in os.environ:
             del os.environ["ARKLEX_TEST_ENV"]
 
-    @patch("arklex.env.tools.shopify.get_user_details_admin.shopify.Session.temp")
-    @patch("arklex.env.tools.shopify.get_user_details_admin.shopify.GraphQL")
+    @patch("arklex.resources.tools.shopify.get_user_details_admin.shopify.Session.temp")
+    @patch("arklex.resources.tools.shopify.get_user_details_admin.shopify.GraphQL")
     def test_get_user_details_admin_success(
         self, mock_graphql: Mock, mock_session_temp: Mock
     ) -> None:
@@ -75,8 +75,8 @@ class TestGetUserDetailsAdmin:
         assert "John" in result.message_flow
         assert "john.doe@example.com" in result.message_flow
 
-    @patch("arklex.env.tools.shopify.get_user_details_admin.shopify.Session.temp")
-    @patch("arklex.env.tools.shopify.get_user_details_admin.shopify.GraphQL")
+    @patch("arklex.resources.tools.shopify.get_user_details_admin.shopify.Session.temp")
+    @patch("arklex.resources.tools.shopify.get_user_details_admin.shopify.GraphQL")
     def test_get_user_details_admin_user_not_found(
         self, mock_graphql: Mock, mock_session_temp: Mock
     ) -> None:
@@ -103,8 +103,8 @@ class TestGetUserDetailsAdmin:
 
         assert "Tool get_user_details_admin execution failed" in str(exc_info.value)
 
-    @patch("arklex.env.tools.shopify.get_user_details_admin.shopify.Session.temp")
-    @patch("arklex.env.tools.shopify.get_user_details_admin.shopify.GraphQL")
+    @patch("arklex.resources.tools.shopify.get_user_details_admin.shopify.Session.temp")
+    @patch("arklex.resources.tools.shopify.get_user_details_admin.shopify.GraphQL")
     def test_get_user_details_admin_graphql_exception(
         self, mock_graphql: Mock, mock_session_temp: Mock
     ) -> None:
@@ -130,8 +130,8 @@ class TestGetUserDetailsAdmin:
 
         assert "Tool get_user_details_admin execution failed" in str(exc_info.value)
 
-    @patch("arklex.env.tools.shopify.get_user_details_admin.shopify.Session.temp")
-    @patch("arklex.env.tools.shopify.get_user_details_admin.shopify.GraphQL")
+    @patch("arklex.resources.tools.shopify.get_user_details_admin.shopify.Session.temp")
+    @patch("arklex.resources.tools.shopify.get_user_details_admin.shopify.GraphQL")
     def test_get_user_details_admin_session_exception(
         self, mock_graphql: Mock, mock_session_temp: Mock
     ) -> None:
@@ -152,8 +152,8 @@ class TestGetUserDetailsAdmin:
 
         assert "Tool get_user_details_admin execution failed" in str(exc_info.value)
 
-    @patch("arklex.env.tools.shopify.get_user_details_admin.shopify.Session.temp")
-    @patch("arklex.env.tools.shopify.get_user_details_admin.shopify.GraphQL")
+    @patch("arklex.resources.tools.shopify.get_user_details_admin.shopify.Session.temp")
+    @patch("arklex.resources.tools.shopify.get_user_details_admin.shopify.GraphQL")
     def test_get_user_details_admin_with_pagination_parameters(
         self, mock_graphql: Mock, mock_session_temp: Mock
     ) -> None:
@@ -214,8 +214,8 @@ class TestGetUserDetailsAdmin:
         assert user_data["lastName"] == "Doe"
         assert user_data["email"] == "john.doe@example.com"
 
-    @patch("arklex.env.tools.shopify.get_user_details_admin.shopify.Session.temp")
-    @patch("arklex.env.tools.shopify.get_user_details_admin.shopify.GraphQL")
+    @patch("arklex.resources.tools.shopify.get_user_details_admin.shopify.Session.temp")
+    @patch("arklex.resources.tools.shopify.get_user_details_admin.shopify.GraphQL")
     def test_get_user_details_admin_with_missing_fields(
         self, mock_graphql: Mock, mock_session_temp: Mock
     ) -> None:
@@ -256,8 +256,8 @@ class TestGetUserDetailsAdmin:
         assert user_data["email"] == "john.doe@example.com"
         assert user_data["orders"]["nodes"] == []
 
-    @patch("arklex.env.tools.shopify.get_user_details_admin.shopify.Session.temp")
-    @patch("arklex.env.tools.shopify.get_user_details_admin.shopify.GraphQL")
+    @patch("arklex.resources.tools.shopify.get_user_details_admin.shopify.Session.temp")
+    @patch("arklex.resources.tools.shopify.get_user_details_admin.shopify.GraphQL")
     def test_get_user_details_admin_with_empty_orders(
         self, mock_graphql: Mock, mock_session_temp: Mock
     ) -> None:
@@ -315,8 +315,8 @@ class TestGetUserDetailsAdmin:
         assert user_data["addresses"] == []
         assert user_data["orders"]["nodes"] == []
 
-    @patch("arklex.env.tools.shopify.get_user_details_admin.shopify.Session.temp")
-    @patch("arklex.env.tools.shopify.get_user_details_admin.shopify.GraphQL")
+    @patch("arklex.resources.tools.shopify.get_user_details_admin.shopify.Session.temp")
+    @patch("arklex.resources.tools.shopify.get_user_details_admin.shopify.GraphQL")
     def test_get_user_details_admin_with_numeric_id(
         self, mock_graphql: Mock, mock_session_temp: Mock
     ) -> None:
@@ -365,7 +365,7 @@ class TestGetUserDetailsAdmin:
         """Test that the get_user_details_admin function is properly registered as a tool."""
         # Verify the function returns a Tool instance when called
         tool_instance = get_user_details_admin
-        from arklex.env.tools.tools import Tool
+        from arklex.resources.tools.tools import Tool
 
         assert isinstance(tool_instance, Tool)
 
@@ -373,8 +373,8 @@ class TestGetUserDetailsAdmin:
         assert hasattr(tool_instance, "description")
         assert hasattr(tool_instance, "slots")
 
-    @patch("arklex.env.tools.shopify.get_user_details_admin.shopify.Session.temp")
-    @patch("arklex.env.tools.shopify.get_user_details_admin.shopify.GraphQL")
+    @patch("arklex.resources.tools.shopify.get_user_details_admin.shopify.Session.temp")
+    @patch("arklex.resources.tools.shopify.get_user_details_admin.shopify.GraphQL")
     def test_get_user_details_admin_with_json_decode_error(
         self, mock_graphql: Mock, mock_session_temp: Mock
     ) -> None:
@@ -400,8 +400,8 @@ class TestGetUserDetailsAdmin:
 
         assert "Tool get_user_details_admin execution failed" in str(exc_info.value)
 
-    @patch("arklex.env.tools.shopify.get_user_details_admin.shopify.Session.temp")
-    @patch("arklex.env.tools.shopify.get_user_details_admin.shopify.GraphQL")
+    @patch("arklex.resources.tools.shopify.get_user_details_admin.shopify.Session.temp")
+    @patch("arklex.resources.tools.shopify.get_user_details_admin.shopify.GraphQL")
     def test_get_user_details_admin_with_missing_data_key(
         self, mock_graphql: Mock, mock_session_temp: Mock
     ) -> None:
@@ -428,8 +428,8 @@ class TestGetUserDetailsAdmin:
 
         assert "Tool get_user_details_admin execution failed" in str(exc_info.value)
 
-    @patch("arklex.env.tools.shopify.get_user_details_admin.shopify.Session.temp")
-    @patch("arklex.env.tools.shopify.get_user_details_admin.shopify.GraphQL")
+    @patch("arklex.resources.tools.shopify.get_user_details_admin.shopify.Session.temp")
+    @patch("arklex.resources.tools.shopify.get_user_details_admin.shopify.GraphQL")
     def test_get_user_details_admin_with_missing_customer_key(
         self, mock_graphql: Mock, mock_session_temp: Mock
     ) -> None:
