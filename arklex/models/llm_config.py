@@ -16,25 +16,6 @@ class LLMConfig(BaseModel):
 
 
 def get_huggingface_llm(model: str, **kwargs: object) -> any:
-    """Initialize a HuggingFace language model.
-
-    This function creates a HuggingFace language model instance using the specified model
-    and configuration parameters. It sets up the model for text generation tasks.
-
-    Args:
-        model (str): The HuggingFace model identifier to use.
-        **kwargs (object): Additional configuration parameters for the model.
-
-    Returns:
-        ChatHuggingFace: A configured HuggingFace chat model instance.
-
-    Example:
-        llm = get_huggingface_llm(
-            model="gpt2",
-            temperature=0.7,
-            max_length=100
-        )
-    """
     from langchain_huggingface import ChatHuggingFace, HuggingFaceEndpoint
 
     llm: HuggingFaceEndpoint = HuggingFaceEndpoint(
