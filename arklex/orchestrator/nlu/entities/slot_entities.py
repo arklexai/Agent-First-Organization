@@ -26,35 +26,39 @@ TYPE_CONVERTERS = {
 }
 
 
-def convert_value_for_type(value: str | int | float | bool | list | dict | None, type_str: str) -> str | int | float | bool | list | dict | None:
+def convert_value_for_type(
+    value: str | int | float | bool | list | dict | None, type_str: str
+) -> str | int | float | bool | list | dict | None:
     """Convert value to the specified type.
-    
+
     Args:
         value: The value to convert
         type_str: The target type string
-        
+
     Returns:
         The converted value
     """
     type_mapping = {
         "string": "str",
-        "integer": "int", 
+        "integer": "int",
         "number": "float",
-        "boolean": "bool"
+        "boolean": "bool",
     }
-    
+
     internal_type = type_mapping.get(type_str, "str")
     converter = TYPE_CONVERTERS.get(internal_type, lambda x: x)
-    
+
     try:
         return converter(value)
     except Exception:
         return value
 
 
-def extract_fields_from_properties(properties: dict, fields: dict, path: str = "") -> None:
+def extract_fields_from_properties(
+    properties: dict, fields: dict, path: str = ""
+) -> None:
     """Extract fixed/default fields from properties, handling nested structures.
-    
+
     Args:
         properties: Properties dictionary from schema
         fields: Dictionary to populate with field definitions
@@ -63,15 +67,15 @@ def extract_fields_from_properties(properties: dict, fields: dict, path: str = "
     for field_name, field_def in properties.items():
         current_path = f"{path}.{field_name}" if path else field_name
         value_source = field_def.get("valueSource")
-        
+
         if value_source in ["fixed", "default"] and "value" in field_def:
             fields[current_path] = {
                 "value": field_def["value"],
                 "type": field_def.get("type", "string"),
                 "valueSource": value_source,
-                "field_name": field_name
+                "field_name": field_name,
             }
-        
+
         # Handle nested objects and arrays
         if field_def.get("type") == "object":
             nested_props = field_def.get("properties", {})
@@ -83,7 +87,9 @@ def extract_fields_from_properties(properties: dict, fields: dict, path: str = "
                 extract_fields_from_properties(nested_props, fields, current_path)
 
 
-def extract_nested_fields_from_definition(field_def: dict[str, Any], fields: dict[str, dict[str, Any]], path: str = "") -> None:
+def extract_nested_fields_from_definition(
+    field_def: dict[str, Any], fields: dict[str, dict[str, Any]], path: str = ""
+) -> None:
     """Extract field definitions from a field definition, handling nested structures.
 
     Args:
@@ -93,7 +99,7 @@ def extract_nested_fields_from_definition(field_def: dict[str, Any], fields: dic
     """
     field_name = field_def.get("name", "")
     current_path = f"{path}.{field_name}" if path else field_name
-    
+
     # Add current field if it has valueSource
     value_source = field_def.get("valueSource")
     if value_source in ["fixed", "default"] and "value" in field_def:
@@ -102,11 +108,13 @@ def extract_nested_fields_from_definition(field_def: dict[str, Any], fields: dic
             "type": field_def.get("type", "str"),
             "valueSource": value_source,
             "value": field_def.get("value"),
-            "repeatable": field_def.get("repeatable", False)
+            "repeatable": field_def.get("repeatable", False),
         }
-    
-    
-def extract_fields_from_openai_schema(schema: dict, slot_name: str, fields: dict[str, dict[str, Any]], base_path: str = "") -> None:
+
+
+def extract_fields_from_openai_schema(
+    schema: dict, slot_name: str, fields: dict[str, dict[str, Any]], base_path: str = ""
+) -> None:
     """Extract field definitions from OpenAI function-style schema.
 
     Args:
@@ -117,26 +125,32 @@ def extract_fields_from_openai_schema(schema: dict, slot_name: str, fields: dict
     """
     if "function" not in schema:
         return
-        
+
     function_block = schema.get("function", {})
     parameters = function_block.get("parameters", {})
     properties = parameters.get("properties", {})
     slot_prop = properties.get(slot_name)
-    
+
     if not slot_prop:
         return
-        
+
     # Handle array of objects
     if slot_prop.get("type") == "array":
         items = slot_prop.get("items", {})
         if items.get("type") == "object":
-            extract_properties_recursively(items.get("properties", {}), fields, base_path)
+            extract_properties_recursively(
+                items.get("properties", {}), fields, base_path
+            )
     # Handle single object
     elif slot_prop.get("type") == "object":
-        extract_properties_recursively(slot_prop.get("properties", {}), fields, base_path)
+        extract_properties_recursively(
+            slot_prop.get("properties", {}), fields, base_path
+        )
 
 
-def extract_properties_recursively(properties: dict, fields: dict[str, dict[str, Any]], path: str = "") -> None:
+def extract_properties_recursively(
+    properties: dict, fields: dict[str, dict[str, Any]], path: str = ""
+) -> None:
     """Recursively extract field definitions from properties.
 
     Args:
@@ -147,16 +161,16 @@ def extract_properties_recursively(properties: dict, fields: dict[str, dict[str,
     for field_name, field_def in properties.items():
         current_path = f"{path}.{field_name}" if path else field_name
         value_source = field_def.get("valueSource")
-        
+
         if value_source in ["fixed", "default"] and "value" in field_def:
             fields[current_path] = {
                 "name": field_name,
                 "type": field_def.get("type", "string"),
                 "valueSource": value_source,
                 "value": field_def.get("value"),
-                "repeatable": field_def.get("type") == "array"
+                "repeatable": field_def.get("type") == "array",
             }
-        
+
         # Handle nested objects
         if field_def.get("type") == "object":
             nested_props = field_def.get("properties", {})
@@ -171,22 +185,22 @@ def extract_properties_recursively(properties: dict, fields: dict[str, dict[str,
 
 def find_fixed_default_fields_recursive(schema: dict, slot_name: str) -> dict:
     """Recursively find all fields with valueSource='fixed' or 'default' at any nesting level.
-    
+
     Args:
         schema: Slot schema dictionary
         slot_name: Name of the slot
-        
+
     Returns:
         Dictionary mapping field paths to their values and types
     """
     fields = {}
-    
+
     if isinstance(schema, dict) and "function" in schema:
         function_block = schema.get("function", {})
         parameters = function_block.get("parameters", {})
         properties = parameters.get("properties", {})
         slot_prop = properties.get(slot_name)
-        
+
         if slot_prop:
             # Handle array of objects
             if slot_prop.get("type") == "array":
@@ -196,13 +210,15 @@ def find_fixed_default_fields_recursive(schema: dict, slot_name: str) -> dict:
             # Handle single object
             elif slot_prop.get("type") == "object":
                 extract_fields_from_properties(slot_prop.get("properties", {}), fields)
-    
+
     return fields
 
 
-def apply_fields_to_item_recursive(item: dict, fields: dict, schema: dict, slot_name: str) -> None:
+def apply_fields_to_item_recursive(
+    item: dict, fields: dict, schema: dict, slot_name: str
+) -> None:
     """Apply fixed/default fields to an item, handling nested structures.
-    
+
     Args:
         item: Dictionary to apply values to
         fields: Dictionary of field definitions with values
@@ -211,9 +227,9 @@ def apply_fields_to_item_recursive(item: dict, fields: dict, schema: dict, slot_
     """
     for field_path, field_info in fields.items():
         # Split path to handle nested fields
-        path_parts = field_path.split('.')
+        path_parts = field_path.split(".")
         current_obj = item
-        
+
         # Navigate to the parent object of the target field
         for part in path_parts[:-1]:
             if part in current_obj:
@@ -225,11 +241,13 @@ def apply_fields_to_item_recursive(item: dict, fields: dict, schema: dict, slot_
             # We found the parent object, now apply the value
             field_name = path_parts[-1]
             value_source = field_info["valueSource"]
-            
+
             if value_source == "fixed":
                 # Always override with fixed value
-                converted_value = convert_value_for_type(field_info["value"], field_info["type"])
-                
+                converted_value = convert_value_for_type(
+                    field_info["value"], field_info["type"]
+                )
+
                 # Handle arrays - apply to each item in the array
                 if isinstance(current_obj, list):
                     for array_item in current_obj:
@@ -239,26 +257,38 @@ def apply_fields_to_item_recursive(item: dict, fields: dict, schema: dict, slot_
                     current_obj[field_name] = converted_value
             elif value_source == "default":
                 # Apply default only if value is missing/empty/null
-                converted_value = convert_value_for_type(field_info["value"], field_info["type"])
-                
+                converted_value = convert_value_for_type(
+                    field_info["value"], field_info["type"]
+                )
+
                 # Handle arrays - apply to each item in the array
                 if isinstance(current_obj, list):
                     for array_item in current_obj:
                         if isinstance(array_item, dict) and field_name in array_item:
                             current_value = array_item.get(field_name)
                             # Only apply default if value is truly missing/empty/null, not False
-                            if current_value is None or current_value == "" or current_value == "null":
+                            if (
+                                current_value is None
+                                or current_value == ""
+                                or current_value == "null"
+                            ):
                                 array_item[field_name] = converted_value
                 elif isinstance(current_obj, dict):
                     current_value = current_obj.get(field_name)
                     # Only apply default if value is truly missing/empty/null, not False
-                    if current_value is None or current_value == "" or current_value == "null":
+                    if (
+                        current_value is None
+                        or current_value == ""
+                        or current_value == "null"
+                    ):
                         current_obj[field_name] = converted_value
 
 
-def apply_values_recursively(value: str | int | float | bool | list | dict | None, schema: dict, slot_name: str) -> None:
+def apply_values_recursively(
+    value: str | int | float | bool | list | dict | None, schema: dict, slot_name: str
+) -> None:
     """Recursively apply fixed/default values to nested structures.
-    
+
     Args:
         value: The value to process (can be dict, list, or primitive)
         schema: The schema containing field definitions
@@ -346,7 +376,11 @@ class Slot(BaseModel):
             except Exception:
                 # Fall back to synthesizing schema if extraction fails
                 pass
-        elif hasattr(self, 'schema') and isinstance(self.schema, dict) and "function" in self.schema:
+        elif (
+            hasattr(self, "schema")
+            and isinstance(self.schema, dict)
+            and "function" in self.schema
+        ):
             try:
                 properties = (
                     self.schema.get("function", {})
