@@ -33,7 +33,6 @@ class Executor:
         self,
         tools: list[dict[str, Any]],
         workers: list[dict[str, Any]],
-        agents: list[dict[str, Any]],
         nodes: list[dict[str, Any]],
         llm_config: LLMConfig,
     ) -> None:
@@ -50,7 +49,6 @@ class Executor:
         resource_loader = ResourceLoader()
         self.tools: dict[str, dict[str, Any]] = resource_loader.init_tools(tools, nodes)
         self.workers: dict[str, dict[str, Any]] = resource_loader.init_workers(workers)
-        self.agents: dict[str, dict[str, Any]] = resource_loader.init_agents(agents)
         self.model_service = ModelService(llm_config)
         self.slotfillapi: SlotFiller = SlotFiller(model_service=self.model_service)
 

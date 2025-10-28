@@ -1,11 +1,35 @@
+import importlib
 from typing import Any
 
 from arklex.resources.resource_map import RESOURCE_MAP
-from arklex.resources.resource_types import ToolItem
+from arklex.resources.resource_types import ResourceType, ToolItem
 from arklex.resources.tools.tools import Tool
 from arklex.utils.logging.logging_utils import LogContext
 
 log_context = LogContext(__name__)
+
+
+def init_resource_map(resource_type: ResourceType) -> dict[str, dict[str, Any]]:
+    resource_map: dict[str, dict[str, Any]] = {}
+    for item, details in RESOURCE_MAP.items():
+        details_copy = details.copy()
+        function_name = details_copy["item_cls"]
+        module_path = details_copy["module"]
+        if resource_type and details_copy["type"] != resource_type:
+            continue
+        try:
+            module = importlib.import_module(module_path)
+            function = getattr(module, function_name)
+            details_copy["item_cls"] = function
+            resource_map[item] = details_copy
+            log_context.info(
+                f"Successfully imported {function_name} from {module_path}"
+            )
+        except Exception as e:
+            log_context.error(
+                f"Failed to import {function_name} from {module_path}: {e}"
+            )
+    return resource_map
 
 
 class ResourceLoader:
@@ -22,6 +46,7 @@ class ResourceLoader:
         Returns:
             dictionary mapping tool IDs to their configurations
         """
+        resource_map = init_resource_map(ResourceType.TOOL)
         tool_registry: dict[str, dict[str, Any]] = {}
         for tool in tools:
             tool_id: str = tool["id"]
@@ -39,7 +64,7 @@ class ResourceLoader:
                         ):
                             continue
                         # Create a new tool instance for each node to avoid sharing state
-                        base_tool: Tool = RESOURCE_MAP[tool_id]["item_cls"]
+                        base_tool: Tool = resource_map[tool_id]["item_cls"]
                         tool_instance: Tool = base_tool.copy()
                         tool_instance.auth.update(tool.get("auth", {}))
                         tool_instance.node_specific_data = node_data
@@ -54,7 +79,7 @@ class ResourceLoader:
                             "tool_instance": tool_instance,
                         }
                 else:
-                    base_tool: Tool = RESOURCE_MAP[tool_id]["item_cls"]
+                    base_tool: Tool = resource_map[tool_id]["item_cls"]
                     tool_instance: Tool = base_tool.copy()
                     tool_instance.auth.update(tool.get("auth", {}))
                     tool_instance.node_specific_data = {}
@@ -87,12 +112,13 @@ class ResourceLoader:
         Returns:
             dictionary mapping worker IDs to their configurations
         """
+        resource_map = init_resource_map(ResourceType.WORKER)
         worker_registry: dict[str, dict[str, Any]] = {}
         for worker in workers:
             worker_id: str = worker["id"]
             try:
                 worker_registry[worker_id] = {
-                    "item_cls": RESOURCE_MAP[worker["id"]]["item_cls"],
+                    "item_cls": resource_map[worker["id"]]["item_cls"],
                     "auth": worker.get("auth", {}),
                 }
             except Exception as e:
@@ -109,11 +135,12 @@ class ResourceLoader:
         Returns:
             dictionary mapping agent IDs to their configurations
         """
+        resource_map = init_resource_map(ResourceType.AGENT)
         agent_registry: dict[str, dict[str, Any]] = {}
         for agent in agents:
             agent_id: str = agent["id"]
             try:
-                agent_instance = RESOURCE_MAP[agent_id]["item_cls"]
+                agent_instance = resource_map[agent_id]["item_cls"]
                 agent_registry[agent_id] = {
                     "agent_instance": agent_instance,
                 }

@@ -110,10 +110,10 @@ class Timing(BaseModel):
     3. Type-safe timing management
 
     Attributes:
-        taskgraph (Optional[float]): Time taken for task graph processing.
+        nlugraph (Optional[float]): Time taken for nlu graph processing.
     """
 
-    taskgraph: float | None = None
+    nlugraph: float | None = None
 
 
 class Metadata(BaseModel):
