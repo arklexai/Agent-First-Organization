@@ -11,7 +11,7 @@ import os
 import pickle
 from typing import Any
 
-from langchain.prompts import PromptTemplate
+from langchain_core.prompts import PromptTemplate
 from langchain_community.vectorstores.faiss import FAISS
 from langchain_core.documents import Document
 from langchain_core.output_parsers import StrOutputParser
