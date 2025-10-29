@@ -8,9 +8,9 @@ query reformulation and result processing for integration with the RAG system.
 
 from typing import Any, Literal, TypedDict
 
-from langchain_core.prompts import PromptTemplate
 from langchain_community.tools import TavilySearchResults
 from langchain_core.output_parsers import StrOutputParser
+from langchain_core.prompts import PromptTemplate
 
 from arklex.models.llm_config import load_llm
 from arklex.orchestrator.entities.orchestrator_state_entities import (

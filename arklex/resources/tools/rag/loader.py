@@ -20,7 +20,6 @@ from urllib.parse import urljoin
 import networkx as nx
 import requests
 from bs4 import BeautifulSoup
-from langchain_text_splitters import RecursiveCharacterTextSplitter
 from langchain_community.document_loaders import (
     PyPDFLoader,
     TextLoader,
@@ -30,6 +29,7 @@ from langchain_community.document_loaders import (
     UnstructuredWordDocumentLoader,
 )
 from langchain_core.documents import Document
+from langchain_text_splitters import RecursiveCharacterTextSplitter
 from mistralai import Mistral
 from selenium import webdriver
 from selenium.webdriver.chrome.service import Service
