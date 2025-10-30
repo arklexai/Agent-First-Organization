@@ -35,7 +35,7 @@ from arklex.orchestrator.types.stream_types import StreamType
 
 # Bot-related classes
 class BotConfig(BaseModel):
-    """Configuration for bot settings.
+    """Configuration for settings.
 
     This class defines the overall configuration for a bot instance, including its language settings and language model configuration.
 

@@ -49,7 +49,7 @@ class MessageWorker(BaseWorker):
         message_flow = self.orch_state.message_flow
         orch_message = self.msg_worker_data.message
 
-        prompts: dict[str, str] = load_prompts(self.orch_state.bot_config)
+        prompts: dict[str, str] = load_prompts(self.orch_state.bot_config.language)
         if message_flow:
             if self.orch_state.stream_type == StreamType.SPEECH:
                 prompt: PromptTemplate = PromptTemplate.from_template(

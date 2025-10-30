@@ -4,6 +4,7 @@ from typing import Any
 
 import janus
 from langchain_core.runnables import RunnableLambda
+from pydantic import BaseModel
 
 from arklex.memory.entities.memory_entities import ResourceRecord
 from arklex.models.llm_config import LLMConfig
@@ -21,6 +22,8 @@ from arklex.orchestrator.executor.executor import Executor
 from arklex.orchestrator.task_graph.nlu_graph import NLUGraph
 from arklex.orchestrator.types.stream_types import StreamType
 from arklex.resources.agents.base.agent import BaseAgent, register_agent
+from arklex.resources.agents.rule_based_agent.post_process import post_process_response
+from arklex.resources.tools.utils import ToolGenerator
 from arklex.utils.logging.logging_utils import LogContext
 from arklex.utils.prompts import load_prompts
 from arklex.utils.utils import format_chat_history
@@ -28,24 +31,39 @@ from arklex.utils.utils import format_chat_history
 log_context = LogContext(__name__)
 
 
+class NLUAgentData(BaseModel):
+    prompt: str
+    response_length: int
+    language: str
+
+
 @register_agent
 class NLUAgent(BaseAgent):
     def __init__(
         self,
-        product_kwargs: dict[str, Any],
+        llm_config: LLMConfig,
         nlu_graph: NLUGraph,
         executor: Executor,
     ) -> None:
         self.user_prefix = "user"
-        self.product_kwargs = product_kwargs
+        self.llm_config = llm_config
         self.executor = executor
-        self.llm_config: LLMConfig = LLMConfig.model_validate(
-            self.product_kwargs.get("model")
-        )
         self.nlu_graph = nlu_graph
-        self.model_service: ModelService = ModelService(self.llm_config)
-        bot_config = BotConfig.model_validate(self.product_kwargs.get("bot_config", {}))
-        self.prompts = load_prompts(bot_config)
+        self.agent_data: NLUAgentData = NLUAgentData.model_validate(
+            self.nlu_graph.agent_node.data
+        )
+
+    def format_system_prompt(self) -> str:
+        if self.agent_data.language == "EN":
+            return (
+                self.agent_data.prompt
+                + f"\nLimit the response within {self.agent_data.response_length} words"
+            )
+        else:
+            return (
+                self.agent_data.prompt
+                + f"限制回复长度在{self.agent_data.response_length}字以内"
+            )
 
     def init_params(
         self, inputs: dict[str, Any]
@@ -71,9 +89,10 @@ class NLUAgent(BaseAgent):
         params.memory.trajectory.append([])
 
         orch_state: OrchestratorState = OrchestratorState(
-            sys_instruct=self.product_kwargs.get("sys_instruct", ""),
-            bot_config=BotConfig.model_validate(
-                self.product_kwargs.get("bot_config", {})
+            sys_instruct=self.agent_data.prompt,
+            bot_config=BotConfig(
+                language=self.agent_data.language,
+                llm_config=self.llm_config,
             ),
         )
         return text, chat_history_str, params, orch_state
@@ -86,13 +105,15 @@ class NLUAgent(BaseAgent):
         if not task:
             return False
 
-        prompt = self.prompts["check_skip_node_prompt"].format(
+        prompts = load_prompts(self.agent_data.language)
+        prompt = prompts["check_skip_node_prompt"].format(
             chat_history_str=chat_history_str, task=task
         )
         log_context.info(f"prompt for check skip node: {prompt}")
 
+        model_service: ModelService = ModelService(self.llm_config)
         try:
-            response_text = self.model_service.get_response(prompt)
+            response_text = model_service.get_response(prompt)
             log_context.info(f"LLM response for task verification: {response_text}")
             response_text = str(response_text).lower().strip()
             return response_text == "yes"
@@ -199,4 +220,17 @@ class NLUAgent(BaseAgent):
             # If the current node is a leaf node, break the loop
             if node_info.is_leaf is True:
                 break
-        return node_response, orch_state, params
+
+        if not node_response.response:
+            log_context.info("No response, do context generation")
+            if stream_type == StreamType.NON_STREAM:
+                answer = ToolGenerator.context_generate(orch_state)
+                node_response.response = answer
+            else:
+                answer = ToolGenerator.stream_context_generate(orch_state)
+                node_response.response = answer
+        node_response = post_process_response(
+            orch_state,
+            node_response,
+        )
+        return node_response, params

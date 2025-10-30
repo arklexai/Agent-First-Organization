@@ -58,7 +58,7 @@ class OutputProcessWorker(BaseWorker):
             return "I don't have a specific task to perform."
 
         # Load prompts based on bot configuration
-        prompts = load_prompts(self.orch_state.bot_config)
+        prompts = load_prompts(self.orch_state.bot_config.language)
 
         # Create a focused, efficient prompt template
         if message_flow and message_flow.strip():

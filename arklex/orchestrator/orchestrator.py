@@ -13,13 +13,11 @@ from arklex.orchestrator.entities.orchestrator_state_entities import (
     OrchestratorState,
 )
 from arklex.orchestrator.executor.executor import Executor
-from arklex.orchestrator.post_process import post_process_response
 from arklex.orchestrator.task_graph.agent_graph import AgentGraph
 from arklex.orchestrator.task_graph.nlu_graph import NLUGraph
 from arklex.orchestrator.types.stream_types import StreamType
 from arklex.resources.resource_loader import ResourceLoader
 from arklex.resources.resource_types import AgentItem
-from arklex.resources.tools.utils import ToolGenerator
 from arklex.utils.logging.logging_utils import LogContext
 
 load_dotenv()
@@ -72,7 +70,9 @@ class AgentOrg:
         else:
             with open(config) as f:
                 self.config: dict[str, Any] = json.load(f)
-        self.llm_config: LLMConfig = LLMConfig.model_validate(self.config.get("model"))
+        self.llm_config: LLMConfig = LLMConfig.model_validate(
+            self.config.get("llm_config", {})
+        )
         self.executor: Executor = executor
         self.agents: dict[str, dict[str, Any]] = ResourceLoader.init_agents(
             DEFAULT_AGENTS
@@ -94,25 +94,9 @@ class AgentOrg:
         message_queue: janus.Queue | None = None,
     ) -> OrchestratorResp:
         nlu_agent = self.agents[AgentItem.NLU_AGENT]["agent_instance"](
-            self.config, self.nlu_graph, self.executor
+            self.llm_config, self.nlu_graph, self.executor
         )
-        node_response, orch_state, params = nlu_agent.execute(
-            inputs, stream_type, message_queue
-        )
-        if not node_response.response:
-            log_context.info("No response, do context generation")
-            if stream_type == StreamType.NON_STREAM:
-                answer = ToolGenerator.context_generate(orch_state)
-                node_response.response = answer
-            else:
-                answer = ToolGenerator.stream_context_generate(orch_state)
-                node_response.response = answer
-
-        node_response = post_process_response(
-            orch_state,
-            node_response,
-        )
-
+        node_response, params = nlu_agent.execute(inputs, stream_type, message_queue)
         return OrchestratorResp(
             answer=node_response.response,
             parameters=params.model_dump(),

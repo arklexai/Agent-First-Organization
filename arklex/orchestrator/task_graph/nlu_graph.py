@@ -18,7 +18,6 @@ from arklex.orchestrator.entities.taskgraph_entities import (
 from arklex.orchestrator.nlu.core.intent import IntentDetector
 from arklex.orchestrator.task_graph.base import GraphBase
 from arklex.utils.logging.logging_utils import LogContext
-from arklex.utils.utils import str_similarity
 
 log_context = LogContext(__name__)
 
@@ -41,7 +40,8 @@ class NLUGraph(GraphBase):
         self.intents: collections.defaultdict[str, list[dict[str, Any]]] = (
             self.get_pred_intents()
         )  # global intents
-        self.start_node: str | None = self.get_start_node()
+        self.agent_node: NodeInfo = self.get_agent_node()
+        log_context.info(f"agent_node: {self.agent_node}")
         self.unsure_intent: dict[str, Any] = {
             "intent": "others",
             "source_node": None,
@@ -68,19 +68,33 @@ class NLUGraph(GraphBase):
                 intents[edge[2].get("intent")].append(edge_info)
         return intents
 
-    def get_start_node(self) -> str | None:
+    def get_agent_node(self) -> NodeInfo:
         for node in self.graph.nodes.data():
             if node[1].get("attribute", {}).get("start", False):
-                return node[0]
-        return None
+                node_info = self.graph.nodes[node[0]]
+                return NodeInfo(
+                    node_id=node[0],
+                    data=node_info["data"],
+                )
+        raise ValueError("No agent node found in the graph")
 
-    def jump_to_node(
-        self, pred_intent: str, intent_idx: int, curr_node: str
-    ) -> tuple[str, str]:
+    def get_start_node(self, params: NLUGraphParams) -> str:
+        agent_node_id = self.agent_node.node_id
+        has_random_next_node, node_output, params = self.handle_random_next_node(
+            agent_node_id, params
+        )
+        if has_random_next_node:
+            return node_output.node_id
+        log_context.warning("No random next node found for NLU agent node")
+        return agent_node_id
+
+    def jump_to_node(self, pred_intent: str, curr_node: str) -> tuple[str, str]:
         """
         Jump to a node based on the intent
         """
         log_context.info(f"pred_intent in jump_to_node is {pred_intent}")
+        # One global intent can have multiple nodes, choose the first one by default
+        intent_idx = 0
         try:
             candidates_nodes: list[dict[str, Any]] = [
                 self.intents[pred_intent][intent_idx]
@@ -126,34 +140,6 @@ class NLUGraph(GraphBase):
 
         return node_info, params
 
-    def _postprocess_intent(
-        self,
-        pred_intent: str,
-        available_global_intents: list[str] | dict[str, list[dict[str, Any]]],
-    ) -> tuple[bool, str, int]:
-        found_pred_in_avil: bool = False
-        real_intent: str = pred_intent
-        idx: int = 0
-
-        # Convert dict to list of keys if needed
-        intent_list = available_global_intents
-        if isinstance(available_global_intents, dict):
-            intent_list = list(available_global_intents.keys())
-
-        for item in intent_list:
-            if str_similarity(real_intent, item) > 0.9:
-                found_pred_in_avil = True
-                real_intent = item
-                break
-        # Fallback: if predicted intent is 'others' and 'others' is in available intents, treat as found
-        if (
-            not found_pred_in_avil
-            and real_intent == "others"
-            and "others" in intent_list
-        ):
-            found_pred_in_avil = True
-        return found_pred_in_avil, real_intent, idx
-
     def get_current_node(self, params: NLUGraphParams) -> tuple[str, NLUGraphParams]:
         """
         Get current node
@@ -161,12 +147,12 @@ class NLUGraph(GraphBase):
         """
         curr_node: str | None = params.curr_node
         if not curr_node:
-            curr_node = self.start_node
+            curr_node = self.get_start_node(params)
         else:
             curr_node = str(curr_node)
             # Only fallback to start_node if the node is not in the graph
             if curr_node not in self.graph.nodes:
-                curr_node = self.start_node
+                curr_node = self.get_start_node(params)
         params.curr_node = curr_node
         return curr_node, params
 
@@ -303,13 +289,8 @@ class NLUGraph(GraphBase):
                     "global_intent": True,
                 }
             )
-            found_pred_in_avil: bool
-            intent_idx: int
-            found_pred_in_avil, pred_intent, intent_idx = self._postprocess_intent(
-                pred_intent, candidate_intents
-            )
             # if found prediction and prediction is not unsure intent and current intent
-            if found_pred_in_avil and pred_intent != self.unsure_intent.get("intent"):
+            if pred_intent != self.unsure_intent.get("intent"):
                 # If the prediction is the same as the current global intent and the current node is not a leaf node, continue the current global intent
                 if pred_intent == params.curr_global_intent and (
                     len(list(self.graph.successors(curr_node))) != 0
@@ -319,9 +300,7 @@ class NLUGraph(GraphBase):
                     return False, pred_intent, {}, params
                 next_node: str
                 next_intent: str
-                next_node, next_intent = self.jump_to_node(
-                    pred_intent, intent_idx, curr_node
-                )
+                next_node, next_intent = self.jump_to_node(pred_intent, curr_node)
                 log_context.info(f"curr_node: {next_node}")
                 node_info: NodeInfo
                 node_info, params = self._get_node(
@@ -413,14 +392,8 @@ class NLUGraph(GraphBase):
                 "global_intent": False,
             }
         )
-        found_pred_in_avil: bool
-        found_pred_in_avil, pred_intent, _ = self._postprocess_intent(
-            pred_intent, curr_local_intents_w_unsure
-        )
-        log_context.info(
-            f"Local intent predition -> found_pred_in_avil: {found_pred_in_avil}, pred_intent: {pred_intent}"
-        )
-        if found_pred_in_avil and pred_intent != self.unsure_intent.get("intent"):
+        log_context.info(f"Local intent prediction: pred_intent: {pred_intent}")
+        if pred_intent != self.unsure_intent.get("intent"):
             params.intent = pred_intent
             next_node: str = curr_node
             for edge in self.graph.out_edges(curr_node, data="intent"):
@@ -430,7 +403,7 @@ class NLUGraph(GraphBase):
             log_context.info(f"curr_node: {next_node}")
             node_info: NodeInfo
             node_info, params = self._get_node(next_node, params, intent=pred_intent)
-            if curr_node == self.start_node:
+            if curr_node == self.get_start_node(params):
                 params.curr_global_intent = pred_intent
             return True, node_info, params
         return False, {}, params
@@ -497,7 +470,7 @@ class NLUGraph(GraphBase):
         params.nlu_records = []
 
         if self.text == "<start>":
-            curr_node: str = self.start_node
+            curr_node: str = self.get_start_node(params)
             params.curr_node = curr_node
             node_info: NodeInfo
             node_info, params = self._get_node(curr_node, params)
