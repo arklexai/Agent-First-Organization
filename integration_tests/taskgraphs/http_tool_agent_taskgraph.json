@@ -1,15 +1,7 @@
 {
-    "sys_instruct": "You are a helpful assistant.",
-    "model": {
+    "llm_config": {
         "model_type_or_path": "gpt-4o",
         "llm_provider": "openai"
-    },
-    "bot_config": {
-        "language": "EN",
-        "llm_config": {
-            "model_type_or_path": "gpt-4o",
-            "llm_provider": "openai"
-        }
     },
     "nodes": [
         [

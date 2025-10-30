@@ -1,25 +1,35 @@
 {
-    "sys_instruct": "Help the user with their inquiries.",
-    "model": {
+    "llm_config": {
         "model_type_or_path": "gpt-4o",
         "llm_provider": "openai"
-    },
-    "bot_config": {
-        "language": "EN",
-        "llm_config": {
-            "model_type_or_path": "gpt-4o",
-            "llm_provider": "openai"
-        }
     },
     "nodes": [
         [
             "0",
             {
                 "resource": {
-                    "id": "message-worker"
+                    "id": "nlu-agent"
                 },
                 "attribute": {
                     "start": true,
+                    "can_skipped": false,
+                    "limit": 1
+                },
+                "data": {
+                    "prompt": "Help the user with their inquiries.",
+                    "response_length": 50,
+                    "language": "EN"
+                }
+            }
+        ],
+        [
+            "1",
+            {
+                "resource": {
+                    "id": "message-worker"
+                },
+                "attribute": {
+                    "start": false,
                     "can_skipped": false,
                     "limit": 1
                 },
@@ -30,7 +40,7 @@
             }
         ],
         [
-            "1",
+            "2",
             {
                 "resource": {
                     "id": "message-worker"
@@ -47,7 +57,7 @@
             }
         ],
         [
-            "2",
+            "3",
             {
                 "resource": {
                     "id": "multiple-choice-worker"
@@ -68,7 +78,7 @@
             }
         ],
         [
-            "3",
+            "4",
             {
                 "resource": {
                     "id": "milvus-rag-worker"
@@ -84,7 +94,7 @@
             }
         ],
         [
-            "4",
+            "5",
             {
                 "resource": {
                     "id": "rag-message-worker"
@@ -101,7 +111,7 @@
             }
         ],
         [
-            "5",
+            "6",
             {
                 "resource": {
                     "id": "human-in-the-loop-worker"
@@ -120,6 +130,19 @@
             "0",
             "1",
             {
+                "intent": "None",
+                "attribute": {
+                    "weight": 1,
+                    "pred": false,
+                    "definition": "",
+                    "sample_utterances": []
+                }
+            }
+        ],
+        [
+            "1",
+            "2",
+            {
                 "intent": "ask about weather",
                 "attribute": {
                     "weight": 1,
@@ -130,8 +153,8 @@
             }
         ],
         [
-            "0",
-            "2",
+            "1",
+            "3",
             {
                 "intent": "ask about car options",
                 "attribute": {
@@ -143,8 +166,8 @@
             }
         ],
         [
-            "0",
-            "3",
+            "1",
+            "4",
             {
                 "intent": "ask about company products",
                 "attribute": {
@@ -156,8 +179,8 @@
             }
         ],
         [
-            "0",
-            "4",
+            "1",
+            "5",
             {
                 "intent": "ask about company culture",
                 "attribute": {
@@ -169,8 +192,8 @@
             }
         ],
         [
-            "0",
-            "5",
+            "1",
+            "6",
             {
                 "intent": "user want to connect with a human agent",
                 "attribute": {
