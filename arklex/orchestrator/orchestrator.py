@@ -16,7 +16,7 @@ from arklex.orchestrator.executor.executor import Executor
 from arklex.orchestrator.task_graph.agent_graph import AgentGraph
 from arklex.orchestrator.task_graph.nlu_graph import NLUGraph
 from arklex.orchestrator.types.stream_types import StreamType
-from arklex.resources.resource_loader import ResourceLoader
+from arklex.resources.agent_loader import AgentLoader
 from arklex.resources.resource_types import AgentItem
 from arklex.utils.logging.logging_utils import LogContext
 
@@ -74,9 +74,7 @@ class AgentOrg:
             self.config.get("llm_config", {})
         )
         self.executor: Executor = executor
-        self.agents: dict[str, dict[str, Any]] = ResourceLoader.init_agents(
-            DEFAULT_AGENTS
-        )
+        self.agents: dict[str, dict[str, Any]] = AgentLoader.init_agents(DEFAULT_AGENTS)
         self.nlu_graph: NLUGraph = NLUGraph(
             "nlugraph",
             self.config,
