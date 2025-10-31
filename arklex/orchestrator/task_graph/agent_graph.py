@@ -57,7 +57,7 @@ class AgentGraph(GraphBase):
             resource = node[1].get("resource", {})
             if resource["id"] == AgentItem.OPENAI_AGENT:
                 node_specific_data = node[1].get("data", {})
-                if node_specific_data.get("start_agent", False):
+                if node[1].get("attribute", {}).get("start", False):
                     self.start_agent_name = node_specific_data["name"]
                     self.start_message = node_specific_data.get(
                         "agent_start_message", ""

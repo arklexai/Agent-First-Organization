@@ -42,6 +42,7 @@ class NLUGraph(GraphBase):
         )  # global intents
         self.agent_node: NodeInfo = self.get_agent_node()
         log_context.info(f"agent_node: {self.agent_node}")
+        self.start_node: str = self.get_start_node()
         self.unsure_intent: dict[str, Any] = {
             "intent": "others",
             "source_node": None,
@@ -78,13 +79,16 @@ class NLUGraph(GraphBase):
                 )
         raise ValueError("No agent node found in the graph")
 
-    def get_start_node(self, params: NLUGraphParams) -> str:
+    def get_start_node(self) -> str:
         agent_node_id = self.agent_node.node_id
-        has_random_next_node, node_output, params = self.handle_random_next_node(
-            agent_node_id, params
-        )
-        if has_random_next_node:
-            return node_output.node_id
+        candidate_samples: list[str] = []
+        for out_edge in self.graph.out_edges(agent_node_id, data=True):
+            if out_edge[2]["intent"] == "none":
+                candidate_samples.append(out_edge[1])
+        if candidate_samples:
+            # randomly choose one sample from candidate samples
+            start_node: str = np.random.choice(candidate_samples)
+            return start_node
         log_context.warning("No random next node found for NLU agent node")
         return agent_node_id
 
@@ -147,12 +151,12 @@ class NLUGraph(GraphBase):
         """
         curr_node: str | None = params.curr_node
         if not curr_node:
-            curr_node = self.get_start_node(params)
+            curr_node = self.start_node
         else:
             curr_node = str(curr_node)
             # Only fallback to start_node if the node is not in the graph
             if curr_node not in self.graph.nodes:
-                curr_node = self.get_start_node(params)
+                curr_node = self.start_node
         params.curr_node = curr_node
         return curr_node, params
 
@@ -403,7 +407,7 @@ class NLUGraph(GraphBase):
             log_context.info(f"curr_node: {next_node}")
             node_info: NodeInfo
             node_info, params = self._get_node(next_node, params, intent=pred_intent)
-            if curr_node == self.get_start_node(params):
+            if curr_node == self.start_node:
                 params.curr_global_intent = pred_intent
             return True, node_info, params
         return False, {}, params
@@ -470,7 +474,7 @@ class NLUGraph(GraphBase):
         params.nlu_records = []
 
         if self.text == "<start>":
-            curr_node: str = self.get_start_node(params)
+            curr_node: str = self.start_node
             params.curr_node = curr_node
             node_info: NodeInfo
             node_info, params = self._get_node(curr_node, params)
