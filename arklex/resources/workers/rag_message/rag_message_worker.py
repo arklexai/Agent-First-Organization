@@ -116,7 +116,7 @@ class RagMsgWorker(BaseWorker):
         return answer
 
     def _execute(self) -> RAGMessageWorkerOutput:
-        self.prompts: dict[str, str] = load_prompts(self.orch_state.bot_config)
+        self.prompts: dict[str, str] = load_prompts(self.orch_state.bot_config.language)
         retrieve_text = ""
         if self._need_retriever():
             milvus_retriever_executor = MilvusRetrieverExecutor(

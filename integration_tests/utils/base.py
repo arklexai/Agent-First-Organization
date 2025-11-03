@@ -19,9 +19,8 @@ class BaseTestOrchestrator:
         self.executor: Executor = Executor(
             tools=config.get("tools", []),
             workers=config.get("workers", []),
-            agents=config.get("agents", []),
             nodes=config.get("nodes", []),
-            llm_config=LLMConfig.model_validate(config.get("model")),
+            llm_config=LLMConfig.model_validate(config.get("llm_config")),
         )
         self.orchestrator = AgentOrg(config=config, executor=self.executor)
 

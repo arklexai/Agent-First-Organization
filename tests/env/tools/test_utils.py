@@ -33,7 +33,7 @@ class TestGetPromptTemplate:
 
         # Assert
         assert result.template == "Speech prompt"
-        mock_load_prompts.assert_called_once_with(state.bot_config)
+        mock_load_prompts.assert_called_once_with(state.bot_config.language)
 
     @patch("arklex.resources.tools.utils.load_prompts")
     def test_get_prompt_template_speech_chinese(self, mock_load_prompts: Mock) -> None:
@@ -57,7 +57,7 @@ class TestGetPromptTemplate:
 
         # Assert
         assert result.template == "Regular prompt"
-        mock_load_prompts.assert_called_once_with(state.bot_config)
+        mock_load_prompts.assert_called_once_with(state.bot_config.language)
 
     @patch("arklex.resources.tools.utils.load_prompts")
     def test_get_prompt_template_non_speech(self, mock_load_prompts: Mock) -> None:
@@ -81,7 +81,7 @@ class TestGetPromptTemplate:
 
         # Assert
         assert result.template == "Regular prompt"
-        mock_load_prompts.assert_called_once_with(state.bot_config)
+        mock_load_prompts.assert_called_once_with(state.bot_config.language)
 
 
 class TestTrace:

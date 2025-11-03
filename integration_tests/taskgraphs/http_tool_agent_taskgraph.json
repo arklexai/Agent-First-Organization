@@ -1,15 +1,7 @@
 {
-    "sys_instruct": "You are a helpful assistant.",
-    "model": {
+    "llm_config": {
         "model_type_or_path": "gpt-4o",
         "llm_provider": "openai"
-    },
-    "bot_config": {
-        "language": "EN",
-        "llm_config": {
-            "model_type_or_path": "gpt-4o",
-            "llm_provider": "openai"
-        }
     },
     "nodes": [
         [
@@ -21,14 +13,12 @@
                 "attribute": {
                     "task": "",
                     "type": "agent",
-                    "limit": 1,
-                    "start": false,
+                    "start": true,
                     "can_skipped": false
                 },
                 "data": {
                     "name": "Arklex Agent",
                     "prompt": "You are an agent developed by Arklex. Follow these steps carefully:\n\n- Use queryService to get all services provided by Arklex.\n- Use contactTeam to submit service requests.",
-                    "start_agent": true,
                     "agent_start_message": "This is agent developed by Arklex, how can I assist you today?"
                 }
             }
@@ -42,7 +32,6 @@
                 "attribute": {
                     "task": "Retrieves all services that Arklex provides.",
                     "type": "tool",
-                    "limit": 1,
                     "start": false,
                     "can_skipped": false
                 },
@@ -69,7 +58,6 @@
                 "attribute": {
                     "task": "Submit all service requests with budget to the support team.",
                     "type": "tool",
-                    "limit": 1,
                     "start": false,
                     "can_skipped": false
                 },

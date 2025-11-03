@@ -1,15 +1,7 @@
 {
-    "sys_instruct": "You are a helpful assistant.",
-    "model": {
+    "llm_config": {
         "model_type_or_path": "gpt-4o",
         "llm_provider": "openai"
-    },
-    "bot_config": {
-        "language": "EN",
-        "llm_config": {
-            "model_type_or_path": "gpt-4o",
-            "llm_provider": "openai"
-        }
     },
     "nodes": [
         [
@@ -21,14 +13,12 @@
                 "attribute": {
                     "task": "",
                     "type": "agent",
-                    "limit": 1,
-                    "start": false,
+                    "start": true,
                     "can_skipped": false
                 },
                 "data": {
                     "name": "Arklex Agent",
                     "prompt": "You are available to the following tools: orderProduct, searchProducts, createProductItems, createDocument.\n1. Use orderProduct to order a product from a supplier.\n2. Use searchProducts to search for a product by category.\n3. Use createProductItems to create a list of product items.\n4. Use createDocument to create a document with tags.",
-                    "start_agent": true,
                     "agent_start_message": "Hello, how can I assist you today?"
                 }
             }
@@ -42,7 +32,6 @@
                 "attribute": {
                     "task": "Order a product from a supplier",
                     "type": "tool",
-                    "limit": 1,
                     "start": false,
                     "can_skipped": false
                 },
@@ -123,7 +112,6 @@
                 "attribute": {
                     "task": "Search for a product by category",
                     "type": "tool",
-                    "limit": 1,
                     "start": false,
                     "can_skipped": false
                 },
@@ -204,7 +192,6 @@
                 "attribute": {
                     "task": "Create a list of product items",
                     "type": "tool",
-                    "limit": 1,
                     "start": false,
                     "can_skipped": false
                 },
@@ -290,7 +277,6 @@
                 "attribute": {
                     "task": "Create a document with tags",
                     "type": "tool",
-                    "limit": 1,
                     "start": false,
                     "can_skipped": false
                 },

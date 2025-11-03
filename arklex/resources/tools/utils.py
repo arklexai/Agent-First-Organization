@@ -28,7 +28,7 @@ class ToolExecutor(Protocol):
 
 def get_prompt_template(state: OrchestratorState, prompt_key: str) -> PromptTemplate:
     """Get the prompt template based on the stream type."""
-    prompts: dict[str, str] = load_prompts(state.bot_config)
+    prompts: dict[str, str] = load_prompts(state.bot_config.language)
 
     if state.stream_type == StreamType.SPEECH:
         # Use speech prompts, but fall back to regular prompts for Chinese

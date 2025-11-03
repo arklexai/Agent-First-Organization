@@ -4,55 +4,7 @@ This module tests the utility functions used throughout the Arklex framework,
 including text processing, JSON handling, and chat history formatting.
 """
 
-from unittest.mock import patch
-
 import arklex.utils.utils as utils
-
-
-class TestStrSimilarity:
-    """Test cases for str_similarity function."""
-
-    def test_str_similarity_identical_strings(self) -> None:
-        """Test similarity of identical strings."""
-        result = utils.str_similarity("hello", "hello")
-        assert result == 1.0
-
-    def test_str_similarity_different_strings(self) -> None:
-        """Test similarity of different strings."""
-        result = utils.str_similarity("hello", "world")
-        assert 0.0 <= result < 1.0
-
-    def test_str_similarity_empty_strings(self) -> None:
-        """Test similarity of empty strings."""
-        result = utils.str_similarity("", "")
-        assert result == 0.0  # Actual behavior returns 0 for empty strings
-
-    def test_str_similarity_one_empty_string(self) -> None:
-        """Test similarity with one empty string."""
-        result = utils.str_similarity("hello", "")
-        assert 0.0 <= result < 1.0
-
-    def test_str_similarity_similar_strings(self) -> None:
-        """Test similarity of similar strings."""
-        result = utils.str_similarity("hello", "helo")
-        assert 0.0 < result < 1.0
-
-    def test_str_similarity_case_sensitive(self) -> None:
-        """Test that similarity is case sensitive."""
-        result = utils.str_similarity("Hello", "hello")
-        assert 0.0 < result < 1.0
-
-    def test_str_similarity_unicode_strings(self) -> None:
-        """Test similarity with unicode strings."""
-        result = utils.str_similarity("hello", "hëllo")
-        assert 0.0 < result < 1.0
-
-    def test_str_similarity_exception_handling(self) -> None:
-        """Test exception handling in similarity calculation."""
-        with patch("arklex.utils.utils.Levenshtein") as mock_levenshtein:
-            mock_levenshtein.distance.side_effect = Exception("Test error")
-            result = utils.str_similarity("hello", "world")
-            assert result == 0.0
 
 
 class TestFormatChatHistory:
