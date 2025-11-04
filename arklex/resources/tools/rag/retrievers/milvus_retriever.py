@@ -31,6 +31,7 @@ from arklex.resources.tools.rag.retrievers.retriever_document import (
     embed_retriever_document,
 )
 from arklex.utils.logging.logging_utils import LogContext
+from arklex.utils.database.mysql import mysql_pool
 from arklex.utils.prompts import load_prompts
 
 EMBED_DIMENSION = 1536
@@ -38,6 +39,66 @@ MAX_TEXT_LENGTH = 65535
 CHUNK_NEIGHBOURS = 3
 
 log_context = LogContext(__name__)
+def _resolve_tag_value_via_db_and_llm(
+    *,
+    model_service: ModelService,
+    bot_id: str,
+    version: str,
+    tag_key: str,
+    contextualized_query: str,
+) -> str | None:
+    """Fetch candidate tag values from MySQL and let LLM pick the closest.
+
+    Returns the chosen tag value or None if nothing could be resolved.
+    """
+    try:
+        # Find the tag id for this key for the given bot/version
+        tag_rows = [] if mysql_pool is None else mysql_pool.fetchall(
+            """
+            SELECT id FROM qa_bot_tag
+            WHERE qa_bot_id=%s AND qa_bot_version=%s AND tag_key=%s
+            LIMIT 1;
+            """,
+            (bot_id, version, tag_key),
+        )
+        if not tag_rows:
+            return None
+        tag_id = tag_rows[0]["id"]
+
+        value_rows = [] if mysql_pool is None else mysql_pool.fetchall(
+            """
+            SELECT tag_value FROM qa_bot_tag_value
+            WHERE tag_id=%s
+            """,
+            (tag_id,),
+        )
+        candidates = [r.get("tag_value") for r in value_rows if r.get("tag_value")]
+        if not candidates:
+            return None
+
+        chooser_system = (
+            "You are selecting the single best tag value from a list given a user query/context. "
+            "Respond with exactly one of the provided candidate values, and nothing else."
+        )
+        chooser_prompt = (
+            f"Query: {contextualized_query}\n\n"
+            f"Tag key: {tag_key}\n"
+            f"Candidates: {', '.join([str(c) for c in candidates])}\n\n"
+            "Pick one candidate that best matches the query and output it verbatim."
+        )
+        chosen = model_service.get_response(
+            prompt=chooser_prompt,
+            system_prompt=chooser_system,
+        )
+        chosen_norm = chosen.strip()
+        if chosen_norm in candidates:
+            return chosen_norm
+        matched = next((c for c in candidates if c.lower() in chosen_norm.lower() or chosen_norm.lower() in c.lower()), None)
+        return matched if matched else candidates[0]
+    except Exception as e:
+        log_context.warning(f"Tag resolution failed: {e}")
+        return None
+
 
 
 class MilvusRetriever:
@@ -317,6 +378,7 @@ class MilvusRetriever:
         query: str,
         tags: dict[str, object] | None = None,
         top_k: int = 4,
+        model_service: ModelService | None = None,
     ) -> list[RetrieverResult]:
         log_context.info(
             f"Retreiver search for query: {query} on collection {collection_name} for bot_id: {bot_id} version: {version}"
@@ -328,11 +390,39 @@ class MilvusRetriever:
         partition_key = self.get_bot_uid(bot_id, version)
         query_embedding = embed(query, cache=True)
         filter = f'bot_uid == "{partition_key}"'
+        
+        log_context.info(f"Tags received for search: {tags}")
+        
         if tags:
-            # NOTE: Only support one tag for now
+            # Support multiple tags - build filter conditions for all tags
+            tag_filters = []
             for key, value in tags.items():
-                filter += f' and metadata["tags"]["{key}"] == "{value}"'
-                break
+                if value:
+                    # Tag has a value, add direct filter condition
+                    escaped_value = str(value).replace('"', '\\"')
+                    tag_filters.append(f'metadata["tags"]["{key}"] == "{escaped_value}"')
+                    log_context.info(f"Prepared tag filter: {key} = {value}")
+                else:
+                    # Tag value is empty, try to resolve via DB + LLM if possible
+                    if model_service is not None:
+                        chosen = _resolve_tag_value_via_db_and_llm(
+                            model_service=model_service,
+                            bot_id=bot_id,
+                            version=version,
+                            tag_key=key,
+                            contextualized_query=query,
+                        )
+                        if chosen:
+                            escaped_chosen = str(chosen).replace('"', '\\"')
+                            tag_filters.append(f'metadata["tags"]["{key}"] == "{escaped_chosen}"')
+                            log_context.info(f"Prepared resolved tag filter: {key} = {chosen}")
+            # Combine all tag filters with 'or'
+            if tag_filters:
+                filter += " and (" + " or ".join(tag_filters) + ")"
+                log_context.info(f"Applied {len(tag_filters)} tag filter(s) with OR logic")
+        
+        log_context.info(f"Final search filter: {filter}")
+
         res = self.client.search(
             collection_name=collection_name,
             data=[query_embedding],
@@ -810,6 +900,7 @@ class MilvusRetrieverExecutor:
                 version,
                 ret_input,
                 tags,
+                model_service=self.model_service,
             )
         rt = time.time() - st
         log_context.info(f"MilvusRetriever search took {rt} seconds")
