@@ -31,7 +31,6 @@ from arklex.resources.tools.rag.retrievers.retriever_document import (
     embed_retriever_document,
 )
 from arklex.utils.logging.logging_utils import LogContext
-from arklex.utils.database.mysql import mysql_pool
 from arklex.utils.prompts import load_prompts
 
 EMBED_DIMENSION = 1536
@@ -43,38 +42,20 @@ log_context = LogContext(__name__)
 def _resolve_tag_value_via_db_and_llm(
     *,
     model_service: ModelService,
-    bot_id: str,
-    version: str,
     tag_key: str,
     contextualized_query: str,
+    possible_tags: dict[str, list[str]] | None = None,
 ) -> str | None:
-    """Fetch candidate tag values from MySQL and let LLM pick the closest.
+    """Use possible_tags to get candidate tag values and let LLM pick the closest.
 
     Returns the chosen tag value or None if nothing could be resolved.
     """
     try:
-        if mysql_pool is None:
+        # Use possible_tags if provided
+        if not possible_tags or tag_key not in possible_tags:
             return None
         
-        tag_row = mysql_pool.fetchone(
-            """
-            SELECT id FROM qa_bot_tag
-            WHERE qa_bot_id=%s AND qa_bot_version=%s AND tag_key=%s
-            LIMIT 1
-            """,
-            (bot_id, version, tag_key),
-        )
-        if not tag_row:
-            return None
-        
-        value_rows = mysql_pool.fetchall(
-            """
-            SELECT tag_value FROM qa_bot_tag_value
-            WHERE tag_id=%s
-            """,
-            (tag_row["id"],),
-        )
-        candidates = [r.get("tag_value") for r in value_rows if r.get("tag_value")]
+        candidates = possible_tags[tag_key]
         if not candidates:
             return None
 
@@ -371,6 +352,7 @@ class MilvusRetriever:
         tags: dict[str, object] | None = None,
         top_k: int = 4,
         model_service: ModelService | None = None,
+        possible_tags: dict[str, list[str]] | None = None,
     ) -> list[RetrieverResult]:
         log_context.info(
             f"Retreiver search for query: {query} on collection {collection_name} for bot_id: {bot_id} version: {version}"
@@ -399,10 +381,9 @@ class MilvusRetriever:
                     if model_service is not None:
                         chosen = _resolve_tag_value_via_db_and_llm(
                             model_service=model_service,
-                            bot_id=bot_id,
-                            version=version,
                             tag_key=key,
                             contextualized_query=query,
+                            possible_tags=possible_tags,
                         )
                         if chosen:
                             escaped_chosen = str(chosen).replace('"', '\\"')
@@ -869,6 +850,7 @@ class MilvusRetrieverExecutor:
         version: str,
         collection_name: str,
         tags: dict[str, object] | None = None,
+        possible_tags: dict[str, list[str]] | None = None,
     ) -> tuple[str, dict[str, object]]:
         """Given a chat history, retrieve relevant information from the database."""
         if tags is None:
@@ -892,6 +874,7 @@ class MilvusRetrieverExecutor:
                 version,
                 ret_input,
                 tags,
+                possible_tags=possible_tags,
                 model_service=self.model_service,
             )
         rt = time.time() - st
