@@ -96,3 +96,5 @@ class AgentItem(Item):
     OPENAI_AGENT = "openai-agent"
     OPENAI_REALTIME_VOICE_AGENT = "openai-realtime-voice-agent"
     NLU_AGENT = "nlu-agent"
+    INPUT_GUARDRAIL = "input-guardrail"
+    OUTPUT_GUARDRAIL = "output-guardrail"
