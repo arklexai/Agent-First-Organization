@@ -39,6 +39,7 @@ MAX_TEXT_LENGTH = 65535
 CHUNK_NEIGHBOURS = 3
 
 log_context = LogContext(__name__)
+
 def _resolve_tag_value_via_db_and_llm(
     *,
     model_service: ModelService,
@@ -52,43 +53,34 @@ def _resolve_tag_value_via_db_and_llm(
     Returns the chosen tag value or None if nothing could be resolved.
     """
     try:
-        # Find the tag id for this key for the given bot/version
-        tag_rows = [] if mysql_pool is None else mysql_pool.fetchall(
+        if mysql_pool is None:
+            return None
+        
+        tag_row = mysql_pool.fetchone(
             """
             SELECT id FROM qa_bot_tag
             WHERE qa_bot_id=%s AND qa_bot_version=%s AND tag_key=%s
-            LIMIT 1;
+            LIMIT 1
             """,
             (bot_id, version, tag_key),
         )
-        if not tag_rows:
+        if not tag_row:
             return None
-        tag_id = tag_rows[0]["id"]
-
-        value_rows = [] if mysql_pool is None else mysql_pool.fetchall(
+        
+        value_rows = mysql_pool.fetchall(
             """
             SELECT tag_value FROM qa_bot_tag_value
             WHERE tag_id=%s
             """,
-            (tag_id,),
+            (tag_row["id"],),
         )
         candidates = [r.get("tag_value") for r in value_rows if r.get("tag_value")]
         if not candidates:
             return None
 
-        chooser_system = (
-            "You are selecting the single best tag value from a list given a user query/context. "
-            "Respond with exactly one of the provided candidate values, and nothing else."
-        )
-        chooser_prompt = (
-            f"Query: {contextualized_query}\n\n"
-            f"Tag key: {tag_key}\n"
-            f"Candidates: {', '.join([str(c) for c in candidates])}\n\n"
-            "Pick one candidate that best matches the query and output it verbatim."
-        )
         chosen = model_service.get_response(
-            prompt=chooser_prompt,
-            system_prompt=chooser_system,
+            prompt=f"Query: {contextualized_query}\n\nTag key: {tag_key}\nCandidates: {', '.join(map(str, candidates))}\n\nPick one candidate that best matches the query and output it verbatim.",
+            system_prompt="You are selecting the single best tag value from a list given a user query/context. Respond with exactly one of the provided candidate values, and nothing else.",
         )
         chosen_norm = chosen.strip()
         if chosen_norm in candidates:
