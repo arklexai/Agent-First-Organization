@@ -49,7 +49,8 @@ def _transfer_call_thread(
         # Create TwiML for transfer
         response = VoiceResponse()
 
-        if transfer_message:
+        if transfer_message and transfer_message != "":
+            time.sleep(1)
             response.say(transfer_message, voice="alice")
 
         # Transfer the call
@@ -86,4 +87,6 @@ def transfer(auth: TwilioAuth, **kwargs: TransferCallKwargs) -> str:
         ),
     ).start()
     log_context.info("Started thread to transfer call")
+    if response_played_event:
+        response_played_event.clear()
     return "call transfer initiated"
