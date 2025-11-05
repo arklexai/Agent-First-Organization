@@ -121,14 +121,18 @@ class AgentOrg:
         )
         # agent instance initialization
         agent_cls = self.agents[AgentItem.OPENAI_AGENT]["agent_instance"]
+        exec_params = self.agent_graph.configure_params()
         if not orch_state_params.agentgraph.current_agent:
-            agent_name = self.agent_graph.start_agent_name
+            agent_name = exec_params["start_agent_name"]
         else:
             agent_name = orch_state_params.agentgraph.current_agent
         agent_instance = agent_cls(
-            agent=self.agent_graph.agents[agent_name],
+            agent=exec_params["agents"][agent_name],
             state=orch_state,
-            start_message=self.agent_graph.start_message,
+            start_message=exec_params["start_message"],
+            input_guardrails=exec_params["agents_input_guardrails"][agent_name],
+            output_guardrails=exec_params["agents_output_guardrails"][agent_name],
+            safety_response=exec_params["agents_safety_response"][agent_name],
         )
         # agent execution
         orch_state, agent_output = await agent_instance.execute()

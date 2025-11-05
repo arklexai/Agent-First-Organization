@@ -3,19 +3,32 @@ import re
 import threading
 from typing import Any
 
-from agents import Agent, handoff
+from agents import (
+    Agent,
+    handoff,
+)
 from agents.realtime import RealtimeAgent, realtime_handoff
 from jinja2 import Template
 
 from arklex.orchestrator.task_graph.base import GraphBase
 from arklex.resources.agents.base.entities import PromptVariable
-from arklex.resources.agents.llm_based_agent.openai_agent import OpenAIAgentData
+from arklex.resources.agents.llm_based_agent.guardrail_agent import (
+    GuardrailAgentData,
+    GuardrailAgentResult,
+)
+from arklex.resources.agents.llm_based_agent.openai_agent import (
+    OpenAIAgentData,
+)
 from arklex.resources.agents.realtime_voice_agent.openai_realtime_agent import (
     OpenAIRealtimeAgent,
     OpenAIRealtimeAgentData,
 )
 from arklex.resources.resource_loader import ResourceLoader
-from arklex.resources.resource_types import AgentItem, ResourceType, ToolItem
+from arklex.resources.resource_types import (
+    AgentItem,
+    ResourceType,
+    ToolItem,
+)
 from arklex.resources.tools.tools import Tool
 from arklex.utils.logging.logging_utils import LogContext
 
@@ -37,6 +50,13 @@ class AgentGraph(GraphBase):
         self.start_message: str = ""
         self.start_agent_name: str = ""
         self.enabled = False
+        self.agents_safety_response: dict[str, str] = {}
+        self.agents_input_guardrails: dict[str, list[Agent]] = collections.defaultdict(
+            list
+        )
+        self.agents_output_guardrails: dict[str, list[Agent]] = collections.defaultdict(
+            list
+        )
         super().__init__(name, graph_config)
 
     def create_graph(self) -> None:
@@ -52,6 +72,8 @@ class AgentGraph(GraphBase):
 
         resource_loader = ResourceLoader()
         agent_handovers: dict[str, list[str]] = collections.defaultdict(list)
+        input_guardrail_map: dict[str, list[str]] = collections.defaultdict(list)
+        output_guardrail_map: dict[str, list[str]] = collections.defaultdict(list)
         agent_data_map: dict[str, OpenAIAgentData] | None = {}
         for node in self.graph.nodes.data():
             resource = node[1].get("resource", {})
@@ -79,6 +101,24 @@ class AgentGraph(GraphBase):
                             resource_map[successor_node["resource"]["id"]]
                         )
                         available_nodes.append([node_id, successor_node])
+                    elif (
+                        successor_node.get("attribute", {}).get("type", "")
+                        == ResourceType.AGENT
+                    ):
+                        if (
+                            successor_node["resource"]["id"]
+                            == AgentItem.INPUT_GUARDRAIL
+                        ):
+                            input_guardrail_map[node_specific_data["name"]].append(
+                                successor_node["data"]["name"]
+                            )
+                        elif (
+                            successor_node["resource"]["id"]
+                            == AgentItem.OUTPUT_GUARDRAIL
+                        ):
+                            output_guardrail_map[node_specific_data["name"]].append(
+                                successor_node["data"]["name"]
+                            )
                 for node_id in self.graph.predecessors(node[0]):
                     predecessor_node = self.graph.nodes[node_id]
                     if (
@@ -89,6 +129,24 @@ class AgentGraph(GraphBase):
                             resource_map[predecessor_node["resource"]["id"]]
                         )
                         available_nodes.append([node_id, predecessor_node])
+                    elif (
+                        predecessor_node.get("attribute", {}).get("type", "")
+                        == ResourceType.AGENT
+                    ):
+                        if (
+                            predecessor_node["resource"]["id"]
+                            == AgentItem.INPUT_GUARDRAIL
+                        ):
+                            input_guardrail_map[node_specific_data["name"]].append(
+                                predecessor_node["data"]["name"]
+                            )
+                        elif (
+                            predecessor_node["resource"]["id"]
+                            == AgentItem.OUTPUT_GUARDRAIL
+                        ):
+                            output_guardrail_map[node_specific_data["name"]].append(
+                                predecessor_node["data"]["name"]
+                            )
                 tool_registry = resource_loader.init_tools(
                     available_tools, available_nodes
                 )
@@ -114,12 +172,29 @@ class AgentGraph(GraphBase):
                         pv.name: pv.value for pv in self.prompt_variables
                     }
                     prompt = template.render(prompt_variables_dict)
+                if agent_data.safety_response:
+                    self.agents_safety_response[agent_data.name] = (
+                        agent_data.safety_response
+                    )
+                else:
+                    self.agents_safety_response[agent_data.name] = ""
                 agent_data_map[agent_data.name] = agent_data
                 self.agents[agent_data.name] = Agent(
                     name=agent_data.name,
                     instructions=prompt,
                     tools=agents_tools,
                     handoff_description=agent_data.handoff_description,
+                )
+            elif (
+                resource["id"] == AgentItem.INPUT_GUARDRAIL
+                or resource["id"] == AgentItem.OUTPUT_GUARDRAIL
+            ):
+                node_specific_data = node[1].get("data", {})
+                agent_data = GuardrailAgentData(**node_specific_data)
+                self.agents[agent_data.name] = Agent(
+                    name=agent_data.name,
+                    instructions=agent_data.instructions,
+                    output_type=GuardrailAgentResult,
                 )
 
         if len(self.agents) == 0:
@@ -135,6 +210,28 @@ class AgentGraph(GraphBase):
                 handoff(self.agents[handover_agent])
                 for handover_agent in handover_agents
             ]
+        for agent_name, input_guardrails in input_guardrail_map.items():
+            self.agents_input_guardrails[agent_name].extend(
+                [self.agents[input_guardrail] for input_guardrail in input_guardrails]
+            )
+
+        for agent_name, output_guardrails in output_guardrail_map.items():
+            self.agents_output_guardrails[agent_name].extend(
+                [
+                    self.agents[output_guardrail]
+                    for output_guardrail in output_guardrails
+                ]
+            )
+
+    def configure_params(self) -> dict[str, Any]:
+        return {
+            "agents": self.agents,
+            "start_agent_name": self.start_agent_name,
+            "start_message": self.start_message,
+            "agents_input_guardrails": self.agents_input_guardrails,
+            "agents_output_guardrails": self.agents_output_guardrails,
+            "agents_safety_response": self.agents_safety_response,
+        }
 
 
 class RealtimeAgentGraph(GraphBase):
