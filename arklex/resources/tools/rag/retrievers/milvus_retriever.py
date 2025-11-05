@@ -17,6 +17,7 @@ import os
 import time
 from collections import defaultdict
 from multiprocessing.pool import Pool
+from typing import Any
 
 import numpy as np
 from langchain.prompts import PromptTemplate
@@ -39,6 +40,25 @@ CHUNK_NEIGHBOURS = 3
 
 log_context = LogContext(__name__)
 
+def _tag_value_to_openai_schema(
+    candidates: list[str],
+) -> dict[str, Any]:
+    """Convert tag value candidates to OpenAI schema for structured output."""
+    return {
+        "title": "TagValueSelectionOutput",
+        "description": "Structured output for tag value selection",
+        "type": "object",
+        "properties": {
+            "tag_value": {
+                "type": "string",
+                "description": "The selected tag value that best matches the query",
+                "enum": candidates,
+            },
+        },
+        "required": ["tag_value"],
+    }
+
+
 def _resolve_tag_value_via_db_and_llm(
     *,
     model_service: ModelService,
@@ -49,6 +69,7 @@ def _resolve_tag_value_via_db_and_llm(
     """Use possible_tags to get candidate tag values and let LLM pick the closest.
 
     Returns the chosen tag value or None if nothing could be resolved.
+    Uses structured output with enum constraints to ensure valid selection.
     """
     try:
         # Use possible_tags if provided
@@ -59,17 +80,38 @@ def _resolve_tag_value_via_db_and_llm(
         if not candidates:
             return None
 
-        chosen = model_service.get_response(
-            prompt=f"Query: {contextualized_query}\n\nTag key: {tag_key}\nCandidates: {', '.join(map(str, candidates))}\n\nPick one candidate that best matches the query and output it verbatim.",
-            system_prompt="You are selecting the single best tag value from a list given a user query/context. Respond with exactly one of the provided candidate values, and nothing else.",
+        # Create schema with enum constraints
+        schema = _tag_value_to_openai_schema(candidates)
+        
+        # Use structured output to ensure valid selection
+        # The enum in schema already constrains choices, and schema description provides instructions
+        prompt = f"Query: {contextualized_query}\n\nTag key: {tag_key}"
+        system_prompt = (
+            "Select the tag value that best matches the query context from the available options."
         )
-        chosen_norm = chosen.strip()
-        if chosen_norm in candidates:
-            return chosen_norm
-        matched = next((c for c in candidates if c.lower() in chosen_norm.lower() or chosen_norm.lower() in c.lower()), None)
-        return matched if matched else candidates[0]
+        
+        response = model_service.get_response_with_structured_output(
+            prompt=prompt,
+            schema=schema,
+            system_prompt=system_prompt,
+        )
+        
+        # Extract tag value from structured response
+        chosen = response.get("tag_value") if isinstance(response, dict) else None
+        
+        if chosen and chosen in candidates:
+            log_context.info(f"Selected tag value '{chosen}' for tag key '{tag_key}' from {len(candidates)} candidates")
+            return chosen
+        
+        # Fallback to first candidate if structured output fails
+        log_context.warning(f"Structured output returned invalid value, falling back to first candidate")
+        return candidates[0]
+        
     except Exception as e:
         log_context.warning(f"Tag resolution failed: {e}")
+        # Fallback to first candidate on error
+        if possible_tags and tag_key in possible_tags and possible_tags[tag_key]:
+            return possible_tags[tag_key][0]
         return None
 
 
