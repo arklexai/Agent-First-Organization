@@ -104,7 +104,7 @@ def _resolve_tag_value_via_db_and_llm(
             return chosen
         
         # Fallback to first candidate if structured output fails
-        log_context.warning(f"Structured output returned invalid value, falling back to first candidate")
+        log_context.warning("Structured output returned invalid value, falling back to first candidate")
         return candidates[0]
         
     except Exception as e:
