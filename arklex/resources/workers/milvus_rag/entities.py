@@ -15,7 +15,7 @@ class MilvusRAGWorkerData(BaseModel):
     version: str
     collection_name: str
     tags: dict[str, Any]
-    possible_tags: dict[str, list[str]]
+    possible_tags: dict[str, list[str]] | None = None
 
 
 class MilvusRAGWorkerOutput(WorkerOutput):
