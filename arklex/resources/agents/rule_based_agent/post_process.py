@@ -124,7 +124,7 @@ def _rephrase_answer(orch_state: OrchestratorState, response: str) -> str:
     """Rephrases the answer using an LLM after link removal."""
     model_service = ModelService(orch_state.bot_config.llm_config)
     prompt: PromptTemplate = PromptTemplate.from_template(
-        load_prompts(orch_state.bot_config)["regenerate_response"]
+        load_prompts(orch_state.bot_config.language)["regenerate_response"]
     )
     input_prompt = prompt.invoke(
         {

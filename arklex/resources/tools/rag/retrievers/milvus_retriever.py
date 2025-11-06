@@ -792,7 +792,7 @@ class MilvusRetrieverExecutor:
         if tags is None:
             tags = {}
         st = time.time()
-        prompts = load_prompts(self.bot_config)
+        prompts = load_prompts(self.bot_config.language)
         contextualize_q_prompt = PromptTemplate.from_template(
             prompts.get("retrieve_contextualize_q_prompt", "")
         )

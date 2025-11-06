@@ -6,24 +6,11 @@ different use cases such as vanilla generation, context-aware generation, messag
 generation, and etc.
 """
 
-from arklex.orchestrator.entities.orchestrator_state_entities import BotConfig
 
-
-def load_prompts(bot_config: BotConfig) -> dict[str, str]:
-    """Load prompt templates based on bot configuration.
-
-    This function loads the appropriate set of prompt templates based on the
-    specified language in the bot configuration. It includes templates for
-    various generation scenarios, and etc.
-
-    Args:
-        bot_config: Bot configuration specifying the language
-
-    Returns:
-        Dictionary mapping prompt names to their templates
-    """
+def load_prompts(language: str) -> dict[str, str]:
+    """Load prompt templates based on language."""
     prompts: dict[str, str]
-    if bot_config.language.upper() == "EN":
+    if language.upper() == "EN":
         ### ================================== Generator Prompts ================================== ###
         prompts = {
             # ===== vanilla prompt ===== #
@@ -200,7 +187,7 @@ Conversation history:
 
 Response:""",
         }
-    elif bot_config.language.upper() == "CN":
+    elif language.upper() == "CN":
         ### ================================== Generator Prompts ================================== ###
         prompts = {
             # ===== vanilla prompt ===== #
@@ -374,5 +361,5 @@ Response:""",
 回复：""",
         }
     else:
-        raise ValueError(f"Unsupported language: {bot_config.language}")
+        raise ValueError(f"Unsupported language: {language}")
     return prompts

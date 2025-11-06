@@ -2,7 +2,10 @@ from pydantic import BaseModel, Field
 
 from arklex.memory.entities.memory_entities import Memory
 from arklex.orchestrator.entities.orchestrator_state_entities import Metadata
-from arklex.orchestrator.entities.taskgraph_entities import Agentgraph, Taskgraph
+from arklex.orchestrator.entities.taskgraph_entities import (
+    AgentGraphParams,
+    NLUGraphParams,
+)
 
 
 class OrchestratorParams(BaseModel):
@@ -25,6 +28,6 @@ class OrchestratorParams(BaseModel):
     """
 
     metadata: Metadata = Field(default_factory=Metadata)
-    taskgraph: Taskgraph = Field(default_factory=Taskgraph)
-    agentgraph: Agentgraph = Field(default_factory=Agentgraph)
+    nlugraph: NLUGraphParams = Field(default_factory=NLUGraphParams)
+    agentgraph: AgentGraphParams = Field(default_factory=AgentGraphParams)
     memory: Memory = Field(default_factory=Memory)

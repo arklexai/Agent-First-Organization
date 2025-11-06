@@ -36,7 +36,7 @@ class RetrieveEngine:
         user_message = state.user_message
 
         # Search for the relevant documents
-        prompts: dict[str, str] = load_prompts(state.bot_config)
+        prompts: dict[str, str] = load_prompts(state.bot_config.language)
         docs: FaissRetrieverExecutor = FaissRetrieverExecutor.load_docs(
             database_path=os.environ.get("DATA_DIR"),
             llm_config=state.bot_config.llm_config,

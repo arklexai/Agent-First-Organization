@@ -29,6 +29,7 @@ class AgentCategory(str, Enum):
     """Agent category enum for organizing different types of agents."""
 
     OPENAI = "openai"
+    NLU = "nlu"
 
 
 class Item(str, Enum):
@@ -94,3 +95,6 @@ class AgentItem(Item):
 
     OPENAI_AGENT = "openai-agent"
     OPENAI_REALTIME_VOICE_AGENT = "openai-realtime-voice-agent"
+    NLU_AGENT = "nlu-agent"
+    INPUT_GUARDRAIL = "input-guardrail"
+    OUTPUT_GUARDRAIL = "output-guardrail"

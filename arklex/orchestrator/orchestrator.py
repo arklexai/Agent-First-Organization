@@ -1,41 +1,37 @@
 import asyncio
-import copy
 import json
-import time
 from typing import Any
 
 import janus
 from dotenv import load_dotenv
-from langchain_core.runnables import RunnableLambda
 
-from arklex.memory.entities.memory_entities import ResourceRecord
-from arklex.models.model_service import ModelService
+from arklex.models.llm_config import LLMConfig
 from arklex.orchestrator.entities.orchestrator_param_entities import OrchestratorParams
 from arklex.orchestrator.entities.orchestrator_state_entities import (
-    BotConfig,
     ConvoMessage,
-    LLMConfig,
     OrchestratorResp,
     OrchestratorState,
-    StatusEnum,
 )
-from arklex.orchestrator.entities.taskgraph_entities import (
-    NodeInfo,
-    PathNode,
-)
-from arklex.orchestrator.executor.entities import NodeResponse
 from arklex.orchestrator.executor.executor import Executor
-from arklex.orchestrator.post_process import post_process_response
-from arklex.orchestrator.task_graph.task_graph import AgentGraph, TaskGraph
+from arklex.orchestrator.task_graph.agent_graph import AgentGraph
+from arklex.orchestrator.task_graph.nlu_graph import NLUGraph
 from arklex.orchestrator.types.stream_types import StreamType
+from arklex.resources.agent_loader import AgentLoader
 from arklex.resources.resource_types import AgentItem
-from arklex.resources.tools.utils import ToolGenerator
 from arklex.utils.logging.logging_utils import LogContext
-from arklex.utils.prompts import load_prompts
-from arklex.utils.utils import format_chat_history
 
 load_dotenv()
 log_context = LogContext(__name__)
+
+
+DEFAULT_AGENTS = [
+    {
+        "id": AgentItem.NLU_AGENT.value,
+    },
+    {
+        "id": AgentItem.OPENAI_AGENT.value,
+    },
+]
 
 
 class AgentOrg:
@@ -47,9 +43,9 @@ class AgentOrg:
 
     Attributes:
         user_prefix (str): Prefix for user messages
-        product_kwargs (Dict[str, Any]): Configuration settings
+        config (Dict[str, Any]): Configuration settings
         llm_config (LLMConfig): Language model configuration
-        task_graph (TaskGraph): Task graph for conversation flow
+        nlu_graph (NLUGraph): NLU graph for conversation flow
         executor (Executor): Executor with tools and workers
     """
 
@@ -58,223 +54,36 @@ class AgentOrg:
         config: str | dict[str, Any],
         executor: Executor | None,
     ) -> None:
-        """Initialize the AgentOrg orchestrator.
+        """Initialize the orchestrator.
 
         This function initializes the orchestrator with configuration settings and environment.
         It sets up the task graph, model configuration, and other necessary components.
 
         Args:
             config (Union[str, Dict[str, Any]]): Configuration file path or dictionary containing
-                product settings, model configuration, and other parameters.
+                config settings, model configuration, and other parameters.
             executor (Executor): Executor object containing tools, workers, and other resources.
             **kwargs (Any): Additional keyword arguments for customization.
         """
-        self.user_prefix: str = "user"
-
         if isinstance(config, dict):
-            self.product_kwargs: dict[str, Any] = config
+            self.config: dict[str, Any] = config
         else:
             with open(config) as f:
-                self.product_kwargs: dict[str, Any] = json.load(f)
+                self.config: dict[str, Any] = json.load(f)
         self.llm_config: LLMConfig = LLMConfig.model_validate(
-            self.product_kwargs.get("model")
+            self.config.get("llm_config", {})
         )
-        self.model_service: ModelService = ModelService(self.llm_config)
         self.executor: Executor = executor
-        self.task_graph: TaskGraph = TaskGraph(
-            "taskgraph",
-            self.product_kwargs,
+        self.agents: dict[str, dict[str, Any]] = AgentLoader.init_agents(DEFAULT_AGENTS)
+        self.nlu_graph: NLUGraph = NLUGraph(
+            "nlugraph",
+            self.config,
             llm_config=self.llm_config,
         )
         self.agent_graph: AgentGraph = AgentGraph(
             "agentgraph",
-            self.product_kwargs,
+            self.config,
         )
-        # Load prompts based on bot config
-        bot_config = BotConfig.model_validate(self.product_kwargs.get("bot_config", {}))
-        self.prompts = load_prompts(bot_config)
-
-    def init_params(
-        self, inputs: dict[str, Any]
-    ) -> tuple[str, str, OrchestratorParams, OrchestratorState]:
-        """Initialize parameters for a new conversation turn.
-
-        This function processes the input text, chat history, and parameters to initialize
-        the state for a new conversation turn. It updates the turn ID, function calling
-        trajectory, and creates a new message state with system instructions.
-
-        Args:
-            inputs (Dict[str, Any]): Dictionary containing text, chat history, and parameters.
-
-        Returns:
-            Tuple[str, str, OrchestratorParams, MessageState]: A tuple containing the processed text,
-                formatted chat history, updated parameters, and new message state.
-        """
-        text: str = inputs["text"]
-        chat_history: list[dict[str, str]] = inputs["chat_history"]
-        input_params: dict[str, Any] | None = inputs["parameters"]
-
-        # Create base params with defaults
-        params: OrchestratorParams = OrchestratorParams()
-
-        # Update with any provided values
-        if input_params:
-            params = OrchestratorParams.model_validate(input_params)
-
-        # Update specific fields
-        chat_history_copy: list[dict[str, str]] = copy.deepcopy(chat_history)
-        chat_history_copy.append({"role": self.user_prefix, "content": text})
-        chat_history_str: str = format_chat_history(chat_history_copy)
-        # Update turn_id and function_calling_trajectory
-        params.metadata.turn_id += 1
-        if not params.memory.function_calling_trajectory:
-            params.memory.function_calling_trajectory = copy.deepcopy(chat_history_copy)
-        else:
-            params.memory.function_calling_trajectory.extend(chat_history_copy[-2:])
-
-        params.memory.trajectory.append([])
-
-        # Initialize the orchestrator state
-        orch_state: OrchestratorState = OrchestratorState(
-            sys_instruct=self.product_kwargs.get("sys_instruct", ""),
-            bot_config=BotConfig.model_validate(
-                self.product_kwargs.get("bot_config", {})
-            ),
-        )
-        return text, chat_history_str, params, orch_state
-
-    def check_skip_node(self, node_info: NodeInfo, chat_history_str: str) -> bool:
-        """Check if a node can be skipped in the task graph.
-
-        This function determines whether a node can be skipped based on its configuration
-        and the current state of the task graph. It checks if the node is marked as skippable
-        and if it has reached its execution limit.
-
-        Args:
-            node_info (NodeInfo): Information about the current node.
-            params (OrchestratorParams): Current parameters and state of the conversation.
-
-        Returns:
-            bool: True if the node can be skipped, False otherwise.
-        """
-        if not node_info.attribute.get("can_skipped", False):
-            return False
-
-        task = node_info.attribute.get("task", "")
-        if not task:
-            return False
-
-        prompt = self.prompts["check_skip_node_prompt"].format(
-            chat_history_str=chat_history_str, task=task
-        )
-        log_context.info(f"prompt for check skip node: {prompt}")
-
-        try:
-            response_text = self.model_service.get_response(prompt)
-            log_context.info(f"LLM response for task verification: {response_text}")
-            response_text = str(response_text).lower().strip()
-            return response_text == "yes"
-        except Exception as e:
-            log_context.error(f"Error in LLM task verification: {str(e)}")
-            return False
-
-    def post_process_node(
-        self,
-        node_info: NodeInfo,
-        params: OrchestratorParams,
-        update_info: dict[str, Any] = None,
-    ) -> OrchestratorParams:
-        """Process a node after its execution.
-
-        This function updates the task graph path with the current node's information,
-        including whether it was skipped and its flow stack.
-
-        Args:
-            node_info (NodeInfo): Information about the current node.
-            params (OrchestratorParams): Current parameters and state of the conversation.
-            update_info (Dict[str, Any], optional): Additional information about the node's execution.
-                Defaults to an empty dictionary.
-
-        Returns:
-            OrchestratorParams: Updated parameters after processing the node.
-        """
-        if update_info is None:
-            update_info = {}
-        curr_node: str = params.taskgraph.curr_node
-        node: PathNode = PathNode(
-            node_id=curr_node,
-            is_skipped=update_info.get("is_skipped", False),
-            in_flow_stack=node_info.add_flow_stack,
-            global_intent=params.taskgraph.curr_global_intent,
-        )
-
-        params.taskgraph.path.append(node)
-        return params
-
-    def perform_node(
-        self,
-        orch_state: OrchestratorState,
-        node_info: NodeInfo,
-        params: OrchestratorParams,
-        text: str,
-        chat_history_str: str,
-        stream_type: StreamType | None,
-        message_queue: janus.Queue | None,
-    ) -> tuple[NodeInfo, OrchestratorState, OrchestratorParams, NodeResponse]:
-        """Execute a node in the task graph.
-
-        This function processes a node in the task graph, handling nested graph nodes,
-        creating messages, and managing the conversation flow. It updates the node information,
-        message state, and parameters based on the execution results.
-
-        Args:
-            message_state (MessageState): Current state of the conversation.
-            node_info (NodeInfo): Information about the current node.
-            params (OrchestratorParams): Current parameters and state of the conversation.
-            text (str): The current user message.
-            chat_history_str (str): Formatted chat history.
-            stream_type (Optional[StreamType]): Type of stream for the response.
-            message_queue (Optional[janus.Queue]): Queue for streaming messages.
-
-        Returns:
-            Tuple[NodeInfo, MessageState, OrchestratorParams]: A tuple containing updated node information,
-                message state, and parameters.
-        """
-        # Create initial resource record with common info and output from trajectory
-        resource_record: ResourceRecord = ResourceRecord(
-            info={
-                "resource": node_info.resource,
-                "attribute": node_info.attribute,
-                "node_id": params.taskgraph.curr_node,
-            },
-            intent=params.taskgraph.intent,
-        )
-
-        # Add resource record to current turn's list
-        params.memory.trajectory[-1].append(resource_record)
-
-        # Update orchestrator state
-        orch_state.user_message = ConvoMessage(history=chat_history_str, message=text)
-        orch_state.function_calling_trajectory = (
-            params.memory.function_calling_trajectory
-        )
-        orch_state.trajectory = params.memory.trajectory
-        orch_state.metadata = params.metadata
-        orch_state.stream_type = stream_type
-        orch_state.message_queue = message_queue
-        # Execute the node
-        response_state: OrchestratorState
-        response_state, node_response = self.executor.step(
-            node_info.resource["id"],
-            orch_state,
-            node_info,
-            params.taskgraph.dialog_states,
-        )
-        # Update params
-        params.taskgraph.node_status[node_info.node_id] = node_response.status
-        if node_response.slots:
-            params.taskgraph.dialog_states = node_response.slots
-        return node_info, response_state, params, node_response
 
     def _get_response(
         self,
@@ -282,89 +91,10 @@ class AgentOrg:
         stream_type: StreamType | None = None,
         message_queue: janus.Queue | None = None,
     ) -> OrchestratorResp:
-        """Get a response from the orchestrator.
-
-        This function processes the input through the task graph, handling personalized intents,
-        retrieving relevant records, and managing the conversation flow. It supports streaming
-        responses and maintains the conversation state.
-
-        Args:
-            inputs (Dict[str, Any]): Dictionary containing text, chat history, and parameters.
-            stream_type (Optional[StreamType]): Type of stream for the response.
-            message_queue (Optional[janus.SyncQueue]): Queue for streaming messages.
-
-        Returns:
-            OrchestratorResp: The orchestrator's response containing the answer and parameters.
-        """
-        text: str
-        chat_history_str: str
-        params: OrchestratorParams
-        orch_state: OrchestratorState
-        text, chat_history_str, params, orch_state = self.init_params(inputs)
-        # TaskGraph Chain
-        taskgraph_inputs: dict[str, Any] = {
-            "text": text,
-            "chat_history_str": chat_history_str,
-            "parameters": params,
-            "allow_global_intent_switch": True,
-        }
-
-        orch_state.trajectory = params.memory.trajectory
-        taskgraph_chain = RunnableLambda(self.task_graph.get_node) | RunnableLambda(
-            self.task_graph.postprocess_node
+        nlu_agent = self.agents[AgentItem.NLU_AGENT]["agent_instance"](
+            self.llm_config, self.nlu_graph, self.executor
         )
-
-        n_node_performed = 0
-        max_n_node_performed = 5
-        while n_node_performed < max_n_node_performed:
-            taskgraph_start_time = time.time()
-            node_info, params = taskgraph_chain.invoke(taskgraph_inputs)
-            taskgraph_inputs["allow_global_intent_switch"] = False
-            params.metadata.timing.taskgraph = time.time() - taskgraph_start_time
-            # Check if current node can be skipped
-            can_skip = self.check_skip_node(node_info, chat_history_str)
-            if can_skip:
-                params = self.post_process_node(node_info, params, {"is_skipped": True})
-                continue
-            log_context.info(f"The current node info is : {node_info}")
-
-            # perform node
-            node_info, orch_state, params, node_response = self.perform_node(
-                orch_state,
-                node_info,
-                params,
-                text,
-                chat_history_str,
-                stream_type,
-                message_queue,
-            )
-            params = self.post_process_node(node_info, params)
-
-            n_node_performed += 1
-            # If the current node is not complete, then no need to continue to the next node
-            if node_response.status == StatusEnum.INCOMPLETE:
-                break
-            # If the current node has a response, break the loop
-            if node_response.response:
-                break
-            # If the current node is a leaf node, break the loop
-            if node_info.is_leaf is True:
-                break
-
-        if not node_response.response:
-            log_context.info("No response, do context generation")
-            if stream_type == StreamType.NON_STREAM:
-                answer = ToolGenerator.context_generate(orch_state)
-                node_response.response = answer
-            else:
-                answer = ToolGenerator.stream_context_generate(orch_state)
-                node_response.response = answer
-
-        node_response = post_process_response(
-            orch_state,
-            node_response,
-        )
-
+        node_response, params = nlu_agent.execute(inputs, stream_type, message_queue)
         return OrchestratorResp(
             answer=node_response.response,
             parameters=params.model_dump(),
@@ -390,15 +120,19 @@ class AgentOrg:
             openai_agents_trajectory=orch_state_params.memory.openai_agents_trajectory.copy(),
         )
         # agent instance initialization
-        agent_cls = self.executor.agents[AgentItem.OPENAI_AGENT]["agent_instance"]
+        agent_cls = self.agents[AgentItem.OPENAI_AGENT]["agent_instance"]
+        exec_params = self.agent_graph.configure_params()
         if not orch_state_params.agentgraph.current_agent:
-            agent_name = self.agent_graph.start_agent_name
+            agent_name = exec_params["start_agent_name"]
         else:
             agent_name = orch_state_params.agentgraph.current_agent
         agent_instance = agent_cls(
-            agent=self.agent_graph.agents[agent_name],
+            agent=exec_params["agents"][agent_name],
             state=orch_state,
-            start_message=self.agent_graph.start_message,
+            start_message=exec_params["start_message"],
+            input_guardrails=exec_params["agents_input_guardrails"][agent_name],
+            output_guardrails=exec_params["agents_output_guardrails"][agent_name],
+            safety_response=exec_params["agents_safety_response"][agent_name],
         )
         # agent execution
         orch_state, agent_output = await agent_instance.execute()

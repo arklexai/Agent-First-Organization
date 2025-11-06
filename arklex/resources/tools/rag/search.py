@@ -14,7 +14,6 @@ from langchain_core.prompts import PromptTemplate
 
 from arklex.models.llm_config import load_llm
 from arklex.orchestrator.entities.orchestrator_state_entities import (
-    BotConfig,
     LLMConfig,
 )
 from arklex.utils.logging.exceptions import SearchError
@@ -36,11 +35,9 @@ class SearchConfig(TypedDict, total=False):
 
 class SearchEngine:
     @staticmethod
-    def search(chat_history: str, bot_config: BotConfig) -> str:
-        tavily_search_executor: TavilySearchExecutor = TavilySearchExecutor(
-            bot_config.llm_config
-        )
-        text_results: str = tavily_search_executor.search(chat_history, bot_config)
+    def search(chat_history: str, llm_config: LLMConfig) -> str:
+        tavily_search_executor: TavilySearchExecutor = TavilySearchExecutor(llm_config)
+        text_results: str = tavily_search_executor.search(chat_history, llm_config)
         return text_results
 
 
@@ -66,8 +63,8 @@ class TavilySearchExecutor:
             search_text += f"Content: {res['content']} \n\n"
         return search_text
 
-    def search(self, chat_history: str, bot_config: BotConfig) -> str:
-        prompts: dict[str, str] = load_prompts(bot_config)
+    def search(self, chat_history: str, llm_config: LLMConfig) -> str:
+        prompts: dict[str, str] = load_prompts(llm_config.language)
         contextualize_q_prompt: PromptTemplate = PromptTemplate.from_template(
             prompts["retrieve_contextualize_q_prompt"]
         )
