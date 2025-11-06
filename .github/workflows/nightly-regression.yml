@@ -20,7 +20,7 @@ jobs:
   coverage-check:
     uses: ./.github/workflows/reusable-run-coverage-tests.yml
     with:
-      coverage-command: 'ARKLEX_TEST_ENV=local pytest tests/ --cov=arklex --cov-report=term-missing --cov-report=html --cov-report=xml --no-cov-on-fail'
+      coverage-command: 'ARKLEX_TEST_ENV=local MYSQL_LAZY_LOAD=true pytest tests/ --cov=arklex --cov-report=term-missing --cov-report=html --cov-report=xml --no-cov-on-fail'
       min-coverage-threshold: '45.0'
 
   test-mock-integration:

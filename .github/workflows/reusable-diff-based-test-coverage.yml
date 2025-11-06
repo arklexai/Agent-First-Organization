@@ -59,7 +59,7 @@ jobs:
       - name: Run tests with coverage
         run: |
           # Run tests with coverage, excluding certain directories if needed
-          ARKLEX_TEST_ENV=local coverage run --source=arklex -m pytest tests/ -v --tb=short
+          ARKLEX_TEST_ENV=local MYSQL_LAZY_LOAD=true coverage run --source=arklex -m pytest tests/ -v --tb=short
           coverage xml
           coverage report > coverage.txt
           echo "Coverage report generated:"
