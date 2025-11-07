@@ -181,6 +181,7 @@ class AgentGraph(GraphBase):
                 agent_data_map[agent_data.name] = agent_data
                 self.agents[agent_data.name] = Agent(
                     name=agent_data.name,
+                    model=agent_data.model,
                     instructions=prompt,
                     tools=agents_tools,
                     handoff_description=agent_data.handoff_description,

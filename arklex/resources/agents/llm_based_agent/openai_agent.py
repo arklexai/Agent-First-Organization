@@ -33,6 +33,7 @@ class OpenAIAgentData(BaseModel):
     """Data for the OpenAIAgent."""
 
     name: str
+    model: str | None = "gpt-4.1"
     prompt: str
     prompt_variables: list[PromptVariable] = []
     start_agent: bool = False
