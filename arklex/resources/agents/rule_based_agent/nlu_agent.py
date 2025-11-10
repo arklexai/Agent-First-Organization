@@ -49,9 +49,33 @@ class NLUAgent(BaseAgent):
         self.llm_config = llm_config
         self.executor = executor
         self.nlu_graph = nlu_graph
-        self.agent_data: NLUAgentData = NLUAgentData.model_validate(
-            self.nlu_graph.agent_node.data
-        )
+        # Handle legacy data format with fallbacks
+        node_data = self.nlu_graph.agent_node.data
+        if isinstance(node_data, dict):
+            # Check if this is legacy format with 'message' field
+            if 'message' in node_data and 'prompt' not in node_data:
+                # Convert legacy format to new format
+                converted_data = {
+                    'prompt': node_data.get('message', ''),
+                    'response_length': 50,  # Default value
+                    'language': 'EN'        # Default value
+                }
+                self.agent_data: NLUAgentData = NLUAgentData.model_validate(converted_data)
+            else:
+                # Ensure required fields exist with defaults
+                validated_data = {
+                    'prompt': node_data.get('prompt', ''),
+                    'response_length': node_data.get('response_length', 50),
+                    'language': node_data.get('language', 'EN')
+                }
+                self.agent_data: NLUAgentData = NLUAgentData.model_validate(validated_data)
+        else:
+            # Fallback for non-dict data
+            self.agent_data: NLUAgentData = NLUAgentData(
+                prompt='',
+                response_length=50,
+                language='EN'
+            )
 
     def format_system_prompt(self) -> str:
         if self.agent_data.language == "EN":
