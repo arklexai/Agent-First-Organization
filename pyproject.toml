@@ -20,7 +20,6 @@ dependencies = [
   "greenlet>=3.1.1,<4.0.0",
   "httptools>=0.6.4,<1.0.0",
   "httpx>=0.28.1,<1.0.0",
-  "langchain>=1.0.0,<2.0.0",
   "langchain-core>=1.0.0,<2.0.0",
   "langchain-text-splitters>=1.0.0,<2.0.0",
   "langchain-community>=0.4.0,<1.0.0",
@@ -48,8 +47,6 @@ dependencies = [
   "faiss-cpu>=1.10.0,<2.0.0",
   "tavily-python>=0.5.0,<1.0.0",
   "webdriver-manager==4.0.2",
-  "scipy>=1.14.1,<2.0.0",
-  "litellm>=1.79.0,<2.0.0",
   "janus>=1.0.0,<2.0.0",
   "pydantic_ai>=0.1.10,<1.0.0",
   "markdown>=3.8",
@@ -74,7 +71,7 @@ faiss = [
   "sentence-transformers>=2.2.2,<3.0.0",
 ]
 llm = [
-  "langchain-anthropic>=0.3.0,<2.0.0",
+  "langchain-anthropic>=0.3.5,<2.0.0",
   "langchain-google-genai>=2.0.9,<3.0.0",
   "langchain-huggingface>=0.3.0,<2.0.0",
 ]
@@ -88,7 +85,6 @@ strict-versions = [
   "greenlet==3.1.1",
   "httptools==0.6.4",
   "httpx==0.28.1",
-  "langchain==1.0.0",
   "langchain-core==1.0.1",
   "langchain-text-splitters==1.0.0",
   "langchain-community==0.4.1",
@@ -113,8 +109,6 @@ strict-versions = [
   "faiss-cpu==1.10.0",
   "tavily-python==0.5.0",
   "webdriver-manager==4.0.2",
-  "scipy==1.14.1",
-  "litellm==1.79.0",
   "janus==1.0.0",
   "pydantic_ai==0.1.10",
   "markdown==3.8",
