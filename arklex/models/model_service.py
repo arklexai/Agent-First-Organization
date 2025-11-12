@@ -9,10 +9,12 @@ message formatting, and response processing.
 from typing import Any
 
 from langchain_core.language_models import BaseChatModel
-from langchain_core.messages import HumanMessage, SystemMessage
+from langchain_core.messages import BaseMessage, HumanMessage, SystemMessage
+from langchain_core.prompts import ChatPromptTemplate
 
 from arklex.models.llm_config import LLMConfig, load_llm
 from arklex.utils.logging.logging_utils import LogContext
+from arklex.utils.prompts import PromptPair
 
 log_context = LogContext(__name__)
 
@@ -46,6 +48,26 @@ class ModelService:
         self.llm_config = llm_config
         self.model: BaseChatModel = load_llm(llm_config)
 
+    def _format_messages(
+        self,
+        prompt: str,
+        system_prompt: str | None = None,
+    ) -> list[BaseMessage]:
+        """Format messages for the model.
+
+        Args:
+            prompt: User prompt to send to the model
+            system_prompt: Optional system prompt for model context
+
+        Returns:
+            List of formatted messages
+        """
+        messages = []
+        if system_prompt:
+            messages.append(SystemMessage(content=system_prompt))
+        messages.append(HumanMessage(content=prompt))
+        return messages
+
     def get_response(
         self,
         prompt: str,
@@ -68,10 +90,7 @@ class ModelService:
         """
         try:
             # Format messages with system prompt if provided
-            messages = []
-            if system_prompt:
-                messages.append(SystemMessage(content=system_prompt))
-            messages.append(HumanMessage(content=prompt))
+            messages = self._format_messages(prompt, system_prompt)
             # Get response from model
             response = self.model.invoke(messages)
             if not response or not response.content:
@@ -95,10 +114,7 @@ class ModelService:
         )
 
         if is_openai_model:
-            messages = []
-            if system_prompt:
-                messages.append(SystemMessage(content=system_prompt))
-            messages.append(HumanMessage(content=prompt))
+            messages = self._format_messages(prompt, system_prompt)
             llm = self.model.with_structured_output(schema)
             return llm.invoke(messages)
         else:
