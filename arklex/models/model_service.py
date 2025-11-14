@@ -66,6 +66,23 @@ class ModelService:
         if system_prompt:
             messages.append(SystemMessage(content=system_prompt))
         messages.append(HumanMessage(content=prompt))
+        
+        # Print statement to show message structure
+        print("\n" + "="*80)
+        print("MODEL SERVICE: Formatted Messages Structure")
+        print("="*80)
+        if system_prompt:
+            print(f"\n[SYSTEM MESSAGE]")
+            print(f"{'-'*80}")
+            print(system_prompt)
+            print(f"{'-'*80}")
+        print(f"\n[HUMAN MESSAGE]")
+        print(f"{'-'*80}")
+        print(prompt)
+        print(f"{'-'*80}")
+        print(f"\nTotal messages: {len(messages)}")
+        print("="*80 + "\n")
+        
         return messages
 
     def get_response(
@@ -89,12 +106,31 @@ class ModelService:
             ValueError: If model response is invalid or empty
         """
         try:
+            # Print statement to show what's being sent to get_response
+            print("\n" + "="*80)
+            print("MODEL SERVICE: get_response() called")
+            print("="*80)
+            print(f"System prompt provided: {system_prompt is not None}")
+            if system_prompt:
+                print(f"System prompt length: {len(system_prompt)} characters")
+            print(f"User prompt length: {len(prompt)} characters")
+            print("="*80 + "\n")
+            
             # Format messages with system prompt if provided
             messages = self._format_messages(prompt, system_prompt)
             # Get response from model
             response = self.model.invoke(messages)
             if not response or not response.content:
                 raise ValueError("Empty response from model")
+            
+            # Print response info
+            print("\n" + "="*80)
+            print("MODEL SERVICE: Response received")
+            print("="*80)
+            print(f"Response length: {len(response.content)} characters")
+            print(f"Response preview: {response.content[:200]}..." if len(response.content) > 200 else f"Response: {response.content}")
+            print("="*80 + "\n")
+            
             return response.content
         except Exception as e:
             log_context.error(f"Error getting model response: {str(e)}")

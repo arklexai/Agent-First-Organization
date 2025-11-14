@@ -117,6 +117,23 @@ class RagMsgWorker(BaseWorker):
         log_context.info(
             f"User prompt for stream type {self.orch_state.stream_type}: {user_prompt}"
         )
+        
+        # Print statements to show prompt structure
+        print("\n" + "="*80)
+        print("RAG MESSAGE WORKER: Formatted Prompts")
+        print("="*80)
+        print(f"Stream Type: {self.orch_state.stream_type}")
+        print(f"Context provided: {bool(context)}")
+        print(f"\n[SYSTEM PROMPT]")
+        print(f"{'-'*80}")
+        print(system_prompt)
+        print(f"{'-'*80}")
+        print(f"\n[USER PROMPT]")
+        print(f"{'-'*80}")
+        print(user_prompt)
+        print(f"{'-'*80}")
+        print("="*80 + "\n")
+        
         return system_prompt, user_prompt
 
     def generator(self, system_prompt: str, user_prompt: str) -> str:
@@ -126,6 +143,12 @@ class RagMsgWorker(BaseWorker):
     def stream_generator(self, system_prompt: str, user_prompt: str) -> str:
         # Note: ModelService doesn't support streaming directly, so we'll use the underlying model
         # This maintains backward compatibility while using ModelService for non-streaming operations
+        print("\n" + "="*80)
+        print("RAG MESSAGE WORKER: stream_generator() - Streaming Response")
+        print("="*80)
+        print("Using formatted messages for streaming...")
+        print("="*80 + "\n")
+        
         answer: str = ""
         messages = self.model_service._format_messages(user_prompt, system_prompt)
         for chunk in self.model_service.model.stream(messages):
@@ -133,6 +156,13 @@ class RagMsgWorker(BaseWorker):
             self.orch_state.message_queue.put(
                 {"event": EventType.CHUNK.value, "message_chunk": chunk.content}
             )
+        
+        print("\n" + "="*80)
+        print("RAG MESSAGE WORKER: stream_generator() - Streaming Complete")
+        print("="*80)
+        print(f"Total response length: {len(answer)} characters")
+        print("="*80 + "\n")
+        
         return answer
 
     def _execute(self) -> RAGMessageWorkerOutput:

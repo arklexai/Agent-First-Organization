@@ -64,6 +64,21 @@ class ToolGenerator:
         ).text
         log_context.info(f"System prompt: {system_prompt}")
         log_context.info(f"User prompt: {user_prompt}")
+        
+        # Print statements to show prompt structure
+        print("\n" + "="*80)
+        print("TOOL GENERATOR: generate() - Formatted Prompts")
+        print("="*80)
+        print(f"\n[SYSTEM PROMPT]")
+        print(f"{'-'*80}")
+        print(system_prompt)
+        print(f"{'-'*80}")
+        print(f"\n[USER PROMPT]")
+        print(f"{'-'*80}")
+        print(user_prompt)
+        print(f"{'-'*80}")
+        print("="*80 + "\n")
+        
         answer: str = model_service.get_response(user_prompt, system_prompt)
 
         return answer
@@ -118,6 +133,22 @@ class ToolGenerator:
         ).text
         log_context.info(f"System prompt: {system_prompt}")
         log_context.info(f"User prompt: {user_prompt}")
+        
+        # Print statements to show prompt structure
+        print("\n" + "="*80)
+        print("TOOL GENERATOR: context_generate() - Formatted Prompts")
+        print("="*80)
+        print(f"Context length: {len(message_flow)} characters")
+        print(f"\n[SYSTEM PROMPT]")
+        print(f"{'-'*80}")
+        print(system_prompt)
+        print(f"{'-'*80}")
+        print(f"\n[USER PROMPT]")
+        print(f"{'-'*80}")
+        print(user_prompt)
+        print(f"{'-'*80}")
+        print("="*80 + "\n")
+        
         answer: str = model_service.get_response(user_prompt, system_prompt)
         state.message_flow = ""
         # state = trace(input=answer, state=state)
@@ -171,6 +202,22 @@ class ToolGenerator:
         ).text
         log_context.info(f"System prompt: {system_prompt}")
         log_context.info(f"User prompt: {user_prompt}")
+        
+        # Print statements to show prompt structure
+        print("\n" + "="*80)
+        print("TOOL GENERATOR: stream_context_generate() - Formatted Prompts")
+        print("="*80)
+        print(f"Context length: {len(message_flow)} characters")
+        print(f"\n[SYSTEM PROMPT]")
+        print(f"{'-'*80}")
+        print(system_prompt)
+        print(f"{'-'*80}")
+        print(f"\n[USER PROMPT]")
+        print(f"{'-'*80}")
+        print(user_prompt)
+        print(f"{'-'*80}")
+        print("="*80 + "\n")
+        
         messages = model_service._format_messages(user_prompt, system_prompt)
         answer: str = ""
         for chunk in model_service.model.stream(messages):
@@ -197,6 +244,21 @@ class ToolGenerator:
         user_prompt: str = user_template.invoke(
             {"formatted_chat": user_message.history}
         ).text
+        
+        # Print statements to show prompt structure
+        print("\n" + "="*80)
+        print("TOOL GENERATOR: stream_generate() - Formatted Prompts")
+        print("="*80)
+        print(f"\n[SYSTEM PROMPT]")
+        print(f"{'-'*80}")
+        print(system_prompt)
+        print(f"{'-'*80}")
+        print(f"\n[USER PROMPT]")
+        print(f"{'-'*80}")
+        print(user_prompt)
+        print(f"{'-'*80}")
+        print("="*80 + "\n")
+        
         messages = model_service._format_messages(user_prompt, system_prompt)
         answer: str = ""
         for chunk in model_service.model.stream(messages):
