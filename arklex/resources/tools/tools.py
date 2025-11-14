@@ -14,6 +14,7 @@ from typing import Any
 
 from agents import FunctionTool, RunContextWrapper
 from pydantic import BaseModel, Field, create_model
+from pydantic import ValidationError as PydanticValidationError
 
 from arklex.orchestrator.entities.orchestrator_state_entities import (
     OrchestratorState,
@@ -23,7 +24,11 @@ from arklex.orchestrator.nlu.core.slot import SlotFiller
 from arklex.orchestrator.nlu.entities.slot_entities import (
     Slot,
 )
-from arklex.utils.logging.exceptions import AuthenticationError, ToolExecutionError
+from arklex.utils.logging.exceptions import (
+    AuthenticationError,
+    ToolExecutionError,
+    ValidationError,
+)
 from arklex.utils.logging.logging_utils import LogContext
 from arklex.utils.utils import format_chat_history
 
@@ -359,6 +364,12 @@ class Tool:
 
                 # Update slots with parsed values (but don't override fixed values)
                 self._update_slots_with_args(user_args)
+
+                # Validate required slots and clean up the slots
+                self._validate_and_clean_slot_values()
+                log_context.info(
+                    f"cleaned final slots: {self.slots}"
+                )  # can be removed after showing the tool call logs
 
                 # Merge with fixed arguments
                 merged_args = {
@@ -764,6 +775,100 @@ class Tool:
         else:
             # Create the Pydantic model class from fields
             return create_model(f"{self.name}_InputModel", **fields)
+
+    def _validate_and_clean_slot_values(self) -> None:
+        """Validate slot values using Pydantic and clean extra fields.
+
+        This method builds a Pydantic model from the openai style json schema of the slot schema and validates the
+        slot values against it. Pydantic will:
+        - Validate required fields are present
+        - Remove extra fields not defined in the schema
+        - Perform type conversion and validation
+
+        Args:
+            slots: List of Slot objects to validate
+
+        Returns:
+            List of Slot objects with validated and cleaned slot values
+            Note:
+                - allow empty values for required fields (e.g. ""), but not None
+                - if optional fields are not provided, they will be set to None
+
+        Raises:
+            ValidationError: If validation fails (e.g., missing required fields)
+        """
+        try:
+            # go through each slot, build pydantic model from the slot schema, validate and clean the slot value against it
+            for slot in self.slots:
+                # get slot schema
+                slot_schema = slot.slot_schema.get("function", {}).get("parameters", {})
+
+                def _schema_to_pydantic(
+                    schema: dict[str, Any], name: str
+                ) -> type[BaseModel]:
+                    """
+                    Recursively convert an OpenAI-style JSON schema into a Pydantic model.
+                    """
+                    if schema.get("type") != "object" or "properties" not in schema:
+                        raise ValueError(
+                            f"Schema for {name} must be an object with properties"
+                        )
+
+                    fields = {}
+                    required = set(schema.get("required", []))
+
+                    for prop_name, prop_schema in schema["properties"].items():
+                        field_type = _jsonschema_type_to_python(prop_schema, prop_name)
+                        default = ... if prop_name in required else None
+                        fields[prop_name] = (field_type, default)
+
+                    return create_model(name, **fields)
+
+                def _jsonschema_type_to_python(
+                    schema: dict[str, Any], name: str
+                ) -> type:
+                    """Map JSON schema types to Python types or nested Pydantic models."""
+                    t = schema.get("type")
+
+                    if t == "string":
+                        return JSON_SCHEMA_TO_PYTHON_TYPE.get(t, str)
+                    elif t == "integer":
+                        return JSON_SCHEMA_TO_PYTHON_TYPE.get(t, int)
+                    elif t == "number":
+                        return JSON_SCHEMA_TO_PYTHON_TYPE.get(t, float)
+                    elif t == "boolean":
+                        return JSON_SCHEMA_TO_PYTHON_TYPE.get(t, bool)
+                    elif t == "array":
+                        items_schema = schema.get("items", {"type": "any"})
+                        return list[
+                            _jsonschema_type_to_python(items_schema, name + "_item")
+                        ]
+                    elif t == "object":
+                        # Handle nested object model
+                        nested_name = schema.get("name", name.capitalize())
+                        return _schema_to_pydantic(schema, nested_name)
+                    else:
+                        return Any
+
+                slot_model = _schema_to_pydantic(slot_schema, slot.name)
+                validated_slot_value = slot_model.model_validate(
+                    {slot.name: slot.value}
+                )
+                # overwrite the slot value with the validated value
+                slot.value = validated_slot_value.model_dump()[slot.name]
+
+        except PydanticValidationError as e:
+            # Convert Pydantic ValidationError to our custom ValidationError
+            # Include the validation details for better error messages
+            error_details = str(e)
+            if hasattr(e, "errors"):
+                error_details = f"Validation errors: {e.errors()}"
+            raise ValidationError(
+                f"Failed to validate slot values: {error_details}"
+            ) from e
+        except Exception as e:
+            # Re-raise other exceptions as ValidationError for consistent error handling
+            raise ValidationError(f"Failed to validate slot values: {str(e)}") from e
 
     def _prepopulate_fixed_values_in_schema(self, schema_part: dict) -> None:
         """Pre-populate fixed and default values in schema to prevent LLM from asking for them.
