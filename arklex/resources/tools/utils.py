@@ -26,19 +26,26 @@ class ToolExecutor(Protocol):
     tools: dict[str, Any]
 
 
-def get_prompt_template(state: OrchestratorState, prompt_key: str) -> PromptTemplate:
-    """Get the prompt template based on the stream type."""
+def get_prompt_templates(state: OrchestratorState, prompt_key: str) -> tuple[PromptTemplate, PromptTemplate]:
+    """Get the system and user prompt templates based on the stream type."""
     prompts: dict[str, str] = load_prompts(state.bot_config.language)
 
     if state.stream_type == StreamType.SPEECH:
         # Use speech prompts, but fall back to regular prompts for Chinese
         # since Chinese speech prompts are not available yet
         if state.bot_config.language == "CN":
-            return PromptTemplate.from_template(prompts[prompt_key])
+            system_key = prompt_key + "_system"
+            user_key = prompt_key
         else:
-            return PromptTemplate.from_template(prompts[prompt_key + "_speech"])
+            system_key = prompt_key + "_speech_system"
+            user_key = prompt_key + "_speech"
     else:
-        return PromptTemplate.from_template(prompts[prompt_key])
+        system_key = prompt_key + "_system"
+        user_key = prompt_key
+    
+    system_template = PromptTemplate.from_template(prompts[system_key])
+    user_template = PromptTemplate.from_template(prompts[user_key])
+    return system_template, user_template
 
 
 class ToolGenerator:
@@ -48,12 +55,16 @@ class ToolGenerator:
         user_message: Any = state.user_message
 
         model_service: ModelService = ModelService(llm_config)
-        prompt: PromptTemplate = get_prompt_template(state, "generator_prompt")
-        input_prompt: Any = prompt.invoke(
-            {"sys_instruct": state.sys_instruct, "formatted_chat": user_message.history}
-        )
-        log_context.info(f"Prompt: {input_prompt.text}")
-        answer: str = model_service.get_response(input_prompt.text)
+        system_template, user_template = get_prompt_templates(state, "generator_prompt")
+        system_prompt: str = system_template.invoke(
+            {"sys_instruct": state.sys_instruct}
+        ).text
+        user_prompt: str = user_template.invoke(
+            {"formatted_chat": user_message.history}
+        ).text
+        log_context.info(f"System prompt: {system_prompt}")
+        log_context.info(f"User prompt: {user_prompt}")
+        answer: str = model_service.get_response(user_prompt, system_prompt)
 
         return answer
 
@@ -95,16 +106,19 @@ class ToolGenerator:
         )
 
         # generate answer based on the retrieved texts
-        prompt: PromptTemplate = get_prompt_template(state, "context_generator_prompt")
-        input_prompt: Any = prompt.invoke(
+        system_template, user_template = get_prompt_templates(state, "context_generator_prompt")
+        system_prompt: str = system_template.invoke(
+            {"sys_instruct": state.sys_instruct}
+        ).text
+        user_prompt: str = user_template.invoke(
             {
-                "sys_instruct": state.sys_instruct,
                 "formatted_chat": user_message.history,
                 "context": message_flow,
             }
-        )
-        log_context.info(f"Prompt: {input_prompt.text}")
-        answer: str = model_service.get_response(input_prompt.text)
+        ).text
+        log_context.info(f"System prompt: {system_prompt}")
+        log_context.info(f"User prompt: {user_prompt}")
+        answer: str = model_service.get_response(user_prompt, system_prompt)
         state.message_flow = ""
         # state = trace(input=answer, state=state)
         return answer
@@ -145,18 +159,21 @@ class ToolGenerator:
         )
 
         # generate answer based on the retrieved texts
-        prompt: PromptTemplate = get_prompt_template(state, "context_generator_prompt")
-
-        input_prompt: Any = prompt.invoke(
+        system_template, user_template = get_prompt_templates(state, "context_generator_prompt")
+        system_prompt: str = system_template.invoke(
+            {"sys_instruct": state.sys_instruct}
+        ).text
+        user_prompt: str = user_template.invoke(
             {
-                "sys_instruct": state.sys_instruct,
                 "formatted_chat": user_message.history,
                 "context": message_flow,
             }
-        )
-        log_context.info(f"Prompt: {input_prompt.text}")
+        ).text
+        log_context.info(f"System prompt: {system_prompt}")
+        log_context.info(f"User prompt: {user_prompt}")
+        messages = model_service._format_messages(user_prompt, system_prompt)
         answer: str = ""
-        for chunk in model_service.model.stream(input_prompt.text):
+        for chunk in model_service.model.stream(messages):
             answer += chunk.content
             state.message_queue.put(
                 {"event": EventType.CHUNK.value, "message_chunk": chunk.content}
@@ -173,12 +190,16 @@ class ToolGenerator:
         llm_config: dict[str, Any] = state.bot_config.llm_config
         model_service: ModelService = ModelService(llm_config)
 
-        prompt: PromptTemplate = get_prompt_template(state, "generator_prompt")
-        input_prompt: Any = prompt.invoke(
-            {"sys_instruct": state.sys_instruct, "formatted_chat": user_message.history}
-        )
+        system_template, user_template = get_prompt_templates(state, "generator_prompt")
+        system_prompt: str = system_template.invoke(
+            {"sys_instruct": state.sys_instruct}
+        ).text
+        user_prompt: str = user_template.invoke(
+            {"formatted_chat": user_message.history}
+        ).text
+        messages = model_service._format_messages(user_prompt, system_prompt)
         answer: str = ""
-        for chunk in model_service.model.stream(input_prompt.text):
+        for chunk in model_service.model.stream(messages):
             answer += chunk.content
             state.message_queue.put(
                 {"event": EventType.CHUNK.value, "message_chunk": chunk.content}
