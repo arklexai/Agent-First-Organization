@@ -51,98 +51,6 @@ class HTTPParams(BaseModel):
     params: dict[str, Any] | None = Field(default=None)
 
 
-def validate_required_slots(slots: list[Slot]) -> None:
-    """
-    Validate if all required slots are filled, including nested required fields.
-    """
-    try:
-        for slot in slots:
-            slot_name = slot.name
-            slot_value = slot.value
-            slot_required = slot.required
-            slot_repeatable = slot.repeatable
-            slot_schema = slot.slot_schema
-
-            log_context.info(
-                f"slot_name: {slot_name}, slot_value: {slot_value}, slot_value_type: {type(slot_value)}, slot_repeatable: {slot_repeatable}, slot_required: {slot_required}"
-            )
-
-            # Check if the slot is required and missing (can be an array, object, string, etc.)
-            # Last check if for the case where the slot is boolean and is False
-            if slot_required and not slot_value and slot_value is not False:
-                log_context.warning(
-                    f"Validation error: Required slot '{slot_name}' is missing"
-                )
-                raise ValidationError(f"Required slot '{slot_name}' is missing")
-
-            if not slot_schema:
-                continue
-
-            # Check for nested fields, navigate to the actual field schema
-            function_schema = slot_schema.get("function", {})
-            parameters = function_schema.get("parameters", {})
-            properties = parameters.get("properties", {})
-
-            # Get the properties for this specific slot
-            slot_properties = properties.get(slot_name, {})
-            if slot_value is not None and slot_repeatable:
-                if not isinstance(slot_value, list):
-                    log_context.warning(
-                        f"Validation error: Required array slot '{slot_name}' is not a list"
-                    )
-                    raise ValidationError(
-                        f"Required array slot '{slot_name}' is not a list"
-                    )
-                # validate array items if slot has value and is a repeatable field
-                _validate_array_items(slot_name, slot_value, slot_properties)
-            elif slot_value is not None and isinstance(slot_value, dict):
-                # validate object field if slot has value and is a dict
-                required_fields = slot_properties.get("required", [])
-                _validate_object_fields(slot_name, slot_value, required_fields)
-
-    except ValidationError as e:
-        log_context.warning(f"Validation error: {str(e)}")
-        raise e
-    except Exception as e:
-        log_context.warning(f"Error validating required slots: {str(e)}")
-        raise e
-
-
-def _validate_array_items(
-    slot_name: str, slot_value: list, field_schema: dict[str, Any]
-) -> None:
-    """
-    Validate required fields in array items.
-    """
-
-    items_schema = field_schema.get("items", {})
-    if items_schema.get("type") == "object":
-        required_fields = items_schema.get("required", [])
-        for item in slot_value:
-            _validate_object_fields(slot_name, item, required_fields)
-    else:
-        for item in slot_value:
-            if item is None or item == "":
-                raise ValidationError(
-                    f"Required array slot '{slot_name}' has empty item"
-                )
-
-
-def _validate_object_fields(
-    slot_name: str, slot_value: dict, required_fields: list[str]
-) -> None:
-    """
-    Validate required fields in object.
-    """
-
-    for required_field in required_fields:
-        field_value = slot_value.get(required_field)
-        if field_value is None or field_value == "":
-            raise ValidationError(
-                f"Required slot field '{slot_name}.{required_field}' is missing"
-            )
-
-
 def clean_json_data(data: dict[str, Any]) -> dict[str, Any]:
     """
     Clean JSON data by removing or replacing invalid values that could cause parsing errors.
@@ -283,8 +191,6 @@ def http_tool(
             f"HTTPTool execution called with params: {params}, slots: {slots}"
         )
         if slots:
-            # check for required fields in slots before processing
-            validate_required_slots(slots)
             # Process slots based on their target
             for slot in slots:
                 slot_name = None
