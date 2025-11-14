@@ -45,6 +45,8 @@ class EventType(str, Enum):
         TEXT: Text-only data chunk
         AUDIO_CHUNK: Audio data chunk
         ERROR: Error event in the stream
+        TOOL_CALL: ToolCallItem event
+        TOOL_CALL_OUTPUT: ToolCallOutputItem event
     """
 
     # LAST is used to denote the last event in the stream
@@ -57,3 +59,7 @@ class EventType(str, Enum):
     AUDIO_CHUNK = "audio"
     # ERROR is used to denote an error
     ERROR = "error"
+    # TOOL_CALL is used to denote an ToolCallItem
+    TOOL_CALL = "tool_call"
+    # TOOL_CALL_OUTPUT is used to denote an ToolCallOutputItem
+    TOOL_CALL_OUTPUT = "tool_call_output"

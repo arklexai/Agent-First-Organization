@@ -98,6 +98,7 @@ class OpenAIAgent(BaseAgent):
         result: list = []
         is_error = False
         try:
+            call_name_map = {}
             result = await Runner.run(self.agent, trajectory)
             for new_item in result.new_items:
                 agent_name = new_item.agent.name
@@ -109,10 +110,25 @@ class OpenAIAgent(BaseAgent):
                         f"Handed off from {agent_name} to {new_item.target_agent.name}"
                     )
                 elif isinstance(new_item, ToolCallItem):
-                    log_context.info(f"{agent_name}: Calling a tool")
+                    call_id = new_item.raw_item.call_id
+                    tool_name = new_item.raw_item.name
+                    log_context.info(
+                        f"{agent_name}: Calling tool '{tool_name}' (id={call_id})"
+                    )
+                    # Store mapping for later use (when output arrives)
+                    call_name_map[call_id] = tool_name
                 elif isinstance(new_item, ToolCallOutputItem):
                     log_context.info(
                         f"{agent_name} tool call output: {new_item.output}"
+                    )
+                    call_id = new_item.raw_item.get("call_id")
+                    tool_name = call_name_map.get(call_id, "unknown_tool")
+                    await self.state.message_queue.put(
+                        {
+                            "event": EventType.TOOL_CALL_OUTPUT.value,
+                            "tool_name": tool_name,
+                            "tool_output": new_item.output,
+                        }
                     )
                 else:
                     log_context.info(f"{agent_name} unknown item: {new_item}")
@@ -145,6 +161,7 @@ class OpenAIAgent(BaseAgent):
         is_error = False
         result = Runner.run_streamed(self.agent, trajectory)
         try:
+            call_name_map = {}
             async for event in result.stream_events():
                 # raw final response for streaming
                 if event.type == "raw_response_event" and isinstance(
@@ -167,10 +184,25 @@ class OpenAIAgent(BaseAgent):
                             f"Handed off from {new_item.source_agent.name} to {new_item.target_agent.name}"
                         )
                     elif isinstance(new_item, ToolCallItem):
-                        log_context.info(f"{agent_name}: Calling a tool")
+                        call_id = new_item.raw_item.call_id
+                        tool_name = new_item.raw_item.name
+                        log_context.info(
+                            f"{agent_name}: Calling tool '{tool_name}' (id={call_id})"
+                        )
+                        # Store mapping for later use (when output arrives)
+                        call_name_map[call_id] = tool_name
                     elif isinstance(new_item, ToolCallOutputItem):
                         log_context.info(
                             f"{agent_name} tool call output: {new_item.output}"
+                        )
+                        call_id = new_item.raw_item.get("call_id")
+                        tool_name = call_name_map.get(call_id, "unknown_tool")
+                        await self.state.message_queue.put(
+                            {
+                                "event": EventType.TOOL_CALL_OUTPUT.value,
+                                "tool_name": tool_name,
+                                "tool_output": new_item.output,
+                            }
                         )
                     else:
                         log_context.info(f"{agent_name} unknown item: {new_item}")
