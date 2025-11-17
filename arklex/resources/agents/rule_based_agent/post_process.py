@@ -1,6 +1,6 @@
 import re
 
-from langchain.prompts import PromptTemplate
+from langchain_core.prompts import PromptTemplate
 
 from arklex.memory.entities.memory_entities import ResourceRecord
 from arklex.models.model_service import ModelService

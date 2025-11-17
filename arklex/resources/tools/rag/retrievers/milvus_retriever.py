@@ -19,7 +19,7 @@ from collections import defaultdict
 from multiprocessing.pool import Pool
 
 import numpy as np
-from langchain.prompts import PromptTemplate
+from langchain_core.prompts import PromptTemplate
 from pymilvus import Collection, DataType, MilvusClient, connections
 
 from arklex.models.model_service import ModelService
