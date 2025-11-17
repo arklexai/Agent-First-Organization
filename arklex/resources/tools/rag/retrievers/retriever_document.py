@@ -15,7 +15,7 @@ from enum import Enum
 from typing import Any
 
 import tiktoken
-from langchain.text_splitter import RecursiveCharacterTextSplitter
+from langchain_text_splitters import RecursiveCharacterTextSplitter
 from openai import OpenAI
 
 from arklex.utils.database.mysql import mysql_pool
