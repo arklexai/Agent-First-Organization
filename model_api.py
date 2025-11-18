@@ -13,17 +13,17 @@ import os
 from typing import Any
 
 import uvicorn
-from arklex.utils.model_config import MODEL
-from arklex.utils.provider_utils import (
-    get_api_key_for_provider,
-    get_endpoint_for_provider,
-)
 from fastapi import FastAPI
 
 from arklex.models.llm_config import LLM_PROVIDERS
 from arklex.orchestrator.executor.executor import Executor
 from arklex.orchestrator.orchestrator import AgentOrg
 from arklex.utils.logging.logging_utils import LogContext
+from arklex.utils.model_config import MODEL
+from arklex.utils.provider_utils import (
+    get_api_key_for_provider,
+    get_endpoint_for_provider,
+)
 
 log_context = LogContext(__name__)
 app: FastAPI = FastAPI()
@@ -107,9 +107,8 @@ def predict(data: dict[str, Any]) -> dict[str, Any]:
     # Initialize environment with provided workers and tools
     # Note: This endpoint uses a simplified initialization
     # In a real scenario, you may need to pass proper nodes and llm_config
-    from arklex.utils.model_config import MODEL
-
     from arklex.models.llm_config import LLMConfig
+    from arklex.utils.model_config import MODEL
 
     env: Executor = Executor(
         tools=tools,

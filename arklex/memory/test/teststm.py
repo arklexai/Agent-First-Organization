@@ -1,8 +1,6 @@
 import asyncio
 from typing import Any
 
-from arklex.utils.model_config import MODEL
-
 from arklex.memory.core import ShortTermMemory
 from arklex.orchestrator.entities.orchestrator_state_entities import (
     BotConfig,
@@ -10,6 +8,7 @@ from arklex.orchestrator.entities.orchestrator_state_entities import (
     MessageState,
     ResourceRecord,
 )
+from arklex.utils.model_config import MODEL
 
 # class ResourceRecord(BaseModel):
 #     info: Dict
