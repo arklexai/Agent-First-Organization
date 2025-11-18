@@ -8,6 +8,7 @@ conversation history. It supports both streaming and non-streaming response gene
 
 from typing import Any
 
+from langchain_core.output_parsers import StrOutputParser
 from langchain_core.prompts import PromptTemplate
 
 from arklex.models.model_service import ModelService
