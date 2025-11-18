@@ -46,6 +46,7 @@ class OpenAIAgentOutput(BaseModel):
 
     response: str
     last_agent_name: str
+    tool_calls: list[dict[str, Any]]
 
 
 class ExecuteParams(BaseModel):
@@ -97,6 +98,7 @@ class OpenAIAgent(BaseAgent):
         final_response = ""
         result: list = []
         is_error = False
+        tool_calls = []
         try:
             call_name_map = {}
             result = await Runner.run(self.agent, trajectory)
@@ -121,6 +123,7 @@ class OpenAIAgent(BaseAgent):
                         "type": new_item.type,
                         "raw_item": new_item.raw_item.model_dump(),
                     }
+                    tool_calls.append(tool_call_msg)
                     await self.state.message_queue.put(
                         {"event": EventType.TOOL_CALL.value, **tool_call_msg}
                     )
@@ -136,6 +139,7 @@ class OpenAIAgent(BaseAgent):
                         "response": new_item.output,
                         "raw_item": dict(new_item.raw_item),
                     }
+                    tool_calls.append(tool_call_output_msg)
                     await self.state.message_queue.put(
                         {
                             "event": EventType.TOOL_CALL_OUTPUT.value,
@@ -164,7 +168,7 @@ class OpenAIAgent(BaseAgent):
             final_response = safety_response
 
         self.last_agent_name = agent_name
-        return final_response, new_traj
+        return final_response, new_traj, tool_calls
 
     async def stream_response(
         self, trajectory: list[dict[str, Any]]
@@ -172,6 +176,7 @@ class OpenAIAgent(BaseAgent):
         final_response = ""
         is_error = False
         result = Runner.run_streamed(self.agent, trajectory)
+        tool_calls = []
         try:
             call_name_map = {}
             async for event in result.stream_events():
@@ -207,6 +212,7 @@ class OpenAIAgent(BaseAgent):
                             "type": new_item.type,
                             "raw_item": new_item.raw_item.model_dump(),
                         }
+                        tool_calls.append(tool_call_msg)
                         await self.state.message_queue.put(
                             {"event": EventType.TOOL_CALL.value, **tool_call_msg}
                         )
@@ -222,6 +228,7 @@ class OpenAIAgent(BaseAgent):
                             "response": new_item.output,
                             "raw_item": dict(new_item.raw_item),
                         }
+                        tool_calls.append(tool_call_output_msg)
                         await self.state.message_queue.put(
                             {
                                 "event": EventType.TOOL_CALL_OUTPUT.value,
@@ -256,7 +263,7 @@ class OpenAIAgent(BaseAgent):
             final_response = safety_response
 
         self.last_agent_name = agent_name
-        return final_response, new_traj
+        return final_response, new_traj, tool_calls
 
     async def execute(self) -> tuple[OrchestratorState, OpenAIAgentOutput]:
         user_message = self.state.user_message.message
@@ -272,16 +279,20 @@ class OpenAIAgent(BaseAgent):
                 )
                 self.state.openai_agents_trajectory = trajectory
                 return self.state, OpenAIAgentOutput(
-                    response=self.execute_params.start_message, last_agent_name=""
+                    response=self.execute_params.start_message,
+                    last_agent_name="",
+                    tool_calls=[],
                 )
             log_context.info("No start message configured for agent")
         trajectory.append({"role": "user", "content": user_message})
 
         if self.state.stream_type == StreamType.NON_STREAM:
-            response, new_traj = await self.response(trajectory)
+            response, new_traj, tool_calls = await self.response(trajectory)
         else:
-            response, new_traj = await self.stream_response(trajectory)
+            response, new_traj, tool_calls = await self.stream_response(trajectory)
         self.state.openai_agents_trajectory = new_traj
         return self.state, OpenAIAgentOutput(
-            response=response, last_agent_name=self.last_agent_name
+            response=response,
+            last_agent_name=self.last_agent_name,
+            tool_calls=tool_calls,
         )
