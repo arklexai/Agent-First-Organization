@@ -178,6 +178,7 @@ class RagMsgWorker(BaseWorker):
                 self.rag_message_worker_data.version,
                 self.rag_message_worker_data.collection_name,
                 self.rag_message_worker_data.tags,
+                self.rag_message_worker_data.possible_tags,
             )
             self.orch_state = trace(
                 input=retriever_params, source="milvus_retrieve", state=self.orch_state

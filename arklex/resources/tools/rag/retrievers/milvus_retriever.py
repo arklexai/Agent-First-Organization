@@ -17,6 +17,7 @@ import os
 import time
 from collections import defaultdict
 from multiprocessing.pool import Pool
+from typing import Any
 
 import numpy as np
 from langchain_core.prompts import PromptTemplate
@@ -38,6 +39,81 @@ MAX_TEXT_LENGTH = 65535
 CHUNK_NEIGHBOURS = 3
 
 log_context = LogContext(__name__)
+
+def _tag_value_to_openai_schema(
+    candidates: list[str],
+) -> dict[str, Any]:
+    """Convert tag value candidates to OpenAI schema for structured output."""
+    return {
+        "title": "TagValueSelectionOutput",
+        "description": "Structured output for tag value selection",
+        "type": "object",
+        "properties": {
+            "tag_value": {
+                "type": "string",
+                "description": "The selected tag value that best matches the query",
+                "enum": candidates,
+            },
+        },
+        "required": ["tag_value"],
+    }
+
+
+def _resolve_tag_value_via_db_and_llm(
+    *,
+    model_service: ModelService,
+    tag_key: str,
+    contextualized_query: str,
+    possible_tags: dict[str, list[str]] | None = None,
+) -> str | None:
+    """Use possible_tags to get candidate tag values and let LLM pick the closest.
+
+    Returns the chosen tag value or None if nothing could be resolved.
+    Uses structured output with enum constraints to ensure valid selection.
+    """
+    try:
+        # Use possible_tags if provided
+        if not possible_tags or tag_key not in possible_tags:
+            return None
+        
+        candidates = possible_tags[tag_key]
+        if not candidates:
+            return None
+
+        # Create schema with enum constraints
+        schema = _tag_value_to_openai_schema(candidates)
+        
+        # Use structured output to ensure valid selection
+        # The enum in schema already constrains choices, and schema description provides instructions
+        prompt = f"Query: {contextualized_query}\n\nTag key: {tag_key}"
+        system_prompt = (
+            "Select the tag value that best matches the query context from the available options."
+        )
+        
+        response = model_service.get_response_with_structured_output(
+            prompt=prompt,
+            schema=schema,
+            system_prompt=system_prompt,
+        )
+        
+        # Extract tag value from structured response
+        chosen = response.get("tag_value") if isinstance(response, dict) else None
+        
+        if chosen and chosen in candidates:
+            log_context.info(f"Selected tag value '{chosen}' for tag key '{tag_key}' from {len(candidates)} candidates")
+            return chosen
+        
+        # Fallback to first candidate if structured output fails
+        log_context.warning("Structured output returned invalid value, falling back to first candidate")
+        return candidates[0]
+        
+    except Exception as e:
+        log_context.warning(f"Tag resolution failed: {e}")
+        # Fallback to first candidate on error
+        if possible_tags and tag_key in possible_tags and possible_tags[tag_key]:
+            return possible_tags[tag_key][0]
+        return None
+
 
 
 class MilvusRetriever:
@@ -317,6 +393,8 @@ class MilvusRetriever:
         query: str,
         tags: dict[str, object] | None = None,
         top_k: int = 4,
+        model_service: ModelService | None = None,
+        possible_tags: dict[str, list[str]] | None = None,
     ) -> list[RetrieverResult]:
         log_context.info(
             f"Retreiver search for query: {query} on collection {collection_name} for bot_id: {bot_id} version: {version}"
@@ -328,11 +406,38 @@ class MilvusRetriever:
         partition_key = self.get_bot_uid(bot_id, version)
         query_embedding = embed(query, cache=True)
         filter = f'bot_uid == "{partition_key}"'
+        
+        log_context.info(f"Tags received for search: {tags}")
+        
         if tags:
-            # NOTE: Only support one tag for now
+            # Support multiple tags - build filter conditions for all tags
+            tag_filters = []
             for key, value in tags.items():
-                filter += f' and metadata["tags"]["{key}"] == "{value}"'
-                break
+                if value:
+                    # Tag has a value, add direct filter condition
+                    escaped_value = str(value).replace('"', '\\"')
+                    tag_filters.append(f'metadata["tags"]["{key}"] == "{escaped_value}"')
+                    log_context.info(f"Prepared tag filter: {key} = {value}")
+                else:
+                    # Tag value is empty, try to resolve via DB + LLM if possible
+                    if model_service is not None:
+                        chosen = _resolve_tag_value_via_db_and_llm(
+                            model_service=model_service,
+                            tag_key=key,
+                            contextualized_query=query,
+                            possible_tags=possible_tags,
+                        )
+                        if chosen:
+                            escaped_chosen = str(chosen).replace('"', '\\"')
+                            tag_filters.append(f'metadata["tags"]["{key}"] == "{escaped_chosen}"')
+                            log_context.info(f"Prepared resolved tag filter: {key} = {chosen}")
+            # Combine all tag filters with 'or'
+            if tag_filters:
+                filter += " and (" + " or ".join(tag_filters) + ")"
+                log_context.info(f"Applied {len(tag_filters)} tag filter(s) with OR logic")
+        
+        log_context.info(f"Final search filter: {filter}")
+
         res = self.client.search(
             collection_name=collection_name,
             data=[query_embedding],
@@ -787,6 +892,7 @@ class MilvusRetrieverExecutor:
         version: str,
         collection_name: str,
         tags: dict[str, object] | None = None,
+        possible_tags: dict[str, list[str]] | None = None,
     ) -> tuple[str, dict[str, object]]:
         """Given a chat history, retrieve relevant information from the database."""
         if tags is None:
@@ -810,6 +916,8 @@ class MilvusRetrieverExecutor:
                 version,
                 ret_input,
                 tags,
+                possible_tags=possible_tags,
+                model_service=self.model_service,
             )
         rt = time.time() - st
         log_context.info(f"MilvusRetriever search took {rt} seconds")

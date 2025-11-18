@@ -52,6 +52,7 @@ class MilvusRAGWorker(BaseWorker):
             self.milvus_rag_worker_data.version,
             self.milvus_rag_worker_data.collection_name,
             self.milvus_rag_worker_data.tags,
+            self.milvus_rag_worker_data.possible_tags,
         )
         self.orch_state = trace(
             input=retriever_params, source="milvus_retrieve", state=self.orch_state
