@@ -14,7 +14,6 @@ from langchain_core.prompts import ChatPromptTemplate
 
 from arklex.models.llm_config import LLMConfig, load_llm
 from arklex.utils.logging.logging_utils import LogContext
-from arklex.utils.prompts import PromptPair
 
 log_context = LogContext(__name__)
 
