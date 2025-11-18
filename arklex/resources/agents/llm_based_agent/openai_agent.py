@@ -117,17 +117,29 @@ class OpenAIAgent(BaseAgent):
                     )
                     # Store mapping for later use (when output arrives)
                     call_name_map[call_id] = tool_name
+                    tool_call_msg = {
+                        "type": new_item.type,
+                        "raw_item": new_item.raw_item.model_dump(),
+                    }
+                    await self.state.message_queue.put(
+                        {"event": EventType.TOOL_CALL.value, **tool_call_msg}
+                    )
                 elif isinstance(new_item, ToolCallOutputItem):
                     log_context.info(
                         f"{agent_name} tool call output: {new_item.output}"
                     )
                     call_id = new_item.raw_item.get("call_id")
                     tool_name = call_name_map.get(call_id, "unknown_tool")
+                    tool_call_output_msg = {
+                        "type": new_item.type,
+                        "name": tool_name,
+                        "response": new_item.output,
+                        "raw_item": dict(new_item.raw_item),
+                    }
                     await self.state.message_queue.put(
                         {
                             "event": EventType.TOOL_CALL_OUTPUT.value,
-                            "tool_name": tool_name,
-                            "tool_output": new_item.output,
+                            **tool_call_output_msg,
                         }
                     )
                 else:
@@ -191,17 +203,29 @@ class OpenAIAgent(BaseAgent):
                         )
                         # Store mapping for later use (when output arrives)
                         call_name_map[call_id] = tool_name
+                        tool_call_msg = {
+                            "type": new_item.type,
+                            "raw_item": new_item.raw_item.model_dump(),
+                        }
+                        await self.state.message_queue.put(
+                            {"event": EventType.TOOL_CALL.value, **tool_call_msg}
+                        )
                     elif isinstance(new_item, ToolCallOutputItem):
                         log_context.info(
                             f"{agent_name} tool call output: {new_item.output}"
                         )
                         call_id = new_item.raw_item.get("call_id")
                         tool_name = call_name_map.get(call_id, "unknown_tool")
+                        tool_call_output_msg = {
+                            "type": new_item.type,
+                            "name": tool_name,
+                            "response": new_item.output,
+                            "raw_item": dict(new_item.raw_item),
+                        }
                         await self.state.message_queue.put(
                             {
                                 "event": EventType.TOOL_CALL_OUTPUT.value,
-                                "tool_name": tool_name,
-                                "tool_output": new_item.output,
+                                **tool_call_output_msg,
                             }
                         )
                     else:
