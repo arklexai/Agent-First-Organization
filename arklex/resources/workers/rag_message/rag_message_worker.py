@@ -9,7 +9,7 @@ or conversational responses.
 
 from typing import Any
 
-from langchain.prompts import PromptTemplate
+from langchain_core.prompts import PromptTemplate
 
 from arklex.models.model_service import ModelService
 from arklex.orchestrator.entities.orchestrator_state_entities import (
