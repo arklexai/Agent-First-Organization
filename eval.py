@@ -14,17 +14,17 @@ from typing import Any
 from urllib.parse import urlparse
 
 import requests
-
 from arklex.evaluation.chatgpt_utils import create_client
 from arklex.evaluation.extract_conversation_info import extract_task_completion_metrics
 from arklex.evaluation.simulate_first_pass_convos import simulate_conversations
 from arklex.evaluation.simulate_second_pass_convos import get_labeled_convos
-from arklex.models.llm_config import LLM_PROVIDERS
 from arklex.utils.model_config import MODEL
 from arklex.utils.provider_utils import (
     get_api_key_for_provider,
     get_endpoint_for_provider,
 )
+
+from arklex.models.llm_config import LLM_PROVIDERS
 
 
 def validate_model_api(model_api: str) -> None:

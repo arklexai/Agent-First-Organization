@@ -10,7 +10,6 @@ from typing import Any
 
 from langchain_core.language_models import BaseChatModel
 from langchain_core.messages import BaseMessage, HumanMessage, SystemMessage
-from langchain_core.prompts import ChatPromptTemplate
 
 from arklex.models.llm_config import LLMConfig, load_llm
 from arklex.utils.logging.logging_utils import LogContext
@@ -71,11 +70,11 @@ class ModelService:
         print("MODEL SERVICE: Formatted Messages Structure")
         print("="*80)
         if system_prompt:
-            print(f"\n[SYSTEM MESSAGE]")
+            print("\n[SYSTEM MESSAGE]")
             print(f"{'-'*80}")
             print(system_prompt)
             print(f"{'-'*80}")
-        print(f"\n[HUMAN MESSAGE]")
+        print("\n[HUMAN MESSAGE]")
         print(f"{'-'*80}")
         print(prompt)
         print(f"{'-'*80}")

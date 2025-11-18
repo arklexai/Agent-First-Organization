@@ -8,7 +8,6 @@ conversation history. It supports both streaming and non-streaming response gene
 
 from typing import Any
 
-from langchain_core.output_parsers import StrOutputParser
 from langchain_core.prompts import PromptTemplate
 
 from arklex.models.model_service import ModelService
@@ -119,11 +118,11 @@ class OutputProcessWorker(BaseWorker):
         print(f"Stream Type: {self.orch_state.stream_type}")
         print(f"Task: {task}")
         print(f"Has context: {bool(message_flow and message_flow.strip())}")
-        print(f"\n[SYSTEM PROMPT]")
+        print("\n[SYSTEM PROMPT]")
         print(f"{'-'*80}")
         print(system_prompt)
         print(f"{'-'*80}")
-        print(f"\n[USER PROMPT]")
+        print("\n[USER PROMPT]")
         print(f"{'-'*80}")
         print(user_prompt)
         print(f"{'-'*80}")
