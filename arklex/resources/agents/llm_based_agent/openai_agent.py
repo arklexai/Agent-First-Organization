@@ -124,9 +124,6 @@ class OpenAIAgent(BaseAgent):
                         "raw_item": new_item.raw_item.model_dump(),
                     }
                     tool_calls.append(tool_call_msg)
-                    await self.state.message_queue.put(
-                        {"event": EventType.TOOL_CALL.value, **tool_call_msg}
-                    )
                 elif isinstance(new_item, ToolCallOutputItem):
                     log_context.info(
                         f"{agent_name} tool call output: {new_item.output}"
@@ -140,12 +137,6 @@ class OpenAIAgent(BaseAgent):
                         "raw_item": dict(new_item.raw_item),
                     }
                     tool_calls.append(tool_call_output_msg)
-                    await self.state.message_queue.put(
-                        {
-                            "event": EventType.TOOL_CALL_OUTPUT.value,
-                            **tool_call_output_msg,
-                        }
-                    )
                 else:
                     log_context.info(f"{agent_name} unknown item: {new_item}")
         except InputGuardrailTripwireTriggered as e:

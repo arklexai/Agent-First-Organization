@@ -97,7 +97,7 @@ def transfer(auth: TwilioAuth, **kwargs: TransferCallKwargs) -> str:
     response_played_event = kwargs.get("response_played_event")
     summary = kwargs.get("summary")
     transcripts_status_callback_url = (
-        f"https://{DOMAIN}/api/v1alpha2/voice-call/transcribe-callback",
+        f"https://{DOMAIN}/api/v1alpha2/voice-call/transcribe-callback"
     )
     threading.Thread(
         target=_transfer_call_thread,
