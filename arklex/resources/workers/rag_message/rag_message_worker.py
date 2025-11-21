@@ -28,6 +28,7 @@ from arklex.resources.workers.rag_message.entities import (
 )
 from arklex.utils.logging.logging_utils import LogContext
 from arklex.utils.prompts import load_prompts
+from arklex.utils.utils import format_chat_history
 
 log_context = LogContext(__name__)
 
@@ -49,8 +50,10 @@ class RagMsgWorker(BaseWorker):
         prompt: PromptTemplate = PromptTemplate.from_template(
             self.prompts["retrieval_needed_prompt"]
         )
+        # Format history for the retrieval check prompt (needs string format)
+        formatted_history = format_chat_history(self.orch_state.user_message.history)
         input_prompt = prompt.invoke(
-            {"formatted_chat": self.orch_state.user_message.history}
+            {"formatted_chat": formatted_history}
         )
         log_context.info(
             f"Prompt for choosing the retriever in RagMsgWorker: {input_prompt.text}"
@@ -59,7 +62,7 @@ class RagMsgWorker(BaseWorker):
         log_context.info(f"Choose retriever in RagMsgWorker: {answer}")
         return "yes" in answer.lower()
 
-    def _format_prompts(self, context: str) -> tuple[str, str]:
+    def _format_prompts(self, context: str) -> str:
         user_message = self.orch_state.user_message
         orch_message = self.rag_message_worker_data.message
         if context:
@@ -67,24 +70,15 @@ class RagMsgWorker(BaseWorker):
                 system_prompt_template: PromptTemplate = PromptTemplate.from_template(
                     self.prompts["message_flow_generator_prompt_speech_system"]
                 )
-                user_prompt_template: PromptTemplate = PromptTemplate.from_template(
-                    self.prompts["message_flow_generator_prompt_speech"]
-                )
             else:
                 system_prompt_template: PromptTemplate = PromptTemplate.from_template(
                     self.prompts["message_flow_generator_prompt_system"]
                 )
-                user_prompt_template: PromptTemplate = PromptTemplate.from_template(
-                    self.prompts["message_flow_generator_prompt"]
-                )
             system_prompt = system_prompt_template.invoke(
-                {"sys_instruct": self.orch_state.sys_instruct}
-            ).text
-            user_prompt = user_prompt_template.invoke(
                 {
-                    "message": orch_message,
-                    "formatted_chat": user_message.history,
+                    "sys_instruct": self.orch_state.sys_instruct,
                     "context": context,
+                    "message": orch_message,
                 }
             ).text
         else:
@@ -92,65 +86,89 @@ class RagMsgWorker(BaseWorker):
                 system_prompt_template: PromptTemplate = PromptTemplate.from_template(
                     self.prompts["message_generator_prompt_speech_system"]
                 )
-                user_prompt_template: PromptTemplate = PromptTemplate.from_template(
-                    self.prompts["message_generator_prompt_speech"]
-                )
             else:
                 system_prompt_template: PromptTemplate = PromptTemplate.from_template(
                     self.prompts["message_generator_prompt_system"]
                 )
-                user_prompt_template: PromptTemplate = PromptTemplate.from_template(
-                    self.prompts["message_generator_prompt"]
-                )
             system_prompt = system_prompt_template.invoke(
-                {"sys_instruct": self.orch_state.sys_instruct}
-            ).text
-            user_prompt = user_prompt_template.invoke(
                 {
+                    "sys_instruct": self.orch_state.sys_instruct,
                     "message": orch_message,
-                    "formatted_chat": user_message.history,
                 }
             ).text
         log_context.info(
             f"System prompt for stream type {self.orch_state.stream_type}: {system_prompt}"
         )
-        log_context.info(
-            f"User prompt for stream type {self.orch_state.stream_type}: {user_prompt}"
-        )
+        
+        return system_prompt
+
+    def generator(self, system_prompt: str) -> str:
+        # Get conversation history
+        conversation_history = self.orch_state.user_message.history
+        # Use the current user message as the prompt
+        current_user_message = self.orch_state.user_message.message
         
         # Print statements to show prompt structure
         print("\n" + "="*80)
         print("RAG MESSAGE WORKER: Formatted Prompts")
         print("="*80)
         print(f"Stream Type: {self.orch_state.stream_type}")
-        print(f"Context provided: {bool(context)}")
         print("\n[SYSTEM PROMPT]")
         print(f"{'-'*80}")
         print(system_prompt)
         print(f"{'-'*80}")
-        print("\n[USER PROMPT]")
+        if conversation_history:
+            print(f"\n[CONVERSATION HISTORY: {len(conversation_history)} messages]")
+            for i, msg in enumerate(conversation_history):
+                role = msg.get('role', 'unknown')
+                content = msg.get('content', '')
+                print(f"  {i+1}. {role}: {content[:100]}{'...' if len(content) > 100 else ''}")
+        else:
+            print("\n[CONVERSATION HISTORY: None]")
+        print("\n[CURRENT USER MESSAGE]")
         print(f"{'-'*80}")
-        print(user_prompt)
+        print(current_user_message)
         print(f"{'-'*80}")
         print("="*80 + "\n")
         
-        return system_prompt, user_prompt
-
-    def generator(self, system_prompt: str, user_prompt: str) -> str:
-        answer: str = self.model_service.get_response(user_prompt, system_prompt)
+        answer: str = self.model_service.get_response(
+            current_user_message, system_prompt, conversation_history
+        )
         return answer
 
-    def stream_generator(self, system_prompt: str, user_prompt: str) -> str:
-        # Note: ModelService doesn't support streaming directly, so we'll use the underlying model
-        # This maintains backward compatibility while using ModelService for non-streaming operations
+    def stream_generator(self, system_prompt: str) -> str:
+        # Get conversation history
+        conversation_history = self.orch_state.user_message.history
+        # Use the current user message as the prompt
+        current_user_message = self.orch_state.user_message.message
+        
+        # Print statements to show prompt structure
         print("\n" + "="*80)
         print("RAG MESSAGE WORKER: stream_generator() - Streaming Response")
         print("="*80)
-        print("Using formatted messages for streaming...")
+        print(f"Stream Type: {self.orch_state.stream_type}")
+        print("\n[SYSTEM PROMPT]")
+        print(f"{'-'*80}")
+        print(system_prompt)
+        print(f"{'-'*80}")
+        if conversation_history:
+            print(f"\n[CONVERSATION HISTORY: {len(conversation_history)} messages]")
+            for i, msg in enumerate(conversation_history):
+                role = msg.get('role', 'unknown')
+                content = msg.get('content', '')
+                print(f"  {i+1}. {role}: {content[:100]}{'...' if len(content) > 100 else ''}")
+        else:
+            print("\n[CONVERSATION HISTORY: None]")
+        print("\n[CURRENT USER MESSAGE]")
+        print(f"{'-'*80}")
+        print(current_user_message)
+        print(f"{'-'*80}")
         print("="*80 + "\n")
         
         answer: str = ""
-        messages = self.model_service._format_messages(user_prompt, system_prompt)
+        messages = self.model_service._format_messages(
+            current_user_message, system_prompt, conversation_history
+        )
         for chunk in self.model_service.model.stream(messages):
             answer += chunk.content
             self.orch_state.message_queue.put(
@@ -184,14 +202,14 @@ class RagMsgWorker(BaseWorker):
                 input=retriever_params, source="milvus_retrieve", state=self.orch_state
             )
 
-        system_prompt, user_prompt = self._format_prompts(retrieve_text)
+        system_prompt = self._format_prompts(retrieve_text)
         if (
             self.orch_state.stream_type == StreamType.TEXT
             or self.orch_state.stream_type == StreamType.SPEECH
         ):
-            answer = self.stream_generator(system_prompt, user_prompt)
+            answer = self.stream_generator(system_prompt)
         else:
-            answer = self.generator(system_prompt, user_prompt)
+            answer = self.generator(system_prompt)
 
         return RAGMessageWorkerOutput(
             response=answer,

@@ -23,6 +23,7 @@ from arklex.resources.workers.output_process.entities import (
 )
 from arklex.utils.logging.logging_utils import LogContext
 from arklex.utils.prompts import load_prompts
+from arklex.utils.utils import format_chat_history
 
 log_context = LogContext(__name__)
 
@@ -76,9 +77,11 @@ class OutputProcessWorker(BaseWorker):
                     "prompt": prompt,
                 }
             ).text
+            # Format history for the prompt (needs string format)
+            formatted_history = format_chat_history(user_message.history)
             user_prompt = user_template.invoke(
                 {
-                    "history": user_message.history,
+                    "history": formatted_history,
                     "context": message_flow,
                 }
             ).text
@@ -98,9 +101,12 @@ class OutputProcessWorker(BaseWorker):
                     "prompt": prompt,
                 }
             ).text
+            # Format history for the prompt (needs string format)
+            from arklex.utils.utils import format_chat_history
+            formatted_history = format_chat_history(user_message.history)
             user_prompt = user_template.invoke(
                 {
-                    "history": user_message.history,
+                    "history": formatted_history,
                 }
             ).text
 
@@ -133,7 +139,13 @@ class OutputProcessWorker(BaseWorker):
     def generator(self, system_prompt: str, user_prompt: str) -> str:
         """Generate a response using the LLM."""
         model_service = ModelService(self.orch_state.bot_config.llm_config)
-        answer: str = model_service.get_response(user_prompt, system_prompt)
+        # Get conversation history
+        conversation_history = self.orch_state.user_message.history
+        # Use the current user message as the prompt
+        current_user_message = self.orch_state.user_message.message
+        answer: str = model_service.get_response(
+            current_user_message, system_prompt, conversation_history
+        )
         return answer
 
     def stream_generator(self, system_prompt: str, user_prompt: str) -> str:
@@ -145,7 +157,13 @@ class OutputProcessWorker(BaseWorker):
         print("="*80 + "\n")
         
         model_service = ModelService(self.orch_state.bot_config.llm_config)
-        messages = model_service._format_messages(user_prompt, system_prompt)
+        # Get conversation history
+        conversation_history = self.orch_state.user_message.history
+        # Use the current user message as the prompt
+        current_user_message = self.orch_state.user_message.message
+        messages = model_service._format_messages(
+            current_user_message, system_prompt, conversation_history
+        )
         answer: str = ""
         for chunk in model_service.model.stream(messages):
             answer += chunk.content

@@ -65,14 +65,15 @@ class ConvoMessage(BaseModel):
     3. Type-safe message handling
 
     Attributes:
-        history (str): Previous conversation history or its summarization.
+        history (list[dict[str, str]]): Previous conversation history as a list of message dicts
+            with 'role' and 'content' keys.
         message (str): The current message content.
     """
 
     message: str
-    history: str = Field(
-        default=""
-    )  # it could be the whole original message or the summarization of the previous conversation from memory module
+    history: list[dict[str, str]] = Field(
+        default_factory=list
+    )  # List of message dicts with 'role' and 'content' keys
 
 
 ### Task status-related classes

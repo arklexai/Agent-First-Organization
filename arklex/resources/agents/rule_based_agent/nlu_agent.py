@@ -79,7 +79,7 @@ class NLUAgent(BaseAgent):
 
         chat_history_copy: list[dict[str, str]] = copy.deepcopy(chat_history)
         chat_history_copy.append({"role": self.user_prefix, "content": text})
-        chat_history_str: str = format_chat_history(chat_history_copy)
+        
         params.metadata.turn_id += 1
         if not params.memory.function_calling_trajectory:
             params.memory.function_calling_trajectory = copy.deepcopy(chat_history_copy)
@@ -95,9 +95,9 @@ class NLUAgent(BaseAgent):
                 llm_config=self.llm_config,
             ),
         )
-        return text, chat_history_str, params, orch_state
+        return text, chat_history_copy, params, orch_state
 
-    def check_skip_node(self, node_info: NodeInfo, chat_history_str: str) -> bool:
+    def check_skip_node(self, node_info: NodeInfo, chat_history: list[dict[str, str]]) -> bool:
         if not node_info.attribute.get("can_skipped", False):
             return False
 
@@ -105,6 +105,8 @@ class NLUAgent(BaseAgent):
         if not task:
             return False
 
+        # Format history for the prompt (needs string format)
+        chat_history_str = format_chat_history(chat_history)
         prompts = load_prompts(self.agent_data.language)
         prompt = prompts["check_skip_node_prompt"].format(
             chat_history_str=chat_history_str, task=task
@@ -127,7 +129,7 @@ class NLUAgent(BaseAgent):
         node_info: NodeInfo,
         params: OrchestratorParams,
         text: str,
-        chat_history_str: str,
+        chat_history: list[dict[str, str]],
         stream_type: StreamType | None,
         message_queue: janus.Queue | None,
     ) -> tuple[NodeResponse, OrchestratorState, OrchestratorParams]:
@@ -145,7 +147,7 @@ class NLUAgent(BaseAgent):
         params.memory.trajectory[-1].append(resource_record)
 
         # Update orchestrator state
-        orch_state.user_message = ConvoMessage(history=chat_history_str, message=text)
+        orch_state.user_message = ConvoMessage(history=chat_history, message=text)
         orch_state.function_calling_trajectory = (
             params.memory.function_calling_trajectory
         )
@@ -173,7 +175,9 @@ class NLUAgent(BaseAgent):
         stream_type: StreamType | None,
         message_queue: janus.Queue | None,
     ) -> tuple[str, str, OrchestratorParams, OrchestratorState]:
-        text, chat_history_str, params, orch_state = self.init_params(inputs)
+        text, chat_history, params, orch_state = self.init_params(inputs)
+        # Format history for NLU graph (needs string format)
+        chat_history_str = format_chat_history(chat_history)
         # NLU Graph Chain
         nlugraph_inputs: dict[str, Any] = {
             "text": text,
@@ -194,7 +198,7 @@ class NLUAgent(BaseAgent):
             params.nlugraph = nlu_params
             params.metadata.timing.nlugraph = time.time() - nlugraph_start_time
             # Check if current node can be skipped
-            can_skip = self.check_skip_node(node_info, chat_history_str)
+            can_skip = self.check_skip_node(node_info, chat_history)
             if can_skip:
                 continue
             log_context.info(f"The current node info is : {node_info}")
@@ -205,7 +209,7 @@ class NLUAgent(BaseAgent):
                 node_info,
                 params,
                 text,
-                chat_history_str,
+                chat_history,
                 stream_type,
                 message_queue,
             )

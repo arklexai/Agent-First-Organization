@@ -9,7 +9,7 @@ message formatting, and response processing.
 from typing import Any
 
 from langchain_core.language_models import BaseChatModel
-from langchain_core.messages import BaseMessage, HumanMessage, SystemMessage
+from langchain_core.messages import AIMessage, BaseMessage, HumanMessage, SystemMessage
 
 from arklex.models.llm_config import LLMConfig, load_llm
 from arklex.utils.logging.logging_utils import LogContext
@@ -50,12 +50,15 @@ class ModelService:
         self,
         prompt: str,
         system_prompt: str | None = None,
+        conversation_history: list[dict[str, str]] | None = None,
     ) -> list[BaseMessage]:
         """Format messages for the model.
 
         Args:
             prompt: User prompt to send to the model
             system_prompt: Optional system prompt for model context
+            conversation_history: Optional list of conversation history messages
+                with 'role' and 'content' keys
 
         Returns:
             List of formatted messages
@@ -63,6 +66,18 @@ class ModelService:
         messages = []
         if system_prompt:
             messages.append(SystemMessage(content=system_prompt))
+        
+        # Add conversation history as separate message blocks
+        if conversation_history:
+            for msg in conversation_history:
+                role = msg.get("role", "").lower()
+                content = msg.get("content", "")
+                if role == "assistant":
+                    messages.append(AIMessage(content=content))
+                elif role == "user":
+                    messages.append(HumanMessage(content=content))
+        
+        # Add the current user prompt
         messages.append(HumanMessage(content=prompt))
         
         # Print statement to show message structure
@@ -74,7 +89,11 @@ class ModelService:
             print(f"{'-'*80}")
             print(system_prompt)
             print(f"{'-'*80}")
-        print("\n[HUMAN MESSAGE]")
+        if conversation_history:
+            print(f"\n[CONVERSATION HISTORY: {len(conversation_history)} messages]")
+            for i, msg in enumerate(conversation_history):
+                print(f"  {i+1}. {msg.get('role', 'unknown')}: {msg.get('content', '')[:50]}...")
+        print("\n[CURRENT USER MESSAGE]")
         print(f"{'-'*80}")
         print(prompt)
         print(f"{'-'*80}")
@@ -87,6 +106,7 @@ class ModelService:
         self,
         prompt: str,
         system_prompt: str | None = None,
+        conversation_history: list[dict[str, str]] | None = None,
     ) -> str:
         """Get response from the model.
 
@@ -96,6 +116,8 @@ class ModelService:
         Args:
             prompt: User prompt to send to the model
             system_prompt: Optional system prompt for model context
+            conversation_history: Optional list of conversation history messages
+                with 'role' and 'content' keys
 
         Returns:
             Model response as string
@@ -112,10 +134,12 @@ class ModelService:
             if system_prompt:
                 print(f"System prompt length: {len(system_prompt)} characters")
             print(f"User prompt length: {len(prompt)} characters")
+            if conversation_history:
+                print(f"Conversation history: {len(conversation_history)} messages")
             print("="*80 + "\n")
             
-            # Format messages with system prompt if provided
-            messages = self._format_messages(prompt, system_prompt)
+            # Format messages with system prompt and conversation history if provided
+            messages = self._format_messages(prompt, system_prompt, conversation_history)
             # Get response from model
             response = self.model.invoke(messages)
             if not response or not response.content:
@@ -139,6 +163,7 @@ class ModelService:
         prompt: str,
         schema: dict[str, Any] | None = None,
         system_prompt: str | None = None,
+        conversation_history: list[dict[str, str]] | None = None,
     ) -> str:
         """Get response from the model with structured output."""
         # Check if the model is an OpenAI model by checking the model_config
@@ -148,11 +173,11 @@ class ModelService:
         )
 
         if is_openai_model:
-            messages = self._format_messages(prompt, system_prompt)
+            messages = self._format_messages(prompt, system_prompt, conversation_history)
             llm = self.model.with_structured_output(schema)
             return llm.invoke(messages)
         else:
-            return self.get_response(prompt, system_prompt)
+            return self.get_response(prompt, system_prompt, conversation_history)
 
 
 class DummyModelService(ModelService):

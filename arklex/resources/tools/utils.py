@@ -26,8 +26,11 @@ class ToolExecutor(Protocol):
     tools: dict[str, Any]
 
 
-def get_prompt_templates(state: OrchestratorState, prompt_key: str) -> tuple[PromptTemplate, PromptTemplate]:
-    """Get the system and user prompt templates based on the stream type."""
+def get_prompt_templates(state: OrchestratorState, prompt_key: str) -> PromptTemplate:
+    """Get the system prompt template based on the stream type.
+    
+    The actual user message is passed directly to the model.
+    """
     prompts: dict[str, str] = load_prompts(state.bot_config.language)
 
     if state.stream_type == StreamType.SPEECH:
@@ -35,17 +38,13 @@ def get_prompt_templates(state: OrchestratorState, prompt_key: str) -> tuple[Pro
         # since Chinese speech prompts are not available yet
         if state.bot_config.language == "CN":
             system_key = prompt_key + "_system"
-            user_key = prompt_key
         else:
             system_key = prompt_key + "_speech_system"
-            user_key = prompt_key + "_speech"
     else:
         system_key = prompt_key + "_system"
-        user_key = prompt_key
     
     system_template = PromptTemplate.from_template(prompts[system_key])
-    user_template = PromptTemplate.from_template(prompts[user_key])
-    return system_template, user_template
+    return system_template
 
 
 class ToolGenerator:
@@ -55,15 +54,16 @@ class ToolGenerator:
         user_message: Any = state.user_message
 
         model_service: ModelService = ModelService(llm_config)
-        system_template, user_template = get_prompt_templates(state, "generator_prompt")
+        system_template = get_prompt_templates(state, "generator_prompt")
         system_prompt: str = system_template.invoke(
             {"sys_instruct": state.sys_instruct}
         ).text
-        user_prompt: str = user_template.invoke(
-            {"formatted_chat": user_message.history}
-        ).text
         log_context.info(f"System prompt: {system_prompt}")
-        log_context.info(f"User prompt: {user_prompt}")
+        
+        # Get conversation history
+        conversation_history = user_message.history
+        # Use the current user message as the prompt
+        current_user_message = user_message.message
         
         # Print statements to show prompt structure
         print("\n" + "="*80)
@@ -73,13 +73,23 @@ class ToolGenerator:
         print(f"{'-'*80}")
         print(system_prompt)
         print(f"{'-'*80}")
-        print("\n[USER PROMPT]")
+        if conversation_history:
+            print(f"\n[CONVERSATION HISTORY: {len(conversation_history)} messages]")
+            for i, msg in enumerate(conversation_history):
+                role = msg.get('role', 'unknown')
+                content = msg.get('content', '')
+                print(f"  {i+1}. {role}: {content[:100]}{'...' if len(content) > 100 else ''}")
+        else:
+            print("\n[CONVERSATION HISTORY: None]")
+        print("\n[CURRENT USER MESSAGE]")
         print(f"{'-'*80}")
-        print(user_prompt)
+        print(current_user_message)
         print(f"{'-'*80}")
         print("="*80 + "\n")
         
-        answer: str = model_service.get_response(user_prompt, system_prompt)
+        answer: str = model_service.get_response(
+            current_user_message, system_prompt, conversation_history
+        )
 
         return answer
 
@@ -121,18 +131,19 @@ class ToolGenerator:
         )
 
         # generate answer based on the retrieved texts
-        system_template, user_template = get_prompt_templates(state, "context_generator_prompt")
+        system_template = get_prompt_templates(state, "context_generator_prompt")
         system_prompt: str = system_template.invoke(
-            {"sys_instruct": state.sys_instruct}
-        ).text
-        user_prompt: str = user_template.invoke(
             {
-                "formatted_chat": user_message.history,
+                "sys_instruct": state.sys_instruct,
                 "context": message_flow,
             }
         ).text
         log_context.info(f"System prompt: {system_prompt}")
-        log_context.info(f"User prompt: {user_prompt}")
+        
+        # Get conversation history
+        conversation_history = user_message.history
+        # Use the current user message as the prompt
+        current_user_message = user_message.message
         
         # Print statements to show prompt structure
         print("\n" + "="*80)
@@ -143,13 +154,23 @@ class ToolGenerator:
         print(f"{'-'*80}")
         print(system_prompt)
         print(f"{'-'*80}")
-        print("\n[USER PROMPT]")
+        if conversation_history:
+            print(f"\n[CONVERSATION HISTORY: {len(conversation_history)} messages]")
+            for i, msg in enumerate(conversation_history):
+                role = msg.get('role', 'unknown')
+                content = msg.get('content', '')
+                print(f"  {i+1}. {role}: {content[:100]}{'...' if len(content) > 100 else ''}")
+        else:
+            print("\n[CONVERSATION HISTORY: None]")
+        print("\n[CURRENT USER MESSAGE]")
         print(f"{'-'*80}")
-        print(user_prompt)
+        print(current_user_message)
         print(f"{'-'*80}")
         print("="*80 + "\n")
         
-        answer: str = model_service.get_response(user_prompt, system_prompt)
+        answer: str = model_service.get_response(
+            current_user_message, system_prompt, conversation_history
+        )
         state.message_flow = ""
         # state = trace(input=answer, state=state)
         return answer
@@ -190,18 +211,19 @@ class ToolGenerator:
         )
 
         # generate answer based on the retrieved texts
-        system_template, user_template = get_prompt_templates(state, "context_generator_prompt")
+        system_template = get_prompt_templates(state, "context_generator_prompt")
         system_prompt: str = system_template.invoke(
-            {"sys_instruct": state.sys_instruct}
-        ).text
-        user_prompt: str = user_template.invoke(
             {
-                "formatted_chat": user_message.history,
+                "sys_instruct": state.sys_instruct,
                 "context": message_flow,
             }
         ).text
         log_context.info(f"System prompt: {system_prompt}")
-        log_context.info(f"User prompt: {user_prompt}")
+        
+        # Get conversation history
+        conversation_history = user_message.history
+        # Use the current user message as the prompt
+        current_user_message = user_message.message
         
         # Print statements to show prompt structure
         print("\n" + "="*80)
@@ -212,13 +234,23 @@ class ToolGenerator:
         print(f"{'-'*80}")
         print(system_prompt)
         print(f"{'-'*80}")
-        print("\n[USER PROMPT]")
+        if conversation_history:
+            print(f"\n[CONVERSATION HISTORY: {len(conversation_history)} messages]")
+            for i, msg in enumerate(conversation_history):
+                role = msg.get('role', 'unknown')
+                content = msg.get('content', '')
+                print(f"  {i+1}. {role}: {content[:100]}{'...' if len(content) > 100 else ''}")
+        else:
+            print("\n[CONVERSATION HISTORY: None]")
+        print("\n[CURRENT USER MESSAGE]")
         print(f"{'-'*80}")
-        print(user_prompt)
+        print(current_user_message)
         print(f"{'-'*80}")
         print("="*80 + "\n")
         
-        messages = model_service._format_messages(user_prompt, system_prompt)
+        messages = model_service._format_messages(
+            current_user_message, system_prompt, conversation_history
+        )
         answer: str = ""
         for chunk in model_service.model.stream(messages):
             answer += chunk.content
@@ -237,13 +269,15 @@ class ToolGenerator:
         llm_config: dict[str, Any] = state.bot_config.llm_config
         model_service: ModelService = ModelService(llm_config)
 
-        system_template, user_template = get_prompt_templates(state, "generator_prompt")
+        system_template = get_prompt_templates(state, "generator_prompt")
         system_prompt: str = system_template.invoke(
             {"sys_instruct": state.sys_instruct}
         ).text
-        user_prompt: str = user_template.invoke(
-            {"formatted_chat": user_message.history}
-        ).text
+        
+        # Get conversation history
+        conversation_history = user_message.history
+        # Use the current user message as the prompt
+        current_user_message = user_message.message
         
         # Print statements to show prompt structure
         print("\n" + "="*80)
@@ -253,13 +287,23 @@ class ToolGenerator:
         print(f"{'-'*80}")
         print(system_prompt)
         print(f"{'-'*80}")
-        print("\n[USER PROMPT]")
+        if conversation_history:
+            print(f"\n[CONVERSATION HISTORY: {len(conversation_history)} messages]")
+            for i, msg in enumerate(conversation_history):
+                role = msg.get('role', 'unknown')
+                content = msg.get('content', '')
+                print(f"  {i+1}. {role}: {content[:100]}{'...' if len(content) > 100 else ''}")
+        else:
+            print("\n[CONVERSATION HISTORY: None]")
+        print("\n[CURRENT USER MESSAGE]")
         print(f"{'-'*80}")
-        print(user_prompt)
+        print(current_user_message)
         print(f"{'-'*80}")
         print("="*80 + "\n")
         
-        messages = model_service._format_messages(user_prompt, system_prompt)
+        messages = model_service._format_messages(
+            current_user_message, system_prompt, conversation_history
+        )
         answer: str = ""
         for chunk in model_service.model.stream(messages):
             answer += chunk.content
