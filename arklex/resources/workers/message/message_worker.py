@@ -45,7 +45,6 @@ class MessageWorker(BaseWorker):
         self.model_service = ModelService(self.orch_state.bot_config.llm_config)
 
     def _format_prompts(self) -> str:
-        user_message = self.orch_state.user_message
         message_flow = self.orch_state.message_flow
         orch_message = self.msg_worker_data.message
 

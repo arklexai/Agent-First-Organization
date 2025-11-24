@@ -63,7 +63,6 @@ class RagMsgWorker(BaseWorker):
         return "yes" in answer.lower()
 
     def _format_prompts(self, context: str) -> str:
-        user_message = self.orch_state.user_message
         orch_message = self.rag_message_worker_data.message
         if context:
             if self.orch_state.stream_type == StreamType.SPEECH:

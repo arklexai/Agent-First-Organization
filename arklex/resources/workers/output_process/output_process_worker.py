@@ -78,6 +78,7 @@ class OutputProcessWorker(BaseWorker):
                 }
             ).text
             # Format history for the prompt (needs string format)
+            from arklex.utils.utils import format_chat_history
             formatted_history = format_chat_history(user_message.history)
             user_prompt = user_template.invoke(
                 {
