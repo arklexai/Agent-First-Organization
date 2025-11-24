@@ -23,7 +23,6 @@ from arklex.resources.workers.output_process.entities import (
 )
 from arklex.utils.logging.logging_utils import LogContext
 from arklex.utils.prompts import load_prompts
-from arklex.utils.utils import format_chat_history
 
 log_context = LogContext(__name__)
 
