@@ -46,6 +46,7 @@ class OpenAIAgentOutput(BaseModel):
 
     response: str
     last_agent_name: str
+    tool_calls: list[dict[str, Any]]
 
 
 class ExecuteParams(BaseModel):
@@ -97,7 +98,9 @@ class OpenAIAgent(BaseAgent):
         final_response = ""
         result: list = []
         is_error = False
+        tool_calls = []
         try:
+            call_name_map = {}
             result = await Runner.run(self.agent, trajectory)
             for new_item in result.new_items:
                 agent_name = new_item.agent.name
@@ -109,11 +112,31 @@ class OpenAIAgent(BaseAgent):
                         f"Handed off from {agent_name} to {new_item.target_agent.name}"
                     )
                 elif isinstance(new_item, ToolCallItem):
-                    log_context.info(f"{agent_name}: Calling a tool")
+                    call_id = new_item.raw_item.call_id
+                    tool_name = new_item.raw_item.name
+                    log_context.info(
+                        f"{agent_name}: Calling tool '{tool_name}' (id={call_id})"
+                    )
+                    # Store mapping for later use (when output arrives)
+                    call_name_map[call_id] = tool_name
+                    tool_call_msg = {
+                        "type": new_item.type,
+                        "raw_item": new_item.raw_item.model_dump(),
+                    }
+                    tool_calls.append(tool_call_msg)
                 elif isinstance(new_item, ToolCallOutputItem):
                     log_context.info(
                         f"{agent_name} tool call output: {new_item.output}"
                     )
+                    call_id = new_item.raw_item.get("call_id")
+                    tool_name = call_name_map.get(call_id, "unknown_tool")
+                    tool_call_output_msg = {
+                        "type": new_item.type,
+                        "name": tool_name,
+                        "response": new_item.output,
+                        "raw_item": dict(new_item.raw_item),
+                    }
+                    tool_calls.append(tool_call_output_msg)
                 else:
                     log_context.info(f"{agent_name} unknown item: {new_item}")
         except InputGuardrailTripwireTriggered as e:
@@ -136,7 +159,7 @@ class OpenAIAgent(BaseAgent):
             final_response = safety_response
 
         self.last_agent_name = agent_name
-        return final_response, new_traj
+        return final_response, new_traj, tool_calls
 
     async def stream_response(
         self, trajectory: list[dict[str, Any]]
@@ -144,7 +167,9 @@ class OpenAIAgent(BaseAgent):
         final_response = ""
         is_error = False
         result = Runner.run_streamed(self.agent, trajectory)
+        tool_calls = []
         try:
+            call_name_map = {}
             async for event in result.stream_events():
                 # raw final response for streaming
                 if event.type == "raw_response_event" and isinstance(
@@ -167,10 +192,39 @@ class OpenAIAgent(BaseAgent):
                             f"Handed off from {new_item.source_agent.name} to {new_item.target_agent.name}"
                         )
                     elif isinstance(new_item, ToolCallItem):
-                        log_context.info(f"{agent_name}: Calling a tool")
+                        call_id = new_item.raw_item.call_id
+                        tool_name = new_item.raw_item.name
+                        log_context.info(
+                            f"{agent_name}: Calling tool '{tool_name}' (id={call_id})"
+                        )
+                        # Store mapping for later use (when output arrives)
+                        call_name_map[call_id] = tool_name
+                        tool_call_msg = {
+                            "type": new_item.type,
+                            "raw_item": new_item.raw_item.model_dump(),
+                        }
+                        tool_calls.append(tool_call_msg)
+                        await self.state.message_queue.put(
+                            {"event": EventType.TOOL_CALL.value, **tool_call_msg}
+                        )
                     elif isinstance(new_item, ToolCallOutputItem):
                         log_context.info(
                             f"{agent_name} tool call output: {new_item.output}"
+                        )
+                        call_id = new_item.raw_item.get("call_id")
+                        tool_name = call_name_map.get(call_id, "unknown_tool")
+                        tool_call_output_msg = {
+                            "type": new_item.type,
+                            "name": tool_name,
+                            "response": new_item.output,
+                            "raw_item": dict(new_item.raw_item),
+                        }
+                        tool_calls.append(tool_call_output_msg)
+                        await self.state.message_queue.put(
+                            {
+                                "event": EventType.TOOL_CALL_OUTPUT.value,
+                                **tool_call_output_msg,
+                            }
                         )
                     else:
                         log_context.info(f"{agent_name} unknown item: {new_item}")
@@ -200,7 +254,7 @@ class OpenAIAgent(BaseAgent):
             final_response = safety_response
 
         self.last_agent_name = agent_name
-        return final_response, new_traj
+        return final_response, new_traj, tool_calls
 
     async def execute(self) -> tuple[OrchestratorState, OpenAIAgentOutput]:
         user_message = self.state.user_message.message
@@ -216,16 +270,20 @@ class OpenAIAgent(BaseAgent):
                 )
                 self.state.openai_agents_trajectory = trajectory
                 return self.state, OpenAIAgentOutput(
-                    response=self.execute_params.start_message, last_agent_name=""
+                    response=self.execute_params.start_message,
+                    last_agent_name="",
+                    tool_calls=[],
                 )
             log_context.info("No start message configured for agent")
         trajectory.append({"role": "user", "content": user_message})
 
         if self.state.stream_type == StreamType.NON_STREAM:
-            response, new_traj = await self.response(trajectory)
+            response, new_traj, tool_calls = await self.response(trajectory)
         else:
-            response, new_traj = await self.stream_response(trajectory)
+            response, new_traj, tool_calls = await self.stream_response(trajectory)
         self.state.openai_agents_trajectory = new_traj
         return self.state, OpenAIAgentOutput(
-            response=response, last_agent_name=self.last_agent_name
+            response=response,
+            last_agent_name=self.last_agent_name,
+            tool_calls=tool_calls,
         )
