@@ -41,7 +41,11 @@ class SearchWorker(BaseWorker):
 
     def _execute(self) -> SearchWorkerOutput:
         # Format history for the search (needs string format)
-        formatted_history = format_chat_history(self.orch_state.user_message.history)
+        # Include the current message in the history for context
+        history_with_current = self.orch_state.user_message.history + [
+            {"role": "user", "content": self.orch_state.user_message.message}
+        ]
+        formatted_history = format_chat_history(history_with_current)
 
         search_engine: SearchEngine = SearchEngine()
         retrieved_text = search_engine.search(

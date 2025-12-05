@@ -43,7 +43,11 @@ class RetrieveEngine:
             llm_config=state.bot_config.llm_config,
         )
         # Format history for the retrieval (needs string format)
-        formatted_history = format_chat_history(user_message.history)
+        # Include the current message in the history for context
+        history_with_current = user_message.history + [
+            {"role": "user", "content": user_message.message}
+        ]
+        formatted_history = format_chat_history(history_with_current)
 
         retrieved_text: str
         retriever_returns: list[dict[str, Any]]
