@@ -67,7 +67,7 @@ class NLUAgent(BaseAgent):
 
     def init_params(
         self, inputs: dict[str, Any]
-    ) -> tuple[str, str, OrchestratorParams, OrchestratorState]:
+    ) -> tuple[str, list[dict[str, str]], OrchestratorParams, OrchestratorState]:
         text: str = inputs["text"]
         chat_history: list[dict[str, str]] = inputs["chat_history"]
         input_params: dict[str, Any] | None = inputs["parameters"]
@@ -77,14 +77,15 @@ class NLUAgent(BaseAgent):
         if input_params:
             params = OrchestratorParams.model_validate(input_params)
 
-        chat_history_copy: list[dict[str, str]] = copy.deepcopy(chat_history)
-        chat_history_copy.append({"role": self.user_prefix, "content": text})
+        # Create a copy with current message for function calling trajectory
+        chat_history_with_current: list[dict[str, str]] = copy.deepcopy(chat_history)
+        chat_history_with_current.append({"role": self.user_prefix, "content": text})
         
         params.metadata.turn_id += 1
         if not params.memory.function_calling_trajectory:
-            params.memory.function_calling_trajectory = copy.deepcopy(chat_history_copy)
+            params.memory.function_calling_trajectory = copy.deepcopy(chat_history_with_current)
         else:
-            params.memory.function_calling_trajectory.extend(chat_history_copy[-2:])
+            params.memory.function_calling_trajectory.extend(chat_history_with_current[-2:])
 
         params.memory.trajectory.append([])
 
@@ -95,7 +96,8 @@ class NLUAgent(BaseAgent):
                 llm_config=self.llm_config,
             ),
         )
-        return text, chat_history_copy, params, orch_state
+        # Return original chat_history (without current message) for ConvoMessage.history
+        return text, chat_history, params, orch_state
 
     def check_skip_node(self, node_info: NodeInfo, chat_history: list[dict[str, str]]) -> bool:
         if not node_info.attribute.get("can_skipped", False):

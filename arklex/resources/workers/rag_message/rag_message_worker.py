@@ -186,11 +186,14 @@ class RagMsgWorker(BaseWorker):
         self.prompts: dict[str, str] = load_prompts(self.orch_state.bot_config.language)
         retrieve_text = ""
         if self._need_retriever():
+            # Format history for the retrieval (needs string format)
+            formatted_history = format_chat_history(self.orch_state.user_message.history)
+            
             milvus_retriever_executor = MilvusRetrieverExecutor(
                 self.orch_state.bot_config
             )
             retrieve_text, retriever_params = milvus_retriever_executor.retrieve(
-                self.orch_state.user_message.history,
+                formatted_history,
                 self.rag_message_worker_data.bot_id,
                 self.rag_message_worker_data.version,
                 self.rag_message_worker_data.collection_name,

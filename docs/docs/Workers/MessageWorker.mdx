@@ -76,12 +76,15 @@ Next, it then checks if it has a predefined static response to respond at the no
 Then, it checks if an `orchestrator_message`(`node['attribute']['value']` in [TaskGraph](../Taskgraph/intro.md)) exists. If exists, `orchestrator_message` holds the pre-generated text for which the response would be built off on. Otherwise, it will generate from scratch
 
 ```py
+    # Format history for the prompt (needs string format)
+    formatted_history = format_chat_history(user_message.history)
+    
     if message_flow and message_flow != "\n":
         prompt = PromptTemplate.from_template(message_flow_generator_prompt)
         input_prompt = prompt.invoke({
             "sys_instruct": state["sys_instruct"], 
             "message": orch_msg_content, 
-            "formatted_chat": user_message.history, 
+            "formatted_chat": formatted_history, 
             "initial_response": message_flow
         })
     else:
@@ -89,7 +92,7 @@ Then, it checks if an `orchestrator_message`(`node['attribute']['value']` in [Ta
         input_prompt = prompt.invoke({
             "sys_instruct": state["sys_instruct"], 
             "message": orch_msg_content, 
-            "formatted_chat": user_message.history
+            "formatted_chat": formatted_history
         })
 ```
 
@@ -154,12 +157,16 @@ def generator(self, state: MessageState) -> MessageState:
     if direct_response:
         return orch_msg_content
     
+    # Format history for the prompt (needs string format)
+    from arklex.utils.utils import format_chat_history
+    formatted_history = format_chat_history(user_message.history)
+    
     if message_flow and message_flow != "\n":
         prompt = PromptTemplate.from_template(message_flow_generator_prompt)
         input_prompt = prompt.invoke({
             "sys_instruct": state["sys_instruct"], 
             "message": orch_msg_content, 
-            "formatted_chat": user_message.history, 
+            "formatted_chat": formatted_history, 
             "initial_response": message_flow
         })
     else:
@@ -167,7 +174,7 @@ def generator(self, state: MessageState) -> MessageState:
         input_prompt = prompt.invoke({
             "sys_instruct": state["sys_instruct"], 
             "message": orch_msg_content, 
-            "formatted_chat": user_message.history
+            "formatted_chat": formatted_history
         })
     logger.info(f"Prompt: {input_prompt.text}")
     chunked_prompt = chunk_string(input_prompt.text, tokenizer=MODEL["tokenizer"], max_length=MODEL["context"])

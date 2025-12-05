@@ -24,6 +24,7 @@ from arklex.resources.workers.milvus_rag.entities import (
     MilvusRAGWorkerOutput,
 )
 from arklex.utils.logging.logging_utils import LogContext
+from arklex.utils.utils import format_chat_history
 
 log_context = LogContext(__name__)
 
@@ -45,9 +46,12 @@ class MilvusRAGWorker(BaseWorker):
         )
 
     def _execute(self) -> MilvusRAGWorkerOutput:
+        # Format history for the retrieval (needs string format)
+        formatted_history = format_chat_history(self.orch_state.user_message.history)
+        
         milvus_retriever_executor = MilvusRetrieverExecutor(self.orch_state.bot_config)
         retrieved_text, retriever_params = milvus_retriever_executor.retrieve(
-            self.orch_state.user_message.history,
+            formatted_history,
             self.milvus_rag_worker_data.bot_id,
             self.milvus_rag_worker_data.version,
             self.milvus_rag_worker_data.collection_name,

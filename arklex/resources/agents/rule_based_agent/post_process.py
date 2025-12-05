@@ -9,6 +9,7 @@ from arklex.orchestrator.executor.entities import NodeResponse
 from arklex.resources.resource_types import WorkerItem
 from arklex.utils.logging.logging_utils import LogContext
 from arklex.utils.prompts import load_prompts
+from arklex.utils.utils import format_chat_history
 
 log_context = LogContext(__name__)
 
@@ -122,15 +123,19 @@ def _remove_invalid_links(response: str, links: set) -> str:
 
 def _rephrase_answer(orch_state: OrchestratorState, response: str) -> str:
     """Rephrases the answer using an LLM after link removal."""
+    
+    
     model_service = ModelService(orch_state.bot_config.llm_config)
     prompt: PromptTemplate = PromptTemplate.from_template(
         load_prompts(orch_state.bot_config.language)["regenerate_response"]
     )
+    # Format history for the prompt (needs string format)
+    formatted_history = format_chat_history(orch_state.user_message.history)
     input_prompt = prompt.invoke(
         {
             "sys_instruct": orch_state.sys_instruct,
             "original_answer": response,
-            "formatted_chat": orch_state.user_message.history,
+            "formatted_chat": formatted_history,
         }
     )
     log_context.info(f"Prompt: {input_prompt.text}")
