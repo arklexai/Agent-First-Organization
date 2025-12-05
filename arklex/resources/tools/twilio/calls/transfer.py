@@ -1,11 +1,12 @@
 """Transfer call tool for Twilio integration."""
 
+import os
 import threading
 import time
 from typing import TypedDict
 
 from twilio.rest import Client as TwilioClient
-from twilio.twiml.voice_response import Dial, VoiceResponse
+from twilio.twiml.voice_response import Dial, Start, VoiceResponse
 
 from arklex.resources.tools.tools import register_tool
 from arklex.resources.tools.twilio.base.entities import TwilioAuth
@@ -14,8 +15,16 @@ from arklex.utils.logging.logging_utils import LogContext
 log_context = LogContext(__name__)
 
 description = "Transfer the call to a human agent"
+DOMAIN = os.getenv("DOMAIN")
 
-slots = []
+slots = [
+    {
+        "name": "summary",
+        "type": "str",
+        "description": "Provide detailed summary of the complete dialog flow that happened during the call",
+        "required": True,
+    },
+]
 
 
 class TransferCallKwargs(TypedDict, total=False):
@@ -25,6 +34,7 @@ class TransferCallKwargs(TypedDict, total=False):
     transfer_to: str
     transfer_message: str
     response_played_event: threading.Event
+    summary: str
 
 
 def _transfer_call_thread(
@@ -33,6 +43,7 @@ def _transfer_call_thread(
     transfer_to: str,
     transfer_message: str,
     response_played_event: threading.Event,
+    transcripts_status_callback_url: str,
 ) -> None:
     """Helper function to transfer the call in a separate thread."""
     try:
@@ -48,6 +59,14 @@ def _transfer_call_thread(
 
         # Create TwiML for transfer
         response = VoiceResponse()
+        start = Start()
+        # Reference: https://www.twilio.com/docs/voice/twiml/transcription
+        start.transcription(
+            status_callback_url=transcripts_status_callback_url,
+            enable_automatic_punctuation=True,
+        )
+
+        response.append(start)
 
         if transfer_message and transfer_message != "":
             time.sleep(1)
@@ -76,6 +95,10 @@ def transfer(auth: TwilioAuth, **kwargs: TransferCallKwargs) -> str:
     transfer_to = kwargs.get("transfer_to")
     transfer_message = kwargs.get("transfer_message")
     response_played_event = kwargs.get("response_played_event")
+    summary = kwargs.get("summary")
+    transcripts_status_callback_url = (
+        f"https://{DOMAIN}/api/v1alpha2/voice-call/transcribe-callback"
+    )
     threading.Thread(
         target=_transfer_call_thread,
         args=(
@@ -84,9 +107,10 @@ def transfer(auth: TwilioAuth, **kwargs: TransferCallKwargs) -> str:
             transfer_to,
             transfer_message,
             response_played_event,
+            transcripts_status_callback_url,
         ),
     ).start()
     log_context.info("Started thread to transfer call")
     if response_played_event:
         response_played_event.clear()
-    return "call transfer initiated"
+    return f"call transfer initiated. Summary: {summary}"

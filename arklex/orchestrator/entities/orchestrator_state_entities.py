@@ -170,6 +170,7 @@ class OrchestratorResp(BaseModel):
     parameters: dict[str, Any] = Field(default_factory=dict)
     human_in_the_loop: str | None = Field(default=None)
     choice_list: list[str] | None = Field(default=[])
+    tool_calls: list[dict[str, Any]] = Field(default_factory=list)
 
 
 class OrchestratorState(BaseModel):

@@ -147,6 +147,7 @@ class AgentOrg:
         return OrchestratorResp(
             answer=agent_output.response,
             parameters=orch_state_params.model_dump(),
+            tool_calls=agent_output.tool_calls,
         )
 
     async def get_response(
