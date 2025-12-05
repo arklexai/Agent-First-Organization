@@ -189,9 +189,11 @@ class RagMsgWorker(BaseWorker):
         retrieve_text = ""
         if self._need_retriever():
             # Format history for the retrieval (needs string format)
-            formatted_history = format_chat_history(
-                self.orch_state.user_message.history
-            )
+            # Include the current message in the history for context
+            history_with_current = self.orch_state.user_message.history + [
+                {"role": "user", "content": self.orch_state.user_message.message}
+            ]
+            formatted_history = format_chat_history(history_with_current)
 
             milvus_retriever_executor = MilvusRetrieverExecutor(
                 self.orch_state.bot_config
