@@ -42,18 +42,32 @@ def mock_structured_output_invoke(messages: list[Any]) -> dict[str, str]:
 
     # Intent detection responses
     if "Given the following intents and their definitions" in content:
-        if content.endswith("How is the weather?\n"):
-            return {"intent": "ask about weather"}
-        elif content.endswith("Which car would you like to buy?\n"):
-            return {"intent": "ask about car options"}
-        elif content.endswith("What products do you offer?\n"):
-            return {"intent": "ask about company products"}
-        elif content.endswith("What is your company's culture?\n"):
-            return {"intent": "ask about company culture"}
-        elif content.endswith("Connect me with a human agent\n"):
-            return {"intent": "user want to connect with a human agent"}
-        else:
-            raise ValueError(f"Unknown intent detection request: {content[-100:]}")
+        # Extract the last line from chat history (the current user message)
+        # The format is: "Chat History:\n...user: message\nassistant: response\n\n"
+        lines = content.strip().split("\n")
+        # Find the last user message
+        last_user_msg = None
+        for line in reversed(lines):
+            if line.startswith("user: "):
+                last_user_msg = line[len("user: ") :]
+                break
+
+        # Match based on the last user message
+        if last_user_msg:
+            if "How is the weather?" in last_user_msg:
+                return {"intent": "ask about weather"}
+            elif "Which car would you like to buy?" in last_user_msg:
+                return {"intent": "ask about car options"}
+            elif "What products do you offer?" in last_user_msg:
+                return {"intent": "ask about company products"}
+            elif "What is your company's culture?" in last_user_msg:
+                return {"intent": "ask about company culture"}
+            elif "Connect me with a human agent" in last_user_msg:
+                return {"intent": "user want to connect with a human agent"}
+
+        raise ValueError(
+            f"Unknown intent detection request. Last user msg: {last_user_msg}, Content end: {content[-200:]}"
+        )
 
     # Default response for other structured outputs
     return {"intent": "others"}
