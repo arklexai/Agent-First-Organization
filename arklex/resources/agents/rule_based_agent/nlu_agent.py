@@ -185,7 +185,10 @@ class NLUAgent(BaseAgent):
     ) -> tuple[str, str, OrchestratorParams, OrchestratorState]:
         text, chat_history, params, orch_state = self.init_params(inputs)
         # Format history for NLU graph (needs string format)
-        chat_history_str = format_chat_history(chat_history)
+        # Include current message for intent detection
+        chat_history_with_current = copy.deepcopy(chat_history)
+        chat_history_with_current.append({"role": self.user_prefix, "content": text})
+        chat_history_str = format_chat_history(chat_history_with_current)
         # NLU Graph Chain
         nlugraph_inputs: dict[str, Any] = {
             "text": text,
@@ -206,7 +209,7 @@ class NLUAgent(BaseAgent):
             params.nlugraph = nlu_params
             params.metadata.timing.nlugraph = time.time() - nlugraph_start_time
             # Check if current node can be skipped
-            can_skip = self.check_skip_node(node_info, chat_history)
+            can_skip = self.check_skip_node(node_info, chat_history_with_current)
             if can_skip:
                 continue
             log_context.info(f"The current node info is : {node_info}")
