@@ -51,7 +51,11 @@ class RagMsgWorker(BaseWorker):
             self.prompts["retrieval_needed_prompt"]
         )
         # Format history for the retrieval check prompt (needs string format)
-        formatted_history = format_chat_history(self.orch_state.user_message.history)
+        # Include the current message in the history for context
+        history_with_current = self.orch_state.user_message.history + [
+            {"role": "user", "content": self.orch_state.user_message.message}
+        ]
+        formatted_history = format_chat_history(history_with_current)
         input_prompt = prompt.invoke({"formatted_chat": formatted_history})
         log_context.info(
             f"Prompt for choosing the retriever in RagMsgWorker: {input_prompt.text}"
