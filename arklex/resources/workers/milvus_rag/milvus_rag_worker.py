@@ -48,7 +48,7 @@ class MilvusRAGWorker(BaseWorker):
     def _execute(self) -> MilvusRAGWorkerOutput:
         # Format history for the retrieval (needs string format)
         formatted_history = format_chat_history(self.orch_state.user_message.history)
-        
+
         milvus_retriever_executor = MilvusRetrieverExecutor(self.orch_state.bot_config)
         retrieved_text, retriever_params = milvus_retriever_executor.retrieve(
             formatted_history,

@@ -52,9 +52,7 @@ class RagMsgWorker(BaseWorker):
         )
         # Format history for the retrieval check prompt (needs string format)
         formatted_history = format_chat_history(self.orch_state.user_message.history)
-        input_prompt = prompt.invoke(
-            {"formatted_chat": formatted_history}
-        )
+        input_prompt = prompt.invoke({"formatted_chat": formatted_history})
         log_context.info(
             f"Prompt for choosing the retriever in RagMsgWorker: {input_prompt.text}"
         )
@@ -98,7 +96,7 @@ class RagMsgWorker(BaseWorker):
         log_context.info(
             f"System prompt for stream type {self.orch_state.stream_type}: {system_prompt}"
         )
-        
+
         return system_prompt
 
     def generator(self, system_prompt: str) -> str:
@@ -106,30 +104,32 @@ class RagMsgWorker(BaseWorker):
         conversation_history = self.orch_state.user_message.history
         # Use the current user message as the prompt
         current_user_message = self.orch_state.user_message.message
-        
+
         # Print statements to show prompt structure
-        print("\n" + "="*80)
+        print("\n" + "=" * 80)
         print("RAG MESSAGE WORKER: Formatted Prompts")
-        print("="*80)
+        print("=" * 80)
         print(f"Stream Type: {self.orch_state.stream_type}")
         print("\n[SYSTEM PROMPT]")
-        print(f"{'-'*80}")
+        print(f"{'-' * 80}")
         print(system_prompt)
-        print(f"{'-'*80}")
+        print(f"{'-' * 80}")
         if conversation_history:
             print(f"\n[CONVERSATION HISTORY: {len(conversation_history)} messages]")
             for i, msg in enumerate(conversation_history):
-                role = msg.get('role', 'unknown')
-                content = msg.get('content', '')
-                print(f"  {i+1}. {role}: {content[:100]}{'...' if len(content) > 100 else ''}")
+                role = msg.get("role", "unknown")
+                content = msg.get("content", "")
+                print(
+                    f"  {i + 1}. {role}: {content[:100]}{'...' if len(content) > 100 else ''}"
+                )
         else:
             print("\n[CONVERSATION HISTORY: None]")
         print("\n[CURRENT USER MESSAGE]")
-        print(f"{'-'*80}")
+        print(f"{'-' * 80}")
         print(current_user_message)
-        print(f"{'-'*80}")
-        print("="*80 + "\n")
-        
+        print(f"{'-' * 80}")
+        print("=" * 80 + "\n")
+
         answer: str = self.model_service.get_response(
             current_user_message, system_prompt, conversation_history
         )
@@ -140,30 +140,32 @@ class RagMsgWorker(BaseWorker):
         conversation_history = self.orch_state.user_message.history
         # Use the current user message as the prompt
         current_user_message = self.orch_state.user_message.message
-        
+
         # Print statements to show prompt structure
-        print("\n" + "="*80)
+        print("\n" + "=" * 80)
         print("RAG MESSAGE WORKER: stream_generator() - Streaming Response")
-        print("="*80)
+        print("=" * 80)
         print(f"Stream Type: {self.orch_state.stream_type}")
         print("\n[SYSTEM PROMPT]")
-        print(f"{'-'*80}")
+        print(f"{'-' * 80}")
         print(system_prompt)
-        print(f"{'-'*80}")
+        print(f"{'-' * 80}")
         if conversation_history:
             print(f"\n[CONVERSATION HISTORY: {len(conversation_history)} messages]")
             for i, msg in enumerate(conversation_history):
-                role = msg.get('role', 'unknown')
-                content = msg.get('content', '')
-                print(f"  {i+1}. {role}: {content[:100]}{'...' if len(content) > 100 else ''}")
+                role = msg.get("role", "unknown")
+                content = msg.get("content", "")
+                print(
+                    f"  {i + 1}. {role}: {content[:100]}{'...' if len(content) > 100 else ''}"
+                )
         else:
             print("\n[CONVERSATION HISTORY: None]")
         print("\n[CURRENT USER MESSAGE]")
-        print(f"{'-'*80}")
+        print(f"{'-' * 80}")
         print(current_user_message)
-        print(f"{'-'*80}")
-        print("="*80 + "\n")
-        
+        print(f"{'-' * 80}")
+        print("=" * 80 + "\n")
+
         answer: str = ""
         messages = self.model_service._format_messages(
             current_user_message, system_prompt, conversation_history
@@ -173,13 +175,13 @@ class RagMsgWorker(BaseWorker):
             self.orch_state.message_queue.put(
                 {"event": EventType.CHUNK.value, "message_chunk": chunk.content}
             )
-        
-        print("\n" + "="*80)
+
+        print("\n" + "=" * 80)
         print("RAG MESSAGE WORKER: stream_generator() - Streaming Complete")
-        print("="*80)
+        print("=" * 80)
         print(f"Total response length: {len(answer)} characters")
-        print("="*80 + "\n")
-        
+        print("=" * 80 + "\n")
+
         return answer
 
     def _execute(self) -> RAGMessageWorkerOutput:
@@ -187,8 +189,10 @@ class RagMsgWorker(BaseWorker):
         retrieve_text = ""
         if self._need_retriever():
             # Format history for the retrieval (needs string format)
-            formatted_history = format_chat_history(self.orch_state.user_message.history)
-            
+            formatted_history = format_chat_history(
+                self.orch_state.user_message.history
+            )
+
             milvus_retriever_executor = MilvusRetrieverExecutor(
                 self.orch_state.bot_config
             )

@@ -42,7 +42,7 @@ class SearchWorker(BaseWorker):
     def _execute(self) -> SearchWorkerOutput:
         # Format history for the search (needs string format)
         formatted_history = format_chat_history(self.orch_state.user_message.history)
-        
+
         search_engine: SearchEngine = SearchEngine()
         retrieved_text = search_engine.search(
             chat_history=formatted_history,

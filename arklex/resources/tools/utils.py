@@ -28,7 +28,7 @@ class ToolExecutor(Protocol):
 
 def get_prompt_templates(state: OrchestratorState, prompt_key: str) -> PromptTemplate:
     """Get the system prompt template based on the stream type.
-    
+
     The actual user message is passed directly to the model.
     """
     prompts: dict[str, str] = load_prompts(state.bot_config.language)
@@ -42,7 +42,7 @@ def get_prompt_templates(state: OrchestratorState, prompt_key: str) -> PromptTem
             system_key = prompt_key + "_speech_system"
     else:
         system_key = prompt_key + "_system"
-    
+
     system_template = PromptTemplate.from_template(prompts[system_key])
     return system_template
 
@@ -59,34 +59,36 @@ class ToolGenerator:
             {"sys_instruct": state.sys_instruct}
         ).text
         log_context.info(f"System prompt: {system_prompt}")
-        
+
         # Get conversation history
         conversation_history = user_message.history
         # Use the current user message as the prompt
         current_user_message = user_message.message
-        
+
         # Print statements to show prompt structure
-        print("\n" + "="*80)
+        print("\n" + "=" * 80)
         print("TOOL GENERATOR: generate() - Formatted Prompts")
-        print("="*80)
+        print("=" * 80)
         print("\n[SYSTEM PROMPT]")
-        print(f"{'-'*80}")
+        print(f"{'-' * 80}")
         print(system_prompt)
-        print(f"{'-'*80}")
+        print(f"{'-' * 80}")
         if conversation_history:
             print(f"\n[CONVERSATION HISTORY: {len(conversation_history)} messages]")
             for i, msg in enumerate(conversation_history):
-                role = msg.get('role', 'unknown')
-                content = msg.get('content', '')
-                print(f"  {i+1}. {role}: {content[:100]}{'...' if len(content) > 100 else ''}")
+                role = msg.get("role", "unknown")
+                content = msg.get("content", "")
+                print(
+                    f"  {i + 1}. {role}: {content[:100]}{'...' if len(content) > 100 else ''}"
+                )
         else:
             print("\n[CONVERSATION HISTORY: None]")
         print("\n[CURRENT USER MESSAGE]")
-        print(f"{'-'*80}")
+        print(f"{'-' * 80}")
         print(current_user_message)
-        print(f"{'-'*80}")
-        print("="*80 + "\n")
-        
+        print(f"{'-' * 80}")
+        print("=" * 80 + "\n")
+
         answer: str = model_service.get_response(
             current_user_message, system_prompt, conversation_history
         )
@@ -139,35 +141,37 @@ class ToolGenerator:
             }
         ).text
         log_context.info(f"System prompt: {system_prompt}")
-        
+
         # Get conversation history
         conversation_history = user_message.history
         # Use the current user message as the prompt
         current_user_message = user_message.message
-        
+
         # Print statements to show prompt structure
-        print("\n" + "="*80)
+        print("\n" + "=" * 80)
         print("TOOL GENERATOR: context_generate() - Formatted Prompts")
-        print("="*80)
+        print("=" * 80)
         print(f"Context length: {len(message_flow)} characters")
         print("\n[SYSTEM PROMPT]")
-        print(f"{'-'*80}")
+        print(f"{'-' * 80}")
         print(system_prompt)
-        print(f"{'-'*80}")
+        print(f"{'-' * 80}")
         if conversation_history:
             print(f"\n[CONVERSATION HISTORY: {len(conversation_history)} messages]")
             for i, msg in enumerate(conversation_history):
-                role = msg.get('role', 'unknown')
-                content = msg.get('content', '')
-                print(f"  {i+1}. {role}: {content[:100]}{'...' if len(content) > 100 else ''}")
+                role = msg.get("role", "unknown")
+                content = msg.get("content", "")
+                print(
+                    f"  {i + 1}. {role}: {content[:100]}{'...' if len(content) > 100 else ''}"
+                )
         else:
             print("\n[CONVERSATION HISTORY: None]")
         print("\n[CURRENT USER MESSAGE]")
-        print(f"{'-'*80}")
+        print(f"{'-' * 80}")
         print(current_user_message)
-        print(f"{'-'*80}")
-        print("="*80 + "\n")
-        
+        print(f"{'-' * 80}")
+        print("=" * 80 + "\n")
+
         answer: str = model_service.get_response(
             current_user_message, system_prompt, conversation_history
         )
@@ -219,35 +223,37 @@ class ToolGenerator:
             }
         ).text
         log_context.info(f"System prompt: {system_prompt}")
-        
+
         # Get conversation history
         conversation_history = user_message.history
         # Use the current user message as the prompt
         current_user_message = user_message.message
-        
+
         # Print statements to show prompt structure
-        print("\n" + "="*80)
+        print("\n" + "=" * 80)
         print("TOOL GENERATOR: stream_context_generate() - Formatted Prompts")
-        print("="*80)
+        print("=" * 80)
         print(f"Context length: {len(message_flow)} characters")
         print("\n[SYSTEM PROMPT]")
-        print(f"{'-'*80}")
+        print(f"{'-' * 80}")
         print(system_prompt)
-        print(f"{'-'*80}")
+        print(f"{'-' * 80}")
         if conversation_history:
             print(f"\n[CONVERSATION HISTORY: {len(conversation_history)} messages]")
             for i, msg in enumerate(conversation_history):
-                role = msg.get('role', 'unknown')
-                content = msg.get('content', '')
-                print(f"  {i+1}. {role}: {content[:100]}{'...' if len(content) > 100 else ''}")
+                role = msg.get("role", "unknown")
+                content = msg.get("content", "")
+                print(
+                    f"  {i + 1}. {role}: {content[:100]}{'...' if len(content) > 100 else ''}"
+                )
         else:
             print("\n[CONVERSATION HISTORY: None]")
         print("\n[CURRENT USER MESSAGE]")
-        print(f"{'-'*80}")
+        print(f"{'-' * 80}")
         print(current_user_message)
-        print(f"{'-'*80}")
-        print("="*80 + "\n")
-        
+        print(f"{'-' * 80}")
+        print("=" * 80 + "\n")
+
         messages = model_service._format_messages(
             current_user_message, system_prompt, conversation_history
         )
@@ -273,34 +279,36 @@ class ToolGenerator:
         system_prompt: str = system_template.invoke(
             {"sys_instruct": state.sys_instruct}
         ).text
-        
+
         # Get conversation history
         conversation_history = user_message.history
         # Use the current user message as the prompt
         current_user_message = user_message.message
-        
+
         # Print statements to show prompt structure
-        print("\n" + "="*80)
+        print("\n" + "=" * 80)
         print("TOOL GENERATOR: stream_generate() - Formatted Prompts")
-        print("="*80)
+        print("=" * 80)
         print("\n[SYSTEM PROMPT]")
-        print(f"{'-'*80}")
+        print(f"{'-' * 80}")
         print(system_prompt)
-        print(f"{'-'*80}")
+        print(f"{'-' * 80}")
         if conversation_history:
             print(f"\n[CONVERSATION HISTORY: {len(conversation_history)} messages]")
             for i, msg in enumerate(conversation_history):
-                role = msg.get('role', 'unknown')
-                content = msg.get('content', '')
-                print(f"  {i+1}. {role}: {content[:100]}{'...' if len(content) > 100 else ''}")
+                role = msg.get("role", "unknown")
+                content = msg.get("content", "")
+                print(
+                    f"  {i + 1}. {role}: {content[:100]}{'...' if len(content) > 100 else ''}"
+                )
         else:
             print("\n[CONVERSATION HISTORY: None]")
         print("\n[CURRENT USER MESSAGE]")
-        print(f"{'-'*80}")
+        print(f"{'-' * 80}")
         print(current_user_message)
-        print(f"{'-'*80}")
-        print("="*80 + "\n")
-        
+        print(f"{'-' * 80}")
+        print("=" * 80 + "\n")
+
         messages = model_service._format_messages(
             current_user_message, system_prompt, conversation_history
         )

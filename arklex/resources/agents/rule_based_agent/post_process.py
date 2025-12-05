@@ -123,8 +123,7 @@ def _remove_invalid_links(response: str, links: set) -> str:
 
 def _rephrase_answer(orch_state: OrchestratorState, response: str) -> str:
     """Rephrases the answer using an LLM after link removal."""
-    
-    
+
     model_service = ModelService(orch_state.bot_config.llm_config)
     prompt: PromptTemplate = PromptTemplate.from_template(
         load_prompts(orch_state.bot_config.language)["regenerate_response"]

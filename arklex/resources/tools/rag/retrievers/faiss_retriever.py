@@ -44,7 +44,7 @@ class RetrieveEngine:
         )
         # Format history for the retrieval (needs string format)
         formatted_history = format_chat_history(user_message.history)
-        
+
         retrieved_text: str
         retriever_returns: list[dict[str, Any]]
         retrieved_text, retriever_returns = docs.search(

@@ -80,12 +80,16 @@ class NLUAgent(BaseAgent):
         # Create a copy with current message for function calling trajectory
         chat_history_with_current: list[dict[str, str]] = copy.deepcopy(chat_history)
         chat_history_with_current.append({"role": self.user_prefix, "content": text})
-        
+
         params.metadata.turn_id += 1
         if not params.memory.function_calling_trajectory:
-            params.memory.function_calling_trajectory = copy.deepcopy(chat_history_with_current)
+            params.memory.function_calling_trajectory = copy.deepcopy(
+                chat_history_with_current
+            )
         else:
-            params.memory.function_calling_trajectory.extend(chat_history_with_current[-2:])
+            params.memory.function_calling_trajectory.extend(
+                chat_history_with_current[-2:]
+            )
 
         params.memory.trajectory.append([])
 
@@ -99,7 +103,9 @@ class NLUAgent(BaseAgent):
         # Return original chat_history (without current message) for ConvoMessage.history
         return text, chat_history, params, orch_state
 
-    def check_skip_node(self, node_info: NodeInfo, chat_history: list[dict[str, str]]) -> bool:
+    def check_skip_node(
+        self, node_info: NodeInfo, chat_history: list[dict[str, str]]
+    ) -> bool:
         if not node_info.attribute.get("can_skipped", False):
             return False
 
