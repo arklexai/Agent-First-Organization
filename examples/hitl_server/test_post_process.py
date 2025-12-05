@@ -7,8 +7,8 @@ from contextlib import redirect_stdout
 from typing import Any
 
 import pytest
-from arklex.modelss.model_service import ModelService
 
+from arklex.modelss.model_service import ModelService
 from arklex.orchestrator.executor.executor import Environment
 from run import get_api_bot_response
 
