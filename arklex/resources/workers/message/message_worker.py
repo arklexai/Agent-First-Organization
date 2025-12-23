@@ -92,31 +92,6 @@ class MessageWorker(BaseWorker):
         # Use the current user message as the prompt
         current_user_message = self.orch_state.user_message.message
 
-        # Print statements to show prompt structure
-        print("\n" + "=" * 80)
-        print("MESSAGE WORKER: Formatted Prompts")
-        print("=" * 80)
-        print(f"Stream Type: {self.orch_state.stream_type}")
-        print("\n[SYSTEM PROMPT]")
-        print(f"{'-' * 80}")
-        print(system_prompt)
-        print(f"{'-' * 80}")
-        if conversation_history:
-            print(f"\n[CONVERSATION HISTORY: {len(conversation_history)} messages]")
-            for i, msg in enumerate(conversation_history):
-                role = msg.get("role", "unknown")
-                content = msg.get("content", "")
-                print(
-                    f"  {i + 1}. {role}: {content[:100]}{'...' if len(content) > 100 else ''}"
-                )
-        else:
-            print("\n[CONVERSATION HISTORY: None]")
-        print("\n[CURRENT USER MESSAGE]")
-        print(f"{'-' * 80}")
-        print(current_user_message)
-        print(f"{'-' * 80}")
-        print("=" * 80 + "\n")
-
         answer: str = self.model_service.get_response(
             current_user_message, system_prompt, conversation_history
         )
@@ -128,31 +103,6 @@ class MessageWorker(BaseWorker):
         # Use the current user message as the prompt
         current_user_message = self.orch_state.user_message.message
 
-        # Print statements to show prompt structure
-        print("\n" + "=" * 80)
-        print("MESSAGE WORKER: stream_generator() - Streaming Response")
-        print("=" * 80)
-        print(f"Stream Type: {self.orch_state.stream_type}")
-        print("\n[SYSTEM PROMPT]")
-        print(f"{'-' * 80}")
-        print(system_prompt)
-        print(f"{'-' * 80}")
-        if conversation_history:
-            print(f"\n[CONVERSATION HISTORY: {len(conversation_history)} messages]")
-            for i, msg in enumerate(conversation_history):
-                role = msg.get("role", "unknown")
-                content = msg.get("content", "")
-                print(
-                    f"  {i + 1}. {role}: {content[:100]}{'...' if len(content) > 100 else ''}"
-                )
-        else:
-            print("\n[CONVERSATION HISTORY: None]")
-        print("\n[CURRENT USER MESSAGE]")
-        print(f"{'-' * 80}")
-        print(current_user_message)
-        print(f"{'-' * 80}")
-        print("=" * 80 + "\n")
-
         answer: str = ""
         messages = self.model_service._format_messages(
             current_user_message, system_prompt, conversation_history
@@ -162,12 +112,6 @@ class MessageWorker(BaseWorker):
             self.orch_state.message_queue.put(
                 {"event": EventType.CHUNK.value, "message_chunk": chunk.content}
             )
-
-        print("\n" + "=" * 80)
-        print("MESSAGE WORKER: stream_generator() - Streaming Complete")
-        print("=" * 80)
-        print(f"Total response length: {len(answer)} characters")
-        print("=" * 80 + "\n")
 
         return answer
 

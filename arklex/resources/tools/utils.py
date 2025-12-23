@@ -65,30 +65,6 @@ class ToolGenerator:
         # Use the current user message as the prompt
         current_user_message = user_message.message
 
-        # Print statements to show prompt structure
-        print("\n" + "=" * 80)
-        print("TOOL GENERATOR: generate() - Formatted Prompts")
-        print("=" * 80)
-        print("\n[SYSTEM PROMPT]")
-        print(f"{'-' * 80}")
-        print(system_prompt)
-        print(f"{'-' * 80}")
-        if conversation_history:
-            print(f"\n[CONVERSATION HISTORY: {len(conversation_history)} messages]")
-            for i, msg in enumerate(conversation_history):
-                role = msg.get("role", "unknown")
-                content = msg.get("content", "")
-                print(
-                    f"  {i + 1}. {role}: {content[:100]}{'...' if len(content) > 100 else ''}"
-                )
-        else:
-            print("\n[CONVERSATION HISTORY: None]")
-        print("\n[CURRENT USER MESSAGE]")
-        print(f"{'-' * 80}")
-        print(current_user_message)
-        print(f"{'-' * 80}")
-        print("=" * 80 + "\n")
-
         answer: str = model_service.get_response(
             current_user_message, system_prompt, conversation_history
         )
@@ -147,31 +123,6 @@ class ToolGenerator:
         # Use the current user message as the prompt
         current_user_message = user_message.message
 
-        # Print statements to show prompt structure
-        print("\n" + "=" * 80)
-        print("TOOL GENERATOR: context_generate() - Formatted Prompts")
-        print("=" * 80)
-        print(f"Context length: {len(message_flow)} characters")
-        print("\n[SYSTEM PROMPT]")
-        print(f"{'-' * 80}")
-        print(system_prompt)
-        print(f"{'-' * 80}")
-        if conversation_history:
-            print(f"\n[CONVERSATION HISTORY: {len(conversation_history)} messages]")
-            for i, msg in enumerate(conversation_history):
-                role = msg.get("role", "unknown")
-                content = msg.get("content", "")
-                print(
-                    f"  {i + 1}. {role}: {content[:100]}{'...' if len(content) > 100 else ''}"
-                )
-        else:
-            print("\n[CONVERSATION HISTORY: None]")
-        print("\n[CURRENT USER MESSAGE]")
-        print(f"{'-' * 80}")
-        print(current_user_message)
-        print(f"{'-' * 80}")
-        print("=" * 80 + "\n")
-
         answer: str = model_service.get_response(
             current_user_message, system_prompt, conversation_history
         )
@@ -229,31 +180,6 @@ class ToolGenerator:
         # Use the current user message as the prompt
         current_user_message = user_message.message
 
-        # Print statements to show prompt structure
-        print("\n" + "=" * 80)
-        print("TOOL GENERATOR: stream_context_generate() - Formatted Prompts")
-        print("=" * 80)
-        print(f"Context length: {len(message_flow)} characters")
-        print("\n[SYSTEM PROMPT]")
-        print(f"{'-' * 80}")
-        print(system_prompt)
-        print(f"{'-' * 80}")
-        if conversation_history:
-            print(f"\n[CONVERSATION HISTORY: {len(conversation_history)} messages]")
-            for i, msg in enumerate(conversation_history):
-                role = msg.get("role", "unknown")
-                content = msg.get("content", "")
-                print(
-                    f"  {i + 1}. {role}: {content[:100]}{'...' if len(content) > 100 else ''}"
-                )
-        else:
-            print("\n[CONVERSATION HISTORY: None]")
-        print("\n[CURRENT USER MESSAGE]")
-        print(f"{'-' * 80}")
-        print(current_user_message)
-        print(f"{'-' * 80}")
-        print("=" * 80 + "\n")
-
         messages = model_service._format_messages(
             current_user_message, system_prompt, conversation_history
         )
@@ -284,30 +210,6 @@ class ToolGenerator:
         conversation_history = user_message.history
         # Use the current user message as the prompt
         current_user_message = user_message.message
-
-        # Print statements to show prompt structure
-        print("\n" + "=" * 80)
-        print("TOOL GENERATOR: stream_generate() - Formatted Prompts")
-        print("=" * 80)
-        print("\n[SYSTEM PROMPT]")
-        print(f"{'-' * 80}")
-        print(system_prompt)
-        print(f"{'-' * 80}")
-        if conversation_history:
-            print(f"\n[CONVERSATION HISTORY: {len(conversation_history)} messages]")
-            for i, msg in enumerate(conversation_history):
-                role = msg.get("role", "unknown")
-                content = msg.get("content", "")
-                print(
-                    f"  {i + 1}. {role}: {content[:100]}{'...' if len(content) > 100 else ''}"
-                )
-        else:
-            print("\n[CONVERSATION HISTORY: None]")
-        print("\n[CURRENT USER MESSAGE]")
-        print(f"{'-' * 80}")
-        print(current_user_message)
-        print(f"{'-' * 80}")
-        print("=" * 80 + "\n")
 
         messages = model_service._format_messages(
             current_user_message, system_prompt, conversation_history

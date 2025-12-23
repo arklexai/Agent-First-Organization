@@ -119,23 +119,6 @@ class OutputProcessWorker(BaseWorker):
             f"Answer Node user prompt prepared for {self.orch_state.stream_type}: {user_prompt}"
         )
 
-        # Print statements to show prompt structure
-        print("\n" + "=" * 80)
-        print("OUTPUT PROCESS WORKER: Formatted Prompts")
-        print("=" * 80)
-        print(f"Stream Type: {self.orch_state.stream_type}")
-        print(f"Task: {task}")
-        print(f"Has context: {bool(message_flow and message_flow.strip())}")
-        print("\n[SYSTEM PROMPT]")
-        print(f"{'-' * 80}")
-        print(system_prompt)
-        print(f"{'-' * 80}")
-        print("\n[USER PROMPT]")
-        print(f"{'-' * 80}")
-        print(user_prompt)
-        print(f"{'-' * 80}")
-        print("=" * 80 + "\n")
-
         return system_prompt, user_prompt
 
     def generator(self, system_prompt: str, user_prompt: str) -> str:
@@ -152,12 +135,6 @@ class OutputProcessWorker(BaseWorker):
 
     def stream_generator(self, system_prompt: str, user_prompt: str) -> str:
         """Generate a streaming response using the LLM."""
-        print("\n" + "=" * 80)
-        print("OUTPUT PROCESS WORKER: stream_generator() - Streaming Response")
-        print("=" * 80)
-        print("Using formatted messages for streaming...")
-        print("=" * 80 + "\n")
-
         model_service = ModelService(self.orch_state.bot_config.llm_config)
         # Get conversation history
         conversation_history = self.orch_state.user_message.history
@@ -176,12 +153,6 @@ class OutputProcessWorker(BaseWorker):
                 self.orch_state.message_queue.put(
                     {"event": EventType.CHUNK.value, "message_chunk": chunk.content}
                 )
-
-        print("\n" + "=" * 80)
-        print("OUTPUT PROCESS WORKER: stream_generator() - Streaming Complete")
-        print("=" * 80)
-        print(f"Total response length: {len(answer)} characters")
-        print("=" * 80 + "\n")
 
         return answer
 

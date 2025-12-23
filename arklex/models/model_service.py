@@ -80,28 +80,6 @@ class ModelService:
         # Add the current user prompt
         messages.append(HumanMessage(content=prompt))
 
-        # Print statement to show message structure
-        print("\n" + "=" * 80)
-        print("MODEL SERVICE: Formatted Messages Structure")
-        print("=" * 80)
-        if system_prompt:
-            print("\n[SYSTEM MESSAGE]")
-            print(f"{'-' * 80}")
-            print(system_prompt)
-            print(f"{'-' * 80}")
-        if conversation_history:
-            print(f"\n[CONVERSATION HISTORY: {len(conversation_history)} messages]")
-            for i, msg in enumerate(conversation_history):
-                print(
-                    f"  {i + 1}. {msg.get('role', 'unknown')}: {msg.get('content', '')[:50]}..."
-                )
-        print("\n[CURRENT USER MESSAGE]")
-        print(f"{'-' * 80}")
-        print(prompt)
-        print(f"{'-' * 80}")
-        print(f"\nTotal messages: {len(messages)}")
-        print("=" * 80 + "\n")
-
         return messages
 
     def get_response(
@@ -128,18 +106,6 @@ class ModelService:
             ValueError: If model response is invalid or empty
         """
         try:
-            # Print statement to show what's being sent to get_response
-            print("\n" + "=" * 80)
-            print("MODEL SERVICE: get_response() called")
-            print("=" * 80)
-            print(f"System prompt provided: {system_prompt is not None}")
-            if system_prompt:
-                print(f"System prompt length: {len(system_prompt)} characters")
-            print(f"User prompt length: {len(prompt)} characters")
-            if conversation_history:
-                print(f"Conversation history: {len(conversation_history)} messages")
-            print("=" * 80 + "\n")
-
             # Format messages with system prompt and conversation history if provided
             messages = self._format_messages(
                 prompt, system_prompt, conversation_history
@@ -148,18 +114,6 @@ class ModelService:
             response = self.model.invoke(messages)
             if not response or not response.content:
                 raise ValueError("Empty response from model")
-
-            # Print response info
-            print("\n" + "=" * 80)
-            print("MODEL SERVICE: Response received")
-            print("=" * 80)
-            print(f"Response length: {len(response.content)} characters")
-            print(
-                f"Response preview: {response.content[:200]}..."
-                if len(response.content) > 200
-                else f"Response: {response.content}"
-            )
-            print("=" * 80 + "\n")
 
             return response.content
         except Exception as e:
