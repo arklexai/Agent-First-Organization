@@ -86,6 +86,10 @@ class OutputProcessWorker(BaseWorker):
                     "context": message_flow,
                 }
             ).text
+            # Append current user message to the prompt
+            user_prompt = (
+                f"{user_prompt}\n\nCurrent user message: {user_message.message}"
+            )
         else:
             # Use template without context
             system_template = PromptTemplate.from_template(
@@ -111,6 +115,10 @@ class OutputProcessWorker(BaseWorker):
                     "history": formatted_history,
                 }
             ).text
+            # Append current user message to the prompt
+            user_prompt = (
+                f"{user_prompt}\n\nCurrent user message: {user_message.message}"
+            )
 
         log_context.info(
             f"Answer Node system prompt prepared for {self.orch_state.stream_type}: {system_prompt}"
@@ -124,25 +132,17 @@ class OutputProcessWorker(BaseWorker):
     def generator(self, system_prompt: str, user_prompt: str) -> str:
         """Generate a response using the LLM."""
         model_service = ModelService(self.orch_state.bot_config.llm_config)
-        # Get conversation history
-        conversation_history = self.orch_state.user_message.history
-        # Use the current user message as the prompt
-        current_user_message = self.orch_state.user_message.message
-        answer: str = model_service.get_response(
-            current_user_message, system_prompt, conversation_history
-        )
+        # Use the user_prompt which contains formatted history and context (message_flow)
+        # from previous RAG/retrieval operations
+        answer: str = model_service.get_response(user_prompt, system_prompt)
         return answer
 
     def stream_generator(self, system_prompt: str, user_prompt: str) -> str:
         """Generate a streaming response using the LLM."""
         model_service = ModelService(self.orch_state.bot_config.llm_config)
-        # Get conversation history
-        conversation_history = self.orch_state.user_message.history
-        # Use the current user message as the prompt
-        current_user_message = self.orch_state.user_message.message
-        messages = model_service._format_messages(
-            current_user_message, system_prompt, conversation_history
-        )
+        # Use the user_prompt which contains formatted history and context (message_flow)
+        # from previous RAG/retrieval operations
+        messages = model_service._format_messages(user_prompt, system_prompt)
         answer: str = ""
         for chunk in model_service.model.stream(messages):
             answer += chunk.content
