@@ -99,7 +99,7 @@ strict-versions = [
   "unstructured[xlsx,doc,docx,md,pptx,ppt]==0.16.4",
   "unstructured-client==0.30.0",
   "watchfiles==0.24.0",
-  "faiss-cpu==1.10.0",
+  "faiss-cpu==1.13.2",
   "tavily-python==0.5.0",
   "webdriver-manager==4.0.2",
   "janus==1.0.0",
