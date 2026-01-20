@@ -505,6 +505,7 @@ class Tool:
                 "auth": auth,
                 "node_specific_data": self.node_specific_data,
                 **self.llm_config,
+                **self.fixed_args,
             }
             try:
                 required_args = [
@@ -800,6 +801,9 @@ class Tool:
         try:
             # go through each slot, build pydantic model from the slot schema, validate and clean the slot value against it
             for slot in self.slots:
+                # skip slots without schema
+                if slot.slot_schema is None:
+                    continue
                 # get slot schema
                 slot_schema = slot.slot_schema.get("function", {}).get("parameters", {})
 
