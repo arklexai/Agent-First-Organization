@@ -18,6 +18,7 @@ from arklex.resources.resource_types import ToolItem, WorkerItem
 from arklex.resources.tools.tools import Tool
 from arklex.resources.workers.base.base_worker import BaseWorker
 from arklex.utils.logging.logging_utils import LogContext
+from arklex.orchestrator.types.stream_types import EventType
 
 log_context = LogContext(__name__)
 
@@ -89,7 +90,7 @@ class Executor:
                         args[slot.name] = slot.value
 
                 tool_call_event = {
-                    "event": "tool_call",
+                    "event": EventType.TOOL_CALL.value,
                     "name": node_info.data.get('name', '') if id == ToolItem.HTTP_TOOL else id,
                     "arguments": args
                 }
@@ -97,7 +98,7 @@ class Executor:
                 orch_state.message_queue.put(tool_call_event)
 
                 tool_call_output_event = {
-                    "event": "tool_call_output",
+                    "event": EventType.TOOL_CALL_OUTPUT.value,
                     "name": node_info.data.get('name', '') if id == ToolItem.HTTP_TOOL else id,
                     "response": tool_output.message_flow or tool_output.response or str(tool_output.status)
                 }
