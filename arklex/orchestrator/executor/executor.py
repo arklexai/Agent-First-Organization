@@ -13,12 +13,12 @@ from arklex.orchestrator.entities.orchestrator_state_entities import Orchestrato
 from arklex.orchestrator.entities.taskgraph_entities import NodeInfo, StatusEnum
 from arklex.orchestrator.executor.entities import NodeResponse
 from arklex.orchestrator.nlu.core.slot import Slot, SlotFiller
+from arklex.orchestrator.types.stream_types import EventType
 from arklex.resources.resource_loader import ResourceLoader
 from arklex.resources.resource_types import ToolItem, WorkerItem
 from arklex.resources.tools.tools import Tool
 from arklex.resources.workers.base.base_worker import BaseWorker
 from arklex.utils.logging.logging_utils import LogContext
-from arklex.orchestrator.types.stream_types import EventType
 
 log_context = LogContext(__name__)
 
