@@ -82,6 +82,28 @@ class Executor:
             orch_state, tool_output = tool.execute(
                 orch_state, all_slots=dialog_states, auth=tool.auth
             )
+            if orch_state.message_queue:
+                args = {}
+                if tool_output.slots and tool.name in tool_output.slots:
+                    for slot in tool_output.slots[tool.name]:
+                        args[slot.name] = slot.value
+
+                tool_call_event = {
+                    "event": "tool_call",
+                    "name": node_info.data.get('name', '') if id == ToolItem.HTTP_TOOL else id,
+                    "arguments": args
+                }
+
+                orch_state.message_queue.put(tool_call_event)
+
+                tool_call_output_event = {
+                    "event": "tool_call_output",
+                    "name": node_info.data.get('name', '') if id == ToolItem.HTTP_TOOL else id,
+                    "response": tool_output.message_flow or str(tool_output.status)
+                }
+
+                orch_state.message_queue.put(tool_call_output_event)
+            
             orch_state.message_flow = tool_output.message_flow
             if id == ToolItem.SHOPIFY_SEARCH_PRODUCTS:
                 node_response = NodeResponse(
