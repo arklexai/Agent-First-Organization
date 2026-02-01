@@ -99,7 +99,7 @@ class Executor:
                 tool_call_output_event = {
                     "event": "tool_call_output",
                     "name": node_info.data.get('name', '') if id == ToolItem.HTTP_TOOL else id,
-                    "response": tool_output.message_flow or str(tool_output.status)
+                    "response": tool_output.message_flow or tool_output.response or str(tool_output.status)
                 }
 
                 orch_state.message_queue.put(tool_call_output_event)
