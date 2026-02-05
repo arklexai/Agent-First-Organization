@@ -2,9 +2,8 @@ name: Scheduled Tests
 
 on:
   schedule:
-    # Run twice daily at 2 AM and 2 PM UTC
+    # Run daily at 2 AM UTC
     - cron: '0 2 * * *'
-    - cron: '0 14 * * *'
   workflow_dispatch:  # Allow manual triggering
 
 permissions:
@@ -43,7 +42,7 @@ jobs:
       - name: Generate Summary
         id: summary
         run: |
-          echo "## Nightly Regression Test Summary" >> $GITHUB_STEP_SUMMARY
+          echo "## Regression Test Summary" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "### Test Results:" >> $GITHUB_STEP_SUMMARY
           echo "- **Lint**: ${{ needs.lint.result == 'success' && '✅ Passed' || '❌ Failed' }}" >> $GITHUB_STEP_SUMMARY
@@ -57,13 +56,13 @@ jobs:
             echo "🎉 **All tests passed!**" >> $GITHUB_STEP_SUMMARY
             echo "overall_status=success" >> $GITHUB_OUTPUT
             echo "notification_type=success" >> $GITHUB_OUTPUT
-            echo "notification_title=✅ Nightly Regression Tests Passed" >> $GITHUB_OUTPUT
-            echo "notification_message=All nightly regression tests have passed successfully. The codebase is in good health." >> $GITHUB_OUTPUT
+            echo "notification_title=✅ Regression Tests Passed" >> $GITHUB_OUTPUT
+            echo "notification_message=All regression tests have passed successfully. The codebase is in good health." >> $GITHUB_OUTPUT
           else
             echo "⚠️ **Some tests failed. Please review the logs above.**" >> $GITHUB_STEP_SUMMARY
             echo "overall_status=failure" >> $GITHUB_OUTPUT
             echo "notification_type=failure" >> $GITHUB_OUTPUT
-            echo "notification_title=❌ Nightly Regression Tests Failed" >> $GITHUB_OUTPUT
+            echo "notification_title=❌ Regression Tests Failed" >> $GITHUB_OUTPUT
             
             # Build detailed failure message
             FAILED_TESTS=""
