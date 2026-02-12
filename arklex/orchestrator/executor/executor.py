@@ -13,6 +13,7 @@ from arklex.orchestrator.entities.orchestrator_state_entities import Orchestrato
 from arklex.orchestrator.entities.taskgraph_entities import NodeInfo, StatusEnum
 from arklex.orchestrator.executor.entities import NodeResponse
 from arklex.orchestrator.nlu.core.slot import Slot, SlotFiller
+from arklex.orchestrator.types.stream_types import EventType
 from arklex.resources.resource_loader import ResourceLoader
 from arklex.resources.resource_types import ToolItem, WorkerItem
 from arklex.resources.tools.tools import Tool
@@ -82,6 +83,28 @@ class Executor:
             orch_state, tool_output = tool.execute(
                 orch_state, all_slots=dialog_states, auth=tool.auth
             )
+            if orch_state.message_queue:
+                args = {}
+                if tool_output.slots and tool.name in tool_output.slots:
+                    for slot in tool_output.slots[tool.name]:
+                        args[slot.name] = slot.value
+
+                tool_call_event = {
+                    "event": EventType.TOOL_CALL.value,
+                    "name": node_info.data.get('name', '') if id == ToolItem.HTTP_TOOL else id,
+                    "arguments": args
+                }
+
+                orch_state.message_queue.put(tool_call_event)
+
+                tool_call_output_event = {
+                    "event": EventType.TOOL_CALL_OUTPUT.value,
+                    "name": node_info.data.get('name', '') if id == ToolItem.HTTP_TOOL else id,
+                    "response": tool_output.message_flow or tool_output.response or str(tool_output.status)
+                }
+
+                orch_state.message_queue.put(tool_call_output_event)
+            
             orch_state.message_flow = tool_output.message_flow
             if id == ToolItem.SHOPIFY_SEARCH_PRODUCTS:
                 node_response = NodeResponse(
