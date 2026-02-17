@@ -61,7 +61,7 @@ license = "MIT"
 
 [project.optional-dependencies]
 milvus = [
-  "pymilvus>=2.4.7,<3.0.0",
+  "pymilvus>=2.5.0,<3.0.0",
   "mysql-connector-python>=8.3.0,<9.0.0",
 ]
 faiss = [
@@ -112,7 +112,7 @@ strict-versions = [
   "pytest-mock==3.10.0",
   "pytest-env==1.0.0",
   "parsedatetime==2.6",
-  "pymilvus==2.4.7",
+  "pymilvus==2.5.18",
   "mysql-connector-python==8.3.0",
   "ShopifyAPI==12.7.0",
   "hubspot-api-client==11.1.0",
