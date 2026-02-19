@@ -120,7 +120,16 @@ class MilvusRetriever:
     def __enter__(self) -> "MilvusRetriever":
         self.uri = os.getenv("MILVUS_URI", "")
         self.token = os.getenv("MILVUS_TOKEN", "")
-        self.client = MilvusClient(uri=self.uri, token=self.token)
+        self.client = MilvusClient(uri=self.uri, token=self.token, 
+            client_kwargs={
+                "options": [
+                    ("grpc.keepalive_time_ms", 30000),             
+                    ("grpc.keepalive_timeout_ms", 10000),          
+                    ("grpc.keepalive_permit_without_calls", 1),    
+                    ("grpc.http2.max_pings_without_data", 0),      
+                ]
+            })
+
         return self
 
     def __exit__(
@@ -130,6 +139,11 @@ class MilvusRetriever:
         traceback: object | None,
     ) -> None:
         self.client.close()
+    
+    def _ensure_collection_loaded(self, collection_name: str) -> None:
+        """Ensure collection exists and is loaded before any operation."""
+        if not self.is_collection_loaded(collection_name):
+            self.client.load_collection(collection_name)
 
     def get_bot_uid(self, bot_id: str, version: str) -> str:
         return f"{bot_id}__{version}"
@@ -181,6 +195,7 @@ class MilvusRetriever:
         log_context.info(
             f"Deleting vector db documents by qa_ids: {qa_ids} from collection: {collection_name}"
         )
+        self._ensure_collection_loaded(collection_name)
         quoted_ids = ",".join([f"'{qa_id}'" for qa_id in qa_ids])
         filter_expr = f"id in [{quoted_ids}]"
         res = self.client.delete(collection_name=collection_name, filter=filter_expr)
@@ -192,6 +207,7 @@ class MilvusRetriever:
         log_context.info(
             f"Deleting vector db documents by qa_doc_id: {qa_doc_id} from collection: {collection_name}"
         )
+        self._ensure_collection_loaded(collection_name)
         res = self.client.delete(
             collection_name=collection_name, filter=f"qa_doc_id=='{qa_doc_id}'"
         )
@@ -316,6 +332,7 @@ class MilvusRetriever:
                 f"No collection found hence creating collection: {collection_name}"
             )
             self.create_collection_with_partition_key(collection_name)
+        self._ensure_collection_loaded(collection_name)
 
         documents_to_insert = []
 
@@ -360,6 +377,8 @@ class MilvusRetriever:
 
         if not self.client.has_collection(collection_name):
             self.create_collection_with_partition_key(collection_name)
+
+        self._ensure_collection_loaded(collection_name)
 
         documents_to_insert = []
 
@@ -688,11 +707,13 @@ class MilvusRetriever:
         log_context.info(
             f"Adding {len(vectors)} vector db documents to institution {collection_name} for bot_id: {bot_id} version: {version}"
         )
+
         if not self.client.has_collection(collection_name):
             log_context.info(
                 f"No colelction found hence creating collection: {collection_name}"
             )
             self.create_collection_with_partition_key(collection_name)
+        self._ensure_collection_loaded(collection_name)
 
         vectors_to_insert = []
 
@@ -794,6 +815,8 @@ class MilvusRetriever:
         )
         collection = Collection(old_collection_name)
 
+        self._ensure_collection_loaded(old_collection_name)
+
         iterator = collection.query_iterator(
             batch_size=16000,
             expr=f"bot_uid=='{partition_key}'",
@@ -833,6 +856,9 @@ class MilvusRetriever:
                 f"No collection found hence creating collection: {new_collection_name}"
             )
             self.create_collection_with_partition_key(new_collection_name)
+        
+        self._ensure_collection_loaded(new_collection_name)
+
         self.add_vectors_parallel(new_collection_name, bot_id, version, vectors)
 
         # delete vectors from old collection
