@@ -56,6 +56,7 @@ dependencies = [
   "scikit-learn>=1.7.0,<2.0.0",
   "google-generativeai>=0.8.0,<1.0.0",
   "redis>=6.2.0,<7.0.0",
+  "pytz>=2024.1",
 ]
 license = "MIT"
 
@@ -119,6 +120,7 @@ strict-versions = [
   "google-generativeai==0.8.0",
   "redis==6.2.0",
   "twilio==9.4.1",
+  "pytz==2024.1",
 ]
 
 [tool.hatch.version]
