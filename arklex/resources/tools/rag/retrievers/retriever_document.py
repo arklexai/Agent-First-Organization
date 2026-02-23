@@ -189,10 +189,6 @@ class RetrieverDocument:
         }
 
     def to_milvus_schema_dict_and_embed(self) -> dict:
-        if self.num_tokens is None:
-            encoding = tiktoken.get_encoding(DEFAULT_CHUNK_ENCODING)
-            self.num_tokens = len(encoding.encode(self.text))
-
         required = {
             "id": self.id,
             "qa_doc_id": self.qa_doc_id,
@@ -205,6 +201,10 @@ class RetrieverDocument:
             "bot_uid": self.bot_uid,
         }
         missing = [k for k, v in required.items() if v is None]
+        if "num_tokens" in missing:
+            encoding = tiktoken.get_encoding(DEFAULT_CHUNK_ENCODING)
+            self.num_tokens = len(encoding.encode(self.text))
+            missing.remove("num_tokens")
         if missing:
             raise ValueError(f"Missing values for fields: {missing}")
 
