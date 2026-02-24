@@ -2,12 +2,13 @@
 
 from typing import Any, TypedDict
 
-from arklex.resources.tools.rag.retrievers.milvus_retriever import MilvusRetriever
+from arklex.resources.tools.rag.retrievers.milvus_retriever import (
+    milvus_retriever,
+)
 from arklex.resources.tools.tools import register_tool
 from arklex.utils.logging.logging_utils import LogContext
 
 log_context = LogContext(__name__)
-milvus_retriever = MilvusRetriever()
 
 
 class RetrieverParams(TypedDict, total=False):
