@@ -834,15 +834,11 @@ _milvus_retriever: MilvusRetriever | None = None
 _milvus_retriever_lock = threading.Lock()
 
 
-def get_milvus_retriever(client: MilvusClient | None = None) -> MilvusRetriever:
+def get_milvus_retriever() -> MilvusRetriever:
     """Return a shared MilvusRetriever instance, creating it on first call.
 
-    Thread-safe via double-checked locking. If a custom client is provided,
-    a new (non-shared) instance is returned instead.
+    Thread-safe via double-checked locking.
     """
-    if client is not None:
-        return MilvusRetriever(client=client)
-
     global _milvus_retriever
     if _milvus_retriever is None:
         with _milvus_retriever_lock:
