@@ -14,6 +14,7 @@ document embedding, vector storage, and similarity search with metadata filterin
 # TODO: get num_tokens for functions inside milvus_retriever.py and retriever_document.py (with classmethod RetrieverDocument.faq_retreiver_doc); influence token migrations
 
 import os
+import threading
 import time
 from collections import defaultdict
 from multiprocessing.pool import Pool
@@ -119,15 +120,15 @@ def _resolve_tag_value_via_db_and_llm(
 
 
 class MilvusRetriever:
-    def __init__(self) -> None:
+    def __init__(self, client: MilvusClient | None = None) -> None:
         self.uri = os.getenv("MILVUS_URI", "")
         self.token = os.getenv("MILVUS_TOKEN", "")
-        self.client: MilvusClient | None = None
-        self._connect()
+        self.client: MilvusClient | None = client
+        if not self.client:
+            self._connect()
 
     def _connect(self) -> None:
-        if not self.client:
-            self.client = MilvusClient(uri=self.uri, token=self.token)
+        self.client = MilvusClient(uri=self.uri, token=self.token)
 
     def get_bot_uid(self, bot_id: str, version: str) -> str:
         return f"{bot_id}__{version}"
@@ -869,13 +870,35 @@ class MilvusRetriever:
         return self.client.list_collections()
 
 
-milvus_retriever = MilvusRetriever()
+_milvus_retriever: MilvusRetriever | None = None
+_milvus_retriever_lock = threading.Lock()
+
+
+def get_milvus_retriever(client: MilvusClient | None = None) -> MilvusRetriever:
+    """Return a shared MilvusRetriever instance, creating it on first call.
+
+    Thread-safe via double-checked locking. If a custom client is provided,
+    a new (non-shared) instance is returned instead.
+    """
+    if client is not None:
+        return MilvusRetriever(client=client)
+
+    global _milvus_retriever
+    if _milvus_retriever is None:
+        with _milvus_retriever_lock:
+            if _milvus_retriever is None:
+                _milvus_retriever = MilvusRetriever()
+    return _milvus_retriever
 
 
 class MilvusRetrieverExecutor:
-    def __init__(self, bot_config: object) -> None:
+    def __init__(
+        self,
+        bot_config: object,
+    ) -> None:
         self.bot_config = bot_config
         self.model_service = ModelService(bot_config.llm_config)
+        self.milvus_retriever = get_milvus_retriever()
 
     def generate_thought(self, retriever_results: list[RetrieverResult]) -> str:
         # post process list of documents into str
@@ -933,7 +956,7 @@ class MilvusRetrieverExecutor:
         rit = time.time() - st
 
         st = time.time()
-        ret_results = milvus_retriever.search(
+        ret_results = self.milvus_retriever.search(
             collection_name,
             bot_id,
             version,
