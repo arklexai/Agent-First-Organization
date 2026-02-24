@@ -113,7 +113,7 @@ strict-versions = [
   "pytest-mock==3.10.0",
   "pytest-env==1.0.0",
   "parsedatetime==2.6",
-  "pymilvus==2.6.11",
+  "pymilvus==2.6.9",
   "mysql-connector-python==8.3.0",
   "ShopifyAPI==12.7.0",
   "hubspot-api-client==11.1.0",
