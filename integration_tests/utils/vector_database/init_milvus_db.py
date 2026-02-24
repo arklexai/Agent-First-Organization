@@ -14,6 +14,7 @@ faq_str = "[Question]: What is your company's main focus?\n[Answer] Arklex focus
 
 
 def insert_faq_documents(
+    milvus_retriever: MilvusRetriever,
     bot_id: str, version: str, collection_name: str, doc_str: str, tags: dict = None
 ) -> None:
     if tags is None:
@@ -28,20 +29,19 @@ def insert_faq_documents(
         num_tokens=len(tokens),
         timestamp=time.time(),
     )
-    with MilvusRetriever() as retriever:
-        retriever.add_documents(collection_name, bot_id, version, [ret_dic])
+    milvus_retriever.add_documents(collection_name, bot_id, version, [ret_dic])
 
 
 def main() -> None:
     bot_id = "arklex"
     version = "v1"
     collection_name = "test_collection"
+    milvus_retriever = MilvusRetriever()
 
-    with MilvusRetriever() as retriever:
-        if not retriever.has_collection(collection_name):
-            retriever.create_collection_with_partition_key(collection_name)
+    if not milvus_retriever.has_collection(collection_name):
+        milvus_retriever.create_collection_with_partition_key(collection_name)
 
-    insert_faq_documents(bot_id, version, collection_name, faq_str)
+    insert_faq_documents(milvus_retriever, bot_id, version, collection_name, faq_str)
 
 
 if __name__ == "__main__":

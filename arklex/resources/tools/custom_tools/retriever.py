@@ -7,6 +7,7 @@ from arklex.resources.tools.tools import register_tool
 from arklex.utils.logging.logging_utils import LogContext
 
 log_context = LogContext(__name__)
+milvus_retriever = MilvusRetriever()
 
 
 class RetrieverParams(TypedDict, total=False):
@@ -38,8 +39,7 @@ def retriever(query: str, auth: RetrieverParams, **kwargs: dict[str, Any]) -> st
     log_context.info(
         f"Retrieving from collection {collection_name} for bot {bot_id} version {version} with query {query}"
     )
-    with MilvusRetriever() as retriever:
-        retriever_results = retriever.search(collection_name, bot_id, version, query)
+    retriever_results = milvus_retriever.search(collection_name, bot_id, version, query)
 
     retrieved_str = ""
     for doc in retriever_results:

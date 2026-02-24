@@ -21,7 +21,7 @@ from typing import Any
 
 import numpy as np
 from langchain_core.prompts import PromptTemplate
-from pymilvus import Collection, DataType, MilvusClient, connections
+from pymilvus import DataType, MilvusClient
 
 from arklex.models.model_service import ModelService
 from arklex.resources.tools.rag.retrievers.retriever_document import (
@@ -114,28 +114,23 @@ def _resolve_tag_value_via_db_and_llm(
             return possible_tags[tag_key][0]
         return None
 
-
-
 class MilvusRetriever:
-    def __enter__(self) -> "MilvusRetriever":
+    def __init__(self) -> None:
         self.uri = os.getenv("MILVUS_URI", "")
         self.token = os.getenv("MILVUS_TOKEN", "")
-        self.client = MilvusClient(uri=self.uri, token=self.token)
-        return self
+        self.client: MilvusClient | None = None
+        self._connect()
 
-    def __exit__(
-        self,
-        exc_type: type[BaseException] | None,
-        exc_value: BaseException | None,
-        traceback: object | None,
-    ) -> None:
-        self.client.close()
+    def _connect(self) -> None:
+        if not self.client:
+            self.client = MilvusClient(uri=self.uri, token=self.token)
+
 
     def get_bot_uid(self, bot_id: str, version: str) -> str:
         return f"{bot_id}__{version}"
 
     def create_collection_with_partition_key(self, collection_name: str) -> None:
-        schema = MilvusClient.create_schema(
+        schema = self.client.create_schema(
             auto_id=False,
             enable_dynamic_field=True,
             partition_key_field="bot_uid",
@@ -181,6 +176,7 @@ class MilvusRetriever:
         log_context.info(
             f"Deleting vector db documents by qa_ids: {qa_ids} from collection: {collection_name}"
         )
+        self._ensure_collection_loaded(collection_name)
         quoted_ids = ",".join([f"'{qa_id}'" for qa_id in qa_ids])
         filter_expr = f"id in [{quoted_ids}]"
         res = self.client.delete(collection_name=collection_name, filter=filter_expr)
@@ -192,6 +188,7 @@ class MilvusRetriever:
         log_context.info(
             f"Deleting vector db documents by qa_doc_id: {qa_doc_id} from collection: {collection_name}"
         )
+        self._ensure_collection_loaded(collection_name)
         res = self.client.delete(
             collection_name=collection_name, filter=f"qa_doc_id=='{qa_doc_id}'"
         )
@@ -203,6 +200,7 @@ class MilvusRetriever:
         log_context.info(
             f"Celery sub task for adding {len(documents)} documents to collection: {collection_name}."
         )
+        self._ensure_collection_loaded(collection_name)
         retriever_documents = [RetrieverDocument.from_dict(doc) for doc in documents]
         documents_to_insert = []
 
@@ -243,6 +241,7 @@ class MilvusRetriever:
             f"Updating metadata for qa_doc_id {qa_doc_id} in collection {collection_name}"
         )
 
+        self._ensure_collection_loaded(collection_name)
         # Query all vectors matching the qa_doc_id
         res = self.client.query(
             collection_name=collection_name,
@@ -317,6 +316,7 @@ class MilvusRetriever:
             )
             self.create_collection_with_partition_key(collection_name)
 
+        self._ensure_collection_loaded(collection_name)
         documents_to_insert = []
 
         if not upsert:
@@ -361,6 +361,7 @@ class MilvusRetriever:
         if not self.client.has_collection(collection_name):
             self.create_collection_with_partition_key(collection_name)
 
+        self._ensure_collection_loaded(collection_name)
         documents_to_insert = []
 
         if not upsert:
@@ -438,6 +439,7 @@ class MilvusRetriever:
         
         log_context.info(f"Final search filter: {filter}")
 
+        self._ensure_collection_loaded(collection_name)
         res = self.client.search(
             collection_name=collection_name,
             data=[query_embedding],
@@ -476,16 +478,12 @@ class MilvusRetriever:
         version: str,
         qa_doc_type: RetrieverDocumentType,
     ) -> list[RetrieverDocument]:
-        connections.connect(
-            uri=self.uri,
-            token=self.token,
-        )
-        collection = Collection(collection_name)
-
+        self._ensure_collection_loaded(collection_name)
         partition_key = self.get_bot_uid(bot_id, version)
-        iterator = collection.query_iterator(
+        iterator = self.client.query_iterator(
+            collection_name=collection_name,
             batch_size=1000,
-            expr=f"qa_doc_type=='{qa_doc_type.value}' and bot_uid=='{partition_key}'",
+            filter=f"qa_doc_type=='{qa_doc_type.value}' and bot_uid=='{partition_key}'",
             output_fields=[
                 "id",
                 "qa_doc_id",
@@ -551,6 +549,7 @@ class MilvusRetriever:
         log_context.info(
             f"Getting qa doc with id {qa_doc_id} from collection {collection_name}"
         )
+        self._ensure_collection_loaded(collection_name)
         res = self.client.query(
             collection_name=collection_name,
             filter=f"qa_doc_id=='{qa_doc_id}'",
@@ -599,16 +598,12 @@ class MilvusRetriever:
         log_context.info(
             f"Getting all qa_doc_ids from collection '{collection_name}' for bot_id: {bot_id}, version: {version}"
         )
+        self._ensure_collection_loaded(collection_name)
         partition_key = self.get_bot_uid(bot_id, version)
-        connections.connect(
-            uri=self.uri,
-            token=self.token,
-        )
-        collection = Collection(collection_name)
-
-        iterator = collection.query_iterator(
+        iterator = self.client.query_iterator(
+            collection_name=collection_name,
             batch_size=1000,
-            expr=f"qa_doc_type == '{qa_doc_type.value}' and bot_uid == '{partition_key}'",
+            filter=f"qa_doc_type == '{qa_doc_type.value}' and bot_uid == '{partition_key}'",
             output_fields=["id", "qa_doc_id"],
         )
 
@@ -627,12 +622,29 @@ class MilvusRetriever:
     def has_collection(self, collection_name: str) -> bool:
         return self.client.has_collection(collection_name)
 
-    def load_collection(self, collection_name: str) -> None:
-        if self.client.has_collection(collection_name):
-            self.client.load_collection(collection_name)
-            return
-        else:
+    def _ensure_collection_loaded(self, collection_name: str) -> None:
+        """Load collection into memory if not already loaded. Required before query/search."""
+        if not self.client.has_collection(collection_name=collection_name):
             raise ValueError(f"Milvus Collection {collection_name} does not exist")
+        if not self.is_collection_loaded(collection_name):
+            self._ensure_embedding_index(collection_name)
+            self.client.load_collection(collection_name)
+            log_context.info(f"Loaded collection {collection_name} for query operations")
+
+    def _ensure_embedding_index(self, collection_name: str) -> None:
+        """Create embedding vector index if missing. Milvus 2.5+ requires indexes on all vector fields before load."""
+        existing_indexes = self.client.list_indexes(collection_name)
+        if "embedding" not in existing_indexes:
+            log_context.info(
+                f"Creating missing embedding index on collection {collection_name}"
+            )
+            index_params = self.client.prepare_index_params()
+            index_params.add_index(
+                field_name="embedding", index_type="FLAT", metric_type="L2"
+            )
+            self.client.create_index(
+                collection_name=collection_name, index_params=index_params
+            )
 
     def release_collection(self, collection_name: str) -> dict[str, object]:
         return self.client.release_collection(collection_name)
@@ -641,13 +653,9 @@ class MilvusRetriever:
         return self.client.drop_collection(collection_name)
 
     def get_all_vectors(self, collection_name: str) -> list[dict[str, object]]:
-        connections.connect(
-            uri=self.uri,
-            token=self.token,
-        )
-        collection = Collection(collection_name)
-
-        iterator = collection.query_iterator(
+        self._ensure_collection_loaded(collection_name)
+        iterator = self.client.query_iterator(
+            collection_name=collection_name,
             batch_size=16000,
             output_fields=[
                 "id",
@@ -694,6 +702,7 @@ class MilvusRetriever:
             )
             self.create_collection_with_partition_key(collection_name)
 
+        self._ensure_collection_loaded(collection_name)
         vectors_to_insert = []
 
         if not upsert:
@@ -729,12 +738,12 @@ class MilvusRetriever:
 
     def is_collection_loaded(self, collection_name: str) -> bool:
         state = self.client.get_load_state(collection_name)
-        print("loaded state: ", state)
         return state["state"].__str__() == "Loaded"
 
     def delete_vectors_by_partition_key(
         self, collection_name: str, bot_id: str, version: str
     ) -> dict[str, object]:
+        self._ensure_collection_loaded(collection_name)
         partition_key = self.get_bot_uid(bot_id, version)
         res = self.client.delete(
             collection_name=collection_name, filter=f"bot_uid=='{partition_key}'"
@@ -755,6 +764,7 @@ class MilvusRetriever:
     def get_vector_count_for_bot(
         self, collection: str, bot_id: str, version: str
     ) -> int:
+        self._ensure_collection_loaded(collection)
         res = self.client.query(
             collection_name=collection, filter=f"bot_uid=='{bot_id}__{version}'"
         )
@@ -766,6 +776,7 @@ class MilvusRetriever:
         log_context.info(
             f"Counting tokens in collection {collection_name} for bot_id: {bot_id}, version: {version}"
         )
+        self._ensure_collection_loaded(collection_name)
         partition_key = self.get_bot_uid(bot_id, version)
         res = self.client.query(
             collection_name=collection_name,
@@ -775,6 +786,7 @@ class MilvusRetriever:
         return sum([r.get("num_tokens", 0) for r in res])
 
     def get_collection_size(self, collection_name: str) -> int:
+        self._ensure_collection_loaded(collection_name)
         # real time vector count for the collection
         return self.client.query(
             collection_name=collection_name, output_fields=["count(*)"]
@@ -787,16 +799,12 @@ class MilvusRetriever:
         version: str,
         new_collection_name: str,
     ) -> int:
+        self._ensure_collection_loaded(old_collection_name)
         partition_key = self.get_bot_uid(bot_id, version)
-        connections.connect(
-            uri=self.uri,
-            token=self.token,
-        )
-        collection = Collection(old_collection_name)
-
-        iterator = collection.query_iterator(
+        iterator = self.client.query_iterator(
+            collection_name=old_collection_name,
             batch_size=16000,
-            expr=f"bot_uid=='{partition_key}'",
+            filter=f"bot_uid=='{partition_key}'",
             output_fields=[
                 "id",
                 "bot_uid",
@@ -846,6 +854,7 @@ class MilvusRetriever:
     def list_collections(self) -> list[str]:
         return self.client.list_collections()
 
+milvus_retriever = MilvusRetriever()
 
 class MilvusRetrieverExecutor:
     def __init__(self, bot_config: object) -> None:
@@ -907,18 +916,16 @@ class MilvusRetrieverExecutor:
         )
         rit = time.time() - st
 
-        ret_results: list[RetrieverResult] = []
         st = time.time()
-        with MilvusRetriever() as retriever:
-            ret_results = retriever.search(
-                collection_name,
-                bot_id,
-                version,
-                ret_input,
-                tags,
-                possible_tags=possible_tags,
-                model_service=self.model_service,
-            )
+        ret_results = milvus_retriever.search(
+            collection_name,
+            bot_id,
+            version,
+            ret_input,
+            tags,
+            possible_tags=possible_tags,
+            model_service=self.model_service,
+        )
         rt = time.time() - st
         log_context.info(f"MilvusRetriever search took {rt} seconds")
         log_context.info(f"Retriever results: {ret_results}")
