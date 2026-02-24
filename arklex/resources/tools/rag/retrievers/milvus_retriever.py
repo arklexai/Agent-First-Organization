@@ -40,6 +40,7 @@ CHUNK_NEIGHBOURS = 3
 
 log_context = LogContext(__name__)
 
+
 def _tag_value_to_openai_schema(
     candidates: list[str],
 ) -> dict[str, Any]:
@@ -75,44 +76,47 @@ def _resolve_tag_value_via_db_and_llm(
         # Use possible_tags if provided
         if not possible_tags or tag_key not in possible_tags:
             return None
-        
+
         candidates = possible_tags[tag_key]
         if not candidates:
             return None
 
         # Create schema with enum constraints
         schema = _tag_value_to_openai_schema(candidates)
-        
+
         # Use structured output to ensure valid selection
         # The enum in schema already constrains choices, and schema description provides instructions
         prompt = f"Query: {contextualized_query}\n\nTag key: {tag_key}"
-        system_prompt = (
-            "Select the tag value that best matches the query context from the available options."
-        )
-        
+        system_prompt = "Select the tag value that best matches the query context from the available options."
+
         response = model_service.get_response_with_structured_output(
             prompt=prompt,
             schema=schema,
             system_prompt=system_prompt,
         )
-        
+
         # Extract tag value from structured response
         chosen = response.get("tag_value") if isinstance(response, dict) else None
-        
+
         if chosen and chosen in candidates:
-            log_context.info(f"Selected tag value '{chosen}' for tag key '{tag_key}' from {len(candidates)} candidates")
+            log_context.info(
+                f"Selected tag value '{chosen}' for tag key '{tag_key}' from {len(candidates)} candidates"
+            )
             return chosen
-        
+
         # Fallback to first candidate if structured output fails
-        log_context.warning("Structured output returned invalid value, falling back to first candidate")
+        log_context.warning(
+            "Structured output returned invalid value, falling back to first candidate"
+        )
         return candidates[0]
-        
+
     except Exception as e:
         log_context.warning(f"Tag resolution failed: {e}")
         # Fallback to first candidate on error
         if possible_tags and tag_key in possible_tags and possible_tags[tag_key]:
             return possible_tags[tag_key][0]
         return None
+
 
 class MilvusRetriever:
     def __init__(self) -> None:
@@ -124,7 +128,6 @@ class MilvusRetriever:
     def _connect(self) -> None:
         if not self.client:
             self.client = MilvusClient(uri=self.uri, token=self.token)
-
 
     def get_bot_uid(self, bot_id: str, version: str) -> str:
         return f"{bot_id}__{version}"
@@ -169,6 +172,7 @@ class MilvusRetriever:
         self.client.create_collection(
             collection_name=collection_name, schema=schema, index_params=index_params
         )
+        self._ensure_collection_loaded(collection_name)
 
     def delete_documents_by_qa_ids(
         self, collection_name: str, qa_ids: list[str]
@@ -407,9 +411,9 @@ class MilvusRetriever:
         partition_key = self.get_bot_uid(bot_id, version)
         query_embedding = embed(query, cache=True)
         filter = f'bot_uid == "{partition_key}"'
-        
+
         log_context.info(f"Tags received for search: {tags}")
-        
+
         if tags:
             # Support multiple tags - build filter conditions for all tags
             tag_filters = []
@@ -417,7 +421,9 @@ class MilvusRetriever:
                 if value:
                     # Tag has a value, add direct filter condition
                     escaped_value = str(value).replace('"', '\\"')
-                    tag_filters.append(f'metadata["tags"]["{key}"] == "{escaped_value}"')
+                    tag_filters.append(
+                        f'metadata["tags"]["{key}"] == "{escaped_value}"'
+                    )
                     log_context.info(f"Prepared tag filter: {key} = {value}")
                 else:
                     # Tag value is empty, try to resolve via DB + LLM if possible
@@ -430,13 +436,19 @@ class MilvusRetriever:
                         )
                         if chosen:
                             escaped_chosen = str(chosen).replace('"', '\\"')
-                            tag_filters.append(f'metadata["tags"]["{key}"] == "{escaped_chosen}"')
-                            log_context.info(f"Prepared resolved tag filter: {key} = {chosen}")
+                            tag_filters.append(
+                                f'metadata["tags"]["{key}"] == "{escaped_chosen}"'
+                            )
+                            log_context.info(
+                                f"Prepared resolved tag filter: {key} = {chosen}"
+                            )
             # Combine all tag filters with 'or'
             if tag_filters:
                 filter += " and (" + " or ".join(tag_filters) + ")"
-                log_context.info(f"Applied {len(tag_filters)} tag filter(s) with OR logic")
-        
+                log_context.info(
+                    f"Applied {len(tag_filters)} tag filter(s) with OR logic"
+                )
+
         log_context.info(f"Final search filter: {filter}")
 
         self._ensure_collection_loaded(collection_name)
@@ -629,7 +641,9 @@ class MilvusRetriever:
         if not self.is_collection_loaded(collection_name):
             self._ensure_embedding_index(collection_name)
             self.client.load_collection(collection_name)
-            log_context.info(f"Loaded collection {collection_name} for query operations")
+            log_context.info(
+                f"Loaded collection {collection_name} for query operations"
+            )
 
     def _ensure_embedding_index(self, collection_name: str) -> None:
         """Create embedding vector index if missing. Milvus 2.5+ requires indexes on all vector fields before load."""
@@ -854,7 +868,9 @@ class MilvusRetriever:
     def list_collections(self) -> list[str]:
         return self.client.list_collections()
 
+
 milvus_retriever = MilvusRetriever()
+
 
 class MilvusRetrieverExecutor:
     def __init__(self, bot_config: object) -> None:
