@@ -2,7 +2,7 @@
 
 from typing import Any, TypedDict
 
-from arklex.resources.tools.rag.retrievers.milvus_retriever import MilvusRetriever
+from arklex.resources.tools.rag.retrievers.milvus_retriever import get_milvus_retriever
 from arklex.resources.tools.tools import register_tool
 from arklex.utils.logging.logging_utils import LogContext
 
@@ -38,8 +38,8 @@ def retriever(query: str, auth: RetrieverParams, **kwargs: dict[str, Any]) -> st
     log_context.info(
         f"Retrieving from collection {collection_name} for bot {bot_id} version {version} with query {query}"
     )
-    with MilvusRetriever() as retriever:
-        retriever_results = retriever.search(collection_name, bot_id, version, query)
+    milvus_retriever = get_milvus_retriever()
+    retriever_results = milvus_retriever.search(collection_name, bot_id, version, query)
 
     retrieved_str = ""
     for doc in retriever_results:

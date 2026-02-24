@@ -14,6 +14,7 @@ document embedding, vector storage, and similarity search with metadata filterin
 # TODO: get num_tokens for functions inside milvus_retriever.py and retriever_document.py (with classmethod RetrieverDocument.faq_retreiver_doc); influence token migrations
 
 import os
+import threading
 import time
 from collections import defaultdict
 from multiprocessing.pool import Pool
@@ -21,7 +22,7 @@ from typing import Any
 
 import numpy as np
 from langchain_core.prompts import PromptTemplate
-from pymilvus import Collection, DataType, MilvusClient, connections
+from pymilvus import DataType, MilvusClient
 
 from arklex.models.model_service import ModelService
 from arklex.resources.tools.rag.retrievers.retriever_document import (
@@ -39,6 +40,7 @@ MAX_TEXT_LENGTH = 65535
 CHUNK_NEIGHBOURS = 3
 
 log_context = LogContext(__name__)
+
 
 def _tag_value_to_openai_schema(
     candidates: list[str],
@@ -75,38 +77,40 @@ def _resolve_tag_value_via_db_and_llm(
         # Use possible_tags if provided
         if not possible_tags or tag_key not in possible_tags:
             return None
-        
+
         candidates = possible_tags[tag_key]
         if not candidates:
             return None
 
         # Create schema with enum constraints
         schema = _tag_value_to_openai_schema(candidates)
-        
+
         # Use structured output to ensure valid selection
         # The enum in schema already constrains choices, and schema description provides instructions
         prompt = f"Query: {contextualized_query}\n\nTag key: {tag_key}"
-        system_prompt = (
-            "Select the tag value that best matches the query context from the available options."
-        )
-        
+        system_prompt = "Select the tag value that best matches the query context from the available options."
+
         response = model_service.get_response_with_structured_output(
             prompt=prompt,
             schema=schema,
             system_prompt=system_prompt,
         )
-        
+
         # Extract tag value from structured response
         chosen = response.get("tag_value") if isinstance(response, dict) else None
-        
+
         if chosen and chosen in candidates:
-            log_context.info(f"Selected tag value '{chosen}' for tag key '{tag_key}' from {len(candidates)} candidates")
+            log_context.info(
+                f"Selected tag value '{chosen}' for tag key '{tag_key}' from {len(candidates)} candidates"
+            )
             return chosen
-        
+
         # Fallback to first candidate if structured output fails
-        log_context.warning("Structured output returned invalid value, falling back to first candidate")
+        log_context.warning(
+            "Structured output returned invalid value, falling back to first candidate"
+        )
         return candidates[0]
-        
+
     except Exception as e:
         log_context.warning(f"Tag resolution failed: {e}")
         # Fallback to first candidate on error
@@ -115,27 +119,22 @@ def _resolve_tag_value_via_db_and_llm(
         return None
 
 
-
 class MilvusRetriever:
-    def __enter__(self) -> "MilvusRetriever":
+    def __init__(self, client: MilvusClient | None = None) -> None:
         self.uri = os.getenv("MILVUS_URI", "")
         self.token = os.getenv("MILVUS_TOKEN", "")
-        self.client = MilvusClient(uri=self.uri, token=self.token)
-        return self
+        self.client: MilvusClient | None = client
+        if not self.client:
+            self._connect()
 
-    def __exit__(
-        self,
-        exc_type: type[BaseException] | None,
-        exc_value: BaseException | None,
-        traceback: object | None,
-    ) -> None:
-        self.client.close()
+    def _connect(self) -> None:
+        self.client = MilvusClient(uri=self.uri, token=self.token)
 
     def get_bot_uid(self, bot_id: str, version: str) -> str:
         return f"{bot_id}__{version}"
 
     def create_collection_with_partition_key(self, collection_name: str) -> None:
-        schema = MilvusClient.create_schema(
+        schema = self.client.create_schema(
             auto_id=False,
             enable_dynamic_field=True,
             partition_key_field="bot_uid",
@@ -174,6 +173,10 @@ class MilvusRetriever:
         self.client.create_collection(
             collection_name=collection_name, schema=schema, index_params=index_params
         )
+        self.load_collection(collection_name)
+
+    def load_collection(self, collection_name: str) -> None:
+        self.client.load_collection(collection_name)
 
     def delete_documents_by_qa_ids(
         self, collection_name: str, qa_ids: list[str]
@@ -406,9 +409,9 @@ class MilvusRetriever:
         partition_key = self.get_bot_uid(bot_id, version)
         query_embedding = embed(query, cache=True)
         filter = f'bot_uid == "{partition_key}"'
-        
+
         log_context.info(f"Tags received for search: {tags}")
-        
+
         if tags:
             # Support multiple tags - build filter conditions for all tags
             tag_filters = []
@@ -416,7 +419,9 @@ class MilvusRetriever:
                 if value:
                     # Tag has a value, add direct filter condition
                     escaped_value = str(value).replace('"', '\\"')
-                    tag_filters.append(f'metadata["tags"]["{key}"] == "{escaped_value}"')
+                    tag_filters.append(
+                        f'metadata["tags"]["{key}"] == "{escaped_value}"'
+                    )
                     log_context.info(f"Prepared tag filter: {key} = {value}")
                 else:
                     # Tag value is empty, try to resolve via DB + LLM if possible
@@ -429,13 +434,19 @@ class MilvusRetriever:
                         )
                         if chosen:
                             escaped_chosen = str(chosen).replace('"', '\\"')
-                            tag_filters.append(f'metadata["tags"]["{key}"] == "{escaped_chosen}"')
-                            log_context.info(f"Prepared resolved tag filter: {key} = {chosen}")
+                            tag_filters.append(
+                                f'metadata["tags"]["{key}"] == "{escaped_chosen}"'
+                            )
+                            log_context.info(
+                                f"Prepared resolved tag filter: {key} = {chosen}"
+                            )
             # Combine all tag filters with 'or'
             if tag_filters:
                 filter += " and (" + " or ".join(tag_filters) + ")"
-                log_context.info(f"Applied {len(tag_filters)} tag filter(s) with OR logic")
-        
+                log_context.info(
+                    f"Applied {len(tag_filters)} tag filter(s) with OR logic"
+                )
+
         log_context.info(f"Final search filter: {filter}")
 
         res = self.client.search(
@@ -476,16 +487,11 @@ class MilvusRetriever:
         version: str,
         qa_doc_type: RetrieverDocumentType,
     ) -> list[RetrieverDocument]:
-        connections.connect(
-            uri=self.uri,
-            token=self.token,
-        )
-        collection = Collection(collection_name)
-
         partition_key = self.get_bot_uid(bot_id, version)
-        iterator = collection.query_iterator(
+        iterator = self.client.query_iterator(
+            collection_name=collection_name,
             batch_size=1000,
-            expr=f"qa_doc_type=='{qa_doc_type.value}' and bot_uid=='{partition_key}'",
+            filter=f"qa_doc_type=='{qa_doc_type.value}' and bot_uid=='{partition_key}'",
             output_fields=[
                 "id",
                 "qa_doc_id",
@@ -600,15 +606,10 @@ class MilvusRetriever:
             f"Getting all qa_doc_ids from collection '{collection_name}' for bot_id: {bot_id}, version: {version}"
         )
         partition_key = self.get_bot_uid(bot_id, version)
-        connections.connect(
-            uri=self.uri,
-            token=self.token,
-        )
-        collection = Collection(collection_name)
-
-        iterator = collection.query_iterator(
+        iterator = self.client.query_iterator(
+            collection_name=collection_name,
             batch_size=1000,
-            expr=f"qa_doc_type == '{qa_doc_type.value}' and bot_uid == '{partition_key}'",
+            filter=f"qa_doc_type == '{qa_doc_type.value}' and bot_uid == '{partition_key}'",
             output_fields=["id", "qa_doc_id"],
         )
 
@@ -627,13 +628,6 @@ class MilvusRetriever:
     def has_collection(self, collection_name: str) -> bool:
         return self.client.has_collection(collection_name)
 
-    def load_collection(self, collection_name: str) -> None:
-        if self.client.has_collection(collection_name):
-            self.client.load_collection(collection_name)
-            return
-        else:
-            raise ValueError(f"Milvus Collection {collection_name} does not exist")
-
     def release_collection(self, collection_name: str) -> dict[str, object]:
         return self.client.release_collection(collection_name)
 
@@ -641,13 +635,8 @@ class MilvusRetriever:
         return self.client.drop_collection(collection_name)
 
     def get_all_vectors(self, collection_name: str) -> list[dict[str, object]]:
-        connections.connect(
-            uri=self.uri,
-            token=self.token,
-        )
-        collection = Collection(collection_name)
-
-        iterator = collection.query_iterator(
+        iterator = self.client.query_iterator(
+            collection_name=collection_name,
             batch_size=16000,
             output_fields=[
                 "id",
@@ -729,7 +718,6 @@ class MilvusRetriever:
 
     def is_collection_loaded(self, collection_name: str) -> bool:
         state = self.client.get_load_state(collection_name)
-        print("loaded state: ", state)
         return state["state"].__str__() == "Loaded"
 
     def delete_vectors_by_partition_key(
@@ -788,15 +776,10 @@ class MilvusRetriever:
         new_collection_name: str,
     ) -> int:
         partition_key = self.get_bot_uid(bot_id, version)
-        connections.connect(
-            uri=self.uri,
-            token=self.token,
-        )
-        collection = Collection(old_collection_name)
-
-        iterator = collection.query_iterator(
+        iterator = self.client.query_iterator(
+            collection_name=old_collection_name,
             batch_size=16000,
-            expr=f"bot_uid=='{partition_key}'",
+            filter=f"bot_uid=='{partition_key}'",
             output_fields=[
                 "id",
                 "bot_uid",
@@ -847,10 +830,31 @@ class MilvusRetriever:
         return self.client.list_collections()
 
 
+_milvus_retriever: MilvusRetriever | None = None
+_milvus_retriever_lock = threading.Lock()
+
+
+def get_milvus_retriever() -> MilvusRetriever:
+    """Return a shared MilvusRetriever instance, creating it on first call.
+
+    Thread-safe via double-checked locking.
+    """
+    global _milvus_retriever
+    if _milvus_retriever is None:
+        with _milvus_retriever_lock:
+            if _milvus_retriever is None:
+                _milvus_retriever = MilvusRetriever()
+    return _milvus_retriever
+
+
 class MilvusRetrieverExecutor:
-    def __init__(self, bot_config: object) -> None:
+    def __init__(
+        self,
+        bot_config: object,
+    ) -> None:
         self.bot_config = bot_config
         self.model_service = ModelService(bot_config.llm_config)
+        self.milvus_retriever = get_milvus_retriever()
 
     def generate_thought(self, retriever_results: list[RetrieverResult]) -> str:
         # post process list of documents into str
@@ -907,18 +911,16 @@ class MilvusRetrieverExecutor:
         )
         rit = time.time() - st
 
-        ret_results: list[RetrieverResult] = []
         st = time.time()
-        with MilvusRetriever() as retriever:
-            ret_results = retriever.search(
-                collection_name,
-                bot_id,
-                version,
-                ret_input,
-                tags,
-                possible_tags=possible_tags,
-                model_service=self.model_service,
-            )
+        ret_results = self.milvus_retriever.search(
+            collection_name,
+            bot_id,
+            version,
+            ret_input,
+            tags,
+            possible_tags=possible_tags,
+            model_service=self.model_service,
+        )
         rt = time.time() - st
         log_context.info(f"MilvusRetriever search took {rt} seconds")
         log_context.info(f"Retriever results: {ret_results}")
