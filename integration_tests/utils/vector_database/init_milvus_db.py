@@ -3,7 +3,10 @@ import uuid
 
 import tiktoken
 
-from arklex.resources.tools.rag.retrievers.milvus_retriever import MilvusRetriever
+from arklex.resources.tools.rag.retrievers.milvus_retriever import (
+    MilvusRetriever,
+    get_milvus_retriever,
+)
 from arklex.resources.tools.rag.retrievers.retriever_document import (
     DEFAULT_CHUNK_ENCODING,
     RetrieverDocument,
@@ -15,7 +18,11 @@ faq_str = "[Question]: What is your company's main focus?\n[Answer] Arklex focus
 
 def insert_faq_documents(
     milvus_retriever: MilvusRetriever,
-    bot_id: str, version: str, collection_name: str, doc_str: str, tags: dict = None
+    bot_id: str,
+    version: str,
+    collection_name: str,
+    doc_str: str,
+    tags: dict = None,
 ) -> None:
     if tags is None:
         tags = {}
@@ -36,7 +43,7 @@ def main() -> None:
     bot_id = "arklex"
     version = "v1"
     collection_name = "test_collection"
-    milvus_retriever = MilvusRetriever()
+    milvus_retriever = get_milvus_retriever()
 
     if not milvus_retriever.has_collection(collection_name):
         milvus_retriever.create_collection_with_partition_key(collection_name)
