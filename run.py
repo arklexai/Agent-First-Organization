@@ -83,7 +83,7 @@ if __name__ == "__main__":
     parser.add_argument(
         "--model",
         type=str,
-        default="gpt-4o-mini",
+        default="gpt-5.1",
         help="Model to use (e.g., gpt-4o, claude-3-5-haiku-20241022, gemini-1.5-flash)",
     )
     parser.add_argument(

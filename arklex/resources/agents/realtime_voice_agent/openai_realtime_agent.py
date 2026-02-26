@@ -194,7 +194,7 @@ class OpenAIRealtimeAgent(BaseAgent):
             starting_agent=self.realtime_agent,
             config=RealtimeRunConfig(
                 model_settings=RealtimeSessionModelSettings(
-                    model_name="gpt-4o-realtime-preview-2025-06-03",
+                    model_name="gpt-realtime-1.5",
                     input_audio_format=self.input_audio_format,
                     output_audio_format=self.output_audio_format,
                     input_audio_transcription=RealtimeInputAudioTranscriptionConfig(

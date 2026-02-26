@@ -184,6 +184,7 @@ class AgentGraph(GraphBase):
                     instructions=prompt,
                     tools=agents_tools,
                     handoff_description=agent_data.handoff_description,
+                    model="gpt-5.1",  # https://openai.github.io/openai-agents-python/models/ default is reasoning effort: low, verbosity: low
                 )
             elif (
                 resource["id"] == AgentItem.INPUT_GUARDRAIL

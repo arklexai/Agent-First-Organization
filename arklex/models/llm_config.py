@@ -12,7 +12,7 @@ LLM_PROVIDERS: list[str] = [
 
 class LLMConfig(BaseModel):
     llm_provider: str = Field(default="openai")
-    model_type_or_path: str = Field(default="gpt-4o")
+    model_type_or_path: str = Field(default="gpt-5.1")
 
 
 def get_huggingface_llm(model: str, **kwargs: object) -> any:
@@ -24,10 +24,17 @@ def get_huggingface_llm(model: str, **kwargs: object) -> any:
     return ChatHuggingFace(llm=llm)
 
 
+OPENAI_REASONING_MODEL_PREFIXES = ("o1", "o3", "o4", "gpt-5")
+
+
 def load_llm(llm_config: LLMConfig) -> any:
     """Load a language model based on the configuration."""
     if llm_config.llm_provider == "openai":
-        return ChatOpenAI(model=llm_config.model_type_or_path)
+        kwargs: dict[str, str] = {}
+        if llm_config.model_type_or_path.startswith(OPENAI_REASONING_MODEL_PREFIXES):
+            kwargs["reasoning_effort"] = "low"
+            kwargs["verbosity"] = "low"
+        return ChatOpenAI(model=llm_config.model_type_or_path, **kwargs)
     elif llm_config.llm_provider == "google":
         from langchain_google_genai import ChatGoogleGenerativeAI
 
