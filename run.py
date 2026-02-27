@@ -93,6 +93,18 @@ if __name__ == "__main__":
         choices=LLM_PROVIDERS,
         help="LLM provider to use (openai, anthropic, google, huggingface)",
     )
+    parser.add_argument(
+        "--langchain_model_kwargs",
+        type=json.loads,
+        default={"reasoning_effort": "low", "verbosity": "low"},
+        help='JSON string of kwargs for LangChain model (e.g. \'{"reasoning_effort": "low"}\')',
+    )
+    parser.add_argument(
+        "--openai_agent_sdk_model_settings",
+        type=json.loads,
+        default=None,
+        help='JSON string of OpenAI Agents SDK ModelSettings (e.g. \'{"reasoning": {"effort": "low"}}\')',
+    )
     args = parser.parse_args()
 
     # Set up environment variables and model configuration
@@ -104,6 +116,8 @@ if __name__ == "__main__":
     model = {
         "llm_provider": args.llm_provider,
         "model_type_or_path": args.model,
+        "langchain_model_kwargs": args.langchain_model_kwargs,
+        "openai_agent_sdk_model_settings": args.openai_agent_sdk_model_settings,
     }
 
     # Load task graph configuration and initialize environment

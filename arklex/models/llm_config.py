@@ -1,3 +1,5 @@
+from typing import Any
+
 from langchain_openai import ChatOpenAI
 from pydantic import BaseModel, Field
 
@@ -13,6 +15,10 @@ LLM_PROVIDERS: list[str] = [
 class LLMConfig(BaseModel):
     llm_provider: str = Field(default="openai")
     model_type_or_path: str = Field(default="gpt-5.1")
+    langchain_model_kwargs: dict[str, Any] | None = Field(
+        default={"reasoning_effort": "low", "verbosity": "low"}
+    )
+    openai_agent_sdk_model_settings: dict[str, Any] | None = Field(default=None)
 
 
 def get_huggingface_llm(model: str, **kwargs: object) -> any:
@@ -29,21 +35,18 @@ OPENAI_REASONING_MODEL_PREFIXES = ("o1", "o3", "o4", "gpt-5")
 
 def load_llm(llm_config: LLMConfig) -> any:
     """Load a language model based on the configuration."""
+    kwargs = llm_config.langchain_model_kwargs or {}
     if llm_config.llm_provider == "openai":
-        kwargs: dict[str, str] = {}
-        if llm_config.model_type_or_path.startswith(OPENAI_REASONING_MODEL_PREFIXES):
-            kwargs["reasoning_effort"] = "low"
-            kwargs["verbosity"] = "low"
         return ChatOpenAI(model=llm_config.model_type_or_path, **kwargs)
     elif llm_config.llm_provider == "google":
         from langchain_google_genai import ChatGoogleGenerativeAI
 
-        return ChatGoogleGenerativeAI(model=llm_config.model_type_or_path)
+        return ChatGoogleGenerativeAI(model=llm_config.model_type_or_path, **kwargs)
     elif llm_config.llm_provider == "anthropic":
         from langchain_anthropic import ChatAnthropic
 
-        return ChatAnthropic(model=llm_config.model_type_or_path)
+        return ChatAnthropic(model=llm_config.model_type_or_path, **kwargs)
     elif llm_config.llm_provider == "huggingface":
-        return get_huggingface_llm(model=llm_config.model_type_or_path)
+        return get_huggingface_llm(model=llm_config.model_type_or_path, **kwargs)
     else:
         raise ValueError(f"Unsupported LLM provider: {llm_config.llm_provider}")

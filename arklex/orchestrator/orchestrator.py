@@ -3,7 +3,9 @@ import json
 from typing import Any
 
 import janus
+from agents import ModelSettings
 from dotenv import load_dotenv
+from openai.types.shared import Reasoning
 
 from arklex.models.llm_config import LLMConfig
 from arklex.orchestrator.entities.orchestrator_param_entities import OrchestratorParams
@@ -83,7 +85,22 @@ class AgentOrg:
         self.agent_graph: AgentGraph = AgentGraph(
             "agentgraph",
             self.config,
+            model=self.llm_config.model_type_or_path,
+            model_settings=self._build_openai_agent_sdk_model_settings(),
         )
+
+    def _build_openai_agent_sdk_model_settings(self) -> ModelSettings | None:
+        """Build ModelSettings from llm_config.openai_agent_sdk_model_settings.
+
+        Returns None if no settings are configured, letting the SDK use its defaults.
+        """
+        settings = self.llm_config.openai_agent_sdk_model_settings
+        if not settings:
+            return None
+        kwargs = dict(settings)
+        if "reasoning" in kwargs and isinstance(kwargs["reasoning"], dict):
+            kwargs["reasoning"] = Reasoning(**kwargs["reasoning"])
+        return ModelSettings(**kwargs)
 
     def _get_response(
         self,
