@@ -5,6 +5,7 @@ from typing import Any
 
 from agents import (
     Agent,
+    ModelSettings,
     handoff,
 )
 from agents.realtime import RealtimeAgent, realtime_handoff
@@ -43,7 +44,13 @@ class AgentGraph(GraphBase):
         create_graph(): Creates the graph structure
     """
 
-    def __init__(self, name: str, graph_config: dict[str, Any]) -> None:
+    def __init__(
+        self,
+        name: str,
+        graph_config: dict[str, Any],
+        model: str = "gpt-5.1",
+        model_settings: ModelSettings | None = None,
+    ) -> None:
         self.agents: dict[str, Agent] = {}
         self.resources = {}
         self.prompt_variables: list[PromptVariable] = []
@@ -57,6 +64,8 @@ class AgentGraph(GraphBase):
         self.agents_output_guardrails: dict[str, list[Agent]] = collections.defaultdict(
             list
         )
+        self.model: str = model
+        self.model_settings: ModelSettings | None = model_settings
         super().__init__(name, graph_config)
 
     def create_graph(self) -> None:
@@ -184,6 +193,8 @@ class AgentGraph(GraphBase):
                     instructions=prompt,
                     tools=agents_tools,
                     handoff_description=agent_data.handoff_description,
+                    model=self.model,
+                    model_settings=self.model_settings,
                 )
             elif (
                 resource["id"] == AgentItem.INPUT_GUARDRAIL
