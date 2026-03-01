@@ -26,19 +26,25 @@ class ToolExecutor(Protocol):
     tools: dict[str, Any]
 
 
-def get_prompt_template(state: OrchestratorState, prompt_key: str) -> PromptTemplate:
-    """Get the prompt template based on the stream type."""
+def get_prompt_templates(state: OrchestratorState, prompt_key: str) -> PromptTemplate:
+    """Get the system prompt template based on the stream type.
+
+    The actual user message is passed directly to the model.
+    """
     prompts: dict[str, str] = load_prompts(state.bot_config.language)
 
     if state.stream_type == StreamType.SPEECH:
         # Use speech prompts, but fall back to regular prompts for Chinese
         # since Chinese speech prompts are not available yet
         if state.bot_config.language == "CN":
-            return PromptTemplate.from_template(prompts[prompt_key])
+            system_key = prompt_key + "_system"
         else:
-            return PromptTemplate.from_template(prompts[prompt_key + "_speech"])
+            system_key = prompt_key + "_speech_system"
     else:
-        return PromptTemplate.from_template(prompts[prompt_key])
+        system_key = prompt_key + "_system"
+
+    system_template = PromptTemplate.from_template(prompts[system_key])
+    return system_template
 
 
 class ToolGenerator:
@@ -48,12 +54,20 @@ class ToolGenerator:
         user_message: Any = state.user_message
 
         model_service: ModelService = ModelService(llm_config)
-        prompt: PromptTemplate = get_prompt_template(state, "generator_prompt")
-        input_prompt: Any = prompt.invoke(
-            {"sys_instruct": state.sys_instruct, "formatted_chat": user_message.history}
+        system_template = get_prompt_templates(state, "generator_prompt")
+        system_prompt: str = system_template.invoke(
+            {"sys_instruct": state.sys_instruct}
+        ).text
+        log_context.info(f"System prompt: {system_prompt}")
+
+        # Get conversation history
+        conversation_history = user_message.history
+        # Use the current user message as the prompt
+        current_user_message = user_message.message
+
+        answer: str = model_service.get_response(
+            current_user_message, system_prompt, conversation_history
         )
-        log_context.info(f"Prompt: {input_prompt.text}")
-        answer: str = model_service.get_response(input_prompt.text)
 
         return answer
 
@@ -95,16 +109,23 @@ class ToolGenerator:
         )
 
         # generate answer based on the retrieved texts
-        prompt: PromptTemplate = get_prompt_template(state, "context_generator_prompt")
-        input_prompt: Any = prompt.invoke(
+        system_template = get_prompt_templates(state, "context_generator_prompt")
+        system_prompt: str = system_template.invoke(
             {
                 "sys_instruct": state.sys_instruct,
-                "formatted_chat": user_message.history,
                 "context": message_flow,
             }
+        ).text
+        log_context.info(f"System prompt: {system_prompt}")
+
+        # Get conversation history
+        conversation_history = user_message.history
+        # Use the current user message as the prompt
+        current_user_message = user_message.message
+
+        answer: str = model_service.get_response(
+            current_user_message, system_prompt, conversation_history
         )
-        log_context.info(f"Prompt: {input_prompt.text}")
-        answer: str = model_service.get_response(input_prompt.text)
         state.message_flow = ""
         # state = trace(input=answer, state=state)
         return answer
@@ -145,18 +166,25 @@ class ToolGenerator:
         )
 
         # generate answer based on the retrieved texts
-        prompt: PromptTemplate = get_prompt_template(state, "context_generator_prompt")
-
-        input_prompt: Any = prompt.invoke(
+        system_template = get_prompt_templates(state, "context_generator_prompt")
+        system_prompt: str = system_template.invoke(
             {
                 "sys_instruct": state.sys_instruct,
-                "formatted_chat": user_message.history,
                 "context": message_flow,
             }
+        ).text
+        log_context.info(f"System prompt: {system_prompt}")
+
+        # Get conversation history
+        conversation_history = user_message.history
+        # Use the current user message as the prompt
+        current_user_message = user_message.message
+
+        messages = model_service._format_messages(
+            current_user_message, system_prompt, conversation_history
         )
-        log_context.info(f"Prompt: {input_prompt.text}")
         answer: str = ""
-        for chunk in model_service.model.stream(input_prompt.text):
+        for chunk in model_service.model.stream(messages):
             answer += chunk.content
             state.message_queue.put(
                 {"event": EventType.CHUNK.value, "message_chunk": chunk.content}
@@ -173,12 +201,21 @@ class ToolGenerator:
         llm_config: dict[str, Any] = state.bot_config.llm_config
         model_service: ModelService = ModelService(llm_config)
 
-        prompt: PromptTemplate = get_prompt_template(state, "generator_prompt")
-        input_prompt: Any = prompt.invoke(
-            {"sys_instruct": state.sys_instruct, "formatted_chat": user_message.history}
+        system_template = get_prompt_templates(state, "generator_prompt")
+        system_prompt: str = system_template.invoke(
+            {"sys_instruct": state.sys_instruct}
+        ).text
+
+        # Get conversation history
+        conversation_history = user_message.history
+        # Use the current user message as the prompt
+        current_user_message = user_message.message
+
+        messages = model_service._format_messages(
+            current_user_message, system_prompt, conversation_history
         )
         answer: str = ""
-        for chunk in model_service.model.stream(input_prompt.text):
+        for chunk in model_service.model.stream(messages):
             answer += chunk.content
             state.message_queue.put(
                 {"event": EventType.CHUNK.value, "message_chunk": chunk.content}

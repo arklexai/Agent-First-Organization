@@ -20,6 +20,7 @@ from arklex.resources.workers.search.entities import (
     SearchWorkerOutput,
 )
 from arklex.utils.logging.logging_utils import LogContext
+from arklex.utils.utils import format_chat_history
 
 log_context = LogContext(__name__)
 
@@ -39,9 +40,16 @@ class SearchWorker(BaseWorker):
         self.search_worker_data = SearchWorkerData(**node_specific_data)
 
     def _execute(self) -> SearchWorkerOutput:
+        # Format history for the search (needs string format)
+        # Include the current message in the history for context
+        history_with_current = self.orch_state.user_message.history + [
+            {"role": "user", "content": self.orch_state.user_message.message}
+        ]
+        formatted_history = format_chat_history(history_with_current)
+
         search_engine: SearchEngine = SearchEngine()
         retrieved_text = search_engine.search(
-            chat_history=self.orch_state.user_message.history,
+            chat_history=formatted_history,
             bot_config=self.orch_state.bot_config,
         )
         self.orch_state.message_flow = retrieved_text

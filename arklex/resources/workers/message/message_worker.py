@@ -44,61 +44,75 @@ class MessageWorker(BaseWorker):
         )
         self.model_service = ModelService(self.orch_state.bot_config.llm_config)
 
-    def _format_prompt(self) -> str:
-        user_message = self.orch_state.user_message
+    def _format_prompts(self) -> str:
         message_flow = self.orch_state.message_flow
         orch_message = self.msg_worker_data.message
 
         prompts: dict[str, str] = load_prompts(self.orch_state.bot_config.language)
         if message_flow:
             if self.orch_state.stream_type == StreamType.SPEECH:
-                prompt: PromptTemplate = PromptTemplate.from_template(
-                    prompts["message_flow_generator_prompt_speech"]
+                system_prompt_template: PromptTemplate = PromptTemplate.from_template(
+                    prompts["message_flow_generator_prompt_speech_system"]
                 )
             else:
-                prompt: PromptTemplate = PromptTemplate.from_template(
-                    prompts["message_flow_generator_prompt"]
+                system_prompt_template: PromptTemplate = PromptTemplate.from_template(
+                    prompts["message_flow_generator_prompt_system"]
                 )
-            input_prompt = prompt.invoke(
+            system_prompt = system_prompt_template.invoke(
                 {
                     "sys_instruct": self.orch_state.sys_instruct,
-                    "message": orch_message,
-                    "formatted_chat": user_message.history,
                     "context": message_flow,
+                    "message": orch_message,
                 }
-            )
+            ).text
         else:
             if self.orch_state.stream_type == StreamType.SPEECH:
-                prompt: PromptTemplate = PromptTemplate.from_template(
-                    prompts["message_generator_prompt_speech"]
+                system_prompt_template: PromptTemplate = PromptTemplate.from_template(
+                    prompts["message_generator_prompt_speech_system"]
                 )
             else:
-                prompt: PromptTemplate = PromptTemplate.from_template(
-                    prompts["message_generator_prompt"]
+                system_prompt_template: PromptTemplate = PromptTemplate.from_template(
+                    prompts["message_generator_prompt_system"]
                 )
-            input_prompt = prompt.invoke(
+            system_prompt = system_prompt_template.invoke(
                 {
                     "sys_instruct": self.orch_state.sys_instruct,
                     "message": orch_message,
-                    "formatted_chat": user_message.history,
                 }
-            )
+            ).text
         log_context.info(
-            f"Prompt for stream type {self.orch_state.stream_type}: {input_prompt.text}"
+            f"System prompt for stream type {self.orch_state.stream_type}: {system_prompt}"
         )
-        return input_prompt.text
 
-    def generator(self, prompt: str) -> str:
-        answer: str = self.model_service.get_response(prompt)
+        return system_prompt
+
+    def generator(self, system_prompt: str) -> str:
+        # Get conversation history
+        conversation_history = self.orch_state.user_message.history
+        # Use the current user message as the prompt
+        current_user_message = self.orch_state.user_message.message
+
+        answer: str = self.model_service.get_response(
+            current_user_message, system_prompt, conversation_history
+        )
         return answer
 
-    def stream_generator(self, prompt: str) -> str:
+    def stream_generator(self, system_prompt: str) -> str:
+        # Get conversation history
+        conversation_history = self.orch_state.user_message.history
+        # Use the current user message as the prompt
+        current_user_message = self.orch_state.user_message.message
+
         answer: str = ""
-        for chunk in self.model_service.model.stream(prompt):
+        messages = self.model_service._format_messages(
+            current_user_message, system_prompt, conversation_history
+        )
+        for chunk in self.model_service.model.stream(messages):
             answer += chunk.content
             self.orch_state.message_queue.put(
                 {"event": EventType.CHUNK.value, "message_chunk": chunk.content}
             )
+
         return answer
 
     def _execute(self) -> MessageWorkerOutput:
@@ -111,14 +125,14 @@ class MessageWorker(BaseWorker):
                 status=StatusEnum.COMPLETE,
             )
 
-        input_prompt = self._format_prompt()
+        system_prompt = self._format_prompts()
         if (
             self.orch_state.stream_type == StreamType.TEXT
             or self.orch_state.stream_type == StreamType.SPEECH
         ):
-            answer = self.stream_generator(input_prompt)
+            answer = self.stream_generator(system_prompt)
         else:
-            answer = self.generator(input_prompt)
+            answer = self.generator(system_prompt)
 
         return MessageWorkerOutput(
             response=answer,
