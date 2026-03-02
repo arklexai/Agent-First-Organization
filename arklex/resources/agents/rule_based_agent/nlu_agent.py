@@ -216,16 +216,6 @@ class NLUAgent(BaseAgent):
         message_queue: janus.Queue | None,
     ) -> tuple[str, str, OrchestratorParams, OrchestratorState]:
         text, chat_history_str, params, orch_state = self.init_params(inputs)
-        execute_start = time.time()
-
-        # --- Sequential guardrail: blocks before execution ---
-        # if self.agent_data.input_guardrail_description and text != "<start>":
-        #     if self.check_input_guardrail(text, chat_history_str):
-        #         log_context.info("Input guardrail triggered, returning fixed message")
-        #         node_response = NodeResponse(status=StatusEnum.COMPLETE, response=self.agent_data.input_guardrail_fixed_message)
-        #         sequential_total_ms = (time.time() - execute_start) * 1000
-        #         log_context.info(f"[Sequential] Total latency (early exit — guardrail blocked): {sequential_total_ms:.1f}ms")
-        #         return node_response, params
 
         # --- Parallel guardrail: runs alongside execution ---
         guardrail_executor = None
@@ -251,12 +241,8 @@ class NLUAgent(BaseAgent):
         max_n_node_performed = 5
         while n_node_performed < max_n_node_performed:
             if self._guardrail_triggered(guardrail_future):
-                log_context.info(
-                    "Input guardrail triggered mid-execution, aborting early"
-                )
                 guardrail_executor.shutdown(wait=False)
-                total_ms = (time.time() - execute_start) * 1000
-                log_context.info(f"[Parallel] Early abort latency: {total_ms:.1f}ms")
+                log_context.info("[Input guardrail] Early abort")
                 return NodeResponse(
                     status=StatusEnum.COMPLETE,
                     response=self.agent_data.input_guardrail_fixed_message,
@@ -297,10 +283,7 @@ class NLUAgent(BaseAgent):
 
         if not node_response.response and self._guardrail_triggered(guardrail_future):
             guardrail_executor.shutdown(wait=False)
-            total_ms = (time.time() - execute_start) * 1000
-            log_context.info(
-                f"[Parallel] Input guardrail triggered before context generation, aborting early, latency: {total_ms:.1f}ms"
-            )
+            log_context.info("[Input guardrail] Early abort before context generation")
             return NodeResponse(
                 status=StatusEnum.COMPLETE,
                 response=self.agent_data.input_guardrail_fixed_message,
@@ -324,18 +307,14 @@ class NLUAgent(BaseAgent):
             try:
                 triggered = guardrail_future.result(timeout=30)
             except Exception as e:
-                log_context.error(f"Input guardrail future error: {e}")
+                log_context.error(f"[Input guardrail] future error: {e}")
                 triggered = False
             finally:
                 guardrail_executor.shutdown(wait=False)
             if triggered:
-                log_context.info("Input guardrail triggered, returning fixed message")
+                log_context.info(
+                    "[Input guardrail] triggered, returning the fixed block message"
+                )
                 node_response.response = self.agent_data.input_guardrail_fixed_message
-
-        total_ms = (time.time() - execute_start) * 1000
-        log_context.info(
-            f"[Parallel] Total latency (guardrail overlapped with execution): {total_ms:.1f}ms"
-        )
-        # log_context.info(f"[Sequential] Total latency (guardrail then execution): {total_ms:.1f}ms")
 
         return node_response, params
