@@ -188,14 +188,16 @@ class AgentGraph(GraphBase):
                 else:
                     self.agents_safety_response[agent_data.name] = ""
                 agent_data_map[agent_data.name] = agent_data
-                self.agents[agent_data.name] = Agent(
-                    name=agent_data.name,
-                    instructions=prompt,
-                    tools=agents_tools,
-                    handoff_description=agent_data.handoff_description,
-                    model=self.model,
-                    model_settings=self.model_settings,
-                )
+                agent_kwargs: dict[str, Any] = {
+                    "name": agent_data.name,
+                    "instructions": prompt,
+                    "tools": agents_tools,
+                    "handoff_description": agent_data.handoff_description,
+                    "model": self.model,
+                }
+                if self.model_settings is not None:
+                    agent_kwargs["model_settings"] = self.model_settings
+                self.agents[agent_data.name] = Agent(**agent_kwargs)
             elif (
                 resource["id"] == AgentItem.INPUT_GUARDRAIL
                 or resource["id"] == AgentItem.OUTPUT_GUARDRAIL

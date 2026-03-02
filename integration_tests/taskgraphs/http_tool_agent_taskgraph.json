@@ -1,7 +1,8 @@
 {
     "llm_config": {
         "model_type_or_path": "gpt-4o",
-        "llm_provider": "openai"
+        "llm_provider": "openai",
+        "langchain_model_kwargs": {}
     },
     "nodes": [
         [
