@@ -1,3 +1,4 @@
+import concurrent.futures
 import copy
 import time
 from typing import Any
@@ -30,11 +31,27 @@ from arklex.utils.utils import format_chat_history
 
 log_context = LogContext(__name__)
 
+_GUARDRAIL_SCHEMA: dict = {
+    "title": "GuardrailOutput",
+    "description": "Structured output for guardrail check",
+    "type": "object",
+    "properties": {
+        "violated": {
+            "type": "boolean",
+            "description": "True if the user message violates the policy",
+        },
+    },
+    "required": ["violated"],
+    "additionalProperties": False,
+}
+
 
 class NLUAgentData(BaseModel):
     prompt: str
     response_length: int
     language: str
+    input_guardrail_description: str | None = None
+    input_guardrail_fixed_message: str | None = None
 
 
 @register_agent
@@ -44,9 +61,11 @@ class NLUAgent(BaseAgent):
         llm_config: LLMConfig,
         nlu_graph: NLUGraph,
         executor: Executor,
+        guardrail_llm_config: LLMConfig,
     ) -> None:
         self.user_prefix = "user"
         self.llm_config = llm_config
+        self.guardrail_llm_config = guardrail_llm_config
         self.executor = executor
         self.nlu_graph = nlu_graph
         self.agent_data: NLUAgentData = NLUAgentData.model_validate(
@@ -64,6 +83,42 @@ class NLUAgent(BaseAgent):
                 self.agent_data.prompt
                 + f"限制回复长度在{self.agent_data.response_length}字以内"
             )
+
+    def check_input_guardrail(self, text: str, chat_history_str: str = "") -> bool:
+        """Returns True if the input violates the guardrail and should be blocked."""
+        history_section = ""
+        if chat_history_str:
+            history_section = f"Conversation history:\n{chat_history_str}\n"
+        prompt = (
+            "You are a safety guardrail. Determine if the following user message violates the policy.\n"
+            f"Policy: {self.agent_data.input_guardrail_description}\n"
+            f"{history_section}"
+            f"User message: {text}\n"
+        )
+        log_context.info(
+            f"Input guardrail using model: {self.guardrail_llm_config.model_type_or_path}"
+        )
+        model_service: ModelService = ModelService(self.guardrail_llm_config)
+        try:
+            response = model_service.get_response_with_structured_output(
+                prompt, _GUARDRAIL_SCHEMA
+            )
+            return bool(response.get("violated", False))
+        except Exception as e:
+            log_context.error(f"Input guardrail check failed: {e}")
+            return False  # Fail open
+
+    def _guardrail_triggered(
+        self, guardrail_future: concurrent.futures.Future[bool] | None
+    ) -> bool:
+        """Non-blocking check if the parallel guardrail has flagged the input."""
+        if guardrail_future is None or not guardrail_future.done():
+            return False
+        try:
+            return guardrail_future.result(timeout=0)
+        except Exception as e:
+            log_context.error(f"Input guardrail future error: {e}")
+            return False
 
     def init_params(
         self, inputs: dict[str, Any]
@@ -174,6 +229,16 @@ class NLUAgent(BaseAgent):
         message_queue: janus.Queue | None,
     ) -> tuple[str, str, OrchestratorParams, OrchestratorState]:
         text, chat_history_str, params, orch_state = self.init_params(inputs)
+
+        # --- Parallel guardrail: runs alongside execution ---
+        guardrail_executor = None
+        guardrail_future = None
+        if self.agent_data.input_guardrail_description and text != "<start>":
+            guardrail_executor = concurrent.futures.ThreadPoolExecutor(max_workers=1)
+            guardrail_future = guardrail_executor.submit(
+                self.check_input_guardrail, text, chat_history_str
+            )
+
         # NLU Graph Chain
         nlugraph_inputs: dict[str, Any] = {
             "text": text,
@@ -188,6 +253,14 @@ class NLUAgent(BaseAgent):
         n_node_performed = 0
         max_n_node_performed = 5
         while n_node_performed < max_n_node_performed:
+            if self._guardrail_triggered(guardrail_future):
+                guardrail_executor.shutdown(wait=False)
+                log_context.info("[Input guardrail] Early abort")
+                return NodeResponse(
+                    status=StatusEnum.COMPLETE,
+                    response=self.agent_data.input_guardrail_fixed_message,
+                ), params
+
             nlugraph_start_time = time.time()
             node_info, nlu_params = nlugraph_chain.invoke(nlugraph_inputs)
             nlugraph_inputs["allow_global_intent_switch"] = False
@@ -221,6 +294,14 @@ class NLUAgent(BaseAgent):
             if node_info.is_leaf is True:
                 break
 
+        if not node_response.response and self._guardrail_triggered(guardrail_future):
+            guardrail_executor.shutdown(wait=False)
+            log_context.info("[Input guardrail] Early abort before context generation")
+            return NodeResponse(
+                status=StatusEnum.COMPLETE,
+                response=self.agent_data.input_guardrail_fixed_message,
+            ), params
+
         if not node_response.response:
             log_context.info("No response, do context generation")
             if stream_type == StreamType.NON_STREAM:
@@ -233,4 +314,20 @@ class NLUAgent(BaseAgent):
             orch_state,
             node_response,
         )
+
+        # Check guardrail result (ran in parallel with the execution above)
+        if guardrail_future is not None:
+            try:
+                triggered = guardrail_future.result(timeout=30)
+            except Exception as e:
+                log_context.error(f"[Input guardrail] future error: {e}")
+                triggered = False
+            finally:
+                guardrail_executor.shutdown(wait=False)
+            if triggered:
+                log_context.info(
+                    "[Input guardrail] triggered, returning the fixed block message"
+                )
+                node_response.response = self.agent_data.input_guardrail_fixed_message
+
         return node_response, params

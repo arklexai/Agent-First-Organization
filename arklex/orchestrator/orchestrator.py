@@ -75,6 +75,9 @@ class AgentOrg:
         self.llm_config: LLMConfig = LLMConfig.model_validate(
             self.config.get("llm_config", {})
         )
+        self.guardrail_llm_config: LLMConfig = LLMConfig.model_validate(
+            self.config.get("guardrail_llm_config", {})
+        )
         self.executor: Executor = executor
         self.agents: dict[str, dict[str, Any]] = AgentLoader.init_agents(DEFAULT_AGENTS)
         self.nlu_graph: NLUGraph = NLUGraph(
@@ -109,7 +112,10 @@ class AgentOrg:
         message_queue: janus.Queue | None = None,
     ) -> OrchestratorResp:
         nlu_agent = self.agents[AgentItem.NLU_AGENT]["agent_instance"](
-            self.llm_config, self.nlu_graph, self.executor
+            self.llm_config,
+            self.nlu_graph,
+            self.executor,
+            guardrail_llm_config=self.guardrail_llm_config,
         )
         node_response, params = nlu_agent.execute(inputs, stream_type, message_queue)
         return OrchestratorResp(

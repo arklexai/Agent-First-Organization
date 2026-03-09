@@ -99,7 +99,7 @@ class ModelService:
             if system_prompt:
                 messages.append(SystemMessage(content=system_prompt))
             messages.append(HumanMessage(content=prompt))
-            llm = self.model.with_structured_output(schema)
+            llm = self.model.with_structured_output(schema, strict=True)
             return llm.invoke(messages)
         else:
             return self.get_response(prompt, system_prompt)
