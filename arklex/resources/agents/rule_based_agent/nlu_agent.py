@@ -31,6 +31,20 @@ from arklex.utils.utils import format_chat_history
 
 log_context = LogContext(__name__)
 
+_GUARDRAIL_SCHEMA: dict = {
+    "title": "GuardrailOutput",
+    "description": "Structured output for guardrail check",
+    "type": "object",
+    "properties": {
+        "violated": {
+            "type": "boolean",
+            "description": "True if the user message violates the policy",
+        },
+    },
+    "required": ["violated"],
+    "additionalProperties": False,
+}
+
 
 class NLUAgentData(BaseModel):
     prompt: str
@@ -47,13 +61,11 @@ class NLUAgent(BaseAgent):
         llm_config: LLMConfig,
         nlu_graph: NLUGraph,
         executor: Executor,
-        guardrail_llm_config: LLMConfig | None = None,
+        guardrail_llm_config: LLMConfig,
     ) -> None:
         self.user_prefix = "user"
         self.llm_config = llm_config
-        self.guardrail_llm_config = guardrail_llm_config or LLMConfig(
-            model_type_or_path="gpt-4o-mini", langchain_model_kwargs={}
-        )
+        self.guardrail_llm_config = guardrail_llm_config
         self.executor = executor
         self.nlu_graph = nlu_graph
         self.agent_data: NLUAgentData = NLUAgentData.model_validate(
@@ -82,15 +94,16 @@ class NLUAgent(BaseAgent):
             f"Policy: {self.agent_data.input_guardrail_description}\n"
             f"{history_section}"
             f"User message: {text}\n"
-            "Answer only 'yes' if it violates, or 'no' if it does not."
         )
         log_context.info(
             f"Input guardrail using model: {self.guardrail_llm_config.model_type_or_path}"
         )
         model_service: ModelService = ModelService(self.guardrail_llm_config)
         try:
-            response = model_service.get_response(prompt)
-            return str(response).lower().strip() == "yes"
+            response = model_service.get_response_with_structured_output(
+                prompt, _GUARDRAIL_SCHEMA
+            )
+            return bool(response.get("violated", False))
         except Exception as e:
             log_context.error(f"Input guardrail check failed: {e}")
             return False  # Fail open

@@ -75,10 +75,8 @@ class AgentOrg:
         self.llm_config: LLMConfig = LLMConfig.model_validate(
             self.config.get("llm_config", {})
         )
-        self.guardrail_llm_config: LLMConfig | None = (
-            LLMConfig.model_validate(self.config["guardrail_llm_config"])
-            if self.config.get("guardrail_llm_config")
-            else None
+        self.guardrail_llm_config: LLMConfig = LLMConfig.model_validate(
+            self.config.get("guardrail_llm_config", {})
         )
         self.executor: Executor = executor
         self.agents: dict[str, dict[str, Any]] = AgentLoader.init_agents(DEFAULT_AGENTS)
