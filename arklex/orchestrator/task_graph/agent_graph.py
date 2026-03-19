@@ -193,7 +193,7 @@ class AgentGraph(GraphBase):
                     "instructions": prompt,
                     "tools": agents_tools,
                     "handoff_description": agent_data.handoff_description,
-                    "model": self.model,
+                    "model": agent_data.model or self.model,
                 }
                 if self.model_settings is not None:
                     agent_kwargs["model_settings"] = self.model_settings
@@ -378,5 +378,6 @@ class RealtimeAgentGraph(GraphBase):
             speed=start_agent_data.speed,
             turn_detection=start_agent_data.turn_detection,
             voicemail_tool=voicemail_tool,
+            model=start_agent_data.model,
         )
         self.start_agent.response_played = response_played_event

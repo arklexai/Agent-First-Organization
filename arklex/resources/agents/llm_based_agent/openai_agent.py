@@ -39,6 +39,7 @@ class OpenAIAgentData(BaseModel):
     agent_start_message: str | None = None
     handoff_description: str | None = None
     safety_response: str | None = None
+    model: str | None = None
 
 
 class OpenAIAgentOutput(BaseModel):

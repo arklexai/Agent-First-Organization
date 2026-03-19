@@ -56,6 +56,12 @@ class NLUGraph(GraphBase):
         }
         model_service = ModelService(llm_config)
         self.intent_detector: IntentDetector = IntentDetector(model_service)
+        self.llm_config = llm_config
+    
+    def update_llm_config(self, new_config: LLMConfig) -> None:
+        self.llm_config = new_config
+        model_service = ModelService(self.llm_config)
+        self.intent_detector = IntentDetector(model_service)
 
     def get_pred_intents(self) -> collections.defaultdict[str, list[dict[str, Any]]]:
         intents: collections.defaultdict[str, list[dict[str, Any]]] = (
