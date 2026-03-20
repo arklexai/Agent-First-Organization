@@ -39,6 +39,9 @@ pip install -e .
 python test_api_keys.py
 
 # Create your first agent
+# The current `main` branch does not include a top-level `create.py` script, even though some older instructions may still reference it.
+# If you are getting started, use one of the prebuilt examples under `examples/` and run the agent with `run.py`.
+
 python create.py \
   --config ./examples/customer_service/customer_service_config.json \
   --output-dir ./examples/customer_service \
