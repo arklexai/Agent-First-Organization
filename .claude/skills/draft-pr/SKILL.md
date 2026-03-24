@@ -39,14 +39,7 @@ Fill in each section from the template:
 - **Description** (min 10 words): why the change is needed, how it works, side effects
 - **Tests** (min 10 words): describe what was tested, mention test commands run
 
-### 5. Remind about test labels
-
-The contributor must attach one of these labels after creating the PR:
-- `run-coverage-tests` - full test suite with coverage (45% minimum)
-- `run-diff-coverage-tests` - coverage on changed files only
-- `run-integration-tests` - integration tests (skips coverage gate)
-
-### 6. Output
+### 5. Output
 
 Print the generated title and full PR body in raw markdown format, ready to copy.
 If an open PR already exists for this branch, offer to update it with `gh pr edit`.

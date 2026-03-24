@@ -18,7 +18,7 @@ Review a PR for functional correctness and project conventions. Focus on logic, 
 ### 1. Load PR context
 
 ```bash
-gh pr view $ARGUMENTS --json title,body,files,labels,additions,deletions
+gh pr view $ARGUMENTS --json title,body,files,additions,deletions
 gh pr diff $ARGUMENTS
 ```
 
@@ -28,16 +28,7 @@ gh pr diff $ARGUMENTS
 - Description sections meet word minimums (Summary 5w, Description 10w, Tests 10w)
 - These are also CI-enforced, so flag only if CI somehow missed them
 
-### 3. Check test labels
-
-Verify one of these labels is present:
-- `run-coverage-tests`
-- `run-diff-coverage-tests`
-- `run-integration-tests`
-
-If missing, flag it.
-
-### 4. Review functional changes
+### 3. Review functional changes
 
 Focus on:
 - Logic correctness: does the code do what the PR claims?
@@ -68,7 +59,6 @@ One-sentence assessment.
 ## Checklist
 - [ ] Title matches Conventional Commits
 - [ ] Description sections meet word minimums
-- [ ] Test label attached
 - [ ] Functional correctness verified
 - [ ] Tests cover new/changed code
 - [ ] No secrets in diff

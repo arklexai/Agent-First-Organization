@@ -44,18 +44,10 @@ pytest tests/ --cov=arklex --cov-fail-under=45  # with coverage gate
 - Markers: integration, no_intent_mock, no_llm_mock, shopify, hubspot, hitl, slow
 - Async mode: auto (pytest-asyncio)
 
-### Test labels (CI)
-
-Add one of these labels to your PR to trigger the appropriate test workflow:
-- `run-coverage-tests` - full coverage run
-- `run-diff-coverage-tests` - coverage on changed files only
-- `run-integration-tests` - integration test suite (skips coverage)
-
 ## CI checks
 
-- `pr-check.yml` validates PR description sections (Summary, Description, Tests)
-- PR title validation enforces Conventional Commits format and 72-char limit
-- Coverage workflows triggered by PR labels (see above)
+- `pr-check.yml` validates PR title (Conventional Commits, 72-char limit) and description sections (Summary, Description, Tests)
+- Coverage and integration test workflows run automatically on PRs
 
 ## Pre-commit hooks
 
