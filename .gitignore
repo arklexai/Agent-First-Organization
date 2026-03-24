@@ -53,3 +53,9 @@ local/*
 #####################################
 test_dir/simulate_data/*.json
 *.json.tmp
+
+# AI tool local config
+.claude/*
+!.claude/skills/
+!.claude/rules/
+!.claude/settings.json

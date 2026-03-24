@@ -5,6 +5,41 @@ on:
     types: [opened, edited, synchronize]
 
 jobs:
+  check-pr-title:
+    name: Validate PR title
+    runs-on: ubuntu-latest
+    steps:
+      - name: Validate PR title format
+        uses: actions/github-script@v8
+        with:
+          script: |
+            const title = context.payload.pull_request.title;
+
+            if (title.length > 72) {
+              core.setFailed(
+                `PR title is ${title.length} characters (max 72).\n` +
+                `Title: "${title}"`
+              );
+              return;
+            }
+
+            const pattern = /^(feat|fix|docs|chore|ci|build|refactor|test|perf|style|revert)(\([a-z][a-z0-9_-]*\))?!?: .+$/;
+            if (!pattern.test(title)) {
+              core.setFailed(
+                `PR title does not match the required format.\n\n` +
+                `Expected: <type>(<scope>): <description>\n` +
+                `  - type: feat, fix, docs, chore, ci, build, refactor, test, perf, style, revert\n` +
+                `  - scope (optional): lowercase, may contain digits, hyphens, underscores\n` +
+                `  - description: free text\n\n` +
+                `Common mistakes:\n` +
+                `  BAD:  orchestrator: add retry logic     (component as type)\n` +
+                `  GOOD: feat(orchestrator): add retry logic\n` +
+                `  BAD:  AGML-225: add feature             (ticket ID as type)\n` +
+                `  GOOD: feat: add feature\n\n` +
+                `Got: "${title}"`
+              );
+            }
+
   check-pr-description:
     runs-on: ubuntu-latest
     env:
