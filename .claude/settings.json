@@ -1,0 +1,38 @@
+{
+  "hooks": {
+    "SessionStart": [
+      {
+        "matcher": "",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "BRANCH=$(git branch --show-current 2>/dev/null); PR=$(gh pr list --head=\"$BRANCH\" --state=open --json url,title -q '.[0] | \"\\(.title) \\(.url)\"' 2>/dev/null); echo \"Branch: ${BRANCH:-detached}\"; [ -n \"$PR\" ] && echo \"Open PR: $PR\" || echo \"Open PR: none\""
+          }
+        ]
+      }
+    ],
+    "PreToolUse": [
+      {
+        "matcher": "Edit|Write",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "FILE=$(jq -r '.tool_input.file_path' 2>/dev/null); [[ \"$FILE\" =~ \\.(env\\.sample|env\\.example)$ ]] && exit 0; [[ \"$FILE\" =~ \\.(env|env\\..*)$ ]] && echo 'Blocked: do not edit .env files' >&2 && exit 2; [[ \"$FILE\" =~ (secrets|credentials|keys)/ ]] && echo 'Blocked: protected directory' >&2 && exit 2; exit 0"
+          }
+        ]
+      }
+    ],
+    "PostToolUse": [
+      {
+        "matcher": "Edit|Write",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "FILE=$(jq -r '.tool_input.file_path' 2>/dev/null); [ -z \"$FILE\" ] && exit 0; if [[ \"$FILE\" == *.py ]]; then ruff format \"$FILE\" 2>/dev/null || true; ruff check --fix \"$FILE\" 2>/dev/null || true; fi; exit 0",
+            "timeout": 30
+          }
+        ]
+      }
+    ]
+  }
+}
