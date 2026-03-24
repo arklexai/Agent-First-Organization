@@ -48,5 +48,5 @@ The contributor must attach one of these labels after creating the PR:
 
 ### 6. Output
 
-Print the generated title and full PR body in markdown, ready to copy.
+Print the generated title and full PR body in raw markdown format, ready to copy.
 If an open PR already exists for this branch, offer to update it with `gh pr edit`.

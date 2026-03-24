@@ -10,7 +10,7 @@ paths:
 - Lint rules: E (pycodestyle), F (pyflakes), I (isort), UP (pyupgrade), ANN (annotations), B (bugbear), SIM (simplify), C4 (comprehensions), TID (tidy-imports)
 - Ignored: E501 (line too long, handled by formatter)
 - Format: double quotes, space indent, no magic trailing comma skip, auto line endings
-- Absolute imports only
+- Absolute imports preferred. Single-level relative imports (`from .module import ...`) are allowed. Multi-level relative imports (`from ..module import ...`) are not.
 - Type annotations on all function signatures
 - No license header required (MIT license)
 - Target version: Python 3.10

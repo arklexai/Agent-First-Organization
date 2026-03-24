@@ -11,67 +11,56 @@ allowed-tools: Bash, Read, Grep, Glob
 
 # Review PR
 
-Review a PR for code quality, conventions, and CI readiness.
+Review a PR for functional correctness and project conventions. Focus on logic, architecture, and behavior. Formatting issues are caught by CI (ruff, pre-commit) and do not need manual review.
 
 ## Steps
 
 ### 1. Load PR context
 
 ```bash
-gh pr view "$1" --json title,body,files,labels,additions,deletions
-gh pr diff "$1"
+gh pr view $ARGUMENTS --json title,body,files,labels,additions,deletions
+gh pr diff $ARGUMENTS
 ```
 
-### 2. Validate PR title
+### 2. Validate PR title and description
 
-Check against Conventional Commits regex (must pass CI):
+- Title matches Conventional Commits regex, under 72 chars
+- Description sections meet word minimums (Summary 5w, Description 10w, Tests 10w)
+- These are also CI-enforced, so flag only if CI somehow missed them
 
-```
-^(feat|fix|docs|chore|ci|build|refactor|test|perf|style|revert)(\([a-z][a-z0-9_-]*\))?!?: .+$
-```
-
-- Max 72 characters
-- Common mistakes: component name as type (`orchestrator: ...`), ticket ID as type
-
-### 3. Validate PR description
-
-Check the PR body against the template in `.github/pull_request_template.md`:
-- `## Summary` section: at least 5 words of content
-- `## Description` section: at least 10 words of content
-- `## Tests` section: at least 10 words of content
-- Comments and unchecked checkboxes do not count
-
-### 4. Check test labels
+### 3. Check test labels
 
 Verify one of these labels is present:
 - `run-coverage-tests`
 - `run-diff-coverage-tests`
 - `run-integration-tests`
 
-If missing, flag it. The PR template asks contributors to attach one.
+If missing, flag it.
 
-### 5. Review code changes
+### 4. Review functional changes
 
-For each changed file in `gh pr diff`:
-- **Python files**: check for type annotations, absolute imports, ruff compliance
-- **Test files**: verify new/changed code has corresponding tests
+Focus on:
+- Logic correctness: does the code do what the PR claims?
+- Edge cases: are error paths handled?
+- API changes: are they backwards compatible or properly marked as breaking?
+- Security: no hardcoded secrets, no unsanitized input in dangerous contexts
+- Performance: any obvious inefficiencies?
+
+### 5. Check scope
+
+- Single concern per PR
+- Flag unrelated changes bundled together
+
+### 6. Check test coverage
+
+- New behavior should have tests
 - Coverage minimum is 45%. Flag large additions without tests.
-- No license headers needed (MIT)
 
-### 6. Check for common issues
-
-- Secrets or credentials in diff (API keys, tokens, passwords)
-- Large files or binaries that should not be committed
-- Changes to .env files (should be .env.example only)
-- Missing docstrings on public functions/classes
-
-### 7. Write review
-
-Structure the review as:
+## Output
 
 ```
 ## Summary
-One-sentence summary of the PR.
+One-sentence assessment.
 
 ## Findings
 - List issues grouped by severity (blocking, suggestion, nit)
@@ -80,8 +69,9 @@ One-sentence summary of the PR.
 - [ ] Title matches Conventional Commits
 - [ ] Description sections meet word minimums
 - [ ] Test label attached
+- [ ] Functional correctness verified
 - [ ] Tests cover new/changed code
 - [ ] No secrets in diff
 ```
 
-Use natural sentence breaks. Do not use em dashes or en dashes.
+End with: APPROVED, CHANGES REQUESTED, or NEEDS DISCUSSION.
