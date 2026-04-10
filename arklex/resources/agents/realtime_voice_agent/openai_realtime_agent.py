@@ -84,6 +84,7 @@ class OpenAIRealtimeAgentData(BaseModel):
     transcription_language: str | None = None
     speed: float = 1.0
     turn_detection: TurnDetection | None = None
+    model: str = "gpt-realtime-1.5"
 
 
 @register_agent
@@ -105,6 +106,7 @@ class OpenAIRealtimeAgent(BaseAgent):
         speed: float = 1.0,
         turn_detection: TurnDetection | None = None,
         voicemail_tool: Tool | None = None,
+        model: str = "gpt-realtime-1.5",
     ) -> None:
         """
         Initialize the OpenAI Realtime Agent.
@@ -134,6 +136,7 @@ class OpenAIRealtimeAgent(BaseAgent):
         self.transcript = []
         self.transcript_available: asyncio.Event = asyncio.Event()
         self.call_sid = None
+        self.model = model
         # this event is used to signal that the audio response has finished playing through twilio
         self.response_played: threading.Event = threading.Event()
         self.transcription_language = transcription_language
@@ -194,7 +197,7 @@ class OpenAIRealtimeAgent(BaseAgent):
             starting_agent=self.realtime_agent,
             config=RealtimeRunConfig(
                 model_settings=RealtimeSessionModelSettings(
-                    model_name="gpt-realtime-1.5",
+                    model_name=self.model,
                     input_audio_format=self.input_audio_format,
                     output_audio_format=self.output_audio_format,
                     input_audio_transcription=RealtimeInputAudioTranscriptionConfig(

@@ -52,25 +52,26 @@ class NLUAgentData(BaseModel):
     language: str
     input_guardrail_description: str | None = None
     input_guardrail_fixed_message: str | None = None
+    model: str | None = None
 
 
 @register_agent
 class NLUAgent(BaseAgent):
     def __init__(
         self,
-        llm_config: LLMConfig,
         nlu_graph: NLUGraph,
         executor: Executor,
         guardrail_llm_config: LLMConfig,
     ) -> None:
         self.user_prefix = "user"
-        self.llm_config = llm_config
         self.guardrail_llm_config = guardrail_llm_config
         self.executor = executor
         self.nlu_graph = nlu_graph
         self.agent_data: NLUAgentData = NLUAgentData.model_validate(
             self.nlu_graph.agent_node.data
         )
+
+        self.llm_config = nlu_graph.llm_config
 
     def format_system_prompt(self) -> str:
         if self.agent_data.language == "EN":
@@ -144,7 +145,7 @@ class NLUAgent(BaseAgent):
         params.memory.trajectory.append([])
 
         orch_state: OrchestratorState = OrchestratorState(
-            sys_instruct=self.agent_data.prompt,
+            sys_instruct=self.format_system_prompt(),
             bot_config=BotConfig(
                 language=self.agent_data.language,
                 llm_config=self.llm_config,
