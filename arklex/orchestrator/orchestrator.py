@@ -112,7 +112,6 @@ class AgentOrg:
         message_queue: janus.Queue | None = None,
     ) -> OrchestratorResp:
         nlu_agent = self.agents[AgentItem.NLU_AGENT]["agent_instance"](
-            self.llm_config,
             self.nlu_graph,
             self.executor,
             guardrail_llm_config=self.guardrail_llm_config,

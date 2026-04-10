@@ -59,7 +59,6 @@ class NLUAgentData(BaseModel):
 class NLUAgent(BaseAgent):
     def __init__(
         self,
-        llm_config: LLMConfig,
         nlu_graph: NLUGraph,
         executor: Executor,
         guardrail_llm_config: LLMConfig,
@@ -72,12 +71,7 @@ class NLUAgent(BaseAgent):
             self.nlu_graph.agent_node.data
         )
 
-        if self.agent_data.model:
-            update_kwargs = {"model_type_or_path": self.agent_data.model}
-            self.llm_config = llm_config.model_copy(update=update_kwargs)
-            self.nlu_graph.update_llm_config(self.llm_config)
-        else:
-            self.llm_config = llm_config
+        self.llm_config = nlu_graph.llm_config
 
     def format_system_prompt(self) -> str:
         if self.agent_data.language == "EN":

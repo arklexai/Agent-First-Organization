@@ -42,6 +42,9 @@ class NLUGraph(GraphBase):
         )  # global intents
         self.agent_node: NodeInfo = self.get_agent_node()
         log_context.info(f"agent_node: {self.agent_node}")
+        agent_model = self.agent_node.data.get("model")
+        if agent_model:
+            llm_config = llm_config.model_copy(update={"model_type_or_path": agent_model})
         self.start_node: str = self.get_start_node()
         self.unsure_intent: dict[str, Any] = {
             "intent": "others",
@@ -58,11 +61,6 @@ class NLUGraph(GraphBase):
         self.intent_detector: IntentDetector = IntentDetector(model_service)
         self.llm_config = llm_config
     
-    def update_llm_config(self, new_config: LLMConfig) -> None:
-        self.llm_config = new_config
-        model_service = ModelService(self.llm_config)
-        self.intent_detector = IntentDetector(model_service)
-
     def get_pred_intents(self) -> collections.defaultdict[str, list[dict[str, Any]]]:
         intents: collections.defaultdict[str, list[dict[str, Any]]] = (
             collections.defaultdict(list)

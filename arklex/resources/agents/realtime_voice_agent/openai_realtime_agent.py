@@ -84,7 +84,7 @@ class OpenAIRealtimeAgentData(BaseModel):
     transcription_language: str | None = None
     speed: float = 1.0
     turn_detection: TurnDetection | None = None
-    model: str | None = None
+    model: str = "gpt-realtime-1.5"
 
 
 @register_agent
